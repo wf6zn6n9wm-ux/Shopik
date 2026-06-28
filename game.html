@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Shopik Catch — лови замовлення</title>
+<style>
+  :root{
+    --bg:#161616; --bg2:#1a1a1a; --panel:#1d1d1d;
+    --red:#d23b3b; --gold:#e3b341; --green:#2faa55; --tg:#229ED9;
+    --cream:#f7f5f2; --muted:#9a9a9a; --line:#2a2a2a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%; background:var(--bg); color:var(--cream);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overscroll-behavior:none; user-select:none;}
+  #wrap{position:fixed; inset:0; display:flex; align-items:center; justify-content:center;}
+  #stage{position:relative; width:100%; height:100%; max-width:520px; max-height:920px;
+    background:radial-gradient(120% 80% at 50% 0%, #202020 0%, var(--bg) 60%);
+    overflow:hidden; box-shadow:0 0 60px rgba(0,0,0,.6);}
+  canvas{display:block; width:100%; height:100%; touch-action:none;}
+
+  .hud{position:absolute; top:0; left:0; right:0; padding:14px 16px;
+    display:flex; justify-content:space-between; align-items:flex-start; pointer-events:none; z-index:5;}
+  .pill{background:rgba(20,20,20,.72); backdrop-filter:blur(6px);
+    border:1px solid var(--line); border-radius:14px; padding:8px 12px; line-height:1.1;}
+  .pill .lbl{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);}
+  .pill .val{font-size:20px; font-weight:800; margin-top:2px;}
+  .val.gold{color:var(--gold);} .val.red{color:var(--red);}
+  .lives{font-size:20px; letter-spacing:2px;}
+
+  .overlay{position:absolute; inset:0; z-index:10; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; padding:28px;
+    background:rgba(12,12,12,.86); backdrop-filter:blur(4px);}
+  .logo{font-size:34px; font-weight:900; letter-spacing:-.02em;}
+  .logo .dot{color:var(--red);}
+  .tag{color:var(--muted); margin-top:6px; font-size:14px; max-width:300px;}
+  .legend{margin:22px 0 8px; display:grid; grid-template-columns:1fr 1fr; gap:10px 18px;
+    font-size:13px; color:#d8d8d8; text-align:left;}
+  .legend b{font-size:18px; vertical-align:-2px;}
+  .btn{margin-top:22px; background:var(--red); color:#fff; border:0; cursor:pointer;
+    font-size:18px; font-weight:800; padding:15px 38px; border-radius:16px;
+    box-shadow:0 8px 24px rgba(210,59,59,.35); transition:transform .08s ease;}
+  .btn:active{transform:scale(.96);}
+  .small{margin-top:14px; font-size:12px; color:var(--muted);}
+  .big{font-size:46px; font-weight:900; margin-bottom:2px;}
+  .hide{display:none !important;}
+  .flash{position:absolute; inset:0; z-index:8; pointer-events:none; opacity:0;
+    background:var(--red); mix-blend-mode:screen;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage">
+    <canvas id="c"></canvas>
+
+    <div class="hud">
+      <div class="pill"><div class="lbl">Виручка</div><div class="val gold" id="score">0 ₴</div></div>
+      <div class="pill" style="text-align:center"><div class="lbl">Рівень</div><div class="val" id="level">1</div></div>
+      <div class="pill" style="text-align:right"><div class="lbl">Життя</div><div class="lives red" id="lives">❤❤❤</div></div>
+    </div>
+
+    <div class="flash" id="flash"></div>
+
+    <div class="overlay" id="start">
+      <div class="logo">Shopik<span class="dot"> Catch</span></div>
+      <div class="tag">Лови замовлення у корзину. Не впусти — і стережись бомб 💣</div>
+      <div class="legend">
+        <div><b>🛍️</b> товар &nbsp;+50 ₴</div>
+        <div><b>📦</b> замовлення +120 ₴</div>
+        <div><b>💎</b> VIP &nbsp;+300 ₴</div>
+        <div><b>💣</b> бомба &nbsp;−1 ❤</div>
+      </div>
+      <button class="btn" id="startBtn">Грати</button>
+      <div class="small">⌨️ стрілки / A-D &nbsp;·&nbsp; 📱 веди пальцем</div>
+    </div>
+
+    <div class="overlay hide" id="over">
+      <div class="big" id="overTitle">Час вийшов</div>
+      <div class="tag">Твоя виручка</div>
+      <div class="logo gold" id="finalScore" style="color:var(--gold); margin-top:6px;">0 ₴</div>
+      <div class="small" id="best">Рекорд: 0 ₴</div>
+      <button class="btn" id="againBtn">Ще раз</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const cv = document.getElementById('c');
+  const ctx = cv.getContext('2d');
+  const stage = document.getElementById('stage');
+  const elScore = document.getElementById('score');
+  const elLevel = document.getElementById('level');
+  const elLives = document.getElementById('lives');
+  const elFlash = document.getElementById('flash');
+  const startScreen = document.getElementById('start');
+  const overScreen = document.getElementById('over');
+  const elFinal = document.getElementById('finalScore');
+  const elBest = document.getElementById('best');
+  const elOverTitle = document.getElementById('overTitle');
+
+  let W = 0, H = 0, DPR = 1;
+  function resize(){
+    const r = stage.getBoundingClientRect();
+    W = r.width; H = r.height;
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * DPR);
+    cv.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // ---- item kinds ----
+  const KINDS = [
+    { emoji:'🛍️', value:50,  weight:50, good:true },
+    { emoji:'👗', value:50,  weight:18, good:true },
+    { emoji:'👟', value:50,  weight:14, good:true },
+    { emoji:'📦', value:120, weight:22, good:true },
+    { emoji:'💎', value:300, weight:6,  good:true },
+    { emoji:'💣', value:0,   weight:24, good:false },
+  ];
+  const TOTAL_W = KINDS.reduce((s,k)=>s+k.weight,0);
+  function pickKind(){
+    let r = Math.random()*TOTAL_W;
+    for(const k of KINDS){ if((r-=k.weight)<=0) return k; }
+    return KINDS[0];
+  }
+
+  // ---- state ----
+  let items, particles, score, lives, level, running, spawnT, spawnGap, t0, combo, comboT;
+  const cart = { x:0, w:96, h:60, y:0 };
+  let best = +(localStorage.getItem('shopik_catch_best')||0);
+
+  function reset(){
+    items = []; particles = [];
+    score = 0; lives = 3; level = 1;
+    running = true; spawnT = 0; spawnGap = 900;
+    combo = 0; comboT = 0;
+    cart.x = W/2; cart.w = Math.max(78, Math.min(110, W*0.22));
+    cart.y = H - 92;
+    updateHud();
+  }
+
+  function updateHud(){
+    elScore.textContent = Math.round(score).toLocaleString('uk-UA') + ' ₴';
+    elLevel.textContent = level;
+    elLives.textContent = '❤'.repeat(Math.max(0,lives)) || '—';
+  }
+
+  // ---- spawning ----
+  function spawn(){
+    const k = pickKind();
+    const r = 22;
+    items.push({
+      kind:k, x: r+10 + Math.random()*(W-2*r-20), y:-30,
+      vy: (1.6 + level*0.32) * (60), // px/sec base
+      r, rot:(Math.random()-0.5)*0.6, vr:(Math.random()-0.5)*2,
+      wob: Math.random()*Math.PI*2,
+    });
+  }
+
+  function burst(x,y,color,n){
+    for(let i=0;i<n;i++){
+      const a = Math.random()*Math.PI*2, sp = 40+Math.random()*180;
+      particles.push({x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-40,
+        life:0.5+Math.random()*0.4, t:0, color, sz:2+Math.random()*3});
+    }
+  }
+
+  function flash(){
+    elFlash.style.transition='none'; elFlash.style.opacity='0.5';
+    requestAnimationFrame(()=>{ elFlash.style.transition='opacity .4s ease'; elFlash.style.opacity='0'; });
+  }
+
+  // ---- input ----
+  let targetX = null, keyL=false, keyR=false;
+  function pointerX(e){
+    const r = cv.getBoundingClientRect();
+    const cx = (e.touches? e.touches[0].clientX : e.clientX) - r.left;
+    return Math.max(0, Math.min(W, cx));
+  }
+  function onMove(e){ if(!running) return; targetX = pointerX(e); e.preventDefault(); }
+  cv.addEventListener('mousemove', onMove);
+  cv.addEventListener('mousedown', onMove);
+  cv.addEventListener('touchstart', onMove, {passive:false});
+  cv.addEventListener('touchmove', onMove, {passive:false});
+  window.addEventListener('keydown', e=>{
+    if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') keyL=true;
+    if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') keyR=true;
+  });
+  window.addEventListener('keyup', e=>{
+    if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') keyL=false;
+    if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') keyR=false;
+  });
+
+  // ---- loop ----
+  function tick(now){
+    if(!running){ return; }
+    const dt = Math.min(0.05, (now - t0)/1000); t0 = now;
+
+    // difficulty
+    level = 1 + Math.floor(score/600);
+    spawnGap = Math.max(360, 900 - level*55);
+    elLevel.textContent = level;
+
+    // cart movement
+    if(targetX!=null){
+      cart.x += (targetX - cart.x) * Math.min(1, dt*16);
+    }
+    const kbSpeed = 520;
+    if(keyL) cart.x -= kbSpeed*dt;
+    if(keyR) cart.x += kbSpeed*dt;
+    cart.x = Math.max(cart.w/2, Math.min(W-cart.w/2, cart.x));
+
+    // spawn
+    spawnT += dt*1000;
+    if(spawnT >= spawnGap){ spawnT = 0; spawn(); if(level>4 && Math.random()<0.3) spawn(); }
+
+    // combo decay
+    if(comboT>0){ comboT -= dt; if(comboT<=0) combo=0; }
+
+    // items
+    for(let i=items.length-1;i>=0;i--){
+      const it = items[i];
+      it.y += it.vy*dt*(1+level*0.04);
+      it.wob += dt*2;
+      it.x += Math.sin(it.wob)*8*dt;
+      it.rot += it.vr*dt;
+
+      // catch test
+      const inX = Math.abs(it.x - cart.x) < cart.w/2 + it.r*0.4;
+      const inY = it.y + it.r*0.5 > cart.y && it.y - it.r < cart.y + cart.h*0.6;
+      if(inX && inY){
+        if(it.kind.good){
+          combo = Math.min(combo+1, 9); comboT = 1.8;
+          const mult = 1 + (combo-1)*0.15;
+          const gain = it.kind.value*mult;
+          score += gain;
+          burst(it.x, cart.y, it.kind.value>=300?'#e3b341':'#2faa55', it.kind.value>=300?26:14);
+          floatText(it.x, cart.y-10, '+'+Math.round(gain), it.kind.value>=300?'#e3b341':'#7fe0a0');
+        } else {
+          lives--; combo=0;
+          burst(it.x, cart.y, '#d23b3b', 30);
+          flash();
+          floatText(it.x, cart.y-10, '−1 ❤', '#ff6b6b');
+          if(lives<=0){ items.splice(i,1); gameOver(); return; }
+        }
+        items.splice(i,1); updateHud(); continue;
+      }
+      // missed bottom
+      if(it.y - it.r > H){
+        if(it.kind.good){
+          lives--; combo=0;
+          floatText(it.x, H-30, 'упустив', '#9a9a9a');
+          flash();
+          if(lives<=0){ items.splice(i,1); gameOver(); return; }
+          updateHud();
+        }
+        items.splice(i,1);
+      }
+    }
+
+    // particles
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i]; p.t += dt;
+      p.vy += 380*dt; p.x += p.vx*dt; p.y += p.vy*dt;
+      if(p.t>=p.life) particles.splice(i,1);
+    }
+    // float texts
+    for(let i=floats.length-1;i>=0;i--){
+      const f=floats[i]; f.t+=dt; f.y-=40*dt;
+      if(f.t>=f.life) floats.splice(i,1);
+    }
+
+    draw();
+    requestAnimationFrame(tick);
+  }
+
+  // ---- floating score text ----
+  const floats = [];
+  function floatText(x,y,text,color){ floats.push({x,y,text,color,t:0,life:0.9}); }
+
+  // ---- drawing ----
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    // subtle floor line
+    ctx.strokeStyle='rgba(255,255,255,.05)';
+    ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0, cart.y+cart.h*0.55); ctx.lineTo(W, cart.y+cart.h*0.55); ctx.stroke();
+
+    // items
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(const it of items){
+      ctx.save();
+      ctx.translate(it.x, it.y);
+      ctx.rotate(it.rot);
+      ctx.font = (it.r*2)+'px serif';
+      // glow for VIP
+      if(it.kind.emoji==='💎'){ ctx.shadowColor='#e3b341'; ctx.shadowBlur=18; }
+      ctx.fillText(it.kind.emoji, 0, 0);
+      ctx.restore();
+    }
+
+    // particles
+    for(const p of particles){
+      const a = 1 - p.t/p.life;
+      ctx.globalAlpha = Math.max(0,a);
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.sz,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+
+    // cart (shopping bag)
+    drawCart();
+
+    // float texts
+    for(const f of floats){
+      ctx.globalAlpha = Math.max(0, 1-f.t/f.life);
+      ctx.fillStyle=f.color; ctx.font='800 18px -apple-system,Segoe UI,Roboto,sans-serif';
+      ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.globalAlpha=1;
+
+    // combo
+    if(combo>=2){
+      ctx.fillStyle='#e3b341'; ctx.font='900 16px -apple-system,Segoe UI,Roboto,sans-serif';
+      ctx.fillText('x'+combo+' комбо', W/2, cart.y-44);
+    }
+  }
+
+  function drawCart(){
+    const x = cart.x, y = cart.y, w = cart.w, h = cart.h;
+    ctx.save();
+    ctx.translate(x,y);
+    // body
+    const left=-w/2, top=0;
+    const grad = ctx.createLinearGradient(0,top,0,top+h);
+    grad.addColorStop(0,'#e85b5b'); grad.addColorStop(1,'#d23b3b');
+    roundRect(left, top, w, h, 12);
+    ctx.fillStyle=grad; ctx.fill();
+    // rim
+    ctx.fillStyle='#b73030';
+    roundRect(left-4, top-8, w+8, 16, 8); ctx.fill();
+    // handle
+    ctx.strokeStyle='#f1c0c0'; ctx.lineWidth=5; ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.arc(0, top-8, w*0.24, Math.PI, 0); ctx.stroke();
+    // shine
+    ctx.fillStyle='rgba(255,255,255,.18)';
+    roundRect(left+8, top+8, w*0.22, h*0.6, 6); ctx.fill();
+    ctx.restore();
+  }
+
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  // ---- flow ----
+  function startGame(){
+    resize();
+    startScreen.classList.add('hide');
+    overScreen.classList.add('hide');
+    reset();
+    targetX = cart.x;
+    t0 = performance.now();
+    requestAnimationFrame(tick);
+  }
+
+  function gameOver(){
+    running = false;
+    draw();
+    if(score > best){ best = Math.round(score); localStorage.setItem('shopik_catch_best', best); }
+    elFinal.textContent = Math.round(score).toLocaleString('uk-UA')+' ₴';
+    elBest.textContent = 'Рекорд: '+best.toLocaleString('uk-UA')+' ₴';
+    elOverTitle.textContent = score>best-1 && score===best && score>0 ? 'Новий рекорд! 🏆' : 'Магазин зачинено';
+    overScreen.classList.remove('hide');
+  }
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('againBtn').addEventListener('click', startGame);
+
+  // draw idle background once
+  resize(); cart.x=W/2; cart.w=Math.max(78,Math.min(110,W*0.22)); cart.y=H-92;
+  draw();
+})();
+</script>
+</body>
+</html>
