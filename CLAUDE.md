@@ -1,78 +1,78 @@
 # CLAUDE.md
 
-Guidance for AI assistants working in this repository.
+Руководство для AI-ассистентов, работающих в этом репозитории.
 
-## What this is
+## Что это
 
-**Shopik** is a clickable prototype of a SaaS platform that lets a small
-seller spin up an online store from their Instagram/Telegram in "5 minutes".
-It is a **front-end-only demo** — there is no backend, no database, and no
-network calls. Everything (shops, products, orders, cart) lives in React state
-and is **lost on page refresh**. The UI is in Ukrainian (with a Russian
-translation toggle); product copy and code comments are in Ukrainian.
+**Shopik** — кликабельный прототип SaaS-платформы, которая позволяет небольшому
+продавцу за «5 минут» развернуть онлайн-магазин из своего Instagram/Telegram.
+Это **демо только на фронтенде** — нет бэкенда, базы данных и сетевых запросов.
+Всё (магазины, товары, заявки, корзина) живёт в React-состоянии и **теряется при
+перезагрузке страницы**. Интерфейс на украинском (с переключателем на русский);
+тексты товаров и комментарии в коде — на украинском.
 
-## The single most important fact about this repo
+## Самый важный факт об этом репозитории
 
-**The entire application is one file: `index.html`** (~2300 lines, ~620 KB).
-The bulk of the file size is base64-encoded placeholder product images
-(`phImg`, line ~141). There is no `src/`, no `package.json`, and no build
-tooling — those were intentionally deleted (see `git log`: "Delete
-package.json", "Delete vite.config.js").
+**Всё приложение — это один файл: `index.html`** (~2300 строк, ~620 КБ).
+Основной объём файла — это base64-картинки-заглушки товаров (`phImg`, строка
+~141). Здесь нет `src/`, нет `package.json` и нет инструментов сборки — они были
+намеренно удалены (см. `git log`: «Delete package.json», «Delete
+vite.config.js»).
 
-If you change anything, you edit `index.html`. There is nothing else.
+Если ты что-то меняешь — ты редактируешь `index.html`. Больше ничего нет.
 
-## How it runs (no build step)
+## Как это запускается (без сборки)
 
-`index.html` is a self-contained static page that loads everything from CDNs
-and transpiles JSX **in the browser**:
+`index.html` — самодостаточная статическая страница, которая всё загружает с CDN
+и транспилирует JSX **прямо в браузере**:
 
-- React 18 + ReactDOM (UMD production builds from unpkg)
-- `@babel/standalone` — transpiles the `<script type="text/babel">` block live
-- Tailwind CSS via `cdn.tailwindcss.com` (utility classes in JSX `className`)
+- React 18 + ReactDOM (UMD-сборки production с unpkg)
+- `@babel/standalone` — на лету транспилирует блок `<script type="text/babel">`
+- Tailwind CSS через `cdn.tailwindcss.com` (utility-классы в `className` в JSX)
 
-To run it, just open the file or serve the directory statically:
+Чтобы запустить, просто открой файл или раздай каталог как статику:
 
 ```
-# any static server works, e.g.
-python3 -m http.server 8000   # then open http://localhost:8000
+# подойдёт любой статический сервер, например
+python3 -m http.server 8000   # затем открой http://localhost:8000
 ```
 
-There is **no `npm install`, `npm run dev`, or `npm run build`**. The
-`README.md` still describes a Vite + React + Tailwind setup — **that README is
-stale**; the project no longer has a Node/Vite toolchain. Deployment is simply
-serving the static `index.html` (e.g. on Vercel).
+**Нет ни `npm install`, ни `npm run dev`, ни `npm run build`.** `README.md` всё
+ещё описывает связку Vite + React + Tailwind — **этот README устарел**; в проекте
+больше нет тулчейна Node/Vite. Деплой — это просто раздача статического
+`index.html` (например, на Vercel).
 
-## Architecture inside `index.html`
+## Архитектура внутри `index.html`
 
-Everything is one default-exported component, `ShopPlatform()` (line ~43),
-mounted at the bottom via `ReactDOM.createRoot(...).render(<ShopPlatform />)`
-(lines ~2300). Key shape:
+Всё — это один компонент по умолчанию, `ShopPlatform()` (строка ~43),
+монтируемый внизу через `ReactDOM.createRoot(...).render(<ShopPlatform />)`
+(строки ~2300). Ключевая структура:
 
-- **~81 `useState` hooks**, all declared at the top of the component ("ВСЕ
-  ХУКИ НАВЕРХУ" / "all hooks at the top"). Keep this convention — add new hooks
-  in the same top block, never conditionally.
-- **Routing is a string state**, `page`, switched with `setPage('...')`. The
-  render body is a long sequence of `if (page === '...') { return (...) }`
-  blocks. Many screens also require `&& activeShop` (e.g.
-  `if (page === 'dashboard' && activeShop)`).
+- **~81 хук `useState`**, все объявлены в начале компонента («ВСЕ ХУКИ НАВЕРХУ»).
+  Сохраняй это соглашение — добавляй новые хуки в тот же верхний блок, никогда
+  условно.
+- **Роутинг — это строковое состояние** `page`, переключаемое через
+  `setPage('...')`. Тело рендера — длинная последовательность блоков
+  `if (page === '...') { return (...) }`. Многие экраны также требуют
+  `&& activeShop` (например, `if (page === 'dashboard' && activeShop)`).
 
-### Pages (the `page` values)
+### Страницы (значения `page`)
 
-Seller / admin side: `home`, `import`, `create`, `building`, `myshops`,
+Сторона продавца / админка: `home`, `import`, `create`, `building`, `myshops`,
 `dashboard`, `bulk`, `orders`, `clients`, `analytics`, `promos`, `settings`.
 
-Buyer / storefront side (rendered as the live "Витрина"/storefront preview):
+Сторона покупателя / витрина (рендерится как живой превью-просмотр «Витрина»):
 `preview`, `catalog`, `product`, `cart`, `checkout`, `favs`, `info`.
 
-The seller flow is roughly: `home` → `create` → `building` (loading) →
-`dashboard`, with a bottom tab bar (Товари / Аналітика / Витрина / Заявки /
-Налашт.) switching between `dashboard`, `analytics`, `preview`, `orders`,
-`settings`.
+Поток продавца примерно такой: `home` → `create` → `building` (загрузка) →
+`dashboard`, с нижней панелью вкладок (Товари / Аналітика / Витрина / Заявки /
+Налашт.), которая переключает между `dashboard`, `analytics`, `preview`,
+`orders`, `settings`.
 
-### Data model
+### Модель данных
 
-State holds an array of `shops`; the currently selected one is `activeShop`.
-A shop is created by `makeShop(opts)` (line ~202) and has this shape:
+В состоянии хранится массив `shops`; текущий выбранный — `activeShop`. Магазин
+создаётся через `makeShop(opts)` (строка ~202) и имеет такую структуру:
 
 ```
 { id, name, slogan, vibe, accent, banner, bannerImage, bannerPos, hours,
@@ -85,63 +85,64 @@ A shop is created by `makeShop(opts)` (line ~202) and has this shape:
   trialEnd, paid, showReviews, quickBuy, cartRecs, freeShipFrom, recSizes }
 ```
 
-Seed/demo data lives near the top: `seedCategories`, `seedProducts`,
-`seedOrders`, `seedReviews`, `sampleNames`, and `phImg` (base64 placeholder
-images). `seeDemo()` (line ~509) creates a fully populated "PLEASE" demo shop.
+Сид/демо-данные лежат ближе к началу: `seedCategories`, `seedProducts`,
+`seedOrders`, `seedReviews`, `sampleNames` и `phImg` (base64-заглушки картинок).
+`seeDemo()` (строка ~509) создаёт полностью заполненный демо-магазин «PLEASE».
 
-### Key helpers (learn these before editing logic)
+### Ключевые помощники (изучи перед правкой логики)
 
-- `updateShop(patch)` (line ~187) — the canonical way to mutate the active
-  shop. It does `setShops(shops.map(s => s.id === updated.id ? updated : s))`.
-  **Always update shop data through `updateShop`**, e.g.
+- `updateShop(patch)` (строка ~187) — канонический способ изменить активный
+  магазин. Делает `setShops(shops.map(s => s.id === updated.id ? updated : s))`.
+  **Всегда обновляй данные магазина через `updateShop`**, например
   `updateShop({ products: [...activeShop.products, newProd] })`.
-- `flash(msg)` (line ~194) — show a transient toast for ~2.2s.
-- `makeShop(opts)` — shop factory.
-- `buildLook(prod)` — "build a look with a stylist" recommendation logic.
-- `t(k)` / `tr` (lines ~527–531) — i18n. `tr` has `ua` and `ru` dictionaries;
-  `t(k)` resolves the current `lang` ('ua' default), falling back to Ukrainian
-  then the key itself.
+- `flash(msg)` (строка ~194) — показать всплывающий тост на ~2.2 сек.
+- `makeShop(opts)` — фабрика магазина.
+- `buildLook(prod)` — логика рекомендаций «собрать образ со стилистом».
+- `t(k)` / `tr` (строки ~527–531) — i18n. В `tr` есть словари `ua` и `ru`;
+  `t(k)` берёт текущий `lang` (по умолчанию 'ua'), с откатом на украинский, а
+  затем на сам ключ.
 
-### Icons
+### Иконки
 
-There is **no icon library**. Icons are inline SVGs built with the `_mkIcon`
-helper (line ~14), which mimics the lucide icon style (`Plus`, `Trash2`,
-`Search`, `Heart`, `ShoppingBag`, etc.). To add an icon, call `_mkIcon('<svg
-inner markup>')` alongside the others.
+Библиотеки иконок **нет**. Иконки — это inline-SVG, собранные хелпером `_mkIcon`
+(строка ~14), который имитирует стиль иконок lucide (`Plus`, `Trash2`, `Search`,
+`Heart`, `ShoppingBag` и т.д.). Чтобы добавить иконку, вызови `_mkIcon('<svg
+внутренняя разметка>')` рядом с остальными.
 
-## Conventions to follow
+## Соглашения, которым нужно следовать
 
-- **Edit `index.html` directly.** No code generation, no module splitting
-  unless explicitly asked — the single-file, CDN, in-browser-Babel setup is the
-  intended design.
-- **Match the existing JSX + Tailwind style.** Styling is Tailwind utility
-  classes plus inline `style={{ backgroundColor: accent, ... }}` for
-  theme/accent colors. Dark mode is driven by the `appDark` state.
-- **Keep all hooks at the top** of `ShopPlatform`, unconditionally.
-- **Add new screens** as a new `if (page === '...') { return (...) }` block and
-  navigate to them with `setPage('...')`.
-- **Mutate shop state via `updateShop`**, never by editing `activeShop` in
-  place.
-- **Keep UI text in Ukrainian** (and add Russian strings to `tr.ru` if the text
-  is user-facing and routed through `t()`).
-- The layout is **mobile-first** — most screens are constrained to a phone-width
-  column (e.g. `max-w-sm mx-auto`). Preserve that framing.
+- **Редактируй `index.html` напрямую.** Никакой генерации кода, никакого
+  дробления на модули, если об этом явно не попросили — однофайловая схема с CDN
+  и Babel-в-браузере является задуманным дизайном.
+- **Соблюдай существующий стиль JSX + Tailwind.** Стилизация — это
+  utility-классы Tailwind плюс inline `style={{ backgroundColor: accent, ... }}`
+  для цветов темы/акцента. Тёмная тема управляется состоянием `appDark`.
+- **Держи все хуки в начале** `ShopPlatform`, безусловно.
+- **Добавляй новые экраны** как новый блок `if (page === '...') { return (...) }`
+  и переходи к ним через `setPage('...')`.
+- **Меняй состояние магазина через `updateShop`**, никогда не редактируй
+  `activeShop` напрямую.
+- **Тексты интерфейса держи на украинском** (и добавляй русские строки в `tr.ru`,
+  если текст пользовательский и проходит через `t()`).
+- Вёрстка **mobile-first** — большинство экранов ограничены колонкой шириной
+  телефона (например, `max-w-sm mx-auto`). Сохраняй это обрамление.
 
-## Limitations / gotchas
+## Ограничения / подводные камни
 
-- No persistence: refreshing the page resets all shops, carts, and orders.
-- No real payments, auth, or messaging — Telegram/Instagram links are display
-  only; the "trial/paid" fields are demo gating, not real billing.
-- Everything depends on CDN availability (React, Babel, Tailwind). There is no
-  offline/bundled fallback.
-- Because Babel transpiles at runtime, a syntax error anywhere in the script
-  block breaks the whole page (blank `#root`). Check the browser console after
-  edits.
+- Нет персистентности: перезагрузка страницы сбрасывает все магазины, корзины и
+  заявки.
+- Нет реальных платежей, авторизации и обмена сообщениями — ссылки
+  Telegram/Instagram только для отображения; поля «trial/paid» — это демо-гейтинг,
+  а не настоящий биллинг.
+- Всё зависит от доступности CDN (React, Babel, Tailwind). Нет
+  офлайн/бандл-фолбэка.
+- Поскольку Babel транспилирует во время выполнения, синтаксическая ошибка в
+  любом месте блока скрипта ломает всю страницу (пустой `#root`). Проверяй
+  консоль браузера после правок.
 
-## Git / workflow
+## Git / процесс работы
 
-- Active development branch for AI work: `claude/claude-md-docs-zc9dow`.
-- Commit `index.html` (and this file) with clear messages; push with
+- Активная ветка для работы AI: `claude/claude-md-docs-zc9dow`.
+- Коммить `index.html` (и этот файл) с понятными сообщениями; пуш через
   `git push -u origin <branch>`.
-- Do not reintroduce a build toolchain (Vite/package.json) unless explicitly
-  requested.
+- Не возвращай тулчейн сборки (Vite/package.json), если об этом явно не просят.
