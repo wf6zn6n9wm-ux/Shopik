@@ -1,0 +1,45 @@
+@import url("https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&family=Caveat:wght@500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Work Sans is the body/UI font; Caveat stands in for the "SixHands Marker"
+     handwritten accent font used in headings/stickers. */
+  --font-work-sans: "Work Sans";
+  --font-marker: "Caveat";
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-white text-ink font-sans antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-sans font-bold text-ink tracking-tight;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply container mx-auto px-4 sm:px-6;
+  }
+  .section {
+    @apply py-16 sm:py-24;
+  }
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full bg-brand-light px-4 py-1.5 text-sm font-semibold text-brand-dark;
+  }
+}
+
+/* Hide scrollbar for horizontal carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
