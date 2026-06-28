@@ -42,9 +42,14 @@ const Users = _mkIcon('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><cir
 
 export default function ShopPlatform() {
   // ВСЕ ХУКИ НАВЕРХУ
+  const LS = {
+    get: (k, d) => { try { const v = localStorage.getItem('shopik_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set: (k, v) => { try { localStorage.setItem('shopik_' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  };
+  const _savedShops = LS.get('shops', []);
   const [page, setPage] = useState('home');
-  const [shops, setShops] = useState([]);
-  const [activeShop, setActiveShop] = useState(null);
+  const [shops, setShops] = useState(_savedShops);
+  const [activeShop, setActiveShop] = useState(() => { const id = LS.get('activeShopId', null); return id != null ? (_savedShops.find(s => s.id === id) || null) : null; });
 
   const [name, setName] = useState('');
   const [slogan, setSlogan] = useState('');
@@ -55,7 +60,7 @@ export default function ShopPlatform() {
   const [bannerPos, setBannerPos] = useState(50);
 
   const [igLink, setIgLink] = useState('');
-  const [appDark, setAppDark] = useState(true);
+  const [appDark, setAppDark] = useState(() => LS.get('appDark', true));
   const [setSection, setSetSection] = useState(null);
   const [discScope, setDiscScope] = useState('all');
   const [discTarget, setDiscTarget] = useState('');
@@ -96,7 +101,7 @@ export default function ShopPlatform() {
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [prodSearch, setProdSearch] = useState('');
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => LS.get('cart', []));
   const [addedPulse, setAddedPulse] = useState(false);
   const [selRecSize, setSelRecSize] = useState({});
   const revealedRef = useRef(new Set());
@@ -106,7 +111,7 @@ export default function ShopPlatform() {
   const [catSort, setCatSort] = useState('new');
   const [promoInput, setPromoInput] = useState('');
   const [promoDisc, setPromoDisc] = useState(0);
-  const [favorites, setFavorites] = useState([]);
+  const [favorites, setFavorites] = useState(() => LS.get('favorites', []));
   const [sizeGuide, setSizeGuide] = useState(false);
   const [lookOpen, setLookOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -123,13 +128,22 @@ export default function ShopPlatform() {
   const [qrOpen, setQrOpen] = useState(null);
   const [orderFilter, setOrderFilter] = useState('all');
   const [orderSearch, setOrderSearch] = useState('');
-  const [recentlyViewed, setRecentlyViewed] = useState([]);
+  const [recentlyViewed, setRecentlyViewed] = useState(() => LS.get('recentlyViewed', []));
   const [bannerSlide, setBannerSlide] = useState(0);
-  const [lang, setLang] = useState('ua');
+  const [lang, setLang] = useState(() => LS.get('lang', 'ua'));
   const [createStep, setCreateStep] = useState(1);
   const [demoMode, setDemoMode] = useState(false);
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
+
+  // Автозбереження у localStorage — щоб усе зберігалося між сесіями
+  useEffect(() => { if (!LS.set('shops', shops)) flash('⚠️ Сховище переповнене — зменшіть розмір зображень'); }, [shops]);
+  useEffect(() => { LS.set('activeShopId', activeShop ? activeShop.id : null); }, [activeShop]);
+  useEffect(() => { LS.set('favorites', favorites); }, [favorites]);
+  useEffect(() => { LS.set('cart', cart); }, [cart]);
+  useEffect(() => { LS.set('recentlyViewed', recentlyViewed); }, [recentlyViewed]);
+  useEffect(() => { LS.set('appDark', appDark); }, [appDark]);
+  useEffect(() => { LS.set('lang', lang); }, [lang]);
 
   const accents = ['#161616', '#7a6a58', '#9a3b3b', '#3a4a3f', '#5b4b8a', '#b8916a', '#1f3a5f', '#0e7c66', '#b54a8a', '#c2410c', '#4b5563', '#caa64a'];
   const bannerPresets = [
