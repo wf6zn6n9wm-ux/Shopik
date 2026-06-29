@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Підготовка до ЄВІ, ТЗНК, ЄФВВ та ЄВВ | Connected</title>
+  <meta name="description" content="Онлайн-школа підготовки до ЄВІ, ТЗНК, ЄФВВ та ЄВВ для вступу в магістратуру та аспірантуру." />
+
+  <!-- Tailwind (CDN, no build step) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Fonts: Work Sans (body) + Caveat (handwritten "marker" accent) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet" />
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        container: { center: true, padding: "1rem", screens: { "2xl": "1200px" } },
+        extend: {
+          colors: {
+            brand: { DEFAULT: "#1FB6A6", dark: "#0E8A7D", light: "#E6F7F4" },
+            ink: { DEFAULT: "#0F172A", soft: "#475569" },
+            accent: { blue: "#3B82F6", violet: "#8B5CF6", amber: "#F59E0B", rose: "#F43F5E" },
+          },
+          fontFamily: {
+            sans: ["Work Sans", "ui-sans-serif", "system-ui", "sans-serif"],
+            marker: ["Caveat", "cursive"],
+          },
+          boxShadow: {
+            card: "0 10px 40px -12px rgba(15,23,42,0.12)",
+            soft: "0 4px 24px -8px rgba(15,23,42,0.10)",
+          },
+          keyframes: {
+            marquee: { from: { transform: "translateX(0)" }, to: { transform: "translateX(-50%)" } },
+          },
+          animation: { marquee: "marquee 28s linear infinite" },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: "Work Sans", sans-serif; }
+    .font-marker { font-family: "Caveat", cursive; }
+    .eyebrow { display:inline-flex; align-items:center; gap:.5rem; border-radius:9999px; background:#E6F7F4; padding:.375rem 1rem; font-size:.875rem; font-weight:600; color:#0E8A7D; }
+  </style>
+</head>
+<body class="bg-white text-ink antialiased">
+
+  <!-- ===== Promo banner ===== -->
+  <a href="#" class="group block bg-gradient-to-r from-accent-blue to-accent-violet text-white">
+    <div class="container mx-auto flex flex-col items-center justify-center gap-2 px-4 py-2.5 text-center text-sm font-medium sm:flex-row sm:gap-3">
+      <i data-lucide="sparkles" class="h-4 w-4 shrink-0"></i>
+      <span>Безкоштовний вебінар «Як вступити до магістратури у 2026 році»</span>
+      <span class="inline-flex items-center gap-1 font-semibold underline-offset-4 group-hover:underline">
+        Зареєструватися <i data-lucide="arrow-right" class="h-4 w-4"></i>
+      </span>
+    </div>
+  </a>
+
+  <!-- ===== Header ===== -->
+  <header id="header" class="sticky top-0 z-50 w-full bg-white transition-shadow">
+    <div class="container mx-auto flex h-16 items-center justify-between gap-4 px-4 sm:h-20 sm:px-6">
+      <a href="#" class="flex items-center gap-2">
+        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-white">
+          <i data-lucide="graduation-cap" class="h-5 w-5"></i>
+        </span>
+        <span class="text-xl font-extrabold tracking-tight text-ink">Connected</span>
+      </a>
+
+      <nav class="hidden items-center gap-1 lg:flex">
+        <div class="group relative">
+          <button class="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-ink hover:bg-brand-light">
+            Курси <i data-lucide="chevron-down" class="h-4 w-4 transition-transform group-hover:rotate-180"></i>
+          </button>
+          <div class="invisible absolute left-0 top-full w-72 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
+            <div id="dropdown-courses" class="rounded-2xl border border-ink/10 bg-white p-2 shadow-card"></div>
+          </div>
+        </div>
+        <a href="#why" class="rounded-full px-4 py-2 text-sm font-semibold text-ink hover:bg-brand-light">Чому ми</a>
+        <a href="#steps" class="rounded-full px-4 py-2 text-sm font-semibold text-ink hover:bg-brand-light">Як навчаємось</a>
+        <a href="#reviews" class="rounded-full px-4 py-2 text-sm font-semibold text-ink hover:bg-brand-light">Відгуки</a>
+        <a href="#schedule" class="rounded-full px-4 py-2 text-sm font-semibold text-ink hover:bg-brand-light">Розклад</a>
+        <a href="#faq" class="rounded-full px-4 py-2 text-sm font-semibold text-ink hover:bg-brand-light">FAQ</a>
+      </nav>
+
+      <div class="flex items-center gap-2">
+        <button class="hidden h-11 items-center justify-center rounded-full bg-brand px-6 text-sm font-semibold text-white shadow-soft hover:bg-brand-dark sm:inline-flex">Записатися</button>
+        <button id="burger" class="lg:hidden" aria-label="Меню"><i data-lucide="menu" class="h-6 w-6"></i></button>
+      </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden border-t border-ink/10 bg-white lg:hidden">
+      <nav class="container mx-auto flex flex-col gap-1 px-4 py-4">
+        <a href="#courses" class="rounded-xl px-3 py-3 text-base font-semibold text-ink hover:bg-brand-light">Курси</a>
+        <a href="#why" class="rounded-xl px-3 py-3 text-base font-semibold text-ink hover:bg-brand-light">Чому ми</a>
+        <a href="#steps" class="rounded-xl px-3 py-3 text-base font-semibold text-ink hover:bg-brand-light">Як навчаємось</a>
+        <a href="#reviews" class="rounded-xl px-3 py-3 text-base font-semibold text-ink hover:bg-brand-light">Відгуки</a>
+        <a href="#schedule" class="rounded-xl px-3 py-3 text-base font-semibold text-ink hover:bg-brand-light">Розклад</a>
+        <a href="#faq" class="rounded-xl px-3 py-3 text-base font-semibold text-ink hover:bg-brand-light">FAQ</a>
+        <button class="mt-2 h-11 w-full rounded-full bg-brand px-6 text-sm font-semibold text-white">Записатися</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===== Hero ===== -->
+    <section class="relative overflow-hidden bg-gradient-to-b from-brand-light/60 to-white">
+      <div class="container mx-auto grid items-center gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2">
+        <div>
+          <span class="eyebrow"><i data-lucide="star" class="h-4 w-4 fill-current"></i> Онлайн-школа підготовки до вступу</span>
+          <h1 class="mt-5 text-4xl font-extrabold leading-tight text-ink sm:text-5xl lg:text-6xl">
+            Підготовка до <span class="text-brand">ЄВІ, ТЗНК, ЄФВВ</span> та ЄВВ
+          </h1>
+          <p class="mt-5 max-w-xl text-lg text-ink-soft">
+            Готуємо до вступу в магістратуру та аспірантуру з нуля до результату.
+            Структуровані курси, живі заняття та підтримка на кожному кроці.
+          </p>
+          <ul class="mt-6 space-y-2.5">
+            <li class="flex items-center gap-3 text-ink"><i data-lucide="check-circle-2" class="h-5 w-5 shrink-0 text-brand"></i> Живі онлайн-заняття та записи</li>
+            <li class="flex items-center gap-3 text-ink"><i data-lucide="check-circle-2" class="h-5 w-5 shrink-0 text-brand"></i> Індивідуальний план підготовки</li>
+            <li class="flex items-center gap-3 text-ink"><i data-lucide="check-circle-2" class="h-5 w-5 shrink-0 text-brand"></i> Підтримка куратора до вступу</li>
+          </ul>
+          <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+            <a href="#courses" class="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-brand px-8 text-base font-semibold text-white shadow-soft hover:bg-brand-dark">Обрати курс <i data-lucide="arrow-right" class="h-5 w-5"></i></a>
+            <a href="#more-questions" class="inline-flex h-14 items-center justify-center gap-2 rounded-full border border-ink/15 bg-white px-8 text-base font-semibold text-ink hover:border-brand hover:text-brand">Безкоштовна консультація</a>
+          </div>
+        </div>
+
+        <div class="relative">
+          <div class="relative mx-auto max-w-md">
+            <div class="aspect-[4/5] overflow-hidden rounded-[2rem] shadow-card" style="background:radial-gradient(circle at 30% 20%, #E6F7F4, transparent 60%), linear-gradient(135deg, rgba(31,182,166,.2), rgba(139,92,246,.2));">
+              <div class="flex h-full w-full flex-col items-center justify-center gap-3 text-center">
+                <div class="flex h-28 w-28 items-center justify-center rounded-full bg-brand text-4xl font-extrabold text-white">C</div>
+                <p class="px-8 font-marker text-2xl text-ink-soft">фото засновника</p>
+              </div>
+            </div>
+            <div class="absolute -bottom-6 -left-6 rounded-2xl bg-white p-4 shadow-card">
+              <p class="text-3xl font-extrabold text-brand">93%</p>
+              <p class="text-sm text-ink-soft">студентів вступають</p>
+            </div>
+            <div class="absolute -right-4 top-6 rounded-2xl bg-white p-4 shadow-card">
+              <div class="flex items-center gap-1 text-accent-amber">
+                <i data-lucide="star" class="h-4 w-4 fill-current"></i><i data-lucide="star" class="h-4 w-4 fill-current"></i><i data-lucide="star" class="h-4 w-4 fill-current"></i><i data-lucide="star" class="h-4 w-4 fill-current"></i><i data-lucide="star" class="h-4 w-4 fill-current"></i>
+              </div>
+              <p class="mt-1 text-sm font-semibold text-ink">4.9 / 5.0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container mx-auto px-4 pb-16 sm:px-6">
+        <div class="grid grid-cols-2 gap-4 rounded-2xl border border-ink/10 bg-white p-6 shadow-soft sm:grid-cols-4 sm:p-8">
+          <div class="text-center"><p class="text-3xl font-extrabold text-brand sm:text-4xl">93%</p><p class="mt-1 text-sm text-ink-soft">наших студентів вступають</p></div>
+          <div class="text-center"><p class="text-3xl font-extrabold text-brand sm:text-4xl">150+</p><p class="mt-1 text-sm text-ink-soft">годин практики на курсі</p></div>
+          <div class="text-center"><p class="text-3xl font-extrabold text-brand sm:text-4xl">5 000+</p><p class="mt-1 text-sm text-ink-soft">випускників за 5 років</p></div>
+          <div class="text-center"><p class="text-3xl font-extrabold text-brand sm:text-4xl">4.9</p><p class="mt-1 text-sm text-ink-soft">середня оцінка курсів</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Courses ===== -->
+    <section id="courses" class="py-16 sm:py-24">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="flex flex-col items-center text-center">
+          <span class="eyebrow">Наші напрями</span>
+          <h2 class="mt-4 text-3xl font-extrabold sm:text-4xl">Оберіть курс для свого вступу</h2>
+          <p class="mt-4 max-w-2xl text-ink-soft">Програми побудовані під формат офіційних іспитів і ведуть вас від базового рівня до впевненого результату.</p>
+          <div class="mt-8 inline-flex items-center gap-1 rounded-full bg-ink/5 p-1.5">
+            <button data-track="magistracy" class="course-tab rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-brand-dark shadow-soft">Магістратура</button>
+            <button data-track="phd" class="course-tab rounded-full px-6 py-2.5 text-sm font-semibold text-ink-soft hover:text-ink">Аспірантура</button>
+          </div>
+        </div>
+        <div id="courses-grid" class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"></div>
+      </div>
+    </section>
+
+    <!-- ===== WhyChoose ===== -->
+    <section id="why" class="bg-brand-light/40 py-16 sm:py-24">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="max-w-2xl">
+          <span class="eyebrow">Чому обирають Connected</span>
+          <h2 class="mt-4 text-3xl font-extrabold sm:text-4xl">Результат, який можна виміряти</h2>
+          <p class="mt-4 text-ink-soft">Ми не просто «проходимо програму» — ми доводимо вас до конкретного балу, потрібного для вступу.</p>
+        </div>
+        <div class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="flex flex-col rounded-2xl bg-brand p-6 text-white shadow-soft"><i data-lucide="trending-up" class="h-8 w-8"></i><p class="mt-4 text-4xl font-extrabold">93%</p><p class="mt-2 text-lg font-bold">Вступають за результатами</p><p class="mt-2 text-sm opacity-90">Більшість студентів отримують бал, достатній для вступу на бюджет чи контракт.</p></div>
+          <div class="flex flex-col rounded-2xl border border-ink/10 bg-white p-6 text-ink shadow-soft"><i data-lucide="clock-3" class="h-8 w-8 text-brand"></i><p class="mt-4 text-4xl font-extrabold">150+</p><p class="mt-2 text-lg font-bold">Годин практики</p><p class="mt-2 text-sm text-ink-soft">Реальні завдання у форматі іспиту, розбори помилок і пробні тести.</p></div>
+          <div class="flex flex-col rounded-2xl border border-ink/10 bg-white p-6 text-ink shadow-soft"><i data-lucide="users" class="h-8 w-8 text-brand"></i><p class="mt-4 text-4xl font-extrabold">1 на 1</p><p class="mt-2 text-lg font-bold">Підтримка куратора</p><p class="mt-2 text-sm text-ink-soft">Особистий куратор тримає вас у графіку та відповідає на питання щодня.</p></div>
+          <div class="flex flex-col rounded-2xl bg-accent-violet p-6 text-white shadow-soft"><i data-lucide="badge-check" class="h-8 w-8"></i><p class="mt-4 text-4xl font-extrabold">5 років</p><p class="mt-2 text-lg font-bold">Досвіду підготовки</p><p class="mt-2 text-sm opacity-90">Методики, відточені на тисячах студентів, та актуальні матеріали.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MoreThanPrep ===== -->
+    <section class="py-16 sm:py-24">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="mx-auto max-w-2xl text-center">
+          <span class="eyebrow">Більше, ніж підготовка</span>
+          <h2 class="mt-4 text-3xl font-extrabold sm:text-4xl">Ми супроводжуємо вас до вступу</h2>
+        </div>
+        <div class="mt-12 grid gap-6 md:grid-cols-3">
+          <div class="text-center md:text-left"><div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-light text-brand-dark md:mx-0"><i data-lucide="compass" class="h-7 w-7"></i></div><h3 class="mt-5 text-xl font-bold">Стратегія вступу</h3><p class="mt-2 text-ink-soft">Не лише знання, а й чіткий план: куди подаватись, які дедлайни та як максимізувати шанси.</p></div>
+          <div class="text-center md:text-left"><div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-light text-brand-dark md:mx-0"><i data-lucide="heart-handshake" class="h-7 w-7"></i></div><h3 class="mt-5 text-xl font-bold">Спільнота та мотивація</h3><p class="mt-2 text-ink-soft">Ви навчаєтесь у групі однодумців, де легше тримати темп і не здаватися на півдорозі.</p></div>
+          <div class="text-center md:text-left"><div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-light text-brand-dark md:mx-0"><i data-lucide="rocket" class="h-7 w-7"></i></div><h3 class="mt-5 text-xl font-bold">Навички на майбутнє</h3><p class="mt-2 text-ink-soft">Англійська, логіка та академічне письмо лишаються з вами далеко після іспиту.</p></div>
+        </div>
+        <div class="mt-16 overflow-hidden rounded-[2rem] bg-ink text-white">
+          <div class="grid items-center gap-8 p-8 sm:p-12 lg:grid-cols-[auto,1fr]">
+            <div class="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-brand text-4xl font-extrabold">C</div>
+            <div>
+              <i data-lucide="quote" class="h-8 w-8 text-brand"></i>
+              <blockquote class="mt-3 text-xl font-medium leading-relaxed sm:text-2xl">«Ми створили Connected, щоб вступ перестав бути лотереєю. Кожен студент заслуговує на чіткий план і підтримку — і саме це ми даємо».</blockquote>
+              <p class="mt-5 font-marker text-2xl text-brand">Засновник Connected</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Steps ===== -->
+    <section id="steps" class="bg-brand-light/40 py-16 sm:py-24">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="max-w-2xl">
+          <span class="eyebrow">Як проходить навчання</span>
+          <h2 class="mt-4 text-3xl font-extrabold sm:text-4xl">5 кроків до вступу</h2>
+          <p class="mt-4 text-ink-soft">Прозорий шлях від першої заявки до зарахування — ви завжди знаєте, що робити далі.</p>
+        </div>
+        <ol id="steps-list" class="mt-12 space-y-4"></ol>
+      </div>
+    </section>
+
+    <!-- ===== Reviews ===== -->
+    <section id="reviews" class="py-16 sm:py-24">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="flex flex-col items-center text-center">
+          <span class="eyebrow">Відгуки студентів</span>
+          <h2 class="mt-4 text-3xl font-extrabold sm:text-4xl">Нам довіряють тисячі вступників</h2>
+        </div>
+        <div class="mt-12 grid gap-8 lg:grid-cols-2">
+          <div class="flex flex-col justify-between rounded-2xl border border-ink/10 bg-brand-light/40 p-8 shadow-soft">
+            <div>
+              <div id="review-stars" class="flex items-center gap-1 text-accent-amber"></div>
+              <p id="review-text" class="mt-5 text-xl font-medium leading-relaxed text-ink"></p>
+            </div>
+            <div class="mt-8 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span id="review-avatar" class="flex h-12 w-12 items-center justify-center rounded-full bg-brand text-lg font-bold text-white"></span>
+                <div class="text-left"><p id="review-name" class="font-bold text-ink"></p><p id="review-role" class="text-sm text-ink-soft"></p></div>
+              </div>
+              <div class="flex gap-2">
+                <button id="review-prev" aria-label="Попередній" class="flex h-10 w-10 items-center justify-center rounded-full border border-ink/15 bg-white hover:border-brand hover:text-brand"><i data-lucide="chevron-left" class="h-5 w-5"></i></button>
+                <button id="review-next" aria-label="Наступний" class="flex h-10 w-10 items-center justify-center rounded-full border border-ink/15 bg-white hover:border-brand hover:text-brand"><i data-lucide="chevron-right" class="h-5 w-5"></i></button>
+              </div>
+            </div>
+            <div id="review-dots" class="mt-6 flex justify-center gap-2"></div>
+          </div>
+          <div class="group relative overflow-hidden rounded-2xl bg-ink shadow-card">
+            <div class="flex aspect-video w-full items-center justify-center" style="background:radial-gradient(circle at 50% 40%, #1FB6A6, #0F172A);">
+              <button aria-label="Дивитись відео" class="flex h-20 w-20 items-center justify-center rounded-full bg-white/95 text-brand-dark shadow-card transition-transform group-hover:scale-110"><i data-lucide="play" class="ml-1 h-8 w-8 fill-current"></i></button>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-ink to-transparent p-6">
+              <p class="font-marker text-2xl text-white">Історія вступу нашої випускниці</p>
+              <p class="text-sm text-white/70">Відео-відгук · 2:14</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Universities ===== -->
+    <section class="bg-brand-light/40 py-16 sm:py-24">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="text-center">
+          <span class="eyebrow">Наші студенти вступають до</span>
+          <h2 class="mt-4 text-3xl font-extrabold sm:text-4xl">Провідні університети України</h2>
+        </div>
+      </div>
+      <div class="relative mt-10 overflow-hidden">
+        <div id="uni-marquee" class="flex w-max animate-marquee gap-4"></div>
+        <div class="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-brand-light/40 to-transparent"></div>
+        <div class="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-brand-light/40 to-transparent"></div>
+      </div>
+      <div class="container mx-auto mt-12 px-4 sm:px-6">
+        <div class="flex flex-col items-center justify-between gap-6 rounded-[2rem] bg-brand p-8 text-center text-white sm:p-12 lg:flex-row lg:text-left">
+          <div>
+            <h3 class="text-2xl font-extrabold sm:text-3xl">Готові розпочати підготовку?</h3>
+            <p class="mt-2 text-white/90">Залиште заявку — підберемо курс під ваш вступ і дамо безкоштовну консультацію.</p>
+          </div>
+          <button class="inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-8 text-base font-semibold text-brand-dark shadow-soft hover:bg-white/90">Залишити заявку <i data-lucide="arrow-right" class="h-5 w-5"></i></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ExamSchedule ===== -->
+    <section id="schedule" class="py-16 sm:py-24">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="grid gap-12 lg:grid-cols-[1fr,1.3fr] lg:items-start">
+          <div class="lg:sticky lg:top-28">
+            <span class="eyebrow">Розклад 2026</span>
+            <h2 class="mt-4 text-3xl font-extrabold sm:text-4xl">Ключові дати вступної кампанії</h2>
+            <p class="mt-4 text-ink-soft">Тримайте дедлайни під контролем — ми нагадаємо про кожен важливий етап.</p>
+            <div class="mt-8 max-w-xs -rotate-2 rounded-xl bg-accent-amber/90 p-5 shadow-card">
+              <p class="font-marker text-2xl text-ink">Не відкладай реєстрацію на останній день! ✍️</p>
+            </div>
+          </div>
+          <ol id="schedule-list" class="relative space-y-8 border-l-2 border-brand/30 pl-8"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FAQ ===== -->
+    <section id="faq" class="bg-brand-light/40 py-16 sm:py-24">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="mx-auto max-w-3xl">
+          <div class="text-center">
+            <span class="eyebrow">Часті питання</span>
+            <h2 class="mt-4 text-3xl font-extrabold sm:text-4xl">Відповідаємо на головне</h2>
+          </div>
+          <div id="faq-list" class="mt-10 divide-y divide-ink/10 rounded-2xl border border-ink/10 bg-white"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MoreQuestions ===== -->
+    <section id="more-questions" class="py-16 sm:py-24">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="grid gap-6 lg:grid-cols-2">
+          <div class="flex flex-col justify-center rounded-[2rem] border border-ink/10 bg-brand-light/50 p-8 sm:p-10">
+            <i data-lucide="message-circle" class="h-10 w-10 text-brand"></i>
+            <h3 class="mt-4 text-2xl font-extrabold sm:text-3xl">Залишились питання?</h3>
+            <p class="mt-3 text-ink-soft">Напишіть нам — менеджер відповість, допоможе обрати курс і розкаже про знижки та розстрочку.</p>
+            <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button class="inline-flex h-14 items-center justify-center rounded-full bg-brand px-8 text-base font-semibold text-white shadow-soft hover:bg-brand-dark">Поставити питання</button>
+              <button class="inline-flex h-14 items-center justify-center rounded-full border border-ink/15 bg-white px-8 text-base font-semibold text-ink hover:border-brand hover:text-brand">Замовити дзвінок</button>
+            </div>
+          </div>
+          <a href="#" class="group relative flex flex-col justify-end overflow-hidden rounded-[2rem] bg-ink p-8 text-white shadow-card sm:p-10">
+            <div class="absolute inset-0" style="background:radial-gradient(circle at 70% 30%, rgba(244,63,94,.4), transparent 60%);"></div>
+            <div class="relative">
+              <span class="inline-flex items-center gap-2 rounded-full bg-accent-rose px-4 py-1.5 text-sm font-semibold"><i data-lucide="youtube" class="h-4 w-4"></i> YouTube</span>
+              <h3 class="mt-4 text-2xl font-extrabold sm:text-3xl">Безкоштовні уроки на нашому каналі</h3>
+              <p class="mt-2 text-white/80">Розбори завдань, лайфхаки та поради щодо вступу — нові відео щотижня.</p>
+              <span class="mt-5 inline-flex items-center gap-2 font-semibold text-accent-rose underline-offset-4 group-hover:underline">Перейти на канал →</span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CoursesSecondary ===== -->
+    <section class="bg-brand-light/40 py-16 sm:py-24">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <span class="eyebrow">Усі програми</span>
+            <h2 class="mt-4 text-3xl font-extrabold sm:text-4xl">Наші курси</h2>
+          </div>
+          <a href="#courses" class="inline-flex items-center gap-2 font-semibold text-brand-dark underline-offset-4 hover:underline">Переглянути всі <i data-lucide="arrow-right" class="h-4 w-4"></i></a>
+        </div>
+        <div id="courses-secondary" class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer class="bg-ink text-white">
+    <div class="container mx-auto px-4 py-16 sm:px-6">
+      <div class="grid gap-10 lg:grid-cols-[1.4fr,1fr,1fr,1fr]">
+        <div>
+          <a href="#" class="flex items-center gap-2">
+            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-white"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>
+            <span class="text-xl font-extrabold">Connected</span>
+          </a>
+          <p class="mt-4 max-w-xs text-sm text-white/70">Онлайн-школа підготовки до ЄВІ, ТЗНК, ЄФВВ та ЄВВ. Допомагаємо вступити до магістратури та аспірантури.</p>
+          <div class="mt-6 flex gap-3">
+            <a href="#" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-brand"><i data-lucide="instagram" class="h-5 w-5"></i></a>
+            <a href="#" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-brand"><i data-lucide="send" class="h-5 w-5"></i></a>
+            <a href="#" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-brand"><i data-lucide="youtube" class="h-5 w-5"></i></a>
+            <a href="#" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-brand"><i data-lucide="facebook" class="h-5 w-5"></i></a>
+          </div>
+        </div>
+        <div>
+          <h4 class="font-bold text-white">Курси</h4>
+          <ul id="footer-courses" class="mt-4 space-y-2.5 text-sm text-white/70"></ul>
+        </div>
+        <div>
+          <h4 class="font-bold text-white">Навігація</h4>
+          <ul class="mt-4 space-y-2.5 text-sm text-white/70">
+            <li><a href="#courses" class="hover:text-brand">Курси</a></li>
+            <li><a href="#why" class="hover:text-brand">Чому ми</a></li>
+            <li><a href="#steps" class="hover:text-brand">Як навчаємось</a></li>
+            <li><a href="#reviews" class="hover:text-brand">Відгуки</a></li>
+            <li><a href="#schedule" class="hover:text-brand">Розклад</a></li>
+            <li><a href="#faq" class="hover:text-brand">FAQ</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-bold text-white">Контакти</h4>
+          <ul class="mt-4 space-y-2.5 text-sm text-white/70">
+            <li class="flex items-center gap-2"><i data-lucide="phone" class="h-4 w-4 text-brand"></i> +380 (00) 000-00-00</li>
+            <li class="flex items-center gap-2"><i data-lucide="mail" class="h-4 w-4 text-brand"></i> hello@connected.com.ua</li>
+          </ul>
+        </div>
+      </div>
+      <div class="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 text-sm text-white/60 sm:flex-row">
+        <p>© 2026 Connected. Усі права захищені.</p>
+        <div class="flex items-center gap-3">
+          <span>Оплата:</span>
+          <span class="rounded-md bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/80">Visa</span>
+          <span class="rounded-md bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/80">Mastercard</span>
+          <span class="rounded-md bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/80">Apple Pay</span>
+          <span class="rounded-md bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/80">Google Pay</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ---- Data ----
+    const courses = [
+      { id:"yevi", badge:"ЄВІ", title:"Англійська мова (ЄВІ)", subtitle:"Єдиний вступний іспит", description:"Граматика, читання, лексика та стратегії виконання тесту з нуля до впевненого результату.", price:"4 900 ₴", oldPrice:"6 500 ₴", duration:"3 місяці", color:"from-accent-blue to-accent-violet", track:"magistracy" },
+      { id:"tznk", badge:"ТЗНК", title:"ТЗНК", subtitle:"Тест загальної навчальної компетентності", description:"Логіка, аналітичне читання та робота з даними. Розбираємо всі типи завдань на практиці.", price:"4 500 ₴", oldPrice:"5 900 ₴", duration:"2.5 місяці", color:"from-brand to-brand-dark", track:"magistracy" },
+      { id:"yefvv", badge:"ЄФВВ", title:"ЄФВВ (Право)", subtitle:"Єдиний фаховий вступний іспит", description:"Фахова частина для вступу в магістратуру права. Теорія, тести та консультації викладача.", price:"5 400 ₴", oldPrice:"7 200 ₴", duration:"3 місяці", color:"from-accent-amber to-accent-rose", track:"magistracy" },
+      { id:"yevv-phd", badge:"ЄВВ", title:"Підготовка до аспірантури", subtitle:"Єдине вступне випробування", description:"Іноземна мова та фахова підготовка для вступу до аспірантури з індивідуальним планом.", price:"6 200 ₴", oldPrice:null, duration:"4 місяці", color:"from-accent-violet to-accent-blue", track:"phd" },
+      { id:"english-phd", badge:"ЄВІ", title:"Англійська для аспірантів", subtitle:"Рівень B2+", description:"Поглиблений курс для тих, хто вступає в аспірантуру та готується до наукової діяльності.", price:"5 800 ₴", oldPrice:null, duration:"3.5 місяці", color:"from-brand-dark to-accent-blue", track:"phd" },
+    ];
+    const steps = [
+      { n:"01", title:"Залишаєте заявку", text:"Ви обираєте курс і залишаєте заявку. Менеджер зв'язується з вами та визначає ваш рівень." },
+      { n:"02", title:"Проходите вхідне тестування", text:"Безкоштовне тестування показує сильні та слабкі сторони, щоб скласти індивідуальний план." },
+      { n:"03", title:"Навчаєтесь онлайн", text:"Живі заняття у Zoom, записи всіх уроків та доступ до платформи з домашніми завданнями." },
+      { n:"04", title:"Отримуєте підтримку", text:"Куратор перевіряє домашні завдання, відповідає на питання та тримає вас у графіку." },
+      { n:"05", title:"Складаєте іспит і вступаєте", text:"Ви здаєте пробні іспити, виходите на потрібний бал і вступаєте до обраного університету." },
+    ];
+    const reviews = [
+      { name:"Олена К.", role:"Вступила в магістратуру КНУ", text:"За три місяці підняла англійську з нуля до 170+ балів на ЄВІ. Викладачі пояснюють так, що все стає зрозуміло.", rating:5 },
+      { name:"Дмитро С.", role:"ЄФВВ, право", text:"Структуровані матеріали і постійна підтримка куратора. Склав фаховий на високий бал з першого разу.", rating:5 },
+      { name:"Марія Л.", role:"ТЗНК", text:"Спочатку боялася логічних завдань, але після розборів усе стало системним. Дуже рекомендую!", rating:5 },
+      { name:"Андрій П.", role:"Вступив в аспірантуру", text:"Індивідуальний план і живі заняття — саме те, що потрібно для серйозної підготовки. Дякую команді!", rating:5 },
+    ];
+    const universities = ["КНУ ім. Шевченка","КПІ ім. Сікорського","НаУКМА","ЛНУ ім. Франка","ХНУ ім. Каразіна","КНЕУ","НУ «Львівська політехніка»","ОНУ ім. Мечникова"];
+    const schedule = [
+      { date:"Лютий 2026", title:"Старт реєстрації на пробні іспити", note:null },
+      { date:"Березень 2026", title:"Реєстрація вступників", note:"не пропустіть дедлайн!" },
+      { date:"Травень 2026", title:"Основна сесія ТЗНК та ЄВІ", note:null },
+      { date:"Червень 2026", title:"ЄФВВ та фахові іспити", note:null },
+      { date:"Липень 2026", title:"Подача заяв до магістратури", note:null },
+    ];
+    const faqs = [
+      { q:"Чи підходить курс, якщо я починаю з нуля?", a:"Так. Ми починаємо з базового рівня та поступово доводимо вас до результату. Перед стартом ви проходите безкоштовне тестування рівня." },
+      { q:"Як проходять заняття?", a:"Заняття проходять онлайн у форматі живих груп у Zoom. Усі уроки записуються, тож ви завжди можете переглянути матеріал ще раз." },
+      { q:"Що буде, якщо я пропущу заняття?", a:"Ви отримуєте запис заняття та матеріали. Куратор допоможе наздогнати групу та відповість на питання." },
+      { q:"Чи є розстрочка на оплату?", a:"Так, доступна оплата частинами від банків-партнерів, а також гнучкі тарифи для різних бюджетів." },
+      { q:"Чи допоможете з подачею документів?", a:"Ми консультуємо щодо дедлайнів, переліку документів та стратегії вступу до обраних університетів." },
+    ];
+
+    // ---- Render: courses ----
+    function courseCard(c){
+      return `<div class="group flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-soft transition-shadow hover:shadow-card">
+        <div class="bg-gradient-to-br ${c.color} p-6 text-white">
+          <span class="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur">${c.badge}</span>
+          <h3 class="mt-4 text-xl font-bold text-white">${c.title}</h3>
+          <p class="mt-1 text-sm text-white/85">${c.subtitle}</p>
+        </div>
+        <div class="flex flex-1 flex-col p-6">
+          <p class="text-ink-soft">${c.description}</p>
+          <div class="mt-4 flex items-center gap-2 text-sm text-ink-soft"><i data-lucide="clock" class="h-4 w-4 text-brand"></i> Тривалість: ${c.duration}</div>
+          <div class="mt-6 flex items-end justify-between gap-2 border-t border-ink/10 pt-4">
+            <div>${c.oldPrice ? `<span class="mr-2 text-sm text-ink-soft line-through">${c.oldPrice}</span>` : ""}<span class="text-2xl font-extrabold text-ink">${c.price}</span></div>
+            <button class="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-dark">Детальніше <i data-lucide="arrow-right" class="h-4 w-4"></i></button>
+          </div>
+        </div>
+      </div>`;
+    }
+    function renderCourses(track){
+      document.getElementById("courses-grid").innerHTML = courses.filter(c=>c.track===track).map(courseCard).join("");
+      lucide.createIcons();
+    }
+    document.querySelectorAll(".course-tab").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        document.querySelectorAll(".course-tab").forEach(b=>{
+          b.className="course-tab rounded-full px-6 py-2.5 text-sm font-semibold text-ink-soft hover:text-ink";
+        });
+        btn.className="course-tab rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-brand-dark shadow-soft";
+        renderCourses(btn.dataset.track);
+      });
+    });
+
+    // ---- Render: dropdown + footer courses + secondary ----
+    document.getElementById("dropdown-courses").innerHTML = courses.map(c=>
+      `<a href="#courses" class="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-brand-light"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-light text-xs font-bold text-brand-dark">${c.badge}</span><span class="text-sm font-medium text-ink">${c.title}</span></a>`
+    ).join("");
+    document.getElementById("footer-courses").innerHTML = courses.map(c=>`<li><a href="#courses" class="hover:text-brand">${c.title}</a></li>`).join("");
+    document.getElementById("courses-secondary").innerHTML = courses.map(c=>
+      `<a href="#courses" class="group flex items-center gap-4 rounded-2xl border border-ink/10 bg-white p-5 shadow-soft transition-shadow hover:shadow-card"><span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${c.color} text-sm font-bold text-white">${c.badge}</span><div class="min-w-0"><p class="truncate font-bold text-ink">${c.title}</p><p class="truncate text-sm text-ink-soft">${c.subtitle}</p></div><i data-lucide="arrow-right" class="ml-auto h-5 w-5 shrink-0 text-ink-soft transition-transform group-hover:translate-x-1 group-hover:text-brand"></i></a>`
+    ).join("");
+
+    // ---- Render: steps ----
+    document.getElementById("steps-list").innerHTML = steps.map(s=>
+      `<li class="flex flex-col gap-4 rounded-2xl border border-ink/10 bg-white p-6 shadow-soft sm:flex-row sm:items-center sm:gap-6"><span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand text-xl font-extrabold text-white">${s.n}</span><div><h3 class="text-lg font-bold">${s.title}</h3><p class="mt-1 text-ink-soft">${s.text}</p></div></li>`
+    ).join("");
+
+    // ---- Render: universities marquee (doubled for seamless loop) ----
+    document.getElementById("uni-marquee").innerHTML = [...universities,...universities].map(u=>
+      `<div class="flex h-20 items-center whitespace-nowrap rounded-2xl border border-ink/10 bg-white px-8 text-lg font-bold text-ink-soft shadow-soft">${u}</div>`
+    ).join("");
+
+    // ---- Render: schedule ----
+    document.getElementById("schedule-list").innerHTML = schedule.map(e=>
+      `<li class="relative"><span class="absolute -left-[2.55rem] flex h-7 w-7 items-center justify-center rounded-full bg-brand text-white"><i data-lucide="calendar-days" class="h-4 w-4"></i></span><p class="text-sm font-bold uppercase tracking-wide text-brand">${e.date}</p><p class="mt-1 text-lg font-semibold text-ink">${e.title}</p>${e.note?`<p class="mt-1 font-marker text-xl text-accent-rose">${e.note}</p>`:""}</li>`
+    ).join("");
+
+    // ---- Render: FAQ accordion ----
+    const faqList = document.getElementById("faq-list");
+    faqList.innerHTML = faqs.map((f,i)=>
+      `<div class="px-5 sm:px-6"><button data-faq="${i}" class="flex w-full items-center justify-between gap-4 py-5 text-left"><span class="text-base font-semibold text-ink sm:text-lg">${f.q}</span><i data-lucide="chevron-down" class="faq-chevron h-5 w-5 shrink-0 text-brand transition-transform"></i></button><div class="faq-panel grid grid-rows-[0fr] transition-all duration-300"><div class="overflow-hidden"><p class="pb-5 leading-relaxed text-ink-soft">${f.a}</p></div></div></div>`
+    ).join("");
+    faqList.querySelectorAll("button[data-faq]").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        const panel = btn.nextElementSibling;
+        const chevron = btn.querySelector(".faq-chevron");
+        const open = panel.classList.contains("grid-rows-[1fr]");
+        // close all
+        faqList.querySelectorAll(".faq-panel").forEach(p=>p.classList.replace("grid-rows-[1fr]","grid-rows-[0fr]"));
+        faqList.querySelectorAll(".faq-chevron").forEach(c=>c.classList.remove("rotate-180"));
+        if(!open){ panel.classList.replace("grid-rows-[0fr]","grid-rows-[1fr]"); chevron.classList.add("rotate-180"); }
+      });
+    });
+
+    // ---- Reviews carousel ----
+    let rIdx = 0;
+    function renderReview(){
+      const r = reviews[rIdx];
+      document.getElementById("review-stars").innerHTML = Array.from({length:r.rating}).map(()=>`<i data-lucide="star" class="h-5 w-5 fill-current"></i>`).join("");
+      document.getElementById("review-text").textContent = "«"+r.text+"»";
+      document.getElementById("review-name").textContent = r.name;
+      document.getElementById("review-role").textContent = r.role;
+      document.getElementById("review-avatar").textContent = r.name.charAt(0);
+      document.getElementById("review-dots").innerHTML = reviews.map((_,i)=>`<button data-dot="${i}" class="h-2 rounded-full transition-all ${i===rIdx?"w-6 bg-brand":"w-2 bg-ink/20"}"></button>`).join("");
+      document.querySelectorAll("#review-dots button").forEach(d=>d.addEventListener("click",()=>{rIdx=+d.dataset.dot; renderReview();}));
+      lucide.createIcons();
+    }
+    document.getElementById("review-prev").addEventListener("click",()=>{rIdx=(rIdx-1+reviews.length)%reviews.length; renderReview();});
+    document.getElementById("review-next").addEventListener("click",()=>{rIdx=(rIdx+1)%reviews.length; renderReview();});
+
+    // ---- Header: mobile menu + scroll shadow ----
+    document.getElementById("burger").addEventListener("click",()=>{
+      document.getElementById("mobile-menu").classList.toggle("hidden");
+    });
+    document.querySelectorAll("#mobile-menu a").forEach(a=>a.addEventListener("click",()=>document.getElementById("mobile-menu").classList.add("hidden")));
+    window.addEventListener("scroll",()=>{
+      const h = document.getElementById("header");
+      if(window.scrollY>8){ h.classList.add("shadow-soft","bg-white/90","backdrop-blur"); } else { h.classList.remove("shadow-soft","bg-white/90","backdrop-blur"); }
+    });
+
+    // ---- Init ----
+    renderCourses("magistracy");
+    renderReview();
+    lucide.createIcons();
+  </script>
+</body>
+</html>
