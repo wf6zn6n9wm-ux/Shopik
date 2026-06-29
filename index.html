@@ -8,11 +8,61 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel" data-type="module">
 const { useState, useEffect, useRef } = React;
+
+/* ============================================================
+   БАЗА ДАНИХ (Supabase) — необов'язково
+   Без ключів усе працює локально (localStorage).
+   Щоб увімкнути хмару й синхронізацію між пристроями:
+     1) Створи безкоштовний проєкт на https://supabase.com
+     2) У SQL Editor виконай:
+          create table shops (id bigint primary key, data jsonb);
+          alter table shops enable row level security;
+          create policy "public" on shops for all
+            using (true) with check (true);
+     3) Settings → API: встав сюди Project URL і anon (public) key
+   ============================================================ */
+const SUPABASE_URL = '';        // напр.: https://abcd1234.supabase.co
+const SUPABASE_ANON_KEY = '';   // anon public key
+
+const _supa = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+const _lsGet = (k, d) => { try { const v = localStorage.getItem('shopik_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const _lsSet = (k, v) => { try { localStorage.setItem('shopik_' + k, JSON.stringify(v)); return true; } catch (e) { return false; } };
+
+const db = {
+  cloud: !!_supa,
+  // Початкові дані для миттєвого рендеру (локальний кеш)
+  cached() { return _lsGet('shops', []); },
+  // Завантажити з хмари (або з localStorage, якщо хмара не налаштована)
+  async loadShops() {
+    if (_supa) {
+      const { data, error } = await _supa.from('shops').select('data').order('id');
+      if (error) { console.warn('[Shopik] Supabase load error:', error.message); return _lsGet('shops', []); }
+      return (data || []).map(r => r.data);
+    }
+    return _lsGet('shops', []);
+  },
+  // Зберегти весь список магазинів
+  async saveShops(shops) {
+    const okLocal = _lsSet('shops', shops); // локальний кеш завжди
+    if (_supa && shops.length) {
+      const { error } = await _supa.from('shops').upsert(shops.map(s => ({ id: s.id, data: s })));
+      if (error) { console.warn('[Shopik] Supabase save error:', error.message); return false; }
+    }
+    return okLocal;
+  },
+  async deleteShop(id) {
+    if (_supa) { const { error } = await _supa.from('shops').delete().eq('id', id); if (error) console.warn('[Shopik] Supabase delete error:', error.message); }
+  },
+};
 const _mkIcon = (inner) => (props) => React.createElement('svg', Object.assign({xmlns:'http://www.w3.org/2000/svg', width:24, height:24, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2, strokeLinecap:'round', strokeLinejoin:'round'}, props, {dangerouslySetInnerHTML:{__html: inner}}));
 const Plus = _mkIcon('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>');
 const Trash2 = _mkIcon('<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>');
@@ -134,10 +184,33 @@ export default function ShopPlatform() {
   const [createStep, setCreateStep] = useState(1);
   const [demoMode, setDemoMode] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const hydrated = useRef(false);
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
 
-  // Автозбереження у localStorage — щоб усе зберігалося між сесіями
-  useEffect(() => { if (!LS.set('shops', shops)) flash('⚠️ Сховище переповнене — зменшіть розмір зображень'); }, [shops]);
+  // Гідрація: підвантажити магазини з бази (Supabase) при старті
+  useEffect(() => {
+    let alive = true;
+    db.loadShops().then(async list => {
+      if (!alive) return;
+      if (db.cloud) {
+        const local = db.cached();
+        if ((!list || list.length === 0) && local.length) {
+          await db.saveShops(local); // міграція локальних даних у хмару
+          list = local;
+        }
+        setShops(list);
+        setActiveShop(prev => prev ? (list.find(s => s.id === prev.id) || null) : prev);
+      }
+      hydrated.current = true;
+    });
+    return () => { alive = false; };
+  }, []);
+
+  // Автозбереження: хмара (якщо налаштована) + локальний кеш
+  useEffect(() => {
+    if (!hydrated.current) return;
+    db.saveShops(shops).then(ok => { if (ok === false) flash(db.cloud ? '⚠️ Не вдалося зберегти у хмару' : '⚠️ Сховище переповнене — зменшіть розмір зображень'); });
+  }, [shops]);
   useEffect(() => { LS.set('activeShopId', activeShop ? activeShop.id : null); }, [activeShop]);
   useEffect(() => { LS.set('favorites', favorites); }, [favorites]);
   useEffect(() => { LS.set('cart', cart); }, [cart]);
