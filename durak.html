@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Дурак — Shopik</title>
+<style>
+  :root{
+    --bg:#161616; --bg2:#1a1a1a; --panel:#1d1d1d; --felt:#1f3a2a;
+    --red:#d23b3b; --gold:#e3b341; --green:#2faa55;
+    --cream:#f7f5f2; --muted:#9a9a9a; --line:#2a2a2a; --cardRed:#c62828;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; min-height:100%; background:var(--bg); color:var(--cream);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overscroll-behavior:none; -webkit-user-select:none; user-select:none;}
+  #app{max-width:560px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;
+    background:radial-gradient(120% 70% at 50% 30%, #243d2e 0%, #18261d 55%, var(--bg) 100%);}
+
+  header{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 16px; background:rgba(15,15,15,.55); border-bottom:1px solid var(--line);}
+  .brand{font-size:20px; font-weight:900; letter-spacing:-.01em;}
+  .brand .dot{color:var(--red);}
+  .hdr-right{display:flex; align-items:center; gap:12px;}
+  .trumpBox{display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted);}
+  .trumpSuit{font-size:22px; line-height:1;}
+  .trumpSuit.red{color:#ff5a5a;} .trumpSuit.black{color:#e8e8e8;}
+  .newBtn{background:transparent; border:1px solid var(--line); color:var(--cream);
+    padding:7px 12px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer;}
+  .newBtn:active{transform:scale(.96);}
+
+  .row{display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap; min-height:96px;}
+  .botRow{padding:14px 10px 4px;}
+  .handRow{padding:6px 10px 16px;}
+  .mid{flex:1; display:flex; align-items:center; justify-content:center; gap:18px; padding:6px 10px; position:relative;}
+
+  .deckPile{display:flex; flex-direction:column; align-items:center; gap:6px; min-width:78px;}
+  .pileWrap{position:relative; width:60px; height:84px;}
+  .trumpUnder{position:absolute; left:26px; top:14px; transform:rotate(90deg);
+    transform-origin:center;}
+  .deckCount{font-size:12px; color:var(--muted);}
+  .discard{font-size:11px; color:#6f6f6f; text-align:center;}
+
+  .table{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; align-items:center;
+    max-width:330px;}
+  .pair{position:relative; width:60px; height:84px;}
+  .pair .def{position:absolute; left:14px; top:18px; transform:rotate(14deg);}
+
+  .card{width:60px; height:84px; border-radius:9px; background:var(--cream); color:#1a1a1a;
+    position:relative; box-shadow:0 3px 8px rgba(0,0,0,.45); flex:0 0 auto;
+    border:1px solid #d9d4cc; transition:transform .12s ease, box-shadow .12s ease;}
+  .card.sm{width:48px; height:68px; border-radius:7px;}
+  .card.red{color:var(--cardRed);} .card.black{color:#16110d;}
+  .card .corner{position:absolute; font-weight:800; font-size:13px; line-height:.95; text-align:center;}
+  .card .corner.tl{top:5px; left:6px;} .card .corner.br{bottom:5px; right:6px; transform:rotate(180deg);}
+  .card .suit{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:30px;}
+  .card.sm .corner{font-size:11px;} .card.sm .suit{font-size:24px;}
+  .card.trump{border:2px solid var(--gold); box-shadow:0 3px 10px rgba(227,179,65,.35);}
+  .card.back{background:linear-gradient(135deg,#b22f2f,#7e1f1f); border:1px solid #5e1717;}
+  .card.back .pattern{position:absolute; inset:6px; border-radius:5px;
+    background:repeating-linear-gradient(45deg, rgba(255,255,255,.10) 0 6px, transparent 6px 12px);
+    border:1px solid rgba(255,255,255,.18);}
+  .hand .card{cursor:default;}
+  .hand .card.playable{cursor:pointer; transform:translateY(-10px);
+    box-shadow:0 8px 16px rgba(0,0,0,.5); border-color:var(--gold);}
+  .hand .card.playable:active{transform:translateY(-6px) scale(.97);}
+  .hand .card.dim{opacity:.62;}
+  .overlap .card{margin-left:-26px;} .overlap .card:first-child{margin-left:0;}
+
+  .msgBar{text-align:center; font-size:14px; min-height:22px; color:#dcdcdc; padding:2px 12px;}
+  .turnPill{display:inline-block; padding:3px 10px; border-radius:999px; font-weight:700; font-size:13px;}
+  .turnPill.you{background:rgba(47,170,85,.18); color:#7fe0a0; border:1px solid rgba(47,170,85,.4);}
+  .turnPill.bot{background:rgba(210,59,59,.16); color:#ff8a8a; border:1px solid rgba(210,59,59,.4);}
+
+  .actions{display:flex; justify-content:center; gap:12px; padding:4px 12px 14px; min-height:58px;}
+  .btn{border:0; cursor:pointer; font-size:16px; font-weight:800; padding:13px 26px; border-radius:14px;
+    transition:transform .08s ease, opacity .2s;}
+  .btn:active{transform:scale(.96);}
+  .btn.bito{background:var(--green); color:#06210f; box-shadow:0 6px 18px rgba(47,170,85,.3);}
+  .btn.take{background:var(--red); color:#fff; box-shadow:0 6px 18px rgba(210,59,59,.3);}
+
+  .overlay{position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; text-align:center; padding:30px; background:rgba(10,10,10,.82); backdrop-filter:blur(4px);}
+  .overlay .res{font-size:40px; font-weight:900; margin-bottom:6px;}
+  .overlay .sub{color:var(--muted); margin-bottom:24px; max-width:300px;}
+  .hide{display:none !important;}
+  .stat{font-size:11px; color:#6f6f6f; text-align:center; padding:0 0 8px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">Дурак<span class="dot">.</span></div>
+    <div class="hdr-right">
+      <div class="trumpBox">Козир <span class="trumpSuit" id="trumpSuit">♠</span></div>
+      <button class="newBtn" id="newBtn">Нова гра</button>
+    </div>
+  </header>
+
+  <div class="row botRow" id="botRow"></div>
+
+  <div class="mid">
+    <div class="deckPile">
+      <div class="pileWrap" id="pileWrap"></div>
+      <div class="deckCount" id="deckCount">36</div>
+      <div class="discard" id="discard"></div>
+    </div>
+    <div class="table" id="table"></div>
+  </div>
+
+  <div class="msgBar" id="msgBar"></div>
+  <div class="actions" id="actions"></div>
+  <div class="row handRow hand" id="handRow"></div>
+  <div class="stat" id="stat"></div>
+</div>
+
+<div class="overlay hide" id="overlay">
+  <div class="res" id="resTitle">—</div>
+  <div class="sub" id="resSub"></div>
+  <button class="btn bito" id="overNew">Зіграти ще</button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const SUITS=['♠','♣','♥','♦'];
+  const RANKS=[6,7,8,9,10,11,12,13,14];
+  const RED_SUITS={'♥':1,'♦':1};
+
+  let S=null;
+
+  // ---------- helpers ----------
+  const other=w=>w==='human'?'bot':'human';
+  const isRed=s=>!!RED_SUITS[s];
+  function rankStr(r){ return r<=10?(''+r):({11:'J',12:'Q',13:'K',14:'A'})[r]; }
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+  function removeFrom(arr,card){ const i=arr.findIndex(c=>c.id===card.id); if(i>=0) arr.splice(i,1); }
+  function delay(){ return window.__fast?4:620; }
+
+  function beats(def,atk){
+    if(def.s===atk.s) return def.r>atk.r;
+    if(def.s===S.trumpSuit && atk.s!==S.trumpSuit) return true;
+    return false;
+  }
+  function cardWeight(c){ return (c.s===S.trumpSuit?100:0)+c.r; }
+  function ranksOnTable(){ const set=new Set(); for(const p of S.table){ set.add(p.atk.r); if(p.def) set.add(p.def.r);} return set; }
+  function undefendedCount(){ return S.table.filter(p=>!p.def).length; }
+  function defenderHand(){ return S.defender==='human'?S.human:S.bot; }
+
+  function canAdd(card){
+    if(S.table.length===0) return true;
+    if(S.table.length>=6) return false;
+    if(!ranksOnTable().has(card.r)) return false;
+    if(undefendedCount() >= defenderHand().length) return false;
+    return true;
+  }
+
+  function setRoles(att){ S.attacker=att; S.defender=other(att); }
+
+  // ---------- setup ----------
+  function newGame(){
+    const deck=[];
+    for(const s of SUITS) for(const r of RANKS) deck.push({r,s,id:s+r});
+    shuffle(deck);
+    const trump=deck[deck.length-1];          // bottom card = trump
+    const human=deck.splice(0,6);
+    const bot=deck.splice(0,6);
+    S={ deck, trump, trumpSuit:trump.s, human, bot, table:[],
+        attacker:null, defender:null, lock:true, over:false,
+        message:'', discardCount:0 };
+    sortHand(S.human);
+
+    let owner=lowestTrumpOwner();
+    setRoles(owner||'human');
+    S.message = (S.attacker==='human')?'Перший ходиш ти (найменший козир)':'Перший ходить бот';
+
+    document.getElementById('overlay').classList.add('hide');
+    render();
+    if(S.attacker==='bot') schedule(botAttack); else release();
+  }
+
+  function lowestTrumpOwner(){
+    let best=99, owner=null;
+    for(const c of S.human) if(c.s===S.trumpSuit && c.r<best){ best=c.r; owner='human'; }
+    for(const c of S.bot)   if(c.s===S.trumpSuit && c.r<best){ best=c.r; owner='bot'; }
+    return owner;
+  }
+
+  function sortHand(h){
+    h.sort((a,b)=>{
+      const at=a.s===S.trumpSuit, bt=b.s===S.trumpSuit;
+      if(at!==bt) return at?1:-1;
+      if(a.s!==b.s) return SUITS.indexOf(a.s)-SUITS.indexOf(b.s);
+      return a.r-b.r;
+    });
+  }
+
+  function refill(firstWho){
+    for(const who of [firstWho, other(firstWho)]){
+      const hand = who==='human'?S.human:S.bot;
+      while(hand.length<6 && S.deck.length>0) hand.push(S.deck.shift());
+    }
+    sortHand(S.human);
+  }
+
+  // ---------- turn flow ----------
+  function schedule(fn){ S.lock=true; render(); setTimeout(fn, delay()); }
+  function release(){ S.lock=false; render(); }
+
+  // -- human as attacker --
+  function humanAttack(card){
+    removeFrom(S.human,card);
+    S.table.push({atk:card, def:null});
+    S.message='Ти атакуєш';
+    schedule(botDefend);
+  }
+  function botDefend(){
+    const pair=S.table.find(p=>!p.def);
+    if(!pair){ release(); return; }
+    const c=botDefenseCard(pair.atk);
+    if(c){ removeFrom(S.bot,c); pair.def=c; S.message='Бот відбивається'; release(); }
+    else { botTakes(); }
+  }
+  function humanBito(){
+    if(S.lock||S.over) return;
+    if(!(S.attacker==='human' && S.table.length>0 && undefendedCount()===0)) return;
+    endBoutDiscard('human');
+  }
+
+  // -- human as defender --
+  function humanDefend(card,pair){
+    removeFrom(S.human,card); pair.def=card;
+    S.message='Ти відбився'; schedule(botThrowMore);
+  }
+  function botThrowMore(){
+    const c=botThrowCard();
+    if(c){ removeFrom(S.bot,c); S.table.push({atk:c,def:null}); S.message='Бот підкидає'; release(); }
+    else { endBoutDiscard('bot'); }
+  }
+  function humanTake(){
+    if(S.lock||S.over) return;
+    if(!(S.defender==='human' && undefendedCount()>0)) return;
+    humanTakesBout();
+  }
+  function humanTakesBout(){
+    for(const p of S.table){ S.human.push(p.atk); if(p.def) S.human.push(p.def); }
+    S.table=[]; sortHand(S.human);
+    S.message='Ти береш карти';
+    refill('bot');           // attacker (bot) draws first
+    setRoles('bot');         // bot attacks again
+    if(checkEnd()) return;
+    schedule(botAttack);
+  }
+
+  // -- bot as attacker --
+  function botAttack(){
+    if(S.over) return;
+    if(S.bot.length===0){ release(); return; }
+    const c=botAttackCard();
+    removeFrom(S.bot,c); S.table.push({atk:c,def:null});
+    S.message='Бот атакує'; release();
+  }
+
+  // -- shared endings --
+  function botTakes(){
+    for(const p of S.table){ S.bot.push(p.atk); if(p.def) S.bot.push(p.def); }
+    S.table=[]; S.message='Бот бере карти 😈';
+    refill('human');         // attacker (human) draws first
+    setRoles('human');       // human attacks again
+    if(checkEnd()) return;
+    release();
+  }
+  function endBoutDiscard(boutAttacker){
+    let n=0; for(const p of S.table){ n++; if(p.def) n++; }
+    S.discardCount+=n; S.table=[];
+    refill(boutAttacker);
+    setRoles(other(boutAttacker));   // defender becomes new attacker
+    S.message = boutAttacker==='human' ? 'Бито ✓' : 'Бот відбив усе';
+    if(checkEnd()) return;
+    if(S.attacker==='bot') schedule(botAttack); else release();
+  }
+
+  function checkEnd(){
+    if(S.deck.length>0) return false;
+    const he=S.human.length===0, be=S.bot.length===0;
+    if(he&&be){ end('draw'); return true; }
+    if(he){ end('humanWin'); return true; }
+    if(be){ end('botWin'); return true; }
+    return false;
+  }
+  function end(res){
+    S.over=true; S.lock=true;
+    let t,sub;
+    if(res==='draw'){ t='Нічия 🤝'; sub='Обидва вийшли без карт одночасно.'; }
+    else if(res==='humanWin'){ t='Перемога! 🎉'; sub='Бот лишився з картами — він дурак.'; }
+    else { t='Поразка 😅'; sub='Ти лишився з картами — ти дурак. Реванш?'; }
+    document.getElementById('resTitle').textContent=t;
+    document.getElementById('resSub').textContent=sub;
+    document.getElementById('overlay').classList.remove('hide');
+    render();
+  }
+
+  // ---------- bot AI ----------
+  function botDefenseCard(atk){
+    const cands=S.bot.filter(c=>beats(c,atk));
+    if(!cands.length) return null;
+    cands.sort((a,b)=>cardWeight(a)-cardWeight(b));
+    return cands[0];
+  }
+  function botAttackCard(){
+    const h=[...S.bot].sort((a,b)=>cardWeight(a)-cardWeight(b));
+    return h[0];
+  }
+  function botThrowCard(){
+    if(S.table.length>=6) return null;
+    if(undefendedCount()>=S.human.length) return null;
+    const ranks=ranksOnTable();
+    const cands=S.bot.filter(c=>ranks.has(c.r) && c.s!==S.trumpSuit);  // don't waste trumps on подкид
+    if(!cands.length) return null;
+    cands.sort((a,b)=>a.r-b.r);
+    return cands[0];
+  }
+
+  // ---------- input ----------
+  function onCardClick(card){
+    if(S.over||S.lock) return;
+    if(S.attacker==='human'){
+      if(canAdd(card)) humanAttack(card);
+    } else {
+      const pair=S.table.find(p=>!p.def);
+      if(pair && beats(card,pair.atk)) humanDefend(card,pair);
+    }
+  }
+
+  // ---------- rendering ----------
+  function cardEl(c,opts){
+    opts=opts||{};
+    const d=document.createElement('div');
+    let cls='card'+(opts.sm?' sm':'');
+    if(opts.back){ d.className=cls+' back'; d.innerHTML='<div class="pattern"></div>'; return d; }
+    cls+= isRed(c.s)?' red':' black';
+    if(c.s===S.trumpSuit) cls+=' trump';
+    if(opts.playable) cls+=' playable';
+    if(opts.dim) cls+=' dim';
+    d.className=cls;
+    const rk=rankStr(c.r);
+    d.innerHTML='<span class="corner tl">'+rk+'<br>'+c.s+'</span>'+
+                '<span class="suit">'+c.s+'</span>'+
+                '<span class="corner br">'+rk+'<br>'+c.s+'</span>';
+    if(opts.onclick) d.addEventListener('click', opts.onclick);
+    return d;
+  }
+
+  function render(){
+    if(!S) return;
+    // trump header
+    const ts=document.getElementById('trumpSuit');
+    ts.textContent=S.trumpSuit; ts.className='trumpSuit '+(isRed(S.trumpSuit)?'red':'black');
+
+    // bot row
+    const botRow=document.getElementById('botRow');
+    botRow.innerHTML=''; botRow.className='row botRow'+(S.bot.length>7?' overlap':'');
+    for(let i=0;i<S.bot.length;i++) botRow.appendChild(cardEl(null,{back:true,sm:true}));
+
+    // deck pile + trump under
+    const pile=document.getElementById('pileWrap'); pile.innerHTML='';
+    if(S.deck.length>0){
+      const under=cardEl(S.trump,{}); under.classList.add('trumpUnder'); pile.appendChild(under);
+      pile.appendChild(cardEl(null,{back:true}));
+    }
+    document.getElementById('deckCount').textContent = S.deck.length>0 ? ('у колоді: '+S.deck.length) : 'колода порожня';
+    document.getElementById('discard').textContent = S.discardCount>0 ? ('у биті: '+S.discardCount) : '';
+
+    // table
+    const table=document.getElementById('table'); table.innerHTML='';
+    for(const p of S.table){
+      const wrap=document.createElement('div'); wrap.className='pair';
+      wrap.appendChild(cardEl(p.atk,{}));
+      if(p.def){ const dd=cardEl(p.def,{}); dd.classList.add('def'); wrap.appendChild(dd); }
+      table.appendChild(wrap);
+    }
+
+    // human hand
+    const hand=document.getElementById('handRow');
+    hand.innerHTML=''; hand.className='row handRow hand'+(S.human.length>8?' overlap':'');
+    const humanTurn = !S.lock && !S.over;
+    const pair = S.table.find(p=>!p.def);
+    for(const c of S.human){
+      let playable=false;
+      if(humanTurn){
+        if(S.attacker==='human') playable=canAdd(c);
+        else if(pair) playable=beats(c,pair.atk);
+      }
+      hand.appendChild(cardEl(c,{ playable, dim:(humanTurn && !playable), onclick:()=>onCardClick(c) }));
+    }
+
+    // message + turn pill
+    const turn = S.over ? '' :
+      (S.attacker==='human'
+        ? '<span class="turnPill you">Твій хід — атака</span>'
+        : (S.defender==='human'
+            ? '<span class="turnPill you">Твій хід — захист</span>'
+            : '<span class="turnPill bot">Хід бота…</span>'));
+    document.getElementById('msgBar').innerHTML = (S.message?('<span>'+S.message+'</span> &nbsp; '):'') + turn;
+
+    // actions
+    const act=document.getElementById('actions'); act.innerHTML='';
+    if(!S.over && !S.lock){
+      if(S.attacker==='human' && S.table.length>0 && undefendedCount()===0){
+        const b=document.createElement('button'); b.className='btn bito'; b.textContent='Бито ✓';
+        b.addEventListener('click', humanBito); act.appendChild(b);
+      }
+      if(S.defender==='human' && undefendedCount()>0){
+        const b=document.createElement('button'); b.className='btn take'; b.textContent='Взяти';
+        b.addEventListener('click', humanTake); act.appendChild(b);
+      }
+    }
+
+    document.getElementById('stat').textContent =
+      'Твоїх карт: '+S.human.length+'  ·  у бота: '+S.bot.length;
+  }
+
+  // ---------- wire up ----------
+  document.getElementById('newBtn').addEventListener('click', newGame);
+  document.getElementById('overNew').addEventListener('click', newGame);
+
+  // test API
+  window.G = { getS:()=>S, canAdd, beats, undefendedCount, onCardClick, humanBito, humanTake, newGame };
+
+  newGame();
+})();
+</script>
+</body>
+</html>
