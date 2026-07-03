@@ -32,8 +32,8 @@ const { useState, useEffect, useRef } = React;
         Кожен продавець бачить і редагує лише свої магазини.
      3) Settings → API: встав сюди Project URL і anon (public) key
    ============================================================ */
-const SUPABASE_URL = '';        // напр.: https://abcd1234.supabase.co
-const SUPABASE_ANON_KEY = '';   // anon public key
+const SUPABASE_URL = 'https://cjxqdlvqofqvbymahkhm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqeHFkbHZxb2ZxdmJ5bWFoa2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwOTc2NjYsImV4cCI6MjA5ODY3MzY2Nn0.B3yR2usFYav5lwTfGR2yZb0vIAeOM5-_5CTYqprODSE';
 
 const _supa = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
