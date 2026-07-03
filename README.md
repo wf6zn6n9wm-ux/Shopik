@@ -32,7 +32,18 @@ REFEREE_MODEL=claude-sonnet-5     # опційно
 Достатньо відкрити `index.html` у браузері (рефері буде в демо-режимі —
 serverless-функції локально без `vercel dev` не запускаються).
 
+## Telegram Mini App
+Підключено `telegram-web-app.js`. У середовищі Telegram застосунок:
+- авторизується (імʼя/аватар користувача з `initDataUnsafe`);
+- розгортається на весь екран, підлаштовує кольори шапки/фону;
+- дає хаптик-фідбек на вердикт рефері (успіх/помилка) і на зрив;
+- шерить челендж через нативний Telegram-share.
+
+Замінити `BOT_LINK` в `index.html` на реальне посилання бота/мініаппа перед запуском.
+Поза Telegram (звичайний браузер) усе працює через фолбеки (`navigator.share`/буфер).
+
 ## Стек
 - Фронт: React 18 + Tailwind (CDN), один файл `index.html`, без білд-кроку.
 - Бекенд: Vercel Serverless Function на Node (fetch → Anthropic Messages API).
+- Telegram Mini App SDK (опційно, з фолбеками для браузера).
 - Стан: `localStorage` (баланс, челендж, транзакції, заявки на вивід).
