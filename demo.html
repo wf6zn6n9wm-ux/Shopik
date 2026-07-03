@@ -1,0 +1,515 @@
+<style>
+  :root{
+    --bg:#0b0d12; --bg2:#131a2b;
+    --surface:rgba(255,255,255,.03); --surface2:rgba(255,255,255,.06);
+    --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.06);
+    --txt:#e7ecf3; --mut:#9aa6b8; --mut2:#6b7688;
+    --blue:#3b82f6; --amber:#fbbf24;
+    --good:#34d399; --goodbg:rgba(52,211,153,.12); --goodln:rgba(52,211,153,.28);
+    --bad:#f87171; --badbg:rgba(248,113,113,.12); --badln:rgba(248,113,113,.28);
+    --warn:#fbbf24; --warnbg:rgba(251,191,36,.10); --warnln:rgba(251,191,36,.28);
+    --grad:linear-gradient(120deg,var(--blue),var(--amber));
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+    --sp:cubic-bezier(.2,.8,.2,1);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg)}
+  #wrap{
+    font-family:var(--font); color:var(--txt);
+    max-width:430px; margin:0 auto; min-height:100dvh; position:relative;
+    padding-bottom:96px;
+    background:radial-gradient(120% 55% at 50% 0%,var(--bg2) 0%,var(--bg) 55%);
+    -webkit-font-smoothing:antialiased;
+  }
+  .pad{padding:30px 20px 0}
+  h1,h2,h3{margin:0;letter-spacing:-.02em;text-wrap:balance}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input{font-family:inherit}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* buttons */
+  .btn{width:100%;padding:15px;border-radius:16px;font-weight:800;font-size:16px;transition:transform .12s var(--sp),opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn:active{transform:scale(.98)}
+  .btn-primary{background:#fff;color:#0b0d12}
+  .btn-grad{background:var(--grad);color:#0b0d12}
+  .btn-ghost{background:var(--surface);border:1px solid var(--line);color:var(--txt);font-weight:700}
+  .btn[disabled]{opacity:.4;pointer-events:none}
+  .btn-sm{padding:11px;font-size:14px;border-radius:14px;font-weight:700}
+
+  /* cards */
+  .card{border:1px solid var(--line);background:var(--surface);border-radius:24px;padding:22px}
+  .card2{border:1px solid var(--line);background:var(--surface);border-radius:18px;padding:16px}
+  .row{display:flex;align-items:center;gap:12px}
+  .between{display:flex;align-items:center;justify-content:space-between}
+  .stack>*+*{margin-top:14px}
+  .mut{color:var(--mut)} .mut2{color:var(--mut2)}
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mut2)}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px}
+
+  /* header */
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px}
+  .logo{width:36px;height:36px;border-radius:11px;background:var(--grad);display:grid;place-items:center;color:#0b0d12}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-size:14px;font-weight:600}
+
+  /* ring */
+  .ringwrap{position:relative;display:grid;place-items:center}
+  .ringc{position:absolute;text-align:center}
+
+  /* grids */
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .stat{background:var(--surface);border:1px solid var(--line2);border-radius:16px;padding:12px 6px;text-align:center}
+  .stat .v{font-weight:800;font-size:14px;margin-top:3px}
+  .stat .l{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut2);margin-top:2px}
+
+  .seg{display:flex;gap:6px;background:rgba(255,255,255,.04);padding:5px;border-radius:16px}
+  .seg button{flex:1;padding:10px;border-radius:12px;font-size:14px;font-weight:700;color:var(--mut);transition:.15s}
+  .seg button.on{background:#fff;color:#0b0d12}
+
+  .pill{padding:12px;border-radius:12px;font-weight:800;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--txt);transition:.12s}
+  .pill.on{background:#fff;color:#0b0d12;border-color:#fff}
+
+  .field{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;color:var(--txt);font-size:16px;outline:none;transition:border-color .15s}
+  .field:focus{border-color:rgba(255,255,255,.35)}
+  .field.big{font-size:19px;font-weight:700}
+
+  .method{border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:14px;text-align:left;transition:.12s}
+  .method.on{background:#fff;color:#0b0d12;border-color:#fff}
+  .method .t{font-weight:700;font-size:14px;margin-top:8px}
+  .method .s{font-size:12px;color:var(--mut2)}
+  .method.on .s{color:rgba(0,0,0,.55)}
+
+  .radio{width:20px;height:20px;border-radius:999px;border:2px solid var(--line);display:grid;place-items:center;flex:0 0 auto}
+  .radio.on{border-color:#fff}
+  .radio .dot{width:10px;height:10px;border-radius:999px;background:#fff}
+
+  /* checkin */
+  .frame{border:1px solid var(--line);background:var(--surface);border-radius:24px;overflow:hidden}
+  .shot{aspect-ratio:4/5;background:rgba(0,0,0,.35);position:relative;display:grid;place-items:center}
+  .shot img{width:100%;height:100%;object-fit:cover}
+  .overlay{position:absolute;inset:0;display:grid;place-items:center;backdrop-filter:blur(3px);text-align:center;padding:24px}
+  .spinner{width:46px;height:46px;border-radius:999px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;animation:spin 1s linear infinite;margin:0 auto 12px}
+
+  /* nav */
+  nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:430px;z-index:30}
+  .navbar{margin:0 16px 16px;border-radius:20px;background:rgba(20,24,34,.92);backdrop-filter:blur(12px);border:1px solid var(--line);display:flex;justify-content:space-around;padding:8px;box-shadow:0 18px 40px rgba(0,0,0,.45)}
+  .navbtn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 18px;border-radius:14px;color:var(--mut2);font-size:10px;font-weight:600;transition:.15s}
+  .navbtn.on{color:#fff}
+
+  /* toast + sheet */
+  #toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:60}
+  #toast .t{background:#fff;color:#0b0d12;font-weight:700;font-size:14px;padding:10px 16px;border-radius:999px;box-shadow:0 12px 30px rgba(0,0,0,.4)}
+  .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40}
+  .sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:430px;background:#12151d;border-top:1px solid var(--line);border-radius:26px 26px 0 0;padding:20px 20px 30px;max-height:92dvh;overflow:auto;z-index:41}
+  .sheet::-webkit-scrollbar{display:none}
+  .close{width:36px;height:36px;border-radius:999px;background:var(--surface);display:grid;place-items:center}
+  .dot-progress{display:flex;gap:6px;justify-content:center}
+  .dot-progress i{height:6px;width:6px;border-radius:999px;background:rgba(255,255,255,.25);transition:.2s}
+  .dot-progress i.on{width:24px;background:#fff}
+
+  .demo-note{border:1px dashed var(--warnln);background:var(--warnbg);border-radius:16px;padding:12px 14px;font-size:12.5px;color:#f4d58a;line-height:1.45}
+  code{background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px;font-size:.85em}
+
+  .pop{animation:pop .28s var(--sp)} .rise{animation:rise .3s ease}
+  @keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes rise{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+</style>
+
+<div id="wrap"><div id="app"></div></div>
+<div id="toast"></div>
+<input type="file" id="filepick" accept="image/*" capture="environment" hidden />
+
+<script>
+(function(){
+  "use strict";
+  const FEE=0.10, KEY="gantelya_demo_v1";
+  const CHARITIES=[
+    {id:"prytula",name:"Фонд Притули",desc:"Дрони, авто та спорядження для ЗСУ"},
+    {id:"comeback",name:"Повернись живим",desc:"Технічна підтримка Сил оборони"},
+    {id:"unbroken",name:"UNBROKEN",desc:"Протезування та реабілітація"},
+    {id:"unicef",name:"Дитячі лікарні",desc:"Обладнання для дитячих відділень"},
+  ];
+  const ICON={
+    dumbbell:'<path d="m6.5 6.5 11 11M21 21l-1-1M3 3l1 1M18 22l4-4M2 6l4-4M3 10l7-7M14 21l7-7"/>',
+    camera:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+    wallet:'<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
+    user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    home:'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+    heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/>',
+    shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+    spark:'<path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/>',
+    check:'<polyline points="20 6 9 17 4 12"/>',
+    share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/>',
+    flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+    coins:'<circle cx="8" cy="8" r="6"/><path d="M18.1 10.4A6 6 0 1 1 10.3 18"/><path d="M7 6h1v4"/>',
+    card:'<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+    back:'<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+    x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    warn:'<path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/>',
+  };
+  const svg=(n,s)=>`<svg width="${s||24}" height="${s||24}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[n]}</svg>`;
+  const fmt=n=>Math.round(n).toLocaleString("uk-UA");
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const today=()=>new Date().toISOString().slice(0,10);
+  const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
+
+  const def={page:"intro",introI:0,seenIntro:false,balance:0,challenge:null,txns:[],wds:[]};
+  let S=load();
+  const ui={createOpen:false,stake:500,days:21,charity:"prytula",wtab:"topup",
+    tuMethod:"card",tuAmount:"",wdMethod:"card",wdAmount:"",wdDest:"",
+    ci:{img:null,state:"idle",result:null}};
+
+  function load(){try{const s=JSON.parse(localStorage.getItem(KEY));return s?Object.assign({},def,s):Object.assign({},def);}catch(e){return Object.assign({},def);}}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify({page:S.page,seenIntro:S.seenIntro,balance:S.balance,challenge:S.challenge,txns:S.txns,wds:S.wds}));}catch(e){}}
+  function addTxn(t){S.txns.unshift(Object.assign({id:uid(),ts:Date.now()},t));S.txns=S.txns.slice(0,60);}
+
+  let toastT;
+  function toast(m){const b=document.getElementById("toast");b.innerHTML=`<div class="t pop">${esc(m)}</div>`;clearTimeout(toastT);toastT=setTimeout(()=>b.innerHTML="",1900);}
+
+  /* ---------- views ---------- */
+  function ring(v,max){const size=170,r=size/2-12,c=2*Math.PI*r,off=c*(1-Math.min(1,v/max));
+    return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg)">
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" stroke="#1c2230" stroke-width="12" fill="none"/>
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" stroke="url(#g)" stroke-width="12" fill="none" stroke-linecap="round"
+        stroke-dasharray="${c}" stroke-dashoffset="${off}" style="transition:stroke-dashoffset .6s var(--sp)"/>
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#fbbf24"/></linearGradient></defs></svg>`;}
+
+  function intro(){
+    const steps=[
+      {i:"dumbbell",t:"Постав на себе",d:"Ставиш, наприклад, 500 ₴, що 21 день ходиш у зал. Це твої гроші — не азарт."},
+      {i:"camera",t:"Щодня — фото",d:"Кожен день кидаєш фото з тренування. Це твій пруф."},
+      {i:"spark",t:"AI-рефері вирішує",d:"Claude дивиться на фото і каже: зал це чи диван. Обдурити важко."},
+      {i:"shield",t:"Зірвався — донат",d:"Гроші йдуть на ЗСУ / благодійність, не тобі в кишеню. Виграти чуже не можна — тільки повернути своє."},
+    ];
+    const s=steps[S.introI],last=S.introI===steps.length-1;
+    return `<div style="min-height:100dvh;display:flex;flex-direction:column;padding:40px 24px">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+        <div class="pop" style="width:80px;height:80px;border-radius:24px;background:var(--grad);display:grid;place-items:center;color:#0b0d12;margin-bottom:32px">${svg(s.i,34)}</div>
+        <h1 style="font-size:26px;font-weight:800;margin-bottom:12px">${s.t}</h1>
+        <p class="mut" style="line-height:1.6;max-width:300px">${s.d}</p>
+      </div>
+      <div class="dot-progress" style="margin-bottom:24px">${steps.map((_,k)=>`<i class="${k===S.introI?'on':''}"></i>`).join("")}</div>
+      <button class="btn btn-primary" data-act="intro-next">${last?"Почати":"Далі"}</button>
+    </div>`;
+  }
+
+  function header(){
+    return `<div class="between" style="margin-bottom:24px">
+      <div class="brand"><div class="logo">${svg("dumbbell",20)}</div>Гантеля</div>
+      <button class="chip" data-act="go" data-page="wallet"><span style="color:var(--amber)">${svg("wallet",15)}</span><span class="num">${fmt(S.balance)} ₴</span></button>
+    </div>`;
+  }
+
+  function home(){
+    let body;
+    const ch=S.challenge;
+    if(!ch){
+      body=`<div class="card rise" style="text-align:center">
+        <div style="width:64px;height:64px;margin:0 auto 16px;border-radius:18px;background:rgba(59,130,246,.15);color:#93c5fd;display:grid;place-items:center">${svg("dumbbell",30)}</div>
+        <h2 style="font-size:21px;font-weight:800;margin-bottom:8px">Ще немає челленджу</h2>
+        <p class="mut" style="font-size:14px;margin-bottom:20px">Постав на себе гроші й тримай слово. Зірвешся — донат на ЗСУ.</p>
+        <button class="btn btn-primary" data-act="create-open">Створити челендж</button>
+      </div>`;
+    } else if(ch.status==="won"){
+      body=cardResult("🏆","Ти зробив це!",`${ch.days} днів пройдено. Ставку <b>${fmt(ch.stake)} ₴</b> повернено на баланс.`,"Дисципліна &gt; мотивація 🔥","good");
+    } else if(ch.status==="failed"){
+      const c=CHARITIES.find(x=>x.id===ch.charity);
+      body=cardResult("🕊️","Челендж зірвано",`Ставка <b>${fmt(ch.stake)} ₴</b> пішла на «${c?c.name:"благодійність"}».`,"Не найгірший результат — хтось отримав допомогу. Спробуй ще.","bad");
+    } else {
+      const c=CHARITIES.find(x=>x.id===ch.charity), checkedToday=ch.lastCheckin===today(), left=ch.days-ch.done;
+      body=`<div class="stack rise">
+        <div class="card" style="display:flex;flex-direction:column;align-items:center">
+          <div class="ringwrap">${ring(ch.done,ch.days)}
+            <div class="ringc"><div style="font-size:40px;font-weight:800;line-height:1" class="num">${ch.done}<span style="color:var(--mut2);font-size:24px">/${ch.days}</span></div>
+            <div class="eyebrow" style="margin-top:4px">днів у залі</div></div>
+          </div>
+          <div class="g3" style="width:100%;margin-top:22px">
+            ${stat("coins","Ставка",fmt(ch.stake)+" ₴")}${stat("flame","Лишилось",left+" дн.")}${stat("shield","Ризик",fmt(ch.stake)+" ₴")}
+          </div>
+        </div>
+        <div class="card2 row">
+          <div style="width:36px;height:36px;border-radius:11px;background:rgba(251,191,36,.15);color:var(--amber);display:grid;place-items:center;flex:0 0 auto">${svg("heart",18)}</div>
+          <div style="min-width:0"><div class="mut" style="font-size:12px">Якщо зірвешся — донат піде на</div>
+          <div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c?c.name:"—"}</div></div>
+        </div>
+        ${checkedToday
+          ? `<div class="card2 row" style="border-color:var(--goodln);background:var(--goodbg)">
+              <div style="width:36px;height:36px;border-radius:11px;background:rgba(52,211,153,.2);color:var(--good);display:grid;place-items:center">${svg("check",20)}</div>
+              <div><div style="font-weight:700">Чек-ін зараховано ✅</div><div class="mut" style="font-size:12px">Повертайся завтра за наступним днем</div></div></div>`
+          : `<button class="btn btn-grad" data-act="go" data-page="checkin">${svg("camera",22)} Зробити чек-ін</button>`}
+        <div style="border:1px solid var(--line2);background:rgba(255,255,255,.02);border-radius:16px;padding:12px">
+          <div class="eyebrow" style="margin-bottom:8px;padding:0 4px">Демо-режим прототипу</div>
+          <button class="btn btn-sm" style="background:var(--badbg);color:#fca5a5;border:1px solid var(--badln)" data-act="fail">Змоделювати зрив (донат)</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="pad">${header()}${body}</div>`;
+  }
+  function stat(i,l,v){return `<div class="stat"><div class="mut">${svg(i,16)}</div><div class="v num">${v}</div><div class="l">${l}</div></div>`;}
+  function cardResult(emoji,title,html,sub,kind){
+    const ln=kind==="good"?"var(--goodln)":"var(--badln)", bg=kind==="good"?"var(--goodbg)":"var(--badbg)";
+    return `<div class="card rise" style="text-align:center;border-color:${ln};background:${bg}">
+      <div style="font-size:48px;margin-bottom:12px">${emoji}</div>
+      <h2 style="font-size:23px;font-weight:800;margin-bottom:4px">${title}</h2>
+      <p class="mut" style="font-size:14px;margin-bottom:4px">${html}</p>
+      <p style="font-size:14px;margin-bottom:20px;color:${kind==="good"?"var(--good)":"var(--mut)"}">${sub}</p>
+      <button class="btn btn-primary" style="margin-bottom:8px" data-act="create-open">${kind==="good"?"Новий челендж":"Спробувати знову"}</button>
+      <button class="btn btn-ghost btn-sm" data-act="reset">Закрити</button>
+    </div>`;
+  }
+
+  function checkin(){
+    const ch=S.challenge;
+    if(!ch||ch.status!=="active") return `<div class="pad">${back("")}<p class="mut" style="text-align:center;margin-top:60px">Немає активного челленджу.</p></div>`;
+    const ci=ui.ci, v=ci.result&&ci.result.verdict, good=v==="gym";
+    let overlay="";
+    if(ci.state==="judging") overlay=`<div class="overlay" style="background:rgba(0,0,0,.6)"><div><div class="spinner"></div><div style="font-weight:600;font-size:14px">AI-рефері дивиться…</div></div></div>`;
+    if(ci.state==="done"&&ci.result){
+      const bg=good?"rgba(5,150,105,.72)":"rgba(220,38,38,.72)";
+      overlay=`<div class="overlay pop" style="background:${bg}">
+        <div><div style="font-size:60px;margin-bottom:8px">${good?"💪":(v==="couch"?"🛋️":"🤔")}</div>
+        <div style="font-size:24px;font-weight:800">${good?"Залік!":(v==="couch"?"Не зараховано":"Незрозуміло")}</div>
+        <div style="font-size:14px;margin-top:4px;color:rgba(255,255,255,.92)">${esc(ci.result.reason||"")}</div>
+        <div style="font-size:12px;margin-top:8px;color:rgba(255,255,255,.7)">впевненість ${Math.round((ci.result.confidence||0)*100)}% · демо</div></div></div>`;
+    }
+    let ctrls="";
+    if(ci.state==="idle"){
+      ctrls=`<div class="stack" style="margin-top:16px">
+        <button class="btn btn-ghost" data-act="pick">${svg("upload",20)} ${ci.img?"Інше фото":"Обрати / зняти фото"}</button>
+        ${ci.img?`<div class="demo-note">У проді це аналізує <b>AI-рефері</b> (Claude Vision) автоматично. Тут — демо: обери, як «відповів» би рефері.</div>
+          <div class="g2">
+            <button class="btn btn-sm" style="background:var(--goodbg);border:1px solid var(--goodln);color:#a7f3d0" data-act="judge" data-v="gym">Рефері: зал 💪</button>
+            <button class="btn btn-sm" style="background:var(--badbg);border:1px solid var(--badln);color:#fecaca" data-act="judge" data-v="couch">Рефері: диван 🛋️</button>
+          </div>`:""}
+      </div>`;
+    }
+    if(ci.state==="done"){
+      ctrls=good
+        ? `<button class="btn btn-primary rise" style="margin-top:16px" data-act="go" data-page="home">Готово · день ${ch.done}</button>`
+        : `<div class="stack rise" style="margin-top:16px"><button class="btn btn-primary" data-act="ci-retry">Спробувати інше фото</button><button class="btn btn-ghost" data-act="go" data-page="home">Пізніше</button></div>`;
+    }
+    return `<div class="pad">${back("Чек-ін дня")}
+      <div class="frame" style="margin-top:16px"><div class="shot">
+        ${ci.img?`<img src="${ci.img}" alt="чек-ін"/>`:`<div class="mut2" style="text-align:center;padding:0 32px"><div style="opacity:.6;margin-bottom:12px">${svg("camera",40)}</div><div style="font-size:14px">Зроби фото з тренування</div></div>`}
+        ${overlay}
+      </div></div>${ctrls}</div>`;
+  }
+
+  function wallet(){
+    let inner="";
+    if(ui.wtab==="topup") inner=topupTab();
+    else if(ui.wtab==="withdraw") inner=withdrawTab();
+    else inner=historyTab();
+    return `<div class="pad">
+      <h1 style="font-size:24px;font-weight:800;margin-bottom:16px">Гаманець</h1>
+      <div class="card" style="background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(251,191,36,.10));margin-bottom:16px">
+        <div class="mut" style="font-size:14px">Доступно</div>
+        <div class="num" style="font-size:38px;font-weight:800;margin-top:4px">${fmt(S.balance)} <span class="mut" style="font-size:24px">₴</span></div>
+      </div>
+      <div class="seg" style="margin-bottom:16px">
+        ${["topup:Поповнити","withdraw:Вивід","history:Історія"].map(x=>{const[k,l]=x.split(":");return `<button class="${ui.wtab===k?'on':''}" data-act="wtab" data-k="${k}">${l}</button>`;}).join("")}
+      </div>${inner}</div>`;
+  }
+  function methodBtn(active,act,k,icon,t,s){return `<button class="method ${active?'on':''}" data-act="${act}" data-k="${k}"><div class="${active?'':'mut'}">${svg(icon,20)}</div><div class="t">${t}</div><div class="s">${s}</div></button>`;}
+  function topupTab(){
+    const a=parseInt(ui.tuAmount,10)||0;
+    return `<div class="stack rise">
+      <div class="g2">${methodBtn(ui.tuMethod==="card","tu-method","card","card","Картка / грн","Visa · Mastercard")}${methodBtn(ui.tuMethod==="usdt","tu-method","usdt","coins","USDT","TRC-20 · за курсом")}</div>
+      <div class="g4">${[200,500,1000,2000].map(q=>`<button class="pill ${a===q?'on':''}" data-act="tu-quick" data-v="${q}">${q}</button>`).join("")}</div>
+      <input class="field big num" id="tuAmount" data-model="tuAmount" data-numeric="1" inputmode="numeric" placeholder="Сума, ₴" value="${esc(ui.tuAmount)}"/>
+      <button class="btn btn-primary" id="tuBtn" data-act="tu-submit" ${a<50?"disabled":""}>Поповнити на <span class="num">${fmt(a)}</span> ₴</button>
+      <p class="mut2" style="font-size:12px;text-align:center;line-height:1.5">Прототип: оплата симулюється. У проді — Fondy / monobank acquiring або крипто-шлюз.</p>
+    </div>`;
+  }
+  function withdrawTab(){
+    const a=parseInt(ui.wdAmount,10)||0, ok=a>=50&&a<=S.balance&&ui.wdDest.trim().length>=6;
+    return `<div class="stack rise">
+      <div class="g2">${methodBtn(ui.wdMethod==="card","wd-method","card","card","На картку","грн")}${methodBtn(ui.wdMethod==="usdt","wd-method","usdt","coins","USDT","TRC-20")}</div>
+      <input class="field big num" id="wdAmount" data-model="wdAmount" data-numeric="1" inputmode="numeric" placeholder="Сума, ₴" value="${esc(ui.wdAmount)}"/>
+      <input class="field" id="wdDest" data-model="wdDest" placeholder="${ui.wdMethod==="card"?"Номер картки":"USDT-адреса (TRC-20)"}" value="${esc(ui.wdDest)}"/>
+      <button class="btn btn-primary" id="wdBtn" data-act="wd-submit" ${ok?"":"disabled"}>Подати заявку на вивід</button>
+      <div class="card2 row"><span style="color:#93c5fd;flex:0 0 auto">${svg("clock",18)}</span>
+        <p style="font-size:14px" class="mut">Вивід — <b style="color:var(--txt)">ручний</b>. Після заявки кошти виплачуються протягом <b style="color:var(--txt)">24 годин</b>.</p></div>
+      ${S.wds.length?`<div class="stack"><div class="eyebrow" style="padding:0 4px">Заявки</div>
+        ${S.wds.map(w=>`<div class="card2 between">
+          <div style="min-width:0"><div style="font-weight:700"><span class="num">${fmt(w.amount)}</span> ₴ · ${w.method==="usdt"?"USDT":"картка"}</div>
+          <div class="mut2" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w.dest)}</div></div>
+          ${w.status==="processing"
+            ? `<span class="badge" style="color:var(--amber);background:var(--warnbg);border:1px solid var(--warnln)">${svg("clock",12)} до 24 год</span>`
+            : `<span class="badge" style="color:var(--good);background:var(--goodbg);border:1px solid var(--goodln)">${svg("check",12)} виплачено</span>`}
+        </div>`).join("")}
+        ${S.wds.some(w=>w.status==="processing")?`<button class="btn btn-ghost btn-sm mut2" data-act="wd-done">Демо: позначити виплаченим (адмін)</button>`:""}
+      </div>`:""}
+    </div>`;
+  }
+  const TXI={topup:"↓",refund:"↩",withdraw:"↑",stake:"🔒",fee:"%",donation:"🕊️"};
+  function historyTab(){
+    if(!S.txns.length) return `<p class="mut2 rise" style="text-align:center;margin-top:60px;font-size:14px">Поки що порожньо</p>`;
+    return `<div class="stack rise">${S.txns.map(t=>`<div class="card2 between">
+      <div class="row" style="min-width:0"><div style="width:36px;height:36px;border-radius:11px;background:var(--surface);display:grid;place-items:center;font-size:14px">${TXI[t.type]||"•"}</div>
+      <div style="min-width:0"><div style="font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.note)}</div>
+      <div class="mut2" style="font-size:12px">${new Date(t.ts).toLocaleDateString("uk-UA",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div></div></div>
+      ${t.amount?`<div class="num" style="font-weight:800;font-size:14px;flex:0 0 auto;color:${t.amount>0?"var(--good)":"var(--txt)"}">${t.amount>0?"+":""}${fmt(t.amount)} ₴</div>`:""}
+    </div>`).join("")}</div>`;
+  }
+
+  function profile(){
+    const done=S.challenge?S.challenge.done:0;
+    const items=[
+      ["Ставка на себе","Блокуєш суму на час челленджу. Це не азарт — виграти чуже не можна, тільки повернути своє."],
+      ["AI-рефері","Claude по фото визначає зал це чи диван. Чесно і швидко."],
+      ["Зрив = донат","Гроші йдуть на ЗСУ/благодійність. Саме тому важко зіскочити."],
+      ["Сервісний збір 10%","Береться при створенні челленджу — так живе сервіс."],
+    ];
+    return `<div class="pad">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:24px">
+        <div style="width:80px;height:80px;border-radius:999px;background:var(--grad);display:grid;place-items:center;color:#0b0d12;margin-bottom:12px">${svg("user",36)}</div>
+        <div style="font-weight:800;font-size:18px">Ти</div><div class="mut" style="font-size:14px">${done>0?done+" днів дисципліни":"Новачок"}</div>
+      </div>
+      <button class="btn btn-grad" style="margin-bottom:16px" data-act="share">${svg("share",18)} Поділитися челленджем</button>
+      <div class="card stack">
+        <h3 style="font-weight:800;display:flex;align-items:center;gap:8px"><span style="color:var(--amber)">${svg("spark",18)}</span> Як це працює</h3>
+        ${items.map((it,k)=>`<div class="row" style="align-items:flex-start">
+          <div style="width:24px;height:24px;border-radius:999px;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 auto;margin-top:2px">${k+1}</div>
+          <div><div style="font-weight:700;font-size:14px">${it[0]}</div><div class="mut" style="font-size:14px">${it[1]}</div></div></div>`).join("")}
+      </div>
+      <div class="card2 row" style="align-items:flex-start;margin-top:16px;border-color:var(--warnln);background:var(--warnbg)">
+        <span style="color:var(--amber);flex:0 0 auto">${svg("shield",18)}</span>
+        <p style="font-size:12px;color:#f4d58a;line-height:1.5;margin:0">Перед запуском модель варто показати юристу: важливо, щоб це не трактувалось як азартна гра. Ключове — кошти не виграються, а повертаються або йдуть на благодійність.</p>
+      </div>
+    </div>`;
+  }
+
+  function sheet(){
+    if(!ui.createOpen) return "";
+    const fee=Math.round(ui.stake*FEE), total=ui.stake+fee, enough=S.balance>=total;
+    return `<div class="sheet-bg" data-act="create-close"></div>
+    <div class="sheet rise">
+      <div class="between" style="margin-bottom:20px"><h2 style="font-size:21px;font-weight:800">Новий челендж</h2>
+        <button class="close" data-act="create-close">${svg("x",18)}</button></div>
+      <label class="mut" style="font-size:14px">Ставка на себе</label>
+      <div class="g4" style="margin:8px 0 20px">${[300,500,1000,2000].map(s=>`<button class="pill ${ui.stake===s?'on':''}" data-act="set-stake" data-v="${s}">${s}</button>`).join("")}</div>
+      <label class="mut" style="font-size:14px">Скільки днів у зал</label>
+      <div class="g4" style="margin:8px 0 20px">${[7,14,21,30].map(d=>`<button class="pill ${ui.days===d?'on':''}" data-act="set-days" data-v="${d}">${d}</button>`).join("")}</div>
+      <label class="mut" style="font-size:14px">Куди піде донат при зриві</label>
+      <div class="stack" style="margin:8px 0 20px">
+        ${CHARITIES.map(c=>`<button class="method ${ui.charity===c.id?'':''}" style="display:flex;align-items:center;gap:12px;${ui.charity===c.id?'background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.4)':''}" data-act="set-charity" data-k="${c.id}">
+          <span class="radio ${ui.charity===c.id?'on':''}">${ui.charity===c.id?'<span class="dot"></span>':''}</span>
+          <span><span class="t" style="display:block">${c.name}</span><span class="s">${c.desc}</span></span></button>`).join("")}
+      </div>
+      <div class="card2 stack" style="padding:16px;margin-bottom:16px">
+        ${srow("Ставка (блокується)",fmt(ui.stake)+" ₴")}
+        ${srow("Сервісний збір 10%",fmt(fee)+" ₴",true)}
+        <div style="border-top:1px solid var(--line)"></div>
+        ${srow("Спишеться зараз",fmt(total)+" ₴",false,true)}
+      </div>
+      ${enough
+        ? `<button class="btn btn-grad" data-act="create-confirm">Прийняти виклик</button>`
+        : `<div class="stack"><div style="text-align:center;font-size:14px;color:var(--amber)">Не вистачає <span class="num">${fmt(total-S.balance)}</span> ₴ на балансі</div>
+           <button class="btn btn-primary" data-act="create-topup">Поповнити гаманець</button></div>`}
+    </div>`;
+  }
+  function srow(l,r,muted,bold){return `<div class="between"><span class="${muted?'mut2':'mut'}" style="font-size:14px">${l}</span><span class="num" style="font-size:14px;font-weight:${bold?800:600};${muted?'color:var(--mut)':''}">${r}</span></div>`;}
+
+  function back(title){return `<div class="row"><button class="close" data-act="go" data-page="home" style="width:40px;height:40px;border:1px solid var(--line)">${svg("back",20)}</button>${title?`<span style="font-weight:800;font-size:18px">${title}</span>`:""}</div>`;}
+
+  function nav(){
+    if(!S.seenIntro) return "";
+    const items=[["home","Челендж","home"],["wallet","Гаманець","wallet"],["profile","Профіль","user"]];
+    return `<nav><div class="navbar">${items.map(it=>{const on=S.page===it[0]||(it[0]==="home"&&S.page==="checkin");
+      return `<button class="navbtn ${on?'on':''}" data-act="go" data-page="${it[0]}">${svg(it[2],22)}<span>${it[1]}</span></button>`;}).join("")}</div></nav>`;
+  }
+
+  function view(){
+    if(!S.seenIntro) return intro();
+    let p="";
+    if(S.page==="home") p=home();
+    else if(S.page==="checkin") p=checkin();
+    else if(S.page==="wallet") p=wallet();
+    else if(S.page==="profile") p=profile();
+    else p=home();
+    return p+sheet()+nav();
+  }
+
+  const app=document.getElementById("app");
+  function render(){app.innerHTML=view();}
+
+  /* ---------- actions ---------- */
+  function createChallenge(){
+    const fee=Math.round(ui.stake*FEE), total=ui.stake+fee;
+    if(S.balance<total){toast("Недостатньо коштів");return;}
+    S.balance-=total;
+    addTxn({type:"stake",amount:-ui.stake,note:`Ставка заблокована · ${ui.days} днів`});
+    addTxn({type:"fee",amount:-fee,note:"Сервісний збір 10%"});
+    S.challenge={stake:ui.stake,days:ui.days,charity:ui.charity,fee,done:0,status:"active",createdAt:Date.now(),lastCheckin:null};
+    ui.createOpen=false;S.page="home";save();render();toast("Челендж створено 💪");
+  }
+  function applyCheckin(verdict){
+    const ch=S.challenge;if(!ch||ch.status!=="active")return;
+    const reasons={gym:"Демо: зараховано як тренування.",couch:"Демо: це не схоже на зал."};
+    ui.ci.result={verdict,confidence:.9,reason:reasons[verdict]};
+    if(verdict==="gym"){
+      ch.done+=1;ch.lastCheckin=today();
+      if(ch.done>=ch.days){ch.status="won";S.balance+=ch.stake;addTxn({type:"refund",amount:ch.stake,note:"Челендж пройдено — ставку повернено"});}
+    }
+    ui.ci.state="done";save();render();
+  }
+  function failChallenge(){
+    const ch=S.challenge;if(!ch||ch.status!=="active")return;
+    const c=CHARITIES.find(x=>x.id===ch.charity);
+    addTxn({type:"donation",amount:0,note:`Зрив — ${fmt(ch.stake)} ₴ на «${c?c.name:"благодійність"}»`});
+    ch.status="failed";save();render();toast("Челендж зірвано. Ставка пішла на донат.");
+  }
+
+  app.addEventListener("click",function(e){
+    const el=e.target.closest("[data-act]");if(!el)return;
+    const a=el.dataset.act, v=el.dataset.v, k=el.dataset.k;
+    if(a==="intro-next"){if(S.introI<3){S.introI++;}else{S.seenIntro=true;S.page="home";save();}render();return;}
+    if(a==="go"){S.page=el.dataset.page;if(S.page==="checkin"){ui.ci={img:null,state:"idle",result:null};}save();render();return;}
+    if(a==="create-open"){ui.createOpen=true;render();return;}
+    if(a==="create-close"){ui.createOpen=false;render();return;}
+    if(a==="set-stake"){ui.stake=+v;render();return;}
+    if(a==="set-days"){ui.days=+v;render();return;}
+    if(a==="set-charity"){ui.charity=k;render();return;}
+    if(a==="create-confirm"){createChallenge();return;}
+    if(a==="create-topup"){ui.createOpen=false;S.page="wallet";save();render();return;}
+    if(a==="fail"){failChallenge();return;}
+    if(a==="reset"){S.challenge=null;S.page="home";save();render();return;}
+    if(a==="pick"){document.getElementById("filepick").click();return;}
+    if(a==="judge"){ui.ci.state="judging";render();setTimeout(()=>applyCheckin(v),1200);return;}
+    if(a==="ci-retry"){ui.ci={img:null,state:"idle",result:null};render();return;}
+    if(a==="wtab"){ui.wtab=k;render();return;}
+    if(a==="tu-method"){ui.tuMethod=k;render();return;}
+    if(a==="tu-quick"){ui.tuAmount=v;render();return;}
+    if(a==="tu-submit"){const amt=parseInt(ui.tuAmount,10)||0;if(amt<50)return;S.balance+=amt;addTxn({type:"topup",amount:amt,note:ui.tuMethod==="usdt"?"Поповнення USDT":"Поповнення карткою"});ui.tuAmount="";save();render();toast("+"+fmt(amt)+" ₴ зараховано");return;}
+    if(a==="wd-method"){ui.wdMethod=k;render();return;}
+    if(a==="wd-submit"){const amt=parseInt(ui.wdAmount,10)||0;if(amt<50||amt>S.balance||ui.wdDest.trim().length<6)return;S.balance-=amt;S.wds.unshift({id:uid(),ts:Date.now(),amount:amt,dest:ui.wdDest.trim(),method:ui.wdMethod,status:"processing"});addTxn({type:"withdraw",amount:-amt,note:"Заявка на вивід"});ui.wdAmount="";ui.wdDest="";save();render();toast("Заявку прийнято · до 24 год");return;}
+    if(a==="wd-done"){const p=S.wds.find(w=>w.status==="processing");if(p){p.status="done";save();render();toast("Вивід виконано");}return;}
+    if(a==="share"){const txt="Я в челленджі на Гантеля 💪 21 день у зал або донат на ЗСУ. Не можу зіскочити 😅";if(navigator.share){navigator.share({title:"Гантеля",text:txt}).catch(()=>{});}else{try{navigator.clipboard.writeText(txt);}catch(_){}toast("Текст скопійовано");}return;}
+  });
+
+  app.addEventListener("input",function(e){
+    const el=e.target;if(!el.dataset||!el.dataset.model)return;
+    let val=el.value;if(el.dataset.numeric)val=val.replace(/\D/g,"");
+    if(val!==el.value)el.value=val;
+    ui[el.dataset.model]=val;
+    // live-update submit buttons without full re-render (keeps focus)
+    if(el.dataset.model==="tuAmount"){const a=parseInt(val,10)||0;const b=document.getElementById("tuBtn");if(b){b.disabled=a<50;b.innerHTML='Поповнити на <span class="num">'+fmt(a)+'</span> ₴';}}
+    if(el.dataset.model==="wdAmount"||el.dataset.model==="wdDest"){const a=parseInt(ui.wdAmount,10)||0;const ok=a>=50&&a<=S.balance&&ui.wdDest.trim().length>=6;const b=document.getElementById("wdBtn");if(b)b.disabled=!ok;}
+  });
+
+  document.getElementById("filepick").addEventListener("change",function(e){
+    const f=e.target.files&&e.target.files[0];if(!f)return;
+    const r=new FileReader();r.onload=()=>{ui.ci.img=r.result;ui.ci.state="idle";ui.ci.result=null;render();};r.readAsDataURL(f);
+    e.target.value="";
+  });
+
+  render();
+})();
+</script>
