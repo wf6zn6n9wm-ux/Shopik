@@ -356,13 +356,33 @@ function Stat({ icon, label, val }) {
 }
 
 /* ---------- Чек-ін з AI-рефері ---------- */
+// Стискаємо фото перед відправкою: макс. 1024px по більшій стороні, JPEG q0.8.
+// Телефонні фото бувають >4.5 МБ — це ліміт тіла serverless-функції Vercel.
 function fileToParts(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => {
-      const dataUrl = r.result;
-      const base64 = dataUrl.split(',')[1];
-      resolve({ dataUrl, base64, mediaType: file.type || 'image/jpeg' });
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const max = 1024;
+          const scale = Math.min(1, max / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          const dataUrl = c.toDataURL('image/jpeg', 0.8);
+          resolve({ dataUrl, base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
+        } catch (e) {
+          const dataUrl = r.result;
+          resolve({ dataUrl, base64: dataUrl.split(',')[1], mediaType: file.type || 'image/jpeg' });
+        }
+      };
+      img.onerror = () => {
+        const dataUrl = r.result;
+        resolve({ dataUrl, base64: dataUrl.split(',')[1], mediaType: file.type || 'image/jpeg' });
+      };
+      img.src = r.result;
     };
     r.onerror = reject;
     r.readAsDataURL(file);
