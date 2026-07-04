@@ -42,6 +42,14 @@ const _supa = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
 const _lsGet = (k, d) => { try { const v = localStorage.getItem('shopik_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
 const _lsSet = (k, v) => { try { localStorage.setItem('shopik_' + k, JSON.stringify(v)); return true; } catch (e) { return false; } };
 
+// Публічне посилання на магазин: створюємо slug з назви + хвіст id для унікальності
+const slugify = (name, id) => {
+  const base = String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return (base || 'shop') + '-' + String(id).slice(-4);
+};
+// Якщо URL містить ?s=<slug> — це публічна вітрина для покупця (без входу)
+const PUBLIC_SLUG = new URLSearchParams(window.location.search).get('s');
+
 const db = {
   cloud: !!_supa,
   // Початкові дані для миттєвого рендеру (локальний кеш)
@@ -69,6 +77,20 @@ const db = {
   },
   async deleteShop(id) {
     if (_supa) { const { error } = await _supa.from('shops').delete().eq('id', id); if (error) console.warn('[Shopik] Supabase delete error:', error.message); }
+  },
+  // Публічна вітрина: дані магазину для покупця (без замовлень — приватне)
+  async getPublicShop(slug) {
+    if (!_supa) { return _lsGet('shops', []).find(s => s.slug === slug) || null; }
+    const { data, error } = await _supa.rpc('get_public_shop', { shop_slug: slug });
+    if (error) { console.warn('[Shopik] getPublicShop error:', error.message); return null; }
+    return data || null;
+  },
+  // Покупець оформлює замовлення (без входу) — додається у магазин продавця
+  async placeOrder(slug, order) {
+    if (!_supa) return false;
+    const { error } = await _supa.rpc('place_order', { shop_slug: slug, new_order: order });
+    if (error) { console.warn('[Shopik] placeOrder error:', error.message); return false; }
+    return true;
   },
 };
 
@@ -228,7 +250,22 @@ export default function ShopPlatform() {
   const [authErr, setAuthErr] = useState('');
   const [authMsg, setAuthMsg] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
+  // Публічна вітрина (покупець відкрив посилання ?s=slug)
+  const isPublic = !!PUBLIC_SLUG;
+  const [pubError, setPubError] = useState(false);
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
+
+  // Публічний режим: завантажити магазин за посиланням і показати вітрину
+  useEffect(() => {
+    if (!isPublic) return;
+    let alive = true;
+    db.getPublicShop(PUBLIC_SLUG).then(shop => {
+      if (!alive) return;
+      if (shop) { setActiveShop({ ...shop, orders: shop.orders || [] }); setPage('preview'); }
+      else setPubError(true);
+    });
+    return () => { alive = false; };
+  }, []);
 
   // Сесія: хто увійшов
   useEffect(() => {
@@ -240,16 +277,20 @@ export default function ShopPlatform() {
 
   // Гідрація: підвантажити магазини продавця з бази при старті / після входу
   useEffect(() => {
+    if (isPublic) return; // у публічному режимі магазин вантажиться окремо
     let alive = true;
     hydrated.current = false;
     if (auth.enabled && !user) { setShops([]); setActiveShop(null); hydrated.current = true; return; }
     db.loadShops(user ? user.id : null).then(list => {
       if (!alive) return;
       if (db.cloud) {
+        let changed = false;
+        list = list.map(s => { if (!s.slug) { changed = true; return { ...s, slug: slugify(s.name, s.id) }; } return s; });
         setShops(list);
         setActiveShop(prev => prev ? (list.find(s => s.id === prev.id) || null) : prev);
         // Продавець із магазинами одразу потрапляє до «Мої магазини», а не на лендинг
         if (list.length) setPage(p => p === 'home' ? 'myshops' : p);
+        if (changed && user) db.saveShops(list, user.id); // додати slug наявним магазинам
       }
       hydrated.current = true;
     });
@@ -258,7 +299,7 @@ export default function ShopPlatform() {
 
   // Автозбереження: хмара (якщо налаштована) + локальний кеш
   useEffect(() => {
-    if (!hydrated.current) return;
+    if (isPublic || !hydrated.current) return; // покупець нічого не зберігає
     db.saveShops(shops, user ? user.id : null).then(ok => { if (ok === false) flash(db.cloud ? '⚠️ Не вдалося зберегти у хмару' : '⚠️ Сховище переповнене — зменшіть розмір зображень'); });
   }, [shops]);
   useEffect(() => { LS.set('activeShopId', activeShop ? activeShop.id : null); }, [activeShop]);
@@ -345,6 +386,15 @@ export default function ShopPlatform() {
   };
   const logout = async () => { await auth.signOut(); setUser(null); setPage('home'); setActiveShop(null); flash('Ви вийшли'); };
 
+  const shopLink = (shop) => `${window.location.origin}${window.location.pathname}?s=${shop.slug || slugify(shop.name, shop.id)}`;
+  const shareShop = () => {
+    if (!activeShop) return;
+    const url = shopLink(activeShop);
+    if (navigator.share) { navigator.share({ title: activeShop.name, url }).catch(() => {}); }
+    else if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => flash('Посилання скопійовано ✓')).catch(() => flash(url)); }
+    else flash(url);
+  };
+
   const readImage = (file, cb) => { if (!file) return; const r = new FileReader(); r.onload = () => cb(r.result); r.readAsDataURL(file); };
   const readImages = (files, cb) => {
     const arr = Array.from(files);
@@ -355,8 +405,10 @@ export default function ShopPlatform() {
     const cats = (opts.categories || seedCategories).map(c => ({ ...c, subs: [...c.subs] }));
     const firstCat = cats[0]?.name || 'Без категорії';
     const prods = seedProducts.map(p => cats.some(c => c.name === p.category) ? { ...p } : { ...p, category: firstCat, sub: '' });
+    const _id = Date.now() + Math.floor(Math.random() * 1000);
     return {
-      id: Date.now() + Math.floor(Math.random() * 1000),
+      id: _id,
+      slug: slugify(opts.name, _id),
       name: opts.name, slogan: opts.slogan || 'Преміальна колекція 2026',
       vibe: opts.vibe || 'light', accent: opts.accent || '#161616',
       banner: opts.banner ?? 0, bannerImage: opts.bannerImage || null, bannerPos: 50,
@@ -507,10 +559,15 @@ export default function ShopPlatform() {
     const finalSum = Math.round(cartTotal * (1 - promoDisc));
     const delivery = coDelivery === 'np' ? `Нова Пошта${coBranch ? `, №${coBranch}` : ''}` : 'Самовивіз';
     const order = { id: Date.now(), name: coName.trim(), phone: coPhone.trim(), product: cart.map(c => `${c.name}${c.size ? ` (${c.size})` : ''} ×${c.qty}`).join(', '), comment: `Сума: ${finalSum} ₴${promoDisc ? ` (−${Math.round(promoDisc * 100)}%)` : ''} · ${delivery} · Оплату узгодити з клієнтом`, status: 'Новий' };
-    const promos = appliedPromoCode ? activeShop.promos.map(p => p.code === appliedPromoCode ? { ...p, revenue: (p.revenue || 0) + finalSum } : p) : activeShop.promos;
-    updateShop({ orders: [order, ...activeShop.orders], promos });
+    if (isPublic) {
+      db.placeOrder(activeShop.slug || PUBLIC_SLUG, order).then(ok => flash(ok ? 'Замовлення надіслано продавцю ✓' : 'Не вдалося надіслати замовлення, спробуйте ще раз'));
+    } else {
+      const promos = appliedPromoCode ? activeShop.promos.map(p => p.code === appliedPromoCode ? { ...p, revenue: (p.revenue || 0) + finalSum } : p) : activeShop.promos;
+      updateShop({ orders: [order, ...activeShop.orders], promos });
+      flash('Замовлення надіслано продавцю ✓');
+    }
     setCart([]); setPromoInput(''); setPromoDisc(0); setAppliedPromoCode(null); setCoName(''); setCoPhone(''); setCoBranch(''); setCoDelivery('np');
-    setPage('preview'); flash('Замовлення надіслано продавцю ✓');
+    setPage('preview');
   };
   const confirmOrder = () => {
     if (!activeShop || !cart.length) return;
@@ -597,7 +654,10 @@ export default function ShopPlatform() {
 
   // заказ в Telegram в 1 клик
   const quickOrder = (prod) => {
-    if (activeShop) { const order = { id: Date.now(), name: '—', phone: '(через Telegram)', product: prod.name, comment: '', status: 'Новий' }; updateShop({ orders: [order, ...activeShop.orders] }); flash(`Відкрито Telegram із замовленням «${prod.name}»`); }
+    if (!activeShop) return;
+    const order = { id: Date.now(), name: '—', phone: '(через Telegram)', product: prod.name, comment: '', status: 'Новий' };
+    if (isPublic) { db.placeOrder(activeShop.slug || PUBLIC_SLUG, order).then(ok => flash(ok ? `Замовлення надіслано: «${prod.name}» ✓` : 'Не вдалося надіслати замовлення')); }
+    else { updateShop({ orders: [order, ...activeShop.orders] }); flash(`Відкрито Telegram із замовленням «${prod.name}»`); }
   };
 
   const copyLink = (text) => { try { navigator.clipboard.writeText(text); } catch (e) { } flash('Посилання скопійовано'); };
@@ -754,15 +814,33 @@ export default function ShopPlatform() {
     </div>
   );
 
+  // ===== ПУБЛІЧНА ВІТРИНА (покупець за посиланням, без входу) =====
+  if (isPublic && pubError) {
+    return (
+      <div className="min-h-screen bg-neutral-900 text-white flex flex-col items-center justify-center px-6 text-center">
+        <div className="text-5xl mb-3">🔍</div>
+        <p className="text-lg font-medium mb-1">Магазин не знайдено</p>
+        <p className="text-neutral-400 text-sm">Можливо, посилання застаріло або магазин видалено.</p>
+      </div>
+    );
+  }
+  if (isPublic && !activeShop) {
+    return (
+      <div className="min-h-screen bg-neutral-900 text-white flex items-center justify-center">
+        <div className="text-neutral-400 text-sm">Завантаження магазину…</div>
+      </div>
+    );
+  }
+
   // ===== ВХІД ПРОДАВЦЯ (лише коли підключено Supabase) =====
-  if (auth.enabled && !authReady) {
+  if (auth.enabled && !authReady && !isPublic) {
     return (
       <div className="min-h-screen bg-neutral-900 text-white flex items-center justify-center">
         <div className="text-neutral-400 text-sm">Завантаження…</div>
       </div>
     );
   }
-  if (auth.enabled && !user) {
+  if (auth.enabled && !user && !isPublic) {
     return (
       <div className="min-h-screen bg-neutral-900 text-white flex flex-col justify-center">
         <div className="max-w-sm w-full mx-auto px-6">
@@ -1335,8 +1413,8 @@ export default function ShopPlatform() {
               <div className="mb-4 rounded-2xl p-3 bg-green-50 border border-green-200 flex items-center gap-2"><Check className="w-4 h-4 text-green-600" /><p className="text-xs text-green-800">Тариф <b>{plan}</b> активний · підписку оплачено</p></div>
             ) : null}
             {/* Швидкі дії */}
-            <div className="grid grid-cols-2 gap-2 mb-5">
-              {[['Товар', Plus, () => { setShowAdd(true); }], ['Акції', Tag, () => setPage('promos')]].map(([label, Icon, fn], i) => (
+            <div className="grid grid-cols-3 gap-2 mb-5">
+              {[['Товар', Plus, () => { setShowAdd(true); }], ['Акції', Tag, () => setPage('promos')], ['Поділитися', Share2, shareShop]].map(([label, Icon, fn], i) => (
                 <button key={i} onClick={fn} className={`rounded-2xl py-3 flex flex-col items-center gap-1.5 ${appDark ? 'bg-neutral-800' : 'bg-white shadow-sm'}`}>
                   <Icon className={`w-5 h-5 ${appDark ? 'text-neutral-200' : 'text-neutral-700'}`} /><span className={`text-[10px] ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>{label}</span>
                 </button>
@@ -1533,7 +1611,7 @@ export default function ShopPlatform() {
             <button onClick={() => { setDemoMode(false); setPage('home'); }} className="text-[11px] text-white/80 bg-black/50 px-3 py-1 rounded-full">← На головну</button>
           </div>
         ) : (
-          <button onClick={() => setPage('dashboard')} className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-neutral-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Вийти з перегляду</button>
+          !isPublic && <button onClick={() => setPage('dashboard')} className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-neutral-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Вийти з перегляду</button>
         )}
         <button onClick={() => setChatOpen(true)} className="fixed bottom-20 right-4 z-[60] w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-white" style={{ backgroundColor: a }}><Sparkles className="w-6 h-6" /></button>
         {chatOpen && (
@@ -1567,7 +1645,7 @@ export default function ShopPlatform() {
           </div>
         )}
         <div className="max-w-sm mx-auto pb-24">
-          <div className="text-center text-[11px] uppercase tracking-[0.2em] py-1.5" style={{ backgroundColor: ink, color: bg }}>Режим перегляду</div>
+          {!isPublic && <div className="text-center text-[11px] uppercase tracking-[0.2em] py-1.5" style={{ backgroundColor: ink, color: bg }}>Режим перегляду</div>}
           <div className="px-5 py-4 flex items-center justify-between sticky top-0 z-30" style={{ backgroundColor: bg }}>
             <div className="flex gap-4"><button onClick={() => setShowMenu(true)}><Menu className="w-5 h-5" /></button><button onClick={() => setFinderOpen(true)}><Search className="w-5 h-5" /></button></div>
             <h1 className="text-lg tracking-[0.4em]" style={{ fontFamily: 'Georgia, serif' }}>{activeShop.name.toUpperCase()}</h1>
@@ -1737,7 +1815,7 @@ export default function ShopPlatform() {
             <button onClick={() => { setDemoMode(false); setPage('home'); }} className="text-[11px] text-white/80 bg-black/50 px-3 py-1 rounded-full">← На головну</button>
           </div>
         ) : (
-          <button onClick={() => setPage('dashboard')} className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-neutral-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Вийти з перегляду</button>
+          !isPublic && <button onClick={() => setPage('dashboard')} className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-neutral-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Вийти з перегляду</button>
         )}
         <div className="max-w-sm mx-auto pb-24">
           <div className="text-center text-[11px] uppercase tracking-[0.2em] py-1.5" style={{ backgroundColor: ink, color: bg }}>Каталог</div>
@@ -1821,7 +1899,7 @@ export default function ShopPlatform() {
             <button onClick={() => { setDemoMode(false); setPage('home'); }} className="text-[11px] text-white/80 bg-black/50 px-3 py-1 rounded-full">← На головну</button>
           </div>
         ) : (
-          <button onClick={() => setPage('dashboard')} className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-neutral-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Вийти з перегляду</button>
+          !isPublic && <button onClick={() => setPage('dashboard')} className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-neutral-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Вийти з перегляду</button>
         )}
         {sizeGuide && (
           <div className="fixed inset-0 z-[80] flex items-end" onClick={() => setSizeGuide(false)}>
