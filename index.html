@@ -323,6 +323,14 @@ export default function ShopPlatform() {
   useEffect(() => { LS.set('appDark', appDark); }, [appDark]);
   useEffect(() => { LS.set('lang', lang); }, [lang]);
 
+  // Продавець відкрив свій магазин у Telegram → запамʼятовуємо його Telegram ID,
+  // щоб бот міг надсилати йому замовлення
+  useEffect(() => {
+    if (isPublic || !TG || !user || !activeShop || page !== 'dashboard') return;
+    const uid = TG.initDataUnsafe && TG.initDataUnsafe.user && TG.initDataUnsafe.user.id;
+    if (uid && activeShop.tgOwnerId !== uid) updateShop({ tgOwnerId: uid });
+  }, [activeShop, user, page]);
+
   const accents = ['#161616', '#7a6a58', '#9a3b3b', '#3a4a3f', '#5b4b8a', '#b8916a', '#1f3a5f', '#0e7c66', '#b54a8a', '#c2410c', '#4b5563', '#caa64a'];
   const bannerPresets = [
     'linear-gradient(135deg,#e9e4dc,#d3ccc0)', 'linear-gradient(135deg,#2e2622,#6b5a4f)', 'linear-gradient(135deg,#c97b5a,#e3aa84)',
@@ -571,6 +579,14 @@ export default function ShopPlatform() {
     setChatMsgs(prev => [...prev, { role: 'user', text: q }, { role: 'ai', text, products }]);
     setChatInput('');
   };
+  // Надіслати продавцю сповіщення про замовлення в Telegram (якщо він привʼязав акаунт)
+  const notifyOrder = (shop, order) => {
+    if (!shop || !shop.tgOwnerId) return;
+    try {
+      fetch('/api/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatId: shop.tgOwnerId, shopName: shop.name, order }) }).catch(() => {});
+    } catch (e) {}
+  };
+
   const placeOrder = () => {
     if (!activeShop || !cart.length) return;
     const finalSum = Math.round(cartTotal * (1 - promoDisc));
@@ -578,6 +594,7 @@ export default function ShopPlatform() {
     const order = { id: Date.now(), name: coName.trim(), phone: coPhone.trim(), product: cart.map(c => `${c.name}${c.size ? ` (${c.size})` : ''} ×${c.qty}`).join(', '), comment: `Сума: ${finalSum} ₴${promoDisc ? ` (−${Math.round(promoDisc * 100)}%)` : ''} · ${delivery} · Оплату узгодити з клієнтом`, status: 'Новий', kind: 'order' };
     if (isPublic) {
       db.placeOrder(activeShop.slug || PUBLIC_SLUG, order).then(ok => flash(ok ? 'Замовлення надіслано продавцю ✓' : 'Не вдалося надіслати замовлення, спробуйте ще раз'));
+      notifyOrder(activeShop, order);
     } else {
       const promos = appliedPromoCode ? activeShop.promos.map(p => p.code === appliedPromoCode ? { ...p, revenue: (p.revenue || 0) + finalSum } : p) : activeShop.promos;
       updateShop({ orders: [order, ...activeShop.orders], promos });
@@ -673,7 +690,7 @@ export default function ShopPlatform() {
   const quickOrder = (prod) => {
     if (!activeShop) return;
     const order = { id: Date.now(), name: '—', phone: '(через Telegram)', product: prod.name, comment: '', status: 'Новий', kind: 'order' };
-    if (isPublic) { db.placeOrder(activeShop.slug || PUBLIC_SLUG, order).then(ok => flash(ok ? `Замовлення надіслано: «${prod.name}» ✓` : 'Не вдалося надіслати замовлення')); }
+    if (isPublic) { db.placeOrder(activeShop.slug || PUBLIC_SLUG, order).then(ok => flash(ok ? `Замовлення надіслано: «${prod.name}» ✓` : 'Не вдалося надіслати замовлення')); notifyOrder(activeShop, order); }
     else { updateShop({ orders: [order, ...activeShop.orders] }); flash(`Відкрито Telegram із замовленням «${prod.name}»`); }
   };
 
