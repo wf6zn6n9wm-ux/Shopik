@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Гантеля — тримай слово або донать ЗСУ</title>
+<title>Гантеля — тримай слово або втрать ставку</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -62,13 +62,7 @@ const Coins = _mkIcon('<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 
 const Flame = _mkIcon('<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>');
 const Heart = _mkIcon('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>');
 
-const FEE = 0.10;
-const CHARITIES = [
-  { id: 'prytula', name: 'Фонд Притули', desc: 'Дрони, авто та спорядження для ЗСУ' },
-  { id: 'comeback', name: 'Повернись живим', desc: 'Технічна підтримка Сил оборони' },
-  { id: 'unbroken', name: 'UNBROKEN', desc: 'Протезування та реабілітація' },
-  { id: 'unicef', name: 'Дитячі лікарні', desc: 'Обладнання для дитячих відділень' },
-];
+const MULT = 2; // виконав челендж — забираєш ставку × MULT
 
 function usePersist(key, initial) {
   const [v, setV] = useState(() => {
@@ -138,15 +132,12 @@ function App() {
   }, []);
 
   /* --- дії з челленджем --- */
-  function createChallenge({ stake, days, charity }) {
-    const fee = Math.round(stake * FEE);
-    const total = stake + fee;
-    if (balance < total) { notify('Недостатньо коштів — поповни гаманець'); return false; }
-    setBalance((b) => b - total);
-    addTxn({ type: 'stake', amount: -stake, note: `Ставка заблокована · ${days} днів` });
-    addTxn({ type: 'fee', amount: -fee, note: 'Сервісний збір 10%' });
+  function createChallenge({ stake, days }) {
+    if (balance < stake) { notify('Недостатньо коштів — поповни гаманець'); return false; }
+    setBalance((b) => b - stake);
+    addTxn({ type: 'stake', amount: -stake, note: `Ставка · ${days} днів` });
     setChallenge({
-      stake, days, charity, fee,
+      stake, days,
       done: 0, status: 'active',
       createdAt: Date.now(), lastCheckin: null, checkins: [],
     });
@@ -164,8 +155,8 @@ function App() {
         const done = ch.done + 1;
         const won = done >= ch.days;
         if (won) {
-          setBalance((b) => b + ch.stake);
-          addTxn({ type: 'refund', amount: ch.stake, note: 'Челендж пройдено — ставку повернено' });
+          setBalance((b) => b + ch.stake * MULT);
+          addTxn({ type: 'win', amount: ch.stake * MULT, note: 'Челендж пройдено — виплата ×2' });
         }
         haptic('success');
         return { ...ch, done, lastCheckin: todayKey(), status: won ? 'won' : 'active', checkins: [entry, ...ch.checkins] };
@@ -178,12 +169,11 @@ function App() {
   function failChallenge() {
     setChallenge((ch) => {
       if (!ch || ch.status !== 'active') return ch;
-      const c = CHARITIES.find((x) => x.id === ch.charity);
-      addTxn({ type: 'donation', amount: 0, note: `Зрив — ${fmt(ch.stake)} ₴ на «${c ? c.name : 'благодійність'}»` });
+      addTxn({ type: 'burn', amount: 0, note: `Зрив — ${fmt(ch.stake)} ₴ згоріли` });
       return { ...ch, status: 'failed', failedAt: Date.now() };
     });
     haptic('warning');
-    notify('Челендж зірвано. Ставка пішла на донат.');
+    notify('Челендж зірвано. Ставка згоріла 🔥');
   }
 
   function resetChallenge() { setChallenge(null); setPage('home'); }
@@ -227,10 +217,10 @@ function App() {
 /* ---------- Онбординг ---------- */
 function Intro({ onDone }) {
   const steps = [
-    { icon: <Dumbbell size={34}/>, t: 'Постав на себе', d: 'Ставиш, наприклад, 500 ₴, що 21 день ходиш у зал. Це твої гроші — не азарт.' },
+    { icon: <Dumbbell size={34}/>, t: 'Постав на себе', d: 'Кидаєш 500 ₴, що 21 день ходиш у зал. Тримаєш слово — забираєш удвічі більше.' },
     { icon: <Camera size={34}/>, t: 'Щодня — фото', d: 'Кожен день кидаєш фото з тренування. Це твій пруф.' },
-    { icon: <Sparkles size={34}/>, t: 'AI-рефері вирішує', d: 'Claude дивиться на фото і каже: зал це чи диван. Обдурити важко.' },
-    { icon: <Shield size={34}/>, t: 'Зірвався — донат', d: 'Гроші йдуть на ЗСУ / благодійність, не тобі в кишеню. Виграти чуже не можна — тільки повернути своє.' },
+    { icon: <Sparkles size={34}/>, t: 'AI-рефері вирішує', d: 'AI дивиться на фото і каже: зал це чи диван. Обдурити важко.' },
+    { icon: <Coins size={34}/>, t: 'Виконав — забираєш ×2', d: 'Пройшов усі дні — отримуєш ставку у подвійному розмірі. Зірвався — гроші згорають.' },
   ];
   const [i, setI] = useState(0);
   const s = steps[i];
@@ -271,7 +261,7 @@ function Home({ challenge, balance, setPage, onCreate, onFail, onReset }) {
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-center">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-500/15 text-blue-300 grid place-items-center mb-4"><Dumbbell size={30}/></div>
             <h2 className="text-xl font-bold mb-2">Ще немає челленджу</h2>
-            <p className="text-slate-400 text-sm mb-5">Постав на себе гроші й тримай слово. Зірвешся — донат на ЗСУ.</p>
+            <p className="text-slate-400 text-sm mb-5">Постав на себе гроші й тримай слово. Виконаєш — ×2, зірвешся — згорять.</p>
             <button onClick={onCreate} className="w-full py-3.5 rounded-2xl bg-white text-black font-bold active:scale-[.98] transition">Створити челендж</button>
           </div>
         </div>
@@ -283,7 +273,6 @@ function Home({ challenge, balance, setPage, onCreate, onFail, onReset }) {
 }
 
 function ChallengeCard({ challenge: ch, setPage, onFail, onReset, onCreate }) {
-  const charity = CHARITIES.find((c) => c.id === ch.charity);
   const checkedToday = ch.lastCheckin === todayKey();
   const left = ch.days - ch.done;
 
@@ -291,7 +280,7 @@ function ChallengeCard({ challenge: ch, setPage, onFail, onReset, onCreate }) {
     <div className="rise rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center">
       <div className="text-5xl mb-3">🏆</div>
       <h2 className="text-2xl font-extrabold mb-1">Ти зробив це!</h2>
-      <p className="text-slate-300 text-sm mb-1">{ch.days} днів пройдено. Ставку <b>{fmt(ch.stake)} ₴</b> повернено на баланс.</p>
+      <p className="text-slate-300 text-sm mb-1">{ch.days} днів пройдено. Виплата <b>{fmt(ch.stake * MULT)} ₴</b> (×2) зарахована на баланс.</p>
       <p className="text-emerald-300 text-sm mb-5">Дисципліна &gt; мотивація 🔥</p>
       <button onClick={onCreate} className="w-full py-3.5 rounded-2xl bg-white text-black font-bold mb-2">Новий челендж</button>
       <button onClick={onReset} className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 text-sm">Закрити</button>
@@ -300,10 +289,10 @@ function ChallengeCard({ challenge: ch, setPage, onFail, onReset, onCreate }) {
 
   if (ch.status === 'failed') return (
     <div className="rise rounded-3xl border border-red-500/30 bg-red-500/10 p-6 text-center">
-      <div className="text-5xl mb-3">🕊️</div>
-      <h2 className="text-2xl font-extrabold mb-1">Челендж зірвано</h2>
-      <p className="text-slate-300 text-sm mb-1">Ставка <b>{fmt(ch.stake)} ₴</b> пішла на «{charity ? charity.name : 'благодійність'}».</p>
-      <p className="text-slate-400 text-sm mb-5">Не найгірший результат — хтось отримав допомогу. Спробуй ще.</p>
+      <div className="text-5xl mb-3">🔥</div>
+      <h2 className="text-2xl font-extrabold mb-1">Ставка згоріла</h2>
+      <p className="text-slate-300 text-sm mb-1">Пропущено день — <b>{fmt(ch.stake)} ₴</b> згоріли.</p>
+      <p className="text-slate-400 text-sm mb-5">Дисципліна коштує грошей. Спробуй ще.</p>
       <button onClick={onCreate} className="w-full py-3.5 rounded-2xl bg-white text-black font-bold mb-2">Спробувати знову</button>
       <button onClick={onReset} className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 text-sm">Закрити</button>
     </div>
@@ -322,16 +311,19 @@ function ChallengeCard({ challenge: ch, setPage, onFail, onReset, onCreate }) {
         <div className="grid grid-cols-3 gap-2 w-full mt-6 text-center">
           <Stat icon={<Coins size={16}/>} label="Ставка" val={`${fmt(ch.stake)} ₴`} />
           <Stat icon={<Flame size={16}/>} label="Лишилось" val={`${left} дн.`} />
-          <Stat icon={<Shield size={16}/>} label="Ризик" val={`${fmt(ch.stake)} ₴`} />
+          <Stat icon={<Shield size={16}/>} label="Виграш" val={`${fmt(ch.stake * MULT)} ₴`} />
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-amber-400/15 text-amber-300 grid place-items-center shrink-0"><Heart size={18}/></div>
-        <div className="min-w-0">
-          <div className="text-xs text-slate-400">Якщо зірвешся — донат піде на</div>
-          <div className="font-semibold truncate">{charity ? charity.name : '—'}</div>
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-300 grid place-items-center shrink-0"><Coins size={18}/></div>
+          <div className="min-w-0">
+            <div className="text-xs text-slate-400">Виконаєш челендж — забираєш</div>
+            <div className="font-bold">{fmt(ch.stake * MULT)} ₴ <span className="text-emerald-300">×2</span></div>
+          </div>
         </div>
+        <span className="text-xs font-semibold text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-1 shrink-0">🔥 −{fmt(ch.stake)} ₴</span>
       </div>
 
       {checkedToday ? (
@@ -347,7 +339,7 @@ function ChallengeCard({ challenge: ch, setPage, onFail, onReset, onCreate }) {
 
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3">
         <div className="text-[11px] text-slate-500 uppercase tracking-wide mb-2 px-1">Демо-режим прототипу</div>
-        <button onClick={onFail} className="w-full py-2.5 rounded-xl bg-red-500/10 text-red-300 text-sm font-medium border border-red-500/20">Змоделювати зрив (донат)</button>
+        <button onClick={onFail} className="w-full py-2.5 rounded-xl bg-red-500/10 text-red-300 text-sm font-medium border border-red-500/20">Змоделювати зрив (спалити ставку)</button>
       </div>
     </div>
   );
@@ -622,11 +614,10 @@ function MethodBtn({ active, onClick, icon, title, sub }) {
 
 const TXN_META = {
   topup:    { i: '↓', c: 'text-emerald-300' },
-  refund:   { i: '↩', c: 'text-emerald-300' },
+  win:      { i: '🏆', c: 'text-emerald-300' },
   withdraw: { i: '↑', c: 'text-slate-300' },
   stake:    { i: '🔒', c: 'text-slate-300' },
-  fee:      { i: '%', c: 'text-slate-400' },
-  donation: { i: '🕊️', c: 'text-amber-300' },
+  burn:     { i: '🔥', c: 'text-amber-300' },
 };
 function History({ txns }) {
   if (!txns.length) return <div className="text-center text-slate-500 mt-16 text-sm rise">Поки що порожньо</div>;
@@ -652,7 +643,7 @@ function History({ txns }) {
 /* ---------- Профіль ---------- */
 function Profile({ challenge, notify }) {
   function share() {
-    const text = 'Я в челленджі на Гантеля 💪 21 день у зал або донат на ЗСУ. Не можу зіскочити 😅';
+    const text = 'Я в челленджі на Гантеля 💪 21 день у зал. Виконаю — заберу ×2, зірвусь — згорить 😅';
     if (tgShare(text)) return;
     if (navigator.share) navigator.share({ title: 'Гантеля', text }).catch(() => {});
     else { try { navigator.clipboard.writeText(text); } catch {} notify('Текст скопійовано'); }
@@ -678,9 +669,9 @@ function Profile({ challenge, notify }) {
         <h3 className="font-bold flex items-center gap-2"><Sparkles size={18} className="text-amber-300"/> Як це працює</h3>
         {[
           ['Ставка на себе', 'Блокуєш суму на час челленджу. Це не азарт — виграти чуже не можна, тільки повернути своє.'],
-          ['AI-рефері', 'Claude по фото визначає зал це чи диван. Чесно і швидко.'],
-          ['Зрив = донат', 'Гроші йдуть на ЗСУ/благодійність. Саме тому важко зіскочити.'],
-          ['Сервісний збір 10%', 'Береться при створенні челленджу — так живе сервіс.'],
+          ['AI-рефері', 'AI по фото визначає зал це чи диван. Чесно і швидко.'],
+          ['Виконав — ×2', 'Пройшов усі дні — ставка повертається у подвійному розмірі.'],
+          ['Зірвався — згорає', 'Пропустив день — ставка згорає. Саме тому важко зіскочити.'],
         ].map(([t, d], k) => (
           <div key={k} className="flex gap-3">
             <div className="w-6 h-6 rounded-full bg-white/10 grid place-items-center text-xs font-bold shrink-0 mt-0.5">{k+1}</div>
@@ -691,7 +682,7 @@ function Profile({ challenge, notify }) {
 
       <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-4 mt-4 flex gap-3">
         <Shield size={18} className="text-amber-300 shrink-0 mt-0.5"/>
-        <p className="text-xs text-amber-100/90">Перед запуском модель варто показати юристу: важливо, щоб це не трактувалось як азартна гра. Ключове — кошти не виграються, а повертаються або йдуть на благодійність.</p>
+        <p className="text-xs text-amber-100/90">Перед запуском модель варто показати юристу: виплати ×2 можуть трактуватись як парі / азартна гра. Уточни ліцензування та податки.</p>
       </div>
     </div>
   );
@@ -701,10 +692,9 @@ function Profile({ challenge, notify }) {
 function CreateSheet({ balance, onClose, onCreate, goWallet }) {
   const [stake, setStake] = useState(500);
   const [days, setDays] = useState(21);
-  const [charity, setCharity] = useState(CHARITIES[0].id);
-  const fee = Math.round(stake * FEE);
-  const total = stake + fee;
+  const total = stake;
   const enough = balance >= total;
+  const prize = stake * MULT;
   const stakes = [300, 500, 1000, 2000];
   const durations = [7, 14, 21, 30];
 
@@ -731,27 +721,14 @@ function CreateSheet({ balance, onClose, onCreate, goWallet }) {
           </div>
         </div>
 
-        <div className="mb-5">
-          <label className="text-sm text-slate-400">Куди піде донат при зриві</label>
-          <div className="space-y-2 mt-2">
-            {CHARITIES.map((c) => (
-              <button key={c.id} onClick={() => setCharity(c.id)} className={`w-full text-left p-3.5 rounded-2xl border flex items-center gap-3 ${charity===c.id?'bg-white/10 border-white/40':'bg-white/5 border-white/10'}`}>
-                <div className={`w-5 h-5 rounded-full border-2 shrink-0 grid place-items-center ${charity===c.id?'border-white':'border-white/30'}`}>{charity===c.id && <div className="w-2.5 h-2.5 rounded-full bg-white"/>}</div>
-                <div><div className="font-semibold text-sm">{c.name}</div><div className="text-xs text-slate-500">{c.desc}</div></div>
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 space-y-2 text-sm mb-4">
-          <Row l="Ставка (блокується)" r={`${fmt(stake)} ₴`} />
-          <Row l="Сервісний збір 10%" r={`${fmt(fee)} ₴`} muted />
-          <div className="border-t border-white/10 my-1" />
-          <Row l="Спишеться зараз" r={`${fmt(total)} ₴`} bold />
+          <Row l="Ставка (спишеться зараз)" r={`${fmt(stake)} ₴`} bold />
+          <div className="flex justify-between"><span className="text-emerald-300">Виконаєш — забираєш</span><span className="font-extrabold text-emerald-300">{fmt(prize)} ₴ ×2</span></div>
+          <div className="flex justify-between"><span className="text-red-300">Зірвешся — згорає</span><span className="font-semibold text-red-300">−{fmt(stake)} ₴</span></div>
         </div>
 
         {enough ? (
-          <button onClick={() => onCreate({ stake, days, charity })} className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-500 to-amber-400 text-black font-extrabold text-lg active:scale-[.98] transition">
+          <button onClick={() => onCreate({ stake, days })} className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-500 to-amber-400 text-black font-extrabold text-lg active:scale-[.98] transition">
             Прийняти виклик
           </button>
         ) : (
