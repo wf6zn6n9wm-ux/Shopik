@@ -248,6 +248,8 @@ export default function ShopPlatform() {
       if (db.cloud) {
         setShops(list);
         setActiveShop(prev => prev ? (list.find(s => s.id === prev.id) || null) : prev);
+        // Продавець із магазинами одразу потрапляє до «Мої магазини», а не на лендинг
+        if (list.length) setPage(p => p === 'home' ? 'myshops' : p);
       }
       hydrated.current = true;
     });
