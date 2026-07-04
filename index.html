@@ -9,6 +9,7 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 <div id="root"></div>
@@ -49,8 +50,13 @@ const slugify = (name, id) => {
   const base = String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   return (base || 'shop') + '-' + String(id).slice(-4);
 };
-// Якщо URL містить ?s=<slug> — це публічна вітрина для покупця (без входу)
-const PUBLIC_SLUG = new URLSearchParams(window.location.search).get('s');
+// Telegram Mini App (якщо застосунок відкрито всередині Telegram)
+const TG = (window.Telegram && window.Telegram.WebApp) || null;
+const TG_BOT = 'shopik_store_bot';
+if (TG) { try { TG.ready(); TG.expand(); } catch (e) {} }
+// Публічна вітрина: ?s=<slug> у URL або start_param із Telegram-посилання
+const PUBLIC_SLUG = new URLSearchParams(window.location.search).get('s')
+  || (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param) || null;
 
 const db = {
   cloud: !!_supa,
@@ -388,10 +394,12 @@ export default function ShopPlatform() {
   };
   const logout = async () => { await auth.signOut(); setUser(null); setPage('home'); setActiveShop(null); flash('Ви вийшли'); };
 
-  const shopLink = (shop) => `${window.location.origin}${window.location.pathname}?s=${shop.slug || slugify(shop.name, shop.id)}`;
+  const shopSlugOf = (shop) => shop.slug || slugify(shop.name, shop.id);
+  const shopLink = (shop) => `${window.location.origin}${window.location.pathname}?s=${shopSlugOf(shop)}`;
+  const tgShopLink = (shop) => `https://t.me/${TG_BOT}?startapp=${shopSlugOf(shop)}`;
   const shareShop = () => {
     if (!activeShop) return;
-    const url = shopLink(activeShop);
+    const url = tgShopLink(activeShop);
     if (navigator.share) { navigator.share({ title: activeShop.name, url }).catch(() => {}); }
     else if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => flash('Посилання скопійовано ✓')).catch(() => flash(url)); }
     else flash(url);
