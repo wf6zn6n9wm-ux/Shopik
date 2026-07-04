@@ -54,9 +54,13 @@ const slugify = (name, id) => {
 const TG = (window.Telegram && window.Telegram.WebApp) || null;
 const TG_BOT = 'shopik_store_bot';
 if (TG) { try { TG.ready(); TG.expand(); } catch (e) {} }
-// Публічна вітрина: ?s=<slug> у URL або start_param із Telegram-посилання
-const PUBLIC_SLUG = new URLSearchParams(window.location.search).get('s')
-  || (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param) || null;
+// Публічна вітрина: ?s=<slug> у URL або start_param із Telegram-посилання.
+// Параметр Telegram читаємо і з initData, і напряму з хешу URL (доступний одразу,
+// ще до ініціалізації SDK) — щоб вітрина визначалась з першого кадру, без мерехтіння.
+const _tgStartParam = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
+  || new URLSearchParams((window.location.hash || '').replace(/^#/, '')).get('tgWebAppStartParam')
+  || null;
+const PUBLIC_SLUG = new URLSearchParams(window.location.search).get('s') || _tgStartParam || null;
 
 const db = {
   cloud: !!_supa,
