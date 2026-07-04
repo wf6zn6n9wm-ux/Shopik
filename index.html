@@ -342,7 +342,7 @@ export default function ShopPlatform() {
     { id: 8, image: phImg.stripes, name: 'Жакет вовняний', price: 690, oldPrice: null, section: 'NEW', category: 'Верхній одяг', sub: 'Жакети', likes: 11, tone: 30, inStock: true, stock: 3, sizes: ['S', 'M', 'L', 'XL'], colors: ['#5a4a3a', '#2e2622'], desc: 'Класичний вовняний жакет. Тепло й бездоганна посадка по плечах. Носиться як з костюмом, так і окремо.' },
     { id: 9, image: phImg.bag, name: 'Сумка-багет', price: 590, oldPrice: 750, section: 'SALE', category: 'Аксесуари', sub: 'Сумки', likes: 18, tone: 160, inStock: true, stock: 7, colors: ['#9a8a6a', '#161616'], desc: 'Компактна сумка-багет на короткій ручці. Лаконічний дизайн, місткість для щоденних дрібниць. Тренд сезону.' },
   ];
-  const seedOrders = [{ id: 1, name: 'Олександра', phone: '+380 67 123 45 67', product: 'Костюм палаццо з флісу', comment: 'Чи є розмір M?', status: 'Новий' }];
+  const seedOrders = [{ id: 1, name: 'Олександра', phone: '+380 67 123 45 67', product: 'Костюм палаццо з флісу', comment: 'Чи є розмір M?', status: 'Новий', kind: 'message' }];
   const seedReviews = [
     { id: 1, name: 'Ірина', rating: 5, text: 'Якість супер, доставка швидка. Замовлятиму ще!' },
     { id: 2, name: 'Марина', rating: 5, text: 'Костюм сів ідеально, тканина приємна й тепла.' },
@@ -494,7 +494,7 @@ export default function ShopPlatform() {
     setPdesc(tpls[Math.floor(Math.random() * tpls.length)]); flash('AI написав опис ✨');
   };
   // предзаказ
-  const preorder = (prod) => { if (activeShop) { const order = { id: Date.now(), name: '—', phone: '(передзамовлення)', product: `Передзамовлення: ${prod.name}`, comment: 'Клієнт хоче передзамовити', status: 'Новий' }; updateShop({ orders: [order, ...activeShop.orders] }); flash('Передзамовлення прийнято ✓'); } };
+  const preorder = (prod) => { if (activeShop) { const order = { id: Date.now(), name: '—', phone: '(передзамовлення)', product: `Передзамовлення: ${prod.name}`, comment: 'Клієнт хоче передзамовити', status: 'Новий', kind: 'order' }; updateShop({ orders: [order, ...activeShop.orders] }); flash('Передзамовлення прийнято ✓'); } };
   // цикл наявності: В наявності → Немає → Передзамовлення
   const cycleStock = (id) => {
     if (!activeShop) return;
@@ -558,7 +558,7 @@ export default function ShopPlatform() {
     if (!activeShop || !cart.length) return;
     const finalSum = Math.round(cartTotal * (1 - promoDisc));
     const delivery = coDelivery === 'np' ? `Нова Пошта${coBranch ? `, №${coBranch}` : ''}` : 'Самовивіз';
-    const order = { id: Date.now(), name: coName.trim(), phone: coPhone.trim(), product: cart.map(c => `${c.name}${c.size ? ` (${c.size})` : ''} ×${c.qty}`).join(', '), comment: `Сума: ${finalSum} ₴${promoDisc ? ` (−${Math.round(promoDisc * 100)}%)` : ''} · ${delivery} · Оплату узгодити з клієнтом`, status: 'Новий' };
+    const order = { id: Date.now(), name: coName.trim(), phone: coPhone.trim(), product: cart.map(c => `${c.name}${c.size ? ` (${c.size})` : ''} ×${c.qty}`).join(', '), comment: `Сума: ${finalSum} ₴${promoDisc ? ` (−${Math.round(promoDisc * 100)}%)` : ''} · ${delivery} · Оплату узгодити з клієнтом`, status: 'Новий', kind: 'order' };
     if (isPublic) {
       db.placeOrder(activeShop.slug || PUBLIC_SLUG, order).then(ok => flash(ok ? 'Замовлення надіслано продавцю ✓' : 'Не вдалося надіслати замовлення, спробуйте ще раз'));
     } else {
@@ -603,7 +603,7 @@ export default function ShopPlatform() {
 
   const submitPhone = () => {
     if (phoneInput.trim() && activeShop) {
-      const order = { id: Date.now(), name: '—', phone: phoneInput.trim(), product: 'Промокод -10% (перше замовлення)', comment: 'Залишив номер за знижку', status: 'Новий' };
+      const order = { id: Date.now(), name: '—', phone: phoneInput.trim(), product: 'Промокод -10% (перше замовлення)', comment: 'Залишив номер за знижку', status: 'Новий', kind: 'message' };
       updateShop({ orders: [order, ...activeShop.orders] });
       setPhoneInput(''); flash('🎁 Ваш промокод: WELCOME10 (−10%)');
     }
@@ -655,7 +655,7 @@ export default function ShopPlatform() {
   // заказ в Telegram в 1 клик
   const quickOrder = (prod) => {
     if (!activeShop) return;
-    const order = { id: Date.now(), name: '—', phone: '(через Telegram)', product: prod.name, comment: '', status: 'Новий' };
+    const order = { id: Date.now(), name: '—', phone: '(через Telegram)', product: prod.name, comment: '', status: 'Новий', kind: 'order' };
     if (isPublic) { db.placeOrder(activeShop.slug || PUBLIC_SLUG, order).then(ok => flash(ok ? `Замовлення надіслано: «${prod.name}» ✓` : 'Не вдалося надіслати замовлення')); }
     else { updateShop({ orders: [order, ...activeShop.orders] }); flash(`Відкрито Telegram із замовленням «${prod.name}»`); }
   };
@@ -1189,10 +1189,11 @@ export default function ShopPlatform() {
                 const st = o.status || 'Новий';
                 const stColor = { 'Новий': '#229ED9', 'В обробці': '#d9a02f', 'Відправлено': '#7c5bd9', 'Завершено': '#2faa55' }[st];
                 const isLast = st === 'Завершено';
+                const kind = o.kind || (/Сума:|Передзамовлення|×\d/.test(`${o.product} ${o.comment || ''}`) ? 'order' : 'message');
                 return (
                   <div key={o.id} className="bg-[#182533] text-white rounded-2xl rounded-tl-sm p-3 max-w-[90%] text-sm shadow">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="font-semibold flex items-center gap-1.5"><ShoppingBag className="w-4 h-4" /> Заявка</p>
+                      <p className="font-semibold flex items-center gap-1.5">{kind === 'order' ? <><ShoppingBag className="w-4 h-4" /> Замовлення</> : <><span>💬</span> Повідомлення</>}</p>
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-medium text-white" style={{ backgroundColor: stColor }}>{st}</span>
                     </div>
                     <p className="text-neutral-300">Імʼя: <span className="text-white">{o.name}</span></p>
