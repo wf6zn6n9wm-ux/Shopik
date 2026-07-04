@@ -98,10 +98,10 @@
   .navbtn.on{color:#fff}
 
   /* toast + sheet */
-  #toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:60}
+  #toast{position:fixed;top:14px;left:0;right:0;display:flex;justify-content:center;z-index:60;pointer-events:none}
   #toast .t{background:#fff;color:#0b0d12;font-weight:700;font-size:14px;padding:10px 16px;border-radius:999px;box-shadow:0 12px 30px rgba(0,0,0,.4)}
   .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40}
-  .sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:430px;background:#12151d;border-top:1px solid var(--line);border-radius:26px 26px 0 0;padding:20px 20px 30px;max-height:92dvh;overflow:auto;z-index:41}
+  .sheet{position:fixed;left:0;right:0;margin:0 auto;bottom:0;width:100%;max-width:430px;background:#12151d;border-top:1px solid var(--line);border-radius:26px 26px 0 0;padding:20px 20px 30px;max-height:92dvh;overflow:auto;z-index:41}
   .sheet::-webkit-scrollbar{display:none}
   .close{width:36px;height:36px;border-radius:999px;background:var(--surface);display:grid;place-items:center}
   .dot-progress{display:flex;gap:6px;justify-content:center}
@@ -126,13 +126,7 @@
 <script>
 (function(){
   "use strict";
-  const FEE=0.10, KEY="gantelya_demo_v1";
-  const CHARITIES=[
-    {id:"prytula",name:"Фонд Притули",desc:"Дрони, авто та спорядження для ЗСУ"},
-    {id:"comeback",name:"Повернись живим",desc:"Технічна підтримка Сил оборони"},
-    {id:"unbroken",name:"UNBROKEN",desc:"Протезування та реабілітація"},
-    {id:"unicef",name:"Дитячі лікарні",desc:"Обладнання для дитячих відділень"},
-  ];
+  const KEY="gantelya_demo_v1";
   const ICON={
     dumbbell:'<path d="m6.5 6.5 11 11M21 21l-1-1M3 3l1 1M18 22l4-4M2 6l4-4M3 10l7-7M14 21l7-7"/>',
     camera:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
@@ -161,7 +155,7 @@
 
   const def={page:"intro",introI:0,seenIntro:false,balance:0,challenge:null,txns:[],wds:[]};
   let S=load();
-  const ui={createOpen:false,stake:500,days:21,charity:"prytula",wtab:"topup",
+  const ui={createOpen:false,stake:500,days:21,wtab:"topup",
     tuMethod:"card",tuAmount:"",wdMethod:"card",wdAmount:"",wdDest:"",
     ci:{img:null,state:"idle",result:null}};
 
@@ -182,10 +176,10 @@
 
   function intro(){
     const steps=[
-      {i:"dumbbell",t:"Постав на себе",d:"Ставиш, наприклад, 500 ₴, що 21 день ходиш у зал. Це твої гроші — не азарт."},
+      {i:"dumbbell",t:"Постав на себе",d:"Кидаєш 500 ₴, що 21 день ходиш у зал. Тримаєш слово — забираєш удвічі більше."},
       {i:"camera",t:"Щодня — фото",d:"Кожен день кидаєш фото з тренування. Це твій пруф."},
-      {i:"spark",t:"AI-рефері вирішує",d:"Claude дивиться на фото і каже: зал це чи диван. Обдурити важко."},
-      {i:"shield",t:"Зірвався — донат",d:"Гроші йдуть на ЗСУ / благодійність, не тобі в кишеню. Виграти чуже не можна — тільки повернути своє."},
+      {i:"spark",t:"AI-рефері вирішує",d:"AI дивиться на фото і каже: зал це чи диван. Обдурити важко."},
+      {i:"coins",t:"Виконав — забираєш ×2",d:"Пройшов усі дні — отримуєш ставку у подвійному розмірі. Зірвався — гроші згорають."},
     ];
     const s=steps[S.introI],last=S.introI===steps.length-1;
     return `<div style="min-height:100dvh;display:flex;flex-direction:column;padding:40px 24px">
@@ -213,16 +207,15 @@
       body=`<div class="card rise" style="text-align:center">
         <div style="width:64px;height:64px;margin:0 auto 16px;border-radius:18px;background:rgba(59,130,246,.15);color:#93c5fd;display:grid;place-items:center">${svg("dumbbell",30)}</div>
         <h2 style="font-size:21px;font-weight:800;margin-bottom:8px">Ще немає челленджу</h2>
-        <p class="mut" style="font-size:14px;margin-bottom:20px">Постав на себе гроші й тримай слово. Зірвешся — донат на ЗСУ.</p>
+        <p class="mut" style="font-size:14px;margin-bottom:20px">Постав на себе гроші й тримай слово. Виконаєш — ×2, зірвешся — згорять.</p>
         <button class="btn btn-primary" data-act="create-open">Створити челендж</button>
       </div>`;
     } else if(ch.status==="won"){
-      body=cardResult("🏆","Ти зробив це!",`${ch.days} днів пройдено. Ставку <b>${fmt(ch.stake)} ₴</b> повернено на баланс.`,"Дисципліна &gt; мотивація 🔥","good");
+      body=cardResult("🏆","Ти зробив це!",`${ch.days} днів пройдено. Виплата <b>${fmt(ch.stake*2)} ₴</b> (×2) зарахована на баланс.`,"Дисципліна &gt; мотивація 🔥","good");
     } else if(ch.status==="failed"){
-      const c=CHARITIES.find(x=>x.id===ch.charity);
-      body=cardResult("🕊️","Челендж зірвано",`Ставка <b>${fmt(ch.stake)} ₴</b> пішла на «${c?c.name:"благодійність"}».`,"Не найгірший результат — хтось отримав допомогу. Спробуй ще.","bad");
+      body=cardResult("🔥","Ставка згоріла",`Пропущено день — <b>${fmt(ch.stake)} ₴</b> згоріли.`,"Дисципліна коштує грошей. Спробуй ще.","bad");
     } else {
-      const c=CHARITIES.find(x=>x.id===ch.charity), checkedToday=ch.lastCheckin===today(), left=ch.days-ch.done;
+      const checkedToday=ch.lastCheckin===today(), left=ch.days-ch.done;
       body=`<div class="stack rise">
         <div class="card" style="display:flex;flex-direction:column;align-items:center">
           <div class="ringwrap">${ring(ch.done,ch.days)}
@@ -230,13 +223,14 @@
             <div class="eyebrow" style="margin-top:4px">днів у залі</div></div>
           </div>
           <div class="g3" style="width:100%;margin-top:22px">
-            ${stat("coins","Ставка",fmt(ch.stake)+" ₴")}${stat("flame","Лишилось",left+" дн.")}${stat("shield","Ризик",fmt(ch.stake)+" ₴")}
+            ${stat("coins","Ставка",fmt(ch.stake)+" ₴")}${stat("flame","Лишилось",left+" дн.")}${stat("shield","Виграш",fmt(ch.stake*2)+" ₴")}
           </div>
         </div>
-        <div class="card2 row">
-          <div style="width:36px;height:36px;border-radius:11px;background:rgba(251,191,36,.15);color:var(--amber);display:grid;place-items:center;flex:0 0 auto">${svg("heart",18)}</div>
-          <div style="min-width:0"><div class="mut" style="font-size:12px">Якщо зірвешся — донат піде на</div>
-          <div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c?c.name:"—"}</div></div>
+        <div class="card2 between">
+          <div class="row" style="min-width:0"><div style="width:36px;height:36px;border-radius:11px;background:var(--goodbg);color:var(--good);display:grid;place-items:center;flex:0 0 auto">${svg("coins",18)}</div>
+          <div style="min-width:0"><div class="mut" style="font-size:12px">Виконаєш челендж — забираєш</div>
+          <div style="font-weight:800" class="num">${fmt(ch.stake*2)} ₴ <span style="color:var(--good)">×2</span></div></div></div>
+          <span class="badge" style="color:#fca5a5;background:var(--badbg);border:1px solid var(--badln);flex:0 0 auto">🔥 −${fmt(ch.stake)} ₴</span>
         </div>
         ${checkedToday
           ? `<div class="card2 row" style="border-color:var(--goodln);background:var(--goodbg)">
@@ -245,7 +239,7 @@
           : `<button class="btn btn-grad" data-act="go" data-page="checkin">${svg("camera",22)} Зробити чек-ін</button>`}
         <div style="border:1px solid var(--line2);background:rgba(255,255,255,.02);border-radius:16px;padding:12px">
           <div class="eyebrow" style="margin-bottom:8px;padding:0 4px">Демо-режим прототипу</div>
-          <button class="btn btn-sm" style="background:var(--badbg);color:#fca5a5;border:1px solid var(--badln)" data-act="fail">Змоделювати зрив (донат)</button>
+          <button class="btn btn-sm" style="background:var(--badbg);color:#fca5a5;border:1px solid var(--badln)" data-act="fail">Змоделювати зрив (спалити ставку)</button>
         </div>
       </div>`;
     }
@@ -282,7 +276,7 @@
     if(ci.state==="idle"){
       ctrls=`<div class="stack" style="margin-top:16px">
         <button class="btn btn-ghost" data-act="pick">${svg("upload",20)} ${ci.img?"Інше фото":"Обрати / зняти фото"}</button>
-        ${ci.img?`<div class="demo-note">У проді це аналізує <b>AI-рефері</b> (Claude Vision) автоматично. Тут — демо: обери, як «відповів» би рефері.</div>
+        ${ci.img?`<div class="demo-note">У проді фото автоматично аналізує <b>AI-рефері</b>. Тут — демо: обери, як «відповів» би рефері.</div>
           <div class="g2">
             <button class="btn btn-sm" style="background:var(--goodbg);border:1px solid var(--goodln);color:#a7f3d0" data-act="judge" data-v="gym">Рефері: зал 💪</button>
             <button class="btn btn-sm" style="background:var(--badbg);border:1px solid var(--badln);color:#fecaca" data-act="judge" data-v="couch">Рефері: диван 🛋️</button>
@@ -348,7 +342,7 @@
       </div>`:""}
     </div>`;
   }
-  const TXI={topup:"↓",refund:"↩",withdraw:"↑",stake:"🔒",fee:"%",donation:"🕊️"};
+  const TXI={topup:"↓",win:"🏆",withdraw:"↑",stake:"🔒",burn:"🔥"};
   function historyTab(){
     if(!S.txns.length) return `<p class="mut2 rise" style="text-align:center;margin-top:60px;font-size:14px">Поки що порожньо</p>`;
     return `<div class="stack rise">${S.txns.map(t=>`<div class="card2 between">
@@ -362,10 +356,10 @@
   function profile(){
     const done=S.challenge?S.challenge.done:0;
     const items=[
-      ["Ставка на себе","Блокуєш суму на час челленджу. Це не азарт — виграти чуже не можна, тільки повернути своє."],
-      ["AI-рефері","Claude по фото визначає зал це чи диван. Чесно і швидко."],
-      ["Зрив = донат","Гроші йдуть на ЗСУ/благодійність. Саме тому важко зіскочити."],
-      ["Сервісний збір 10%","Береться при створенні челленджу — так живе сервіс."],
+      ["Ставка на себе","Кидаєш суму на час челленджу — вона блокується."],
+      ["AI-рефері","AI по фото визначає зал це чи диван. Чесно і швидко."],
+      ["Виконав — ×2","Пройшов усі дні — ставка повертається у подвійному розмірі."],
+      ["Зірвався — згорає","Пропустив день — ставка згорає. Саме тому важко зіскочити."],
     ];
     return `<div class="pad">
       <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:24px">
@@ -381,14 +375,14 @@
       </div>
       <div class="card2 row" style="align-items:flex-start;margin-top:16px;border-color:var(--warnln);background:var(--warnbg)">
         <span style="color:var(--amber);flex:0 0 auto">${svg("shield",18)}</span>
-        <p style="font-size:12px;color:#f4d58a;line-height:1.5;margin:0">Перед запуском модель варто показати юристу: важливо, щоб це не трактувалось як азартна гра. Ключове — кошти не виграються, а повертаються або йдуть на благодійність.</p>
+        <p style="font-size:12px;color:#f4d58a;line-height:1.5;margin:0">Перед запуском модель варто показати юристу: виплати ×2 можуть трактуватись як парі / азартна гра. Уточни ліцензування та податки.</p>
       </div>
     </div>`;
   }
 
   function sheet(){
     if(!ui.createOpen) return "";
-    const fee=Math.round(ui.stake*FEE), total=ui.stake+fee, enough=S.balance>=total;
+    const total=ui.stake, enough=S.balance>=total, prize=ui.stake*2;
     return `<div class="sheet-bg" data-act="create-close"></div>
     <div class="sheet rise">
       <div class="between" style="margin-bottom:20px"><h2 style="font-size:21px;font-weight:800">Новий челендж</h2>
@@ -397,17 +391,10 @@
       <div class="g4" style="margin:8px 0 20px">${[300,500,1000,2000].map(s=>`<button class="pill ${ui.stake===s?'on':''}" data-act="set-stake" data-v="${s}">${s}</button>`).join("")}</div>
       <label class="mut" style="font-size:14px">Скільки днів у зал</label>
       <div class="g4" style="margin:8px 0 20px">${[7,14,21,30].map(d=>`<button class="pill ${ui.days===d?'on':''}" data-act="set-days" data-v="${d}">${d}</button>`).join("")}</div>
-      <label class="mut" style="font-size:14px">Куди піде донат при зриві</label>
-      <div class="stack" style="margin:8px 0 20px">
-        ${CHARITIES.map(c=>`<button class="method ${ui.charity===c.id?'':''}" style="display:flex;align-items:center;gap:12px;${ui.charity===c.id?'background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.4)':''}" data-act="set-charity" data-k="${c.id}">
-          <span class="radio ${ui.charity===c.id?'on':''}">${ui.charity===c.id?'<span class="dot"></span>':''}</span>
-          <span><span class="t" style="display:block">${c.name}</span><span class="s">${c.desc}</span></span></button>`).join("")}
-      </div>
       <div class="card2 stack" style="padding:16px;margin-bottom:16px">
-        ${srow("Ставка (блокується)",fmt(ui.stake)+" ₴")}
-        ${srow("Сервісний збір 10%",fmt(fee)+" ₴",true)}
-        <div style="border-top:1px solid var(--line)"></div>
-        ${srow("Спишеться зараз",fmt(total)+" ₴",false,true)}
+        ${srow("Ставка (спишеться зараз)",fmt(ui.stake)+" ₴",false,true)}
+        <div class="between"><span style="font-size:14px;color:var(--good)">Виконаєш — забираєш</span><span class="num" style="font-size:14px;font-weight:800;color:var(--good)">${fmt(prize)} ₴ ×2</span></div>
+        <div class="between"><span style="font-size:14px;color:var(--bad)">Зірвешся — згорає</span><span class="num" style="font-size:14px;font-weight:700;color:var(--bad)">−${fmt(ui.stake)} ₴</span></div>
       </div>
       ${enough
         ? `<button class="btn btn-grad" data-act="create-confirm">Прийняти виклик</button>`
@@ -442,12 +429,10 @@
 
   /* ---------- actions ---------- */
   function createChallenge(){
-    const fee=Math.round(ui.stake*FEE), total=ui.stake+fee;
-    if(S.balance<total){toast("Недостатньо коштів");return;}
-    S.balance-=total;
-    addTxn({type:"stake",amount:-ui.stake,note:`Ставка заблокована · ${ui.days} днів`});
-    addTxn({type:"fee",amount:-fee,note:"Сервісний збір 10%"});
-    S.challenge={stake:ui.stake,days:ui.days,charity:ui.charity,fee,done:0,status:"active",createdAt:Date.now(),lastCheckin:null};
+    if(S.balance<ui.stake){toast("Недостатньо коштів");return;}
+    S.balance-=ui.stake;
+    addTxn({type:"stake",amount:-ui.stake,note:`Ставка · ${ui.days} днів`});
+    S.challenge={stake:ui.stake,days:ui.days,done:0,status:"active",createdAt:Date.now(),lastCheckin:null};
     ui.createOpen=false;S.page="home";save();render();toast("Челендж створено 💪");
   }
   function applyCheckin(verdict){
@@ -456,15 +441,14 @@
     ui.ci.result={verdict,confidence:.9,reason:reasons[verdict]};
     if(verdict==="gym"){
       ch.done+=1;ch.lastCheckin=today();
-      if(ch.done>=ch.days){ch.status="won";S.balance+=ch.stake;addTxn({type:"refund",amount:ch.stake,note:"Челендж пройдено — ставку повернено"});}
+      if(ch.done>=ch.days){ch.status="won";S.balance+=ch.stake*2;addTxn({type:"win",amount:ch.stake*2,note:"Челендж пройдено — виплата ×2"});}
     }
     ui.ci.state="done";save();render();
   }
   function failChallenge(){
     const ch=S.challenge;if(!ch||ch.status!=="active")return;
-    const c=CHARITIES.find(x=>x.id===ch.charity);
-    addTxn({type:"donation",amount:0,note:`Зрив — ${fmt(ch.stake)} ₴ на «${c?c.name:"благодійність"}»`});
-    ch.status="failed";save();render();toast("Челендж зірвано. Ставка пішла на донат.");
+    addTxn({type:"burn",amount:0,note:`Зрив — ${fmt(ch.stake)} ₴ згоріли`});
+    ch.status="failed";save();render();toast("Челендж зірвано. Ставка згоріла 🔥");
   }
 
   app.addEventListener("click",function(e){
@@ -476,7 +460,6 @@
     if(a==="create-close"){ui.createOpen=false;render();return;}
     if(a==="set-stake"){ui.stake=+v;render();return;}
     if(a==="set-days"){ui.days=+v;render();return;}
-    if(a==="set-charity"){ui.charity=k;render();return;}
     if(a==="create-confirm"){createChallenge();return;}
     if(a==="create-topup"){ui.createOpen=false;S.page="wallet";save();render();return;}
     if(a==="fail"){failChallenge();return;}
@@ -491,7 +474,7 @@
     if(a==="wd-method"){ui.wdMethod=k;render();return;}
     if(a==="wd-submit"){const amt=parseInt(ui.wdAmount,10)||0;if(amt<50||amt>S.balance||ui.wdDest.trim().length<6)return;S.balance-=amt;S.wds.unshift({id:uid(),ts:Date.now(),amount:amt,dest:ui.wdDest.trim(),method:ui.wdMethod,status:"processing"});addTxn({type:"withdraw",amount:-amt,note:"Заявка на вивід"});ui.wdAmount="";ui.wdDest="";save();render();toast("Заявку прийнято · до 24 год");return;}
     if(a==="wd-done"){const p=S.wds.find(w=>w.status==="processing");if(p){p.status="done";save();render();toast("Вивід виконано");}return;}
-    if(a==="share"){const txt="Я в челленджі на Гантеля 💪 21 день у зал або донат на ЗСУ. Не можу зіскочити 😅";if(navigator.share){navigator.share({title:"Гантеля",text:txt}).catch(()=>{});}else{try{navigator.clipboard.writeText(txt);}catch(_){}toast("Текст скопійовано");}return;}
+    if(a==="share"){const txt="Я в челленджі на Гантеля 💪 21 день у зал. Виконаю — заберу ×2, зірвусь — згорить 😅";if(navigator.share){navigator.share({title:"Гантеля",text:txt}).catch(()=>{});}else{try{navigator.clipboard.writeText(txt);}catch(_){}toast("Текст скопійовано");}return;}
   });
 
   app.addEventListener("input",function(e){
