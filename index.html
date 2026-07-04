@@ -42,6 +42,8 @@ const _supa = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
 const _lsGet = (k, d) => { try { const v = localStorage.getItem('shopik_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
 const _lsSet = (k, v) => { try { localStorage.setItem('shopik_' + k, JSON.stringify(v)); return true; } catch (e) { return false; } };
 
+// Артикул товару: стабільний код з id (напр. ART-000123)
+const genSku = (id) => 'ART-' + String(id).padStart(6, '0').slice(-6);
 // Публічне посилання на магазин: створюємо slug з назви + хвіст id для унікальності
 const slugify = (name, id) => {
   const base = String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -503,7 +505,8 @@ export default function ShopPlatform() {
 
   const handleAddProduct = () => {
     if (pname && price && activeShop) {
-      const newProd = { id: Date.now(), name: pname, price: parseInt(price), oldPrice: oldPrice ? parseInt(oldPrice) : null, section: sec, category: pcat || (activeShop.categories[0]?.name || 'Без категорії'), sub: psub || '', image: pimg || null, likes: 0, tone: Math.floor(Math.random() * 360), inStock: true, desc: pdesc || '' };
+      const _pid = Date.now();
+      const newProd = { id: _pid, sku: genSku(_pid), name: pname, price: parseInt(price), oldPrice: oldPrice ? parseInt(oldPrice) : null, section: sec, category: pcat || (activeShop.categories[0]?.name || 'Без категорії'), sub: psub || '', image: pimg || null, likes: 0, tone: Math.floor(Math.random() * 360), inStock: true, desc: pdesc || '' };
       updateShop({ products: [...activeShop.products, newProd] });
       setPname(''); setPrice(''); setOldPrice(''); setSec('NEW'); setPcat(''); setPsub(''); setPimg(null); setPdesc(''); setShowAdd(false);
     }
@@ -1959,6 +1962,7 @@ export default function ShopPlatform() {
               </button>
             </div>
             <div className="flex items-baseline gap-2 mt-2"><span className="text-2xl font-semibold">{prod.price} ₴</span>{prod.oldPrice && <span className="text-sm line-through" style={{ color: sub }}>{prod.oldPrice} ₴</span>}</div>
+            <p className="text-[11px] uppercase tracking-wider mt-1.5" style={{ color: sub }}>Артикул: {prod.sku || genSku(prod.id)}</p>
             <p className="text-sm mt-3 leading-relaxed" style={{ color: sub }}>{prod.desc || `${prod.name} — преміальна якість, ретельний пошив і матеріали. Ідеальний вибір на щодень і для особливих подій.`}</p>
 
             {prod.colors && prod.colors.length > 0 && (
