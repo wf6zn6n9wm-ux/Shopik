@@ -1522,7 +1522,7 @@ export default function ShopPlatform() {
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3"><div className="w-12 h-12 rounded-lg bg-neutral-100" style={imgOrTile(prod)} /><div><h4 className="font-medium text-sm">{prod.name}</h4><p className="text-xs text-neutral-400">{prod.category}{prod.sub ? ` › ${prod.sub}` : ''} · {prod.price} ₴{prod.oldPrice ? <span className="line-through ml-1">{prod.oldPrice}</span> : ''}</p></div></div>
+                      <div className="flex items-center gap-3"><div className="w-12 h-12 rounded-lg bg-neutral-100" style={imgOrTile(prod)} /><div><h4 className="font-medium text-sm">{prod.name}</h4><p className="text-xs text-neutral-400">{prod.category}{prod.sub ? ` › ${prod.sub}` : ''} · {prod.price} ₴{prod.oldPrice ? <span className="line-through ml-1">{prod.oldPrice}</span> : ''}</p><p className="text-[10px] text-neutral-400 mt-0.5">Артикул: {prod.sku || genSku(prod.id)}</p></div></div>
                       <div className="flex items-center gap-1">
                         <button onClick={() => cycleStock(prod.id)} className={`text-[10px] px-2 py-1 rounded-full font-medium ${prod.preorder ? 'bg-amber-100 text-amber-700' : prod.inStock === false ? 'bg-neutral-200 text-neutral-500' : 'bg-green-100 text-green-700'}`}>{prod.preorder ? 'Передзам.' : prod.inStock === false ? 'Немає' : 'В наяв.'}</button>
                         <button onClick={() => startEdit(prod)} className="p-2 text-neutral-400 hover:text-neutral-900"><Pencil className="w-4 h-4" /></button>
