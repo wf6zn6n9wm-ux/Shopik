@@ -1417,7 +1417,7 @@ export default function ShopPlatform() {
         <div className="max-w-sm mx-auto">
           <div className={`sticky top-0 z-50 px-5 py-4 flex justify-between items-center border-b ${appDark ? 'bg-neutral-900 border-neutral-800' : 'bg-white'}`}>
             <div><h1 className="font-semibold tracking-[0.15em]">{activeShop.name.toUpperCase()}</h1><p className="text-xs text-neutral-400">Адмін-панель</p></div>
-            <button onClick={() => setPage('home')} className="text-neutral-400 text-xl">✕</button>
+            <button onClick={() => setPage(shops.length ? 'myshops' : 'home')} className="text-neutral-400 text-xl">✕</button>
           </div>
 
           <div className="p-5 pb-24">
