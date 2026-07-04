@@ -265,6 +265,7 @@ export default function ShopPlatform() {
   // Публічна вітрина (покупець відкрив посилання ?s=slug)
   const isPublic = !!PUBLIC_SLUG;
   const [pubError, setPubError] = useState(false);
+  const [pubReady, setPubReady] = useState(!isPublic); // у публічному режимі — доки не завантажили вітрину
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
 
   // Публічний режим: завантажити магазин за посиланням і показати вітрину
@@ -275,6 +276,7 @@ export default function ShopPlatform() {
       if (!alive) return;
       if (shop) { setActiveShop({ ...shop, orders: shop.orders || [] }); setPage('preview'); }
       else setPubError(true);
+      setPubReady(true);
     });
     return () => { alive = false; };
   }, []);
@@ -830,19 +832,20 @@ export default function ShopPlatform() {
   );
 
   // ===== ПУБЛІЧНА ВІТРИНА (покупець за посиланням, без входу) =====
-  if (isPublic && pubError) {
+  // Доки вітрина не завантажилась — показуємо лише завантаження (не екран продавця)
+  if (isPublic && !pubReady) {
+    return (
+      <div className="min-h-screen bg-neutral-900 text-white flex items-center justify-center">
+        <div className="text-neutral-400 text-sm">Завантаження магазину…</div>
+      </div>
+    );
+  }
+  if (isPublic && (pubError || !activeShop)) {
     return (
       <div className="min-h-screen bg-neutral-900 text-white flex flex-col items-center justify-center px-6 text-center">
         <div className="text-5xl mb-3">🔍</div>
         <p className="text-lg font-medium mb-1">Магазин не знайдено</p>
         <p className="text-neutral-400 text-sm">Можливо, посилання застаріло або магазин видалено.</p>
-      </div>
-    );
-  }
-  if (isPublic && !activeShop) {
-    return (
-      <div className="min-h-screen bg-neutral-900 text-white flex items-center justify-center">
-        <div className="text-neutral-400 text-sm">Завантаження магазину…</div>
       </div>
     );
   }
