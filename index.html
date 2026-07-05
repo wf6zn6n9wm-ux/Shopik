@@ -440,6 +440,21 @@ export default function ShopPlatform() {
     Promise.all(arr.map(f => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(f); }))).then(cb);
   };
 
+  // Скільки фото на місяць AI розбирає безкоштовно за тарифом (+ докуплені пакети aiBonus).
+  const AI_PLAN_LIMITS = { Start: 50, Pro: 500, Max: Infinity };
+  const AI_PACKS = [{ n: 100, price: 149 }, { n: 500, price: 599 }, { n: 1000, price: 999 }];
+  const aiLimitFor = (shop) => {
+    const base = AI_PLAN_LIMITS[plan];
+    if (base === Infinity) return Infinity;
+    return (base || 50) + ((shop && shop.aiBonus) || 0);
+  };
+  const aiUsedOf = (shop) => (shop && shop.aiUsed) || 0;
+  const buyAiPack = (count) => {
+    if (!activeShop) return;
+    updateShop({ aiBonus: ((activeShop.aiBonus || 0) + count) });
+    flash(`Пакет +${count} AI-фото активовано ✨`);
+  };
+
   // Аналіз фото товару через AI (Claude vision) — повертає {name, price, description, category}
   // або null, якщо ключ не налаштовано / сталася помилка (тоді використаємо запасні значення).
   const aiAnalyze = (dataURL, categories) => {
@@ -510,6 +525,7 @@ export default function ShopPlatform() {
     const shopName = name.trim() || `${niche} магазин`;
     const cats = nichePresets[niche] || [];
     const catNames = cats.map(c => c.name);
+    const quota = AI_PLAN_LIMITS[plan] === Infinity ? Infinity : (AI_PLAN_LIMITS[plan] || 50);
     readImages(arr, (imgs) => {
       const shop = makeShop({ name: shopName, slogan: 'Нова колекція', categories: cats, products: [] });
       setActiveShop(shop);
@@ -518,10 +534,12 @@ export default function ShopPlatform() {
       setAiDone(0);
       setPage('building');
       const results = new Array(imgs.length);
-      let done = 0;
-      Promise.all(imgs.map((img, i) =>
-        aiAnalyze(img, catNames).then(r => {
-          const _pid = shop.id + 1 + i;
+      let done = 0, charged = 0;
+      Promise.all(imgs.map((img, i) => {
+        const useAi = i < quota;
+        const _pid = shop.id + 1 + i;
+        const build = (r) => {
+          if (r) charged += 1;
           results[i] = {
             id: _pid, sku: genSku(_pid),
             name: (r && r.name) || sampleNames[i % sampleNames.length],
@@ -532,16 +550,19 @@ export default function ShopPlatform() {
             inStock: true, desc: (r && r.description) || ''
           };
           done += 1; setAiDone(done);
-        })
-      )).then(() => {
+        };
+        if (!useAi) { build(null); return Promise.resolve(); }
+        return aiAnalyze(img, catNames).then(build);
+      })).then(() => {
         const prods = results.filter(Boolean);
         const firstImg = prods[0] && prods[0].image;
-        const finalShop = { ...shop, products: prods, bannerImage: firstImg || shop.bannerImage };
+        const finalShop = { ...shop, products: prods, aiUsed: charged, bannerImage: firstImg || shop.bannerImage };
         setActiveShop(finalShop);
         setShops(prev => prev.map(s => s.id === finalShop.id ? finalShop : s));
         setName(''); setNiche('Одяг'); setAiTotal(0); setAiDone(0);
+        if (quota !== Infinity && imgs.length > quota) flash(`Магазин зібрано ✨ AI розібрав ${quota} з ${imgs.length} — решту дозаповниш вручну`);
+        else flash('Магазин зібрано ✨');
         setPage('preview');
-        flash('Магазин зібрано ✨');
       });
     });
   };
@@ -671,20 +692,33 @@ export default function ShopPlatform() {
   };
   const deletePromo = (code) => { if (activeShop) updateShop({ promos: (activeShop.promos || []).filter(p => p.code !== code) }); };
 
-  // массовая загрузка + AI: одразу показуємо фото, а картки заповнює AI по одній
+  // массовая загрузка + AI: одразу показуємо фото, а картки заповнює AI по одній.
+  // AI застосовуємо лише в межах ліміту тарифу; решту продавець заповнює вручну.
   const handleBulkFiles = (files) => {
     const catNames = (activeShop.categories || []).map(c => c.name);
     const firstCat = catNames[0] || 'Без категорії';
+    const used = aiUsedOf(activeShop);
+    const limit = aiLimitFor(activeShop);
+    const quota = limit === Infinity ? Infinity : Math.max(0, limit - used);
     readImages(files, (imgs) => {
-      const drafts = imgs.map((img, i) => ({
-        id: Date.now() + i, image: img,
-        name: '', price: '', desc: '',
-        category: firstCat,
-        section: 'NEW', tone: Math.floor(Math.random() * 360), pending: true
-      }));
+      const drafts = imgs.map((img, i) => {
+        const useAi = i < quota;
+        return {
+          id: Date.now() + i, image: img,
+          name: '', price: '', desc: '',
+          category: firstCat,
+          section: 'NEW', tone: Math.floor(Math.random() * 360),
+          pending: useAi, ai: useAi
+        };
+      });
       setBulkDrafts(drafts);
-      drafts.forEach((d, i) => {
-        aiAnalyze(d.image, catNames).then(r => {
+      const aiCount = Math.min(quota === Infinity ? imgs.length : quota, imgs.length);
+      if (aiCount < imgs.length) flash(`AI-ліміт тарифу: розібрано ${aiCount} з ${imgs.length}. Решту заповни вручну або докупи пакет ✨`);
+      let charged = 0;
+      Promise.all(drafts.map((d, i) => {
+        if (!d.ai) return Promise.resolve();
+        return aiAnalyze(d.image, catNames).then(r => {
+          if (r) charged += 1;
           setBulkDrafts(prev => prev.map(x => x.id === d.id ? {
             ...x,
             pending: false,
@@ -694,7 +728,7 @@ export default function ShopPlatform() {
             category: (r && r.category && catNames.indexOf(r.category) !== -1) ? r.category : x.category
           } : x));
         });
-      });
+      })).then(() => { if (charged > 0) updateShop({ aiUsed: used + charged }); });
     });
   };
   const updateDraft = (id, patch) => setBulkDrafts(prev => prev.map(d => d.id === id ? { ...d, ...patch } : d));
@@ -1227,7 +1261,41 @@ export default function ShopPlatform() {
         <div className="max-w-sm mx-auto pb-24">
           <button onClick={() => { setBulkDrafts([]); setPage('dashboard'); }} className={`mb-5 text-sm ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>← Назад</button>
           <h2 className="text-2xl font-semibold mb-1 tracking-tight">Фото → товари з AI</h2>
-          <p className={`text-sm mb-5 ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Обери фото товарів — штучний інтелект сам напише назву, ціну й опис до кожного. Тобі лишиться тільки перевірити.</p>
+          <p className={`text-sm mb-4 ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Обери фото товарів — штучний інтелект сам напише назву, ціну й опис до кожного. Тобі лишиться тільки перевірити.</p>
+
+          {(() => {
+            const used = aiUsedOf(activeShop);
+            const limit = aiLimitFor(activeShop);
+            const unlimited = limit === Infinity;
+            const left = unlimited ? Infinity : Math.max(0, limit - used);
+            const pct = unlimited ? 100 : Math.min(100, Math.round((used / limit) * 100));
+            return (
+              <div className={`rounded-2xl p-4 mb-5 ${appDark ? 'bg-neutral-800' : 'bg-white shadow-sm'}`}>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="font-medium flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> AI-фото · тариф {plan}</span>
+                  <span className={left <= 0 && !unlimited ? 'text-orange-500 font-semibold' : (appDark ? 'text-neutral-400' : 'text-neutral-500')}>{unlimited ? 'безліміт' : `лишилось ${left} з ${limit}`}</span>
+                </div>
+                {!unlimited && (
+                  <div className={`h-1.5 rounded-full overflow-hidden mb-2 ${appDark ? 'bg-neutral-700' : 'bg-neutral-200'}`}>
+                    <div className={`h-full rounded-full ${left <= 0 ? 'bg-orange-500' : 'bg-green-400'}`} style={{ width: `${pct}%` }} />
+                  </div>
+                )}
+                {!unlimited && (
+                  <>
+                    <p className={`text-xs mb-2 ${appDark ? 'text-neutral-500' : 'text-neutral-500'}`}>{left <= 0 ? 'Ліміт вичерпано — далі фото заповнюються вручну. Докупи пакет, щоб AI працював далі:' : 'Потрібно більше? Докупи пакет фото:'}</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {AI_PACKS.map(p => (
+                        <button key={p.n} onClick={() => buyAiPack(p.n)} className={`rounded-xl py-2 text-center border ${appDark ? 'border-neutral-700 hover:border-neutral-500' : 'border-neutral-200 hover:border-neutral-400'}`}>
+                          <span className="block text-sm font-semibold">+{p.n}</span>
+                          <span className={`block text-[11px] ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>{p.price}₴</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
 
           <label className={`block border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer mb-5 ${appDark ? 'bg-neutral-800 border-neutral-600' : 'bg-white border-neutral-300'}`}>
             <Sparkles className="w-7 h-7 mx-auto text-neutral-400 mb-2" />
