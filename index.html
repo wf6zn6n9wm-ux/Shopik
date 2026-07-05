@@ -1648,14 +1648,14 @@ export default function ShopPlatform() {
                             {cat.subs.map(sub => (<span key={sub} className="flex items-center gap-1 bg-white border rounded-full px-3 py-1 text-xs">{sub}<button onClick={() => handleDeleteSub(cat.name, sub)} className="text-neutral-400 hover:text-red-600"><X className="w-3 h-3" /></button></span>))}
                             {cat.subs.length === 0 && <span className="text-xs text-neutral-400">Підкатегорій немає</span>}
                           </div>
-                          <div className="flex gap-2"><input value={newSubByCat[cat.name] || ''} onChange={(e) => setNewSubByCat({ ...newSubByCat, [cat.name]: e.target.value })} placeholder="Підкатегорія (напр. Куртки)" className="flex-1 border rounded-lg p-2 text-sm bg-white" /><button onClick={() => handleAddSub(cat.name)} className="bg-neutral-900 text-white px-3 rounded-lg text-sm">+</button></div>
+                          <div className="flex gap-2"><input value={newSubByCat[cat.name] || ''} onChange={(e) => setNewSubByCat({ ...newSubByCat, [cat.name]: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') handleAddSub(cat.name); }} placeholder="Підкатегорія (напр. Куртки)" className="flex-1 border border-neutral-300 rounded-lg p-2 text-sm bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none" /><button onClick={() => handleAddSub(cat.name)} className="bg-neutral-900 text-white px-3 rounded-lg text-sm">+</button></div>
                         </div>
                       )}
                     </div>
                   );
                 })}
               </div>
-              <div className="flex gap-2 mt-3"><input value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="Нова категорія (напр. Взуття)" className="flex-1 border rounded-xl p-2.5 text-sm" /><button onClick={handleAddCategory} className="bg-neutral-900 text-white px-4 rounded-xl text-sm font-medium">+</button></div>
+              <div className="flex gap-2 mt-3"><input value={newCat} onChange={(e) => setNewCat(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); }} placeholder="Нова категорія (напр. Взуття)" className="flex-1 border border-neutral-300 rounded-xl p-2.5 text-sm bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none" /><button onClick={handleAddCategory} className="bg-neutral-900 text-white px-4 rounded-xl text-sm font-medium">+</button></div>
             </div>
 
             {/* добавление товара */}
