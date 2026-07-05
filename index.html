@@ -176,7 +176,8 @@ export default function ShopPlatform() {
   const [bannerImg, setBannerImg] = useState(null);
   const [bannerPos, setBannerPos] = useState(50);
 
-  const [igLink, setIgLink] = useState('');
+  const [aiTotal, setAiTotal] = useState(0);
+  const [aiDone, setAiDone] = useState(0);
   const [appDark, setAppDark] = useState(() => LS.get('appDark', true));
   const [setSection, setSetSection] = useState(null);
   const [discScope, setDiscScope] = useState('all');
@@ -206,7 +207,6 @@ export default function ShopPlatform() {
   const [phoneInput, setPhoneInput] = useState('');
   const [toast, setToast] = useState('');
   const [niche, setNiche] = useState('Одяг');
-  const [buildStep, setBuildStep] = useState(0);
   const [customCats, setCustomCats] = useState([]);
   const [finderOpen, setFinderOpen] = useState(false);
   const [finderQuery, setFinderQuery] = useState('');
@@ -440,10 +440,24 @@ export default function ShopPlatform() {
     Promise.all(arr.map(f => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(f); }))).then(cb);
   };
 
+  // Аналіз фото товару через AI (Claude vision) — повертає {name, price, description, category}
+  // або null, якщо ключ не налаштовано / сталася помилка (тоді використаємо запасні значення).
+  const aiAnalyze = (dataURL, categories) => {
+    return fetch('/api/ai-products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: dataURL, categories: categories || [] })
+    })
+      .then(r => r.json())
+      .then(d => (d && d.ok && d.product) ? d.product : null)
+      .catch(() => null);
+  };
+
   const makeShop = (opts) => {
     const cats = (opts.categories || seedCategories).map(c => ({ ...c, subs: [...c.subs] }));
     const firstCat = cats[0]?.name || 'Без категорії';
-    const prods = seedProducts.map(p => cats.some(c => c.name === p.category) ? { ...p } : { ...p, category: firstCat, sub: '' });
+    const baseProds = opts.products || seedProducts;
+    const prods = baseProds.map(p => cats.some(c => c.name === p.category) ? { ...p } : { ...p, category: firstCat, sub: '' });
     const _id = Date.now() + Math.floor(Math.random() * 1000);
     return {
       id: _id,
@@ -488,26 +502,48 @@ export default function ShopPlatform() {
     }
   };
 
-  const handleImport = () => {
-    const handle = (igLink.trim().replace(/\/+$/, '').split('/').pop() || 'mystore').replace('@', '') || 'mystore';
-    setBuildStep(0);
-    setPage('building');
-    const steps = 5;
-    const stepDelays = [550, 700, 900, 1050, 700]; // мс на каждый пункт
-    let acc = 0;
-    for (let i = 0; i < steps; i++) {
-      acc += stepDelays[i];
-      setTimeout(() => setBuildStep(i + 1), acc);
-    }
-    setTimeout(() => {
-      const shop = makeShop({ name: handle, slogan: 'Нова колекція', instagram: igLink.trim() || `instagram.com/${handle}` });
-      const firstWithImg = shop.products.find(p => p.image);
-      if (firstWithImg) shop.bannerImage = firstWithImg.image;
-      setShops(prev => [...prev, shop]); setActiveShop(shop);
-      setIgLink('');
-      setPage('preview');
-      flash('Ваш сайт готовий 🎉');
-    }, acc + 600);
+  // AI-збірка магазину з фото: створюємо порожній магазин і наповнюємо його
+  // товарами, які AI розпізнає з кожного завантаженого фото.
+  const startAiBuild = (files) => {
+    const arr = Array.from(files || []);
+    if (!arr.length) return;
+    const shopName = name.trim() || `${niche} магазин`;
+    const cats = nichePresets[niche] || [];
+    const catNames = cats.map(c => c.name);
+    readImages(arr, (imgs) => {
+      const shop = makeShop({ name: shopName, slogan: 'Нова колекція', categories: cats, products: [] });
+      setActiveShop(shop);
+      setShops(prev => [...prev, shop]);
+      setAiTotal(imgs.length);
+      setAiDone(0);
+      setPage('building');
+      const results = new Array(imgs.length);
+      let done = 0;
+      Promise.all(imgs.map((img, i) =>
+        aiAnalyze(img, catNames).then(r => {
+          const _pid = shop.id + 1 + i;
+          results[i] = {
+            id: _pid, sku: genSku(_pid),
+            name: (r && r.name) || sampleNames[i % sampleNames.length],
+            price: (r && r.price) || (1000 + Math.floor(Math.random() * 8000)),
+            oldPrice: null, section: 'NEW',
+            category: (r && r.category && catNames.indexOf(r.category) !== -1) ? r.category : (catNames[0] || 'Без категорії'),
+            sub: '', image: img, likes: 0, tone: Math.floor(Math.random() * 360),
+            inStock: true, desc: (r && r.description) || ''
+          };
+          done += 1; setAiDone(done);
+        })
+      )).then(() => {
+        const prods = results.filter(Boolean);
+        const firstImg = prods[0] && prods[0].image;
+        const finalShop = { ...shop, products: prods, bannerImage: firstImg || shop.bannerImage };
+        setActiveShop(finalShop);
+        setShops(prev => prev.map(s => s.id === finalShop.id ? finalShop : s));
+        setName(''); setNiche('Одяг'); setAiTotal(0); setAiDone(0);
+        setPage('preview');
+        flash('Магазин зібрано ✨');
+      });
+    });
   };
 
   const handleAddCategory = () => {
@@ -635,23 +671,36 @@ export default function ShopPlatform() {
   };
   const deletePromo = (code) => { if (activeShop) updateShop({ promos: (activeShop.promos || []).filter(p => p.code !== code) }); };
 
-  // массовая загрузка + AI
+  // массовая загрузка + AI: одразу показуємо фото, а картки заповнює AI по одній
   const handleBulkFiles = (files) => {
+    const catNames = (activeShop.categories || []).map(c => c.name);
+    const firstCat = catNames[0] || 'Без категорії';
     readImages(files, (imgs) => {
       const drafts = imgs.map((img, i) => ({
         id: Date.now() + i, image: img,
-        name: sampleNames[i % sampleNames.length],
-        price: String(1000 + Math.floor(Math.random() * 8000)),
-        category: activeShop.categories[0]?.name || 'Без категорії',
-        section: 'NEW', tone: Math.floor(Math.random() * 360)
+        name: '', price: '', desc: '',
+        category: firstCat,
+        section: 'NEW', tone: Math.floor(Math.random() * 360), pending: true
       }));
       setBulkDrafts(drafts);
+      drafts.forEach((d, i) => {
+        aiAnalyze(d.image, catNames).then(r => {
+          setBulkDrafts(prev => prev.map(x => x.id === d.id ? {
+            ...x,
+            pending: false,
+            name: (r && r.name) || sampleNames[i % sampleNames.length],
+            price: (r && r.price) ? String(r.price) : String(1000 + Math.floor(Math.random() * 8000)),
+            desc: (r && r.description) || '',
+            category: (r && r.category && catNames.indexOf(r.category) !== -1) ? r.category : x.category
+          } : x));
+        });
+      });
     });
   };
-  const updateDraft = (id, patch) => setBulkDrafts(bulkDrafts.map(d => d.id === id ? { ...d, ...patch } : d));
-  const removeDraft = (id) => setBulkDrafts(bulkDrafts.filter(d => d.id !== id));
+  const updateDraft = (id, patch) => setBulkDrafts(prev => prev.map(d => d.id === id ? { ...d, ...patch } : d));
+  const removeDraft = (id) => setBulkDrafts(prev => prev.filter(d => d.id !== id));
   const createAllDrafts = () => {
-    const prods = bulkDrafts.map(d => ({ id: d.id, name: d.name, price: parseInt(d.price) || 0, oldPrice: null, section: d.section, category: d.category, sub: '', image: d.image, likes: 0, tone: d.tone, inStock: true }));
+    const prods = bulkDrafts.map(d => ({ id: d.id, sku: genSku(d.id), name: d.name || 'Товар', price: parseInt(d.price) || 0, oldPrice: null, section: d.section, category: d.category, sub: '', image: d.image, likes: 0, tone: d.tone, inStock: true, desc: d.desc || '' }));
     updateShop({ products: [...activeShop.products, ...prods] });
     setBulkDrafts([]); setPage('dashboard'); flash(`${prods.length} товарів додано ✨`);
   };
@@ -940,13 +989,12 @@ export default function ShopPlatform() {
           )}
           <div className="text-5xl mb-5 text-center">◐</div>
           <h1 className="text-3xl font-semibold tracking-[0.3em] mb-4 text-center">ШОПИК</h1>
-          <h2 className="text-[26px] font-semibold leading-tight text-center mb-3">Перетвори Instagram чи Telegram на магазин за 5 хвилин</h2>
-          <p className="text-neutral-400 text-sm text-center mb-7">AI заповнить товари. Замовлення приходять у Telegram.</p>
+          <h2 className="text-[26px] font-semibold leading-tight text-center mb-3">Магазин із твоїх фото за 5 хвилин</h2>
+          <p className="text-neutral-400 text-sm text-center mb-7">Завантаж фото товарів — штучний інтелект сам напише назви, ціни й описи. Замовлення приходять у Telegram.</p>
 
-          <button onClick={() => setPage('import')} className="w-full bg-white text-neutral-900 font-semibold py-4 rounded-full mb-3 flex items-center justify-center gap-2"><Instagram className="w-5 h-5" /> Підключити Instagram</button>
-          <button onClick={() => setPage('import')} className="w-full bg-white text-neutral-900 font-semibold py-4 rounded-full mb-3 flex items-center justify-center gap-2"><Send className="w-5 h-5" /> Підключити Telegram</button>
+          <button onClick={() => setPage('import')} className="w-full bg-white text-neutral-900 font-semibold py-4 rounded-full mb-3 flex items-center justify-center gap-2"><Sparkles className="w-5 h-5" /> Створити магазин із фото</button>
           <button onClick={seeDemo} className="w-full border border-neutral-700 text-white py-4 rounded-full mb-3 flex items-center justify-center gap-2">👀 Подивитись демо-магазин</button>
-          <button onClick={() => setPage('create')} className="w-full text-neutral-400 py-3 text-sm mb-1">Створити вручну →</button>
+          <button onClick={() => setPage('create')} className="w-full text-neutral-400 py-3 text-sm mb-1">Заповнити вручну →</button>
           {(!auth.enabled || user) && shops.length > 0 && <button onClick={() => setPage('myshops')} className="w-full text-neutral-400 py-2 text-sm">Мої магазини ({shops.length})</button>}
           {auth.enabled && user && <button onClick={logout} className="w-full text-neutral-500 py-2 text-xs">Вийти ({user.email})</button>}
 
@@ -959,7 +1007,7 @@ export default function ShopPlatform() {
           <div className="mt-7 mb-2">
             <p className="text-center text-xs uppercase tracking-[0.2em] text-neutral-500 mb-4">Як це працює</p>
             <div className="space-y-3">
-              {[['1', 'Підключи Instagram чи Telegram', 'або додай товари вручну'], ['2', 'AI створить каталог товарів', 'назви, ціни й описи — автоматично'], ['3', 'Отримуй заявки в Telegram', 'замовлення приходять прямо в чат']].map(([n, t, d]) => (
+              {[['1', 'Завантаж фото товарів', 'просто обери знімки з галереї'], ['2', 'AI створює картки товарів', 'назви, ціни й описи — автоматично'], ['3', 'Отримуй заявки в Telegram', 'замовлення приходять прямо в чат']].map(([n, t, d]) => (
                 <div key={n} className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-white text-neutral-900 font-bold flex items-center justify-center flex-shrink-0">{n}</div>
                   <div><p className="font-semibold text-sm">{t}</p><p className="text-neutral-400 text-xs">{d}</p></div>
@@ -1012,31 +1060,39 @@ export default function ShopPlatform() {
     );
   }
 
-  // ===== IMPORT FROM INSTAGRAM =====
+  // ===== AI-ЗБІРКА З ФОТО =====
   if (page === 'import') {
     return (
       <div className={`min-h-screen p-5 ${appDark ? 'bg-neutral-900 text-white' : 'bg-neutral-50'}`}>
         <Toast />
         <div className="max-w-sm mx-auto">
           <button onClick={() => setPage('home')} className={`mb-5 text-sm ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>← Назад</button>
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-4"><Instagram className="w-7 h-7 text-white" /></div>
-          <h2 className="text-2xl font-semibold mb-2 tracking-tight">Збери магазин за хвилину</h2>
-          <p className={`text-sm mb-6 ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Встав посилання на профіль — підтягнемо назву й аватар. А товари додаються в один тап: завантаж фото, і AI сам напише назву, ціну та опис.</p>
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center mb-4"><Sparkles className="w-7 h-7 text-white" /></div>
+          <h2 className="text-2xl font-semibold mb-2 tracking-tight">Магазин із фото за хвилину</h2>
+          <p className={`text-sm mb-6 ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Обери назву й напрям, завантаж фото товарів — далі штучний інтелект сам напише до кожного назву, ціну та опис.</p>
 
-          <div className={`rounded-2xl p-5 mb-4 ${appDark ? 'bg-neutral-900 border border-neutral-800' : 'bg-white shadow-sm'}`}>
-            <label className={`block text-xs uppercase tracking-wider mb-2 ${appDark ? 'text-neutral-500' : 'text-neutral-500'}`}>Посилання на Instagram або Telegram</label>
-            <input value={igLink} onChange={(e) => setIgLink(e.target.value)} placeholder="instagram.com/shop або t.me/shop" className={`w-full border rounded-xl p-3 text-sm mb-3 ${appDark ? 'bg-neutral-800 border-neutral-700 text-white placeholder-neutral-500' : ''}`} />
-            <button onClick={handleImport} className={`w-full border font-medium py-3 rounded-full flex items-center justify-center gap-2 text-sm ${appDark ? 'border-neutral-700 text-neutral-200' : 'border-neutral-300 text-neutral-800'}`}>Підтягнути профіль →</button>
+          <div className={`rounded-2xl p-5 mb-4 space-y-4 ${appDark ? 'bg-neutral-900 border border-neutral-800' : 'bg-white shadow-sm'}`}>
+            <div>
+              <label className={`block text-xs uppercase tracking-wider mb-2 ${appDark ? 'text-neutral-500' : 'text-neutral-500'}`}>Назва магазину</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Напр. PLEASE" className={`w-full border rounded-xl p-3 text-sm ${appDark ? 'bg-neutral-800 border-neutral-700 text-white placeholder-neutral-500' : ''}`} />
+            </div>
+            <div>
+              <label className={`block text-xs uppercase tracking-wider mb-2 ${appDark ? 'text-neutral-500' : 'text-neutral-500'}`}>Що продаєш?</label>
+              <div className="grid grid-cols-3 gap-2">
+                {niches.map(n => (<button key={n} onClick={() => setNiche(n)} className={`py-2.5 rounded-xl border text-sm ${niche === n ? (appDark ? 'border-white bg-white text-neutral-900' : 'border-neutral-900 bg-neutral-900 text-white') : (appDark ? 'border-neutral-700 text-neutral-300' : 'border-neutral-300')}`}>{n}</button>))}
+              </div>
+            </div>
           </div>
 
-          <div className={`rounded-2xl p-5 ${appDark ? 'bg-white text-neutral-900' : 'bg-neutral-900 text-white'}`}>
-            <div className="flex items-center gap-2 mb-1"><Sparkles className="w-4 h-4" /><span className="font-semibold">Завантаж фото товарів</span></div>
-            <p className={`text-xs mb-4 ${appDark ? 'text-neutral-600' : 'text-neutral-400'}`}>Обери фото з галереї або скриншоти постів — AI створить картки товарів автоматично. Без входу в акаунт.</p>
-            <button onClick={handleImport} className={`w-full font-semibold py-3.5 rounded-full flex items-center justify-center gap-2 ${appDark ? 'bg-neutral-900 text-white' : 'bg-white text-neutral-900'}`}><Upload className="w-4 h-4" /> Завантажити фото та зібрати</button>
-          </div>
+          <label className={`block rounded-2xl p-6 text-center cursor-pointer ${appDark ? 'bg-white text-neutral-900' : 'bg-neutral-900 text-white'}`}>
+            <Sparkles className="w-6 h-6 mx-auto mb-2" />
+            <span className="font-semibold block">Завантажити фото та зібрати</span>
+            <span className={`text-xs block mt-1 ${appDark ? 'text-neutral-600' : 'text-neutral-400'}`}>Обери одразу багато — AI розбере кожне. Без входу в акаунт.</span>
+            <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => startAiBuild(e.target.files)} />
+          </label>
 
-          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
-            У прототипі це демо: сайт збереться з прикладами товарів. У бойовій версії AI розпізнає твої фото й заповнить картки реально.
+          <div className={`mt-4 rounded-xl p-3 text-xs ${appDark ? 'bg-neutral-800 text-neutral-400' : 'bg-neutral-100 text-neutral-500'}`}>
+            🤖 Фото → назва → опис → ціна. Далі зможеш усе відредагувати перед публікацією.
           </div>
 
           <button onClick={() => setPage('create')} className={`w-full mt-4 text-sm py-2 ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Пропустити, заповнити вручну →</button>
@@ -1045,40 +1101,27 @@ export default function ShopPlatform() {
     );
   }
 
-  // ===== BUILDING =====
+  // ===== BUILDING (AI аналізує фото) =====
   if (page === 'building') {
-    const buildSteps = ['Підтягуємо профіль і логотип', 'Створюємо категорії', 'Додаємо фото товарів', 'AI пише назви та ціни', 'Застосовуємо дизайн'];
-    const pct = Math.min(100, Math.round((buildStep / buildSteps.length) * 100));
-    const headline = buildStep >= buildSteps.length ? 'Майже готово…' : buildSteps[buildStep];
+    const total = aiTotal || 1;
+    const pct = Math.min(100, Math.round((aiDone / total) * 100));
+    const headline = aiDone >= total ? 'Майже готово…' : `AI аналізує фото ${Math.min(aiDone + 1, total)} з ${total}`;
     return (
       <div className="min-h-screen bg-neutral-900 text-white flex flex-col items-center justify-center p-8">
-        <div className="w-16 h-16 rounded-full border-4 border-neutral-700 border-t-white animate-spin mb-8" />
-        <h2 className="text-xl font-semibold mb-2 text-center">Збираємо ваш магазин…</h2>
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center mb-8">
+          <Sparkles className="w-8 h-8 text-white animate-pulse" />
+        </div>
+        <h2 className="text-xl font-semibold mb-2 text-center">Штучний інтелект збирає магазин…</h2>
         <p className="text-sm text-neutral-400 mb-6 text-center h-5 transition-all duration-300">{headline}</p>
-        <div className="w-full max-w-xs mb-6">
+        <div className="w-full max-w-xs mb-4">
           <div className="h-2 rounded-full bg-neutral-800 overflow-hidden">
             <div className="h-full bg-green-400 rounded-full transition-all duration-500 ease-out" style={{ width: `${pct}%` }} />
           </div>
-          <div className="text-right text-xs text-neutral-500 mt-1">{pct}%</div>
+          <div className="flex justify-between text-xs text-neutral-500 mt-1">
+            <span>{aiDone} з {aiTotal || '…'} готово</span><span>{pct}%</span>
+          </div>
         </div>
-        <div className="space-y-3 text-sm w-full max-w-xs">
-          {buildSteps.map((s, i) => {
-            const done = i < buildStep;
-            const active = i === buildStep;
-            return (
-              <div key={s} className={`flex items-center gap-3 transition-all duration-300 ${done ? 'text-white' : active ? 'text-neutral-200' : 'text-neutral-600'}`}>
-                {done ? (
-                  <Check className="w-4 h-4 text-green-400 shrink-0" />
-                ) : active ? (
-                  <div className="w-4 h-4 rounded-full border-2 border-neutral-600 border-t-white animate-spin shrink-0" />
-                ) : (
-                  <div className="w-4 h-4 rounded-full border-2 border-neutral-700 shrink-0" />
-                )}
-                {s}
-              </div>
-            );
-          })}
-        </div>
+        <p className="text-xs text-neutral-600 text-center max-w-xs">До кожного фото AI пише назву, ціну та опис. Це займає кілька секунд.</p>
       </div>
     );
   }
@@ -1183,39 +1226,51 @@ export default function ShopPlatform() {
         <Toast />
         <div className="max-w-sm mx-auto pb-24">
           <button onClick={() => { setBulkDrafts([]); setPage('dashboard'); }} className={`mb-5 text-sm ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>← Назад</button>
-          <h2 className="text-2xl font-semibold mb-1 tracking-tight">Масове завантаження</h2>
-          <p className={`text-sm mb-5 ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Обери 10–50 фото — AI сам запропонує назви, категорії та ціни.</p>
+          <h2 className="text-2xl font-semibold mb-1 tracking-tight">Фото → товари з AI</h2>
+          <p className={`text-sm mb-5 ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Обери фото товарів — штучний інтелект сам напише назву, ціну й опис до кожного. Тобі лишиться тільки перевірити.</p>
 
           <label className={`block border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer mb-5 ${appDark ? 'bg-neutral-800 border-neutral-600' : 'bg-white border-neutral-300'}`}>
-            <Upload className="w-7 h-7 mx-auto text-neutral-400 mb-2" />
+            <Sparkles className="w-7 h-7 mx-auto text-neutral-400 mb-2" />
             <span className="text-sm font-medium">Обрати фото товарів</span>
-            <span className="block text-xs text-neutral-400 mt-1">можна одразу багато</span>
+            <span className="block text-xs text-neutral-400 mt-1">можна одразу багато — AI розбере кожне</span>
             <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleBulkFiles(e.target.files)} />
           </label>
 
-          {bulkDrafts.length > 0 && (
+          {bulkDrafts.length > 0 && (() => {
+            const pendingCount = bulkDrafts.filter(d => d.pending).length;
+            return (
             <>
-              <div className="flex items-center gap-2 text-xs text-neutral-500 mb-3"><Sparkles className="w-4 h-4" /> AI заповнив {bulkDrafts.length} товарів — перевір і виправ за потреби</div>
+              <div className="flex items-center gap-2 text-xs text-neutral-500 mb-3">
+                {pendingCount > 0 ? (
+                  <><div className="w-4 h-4 rounded-full border-2 border-neutral-400 border-t-transparent animate-spin" /> AI аналізує фото… готово {bulkDrafts.length - pendingCount} з {bulkDrafts.length}</>
+                ) : (
+                  <><Sparkles className="w-4 h-4" /> AI заповнив {bulkDrafts.length} товарів — перевір і виправ за потреби</>
+                )}
+              </div>
               <div className="space-y-3">
                 {bulkDrafts.map(d => (
                   <div key={d.id} className={`rounded-2xl p-3 flex gap-3 ${appDark ? 'bg-neutral-800' : 'bg-white shadow-sm'}`}>
-                    <div className="w-16 h-16 rounded-lg flex-shrink-0" style={{ backgroundImage: `url(${d.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                    <div className="w-16 h-16 rounded-lg flex-shrink-0 relative" style={{ backgroundImage: `url(${d.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                      {d.pending && <div className="absolute inset-0 rounded-lg bg-black/50 flex items-center justify-center"><div className="w-5 h-5 rounded-full border-2 border-white/40 border-t-white animate-spin" /></div>}
+                    </div>
                     <div className="flex-1 space-y-1.5">
-                      <input value={d.name} onChange={(e) => updateDraft(d.id, { name: e.target.value })} className={`w-full border rounded-lg p-2 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white' : ''}`} />
+                      <input value={d.name} disabled={d.pending} onChange={(e) => updateDraft(d.id, { name: e.target.value })} placeholder={d.pending ? 'AI пише назву…' : 'Назва товару'} className={`w-full border rounded-lg p-2 text-sm disabled:opacity-50 ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-600' : 'placeholder-neutral-400'}`} />
                       <div className="flex gap-1.5">
-                        <input value={d.price} onChange={(e) => updateDraft(d.id, { price: e.target.value })} type="number" className={`w-20 border rounded-lg p-2 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white' : ''}`} />
-                        <select value={d.category} onChange={(e) => updateDraft(d.id, { category: e.target.value })} className={`flex-1 border rounded-lg p-2 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white' : ''}`}>
+                        <input value={d.price} disabled={d.pending} onChange={(e) => updateDraft(d.id, { price: e.target.value })} type="number" placeholder="₴" className={`w-20 border rounded-lg p-2 text-sm disabled:opacity-50 ${appDark ? 'bg-neutral-900 border-neutral-700 text-white' : ''}`} />
+                        <select value={d.category} disabled={d.pending} onChange={(e) => updateDraft(d.id, { category: e.target.value })} className={`flex-1 border rounded-lg p-2 text-sm disabled:opacity-50 ${appDark ? 'bg-neutral-900 border-neutral-700 text-white' : ''}`}>
                           {activeShop.categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                         </select>
                         <button onClick={() => removeDraft(d.id)} className="px-2 text-neutral-400"><X className="w-4 h-4" /></button>
                       </div>
+                      {(d.desc || !d.pending) && <textarea value={d.desc} disabled={d.pending} onChange={(e) => updateDraft(d.id, { desc: e.target.value })} rows={2} placeholder="Опис товару" className={`w-full border rounded-lg p-2 text-xs disabled:opacity-50 ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-600' : 'placeholder-neutral-400'}`} />}
                     </div>
                   </div>
                 ))}
               </div>
-              <button onClick={createAllDrafts} className={`w-full mt-5 font-medium py-3.5 rounded-full ${appDark ? 'bg-white text-neutral-900' : 'bg-neutral-900 text-white'}`}>Створити всі ({bulkDrafts.length})</button>
+              <button onClick={createAllDrafts} disabled={pendingCount > 0} className={`w-full mt-5 font-medium py-3.5 rounded-full disabled:opacity-40 ${appDark ? 'bg-white text-neutral-900' : 'bg-neutral-900 text-white'}`}>{pendingCount > 0 ? 'AI ще працює…' : `Створити всі (${bulkDrafts.length})`}</button>
             </>
-          )}
+            );
+          })()}
         </div>
         <BottomNav active="dashboard" />
       </div>
