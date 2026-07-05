@@ -535,17 +535,20 @@ export default function ShopPlatform() {
       setPage('building');
       const results = new Array(imgs.length);
       let done = 0, charged = 0;
+      const suggested = []; // категорії від AI (можуть бути нові)
       Promise.all(imgs.map((img, i) => {
         const useAi = i < quota;
         const _pid = shop.id + 1 + i;
         const build = (r) => {
           if (r) charged += 1;
+          const aiCat = (r && r.category) ? String(r.category).trim() : '';
+          if (aiCat) suggested.push(aiCat);
           results[i] = {
             id: _pid, sku: genSku(_pid),
             name: (r && r.name) || sampleNames[i % sampleNames.length],
             price: (r && r.price) || (1000 + Math.floor(Math.random() * 8000)),
             oldPrice: null, section: 'NEW',
-            category: (r && r.category && catNames.indexOf(r.category) !== -1) ? r.category : (catNames[0] || 'Без категорії'),
+            category: aiCat || (catNames[0] || 'Без категорії'),
             sub: '', image: img, likes: 0, tone: Math.floor(Math.random() * 360),
             inStock: true, desc: (r && r.description) || ''
           };
@@ -556,7 +559,11 @@ export default function ShopPlatform() {
       })).then(() => {
         const prods = results.filter(Boolean);
         const firstImg = prods[0] && prods[0].image;
-        const finalShop = { ...shop, products: prods, aiUsed: charged, bannerImage: firstImg || shop.bannerImage };
+        // Автостворення категорій, яких не було в пресеті ніші
+        const missing = [];
+        suggested.forEach(n => { if (catNames.indexOf(n) === -1 && missing.indexOf(n) === -1) missing.push(n); });
+        const finalCats = missing.length ? [...shop.categories, ...missing.map(n => ({ name: n, subs: [] }))] : shop.categories;
+        const finalShop = { ...shop, categories: finalCats, products: prods, aiUsed: charged, bannerImage: firstImg || shop.bannerImage };
         setActiveShop(finalShop);
         setShops(prev => prev.map(s => s.id === finalShop.id ? finalShop : s));
         setName(''); setNiche('Одяг'); setAiTotal(0); setAiDone(0);
@@ -715,20 +722,33 @@ export default function ShopPlatform() {
       const aiCount = Math.min(quota === Infinity ? imgs.length : quota, imgs.length);
       if (aiCount < imgs.length) flash(`AI-ліміт тарифу: розібрано ${aiCount} з ${imgs.length}. Решту заповни вручну або докупи пакет ✨`);
       let charged = 0;
+      const suggested = []; // категорії, які запропонував AI (можуть бути нові)
       Promise.all(drafts.map((d, i) => {
         if (!d.ai) return Promise.resolve();
         return aiAnalyze(d.image, catNames).then(r => {
           if (r) charged += 1;
+          const aiCat = (r && r.category) ? String(r.category).trim() : '';
+          if (aiCat) suggested.push(aiCat);
           setBulkDrafts(prev => prev.map(x => x.id === d.id ? {
             ...x,
             pending: false,
             name: (r && r.name) || sampleNames[i % sampleNames.length],
             price: (r && r.price) ? String(r.price) : String(1000 + Math.floor(Math.random() * 8000)),
             desc: (r && r.description) || '',
-            category: (r && r.category && catNames.indexOf(r.category) !== -1) ? r.category : x.category
+            category: aiCat || x.category // лишаємо категорію від AI (навіть якщо нова)
           } : x));
         });
-      })).then(() => { if (charged > 0) updateShop({ aiUsed: used + charged }); });
+      })).then(() => {
+        // Автостворення відсутніх категорій, які запропонував AI
+        const existing = (activeShop.categories || []).map(c => c.name);
+        const missing = [];
+        suggested.forEach(n => { if (existing.indexOf(n) === -1 && missing.indexOf(n) === -1) missing.push(n); });
+        const patch = {};
+        if (charged > 0) patch.aiUsed = used + charged;
+        if (missing.length) patch.categories = [...(activeShop.categories || []), ...missing.map(n => ({ name: n, subs: [] }))];
+        if (Object.keys(patch).length) updateShop(patch);
+        if (missing.length) flash(`AI створив нові категорії: ${missing.join(', ')}`);
+      });
     });
   };
   const updateDraft = (id, patch) => setBulkDrafts(prev => prev.map(d => d.id === id ? { ...d, ...patch } : d));
@@ -1338,6 +1358,7 @@ export default function ShopPlatform() {
                         <input value={d.price} disabled={d.pending} onChange={(e) => updateDraft(d.id, { price: e.target.value })} type="number" placeholder="₴" className={`w-20 border rounded-lg p-2 text-sm disabled:opacity-50 ${appDark ? 'bg-neutral-900 border-neutral-700 text-white' : ''}`} />
                         <select value={d.category} disabled={d.pending} onChange={(e) => updateDraft(d.id, { category: e.target.value })} className={`flex-1 border rounded-lg p-2 text-sm disabled:opacity-50 ${appDark ? 'bg-neutral-900 border-neutral-700 text-white' : ''}`}>
                           {activeShop.categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                          {d.category && activeShop.categories.every(c => c.name !== d.category) && <option value={d.category}>{d.category} (нова)</option>}
                         </select>
                         <button onClick={() => removeDraft(d.id)} className="px-2 text-neutral-400"><X className="w-4 h-4" /></button>
                       </div>
