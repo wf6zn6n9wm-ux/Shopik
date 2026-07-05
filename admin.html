@@ -1,0 +1,3367 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>ШОПИК — Адмін платформи</title>
+<style>html,body{margin:0;background:#0b1120;min-height:100%;}</style>
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useEffect } = React;
+
+/* ============================================================
+   ІКОНКИ — lucide, вбудовані інлайн-SVG (без зовнішньої залежності).
+   Замінюють імпорти з "lucide-react": stroke="currentColor",
+   тож кольори керуються звичайними text-* класами Tailwind.
+   ============================================================ */
+const _icon = (inner) => function LucideIcon({ size = 24, className = "", ...p }) {
+  return React.createElement("svg", {
+    width: size, height: size, viewBox: "0 0 24 24", fill: "none",
+    stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round",
+    className, ...p, dangerouslySetInnerHTML: { __html: inner },
+  });
+};
+
+const LayoutDashboard = _icon('<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>');
+const Store = _icon('<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/>');
+const Users = _icon('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>');
+const CreditCard = _icon('<rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>');
+const Flag = _icon('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>');
+const Settings = _icon('<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>');
+const Search = _icon('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>');
+const Bell = _icon('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>');
+const ChevronDown = _icon('<path d="m6 9 6 6 6-6"/>');
+const TrendingUp = _icon('<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>');
+const TrendingDown = _icon('<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>');
+const CheckCircle2 = _icon('<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/>');
+const XCircle = _icon('<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>');
+const Clock = _icon('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>');
+const Ban = _icon('<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>');
+const Shield = _icon('<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>');
+const LogOut = _icon('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>');
+const Menu = _icon('<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>');
+const X = _icon('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>');
+const DollarSign = _icon('<line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>');
+const ShoppingBag = _icon('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>');
+const AlertTriangle = _icon('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>');
+const Sun = _icon('<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>');
+const Moon = _icon('<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>');
+const Mail = _icon('<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>');
+const Phone = _icon('<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>');
+const Calendar = _icon('<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>');
+const MapPin = _icon('<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>');
+const Package = _icon('<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/>');
+const Star = _icon('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>');
+const Activity = _icon('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>');
+const Trash2 = _icon('<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>');
+const KeyRound = _icon('<path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/>');
+const Download = _icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>');
+const ExternalLink = _icon('<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>');
+const ChevronRight = _icon('<path d="m9 18 6-6-6-6"/>');
+const UserCog = _icon('<circle cx="18" cy="15" r="3"/><circle cx="9" cy="7" r="4"/><path d="M10 15H6a4 4 0 0 0-4 4v2"/><path d="m21.7 16.4-.9-.3"/><path d="m15.2 13.9-.9-.3"/><path d="m16.6 18.7.3-.9"/><path d="m19.1 12.2.3-.9"/><path d="m19.6 18.7-.4-1"/><path d="m16.8 12.3-.4-1"/><path d="m14.3 16.6 1-.4"/><path d="m20.7 13.8 1-.4"/>');
+const RotateCcw = _icon('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>');
+const Wallet = _icon('<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>');
+const CheckSquare = _icon('<path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>');
+const Square = _icon('<rect width="18" height="18" x="3" y="3" rx="2"/>');
+const Plus = _icon('<path d="M5 12h14"/><path d="M12 5v14"/>');
+const ListTodo = _icon('<rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>');
+const Repeat = _icon('<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>');
+const Clock4 = _icon('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>');
+const LifeBuoy = _icon('<circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/>');
+const ScrollText = _icon('<path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/>');
+const Send = _icon('<line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>');
+const Paperclip = _icon('<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>');
+const Link2 = _icon('<path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/>');
+const Copy = _icon('<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>');
+
+// аліаси, як у вихідних import-ах ("as TrendDown", "as MapIcon")
+const TrendDown = TrendingDown;
+const MapIcon = _icon('<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/>');
+
+/* ============================================================
+   ШОПИК ADMIN — панель администрации платформы
+   Роли: owner (владелец) → admin → manager
+   Права по ролям ограничивают вкладки и действия.
+   Полностью in-memory, single-file прототип.
+   ============================================================ */
+
+// ---- РОЛИ И ПРАВА -------------------------------------------
+const ROLES = {
+  owner:   { label: "Владелец",   color: "#7C3AED" },
+  admin:   { label: "Админ",      color: "#2563EB" },
+  manager: { label: "Менеджер",   color: "#059669" },
+};
+
+// какие вкладки видит каждая роль
+const ROLE_TABS = {
+  owner:   ["dashboard", "finance", "subscriptions", "campaigns", "shops", "users", "tickets", "broadcasts", "salary", "tasks", "activity", "audit", "moderation", "settings"],
+  admin:   ["dashboard", "finance", "subscriptions", "campaigns", "shops", "users", "tickets", "broadcasts", "salary", "tasks", "activity", "audit", "moderation"],
+  manager: ["dashboard", "shops", "tickets", "tasks", "activity", "moderation"],
+};
+
+// какие действия разрешены
+const CAN = {
+  banShop:     ["owner", "admin"],
+  approveShop: ["owner", "admin", "manager"],
+  editBilling: ["owner"],
+  deleteUser:  ["owner"],
+  changeRole:  ["owner"],
+  viewSalary:  ["owner", "admin"],   // суммы ЗП — только владелец и админ
+  manageTasks: ["owner", "admin", "manager"],
+};
+
+// ---- МОК-ДАННЫЕ ---------------------------------------------
+const STATS = [
+  { id: "rev",    label: "Доход за месяц", value: "₴864 000", delta: +12.4, icon: DollarSign },
+  { id: "shops",  label: "Активных магазинов", value: "1 342", delta: +5.1, icon: Store },
+  { id: "users",  label: "Продавцов", value: "1 580", delta: +8.7, icon: Users },
+  { id: "subs", label: "Активных подписок", value: "726", delta: +6.4, icon: CreditCard },
+];
+
+const REVENUE = [
+  { m: "Янв", v: 142 }, { m: "Фев", v: 168 }, { m: "Мар", v: 155 },
+  { m: "Апр", v: 189 }, { m: "Май", v: 214 }, { m: "Июн", v: 248 },
+];
+
+// новые регистрации магазинов по месяцам — для второго графика
+const SIGNUPS = [
+  { m: "Янв", v: 86 }, { m: "Фев", v: 102 }, { m: "Мар", v: 94 },
+  { m: "Апр", v: 128 }, { m: "Май", v: 141 }, { m: "Июн", v: 167 },
+];
+
+// ---- ДЕТАЛЬНАЯ СТАТИСТИКА (дни / месяцы) ----
+// помесячно: доход (тыс.₴), заказы, новые магазины
+const STATS_MONTHLY = [
+  { label: "Січень",  rev: 142, orders: 248, shops: 86 },
+  { label: "Лютий",   rev: 168, orders: 286, shops: 102 },
+  { label: "Березень",rev: 155, orders: 261, shops: 94 },
+  { label: "Квітень", rev: 189, orders: 318, shops: 128 },
+  { label: "Травень", rev: 214, orders: 347, shops: 141 },
+  { label: "Червень", rev: 248, orders: 382, shops: 167 },
+];
+
+// последние 30 дней: доход (тыс.₴), заказы, новые магазины
+const STATS_DAILY = (() => {
+  const seedR = [6.2,5.8,7.1,6.9,8.0,9.2,8.6,7.4,6.8,7.9,8.3,9.0,8.1,7.6,8.8,
+    9.4,8.9,7.7,8.2,9.1,9.8,10.2,9.3,8.4,9.0,9.7,10.5,9.9,8.7,9.6];
+  const out = [];
+  for (let i = 0; i < 30; i++) {
+    const day = i + 1;
+    const rev = seedR[i];
+    out.push({
+      label: String(day).padStart(2, "0") + ".06",
+      rev,                                   // тыс.₴
+      orders: Math.round(rev * 1.3),         // новые подписки
+      shops: Math.max(2, Math.round(rev * 0.7)), // новые магазины
+    });
+  }
+  return out;
+})();
+
+// финансы платформы по месяцам: касса (доход), расходы, закупки
+const FINANCE_BY_MONTH = {
+  "Січень":   { income: 612000, expenses: 320000, purchases: 210000 },
+  "Лютий":    { income: 690000, expenses: 351000, purchases: 232000 },
+  "Березень": { income: 655000, expenses: 338000, purchases: 221000 },
+  "Квітень":  { income: 742000, expenses: 372000, purchases: 268000 },
+  "Травень":  { income: 808000, expenses: 391000, purchases: 295000 },
+  "Червень":  { income: 864422, expenses: 409491, purchases: 315468 },
+};
+// добор прибыли/маржи
+Object.values(FINANCE_BY_MONTH).forEach((f) => {
+  f.profit = f.income - f.expenses - f.purchases;
+  f.margin = Math.round(f.profit / f.income * 100);
+});
+
+// категории для ручного ввода расходов (SaaS-платформа)
+const EXPENSE_CATS = ["Зарплаты", "Реклама", "Серверы/хостинг", "Налоги", "Подписки/сервисы", "Блогеры", "Комиссии эквайринга", "Прочее"];
+
+// топ-магазины по обороту — для дашборда
+const TOP_SHOPS = [
+  { name: "PLEASE", rev: 42100, pct: 100 },
+  { name: "LOOM",   rev: 19700, pct: 47 },
+  { name: "NUDE store", rev: 8400, pct: 20 },
+  { name: "SOFT goods", rev: 3200, pct: 8 },
+];
+
+const SHOPS = [
+  { id: 1, name: "PLEASE",     owner: "Алёна К.",  ownerEmail: "alena@please.shop",  plan: "Pro",  status: "active", rev: "₴42 100", flags: 0, orders: 1284, products: 64, city: "Київ",   joined: "12.01.26", rating: 4.9 },
+  { id: 2, name: "NUDE store", owner: "Дарья В.",  ownerEmail: "darya@nude.store",   plan: "Free", status: "active", rev: "₴8 400",  flags: 0, orders: 312,  products: 28, city: "Львів",  joined: "03.02.26", rating: 4.6 },
+  { id: 3, name: "VELVET",     owner: "Ирина С.",  ownerEmail: "irina@velvet.shop",  plan: "Pro",  status: "review", rev: "₴0",      flags: 2, orders: 0,    products: 41, city: "Одеса",  joined: "20.06.26", rating: 0 },
+  { id: 4, name: "SOFT goods", owner: "Олег П.",   ownerEmail: "oleg@soft.goods",    plan: "Free", status: "active", rev: "₴3 200",  flags: 1, orders: 96,   products: 15, city: "Харків", joined: "22.03.26", rating: 4.2 },
+  { id: 5, name: "FAKE brand", owner: "—",         ownerEmail: "—",                  plan: "Free", status: "banned", rev: "₴0",      flags: 5, orders: 4,    products: 9,  city: "—",      joined: "11.05.26", rating: 1.1 },
+  { id: 6, name: "LOOM",       owner: "Юлия Р.",   ownerEmail: "yulia@loom.shop",    plan: "Pro",  status: "active", rev: "₴19 700", flags: 0, orders: 701,  products: 52, city: "Дніпро", joined: "08.12.25", rating: 4.8 },
+];
+
+const USERS = [
+  { id: 1, name: "Алёна Коваль",  email: "alena@please.shop",  phone: "+380 67 123-45-67", role: "seller", plan: "Premium", shopName: "PLEASE",     shops: 1, joined: "12.01.26", status: "active",  orders: 1284, spent: "₴4 497", since: "12.01.26", nextBill: "12.07.26" },
+  { id: 2, name: "Дарья Власова", email: "darya@nude.store",   phone: "+380 50 987-65-43", role: "seller", plan: "Free",    shopName: "NUDE store", shops: 1, joined: "03.02.26", status: "active",  orders: 312,  spent: "₴0",     since: "03.02.26", nextBill: "—" },
+  { id: 3, name: "Максим Адмін",  email: "max@shophub.app",    phone: "+380 63 555-10-20", role: "admin",  plan: null,      shopName: null,        shops: 0, joined: "01.11.25", status: "active",  orders: 0,    spent: "—",      since: "01.11.25", nextBill: "—" },
+  { id: 4, name: "Олег Петренко", email: "oleg@soft.goods",    phone: "+380 99 222-33-44", role: "seller", plan: "Лайт",    shopName: "SOFT goods", shops: 2, joined: "22.03.26", status: "suspended", orders: 96, spent: "₴1 497", since: "22.03.26", nextBill: "приостановлен" },
+];
+
+const MOD_QUEUE = [
+  { id: 1, shop: "VELVET", owner: "Ирина С.", type: "Жалоба: контрафакт", reporter: "Покупатель", date: "26.06.2026", sev: "high",
+    details: "Покупатель утверждает, что товар «Сумка LV» — подделка, продаётся под видом оригинала. Приложены фото бирки и чека.",
+    evidence: ["Фото товара", "Фото бирки", "Скрин переписки"],
+    messages: [
+      { from: "system", text: "Жалоба создана покупателем @anna_k. Категория: контрафакт.", time: "26.06 09:14" },
+    ],
+    history: [
+      { date: "12.05.2026", text: "Предупреждение: вводящее описание" },
+      { date: "03.04.2026", text: "Жалоба отклонена (не подтвердилась)" },
+    ] },
+  { id: 2, shop: "SOFT goods", owner: "Олег П.", type: "Спорный возврат", reporter: "Система", date: "25.06.2026", sev: "mid",
+    details: "Автоматическая отметка: продавец не ответил на запрос возврата в течение 72 часов. Покупатель просит вернуть ₴850.",
+    evidence: ["Лог заказа", "Запрос возврата"],
+    messages: [
+      { from: "system", text: "Система зафиксировала просрочку ответа на возврат.", time: "25.06 14:00" },
+    ],
+    history: [] },
+  { id: 3, shop: "VELVET", owner: "Ирина С.", type: "Фото не соответствует", reporter: "Покупатель", date: "25.06.2026", sev: "mid",
+    details: "Покупатель сообщает, что пришедший товар отличается от фото в каталоге (другой цвет и материал).",
+    evidence: ["Фото из каталога", "Фото полученного товара"],
+    messages: [
+      { from: "system", text: "Жалоба создана покупателем @marina_p.", time: "25.06 16:20" },
+    ],
+    history: [
+      { date: "12.05.2026", text: "Предупреждение: вводящее описание" },
+    ] },
+];
+
+// лог платежей по подпискам
+const PAYMENTS = [
+  { id: 1, date: "26.06.2026 10:12", shop: "PLEASE",     plan: "Premium", amount: 1499, promo: null,      status: "paid" },
+  { id: 2, date: "26.06.2026 09:40", shop: "LOOM",       plan: "Pro",     amount: 999,  promo: null,      status: "paid" },
+  { id: 3, date: "25.06.2026 18:22", shop: "ATELIER",    plan: "Pro",     amount: 799,  promo: "START20", status: "paid" },
+  { id: 4, date: "25.06.2026 14:05", shop: "SOFT goods", plan: "Лайт",    amount: 499,  promo: null,      status: "failed" },
+  { id: 5, date: "24.06.2026 16:48", shop: "VELVET",     plan: "Лайт",    amount: 499,  promo: null,      status: "paid" },
+  { id: 6, date: "24.06.2026 11:30", shop: "NUDE store", plan: "Pro",     amount: 999,  promo: null,      status: "refund" },
+  { id: 7, date: "23.06.2026 20:15", shop: "MARU",       plan: "Premium", amount: 1199, promo: "BLOGER10", status: "paid" },
+  { id: 8, date: "23.06.2026 09:02", shop: "KILIM",      plan: "Лайт",    amount: 499,  promo: null,      status: "paid" },
+];
+
+// лог платежей по подпискам — вспомогательные метки
+const PAY_STATUS = {
+  paid:   { label: "Успешно",  cls: "bg-emerald-50 text-emerald-700" },
+  refund: { label: "Возврат",  cls: "bg-amber-50 text-amber-700" },
+  failed: { label: "Ошибка",   cls: "bg-rose-50 text-rose-700" },
+};
+
+// промокоды на подписку
+const PROMOS = [
+  { id: 1, code: "START20", discount: 20, uses: 47, revenue: 37530, active: true },
+  { id: 2, code: "BLOGER10", discount: 10, uses: 23, revenue: 20679, active: true },
+  { id: 3, code: "WINTER25", discount: 25, uses: 112, revenue: 83916, active: false },
+];
+
+// реферальная программа: продавец приводит продавца
+const REFERRAL = {
+  invited: 214,      // приглашено по реф-ссылкам
+  activated: 96,     // зарегистрировались и создали магазин
+  paid: 31,          // купили подписку
+  bonusPaid: 15500,  // выплачено бонусов, ₴
+  topReferrers: [
+    { shop: "PLEASE", invited: 28, paid: 9, bonus: 4500 },
+    { shop: "LOOM", invited: 19, paid: 6, bonus: 3000 },
+    { shop: "VELVET", invited: 14, paid: 4, bonus: 2000 },
+  ],
+};
+
+// рекламные ссылки / UTM-кампании (купившие разбиты по тарифам)
+const CAMPAIGNS = [
+  { id: 1, name: "Instagram Stories", slug: "ig-stories", clicks: 4820, signups: 612, lite: 38, pro: 34, premium: 12, revenue: 70054, date: "01.06.2026" },
+  { id: 2, name: "Блогер @mariastyle", slug: "maria-blog", clicks: 3140, signups: 498, lite: 31, pro: 29, premium: 11, revenue: 59760, date: "08.06.2026" },
+  { id: 3, name: "Telegram-канал", slug: "tg-channel", clicks: 1960, signups: 244, lite: 18, pro: 15, premium: 5, revenue: 31402, date: "12.06.2026" },
+  { id: 4, name: "Google Ads", slug: "google-ads", clicks: 2510, signups: 187, lite: 11, pro: 6, premium: 2, revenue: 14411, date: "15.06.2026" },
+];
+
+const PLANS = [
+  { id: "free",    name: "Free",    price: "₴0",     shops: 1198, color: "#94A3B8" },
+  { id: "lite",    name: "Лайт",    price: "₴499",   shops: 248,  color: "#60A5FA" },
+  { id: "pro",     name: "Pro",     price: "₴999",   shops: 382,  color: "#7C3AED" },
+  { id: "premium", name: "Premium", price: "₴1499",  shops: 96,   color: "#F59E0B" },
+];
+
+// ---- ПОДПИСКИ: метрики удержания и воронки ----
+const SUB_METRICS = {
+  active: 726,        // активных платных (Лайт+Pro+Premium)
+  newThisMonth: 73,   // новых платных за месяц
+  churnedThisMonth: 18,// отменили/не продлили
+  churnRate: 2.5,     // % оттока (18/726)
+  retention: 97.5,    // % удержания
+  freeToProRate: 4.6, // % конверсии Free→платный
+  freeToProCount: 73, // сколько Free перешли на платный
+};
+
+// помесячно: новые / отток платных
+const SUB_HISTORY = [
+  { m: "Січ", added: 52, churned: 12 },
+  { m: "Лют", added: 61, churned: 15 },
+  { m: "Бер", added: 55, churned: 19 },
+  { m: "Кві", added: 68, churned: 13 },
+  { m: "Тра", added: 64, churned: 17 },
+  { m: "Чер", added: 73, churned: 18 },
+];
+
+// подписки на исходе (платный тариф заканчивается скоро)
+const EXPIRING = [
+  { id: 1, shop: "LOOM",    owner: "Юлия Р.",  days: 2, price: "₴999" },
+  { id: 2, shop: "PLEASE",  owner: "Алёна К.", days: 4, price: "₴1499" },
+  { id: 3, shop: "VELVET",  owner: "Ирина С.", days: 6, price: "₴499" },
+  { id: 4, shop: "ATELIER", owner: "Ника Д.",  days: 7, price: "₴999" },
+];
+
+// воронка Free → платный тариф
+const FUNNEL = [
+  { stage: "Зарегистрировались", value: 1580, color: "#94A3B8" },
+  { stage: "Создали магазин",    value: 1342, color: "#60A5FA" },
+  { stage: "Запустили продажи",  value: 1058, color: "#7C3AED" },
+  { stage: "Купили подписку",    value: 726,  color: "#10B981" },
+];
+
+// уведомления для колокольчика
+const NOTIFICATIONS = [
+  { id: 1, text: "3 жалобы ждут проверки", time: "26.06.2026 11:18", kind: "mod" },
+  { id: 2, text: "«LOOM»: Pro истекает через 2 дня", time: "26.06.2026 10:30", kind: "expiring" },
+  { id: 3, text: "«VELVET» подал заявку на проверку", time: "26.06.2026 09:00", kind: "review" },
+  { id: 4, text: "9 подписок не продлены в этом месяце", time: "26.06.2026 08:00", kind: "churn" },
+];
+
+// тикеты поддержки от продавцов
+const TICKETS = [
+  { id: 1, shop: "PLEASE", owner: "Алёна К.", subject: "Не приходят уведомления о заказах", status: "open", priority: "high", date: "26.06.2026",
+    messages: [
+      { from: "seller", text: "Здравствуйте! Уже второй день не приходят уведомления в Telegram о новых заказах. Бот подключён, раньше всё работало. Помогите, теряю заказы 😔", time: "10:24" },
+    ] },
+  { id: 2, shop: "NUDE store", owner: "Дарья В.", subject: "Как настроить онлайн-оплату?", status: "open", priority: "mid", date: "26.06.2026",
+    messages: [
+      { from: "seller", text: "Подскажите, где найти настройку приёма онлайн-оплаты? Не могу разобраться, куда вводить реквизиты.", time: "11:02" },
+    ] },
+  { id: 3, shop: "LOOM", owner: "Юлия Р.", subject: "Ошибка при загрузке фото", status: "pending", priority: "mid", date: "25.06.2026",
+    messages: [
+      { from: "seller", text: "При загрузке фото товара пишет «ошибка 413». Фото обычные, с телефона.", time: "25.06 18:40" },
+      { from: "support", text: "Здравствуйте! Это ограничение по размеру файла. Попробуйте фото до 5 МБ, мы уже работаем над увеличением лимита.", time: "25.06 19:10" },
+    ] },
+  { id: 4, shop: "SOFT goods", owner: "Олег П.", subject: "Вопрос по оплате Pro", status: "closed", priority: "low", date: "24.06.2026",
+    messages: [
+      { from: "seller", text: "С карты списали дважды за Pro. Можно вернуть?", time: "24.06 10:00" },
+      { from: "support", text: "Проверили — второй платёж не прошёл, деньги вернутся в течение 3 дней. Извините за неудобство!", time: "24.06 10:15" },
+    ] },
+];
+
+// аудит действий сотрудников
+const AUDIT = [
+  { id: 1, who: "Максим Шевченко", role: "admin", action: "Заблокировал магазин «FAKE brand»", time: "26.06.2026 11:08" },
+  { id: 2, who: "Светлана Бойко",  role: "manager", action: "Закрыла жалобу на «SOFT goods»", time: "26.06.2026 10:15" },
+  { id: 3, who: "Андрей Мельник",  role: "owner", action: "Изменил цену тарифа Pro", time: "26.06.2026 08:30" },
+  { id: 4, who: "Максим Шевченко", role: "admin", action: "Одобрил магазин «ATELIER»", time: "25.06.2026 17:20" },
+  { id: 5, who: "Андрей Мельник",  role: "owner", action: "Начислил ЗП сотруднику", time: "25.06.2026 12:00" },
+];
+
+// история рассылок продавцам
+const BROADCASTS = [
+  { id: 1, title: "Скидка 20% на Pro до конца месяца", audience: "Free-магазины", reach: 1198, date: "12.06.2026", status: "sent" },
+  { id: 2, title: "Новая интеграция онлайн-оплаты", audience: "Все магазины", reach: 1580, date: "05.06.2026", status: "sent" },
+];
+
+// география магазинов по городам
+const GEO = [
+  { city: "Київ",   shops: 486 },
+  { city: "Львів",  shops: 312 },
+  { city: "Харків", shops: 224 },
+  { city: "Одеса",  shops: 198 },
+  { city: "Дніпро", shops: 142 },
+  { city: "Інші",   shops: 218 },
+];
+
+// KPI/цели платформы на месяц (факт / план)
+const KPI = [
+  { label: "Доход", fact: 864, plan: 900, unit: "k₴" },
+  { label: "Новые подписки", fact: 73, plan: 80, unit: "" },
+  { label: "Удержание", fact: 97.5, plan: 96, unit: "%" },
+  { label: "Активных магазинов", fact: 1342, plan: 1400, unit: "" },
+];
+
+// сравнение текущего месяца с прошлым
+const COMPARE = [
+  { label: "Доход", now: 864000, prev: 762000, unit: "₴" },
+  { label: "Новые подписки", now: 73, prev: 64, unit: "" },
+  { label: "Активных магазинов", now: 1342, prev: 1276, unit: "" },
+];
+
+// лента событий платформы — для дашборда
+const ACTIVITY = [
+  { id: 1, text: "«VELVET» подал заявку на проверку", time: "26.06.2026 11:13", kind: "review" },
+  { id: 2, text: "«LOOM» перешёл на тариф Pro", time: "26.06.2026 10:20", kind: "billing" },
+  { id: 3, text: "«ATELIER» создал первый товар", time: "26.06.2026 08:45", kind: "user" },
+  { id: 4, text: "Новый продавец: Дарья Власова", time: "25.06.2026 19:30", kind: "user" },
+];
+
+// сотрудники платформы: ЗП + задачи
+const TEAM = [
+  {
+    id: 1, name: "Андрей Мельник", role: "owner", title: "Засновник",
+    salary: 0, paid: true, payDate: "—",
+    pay: { base: 0, bonus: 0, rate: 0, sales: 0, commission: 0 },
+    assigned: false,
+    subSales: 0,   // факт продаж подписок за месяц (авто)
+    period: "Червень 2026",
+    history: [],
+    tasks: [
+      { id: 11, text: "Утвердить бюджет на Q3", done: false },
+      { id: 12, text: "Созвон с инвестором", done: true },
+    ],
+  },
+  {
+    id: 2, name: "Максим Шевченко", role: "admin", title: "Адмін платформи",
+    salary: 0, paid: false, payDate: "—",
+    pay: { base: 0, bonus: 0, rate: 0, sales: 0, commission: 0 },
+    assigned: false,
+    subSales: 120000,   // факт продаж подписок за месяц (авто)
+    period: "Червень 2026",
+    history: [
+      { m: "Травень 2026", total: 40500, date: "01.06.2026", status: "paid" },
+      { m: "Квітень 2026", total: 39200, date: "01.05.2026", status: "paid" },
+    ],
+    tasks: [
+      { id: 21, text: "Разобрать очередь модерации", done: false },
+      { id: 22, text: "Проверить заявку «VELVET»", done: false },
+      { id: 23, text: "Обновить правила площадки", done: true },
+    ],
+  },
+  {
+    id: 3, name: "Светлана Бойко", role: "manager", title: "Менеджер підтримки",
+    salary: 0, paid: false, payDate: "—",
+    pay: { base: 0, bonus: 0, rate: 0, sales: 0, commission: 0 },
+    assigned: false,
+    subSales: 96000,   // факт продаж подписок за месяц (авто)
+    period: "Червень 2026",
+    history: [
+      { m: "Травень 2026", total: 29400, date: "01.06.2026", status: "paid" },
+    ],
+    tasks: [
+      { id: 31, text: "Ответить продавцам в поддержке", done: false },
+      { id: 32, text: "Созвон с «PLEASE» по витрине", done: true },
+    ],
+  },
+  {
+    id: 4, name: "Дмитро Левченко", role: "manager", title: "Контент-менеджер",
+    salary: 0, paid: false, payDate: "—",
+    pay: { base: 0, bonus: 0, rate: 0, sales: 0, commission: 0 },
+    assigned: false,
+    subSales: 72000,   // факт продаж подписок за месяц (авто)
+    period: "Червень 2026",
+    history: [
+      { m: "Травень 2026", total: 25600, date: "01.06.2026", status: "paid" },
+    ],
+    tasks: [
+      { id: 41, text: "Проверить фото товаров", done: false },
+      { id: 42, text: "Подготовить баннеры распродажи", done: false },
+    ],
+  },
+];
+
+// ---- ВСПОМОГАТЕЛЬНОЕ -----------------------------------------
+const statusMeta = {
+  active: { label: "Активен",      cls: "bg-emerald-50 text-emerald-700", Icon: CheckCircle2 },
+  review: { label: "На проверке",  cls: "bg-amber-50 text-amber-700",     Icon: Clock },
+  banned: { label: "Заблокирован", cls: "bg-rose-50 text-rose-700",       Icon: Ban },
+  suspended: { label: "Приостановлен", cls: "bg-orange-50 text-orange-700", Icon: AlertTriangle },
+};
+
+// экспорт массива объектов в CSV-файл
+function exportCSV(filename, rows, columns) {
+  const head = columns.map((c) => `"${c.label}"`).join(",");
+  const body = rows.map((r) => columns.map((c) => {
+    const v = typeof c.get === "function" ? c.get(r) : r[c.key];
+    return `"${String(v ?? "").replace(/"/g, '""')}"`;
+  }).join(",")).join("\n");
+  const csv = "\uFEFF" + head + "\n" + body; // BOM для кириллицы в Excel
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function Delta({ v }) {
+  const up = v >= 0;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${up ? "text-emerald-600" : "text-rose-600"}`}>
+      {up ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+      {Math.abs(v)}%
+    </span>
+  );
+}
+
+function RoleBadge({ role }) {
+  const r = ROLES[role];
+  if (!r) return <span className="text-xs text-slate-400">—</span>;
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+      style={{ background: r.color + "18", color: r.color }}>
+      <Shield size={11} /> {r.label}
+    </span>
+  );
+}
+
+// выезжающая панель деталей (справа)
+function Drawer({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/40 z-50" onClick={onClose} />
+      <div className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white z-50 shadow-2xl flex flex-col"
+        style={{ animation: "slideIn .2s ease" }}>
+        <style>{`@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
+        <div className="h-16 px-5 flex items-center justify-between border-b border-slate-200 shrink-0">
+          <h2 className="font-bold text-slate-900">{title}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"><X size={20} /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">{children}</div>
+      </div>
+    </>
+  );
+}
+
+// строка «ключ — значение» для карточек
+function Field({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-center gap-3 py-2.5 border-b border-slate-50 last:border-0">
+      {Icon && <Icon size={16} className="text-slate-400 shrink-0" />}
+      <span className="text-sm text-slate-500 w-28 shrink-0">{label}</span>
+      <span className="text-sm font-medium text-slate-800 text-right flex-1 truncate">{value}</span>
+    </div>
+  );
+}
+
+// ---- ТЁМНАЯ ТЕМА ---------------------------------------------
+// Переопределяем фон/текст/границы tailwind-утилит при data-theme="dark".
+// Светлая тема остаётся без изменений.
+function ThemeStyles() {
+  return (
+    <style>{`
+      /* минимализм: более строгие радиусы карточек */
+      .shophub-admin .rounded-2xl { border-radius: 0.75rem !important; }
+      .shophub-admin[data-theme="dark"] .bg-slate-100 { background-color:#0b1120 !important; }
+      .shophub-admin[data-theme="dark"] .bg-white { background-color:#111827 !important; }
+      .shophub-admin[data-theme="dark"] .bg-slate-50,
+      .shophub-admin[data-theme="dark"] .hover\\:bg-slate-50:hover,
+      .shophub-admin[data-theme="dark"] .hover\\:bg-slate-100:hover { background-color:#1e293b !important; }
+      .shophub-admin[data-theme="dark"] .bg-slate-50\\/60,
+      .shophub-admin[data-theme="dark"] .hover\\:bg-slate-50\\/60:hover { background-color:rgba(30,41,59,.5) !important; }
+
+      .shophub-admin[data-theme="dark"] .border-slate-200,
+      .shophub-admin[data-theme="dark"] .border-slate-100,
+      .shophub-admin[data-theme="dark"] .border-slate-50 { border-color:#1e293b !important; }
+
+      .shophub-admin[data-theme="dark"] .text-slate-900,
+      .shophub-admin[data-theme="dark"] .text-slate-800 { color:#f1f5f9 !important; }
+      .shophub-admin[data-theme="dark"] .text-slate-700,
+      .shophub-admin[data-theme="dark"] .text-slate-600 { color:#cbd5e1 !important; }
+      .shophub-admin[data-theme="dark"] .text-slate-500,
+      .shophub-admin[data-theme="dark"] .text-slate-400 { color:#94a3b8 !important; }
+      .shophub-admin[data-theme="dark"] .text-slate-300,
+      .shophub-admin[data-theme="dark"] .text-slate-200 { color:#475569 !important; }
+
+      /* серые «таблетки» */
+      .shophub-admin[data-theme="dark"] .hover\\:bg-slate-200:hover { background-color:#334155 !important; }
+
+      /* инпут поиска */
+      .shophub-admin[data-theme="dark"] input::placeholder { color:#64748b !important; }
+      .shophub-admin[data-theme="dark"] select { background-color:#111827 !important; color:#e2e8f0 !important; }
+      .shophub-admin[data-theme="dark"] select option { background-color:#111827; color:#e2e8f0; }
+      .shophub-admin[data-theme="dark"] input { color:#e2e8f0 !important; }
+    `}</style>
+  );
+}
+
+// ---- ГЛАВНЫЙ КОМПОНЕНТ ---------------------------------------
+function AdminPanel() {
+  const [theme, setTheme] = useState("dark");
+  const [role, setRole] = useState("owner");
+  const [tab, setTab] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [roleMenu, setRoleMenu] = useState(false);
+  const [notifMenu, setNotifMenu] = useState(false);
+  const [search, setSearch] = useState("");
+  const [toast, setToast] = useState(null);
+
+  const allowedTabs = ROLE_TABS[role];
+
+  // если сменили роль и текущая вкладка недоступна — сбрасываем на дашборд
+  const visibleTab = allowedTabs.includes(tab) ? tab : "dashboard";
+
+  const can = (action) => CAN[action]?.includes(role);
+
+  const flash = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2200);
+  };
+
+  const NAV_GROUPS = [
+    { title: "Обзор", items: [
+      { id: "dashboard",  label: "Дашборд",   Icon: LayoutDashboard },
+      { id: "activity",   label: "Активность", Icon: Activity },
+    ]},
+    { title: "Финансы", items: [
+      { id: "finance",    label: "Финансы",   Icon: Wallet },
+      { id: "subscriptions", label: "Подписки", Icon: Repeat },
+      { id: "campaigns",  label: "Реклама",   Icon: Link2 },
+    ]},
+    { title: "Управление", items: [
+      { id: "shops",      label: "Магазины",  Icon: Store },
+      { id: "users",      label: "Юзеры",     Icon: Users },
+      { id: "moderation", label: "Модерация", Icon: Flag, badge: MOD_QUEUE.length },
+    ]},
+    { title: "Команда", items: [
+      { id: "salary",     label: "Зарплата",  Icon: Wallet },
+      { id: "tasks",      label: "Задачи",    Icon: ListTodo },
+      { id: "audit",      label: "Аудит",     Icon: ScrollText },
+    ]},
+    { title: "Поддержка", items: [
+      { id: "tickets",    label: "Поддержка", Icon: LifeBuoy, badge: TICKETS.filter((t) => t.status === "open").length },
+      { id: "broadcasts", label: "Рассылки",  Icon: Send },
+    ]},
+    { title: "Система", items: [
+      { id: "settings",   label: "Настройки", Icon: Settings },
+    ]},
+  ].map((g) => ({ ...g, items: g.items.filter((n) => allowedTabs.includes(n.id)) }))
+   .filter((g) => g.items.length > 0);
+
+  return (
+    <div data-theme={theme} className="shophub-admin contents">
+    <ThemeStyles />
+    <div className="flex h-screen w-full bg-slate-100 text-slate-800 font-sans overflow-hidden"
+      style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, sans-serif" }}>
+
+      {/* ---- SIDEBAR ---- */}
+      <aside className={`fixed lg:static z-40 h-full w-64 bg-slate-900 text-slate-300 flex flex-col
+        transition-transform duration-200 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+        <div className="px-5 h-16 flex items-center justify-between border-b border-slate-800">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg grid place-items-center font-black text-white"
+              style={{ background: "linear-gradient(135deg,#7C3AED,#2563EB)" }}>Ш</div>
+            <div className="leading-tight">
+              <div className="text-white font-bold text-sm">ШОПИК</div>
+              <div className="text-[10px] text-slate-500 tracking-wide">ADMIN</div>
+            </div>
+          </div>
+          <button className="lg:hidden text-slate-400" onClick={() => setSidebarOpen(false)}><X size={20} /></button>
+        </div>
+
+        <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title}>
+              <div className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">{group.title}</div>
+              <div className="space-y-0.5">
+                {group.items.map(({ id, label, Icon, badge }) => {
+                  const active = visibleTab === id;
+                  return (
+                    <button key={id}
+                      onClick={() => { setTab(id); setSidebarOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                        ${active ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5 hover:text-slate-200"}`}>
+                      <Icon size={17} />
+                      <span className="flex-1 text-left">{label}</span>
+                      {badge ? <span className="text-[10px] font-bold bg-rose-500 text-white px-1.5 py-0.5 rounded-full">{badge}</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        <div className="p-3 border-t border-slate-800">
+          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:bg-white/5 hover:text-slate-200">
+            <LogOut size={18} /> Выйти
+          </button>
+        </div>
+      </aside>
+
+      {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+
+      {/* ---- MAIN ---- */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* topbar */}
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center gap-3 px-4 lg:px-6 shrink-0">
+          <button className="lg:hidden text-slate-600" onClick={() => setSidebarOpen(true)}><Menu size={22} /></button>
+
+          <div className="hidden sm:block relative">
+            <div className="flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2 w-72">
+              <Search size={16} className="text-slate-400" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Поиск магазина, юзера…"
+                className="bg-transparent text-sm outline-none w-full placeholder:text-slate-400" />
+              {search && <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>}
+            </div>
+            {search.trim() && (() => {
+              const q = search.toLowerCase();
+              const shopHits = SHOPS.filter((s) => s.name.toLowerCase().includes(q) || s.owner.toLowerCase().includes(q)).slice(0, 4);
+              const userHits = USERS.filter((u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)).slice(0, 4);
+              const empty = shopHits.length === 0 && userHits.length === 0;
+              return (
+                <div className="absolute left-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 z-50 max-h-96 overflow-y-auto">
+                  {empty && <div className="px-3 py-4 text-sm text-slate-400 text-center">Ничего не найдено</div>}
+                  {shopHits.length > 0 && (
+                    <>
+                      <div className="px-2.5 py-1.5 text-[11px] uppercase tracking-wide text-slate-400 font-semibold">Магазины</div>
+                      {shopHits.map((s) => (
+                        <button key={"s" + s.id} onClick={() => { setTab("shops"); setSearch(""); }}
+                          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-slate-50 text-left">
+                          <div className="w-7 h-7 rounded-lg grid place-items-center text-white text-xs font-bold shrink-0"
+                            style={{ background: "linear-gradient(135deg,#7C3AED,#2563EB)" }}>{s.name[0]}</div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-slate-800 truncate">{s.name}</div>
+                            <div className="text-xs text-slate-400 truncate">{s.owner}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {userHits.length > 0 && (
+                    <>
+                      <div className="px-2.5 py-1.5 text-[11px] uppercase tracking-wide text-slate-400 font-semibold">Юзеры</div>
+                      {userHits.map((u) => (
+                        <button key={"u" + u.id} onClick={() => { setTab("users"); setSearch(""); }}
+                          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-slate-50 text-left">
+                          <div className="w-7 h-7 rounded-full grid place-items-center text-white text-xs font-bold shrink-0 bg-slate-500">{u.name[0]}</div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-slate-800 truncate">{u.name}</div>
+                            <div className="text-xs text-slate-400 truncate">{u.email}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+
+          <div className="flex-1" />
+
+          <button onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
+            className="text-slate-500 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100"
+            title={theme === "light" ? "Тёмная тема" : "Светлая тема"}>
+            {theme === "light" ? <Moon size={19} /> : <Sun size={19} />}
+          </button>
+
+          <div className="relative">
+            <button onClick={() => setNotifMenu((v) => !v)}
+              className="relative text-slate-500 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100">
+              <Bell size={20} />
+              <span className="absolute top-0.5 right-0.5 w-4 h-4 grid place-items-center text-[9px] font-bold text-white bg-rose-500 rounded-full">
+                {NOTIFICATIONS.length}
+              </span>
+            </button>
+            {notifMenu && (
+              <div className="absolute right-0 mt-2 w-80 max-w-[85vw] bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 z-50">
+                <div className="px-2.5 py-2 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-slate-900">Уведомления</span>
+                  <span className="text-[11px] text-slate-400">{NOTIFICATIONS.length} новых</span>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {NOTIFICATIONS.map((n) => {
+                    const dot = { mod: "#F43F5E", expiring: "#F59E0B", review: "#7C3AED", churn: "#EF4444" }[n.kind] || "#94A3B8";
+                    return (
+                      <div key={n.id} className="flex gap-2.5 px-2.5 py-2 rounded-lg hover:bg-slate-50">
+                        <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: dot }} />
+                        <div>
+                          <div className="text-sm text-slate-700 leading-snug">{n.text}</div>
+                          <div className="text-xs text-slate-400">{n.time}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* role switcher (демо: переключение точки зрения) */}
+          <div className="relative">
+            <button onClick={() => setRoleMenu((v) => !v)}
+              className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-lg hover:bg-slate-100">
+              <div className="w-8 h-8 rounded-full grid place-items-center text-white text-sm font-bold"
+                style={{ background: ROLES[role].color }}>
+                {ROLES[role].label[0]}
+              </div>
+              <div className="hidden sm:block text-left leading-tight">
+                <div className="text-sm font-semibold">Вы вошли как</div>
+                <div className="text-xs" style={{ color: ROLES[role].color }}>{ROLES[role].label}</div>
+              </div>
+              <ChevronDown size={16} className="text-slate-400" />
+            </button>
+
+            {roleMenu && (
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 z-50">
+                <div className="px-2.5 py-1.5 text-[11px] uppercase tracking-wide text-slate-400 font-semibold">
+                  Роль (демо)
+                </div>
+                {Object.entries(ROLES).map(([key, r]) => (
+                  <button key={key}
+                    onClick={() => { setRole(key); setRoleMenu(false); }}
+                    className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-left hover:bg-slate-50
+                      ${role === key ? "bg-slate-50" : ""}`}>
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: r.color }} />
+                    <span className="flex-1">{r.label}</span>
+                    {role === key && <CheckCircle2 size={15} className="text-slate-400" />}
+                  </button>
+                ))}
+                <div className="px-2.5 pt-2 pb-1 text-[10px] text-slate-400 leading-snug border-t border-slate-100 mt-1">
+                  Доступ к вкладкам и действиям меняется в зависимости от роли.
+                </div>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* content */}
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+          {visibleTab === "dashboard"  && <Dashboard role={role} />}
+          {visibleTab === "finance"    && <Finance can={can} flash={flash} />}
+          {visibleTab === "subscriptions" && <Subscriptions flash={flash} />}
+          {visibleTab === "campaigns"  && <Campaigns flash={flash} />}
+          {visibleTab === "shops"      && <Shops role={role} can={can} flash={flash} />}
+          {visibleTab === "users"      && <UsersView role={role} can={can} flash={flash} />}
+          {visibleTab === "tickets"    && <Tickets flash={flash} />}
+          {visibleTab === "broadcasts" && <Broadcasts flash={flash} />}
+          {visibleTab === "audit"      && <Audit />}
+          {visibleTab === "salary"     && <Salary role={role} can={can} flash={flash} />}
+          {visibleTab === "tasks"      && <Tasks role={role} can={can} flash={flash} />}
+          {visibleTab === "activity"   && <ActivityFeed />}
+          {visibleTab === "moderation" && <Moderation role={role} can={can} flash={flash} />}
+          {visibleTab === "settings"   && <SettingsView role={role} />}
+        </main>
+      </div>
+
+      {/* toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2">
+          <CheckCircle2 size={16} className="text-emerald-400" /> {toast}
+        </div>
+      )}
+    </div>
+    </div>
+  );
+}
+
+// ============================================================
+// CAMPAIGNS — рекламные ссылки и аналитика трафика
+// ============================================================
+function Campaigns({ flash }) {
+  const [rows, setRows] = useState(CAMPAIGNS);
+  const [name, setName] = useState("");
+  const [sel, setSel] = useState(null);
+  const [promos, setPromos] = useState(PROMOS);
+  const [promoForm, setPromoForm] = useState({ code: "", discount: "" });
+  const BASE = "shopik.app/r/";
+
+  const createPromo = () => {
+    if (!promoForm.code.trim() || !promoForm.discount) return;
+    setPromos((p) => [{ id: Date.now(), code: promoForm.code.trim(), discount: Number(promoForm.discount), uses: 0, revenue: 0, active: true }, ...p]);
+    setPromoForm({ code: "", discount: "" });
+    flash(`Промокод ${promoForm.code} создан`);
+  };
+  const togglePromo = (id) => setPromos((p) => p.map((x) => x.id === id ? { ...x, active: !x.active } : x));
+
+  const slugify = (s) => s.toLowerCase().trim().replace(/[^a-zа-я0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 20) || "link";
+
+  const create = () => {
+    if (!name.trim()) return;
+    const slug = slugify(name);
+    setRows((r) => [{ id: Date.now(), name: name.trim(), slug, clicks: 0, signups: 0, lite: 0, pro: 0, premium: 0, revenue: 0, date: "сейчас" }, ...r]);
+    setName("");
+    flash(`Ссылка ${BASE}${slug} создана`);
+  };
+  const copy = (slug) => flash(`Скопировано: ${BASE}${slug}`);
+  const paidOf = (c) => (c.lite || 0) + (c.pro || 0) + (c.premium || 0);
+
+  // итоги
+  const tot = rows.reduce((a, c) => ({
+    clicks: a.clicks + c.clicks, signups: a.signups + c.signups,
+    paid: a.paid + paidOf(c), revenue: a.revenue + c.revenue,
+  }), { clicks: 0, signups: 0, paid: 0, revenue: 0 });
+
+  return (
+    <div className="space-y-5 max-w-4xl">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Реклама</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Рекламные ссылки и их эффективность</p>
+      </div>
+
+      {/* сводка */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { l: "Переходы", v: tot.clicks.toLocaleString("ru"), c: "#2563EB" },
+          { l: "Регистрации", v: tot.signups.toLocaleString("ru"), c: "#7C3AED" },
+          { l: "Купили подписку", v: tot.paid.toLocaleString("ru"), c: "#10B981" },
+          { l: "Доход", v: "₴" + tot.revenue.toLocaleString("ru"), c: "#0EA5E9" },
+        ].map((s) => (
+          <div key={s.l} className="bg-white rounded-2xl border border-slate-200 p-4">
+            <div className="text-xs text-slate-500">{s.l}</div>
+            <div className="text-xl font-bold mt-1" style={{ color: s.c }}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* создать ссылку */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <h2 className="font-semibold text-slate-900 mb-3">Создать ссылку</h2>
+        <div className="flex items-center gap-1.5">
+          <input value={name} onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && create()}
+            placeholder="Название кампании (напр. Блогер @ivan)"
+            className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-300" />
+          <button onClick={create} disabled={!name.trim()}
+            className="px-4 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-30 shrink-0">
+            Создать
+          </button>
+        </div>
+        {name.trim() && <div className="text-xs text-slate-400 mt-2">Ссылка будет: <span className="font-mono text-slate-600">{BASE}{slugify(name)}</span></div>}
+      </div>
+
+      {/* список ссылок */}
+      <div className="space-y-2.5">
+        {rows.map((c) => {
+          const paid = paidOf(c);
+          const cr = c.clicks ? Math.round((paid / c.clicks) * 100) : 0;
+          return (
+            <div key={c.id} onClick={() => setSel(c)}
+              className="bg-white rounded-2xl border border-slate-200 p-4 cursor-pointer hover:border-slate-300 transition">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-semibold text-slate-900">{c.name}</div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <Link2 size={12} className="text-slate-400 shrink-0" />
+                    <span className="text-xs font-mono text-slate-500 truncate">{BASE}{c.slug}</span>
+                    <button onClick={(e) => { e.stopPropagation(); copy(c.slug); }} className="text-slate-400 hover:text-slate-700 shrink-0">
+                      <Copy size={12} />
+                    </button>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 shrink-0">CR {cr}%</span>
+              </div>
+              {/* воронка: клики → рег → доход */}
+              <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+                {[["Клики", c.clicks, "#2563EB"], ["Рег.", c.signups, "#7C3AED"], ["Доход", "₴" + (c.revenue / 1000).toFixed(0) + "k", "#0EA5E9"]].map(([l, v, col]) => (
+                  <div key={l} className="bg-slate-50 rounded-lg py-1.5">
+                    <div className="text-sm font-bold" style={{ color: col }}>{typeof v === "number" ? v.toLocaleString("ru") : v}</div>
+                    <div className="text-[10px] text-slate-400">{l}</div>
+                  </div>
+                ))}
+              </div>
+              {/* разбивка купивших по тарифам */}
+              <div className="grid grid-cols-3 gap-2 mt-2 text-center">
+                {[["Лайт", c.lite, "#60A5FA"], ["Pro", c.pro, "#7C3AED"], ["Premium", c.premium, "#F59E0B"]].map(([l, v, col]) => (
+                  <div key={l} className="rounded-lg py-1.5 border border-slate-100">
+                    <div className="text-sm font-bold" style={{ color: col }}>{(v || 0).toLocaleString("ru")}</div>
+                    <div className="text-[10px] text-slate-400">{l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* промокоды */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <h2 className="font-semibold text-slate-900 mb-3">Промокоды</h2>
+        {/* создать промокод */}
+        <div className="flex items-center gap-1.5 mb-3">
+          <input value={promoForm.code} onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })}
+            placeholder="КОД (напр. SALE20)"
+            className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-mono outline-none focus:border-slate-400 placeholder:text-slate-300" />
+          <input type="number" value={promoForm.discount} onChange={(e) => setPromoForm({ ...promoForm, discount: e.target.value })}
+            placeholder="%" min={1} max={99}
+            className="w-16 bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-300" />
+          <button onClick={createPromo} disabled={!promoForm.code || !promoForm.discount}
+            className="px-4 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-30 shrink-0">
+            Создать
+          </button>
+        </div>
+        {/* список промокодов */}
+        <div className="space-y-2">
+          {promos.map((p) => (
+            <div key={p.id} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className={`font-mono text-sm font-bold px-2 py-0.5 rounded-lg ${p.active ? "bg-violet-50 text-violet-700" : "bg-slate-100 text-slate-400 line-through"}`}>{p.code}</span>
+                <span className="text-xs text-slate-500">−{p.discount}%</span>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="text-right">
+                  <div className="text-xs font-semibold text-slate-700">{p.uses} исп. · ₴{(p.revenue / 1000).toFixed(0)}k</div>
+                </div>
+                <button onClick={() => togglePromo(p.id)}
+                  className={`w-10 h-5.5 rounded-full transition relative ${p.active ? "bg-emerald-500" : "bg-slate-200"}`}
+                  style={{ height: 22 }}>
+                  <span className="absolute top-0.5 w-[18px] h-[18px] bg-white rounded-full transition-all" style={{ left: p.active ? 20 : 2 }} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* реферальная программа */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-slate-900">Реферальная программа</h2>
+          <span className="text-xs text-slate-400">продавец приводит продавца</span>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+          {[
+            { l: "Приглашено", v: REFERRAL.invited, c: "#2563EB" },
+            { l: "Создали магазин", v: REFERRAL.activated, c: "#7C3AED" },
+            { l: "Купили подписку", v: REFERRAL.paid, c: "#10B981" },
+            { l: "Выплачено бонусов", v: "₴" + REFERRAL.bonusPaid.toLocaleString("ru"), c: "#F59E0B" },
+          ].map((s) => (
+            <div key={s.l} className="bg-slate-50 rounded-xl p-2.5 text-center">
+              <div className="text-base font-bold" style={{ color: s.c }}>{typeof s.v === "number" ? s.v.toLocaleString("ru") : s.v}</div>
+              <div className="text-[10px] text-slate-400">{s.l}</div>
+            </div>
+          ))}
+        </div>
+        <div className="text-xs font-semibold text-slate-500 mb-2">Топ рефереров</div>
+        <div className="space-y-1.5">
+          {REFERRAL.topReferrers.map((r, i) => (
+            <div key={r.shop} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
+              <span className="text-slate-700"><span className="text-slate-400 mr-1.5">{i + 1}</span>{r.shop}</span>
+              <span className="text-xs text-slate-500">{r.invited} пригл. · {r.paid} купили · <span className="font-semibold text-amber-600">₴{r.bonus.toLocaleString("ru")}</span></span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* детали кампании */}
+      <Drawer open={!!sel} onClose={() => setSel(null)} title={sel ? sel.name : "Кампания"}>
+        {sel && (() => {
+          const paid = paidOf(sel);
+          const steps = [
+            { l: "Переходы по ссылке", v: sel.clicks, col: "#2563EB" },
+            { l: "Регистрации", v: sel.signups, col: "#7C3AED" },
+            { l: "Купили подписку", v: paid, col: "#10B981" },
+          ];
+          const max = sel.clicks || 1;
+          return (
+            <div className="space-y-5">
+              <div className="bg-slate-50 rounded-xl p-3">
+                <div className="flex items-center gap-1.5">
+                  <Link2 size={14} className="text-slate-400" />
+                  <span className="text-sm font-mono text-slate-600">{BASE}{sel.slug}</span>
+                  <button onClick={() => copy(sel.slug)} className="text-slate-400 hover:text-slate-700 ml-auto"><Copy size={14} /></button>
+                </div>
+                <div className="text-xs text-slate-400 mt-1">Запущена {sel.date}</div>
+              </div>
+
+              {/* воронка */}
+              <div>
+                <div className="text-xs font-semibold text-slate-500 mb-2">Воронка</div>
+                <div className="space-y-2">
+                  {steps.map((s, i) => {
+                    const pct = Math.round((s.v / max) * 100);
+                    const conv = i > 0 ? Math.round((s.v / steps[i - 1].v) * 100) : 100;
+                    return (
+                      <div key={s.l}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-slate-700">{s.l}</span>
+                          <span className="text-slate-500">{s.v.toLocaleString("ru")} {i > 0 && <span className="text-slate-400">· {conv}%</span>}</span>
+                        </div>
+                        <div className="h-6 bg-slate-100 rounded-lg overflow-hidden">
+                          <div className="h-full rounded-lg flex items-center px-2 text-[11px] font-semibold text-white" style={{ width: `${Math.max(pct, 8)}%`, background: s.col }}>{pct}%</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* разбивка по тарифам */}
+              <div>
+                <div className="text-xs font-semibold text-slate-500 mb-2">Купили по тарифам</div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  {[["Лайт", sel.lite, "#60A5FA"], ["Pro", sel.pro, "#7C3AED"], ["Premium", sel.premium, "#F59E0B"]].map(([l, v, col]) => (
+                    <div key={l} className="bg-white border border-slate-200 rounded-xl py-2.5">
+                      <div className="text-lg font-bold" style={{ color: col }}>{(v || 0).toLocaleString("ru")}</div>
+                      <div className="text-[11px] text-slate-400">{l}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* доход */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white border border-slate-200 rounded-xl p-3">
+                  <div className="text-xs text-slate-500">Доход с кампании</div>
+                  <div className="text-xl font-bold text-slate-900 mt-0.5">₴{sel.revenue.toLocaleString("ru")}</div>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-xl p-3">
+                  <div className="text-xs text-slate-500">Цена за клиента</div>
+                  <div className="text-xl font-bold text-slate-900 mt-0.5">{paid ? "₴" + Math.round(sel.revenue / paid).toLocaleString("ru") : "—"}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </Drawer>
+    </div>
+  );
+}
+
+// ============================================================
+// SUBSCRIPTIONS — удержание, воронка, истекающие
+// ============================================================
+function Subscriptions({ flash }) {
+  const m = SUB_METRICS;
+  const maxBar = Math.max(...SUB_HISTORY.flatMap((h) => [h.added, h.churned]));
+  const funnelMax = FUNNEL[0].value;
+
+  return (
+    <div className="space-y-5 max-w-4xl">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Подписки</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Удержание, отток и воронка Pro</p>
+      </div>
+
+      {/* ключевые метрики */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="w-9 h-9 rounded-xl bg-violet-50 grid place-items-center text-violet-600 mb-3"><Repeat size={18} /></div>
+          <div className="text-xl font-bold text-slate-900">{m.active}</div>
+          <div className="text-xs text-slate-500 mt-0.5">Активных платных</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 grid place-items-center text-emerald-600 mb-3"><TrendingUp size={18} /></div>
+          <div className="text-xl font-bold text-emerald-600">+{m.newThisMonth}</div>
+          <div className="text-xs text-slate-500 mt-0.5">Новых за месяц</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="w-9 h-9 rounded-xl bg-rose-50 grid place-items-center text-rose-600 mb-3"><TrendDown size={18} /></div>
+          <div className="text-xl font-bold text-rose-600">−{m.churnedThisMonth}</div>
+          <div className="text-xs text-slate-500 mt-0.5">Отток · {m.churnRate}%</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 grid place-items-center text-blue-600 mb-3"><CheckCircle2 size={18} /></div>
+          <div className="text-xl font-bold text-slate-900">{m.retention}%</div>
+          <div className="text-xs text-slate-500 mt-0.5">Удержание</div>
+        </div>
+      </div>
+
+      {/* график новые/отток по месяцам */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-slate-900">Новые и отток подписок</h2>
+          <div className="flex items-center gap-3 text-xs">
+            <span className="flex items-center gap-1 text-slate-500"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> новые</span>
+            <span className="flex items-center gap-1 text-slate-500"><span className="w-2.5 h-2.5 rounded-sm bg-rose-400" /> отток</span>
+          </div>
+        </div>
+        <div className="flex items-stretch gap-3 h-40">
+          {SUB_HISTORY.map((h) => (
+            <div key={h.m} className="flex-1 h-full flex flex-col items-center gap-1.5">
+              <div className="flex-1 w-full flex items-end justify-center gap-1">
+                <div className="w-1/2 rounded-t-md bg-emerald-500" style={{ height: `${(h.added / maxBar) * 100}%` }} />
+                <div className="w-1/2 rounded-t-md bg-rose-400" style={{ height: `${(h.churned / maxBar) * 100}%` }} />
+              </div>
+              <span className="text-[10px] text-slate-400">{h.m}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* воронка Free → Pro */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-semibold text-slate-900">Воронка Free → платный</h2>
+            <p className="text-xs text-slate-500">конверсия {m.freeToProRate}% · {m.freeToProCount} за месяц</p>
+          </div>
+        </div>
+        <div className="space-y-2.5">
+          {FUNNEL.map((f, i) => {
+            const pct = Math.round((f.value / funnelMax) * 100);
+            const conv = i > 0 ? Math.round((f.value / FUNNEL[i - 1].value) * 100) : 100;
+            return (
+              <div key={f.stage}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-slate-700">{f.stage}</span>
+                  <span className="text-slate-500">{f.value.toLocaleString("ru")} {i > 0 && <span className="text-slate-400">· {conv}%</span>}</span>
+                </div>
+                <div className="h-7 bg-slate-100 rounded-lg overflow-hidden">
+                  <div className="h-full rounded-lg flex items-center px-2 text-[11px] font-semibold text-white transition-all"
+                    style={{ width: `${pct}%`, background: f.color }}>
+                    {pct}%
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* подписки на исходе */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <Clock4 size={16} className="text-amber-500" />
+          <h2 className="font-semibold text-slate-900">Подписки на исходе</h2>
+        </div>
+        <p className="text-xs text-slate-500 mb-4">Pro заканчивается в ближайшие 7 дней — стоит напомнить</p>
+        <div className="space-y-2">
+          {EXPIRING.map((e) => (
+            <div key={e.id} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl grid place-items-center text-xs font-bold
+                  ${e.days <= 3 ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-600"}`}>
+                  {e.days}д
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900 text-sm">{e.shop}</div>
+                  <div className="text-xs text-slate-400">{e.owner} · {e.price}/мес</div>
+                </div>
+              </div>
+              <button onClick={() => flash(`Напоминание отправлено «${e.shop}»`)}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800">
+                Напомнить
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// TICKETS — поддержка продавцов
+// ============================================================
+function Tickets({ flash }) {
+  const [rows, setRows] = useState(TICKETS);
+  const [filter, setFilter] = useState("open");
+  const [sel, setSel] = useState(null);
+  const [reply, setReply] = useState("");
+  const stMeta = {
+    open:    { label: "Открыт",    cls: "bg-rose-50 text-rose-700" },
+    pending: { label: "В работе",  cls: "bg-amber-50 text-amber-700" },
+    closed:  { label: "Закрыт",    cls: "bg-emerald-50 text-emerald-700" },
+  };
+  const prMeta = { high: "#F43F5E", mid: "#F59E0B", low: "#94A3B8" };
+  const filtered = filter === "all" ? rows : rows.filter((t) => t.status === filter);
+
+  const update = (id, fn) => {
+    setRows((rs) => rs.map((t) => (t.id === id ? fn(t) : t)));
+    setSel((cur) => (cur && cur.id === id ? fn(cur) : cur));
+  };
+  const setStatus = (id, status, msg) => { update(id, (t) => ({ ...t, status })); flash(msg); };
+
+  const sendReply = (t) => {
+    if (!reply.trim()) return;
+    update(t.id, (x) => ({
+      ...x,
+      status: x.status === "open" ? "pending" : x.status,
+      messages: [...x.messages, { from: "support", text: reply.trim(), time: "сейчас" }],
+    }));
+    setReply("");
+    flash("Ответ отправлен");
+  };
+
+  return (
+    <div className="space-y-4 max-w-3xl">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Поддержка</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Обращения продавцов</p>
+      </div>
+      <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-1 w-fit">
+        {[["open", "Открытые"], ["pending", "В работе"], ["closed", "Закрытые"], ["all", "Все"]].map(([k, l]) => (
+          <button key={k} onClick={() => setFilter(k)}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${filter === k ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}>
+            {l}
+          </button>
+        ))}
+      </div>
+      <div className="space-y-2.5">
+        {filtered.map((t) => {
+          const st = stMeta[t.status];
+          const last = t.messages[t.messages.length - 1];
+          return (
+            <div key={t.id} onClick={() => { setSel(t); setReply(""); }}
+              className="bg-white rounded-2xl border border-slate-200 p-4 cursor-pointer hover:border-slate-300 transition">
+              <div className="flex items-start gap-3">
+                <span className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: prMeta[t.priority] }} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-slate-900">{t.shop}</span>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
+                    {t.messages.length > 1 && <span className="text-[11px] text-slate-400">{t.messages.length} сообщ.</span>}
+                  </div>
+                  <div className="text-sm font-medium text-slate-700 mt-0.5">{t.subject}</div>
+                  <div className="text-xs text-slate-400 mt-0.5 truncate">{last.from === "support" ? "Вы: " : ""}{last.text}</div>
+                </div>
+                <ChevronRight size={16} className="text-slate-300 shrink-0 mt-1" />
+              </div>
+            </div>
+          );
+        })}
+        {filtered.length === 0 && <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-sm text-slate-400">Нет обращений</div>}
+      </div>
+
+      {/* переписка */}
+      <Drawer open={!!sel} onClose={() => setSel(null)} title={sel ? sel.shop : "Тикет"}>
+        {sel && (() => {
+          const st = stMeta[sel.status];
+          return (
+            <div className="flex flex-col h-full -m-5">
+              {/* шапка */}
+              <div className="px-5 py-3 border-b border-slate-100">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-slate-900">{sel.subject}</span>
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">{sel.owner} · {sel.date}</div>
+              </div>
+
+              {/* переписка */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+                {sel.messages.map((m, i) => (
+                  <div key={i} className={`flex ${m.from === "support" ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5
+                      ${m.from === "support" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-800"}`}>
+                      <div className="text-sm leading-snug">{m.text}</div>
+                      <div className={`text-[10px] mt-1 ${m.from === "support" ? "text-white/50" : "text-slate-400"}`}>
+                        {m.from === "support" ? "Поддержка" : sel.owner} · {m.time}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* действия + ответ */}
+              <div className="px-5 py-3 border-t border-slate-100 space-y-2">
+                {sel.status !== "closed" ? (
+                  <>
+                    {/* шаблоны ответов */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        ["Приветствие", "Здравствуйте! Спасибо за обращение, уже разбираемся с вашим вопросом."],
+                        ["Взяли в работу", "Ваш вопрос взят в работу — вернёмся с ответом в течение 24 часов."],
+                        ["Нужны детали", "Уточните, пожалуйста: пришлите скриншот проблемы и название вашего магазина."],
+                        ["Решено", "Проблема устранена. Проверьте, пожалуйста, и напишите, если что-то ещё не так."],
+                      ].map(([label, text]) => (
+                        <button key={label} onClick={() => setReply(text)}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700">
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-end gap-1.5">
+                      <textarea value={reply} onChange={(e) => setReply(e.target.value)}
+                        placeholder="Ответить продавцу…" rows={2}
+                        className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-slate-400 placeholder:text-slate-300 resize-none" />
+                      <button onClick={() => sendReply(sel)} disabled={!reply.trim()}
+                        className="w-9 h-9 grid place-items-center rounded-lg bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-30 shrink-0">
+                        <Send size={16} />
+                      </button>
+                    </div>
+                    <button onClick={() => setStatus(sel.id, "closed", `Тикет «${sel.shop}» закрыт`)}
+                      className="w-full py-2 rounded-lg bg-emerald-50 text-emerald-700 text-sm font-semibold hover:bg-emerald-100">
+                      Закрыть обращение
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => setStatus(sel.id, "pending", `Тикет «${sel.shop}» переоткрыт`)}
+                    className="w-full py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200">
+                    Переоткрыть
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+      </Drawer>
+    </div>
+  );
+}
+
+// ============================================================
+// BROADCASTS — рассылки продавцам
+// ============================================================
+function Broadcasts({ flash }) {
+  const [sent, setSent] = useState(BROADCASTS);
+  const [draft, setDraft] = useState({ title: "", audience: "Все магазины" });
+  const AUDIENCES = ["Все магазины", "Free-магазины", "Pro-магазины", "Истекающие подписки"];
+  const reachMap = { "Все магазины": 1580, "Free-магазины": 1198, "Pro-магазины": 382, "Истекающие подписки": 4 };
+
+  const send = () => {
+    if (!draft.title.trim()) { flash("Введите текст рассылки"); return; }
+    setSent((s) => [{ id: Date.now(), title: draft.title.trim(), audience: draft.audience, reach: reachMap[draft.audience], date: "сейчас", status: "sent" }, ...s]);
+    setDraft({ title: "", audience: draft.audience });
+    flash(`Рассылка отправлена · ${reachMap[draft.audience]} получателей`);
+  };
+
+  return (
+    <div className="space-y-5 max-w-3xl">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Рассылки</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Push-уведомления продавцам</p>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <h2 className="font-semibold text-slate-900 mb-3">Новая рассылка</h2>
+        <div className="text-xs text-slate-400 mb-1.5">Аудитория</div>
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {AUDIENCES.map((a) => (
+            <button key={a} onClick={() => setDraft({ ...draft, audience: a })}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${draft.audience === a ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+              {a} <span className="opacity-60">· {reachMap[a]}</span>
+            </button>
+          ))}
+        </div>
+        <textarea value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+          placeholder="Текст уведомления…" rows={3}
+          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-300 resize-none mb-3" />
+        <button onClick={send} disabled={!draft.title.trim()}
+          className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+          <Send size={15} /> Отправить {reachMap[draft.audience]} получателям
+        </button>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <h2 className="font-semibold text-slate-900 mb-3">История</h2>
+        <div className="space-y-2">
+          {sent.map((b) => (
+            <div key={b.id} className="flex items-start justify-between py-2.5 border-b border-slate-50 last:border-0">
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-slate-800">{b.title}</div>
+                <div className="text-xs text-slate-400">{b.audience} · {b.reach} получателей · {b.date}</div>
+              </div>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 shrink-0">отправлено</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// AUDIT — лог действий сотрудников
+// ============================================================
+function Audit() {
+  const [who, setWho] = useState("all");
+  const people = ["all", ...Array.from(new Set(AUDIT.map((a) => a.who)))];
+  const filtered = who === "all" ? AUDIT : AUDIT.filter((a) => a.who === who);
+
+  return (
+    <div className="space-y-4 max-w-3xl">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Аудит</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Лог действий сотрудников платформы</p>
+      </div>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {people.map((p) => (
+          <button key={p} onClick={() => setWho(p)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${who === p ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+            {p === "all" ? "Все" : p}
+          </button>
+        ))}
+      </div>
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <div className="space-y-3">
+          {filtered.map((a) => {
+            const r = ROLES[a.role];
+            return (
+              <div key={a.id} className="flex gap-3 pb-3 border-b border-slate-50 last:border-0 last:pb-0">
+                <div className="w-9 h-9 rounded-full grid place-items-center text-white text-xs font-bold shrink-0" style={{ background: r.color }}>{a.who[0]}</div>
+                <div className="flex-1">
+                  <div className="text-sm text-slate-700">{a.action}</div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs font-medium text-slate-500">{a.who}</span>
+                    <RoleBadge role={a.role} />
+                    <span className="text-xs text-slate-400">{a.time}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// ACTIVITY — лента событий платформы
+// ============================================================
+function ActivityFeed() {
+  const [filter, setFilter] = useState("all");
+  const kindMeta = {
+    review:  { dot: "#F59E0B", label: "Модерация" },
+    billing: { dot: "#7C3AED", label: "Тарифы" },
+    mod:     { dot: "#F43F5E", label: "Жалобы" },
+    user:    { dot: "#10B981", label: "Пользователи" },
+  };
+  // расширенная лента для отдельной вкладки
+  const FEED = [
+    ...ACTIVITY,
+    { id: 5, text: "«NUDE store» получил первый заказ", time: "25.06.2026 14:10", kind: "user" },
+    { id: 6, text: "«PLEASE» продлил подписку Pro", time: "25.06.2026 12:05", kind: "billing" },
+    { id: 7, text: "Новый продавец: Олег Петренко", time: "24.06.2026 16:40", kind: "user" },
+    { id: 8, text: "«VELVET» подал жалобу на покупателя", time: "23.06.2026 09:15", kind: "review" },
+    { id: 9, text: "Жалоба на «VELVET» создана покупателем", time: "23.06.2026 08:50", kind: "review" },
+  ];
+  const filtered = filter === "all" ? FEED : FEED.filter((a) => a.kind === filter);
+
+  return (
+    <div className="space-y-4 max-w-3xl">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Активность</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Лента событий платформы</p>
+      </div>
+
+      {/* фильтры */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {[["all", "Все"], ...Object.entries(kindMeta).map(([k, v]) => [k, v.label])].map(([k, l]) => (
+          <button key={k} onClick={() => setFilter(k)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition
+              ${filter === k ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <div className="space-y-4">
+          {filtered.map((a) => {
+            const km = kindMeta[a.kind];
+            return (
+              <div key={a.id} className="flex gap-3">
+                <span className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ background: km.dot }} />
+                <div className="flex-1">
+                  <div className="text-sm text-slate-700 leading-snug">{a.text}</div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-slate-400">{a.time}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: km.dot + "18", color: km.dot }}>{km.label}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {filtered.length === 0 && <p className="text-sm text-slate-400 py-3">Событий нет</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FINANCE — финансы платформы (касса/расходы/прибыль)
+// ============================================================
+function Finance({ can, flash }) {
+  const MONTHS_UA = ["Січень","Лютий","Березень","Квітень","Травень","Червень",
+    "Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"];
+  const MONTHS = useMemo(() => {
+    const out = []; let mi = 0, yr = 2026;
+    for (let i = 0; i < 120; i++) { out.push(`${MONTHS_UA[mi]} ${yr}`); mi++; if (mi > 11) { mi = 0; yr++; } }
+    return out;
+  }, []);
+  const [month, setMonth] = useState("Червень 2026");
+  const monthName = month.split(" ")[0];
+  // КАССА — авто из дохода платформы за месяц
+  const autoIncome = (FINANCE_BY_MONTH[monthName] && month.endsWith("2026")) ? FINANCE_BY_MONTH[monthName].income : 0;
+
+  const [ops, setOps] = useState({
+    "Червень 2026": [
+      { id: 1, label: "Зарплаты", value: 186584 },
+      { id: 2, label: "Реклама",  value: 82836 },
+      { id: 3, label: "Серверы/хостинг", value: 63265 },
+      { id: 4, label: "Комиссии эквайринга", value: 25468 },
+    ],
+  });
+  const [opForm, setOpForm] = useState({ label: "", value: "" });
+  const [payFilter, setPayFilter] = useState("all");
+  const monthOps = ops[month] || [];
+  const expenses = monthOps.reduce((s, o) => s + o.value, 0);
+  const profit = autoIncome - expenses;
+  const margin = autoIncome > 0 ? Math.round(profit / autoIncome * 100) : 0;
+  const fin = { income: autoIncome, expenses, profit, margin };
+
+  const addOp = () => {
+    const val = Number(opForm.value) || 0;
+    if (val <= 0 || !opForm.label.trim()) return;
+    setOps((prev) => ({
+      ...prev,
+      [month]: [...(prev[month] || []), { id: Date.now(), label: opForm.label.trim(), value: val }],
+    }));
+    setOpForm({ label: "", value: "" });
+  };
+  const removeOp = (id) => setOps((prev) => ({ ...prev, [month]: (prev[month] || []).filter((o) => o.id !== id) }));
+
+  return (
+    <div className="space-y-5 max-w-3xl">
+      <div className="flex items-end justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Финансы</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Касса, расходы и прибыль платформы</p>
+        </div>
+        <select value={month} onChange={(e) => setMonth(e.target.value)}
+          className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-slate-400">
+          {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </div>
+
+      {/* прибыль */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-slate-500">Чистая прибыль · {monthName}</span>
+          <span className="text-xs text-slate-400">маржа {fin.margin}%</span>
+        </div>
+        <div className={`text-3xl font-bold mt-1 ${fin.profit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+          {fin.income === 0
+            ? <span className="text-slate-400 text-xl">Нет данных</span>
+            : <span>{fin.profit >= 0 ? "+" : "−"}₴{Math.abs(fin.profit).toLocaleString("ru")}</span>}
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <div className="bg-emerald-50 rounded-xl p-3 text-center">
+            <div className="text-[11px] text-emerald-700/70">Касса · авто</div>
+            <div className="text-base font-bold text-emerald-700">₴{(fin.income / 1000).toFixed(0)}k</div>
+          </div>
+          <div className="bg-rose-50 rounded-xl p-3 text-center">
+            <div className="text-[11px] text-rose-700/70">Расходы</div>
+            <div className="text-base font-bold text-rose-700">₴{(fin.expenses / 1000).toFixed(0)}k</div>
+          </div>
+        </div>
+      </div>
+
+      {/* список операций */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-slate-900">Расходы за {monthName}</h2>
+          {monthOps.length > 0 && (
+            <button onClick={() => exportCSV(`расходы-${monthName}.csv`, monthOps, [
+                { label: "Категория", key: "label" },
+                { label: "Сумма, ₴", key: "value" },
+              ])}
+              className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">
+              <Download size={13} /> Экспорт
+            </button>
+          )}
+        </div>
+        {monthOps.length > 0 ? (
+          <div className="space-y-1.5">
+            {monthOps.map((o) => (
+              <div key={o.id} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
+                <span className="text-slate-600 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-rose-400" />
+                  {o.label}
+                </span>
+                <span className="flex items-center gap-2.5">
+                  <span className="font-medium text-slate-700">₴{o.value.toLocaleString("ru")}</span>
+                  <button onClick={() => removeOp(o.id)} className="text-slate-300 hover:text-rose-500">
+                    <X size={15} />
+                  </button>
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400 py-3">Расходов пока нет — добавьте ниже</p>
+        )}
+      </div>
+
+      {/* добавить операцию */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <h2 className="font-semibold text-slate-900 mb-3">Добавить расход</h2>
+        <div className="text-xs text-slate-400 mb-1.5">Категория</div>
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {EXPENSE_CATS.map((cat) => (
+            <button key={cat} onClick={() => setOpForm({ ...opForm, label: cat })}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition
+                ${opForm.label === cat
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <input type="number" inputMode="numeric" value={opForm.value}
+            onChange={(e) => setOpForm({ ...opForm, value: e.target.value })}
+            onKeyDown={(e) => e.key === "Enter" && addOp()}
+            placeholder="Сумма, ₴"
+            className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-300" />
+          <button onClick={addOp}
+            disabled={!opForm.label || !opForm.value}
+            className="px-5 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed shrink-0">
+            Добавить
+          </button>
+        </div>
+      </div>
+
+      {/* MRR — регулярный доход с подписок */}
+      {(() => {
+        const paidPlans = PLANS.filter((p) => p.id !== "free")
+          .map((p) => ({ ...p, num: Number(p.price.replace(/[^\d]/g, "")), mrr: p.shops * Number(p.price.replace(/[^\d]/g, "")) }));
+        const mrr = paidPlans.reduce((s, p) => s + p.mrr, 0);
+        const paid = paidPlans.reduce((s, p) => s + p.shops, 0);
+        return (
+          <div className="bg-white rounded-2xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-slate-500">MRR · регулярный доход с подписок</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">₴{mrr.toLocaleString("ru")}</div>
+              </div>
+              <Delta v={9.2} />
+            </div>
+            {/* разбивка по тарифам */}
+            <div className="mt-3 pt-3 border-t border-slate-50 space-y-2">
+              {paidPlans.map((p) => {
+                const pct = Math.round((p.mrr / mrr) * 100);
+                return (
+                  <div key={p.id}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-slate-600 font-medium">{p.name} <span className="text-slate-400">· {p.shops} × {p.price}</span></span>
+                      <span className="text-slate-700 font-semibold">₴{p.mrr.toLocaleString("ru")} <span className="text-slate-400 font-normal">· {pct}%</span></span>
+                    </div>
+                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: p.color }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs text-slate-400 mt-3">{paid} платных подписок — стабильный ежемесячный доход</p>
+          </div>
+        );
+      })()}
+
+      {/* лог платежей */}
+      {(() => {
+        const filtered = payFilter === "all" ? PAYMENTS : PAYMENTS.filter((p) => p.status === payFilter);
+        const planColor = { "Лайт": "#60A5FA", "Pro": "#7C3AED", "Premium": "#F59E0B" };
+        return (
+          <div className="bg-white rounded-2xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h2 className="font-semibold text-slate-900">Платежи</h2>
+              <button onClick={() => exportCSV("платежи.csv", filtered, [
+                  { label: "Дата", key: "date" },
+                  { label: "Магазин", key: "shop" },
+                  { label: "Тариф", key: "plan" },
+                  { label: "Сумма, ₴", key: "amount" },
+                  { label: "Промокод", get: (r) => r.promo || "" },
+                  { label: "Статус", get: (r) => PAY_STATUS[r.status].label },
+                ])}
+                className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">
+                <Download size={13} /> Экспорт
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+              {[["all", "Все"], ["paid", "Успешные"], ["refund", "Возвраты"], ["failed", "Ошибки"]].map(([k, l]) => (
+                <button key={k} onClick={() => setPayFilter(k)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition
+                    ${payFilter === k ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            <div className="space-y-1">
+              {filtered.map((p) => {
+                const st = PAY_STATUS[p.status];
+                return (
+                  <div key={p.id} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0 gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-slate-800">{p.shop}</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                          style={{ background: planColor[p.plan] + "1F", color: planColor[p.plan] }}>{p.plan}</span>
+                        {p.promo && <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-600">{p.promo}</span>}
+                      </div>
+                      <div className="text-xs text-slate-400 mt-0.5">{p.date}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className={`text-sm font-bold ${p.status === "refund" ? "text-amber-600" : p.status === "failed" ? "text-slate-400 line-through" : "text-slate-800"}`}>
+                        {p.status === "refund" ? "−" : ""}₴{p.amount.toLocaleString("ru")}
+                      </div>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {filtered.length === 0 && <p className="text-sm text-slate-400 py-3 text-center">Нет платежей</p>}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* цены тарифов */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-1">
+        <h2 className="font-semibold text-slate-900 mb-2">Цены тарифов</h2>
+        {PLANS.map((p) => (
+          <div key={p.id} className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+            <div className="flex items-center gap-3">
+              <span className="w-3 h-3 rounded-full" style={{ background: p.color }} />
+              <div>
+                <div className="font-semibold text-slate-900">{p.name}</div>
+                <div className="text-xs text-slate-400">
+                  {p.shops} магазинов · {p.id === "free" ? "7 дней бесплатно" : `${p.price}/мес`}
+                </div>
+              </div>
+            </div>
+            <button
+              disabled={!can("editBilling")}
+              onClick={() => flash(`Цена тарифа ${p.name} изменена`)}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-900 text-white disabled:opacity-30 disabled:cursor-not-allowed">
+              Изменить цену
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function Dashboard({ role }) {
+  const showMoney = role !== "manager";
+  const max = Math.max(...REVENUE.map((r) => r.v));
+  const [statMode, setStatMode] = useState("days");   // days | months
+  const [metric, setMetric] = useState(showMoney ? "rev" : "orders");
+
+  // менеджеру нельзя метрику дохода — переключаем на подписки
+  useEffect(() => {
+    if (!showMoney && metric === "rev") setMetric("orders");
+  }, [showMoney, metric]);
+
+  const series = statMode === "days" ? STATS_DAILY : STATS_MONTHLY;
+  const metricMeta = {
+    rev:    { label: "Доход", unit: "тыс. ₴", color: "#7C3AED", fmt: (v) => "₴" + (Math.round(v * 10) / 10).toLocaleString("ru") + "k" },
+    orders: { label: "Подписки", unit: "шт", color: "#2563EB", fmt: (v) => v.toLocaleString("ru") },
+    shops:  { label: "Новые магазины", unit: "шт", color: "#10B981", fmt: (v) => v },
+  }[metric];
+  const vals = series.map((d) => d[metric]);
+  const maxV = Math.max(...vals);
+  const totalV = vals.reduce((s, v) => s + v, 0);
+  const avgV = Math.round(totalV / vals.length * 10) / 10;
+
+  // метрики статистики: менеджеру без дохода
+  const METRIC_TABS = (showMoney ? [["rev", "Доход"]] : []).concat([["orders", "Подписки"], ["shops", "Магазины"]]);
+  // карточки: менеджеру без денежных
+  const statCards = STATS.filter((s) => showMoney || s.id !== "rev");
+  // KPI и сравнение: менеджеру без денежных строк
+  const kpiRows = KPI.filter((k) => showMoney || k.label !== "Доход");
+  const compareRows = COMPARE.filter((c) => showMoney || c.label !== "Доход");
+
+  return (
+    <div className="space-y-6 max-w-6xl">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Дашборд платформы</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Сводка по всей платформе ШОПИК</p>
+      </div>
+
+      {/* stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {statCards.map(({ id, label, value, delta, icon: Icon }) => (
+          <div key={id} className="bg-white rounded-2xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between">
+              <div className="w-9 h-9 rounded-xl bg-slate-100 grid place-items-center text-slate-500">
+                <Icon size={18} />
+              </div>
+              <Delta v={delta} />
+            </div>
+            <div className="mt-3 text-xl font-bold text-slate-900">{value}</div>
+            <div className="text-xs text-slate-500 mt-0.5">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* KPI / цели месяца */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <h2 className="font-semibold text-slate-900 mb-4">Цели месяца</h2>
+        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
+          {kpiRows.map((k) => {
+            const pct = Math.min(Math.round((k.fact / k.plan) * 100), 100);
+            const done = k.fact >= k.plan;
+            return (
+              <div key={k.label}>
+                <div className="flex justify-between text-sm mb-1.5">
+                  <span className="text-slate-600">{k.label}</span>
+                  <span className="text-slate-500"><span className="font-semibold text-slate-800">{k.fact}{k.unit}</span> / {k.plan}{k.unit}</span>
+                </div>
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${pct}%`, background: done ? "#10B981" : "#7C3AED" }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* сравнение с прошлым месяцем */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <h2 className="font-semibold text-slate-900 mb-1">Месяц к месяцу</h2>
+        <p className="text-xs text-slate-500 mb-4">червень vs травень</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {compareRows.map((c) => {
+            const diff = c.now - c.prev;
+            const pct = c.prev ? Math.round((diff / c.prev) * 100) : 0;
+            const good = c.inverse ? diff < 0 : diff > 0;
+            return (
+              <div key={c.label} className="bg-slate-50 rounded-xl p-3">
+                <div className="text-[11px] text-slate-500">{c.label}</div>
+                <div className="text-base font-bold text-slate-900 mt-0.5">
+                  {c.unit === "₴" ? "₴" + c.now.toLocaleString("ru") : c.now.toLocaleString("ru") + c.unit}
+                </div>
+                <div className={`text-xs font-semibold mt-0.5 ${good ? "text-emerald-600" : "text-rose-600"}`}>
+                  {pct >= 0 ? "+" : ""}{pct}% к прошлому
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ДЕТАЛЬНАЯ СТАТИСТИКА по дням / месяцам */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <div>
+            <h2 className="font-semibold text-slate-900">Статистика</h2>
+            <p className="text-xs text-slate-500">{statMode === "days" ? "по дням (червень 2026)" : "по месяцам 2026"}</p>
+          </div>
+          <div className="flex items-center gap-1.5 bg-slate-100 rounded-lg p-1">
+            <button onClick={() => setStatMode("days")}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${statMode === "days" ? "bg-slate-900 text-white" : "text-slate-500"}`}>
+              Дни
+            </button>
+            <button onClick={() => setStatMode("months")}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${statMode === "months" ? "bg-slate-900 text-white" : "text-slate-500"}`}>
+              Месяцы
+            </button>
+          </div>
+        </div>
+
+        {/* выбор метрики */}
+        <div className="flex items-center gap-1.5 mb-4 flex-wrap">
+          {METRIC_TABS.map(([k, l]) => (
+            <button key={k} onClick={() => setMetric(k)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition
+                ${metric === k ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {/* мини-итоги */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="bg-slate-50 rounded-xl p-3">
+            <div className="text-[11px] text-slate-500">Всего за период</div>
+            <div className="font-bold text-slate-900">{metricMeta.fmt(totalV)}</div>
+          </div>
+          <div className="bg-slate-50 rounded-xl p-3">
+            <div className="text-[11px] text-slate-500">В среднем</div>
+            <div className="font-bold text-slate-900">{metricMeta.fmt(avgV)}</div>
+          </div>
+          <div className="bg-slate-50 rounded-xl p-3">
+            <div className="text-[11px] text-slate-500">Максимум</div>
+            <div className="font-bold text-slate-900">{metricMeta.fmt(maxV)}</div>
+          </div>
+        </div>
+
+        {/* график-бары с точными значениями */}
+        <div className={`flex items-stretch gap-1 ${statMode === "days" ? "h-40 overflow-x-auto" : "h-44"}`}>
+          {series.map((d, i) => (
+            <div key={i} className="h-full flex flex-col items-center gap-1.5 group shrink-0"
+              style={{ minWidth: statMode === "days" ? 28 : undefined, flex: statMode === "months" ? "1" : undefined }}>
+              <span className="text-[10px] font-semibold text-slate-700 opacity-0 group-hover:opacity-100 transition whitespace-nowrap h-3">
+                {metricMeta.fmt(d[metric])}
+              </span>
+              <div className="flex-1 w-full flex items-end">
+                <div className="w-full rounded-t-md transition-all hover:opacity-80"
+                  style={{ height: `${Math.max((d[metric] / maxV) * 100, 3)}%`, background: metricMeta.color, minHeight: 4 }} />
+              </div>
+              <span className="text-[9px] text-slate-400 whitespace-nowrap">{d.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* точная таблица */}
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[11px] text-slate-400 uppercase tracking-wide border-b border-slate-100">
+                <th className="py-2 font-semibold">{statMode === "days" ? "День" : "Месяц"}</th>
+                {showMoney && <th className="py-2 font-semibold text-right">Доход</th>}
+                <th className="py-2 font-semibold text-right">Подписки</th>
+                <th className="py-2 font-semibold text-right">Магазины</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...series].reverse().slice(0, statMode === "days" ? 7 : 12).map((d, i) => (
+                <tr key={i} className="border-b border-slate-50 last:border-0">
+                  <td className="py-2 font-medium text-slate-700">{d.label}</td>
+                  {showMoney && <td className="py-2 text-right text-slate-700">₴{d.rev}k</td>}
+                  <td className="py-2 text-right text-slate-700">{d.orders.toLocaleString("ru")}</td>
+                  <td className="py-2 text-right text-slate-700">{d.shops}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {statMode === "days" && <p className="text-[11px] text-slate-400 mt-2">Показаны последние 7 дней · всего в графике 30</p>}
+        </div>
+      </div>
+
+      {/* география */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <MapIcon size={16} className="text-slate-400" />
+          <h2 className="font-semibold text-slate-900">География</h2>
+        </div>
+        <p className="text-xs text-slate-500 mb-4">магазины по городам</p>
+        <div className="space-y-2.5">
+          {GEO.map((g) => {
+            const gmax = Math.max(...GEO.map((x) => x.shops));
+            return (
+              <div key={g.city}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-slate-700">{g.city}</span>
+                  <span className="text-slate-500">{g.shops}</span>
+                </div>
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${(g.shops / gmax) * 100}%`, background: "#2563EB" }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* mini moderation alert */}
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-amber-100 grid place-items-center text-amber-600">
+          <AlertTriangle size={20} />
+        </div>
+        <div className="flex-1">
+          <div className="font-semibold text-amber-900 text-sm">{MOD_QUEUE.length} жалобы ждут проверки</div>
+          <div className="text-xs text-amber-700">Перейдите в раздел «Модерация», чтобы разобрать очередь</div>
+        </div>
+      </div>
+
+      {/* топ магазинов по обороту */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <h2 className="font-semibold text-slate-900 mb-1">Топ магазинов</h2>
+        <p className="text-xs text-slate-500 mb-4">по обороту за месяц</p>
+        <div className="space-y-3">
+          {TOP_SHOPS.map((s, i) => (
+            <div key={s.name}>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="font-medium text-slate-700">
+                  <span className="text-slate-400 mr-1.5">{i + 1}</span>{s.name}
+                </span>
+                {showMoney && <span className="text-slate-500">₴{s.rev.toLocaleString("ru")}</span>}
+              </div>
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${s.pct}%`, background: "#7C3AED" }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// SHOPS
+// ============================================================
+function Shops({ role, can, flash }) {
+  const [rows, setRows] = useState(SHOPS);
+  const [filter, setFilter] = useState("all");
+  const [q, setQ] = useState("");
+  const [sel, setSel] = useState(null);
+
+  const filtered = useMemo(() => {
+    return rows.filter((r) => {
+      const okStatus = filter === "all" || r.status === filter;
+      const okQ = !q || r.name.toLowerCase().includes(q.toLowerCase()) || r.owner.toLowerCase().includes(q.toLowerCase());
+      return okStatus && okQ;
+    });
+  }, [rows, filter, q]);
+
+  const setStatus = (id, status, msg) => {
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, status } : r)));
+    setSel((cur) => (cur && cur.id === id ? { ...cur, status } : cur));
+    flash(msg);
+  };
+
+  return (
+    <div className="space-y-4 max-w-6xl">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Магазины</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{filtered.length} из {rows.length} магазинов</p>
+        </div>
+        <button onClick={() => exportCSV("магазины.csv", filtered, [
+            { label: "Магазин", key: "name" },
+            { label: "Владелец", key: "owner" },
+            { label: "Тариф", key: "plan" },
+            { label: "Статус", key: "status" },
+            ...(role !== "manager" ? [{ label: "Доход", key: "rev" }] : []),
+            { label: "Жалобы", key: "flags" },
+          ])}
+          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">
+          <Download size={14} /> Экспорт
+        </button>
+      </div>
+
+      {/* поиск + фильтры */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 flex-1 min-w-[180px]">
+          <Search size={16} className="text-slate-400" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск по названию или владельцу…"
+            className="bg-transparent text-sm outline-none w-full placeholder:text-slate-400" />
+        </div>
+        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-1">
+          {[["all", "Все"], ["active", "Активные"], ["review", "Проверка"], ["banned", "Бан"]].map(([k, l]) => (
+            <button key={k} onClick={() => setFilter(k)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition
+                ${filter === k ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-slate-400 uppercase tracking-wide border-b border-slate-100">
+                <th className="px-4 py-3 font-semibold">Магазин</th>
+                <th className="px-4 py-3 font-semibold">Тариф</th>
+                <th className="px-4 py-3 font-semibold">Статус</th>
+                {role !== "manager" && <th className="px-4 py-3 font-semibold">Доход</th>}
+                <th className="px-4 py-3 font-semibold">Жалобы</th>
+                <th className="px-4 py-3 font-semibold text-right">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((s) => {
+                const sm = statusMeta[s.status];
+                return (
+                  <tr key={s.id} onClick={() => setSel(s)}
+                    className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60 cursor-pointer">
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-slate-900">{s.name}</div>
+                      <div className="text-xs text-slate-400">{s.owner}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
+                        ${s.plan === "Pro" ? "bg-violet-50 text-violet-700" : "bg-slate-100 text-slate-500"}`}>
+                        {s.plan}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${sm.cls}`}>
+                        <sm.Icon size={12} /> {sm.label}
+                      </span>
+                    </td>
+                    {role !== "manager" && <td className="px-4 py-3 text-slate-700">{s.rev}</td>}
+                    <td className="px-4 py-3">
+                      {s.flags > 0
+                        ? <span className="text-rose-600 font-semibold">{s.flags}</span>
+                        : <span className="text-slate-300">0</span>}
+                    </td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {s.status === "review" && can("approveShop") && (
+                          <button onClick={() => setStatus(s.id, "active", `«${s.name}» одобрен`)}
+                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
+                            Одобрить
+                          </button>
+                        )}
+                        {s.status !== "banned" && can("banShop") && (
+                          <button onClick={() => setStatus(s.id, "banned", `«${s.name}» заблокирован`)}
+                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100">
+                            Бан
+                          </button>
+                        )}
+                        {s.status === "banned" && can("banShop") && (
+                          <button onClick={() => setStatus(s.id, "active", `«${s.name}» разблокирован`)}
+                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">
+                            Снять бан
+                          </button>
+                        )}
+                        <button onClick={() => setSel(s)} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100" title="Открыть карточку">
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filtered.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400 text-sm">Ничего не найдено</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {!can("banShop") && (
+        <p className="text-xs text-slate-400 flex items-center gap-1.5">
+          <Shield size={13} /> Блокировка магазинов доступна ролям «Админ» и «Владелец».
+        </p>
+      )}
+
+      {/* карточка магазина */}
+      <Drawer open={!!sel} onClose={() => setSel(null)} title="Магазин">
+        {sel && (() => {
+          const sm = statusMeta[sel.status];
+          return (
+            <div className="space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-2xl grid place-items-center text-white text-xl font-black"
+                  style={{ background: "linear-gradient(135deg,#7C3AED,#2563EB)" }}>
+                  {sel.name[0]}
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-slate-900">{sel.name}</div>
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${sm.cls}`}>
+                    <sm.Icon size={12} /> {sm.label}
+                  </span>
+                </div>
+              </div>
+
+              {/* мини-метрики */}
+              <div className={`grid ${role === "manager" ? "grid-cols-2" : "grid-cols-3"} gap-2`}>
+                {[
+                  ...(role !== "manager" ? [{ l: "Доход", v: sel.rev, Icon: DollarSign }] : []),
+                  { l: "Заказы", v: sel.orders, Icon: ShoppingBag },
+                  { l: "Товары", v: sel.products, Icon: Package },
+                ].map((m) => (
+                  <div key={m.l} className="bg-slate-50 rounded-xl p-3 text-center">
+                    <m.Icon size={16} className="text-slate-400 mx-auto mb-1" />
+                    <div className="font-bold text-slate-900 text-sm">{m.v}</div>
+                    <div className="text-[11px] text-slate-500">{m.l}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-white rounded-xl">
+                <Field icon={UserCog} label="Владелец" value={sel.owner} />
+                <Field icon={Mail} label="Email" value={sel.ownerEmail} />
+                <Field icon={MapPin} label="Город" value={sel.city} />
+                <Field icon={CreditCard} label="Тариф" value={sel.plan} />
+                <Field icon={Star} label="Рейтинг" value={sel.rating ? `${sel.rating} ★` : "—"} />
+                <Field icon={Calendar} label="Регистрация" value={sel.joined} />
+                <Field icon={Flag} label="Жалобы" value={sel.flags} />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {sel.status === "review" && can("approveShop") && (
+                  <button onClick={() => setStatus(sel.id, "active", `«${sel.name}» одобрен`)}
+                    className="w-full py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700">
+                    Одобрить магазин
+                  </button>
+                )}
+                {sel.status !== "banned" && can("banShop") && (
+                  <button onClick={() => setStatus(sel.id, "banned", `«${sel.name}» заблокирован`)}
+                    className="w-full py-2.5 rounded-xl bg-rose-50 text-rose-700 text-sm font-semibold hover:bg-rose-100">
+                    Заблокировать
+                  </button>
+                )}
+                {sel.status === "banned" && can("banShop") && (
+                  <button onClick={() => setStatus(sel.id, "active", `«${sel.name}» разблокирован`)}
+                    className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200">
+                    Снять блокировку
+                  </button>
+                )}
+                <button onClick={() => flash("Открыта витрина магазина")}
+                  className="w-full py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 flex items-center justify-center gap-1.5">
+                  <ExternalLink size={15} /> Открыть витрину
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+      </Drawer>
+    </div>
+  );
+}
+
+// ============================================================
+// USERS
+// ============================================================
+function UsersView({ role, can, flash }) {
+  const [rows, setRows] = useState(USERS);
+  const [q, setQ] = useState("");
+  const [roleF, setRoleF] = useState("all");
+  const [sel, setSel] = useState(null);
+
+  const filtered = useMemo(() => rows.filter((r) => {
+    const okQ = !q || r.name.toLowerCase().includes(q.toLowerCase()) || r.email.toLowerCase().includes(q.toLowerCase());
+    const okRole = roleF === "all" || r.role === roleF;
+    return okQ && okRole;
+  }), [rows, q, roleF]);
+
+  const remove = (id, name) => {
+    setRows((rs) => rs.filter((r) => r.id !== id));
+    setSel(null);
+    flash(`${name} удалён`);
+  };
+
+  const toggleSuspend = (u) => {
+    const ns = u.status === "suspended" ? "active" : "suspended";
+    setRows((rs) => rs.map((r) => (r.id === u.id ? { ...r, status: ns } : r)));
+    setSel((cur) => (cur && cur.id === u.id ? { ...cur, status: ns } : cur));
+    flash(ns === "suspended" ? `${u.name} приостановлен` : `${u.name} разблокирован`);
+  };
+
+  return (
+    <div className="space-y-4 max-w-5xl">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Юзеры</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{filtered.length} из {rows.length} аккаунтов</p>
+        </div>
+        <button onClick={() => exportCSV("юзеры.csv", filtered, [
+            { label: "Имя", key: "name" },
+            { label: "Email", key: "email" },
+            { label: "Телефон", key: "phone" },
+            { label: "Роль", key: "role" },
+            { label: "Тариф", key: "plan" },
+            { label: "Магазинов", key: "shops" },
+            { label: "Статус", key: "status" },
+            { label: "Регистрация", key: "joined" },
+          ])}
+          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">
+          <Download size={14} /> Экспорт
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 flex-1 min-w-[180px]">
+          <Search size={16} className="text-slate-400" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск по имени или email…"
+            className="bg-transparent text-sm outline-none w-full placeholder:text-slate-400" />
+        </div>
+        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-1">
+          {[["all", "Все"], ["seller", "Продавцы"], ["admin", "Админы"]].map(([k, l]) => (
+            <button key={k} onClick={() => setRoleF(k)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition
+                ${roleF === k ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-slate-400 uppercase tracking-wide border-b border-slate-100">
+                <th className="px-4 py-3 font-semibold">Имя</th>
+                <th className="px-4 py-3 font-semibold">Email</th>
+                <th className="px-4 py-3 font-semibold">Роль</th>
+                <th className="px-4 py-3 font-semibold">Тариф</th>
+                <th className="px-4 py-3 font-semibold">Статус</th>
+                <th className="px-4 py-3 font-semibold">Магазинов</th>
+                <th className="px-4 py-3 font-semibold text-right">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((u) => {
+                const sm = statusMeta[u.status];
+                return (
+                  <tr key={u.id} onClick={() => setSel(u)}
+                    className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60 cursor-pointer">
+                    <td className="px-4 py-3 font-semibold text-slate-900">{u.name}</td>
+                    <td className="px-4 py-3 text-slate-500">{u.email}</td>
+                    <td className="px-4 py-3">
+                      {u.role === "admin"
+                        ? <RoleBadge role="admin" />
+                        : <span className="text-xs text-slate-500">Продавец</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.plan ? (() => {
+                        const pc = { "Free": "#94A3B8", "Лайт": "#60A5FA", "Pro": "#7C3AED", "Premium": "#F59E0B" }[u.plan];
+                        return <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: pc + "1F", color: pc }}>{u.plan}</span>;
+                      })() : <span className="text-xs text-slate-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${sm.cls}`}>
+                        <sm.Icon size={12} /> {sm.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">{u.shops}</td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button onClick={() => toggleSuspend(u)}
+                          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100">
+                          {u.status === "suspended" ? "Снять" : "Стоп"}
+                        </button>
+                        {can("deleteUser") ? (
+                          <button onClick={() => remove(u.id, u.name)}
+                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100">
+                            Удалить
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-300">—</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filtered.length === 0 && (
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-400 text-sm">Ничего не найдено</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {!can("deleteUser") && (
+        <p className="text-xs text-slate-400 flex items-center gap-1.5">
+          <Shield size={13} /> Удаление и смена ролей доступны только «Владельцу».
+        </p>
+      )}
+
+      {/* карточка юзера */}
+      <Drawer open={!!sel} onClose={() => setSel(null)} title="Аккаунт">
+        {sel && (() => {
+          const sm = statusMeta[sel.status];
+          return (
+            <div className="space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-full grid place-items-center text-white text-xl font-bold"
+                  style={{ background: sel.role === "admin" ? ROLES.admin.color : "#64748B" }}>
+                  {sel.name[0]}
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-slate-900">{sel.name}</div>
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${sm.cls}`}>
+                    <sm.Icon size={12} /> {sm.label}
+                  </span>
+                </div>
+              </div>
+
+              {/* подписка / тариф — для продавцов */}
+              {sel.role === "seller" && sel.plan && (() => {
+                const planColor = { "Free": "#94A3B8", "Лайт": "#60A5FA", "Pro": "#7C3AED", "Premium": "#F59E0B" }[sel.plan] || "#94A3B8";
+                const planPrice = { "Free": "7 дней бесплатно", "Лайт": "₴499/мес", "Pro": "₴999/мес", "Premium": "₴1499/мес" }[sel.plan];
+                return (
+                  <div className="rounded-xl p-4 border" style={{ borderColor: planColor + "40", background: planColor + "0F" }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CreditCard size={16} style={{ color: planColor }} />
+                        <span className="font-bold text-slate-900">Тариф {sel.plan}</span>
+                      </div>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ background: planColor }}>{sel.shopName}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                      <div><span className="text-slate-400 text-xs block">Стоимость</span>{planPrice}</div>
+                      <div><span className="text-slate-400 text-xs block">Следующее списание</span>{sel.nextBill}</div>
+                      <div><span className="text-slate-400 text-xs block">Подписан с</span>{sel.since}</div>
+                      <div><span className="text-slate-400 text-xs block">Всего оплачено</span>{sel.spent}</div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="bg-white rounded-xl">
+                <Field icon={Mail} label="Email" value={sel.email} />
+                <Field icon={Phone} label="Телефон" value={sel.phone} />
+                <Field icon={Shield} label="Роль" value={sel.role === "admin" ? "Админ" : "Продавец"} />
+                {sel.shopName && <Field icon={Store} label="Магазин" value={sel.shopName} />}
+                <Field icon={Store} label="Магазинов" value={sel.shops} />
+                <Field icon={ShoppingBag} label="Заказов" value={sel.orders} />
+                <Field icon={DollarSign} label="Потрачено" value={sel.spent} />
+                <Field icon={Calendar} label="Регистрация" value={sel.joined} />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <button onClick={() => toggleSuspend(sel)}
+                  className="w-full py-2.5 rounded-xl bg-orange-50 text-orange-700 text-sm font-semibold hover:bg-orange-100">
+                  {sel.status === "suspended" ? "Снять приостановку" : "Приостановить аккаунт"}
+                </button>
+                <button onClick={() => flash(`Ссылка сброса пароля отправлена ${sel.email}`)}
+                  className="w-full py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 flex items-center justify-center gap-1.5">
+                  <KeyRound size={15} /> Сбросить пароль
+                </button>
+                {can("deleteUser") && (
+                  <button onClick={() => remove(sel.id, sel.name)}
+                    className="w-full py-2.5 rounded-xl bg-rose-50 text-rose-700 text-sm font-semibold hover:bg-rose-100 flex items-center justify-center gap-1.5">
+                    <Trash2 size={15} /> Удалить аккаунт
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+      </Drawer>
+    </div>
+  );
+}
+
+// ============================================================
+// BILLING (только owner)
+// ============================================================
+// ============================================================
+// MODERATION
+// ============================================================
+function Moderation({ role, can, flash }) {
+  const [queue, setQueue] = useState(MOD_QUEUE);
+  const [sel, setSel] = useState(null);
+  const [reply, setReply] = useState("");
+  const [thread, setThread] = useState([]); // доп. сообщения в открытой жалобе
+
+  const sevMeta = {
+    high: { cls: "bg-rose-50 text-rose-700",  label: "Высокий" },
+    mid:  { cls: "bg-amber-50 text-amber-700", label: "Средний" },
+  };
+
+  const open = (c) => { setSel(c); setThread(c.messages); setReply(""); };
+
+  const resolve = (id, action, shop) => {
+    setQueue((q) => q.filter((x) => x.id !== id));
+    setSel(null);
+    const msg = {
+      ban: `«${shop}» отправлен в бан`,
+      warn: `«${shop}» вынесено предупреждение`,
+      dismiss: `Жалоба по «${shop}» отклонена`,
+    }[action];
+    flash(msg);
+  };
+
+  const sendReply = () => {
+    if (!reply.trim()) return;
+    setThread((t) => [...t, { from: "support", text: reply.trim(), time: "сейчас" }]);
+    setReply("");
+    flash("Запрос отправлен продавцу");
+  };
+
+  return (
+    <div className="space-y-4 max-w-4xl">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Модерация</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Очередь жалоб и спорных ситуаций</p>
+      </div>
+
+      {queue.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
+          <CheckCircle2 size={36} className="text-emerald-500 mx-auto mb-3" />
+          <div className="font-semibold text-slate-900">Очередь пуста</div>
+          <div className="text-sm text-slate-500 mt-1">Все жалобы разобраны. Хорошая работа.</div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {queue.map((c) => {
+            const sv = sevMeta[c.sev];
+            return (
+              <div key={c.id} onClick={() => open(c)}
+                className="bg-white rounded-2xl border border-slate-200 p-4 flex items-start gap-3 cursor-pointer hover:border-slate-300 transition">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 grid place-items-center text-rose-500 shrink-0">
+                  <Flag size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-slate-900">{c.shop}</span>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${sv.cls}`}>{sv.label}</span>
+                  </div>
+                  <div className="text-sm text-slate-600 mt-0.5">{c.type}</div>
+                  <div className="text-xs text-slate-400 mt-0.5">Источник: {c.reporter} · {c.date}</div>
+                </div>
+                <ChevronRight size={18} className="text-slate-300 shrink-0 mt-1" />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* окно разбора жалобы */}
+      <Drawer open={!!sel} onClose={() => setSel(null)} title={sel ? sel.shop : "Жалоба"}>
+        {sel && (() => {
+          const sv = sevMeta[sel.sev];
+          return (
+            <div className="space-y-5">
+              {/* шапка */}
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-slate-900 text-lg">{sel.type}</span>
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${sv.cls}`}>{sv.label}</span>
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">{sel.shop} · {sel.owner} · {sel.reporter} · {sel.date}</div>
+              </div>
+
+              {/* детали */}
+              <div className="bg-slate-50 rounded-xl p-3">
+                <div className="text-xs font-semibold text-slate-500 mb-1">Суть жалобы</div>
+                <p className="text-sm text-slate-700 leading-snug">{sel.details}</p>
+              </div>
+
+              {/* доказательства */}
+              <div>
+                <div className="text-xs font-semibold text-slate-500 mb-2">Доказательства</div>
+                <div className="flex flex-wrap gap-2">
+                  {sel.evidence.map((e) => (
+                    <div key={e} className="flex items-center gap-1.5 text-xs text-slate-600 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5">
+                      <Paperclip size={13} className="text-slate-400" /> {e}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* история нарушений */}
+              <div>
+                <div className="text-xs font-semibold text-slate-500 mb-2">История нарушений магазина</div>
+                {sel.history.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {sel.history.map((h, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-1.5 shrink-0" />
+                        <span className="text-slate-600"><span className="text-slate-400">{h.date}</span> — {h.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400">Нарушений ранее не было — чистая история</p>
+                )}
+              </div>
+
+              {/* переписка с продавцом */}
+              <div>
+                <div className="text-xs font-semibold text-slate-500 mb-2">Переписка с продавцом</div>
+                <div className="space-y-2 mb-2">
+                  {thread.map((m, i) => (
+                    <div key={i} className={`flex ${m.from === "support" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm
+                        ${m.from === "support" ? "bg-slate-900 text-white"
+                          : m.from === "system" ? "bg-amber-50 text-amber-800 border border-amber-100"
+                          : "bg-slate-100 text-slate-800"}`}>
+                        <div className="leading-snug">{m.text}</div>
+                        <div className={`text-[10px] mt-1 ${m.from === "support" ? "text-white/50" : "text-slate-400"}`}>
+                          {m.from === "support" ? "Модератор" : m.from === "system" ? "Система" : sel.owner} · {m.time}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-end gap-1.5">
+                  <textarea value={reply} onChange={(e) => setReply(e.target.value)}
+                    placeholder="Запросить объяснение у продавца…" rows={2}
+                    className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-slate-400 placeholder:text-slate-300 resize-none" />
+                  <button onClick={sendReply} disabled={!reply.trim()}
+                    className="w-9 h-9 grid place-items-center rounded-lg bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-30 shrink-0">
+                    <Send size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* решения */}
+              <div className="pt-2 border-t border-slate-100">
+                <div className="text-xs font-semibold text-slate-500 mb-2">Решение</div>
+                <div className="grid grid-cols-1 gap-2">
+                  <button onClick={() => resolve(sel.id, "dismiss", sel.shop)}
+                    className="w-full py-2.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200">
+                    Отклонить жалобу (нарушения нет)
+                  </button>
+                  <button onClick={() => resolve(sel.id, "warn", sel.shop)}
+                    className="w-full py-2.5 rounded-lg bg-amber-50 text-amber-700 text-sm font-semibold hover:bg-amber-100">
+                    Вынести предупреждение
+                  </button>
+                  {can("banShop") && (
+                    <button onClick={() => resolve(sel.id, "ban", sel.shop)}
+                      className="w-full py-2.5 rounded-lg bg-rose-500 text-white text-sm font-semibold hover:bg-rose-600">
+                      Заблокировать магазин
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </Drawer>
+    </div>
+  );
+}
+
+// ============================================================
+// SALARY — зарплаты сотрудников
+// ============================================================
+function Salary({ role, can, flash }) {
+  const [team, setTeam] = useState(TEAM);
+  const [sel, setSel] = useState(null);
+  const [period, setPeriod] = useState("Червень 2026");
+  // черновик формы начисления (конфиг на месяц)
+  const [form, setForm] = useState({ base: "", rate: "", plan: "", bonus90: "", bonus100: "" });
+
+  const MONTHS_UA = ["Січень","Лютий","Березень","Квітень","Травень","Червень",
+    "Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"];
+  const PERIODS = useMemo(() => {
+    const out = []; let mi = 5, yr = 2026;
+    for (let i = 0; i < 36; i++) { out.push(`${MONTHS_UA[mi]} ${yr}`); mi++; if (mi > 11) { mi = 0; yr++; } }
+    return out;
+  }, []);
+
+  const fmt = (n) => "₴" + Number(n || 0).toLocaleString("ru");
+  const payroll = team.reduce((s, m) => s + m.salary, 0);
+  const pending = team.filter((m) => !m.paid && m.salary > 0).reduce((s, m) => s + m.salary, 0);
+  const paidSum = team.filter((m) => m.paid && m.salary > 0).reduce((s, m) => s + m.salary, 0);
+  const notAssigned = team.filter((m) => !m.assigned && m.role !== "owner").length;
+
+  // кто кому может начислять: owner — всем; admin — только менеджерам
+  const canAssign = (m) => {
+    if (role === "owner") return true;
+    if (role === "admin") return m.role === "manager";
+    return false;
+  };
+
+  const update = (id, fn) => {
+    setTeam((ts) => ts.map((m) => (m.id === id ? fn(m) : m)));
+    setSel((cur) => (cur && cur.id === id ? fn(cur) : cur));
+  };
+
+  // открыть карточку и подтянуть текущие параметры
+  const openCard = (m) => {
+    setSel(m);
+    const p = m.pay || {};
+    setForm({
+      base: p.base || "",
+      rate: p.rate || "",
+      plan: p.plan || "",
+      bonus90: p.bonus90 || "",
+      bonus100: p.bonus100 || "",
+    });
+  };
+
+  // авто-расчёт по конфигу: ставка + %·продажи + бонус по факту плана
+  const calc = (m) => {
+    const base = Number(form.base) || 0;
+    const rate = Number(form.rate) || 0;
+    const plan = Number(form.plan) || 0;
+    const bonus90 = Number(form.bonus90) || 0;
+    const bonus100 = Number(form.bonus100) || 0;
+    const sales = m ? (m.subSales || 0) : 0;       // ФАКТ продаж подписок — авто
+    const commission = Math.round(sales * rate / 100);
+    const progress = plan > 0 ? Math.round((sales / plan) * 100) : 0;
+    let bonus = 0, bonusLabel = "—";
+    if (plan > 0) {
+      if (progress >= 100) { bonus = bonus100; bonusLabel = "100%+"; }
+      else if (progress >= 90) { bonus = bonus90; bonusLabel = "90–99%"; }
+      else { bonus = 0; bonusLabel = "план не выполнен"; }
+    }
+    return { base, rate, plan, bonus90, bonus100, sales, commission, progress, bonus, bonusLabel,
+      total: base + commission + bonus };
+  };
+
+  const assign = (m) => {
+    const c = calc(m);
+    if (c.total <= 0 && c.base === 0 && c.commission === 0) { flash("Укажите ставку или процент"); return; }
+    update(m.id, (x) => ({
+      ...x,
+      pay: { base: c.base, rate: c.rate, plan: c.plan, bonus90: c.bonus90, bonus100: c.bonus100,
+        sales: c.sales, commission: c.commission, bonus: c.bonus, progress: c.progress },
+      salary: c.total,
+      assigned: true,
+      paid: false,
+      payDate: "ожидает",
+      period,
+    }));
+    flash(`ЗП ${m.name} начислена за ${period}`);
+  };
+
+  const markPaid = (m) => {
+    update(m.id, (x) => ({ ...x, paid: true, payDate: new Date().toLocaleDateString("ru-RU") }));
+    flash(`ЗП ${m.name} отмечена выплаченной`);
+  };
+
+  const payAll = () => {
+    setTeam((ts) => ts.map((m) => (m.salary > 0 && !m.paid ? { ...m, paid: true, payDate: new Date().toLocaleDateString("ru-RU") } : m)));
+    flash("Все начисленные зарплаты отмечены выплаченными");
+  };
+
+  return (
+    <div className="space-y-4 max-w-5xl">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Зарплата</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Начисления сотрудникам платформы</p>
+        </div>
+        {can("editBilling") && pending > 0 && (
+          <button onClick={payAll}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800">
+            <Wallet size={14} /> Выплатить всем
+          </button>
+        )}
+      </div>
+
+      {/* период */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs text-slate-400 flex items-center gap-1.5"><Calendar size={14} /> Период:</span>
+        <select value={period} onChange={(e) => setPeriod(e.target.value)}
+          className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-slate-400">
+          {PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+      </div>
+
+      {/* подсказка о незаполненных */}
+      {notAssigned > 0 && (
+        <div className="bg-violet-50 border border-violet-200 rounded-2xl p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-violet-100 grid place-items-center text-violet-600 shrink-0"><Wallet size={20} /></div>
+          <div className="flex-1">
+            <div className="font-semibold text-violet-900 text-sm">ЗП не назначена: {notAssigned}</div>
+            <div className="text-xs text-violet-700">Откройте сотрудника и укажите ставку, бонус и процент</div>
+          </div>
+        </div>
+      )}
+
+      {/* сводка */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="w-9 h-9 rounded-xl bg-slate-100 grid place-items-center text-slate-500 mb-3"><Wallet size={18} /></div>
+          <div className="text-xl font-bold text-slate-900">{fmt(payroll)}</div>
+          <div className="text-xs text-slate-500 mt-0.5">Начислено (ФОТ)</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 grid place-items-center text-emerald-600 mb-3"><CheckCircle2 size={18} /></div>
+          <div className="text-xl font-bold text-slate-900">{fmt(paidSum)}</div>
+          <div className="text-xs text-slate-500 mt-0.5">Выплачено</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="w-9 h-9 rounded-xl bg-amber-50 grid place-items-center text-amber-600 mb-3"><Clock size={18} /></div>
+          <div className="text-xl font-bold text-slate-900">{fmt(pending)}</div>
+          <div className="text-xs text-slate-500 mt-0.5">К выплате</div>
+        </div>
+      </div>
+
+      {/* таблица */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-slate-400 uppercase tracking-wide border-b border-slate-100">
+                <th className="px-4 py-3 font-semibold">Сотрудник</th>
+                <th className="px-4 py-3 font-semibold">Роль</th>
+                <th className="px-4 py-3 font-semibold">Начислено</th>
+                <th className="px-4 py-3 font-semibold">Статус</th>
+                <th className="px-4 py-3 font-semibold text-right">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {team.map((m) => {
+                const r = ROLES[m.role];
+                const editable = canAssign(m);
+                return (
+                  <tr key={m.id} onClick={() => editable && openCard(m)}
+                    className={`border-b border-slate-50 last:border-0 ${editable ? "hover:bg-slate-50/60 cursor-pointer" : ""}`}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full grid place-items-center text-white text-xs font-bold shrink-0"
+                          style={{ background: r.color }}>{m.name[0]}</div>
+                        <div>
+                          <div className="font-semibold text-slate-900">{m.name}</div>
+                          <div className="text-xs text-slate-400">{m.title}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3"><RoleBadge role={m.role} /></td>
+                    <td className="px-4 py-3 font-semibold text-slate-800">{m.salary > 0 ? fmt(m.salary) : "—"}</td>
+                    <td className="px-4 py-3">
+                      {m.role === "owner"
+                        ? <span className="text-xs text-slate-400">не начисляется</span>
+                        : !m.assigned
+                          ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">не назначена</span>
+                          : (
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
+                              ${m.paid ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                              {m.paid ? "Выплачено" : "Ожидает"}
+                            </span>
+                          )}
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      {editable ? (
+                        <button onClick={() => openCard(m)}
+                          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800">
+                          {m.assigned ? "Изменить" : "Назначить"}
+                        </button>
+                      ) : <span className="text-xs text-slate-300">нет прав</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {role === "admin" && (
+        <p className="text-xs text-slate-400 flex items-center gap-1.5">
+          <Shield size={13} /> Как админ вы начисляете ЗП только менеджерам. Свою и владельца назначает владелец.
+        </p>
+      )}
+
+      {/* карточка / форма начисления */}
+      <Drawer open={!!sel} onClose={() => setSel(null)} title="Начисление ЗП">
+        {sel && (() => {
+          const r = ROLES[sel.role];
+          const c = calc(sel);
+          return (
+            <div className="space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-full grid place-items-center text-white text-xl font-bold"
+                  style={{ background: r.color }}>{sel.name[0]}</div>
+                <div>
+                  <div className="text-lg font-bold text-slate-900">{sel.name}</div>
+                  <div className="text-sm text-slate-500">{sel.title}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                <Calendar size={13} /> Период: <span className="font-semibold text-slate-700">{period}</span>
+              </div>
+
+              {/* факт продаж — авто */}
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-center justify-between">
+                <span className="text-sm text-blue-900 flex items-center gap-1.5">
+                  <TrendingUp size={15} /> Продажи подписок (факт)
+                </span>
+                <span className="font-bold text-blue-900">{fmt(c.sales)}</span>
+              </div>
+
+              {/* параметры начисления (задаёт владелец/админ) */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 mb-1 block">Ставка, ₴</label>
+                    <input type="number" inputMode="numeric" value={form.base}
+                      onChange={(e) => setForm({ ...form, base: e.target.value })}
+                      placeholder="напр. 500"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-300" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 mb-1 block">% от продаж</label>
+                    <input type="number" inputMode="decimal" value={form.rate}
+                      onChange={(e) => setForm({ ...form, rate: e.target.value })}
+                      placeholder="напр. 2"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-300" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-500 mb-1 block">План на месяц (₴ продаж)</label>
+                  <input type="number" inputMode="numeric" value={form.plan}
+                    onChange={(e) => setForm({ ...form, plan: e.target.value })}
+                    placeholder="напр. 100000"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-300" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 mb-1 block">Бонус 90–99%, ₴</label>
+                    <input type="number" inputMode="numeric" value={form.bonus90}
+                      onChange={(e) => setForm({ ...form, bonus90: e.target.value })}
+                      placeholder="напр. 2000"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-300" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 mb-1 block">Бонус 100%+, ₴</label>
+                    <input type="number" inputMode="numeric" value={form.bonus100}
+                      onChange={(e) => setForm({ ...form, bonus100: e.target.value })}
+                      placeholder="напр. 5000"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-300" />
+                  </div>
+                </div>
+              </div>
+
+              {/* выполнение плана */}
+              {c.plan > 0 && (
+                <div className="bg-white rounded-xl border border-slate-100 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-slate-600">Выполнение плана</span>
+                    <span className={`text-sm font-bold ${c.progress >= 100 ? "text-emerald-600" : c.progress >= 90 ? "text-amber-600" : "text-slate-500"}`}>
+                      {c.progress}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all"
+                      style={{ width: `${Math.min(c.progress, 100)}%`,
+                        background: c.progress >= 100 ? "#10B981" : c.progress >= 90 ? "#F59E0B" : "#94A3B8" }} />
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1.5">
+                    {fmt(c.sales)} из {fmt(c.plan)} · бонус: {c.bonusLabel}
+                  </div>
+                </div>
+              )}
+
+              {/* авто-расчёт итога */}
+              <div className="bg-slate-50 rounded-xl p-4">
+                <div className="flex justify-between text-sm text-slate-600 py-1">
+                  <span>Ставка</span><span>{fmt(c.base)}</span>
+                </div>
+                {c.commission > 0 && (
+                  <div className="flex justify-between text-sm text-slate-600 py-1">
+                    <span>% от продаж ({c.rate}% от {fmt(c.sales)})</span>
+                    <span className="text-emerald-600">+{fmt(c.commission)}</span>
+                  </div>
+                )}
+                {c.bonus > 0 && (
+                  <div className="flex justify-between text-sm text-slate-600 py-1">
+                    <span>Бонус за план ({c.bonusLabel})</span>
+                    <span className="text-emerald-600">+{fmt(c.bonus)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-slate-900 pt-2 mt-1 border-t border-slate-200">
+                  <span>Итого к начислению</span><span className="text-lg">{fmt(c.total)}</span>
+                </div>
+              </div>
+
+              <button onClick={() => assign(sel)}
+                className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800">
+                {sel.assigned ? "Обновить начисление" : "Начислить ЗП"}
+              </button>
+
+              {sel.assigned && !sel.paid && can("editBilling") && (
+                <button onClick={() => markPaid(sel)}
+                  className="w-full py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700">
+                  Отметить выплату
+                </button>
+              )}
+
+              {/* история */}
+              {sel.history && sel.history.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-slate-900 mb-2 text-sm flex items-center gap-1.5">
+                    <RotateCcw size={15} /> История выплат
+                  </h3>
+                  <div className="bg-white rounded-xl border border-slate-100">
+                    {sel.history.map((h, i) => (
+                      <div key={i} className="flex items-center justify-between px-4 py-3 border-b border-slate-50 last:border-0">
+                        <div>
+                          <div className="text-sm font-medium text-slate-800">{h.m}</div>
+                          <div className="text-xs text-slate-400">{h.date}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-semibold text-slate-900">{fmt(h.total)}</div>
+                          <div className="text-xs text-emerald-600">выплачено</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </Drawer>
+    </div>
+  );
+}
+
+// ============================================================
+// TASKS — задачи сотрудников
+// ============================================================
+function Tasks({ role, can, flash }) {
+  const [team, setTeam] = useState(TEAM);
+  const [sel, setSel] = useState(null);
+  const [draft, setDraft] = useState("");
+
+  const allTasks = team.flatMap((m) => m.tasks);
+  const openCount = allTasks.filter((t) => !t.done).length;
+  const doneCount = allTasks.filter((t) => t.done).length;
+
+  const update = (id, fn) => {
+    setTeam((ts) => ts.map((m) => (m.id === id ? fn(m) : m)));
+    setSel((cur) => (cur && cur.id === id ? fn(cur) : cur));
+  };
+
+  const toggleTask = (mId, tId) =>
+    update(mId, (m) => ({ ...m, tasks: m.tasks.map((t) => (t.id === tId ? { ...t, done: !t.done } : t)) }));
+
+  const addTask = (mId) => {
+    if (!draft.trim()) return;
+    update(mId, (m) => ({ ...m, tasks: [...m.tasks, { id: Date.now(), text: draft.trim(), done: false }] }));
+    setDraft("");
+    flash("Задача добавлена");
+  };
+
+  return (
+    <div className="space-y-4 max-w-5xl">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Задачи</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Рабочие задачи сотрудников</p>
+      </div>
+
+      {/* сводка */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="w-9 h-9 rounded-xl bg-violet-50 grid place-items-center text-violet-600 mb-3"><ListTodo size={18} /></div>
+          <div className="text-xl font-bold text-slate-900">{openCount}</div>
+          <div className="text-xs text-slate-500 mt-0.5">Открытых</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 grid place-items-center text-emerald-600 mb-3"><CheckSquare size={18} /></div>
+          <div className="text-xl font-bold text-slate-900">{doneCount}</div>
+          <div className="text-xs text-slate-500 mt-0.5">Выполнено</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="w-9 h-9 rounded-xl bg-slate-100 grid place-items-center text-slate-500 mb-3"><Users size={18} /></div>
+          <div className="text-xl font-bold text-slate-900">{team.length}</div>
+          <div className="text-xs text-slate-500 mt-0.5">Сотрудников</div>
+        </div>
+      </div>
+
+      {/* колонки по сотрудникам */}
+      <div className="grid sm:grid-cols-2 gap-3">
+        {team.map((m) => {
+          const done = m.tasks.filter((t) => t.done).length;
+          const r = ROLES[m.role];
+          return (
+            <div key={m.id} className="bg-white rounded-2xl border border-slate-200 p-4">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-9 h-9 rounded-full grid place-items-center text-white text-sm font-bold shrink-0"
+                  style={{ background: r.color }}>{m.name[0]}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-slate-900 truncate">{m.name}</div>
+                  <div className="text-xs text-slate-400">{done}/{m.tasks.length} готово</div>
+                </div>
+                <button onClick={() => setSel(m)}
+                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">
+                  Открыть
+                </button>
+              </div>
+              <div className="space-y-1">
+                {m.tasks.slice(0, 3).map((t) => (
+                  <button key={t.id}
+                    onClick={() => can("manageTasks") && toggleTask(m.id, t.id)}
+                    className={`w-full flex items-center gap-2 p-2 rounded-lg text-left transition
+                      ${can("manageTasks") ? "hover:bg-slate-50" : "cursor-default"}`}>
+                    {t.done
+                      ? <CheckSquare size={16} className="text-emerald-500 shrink-0" />
+                      : <Square size={16} className="text-slate-300 shrink-0" />}
+                    <span className={`text-sm truncate ${t.done ? "text-slate-400 line-through" : "text-slate-700"}`}>{t.text}</span>
+                  </button>
+                ))}
+                {m.tasks.length > 3 && (
+                  <div className="text-xs text-slate-400 pl-2 pt-1">ещё {m.tasks.length - 3}…</div>
+                )}
+                {m.tasks.length === 0 && <div className="text-sm text-slate-400 p-2">Задач нет</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {!can("manageTasks") && (
+        <p className="text-xs text-slate-400 flex items-center gap-1.5">
+          <Shield size={13} /> Изменять задачи могут «Менеджер», «Админ» и «Владелец».
+        </p>
+      )}
+
+      {/* карточка задач сотрудника */}
+      <Drawer open={!!sel} onClose={() => { setSel(null); setDraft(""); }} title="Задачи сотрудника">
+        {sel && (() => {
+          const r = ROLES[sel.role];
+          const done = sel.tasks.filter((t) => t.done).length;
+          return (
+            <div className="space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-full grid place-items-center text-white text-xl font-bold"
+                  style={{ background: r.color }}>{sel.name[0]}</div>
+                <div>
+                  <div className="text-lg font-bold text-slate-900">{sel.name}</div>
+                  <div className="text-sm text-slate-500">{sel.title} · {done}/{sel.tasks.length} готово</div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                {sel.tasks.map((t) => (
+                  <button key={t.id}
+                    onClick={() => can("manageTasks") && toggleTask(sel.id, t.id)}
+                    className={`w-full flex items-center gap-2.5 p-2.5 rounded-xl text-left transition
+                      ${can("manageTasks") ? "hover:bg-slate-50" : "cursor-default"}`}>
+                    {t.done
+                      ? <CheckSquare size={18} className="text-emerald-500 shrink-0" />
+                      : <Square size={18} className="text-slate-300 shrink-0" />}
+                    <span className={`text-sm ${t.done ? "text-slate-400 line-through" : "text-slate-700"}`}>{t.text}</span>
+                  </button>
+                ))}
+                {sel.tasks.length === 0 && <div className="text-sm text-slate-400 py-2">Задач пока нет</div>}
+              </div>
+
+              {can("manageTasks") && (
+                <div className="flex items-center gap-2">
+                  <input value={draft} onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addTask(sel.id)}
+                    placeholder="Новая задача…"
+                    className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-slate-400 placeholder:text-slate-400" />
+                  <button onClick={() => addTask(sel.id)}
+                    className="w-9 h-9 grid place-items-center rounded-lg bg-slate-900 text-white hover:bg-slate-800 shrink-0">
+                    <Plus size={18} />
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </Drawer>
+    </div>
+  );
+}
+
+// ============================================================
+// SETTINGS (только owner)
+// ============================================================
+function SettingsView({ role }) {
+  const isOwner = role === "owner";
+  // локальная матрица прав (владелец может менять)
+  const PERMS = [
+    ["Одобрять магазины", "approveShop"],
+    ["Банить магазины", "banShop"],
+    ["Менять цены тарифов", "editBilling"],
+    ["Удалять юзеров", "deleteUser"],
+    ["Менять роли", "changeRole"],
+  ];
+  const [matrix, setMatrix] = useState(() => {
+    const m = {};
+    PERMS.forEach(([, key]) => { m[key] = {}; Object.keys(ROLES).forEach((rk) => { m[key][rk] = CAN[key].includes(rk); }); });
+    return m;
+  });
+  const toggle = (key, rk) => {
+    if (!isOwner || rk === "owner") return; // владелец всегда всё может
+    setMatrix((m) => ({ ...m, [key]: { ...m[key], [rk]: !m[key][rk] } }));
+  };
+
+  // общие настройки платформы
+  const [cfg, setCfg] = useState({ name: "ШОПИК", trial: 7, currency: "₴ Гривна", notifyMod: true, notifyExpiring: true, notifyChurn: false });
+
+  return (
+    <div className="space-y-5 max-w-3xl">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Настройки платформы</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Общие параметры, команда и доступы</p>
+      </div>
+
+      {/* общие настройки */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <h2 className="font-semibold text-slate-900">Общие</h2>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs text-slate-500">Название платформы</span>
+            <input value={cfg.name} onChange={(e) => setCfg({ ...cfg, name: e.target.value })} disabled={!isOwner}
+              className="mt-1 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-slate-400 disabled:opacity-50" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-slate-500">Пробный период (дней)</span>
+            <input type="number" value={cfg.trial} onChange={(e) => setCfg({ ...cfg, trial: e.target.value })} disabled={!isOwner}
+              className="mt-1 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-slate-400 disabled:opacity-50" />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="text-xs text-slate-500">Валюта</span>
+            <select value={cfg.currency} onChange={(e) => setCfg({ ...cfg, currency: e.target.value })} disabled={!isOwner}
+              className="mt-1 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-slate-400 disabled:opacity-50">
+              <option>₴ Гривна</option><option>$ Доллар</option><option>€ Евро</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      {/* уведомления платформы */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <h2 className="font-semibold text-slate-900 mb-3">Уведомления</h2>
+        <div className="space-y-1">
+          {[
+            ["notifyMod", "Новые жалобы на модерацию"],
+            ["notifyExpiring", "Подписки на исходе"],
+            ["notifyChurn", "Отток подписок"],
+          ].map(([key, label]) => (
+            <div key={key} className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0">
+              <span className="text-sm text-slate-700">{label}</span>
+              <button onClick={() => setCfg({ ...cfg, [key]: !cfg[key] })}
+                className={`w-11 h-6 rounded-full transition relative ${cfg[key] ? "bg-emerald-500" : "bg-slate-200"}`}>
+                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${cfg[key] ? "left-5.5" : "left-0.5"}`}
+                  style={{ left: cfg[key] ? 22 : 2 }} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* команда */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <h2 className="font-semibold text-slate-900 mb-4">Команда</h2>
+        <div className="space-y-3">
+          {[
+            { name: "Андрей (вы)", role: "owner" },
+            { name: "Максим",      role: "admin" },
+            { name: "Светлана",    role: "manager" },
+          ].map((m, i) => (
+            <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full grid place-items-center text-white text-sm font-bold"
+                  style={{ background: ROLES[m.role].color }}>{m.name[0]}</div>
+                <span className="font-medium text-slate-800">{m.name}</span>
+              </div>
+              <RoleBadge role={m.role} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* матрица прав — переключаемая для владельца */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <h2 className="font-semibold text-slate-900 mb-1">Матрица прав</h2>
+        <p className="text-xs text-slate-500 mb-3">{isOwner ? "Нажмите на ячейку, чтобы изменить доступ" : "Только владелец может менять права"}</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-slate-400 uppercase">
+                <th className="text-left py-2 font-semibold">Действие</th>
+                {Object.entries(ROLES).map(([k, r]) => (
+                  <th key={k} className="py-2 font-semibold text-center" style={{ color: r.color }}>{r.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {PERMS.map(([label, key]) => (
+                <tr key={key} className="border-t border-slate-50">
+                  <td className="py-2.5 text-slate-700">{label}</td>
+                  {Object.keys(ROLES).map((rk) => {
+                    const on = matrix[key][rk];
+                    const locked = !isOwner || rk === "owner";
+                    return (
+                      <td key={rk} className="py-2.5 text-center">
+                        <button onClick={() => toggle(key, rk)} disabled={locked}
+                          className={locked ? "cursor-default" : "cursor-pointer hover:scale-110 transition"}>
+                          {on
+                            ? <CheckCircle2 size={18} className="text-emerald-500 mx-auto" />
+                            : <XCircle size={18} className="text-slate-200 mx-auto" />}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(AdminPanel));
+</script>
+</body>
+</html>
