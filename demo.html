@@ -109,6 +109,11 @@
   .dot-progress i.on{width:24px;background:#fff}
 
   .demo-note{border:1px dashed var(--warnln);background:var(--warnbg);border-radius:16px;padding:12px 14px;font-size:12.5px;color:#f4d58a;line-height:1.45}
+  .streak{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .cell{aspect-ratio:1;border-radius:9px;display:grid;place-items:center;font-size:12px;font-weight:800}
+  .cell.done{background:var(--goodbg);border:1px solid var(--goodln);color:var(--good)}
+  .cell.today{background:var(--grad);color:#0b0d12;box-shadow:0 0 0 2px rgba(255,255,255,.15)}
+  .cell.pend{background:var(--surface);border:1px solid var(--line2);color:var(--mut2)}
   code{background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px;font-size:.85em}
 
   .pop{animation:pop .28s var(--sp)} .rise{animation:rise .3s ease}
@@ -153,14 +158,14 @@
   const today=()=>new Date().toISOString().slice(0,10);
   const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
 
-  const def={page:"intro",introI:0,seenIntro:false,balance:0,challenge:null,txns:[],wds:[]};
+  const def={page:"intro",introI:0,seenIntro:false,balance:0,challenge:null,txns:[],wds:[],history:[]};
   let S=load();
   const ui={createOpen:false,stake:500,days:21,wtab:"topup",
     tuMethod:"card",tuAmount:"",wdMethod:"card",wdAmount:"",wdDest:"",
     ci:{img:null,state:"idle",result:null}};
 
   function load(){try{const s=JSON.parse(localStorage.getItem(KEY));return s?Object.assign({},def,s):Object.assign({},def);}catch(e){return Object.assign({},def);}}
-  function save(){try{localStorage.setItem(KEY,JSON.stringify({page:S.page,seenIntro:S.seenIntro,balance:S.balance,challenge:S.challenge,txns:S.txns,wds:S.wds}));}catch(e){}}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify({page:S.page,seenIntro:S.seenIntro,balance:S.balance,challenge:S.challenge,txns:S.txns,wds:S.wds,history:S.history}));}catch(e){}}
   function addTxn(t){S.txns.unshift(Object.assign({id:uid(),ts:Date.now()},t));S.txns=S.txns.slice(0,60);}
 
   let toastT;
@@ -232,6 +237,7 @@
           <div style="font-weight:800" class="num">${fmt(ch.stake*2)} ₴ <span style="color:var(--good)">×2</span></div></div></div>
           <span class="badge" style="color:#fca5a5;background:var(--badbg);border:1px solid var(--badln);flex:0 0 auto">🔥 −${fmt(ch.stake)} ₴</span>
         </div>
+        ${streakGrid(ch)}
         ${checkedToday
           ? `<div class="card2 row" style="border-color:var(--goodln);background:var(--goodbg)">
               <div style="width:36px;height:36px;border-radius:11px;background:rgba(52,211,153,.2);color:var(--good);display:grid;place-items:center">${svg("check",20)}</div>
@@ -246,6 +252,15 @@
     return `<div class="pad">${header()}${body}</div>`;
   }
   function stat(i,l,v){return `<div class="stat"><div class="mut">${svg(i,16)}</div><div class="v num">${v}</div><div class="l">${l}</div></div>`;}
+  function streakGrid(ch){
+    let cells="";
+    for(let i=0;i<ch.days;i++){
+      if(i<ch.done) cells+=`<div class="cell done">✓</div>`;
+      else if(i===ch.done) cells+=`<div class="cell today">${i+1}</div>`;
+      else cells+=`<div class="cell pend">${i+1}</div>`;
+    }
+    return `<div class="card2"><div class="eyebrow" style="margin-bottom:10px">Твої дні</div><div class="streak">${cells}</div></div>`;
+  }
   function cardResult(emoji,title,html,sub,kind){
     const ln=kind==="good"?"var(--goodln)":"var(--badln)", bg=kind==="good"?"var(--goodbg)":"var(--badbg)";
     return `<div class="card rise" style="text-align:center;border-color:${ln};background:${bg}">
@@ -354,7 +369,8 @@
   }
 
   function profile(){
-    const done=S.challenge?S.challenge.done:0;
+    const wins=S.history.filter(h=>h.status==="won").length;
+    const fails=S.history.filter(h=>h.status==="failed").length;
     const items=[
       ["Ставка на себе","Кидаєш суму на час челленджу — вона блокується."],
       ["AI-рефері","AI по фото визначає зал це чи диван. Чесно і швидко."],
@@ -362,21 +378,40 @@
       ["Зірвався — згорає","Пропустив день — ставка згорає. Саме тому важко зіскочити."],
     ];
     return `<div class="pad">
-      <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:24px">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:20px">
         <div style="width:80px;height:80px;border-radius:999px;background:var(--grad);display:grid;place-items:center;color:#0b0d12;margin-bottom:12px">${svg("user",36)}</div>
-        <div style="font-weight:800;font-size:18px">Ти</div><div class="mut" style="font-size:14px">${done>0?done+" днів дисципліни":"Новачок"}</div>
+        <div style="font-weight:800;font-size:18px">Ти</div>
+        <div class="mut" style="font-size:14px">${wins+fails>0?`🏆 ${wins} виграно · 🔥 ${fails} зірвано`:"Новачок"}</div>
       </div>
       <button class="btn btn-grad" style="margin-bottom:16px" data-act="share">${svg("share",18)} Поділитися челленджем</button>
-      <div class="card stack">
+      ${historyList()}
+      <div class="card stack" style="margin-top:16px">
         <h3 style="font-weight:800;display:flex;align-items:center;gap:8px"><span style="color:var(--amber)">${svg("spark",18)}</span> Як це працює</h3>
         ${items.map((it,k)=>`<div class="row" style="align-items:flex-start">
           <div style="width:24px;height:24px;border-radius:999px;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 auto;margin-top:2px">${k+1}</div>
           <div><div style="font-weight:700;font-size:14px">${it[0]}</div><div class="mut" style="font-size:14px">${it[1]}</div></div></div>`).join("")}
       </div>
+      <div class="card2" style="margin-top:16px">
+        <h3 style="font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="color:var(--good)">${svg("coins",18)}</span> Звідки ×2</h3>
+        <p class="mut" style="font-size:13px;line-height:1.55;margin:0">Ставки тих, хто зірвався, формують спільний банк. Хто дійшов до кінця — забирає свою ставку у подвійному розмірі з цього банку. Платформа бере невелику комісію з банку — на цьому й заробляє.</p>
+      </div>
       <div class="card2 row" style="align-items:flex-start;margin-top:16px;border-color:var(--warnln);background:var(--warnbg)">
         <span style="color:var(--amber);flex:0 0 auto">${svg("shield",18)}</span>
         <p style="font-size:12px;color:#f4d58a;line-height:1.5;margin:0">Перед запуском модель варто показати юристу: виплати ×2 можуть трактуватись як парі / азартна гра. Уточни ліцензування та податки.</p>
       </div>
+    </div>`;
+  }
+  function historyList(){
+    if(!S.history.length) return "";
+    return `<div class="card stack">
+      <h3 style="font-weight:800;display:flex;align-items:center;gap:8px"><span class="mut">${svg("flame",18)}</span> Мої челленджі</h3>
+      ${S.history.map(h=>`<div class="between">
+        <div><div style="font-weight:700;font-size:14px" class="num">${fmt(h.stake)} ₴ · ${h.days} днів</div>
+        <div class="mut2" style="font-size:12px">${new Date(h.ts).toLocaleDateString("uk-UA",{day:"numeric",month:"short",year:"numeric"})} · пройдено ${h.done}/${h.days}</div></div>
+        ${h.status==="won"
+          ? `<span class="badge" style="color:var(--good);background:var(--goodbg);border:1px solid var(--goodln)">🏆 +${fmt(h.stake)} ₴</span>`
+          : `<span class="badge" style="color:#fca5a5;background:var(--badbg);border:1px solid var(--badln)">🔥 −${fmt(h.stake)} ₴</span>`}
+      </div>`).join("")}
     </div>`;
   }
 
@@ -388,13 +423,14 @@
       <div class="between" style="margin-bottom:20px"><h2 style="font-size:21px;font-weight:800">Новий челендж</h2>
         <button class="close" data-act="create-close">${svg("x",18)}</button></div>
       <label class="mut" style="font-size:14px">Ставка на себе</label>
-      <div class="g4" style="margin:8px 0 20px">${[300,500,1000,2000].map(s=>`<button class="pill ${ui.stake===s?'on':''}" data-act="set-stake" data-v="${s}">${s}</button>`).join("")}</div>
+      <div class="g4" style="margin:8px 0 8px">${[300,500,1000,2000].map(s=>`<button class="pill ${ui.stake===s?'on':''}" data-act="set-stake" data-v="${s}">${s}</button>`).join("")}</div>
+      <input class="field num" id="stakeCustom" data-model="stakeCustom" data-numeric="1" inputmode="numeric" placeholder="Своя сума, ₴" value="${[300,500,1000,2000].includes(ui.stake)?'':ui.stake}" style="margin-bottom:20px"/>
       <label class="mut" style="font-size:14px">Скільки днів у зал</label>
       <div class="g4" style="margin:8px 0 20px">${[7,14,21,30].map(d=>`<button class="pill ${ui.days===d?'on':''}" data-act="set-days" data-v="${d}">${d}</button>`).join("")}</div>
       <div class="card2 stack" style="padding:16px;margin-bottom:16px">
-        ${srow("Ставка (спишеться зараз)",fmt(ui.stake)+" ₴",false,true)}
-        <div class="between"><span style="font-size:14px;color:var(--good)">Виконаєш — забираєш</span><span class="num" style="font-size:14px;font-weight:800;color:var(--good)">${fmt(prize)} ₴ ×2</span></div>
-        <div class="between"><span style="font-size:14px;color:var(--bad)">Зірвешся — згорає</span><span class="num" style="font-size:14px;font-weight:700;color:var(--bad)">−${fmt(ui.stake)} ₴</span></div>
+        <div class="between"><span class="mut" style="font-size:14px">Ставка (спишеться зараз)</span><span class="num" id="sumStake" style="font-size:14px;font-weight:800">${fmt(ui.stake)} ₴</span></div>
+        <div class="between"><span style="font-size:14px;color:var(--good)">Виконаєш — забираєш</span><span class="num" id="sumPrize" style="font-size:14px;font-weight:800;color:var(--good)">${fmt(prize)} ₴ ×2</span></div>
+        <div class="between"><span style="font-size:14px;color:var(--bad)">Зірвешся — згорає</span><span class="num" id="sumBurn" style="font-size:14px;font-weight:700;color:var(--bad)">−${fmt(ui.stake)} ₴</span></div>
       </div>
       ${enough
         ? `<button class="btn btn-grad" data-act="create-confirm">Прийняти виклик</button>`
@@ -441,13 +477,14 @@
     ui.ci.result={verdict,confidence:.9,reason:reasons[verdict]};
     if(verdict==="gym"){
       ch.done+=1;ch.lastCheckin=today();
-      if(ch.done>=ch.days){ch.status="won";S.balance+=ch.stake*2;addTxn({type:"win",amount:ch.stake*2,note:"Челендж пройдено — виплата ×2"});}
+      if(ch.done>=ch.days){ch.status="won";S.balance+=ch.stake*2;addTxn({type:"win",amount:ch.stake*2,note:"Челендж пройдено — виплата ×2"});S.history.unshift({stake:ch.stake,days:ch.days,done:ch.done,status:"won",ts:Date.now()});}
     }
     ui.ci.state="done";save();render();
   }
   function failChallenge(){
     const ch=S.challenge;if(!ch||ch.status!=="active")return;
     addTxn({type:"burn",amount:0,note:`Зрив — ${fmt(ch.stake)} ₴ згоріли`});
+    S.history.unshift({stake:ch.stake,days:ch.days,done:ch.done,status:"failed",ts:Date.now()});
     ch.status="failed";save();render();toast("Челендж зірвано. Ставка згоріла 🔥");
   }
 
@@ -483,6 +520,13 @@
     if(val!==el.value)el.value=val;
     ui[el.dataset.model]=val;
     // live-update submit buttons without full re-render (keeps focus)
+    if(el.dataset.model==="stakeCustom"){
+      ui.stake=parseInt(val,10)||0; const P=ui.stake*2;
+      const a=document.getElementById("sumStake"); if(a)a.textContent=fmt(ui.stake)+" ₴";
+      const b=document.getElementById("sumPrize"); if(b)b.textContent=fmt(P)+" ₴ ×2";
+      const c=document.getElementById("sumBurn"); if(c)c.textContent="−"+fmt(ui.stake)+" ₴";
+      document.querySelectorAll('[data-act="set-stake"]').forEach(btn=>btn.classList.toggle("on",+btn.dataset.v===ui.stake));
+    }
     if(el.dataset.model==="tuAmount"){const a=parseInt(val,10)||0;const b=document.getElementById("tuBtn");if(b){b.disabled=a<50;b.innerHTML='Поповнити на <span class="num">'+fmt(a)+'</span> ₴';}}
     if(el.dataset.model==="wdAmount"||el.dataset.model==="wdDest"){const a=parseInt(ui.wdAmount,10)||0;const ok=a>=50&&a<=S.balance&&ui.wdDest.trim().length>=6;const b=document.getElementById("wdBtn");if(b)b.disabled=!ok;}
   });
