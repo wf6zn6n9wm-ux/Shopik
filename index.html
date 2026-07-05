@@ -1220,6 +1220,17 @@ export default function ShopPlatform() {
               </div>
               <p className={`text-center text-xs ${appDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Живе превʼю — так виглядатиме магазин</p>
 
+              {bannerImg && (
+                <div className={`rounded-2xl p-4 -mt-1 ${appDark ? 'bg-neutral-900 border border-neutral-800' : 'bg-white shadow-sm'}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={`text-xs uppercase tracking-wider ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Підбери кадр банера</label>
+                    <button onClick={() => setBannerImg(null)} className={`text-xs ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Прибрати фото</button>
+                  </div>
+                  <input type="range" min="0" max="100" value={bannerPos} onChange={(e) => setBannerPos(Number(e.target.value))} className="w-full" />
+                  <p className={`text-[11px] mt-1 ${appDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Тягни повзунок — банер угорі зміститься.</p>
+                </div>
+              )}
+
               <div className={`rounded-2xl p-6 space-y-5 ${appDark ? 'bg-neutral-900 border border-neutral-800' : 'bg-white shadow-sm'}`}>
                 <div>
                   <label className={`block text-xs uppercase tracking-wider mb-2 ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Тема</label>
@@ -1242,7 +1253,7 @@ export default function ShopPlatform() {
                     <span className={`text-xs flex items-center gap-2 ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}><ImageIcon className="w-4 h-4" /> Або завантаж своє фото</span>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => readImage(e.target.files[0], setBannerImg)} />
                   </label>
-                  {bannerImg && (<div className="mt-2"><label className={`block text-xs mb-1 ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Підбери кадр</label><input type="range" min="0" max="100" value={bannerPos} onChange={(e) => setBannerPos(Number(e.target.value))} className="w-full" /><button onClick={() => setBannerImg(null)} className={`text-xs mt-1 ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Прибрати фото</button></div>)}
+                  {bannerImg && <p className={`text-xs mt-2 ${appDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Фото завантажено. Кадр підбирається під превʼю вгорі ↑</p>}
                 </div>
               </div>
               <button onClick={handleCreate} className={`w-full font-semibold py-4 rounded-full tracking-wide ${appDark ? 'bg-white text-neutral-900' : 'bg-neutral-900 text-white'}`}>🚀 Створити магазин за 30 секунд</button>
