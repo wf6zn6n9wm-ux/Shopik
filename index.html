@@ -2,8 +2,9 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>Shopik — магазин за 5 хвилин</title>
+<style>html,body{margin:0;background:#0e0e0e;min-height:100%;}</style>
 <script src="https://cdn.tailwindcss.com"></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -80,8 +81,8 @@ const db = {
   // Зберегти весь список магазинів продавця
   async saveShops(shops, userId) {
     const okLocal = _lsSet('shops', shops); // локальний кеш завжди
-    if (_supa && shops.length) {
-      const rows = shops.map(s => ({ id: s.id, owner: userId || null, data: s }));
+    if (_supa && userId && shops.length) { // у хмару — лише коли є акаунт (owner)
+      const rows = shops.map(s => ({ id: s.id, owner: userId, data: s }));
       const { error } = await _supa.from('shops').upsert(rows);
       if (error) { console.warn('[Shopik] Supabase save error:', error.message); return false; }
     }
@@ -262,6 +263,7 @@ export default function ShopPlatform() {
   const [authErr, setAuthErr] = useState('');
   const [authMsg, setAuthMsg] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
+  const [afterAuthPage, setAfterAuthPage] = useState(null); // куди перейти після входу/реєстрації
   // Публічна вітрина (покупець відкрив посилання ?s=slug)
   const isPublic = !!PUBLIC_SLUG;
   const [pubError, setPubError] = useState(false);
@@ -298,13 +300,20 @@ export default function ShopPlatform() {
     db.loadShops(user ? user.id : null).then(list => {
       if (!alive) return;
       if (db.cloud) {
-        let changed = false;
-        list = list.map(s => { if (!s.slug) { changed = true; return { ...s, slug: slugify(s.name, s.id) }; } return s; });
-        setShops(list);
-        setActiveShop(prev => prev ? (list.find(s => s.id === prev.id) || null) : prev);
+        let finalList;
+        if ((!list || list.length === 0) && shops.length) {
+          // Міграція: магазин, створений до реєстрації, привʼязуємо до нового акаунта
+          finalList = shops.map(s => ({ ...s, slug: s.slug || slugify(s.name, s.id) }));
+          if (user) db.saveShops(finalList, user.id);
+        } else {
+          let changed = false;
+          finalList = list.map(s => { if (!s.slug) { changed = true; return { ...s, slug: slugify(s.name, s.id) }; } return s; });
+          if (changed && user) db.saveShops(finalList, user.id); // додати slug наявним магазинам
+        }
+        setShops(finalList);
+        setActiveShop(prev => prev ? (finalList.find(s => s.id === prev.id) || null) : prev);
         // Продавець із магазинами одразу потрапляє до «Мої магазини», а не на лендинг
-        if (list.length) setPage(p => p === 'home' ? 'myshops' : p);
-        if (changed && user) db.saveShops(list, user.id); // додати slug наявним магазинам
+        if (finalList.length) setPage(p => p === 'home' ? 'myshops' : p);
       }
       hydrated.current = true;
     });
@@ -404,9 +413,9 @@ export default function ShopPlatform() {
     if (res.error) { setAuthErr(res.error); return; }
     setAuthPass('');
     if (authMode === 'register' && !res.session) { setAuthMsg('Готово! Підтвердіть пошту за посиланням з листа, потім увійдіть.'); setAuthMode('login'); return; }
-    if (res.user) setUser(res.user); // слухач onChange теж оновить стан
+    if (res.user) { setUser(res.user); setPage(afterAuthPage || 'home'); setAfterAuthPage(null); } // слухач onChange теж оновить стан
   };
-  const logout = async () => { await auth.signOut(); setUser(null); setPage('home'); setActiveShop(null); flash('Ви вийшли'); };
+  const logout = async () => { await auth.signOut(); setUser(null); setShops([]); setActiveShop(null); setPage('home'); flash('Ви вийшли'); };
 
   const shopSlugOf = (shop) => shop.slug || slugify(shop.name, shop.id);
   const shopLink = (shop) => `${window.location.origin}${window.location.pathname}?s=${shopSlugOf(shop)}`;
@@ -462,8 +471,14 @@ export default function ShopPlatform() {
       const shop = makeShop({ name, slogan, vibe, accent, banner, bannerImage: bannerImg, categories: [...(nichePresets[niche] || []), ...customCats] });
       setShops([...shops, shop]); setActiveShop(shop);
       setName(''); setSlogan(''); setVibe('light'); setAccent('#161616'); setBanner(0); setBannerImg(null); setBannerPos(50); setNiche('Одяг'); setCustomCats([]); setNewCat(''); setCreateStep(1); setDemoMode(false);
-      setPage('dashboard');
-      flash(`Магазин створено · 7 днів безкоштовно до ${new Date(shop.trialEnd).toLocaleDateString('uk', { day: '2-digit', month: '2-digit' })}`);
+      if (auth.enabled && !user) {
+        // Реєстрація в кінці створення — щоб зберегти магазин під акаунтом
+        setAuthMode('register'); setAfterAuthPage('dashboard'); setPage('auth');
+        flash('Останній крок — створіть акаунт, щоб зберегти магазин');
+      } else {
+        setPage('dashboard');
+        flash(`Магазин створено · 7 днів безкоштовно до ${new Date(shop.trialEnd).toLocaleDateString('uk', { day: '2-digit', month: '2-digit' })}`);
+      }
     }
   };
 
@@ -867,18 +882,22 @@ export default function ShopPlatform() {
     );
   }
 
-  // ===== ВХІД ПРОДАВЦЯ (лише коли підключено Supabase) =====
-  if (auth.enabled && !authReady && !isPublic) {
+  // ===== ВХІД / РЕЄСТРАЦІЯ ПРОДАВЦЯ =====
+  // Сторінки, що вимагають входу (керування магазином). Лендинг і створення — відкриті.
+  const SELLER_PAGES = ['dashboard', 'myshops', 'settings', 'orders', 'analytics', 'promos', 'clients', 'bulk'];
+  const needAuth = auth.enabled && !user && !isPublic && SELLER_PAGES.indexOf(page) !== -1;
+  if (!isPublic && auth.enabled && !authReady && (page === 'auth' || needAuth)) {
     return (
       <div className="min-h-screen bg-neutral-900 text-white flex items-center justify-center">
         <div className="text-neutral-400 text-sm">Завантаження…</div>
       </div>
     );
   }
-  if (auth.enabled && !user && !isPublic) {
+  if (!isPublic && !user && (page === 'auth' || needAuth)) {
     return (
       <div className="min-h-screen bg-neutral-900 text-white flex flex-col justify-center">
         <div className="max-w-sm w-full mx-auto px-6">
+          <button onClick={() => { setPage('home'); setAfterAuthPage(null); setAuthErr(''); setAuthMsg(''); }} className="text-neutral-400 text-sm mb-6">← Назад</button>
           <div className="text-5xl mb-4 text-center">◐</div>
           <h1 className="text-3xl font-semibold tracking-[0.3em] mb-2 text-center">ШОПИК</h1>
           <p className="text-neutral-400 text-sm text-center mb-7">{authMode === 'login' ? 'Вхід для продавців' : 'Реєстрація продавця'}</p>
@@ -907,7 +926,12 @@ export default function ShopPlatform() {
     return (
       <div className="min-h-screen bg-neutral-900 text-white">
         <Toast />
-        <div className="max-w-sm mx-auto px-6 pt-16 pb-10">
+        <div className="max-w-sm mx-auto px-6 pt-6 pb-10">
+          {auth.enabled && !user && (
+            <div className="flex justify-end mb-6">
+              <button onClick={() => { setAuthMode('login'); setAfterAuthPage(null); setAuthErr(''); setAuthMsg(''); setPage('auth'); }} className="text-sm text-neutral-200 border border-neutral-700 rounded-full px-5 py-2">Вхід</button>
+            </div>
+          )}
           <div className="text-5xl mb-5 text-center">◐</div>
           <h1 className="text-3xl font-semibold tracking-[0.3em] mb-4 text-center">ШОПИК</h1>
           <h2 className="text-[26px] font-semibold leading-tight text-center mb-3">Перетвори Instagram чи Telegram на магазин за 5 хвилин</h2>
@@ -917,7 +941,7 @@ export default function ShopPlatform() {
           <button onClick={() => setPage('import')} className="w-full bg-white text-neutral-900 font-semibold py-4 rounded-full mb-3 flex items-center justify-center gap-2"><Send className="w-5 h-5" /> Підключити Telegram</button>
           <button onClick={seeDemo} className="w-full border border-neutral-700 text-white py-4 rounded-full mb-3 flex items-center justify-center gap-2">👀 Подивитись демо-магазин</button>
           <button onClick={() => setPage('create')} className="w-full text-neutral-400 py-3 text-sm mb-1">Створити вручну →</button>
-          {shops.length > 0 && <button onClick={() => setPage('myshops')} className="w-full text-neutral-400 py-2 text-sm">Мої магазини ({shops.length})</button>}
+          {(!auth.enabled || user) && shops.length > 0 && <button onClick={() => setPage('myshops')} className="w-full text-neutral-400 py-2 text-sm">Мої магазини ({shops.length})</button>}
           {auth.enabled && user && <button onClick={logout} className="w-full text-neutral-500 py-2 text-xs">Вийти ({user.email})</button>}
 
           <div className="mt-4 rounded-2xl p-4 text-center" style={{ background: 'linear-gradient(135deg,#1f1f1f,#3a3a3a)' }}>
