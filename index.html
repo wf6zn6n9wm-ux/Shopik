@@ -588,10 +588,25 @@ export default function ShopPlatform() {
   const handleSetCatImagePos = (cname, pos) => { if (activeShop) updateShop({ categories: activeShop.categories.map(c => c.name === cname ? { ...c, imgPos: pos } : c) }); };
 
   const aiFillSingle = () => {
-    setPname(sampleNames[Math.floor(Math.random() * sampleNames.length)]);
-    setPcat(activeShop.categories[0]?.name || '');
-    setPrice(String(1000 + Math.floor(Math.random() * 8000)));
-    flash('AI запропонував назву, категорію і ціну ✨');
+    if (!activeShop) return;
+    if (!pimg) { flash('Спочатку завантаж фото товару — AI його розпізнає'); return; }
+    const used = aiUsedOf(activeShop);
+    const limit = aiLimitFor(activeShop);
+    if (limit !== Infinity && used >= limit) { flash('AI-ліміт вичерпано. Заповни вручну або докупи пакет у «Фото → товари з AI»'); return; }
+    const catNames = (activeShop.categories || []).map(c => c.name);
+    flash('AI аналізує фото…');
+    aiAnalyze(pimg, catNames).then(r => {
+      if (!r) { flash('AI недоступний — заповни вручну'); return; }
+      if (r.name) setPname(r.name);
+      if (r.price) setPrice(String(r.price));
+      if (r.description) setPdesc(r.description);
+      const aiCat = (r.category || '').trim();
+      const patch = { aiUsed: used + 1 };
+      if (aiCat && catNames.indexOf(aiCat) === -1) patch.categories = [...activeShop.categories, { name: aiCat, subs: [] }];
+      updateShop(patch);
+      if (aiCat) { setPcat(aiCat); setPsub(''); }
+      flash('AI заповнив картку ✨');
+    });
   };
   const aiDesc = () => {
     const n = pname || 'товар';
@@ -1687,24 +1702,24 @@ export default function ShopPlatform() {
               </div>
             ) : (
               <div ref={addFormRef} className={`rounded-2xl p-4 mb-5 space-y-3 ${appDark ? 'bg-neutral-800' : 'bg-white shadow-sm'}`}>
-                <input value={pname} onChange={(e) => setPname(e.target.value)} placeholder="Назва товару" className="w-full border rounded-xl p-3 text-sm" />
+                <input value={pname} onChange={(e) => setPname(e.target.value)} placeholder="Назва товару" className={`w-full border rounded-xl p-3 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : ''}`} />
                 <div className="grid grid-cols-2 gap-2">
-                  <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" placeholder="Ціна ₴" className="border rounded-xl p-3 text-sm" />
-                  <input value={oldPrice} onChange={(e) => setOldPrice(e.target.value)} type="number" placeholder="Стара ₴" className="border rounded-xl p-3 text-sm" />
+                  <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" placeholder="Ціна ₴" className={`border rounded-xl p-3 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : ''}`} />
+                  <input value={oldPrice} onChange={(e) => setOldPrice(e.target.value)} type="number" placeholder="Стара ₴" className={`border rounded-xl p-3 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : ''}`} />
                 </div>
-                <select value={pcat} onChange={(e) => { setPcat(e.target.value); setPsub(''); }} className="w-full border rounded-xl p-3 text-sm">
+                <select value={pcat} onChange={(e) => { setPcat(e.target.value); setPsub(''); }} className={`w-full border rounded-xl p-3 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : ''}`}>
                   <option value="">Категорія…</option>{activeShop.categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                 </select>
                 {pcat && (subOptions.length > 0 ? (
-                  <select value={psub} onChange={(e) => setPsub(e.target.value)} className="w-full border rounded-xl p-3 text-sm"><option value="">Підкатегорія…</option>{subOptions.map(s => <option key={s} value={s}>{s}</option>)}</select>
+                  <select value={psub} onChange={(e) => setPsub(e.target.value)} className={`w-full border rounded-xl p-3 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : ''}`}><option value="">Підкатегорія…</option>{subOptions.map(s => <option key={s} value={s}>{s}</option>)}</select>
                 ) : (<p className="text-xs text-neutral-400">У цієї категорії ще немає підкатегорій.</p>))}
-                <select value={sec} onChange={(e) => setSec(e.target.value)} className="w-full border rounded-xl p-3 text-sm"><option value="NEW">Розділ: NEW</option><option value="SALE">Розділ: SALE</option></select>
+                <select value={sec} onChange={(e) => setSec(e.target.value)} className={`w-full border rounded-xl p-3 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : ''}`}><option value="NEW">Розділ: NEW</option><option value="SALE">Розділ: SALE</option></select>
                 <label className="border-2 border-dashed border-neutral-300 rounded-xl p-3 flex flex-col items-center justify-center gap-2 cursor-pointer">
                   {pimg ? <img src={pimg} alt="" className="h-28 w-full object-cover rounded-lg" /> : <span className="text-xs text-neutral-500 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Завантажити фото товару</span>}
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => readImage(e.target.files[0], setPimg)} />
                 </label>
                 <button onClick={aiFillSingle} className="w-full border border-neutral-300 text-neutral-700 text-sm py-2.5 rounded-full flex items-center justify-center gap-2"><Sparkles className="w-4 h-4" /> Заповнити з AI</button>
-                <textarea value={pdesc} onChange={(e) => setPdesc(e.target.value)} placeholder="Опис товару (необовʼязково)" rows={2} className="w-full border rounded-xl p-3 text-sm" />
+                <textarea value={pdesc} onChange={(e) => setPdesc(e.target.value)} placeholder="Опис товару (необовʼязково)" rows={2} className={`w-full border rounded-xl p-3 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : ''}`} />
                 <button onClick={aiDesc} className="w-full border border-neutral-300 text-neutral-700 text-sm py-2.5 rounded-full flex items-center justify-center gap-2"><Sparkles className="w-4 h-4" /> AI напише опис</button>
                 <div className="flex gap-2">
                   <button onClick={handleAddProduct} className="flex-1 bg-neutral-900 text-white font-medium py-2.5 rounded-full text-sm">Додати</button>
@@ -1716,7 +1731,7 @@ export default function ShopPlatform() {
             {activeShop.products.length > 0 && (
               <div className={`flex items-center gap-2 rounded-xl px-3 mb-3 ${appDark ? 'bg-neutral-800' : 'bg-white shadow-sm'}`}>
                 <Search className="w-4 h-4 text-neutral-400" />
-                <input value={prodSearch} onChange={(e) => setProdSearch(e.target.value)} placeholder="Пошук товару…" className="flex-1 py-2.5 text-sm focus:outline-none" />
+                <input value={prodSearch} onChange={(e) => setProdSearch(e.target.value)} placeholder="Пошук товару…" className={`flex-1 py-2.5 text-sm focus:outline-none ${appDark ? 'bg-transparent text-white placeholder-neutral-500' : ''}`} />
                 {prodSearch && <button onClick={() => setProdSearch('')}><X className="w-4 h-4 text-neutral-400" /></button>}
               </div>
             )}
@@ -1725,9 +1740,9 @@ export default function ShopPlatform() {
                 <div key={prod.id} className={`rounded-2xl p-3 ${appDark ? 'bg-neutral-800' : 'bg-white shadow-sm'}`}>
                   {editId === prod.id ? (
                     <div className="space-y-2">
-                      <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full border rounded-lg p-2 text-sm" />
+                      <input value={editName} onChange={(e) => setEditName(e.target.value)} className={`w-full border rounded-lg p-2 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : ''}`} />
                       <div className="flex gap-2">
-                        <input value={editPrice} onChange={(e) => setEditPrice(e.target.value)} type="number" className="w-24 border rounded-lg p-2 text-sm" />
+                        <input value={editPrice} onChange={(e) => setEditPrice(e.target.value)} type="number" className={`w-24 border rounded-lg p-2 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : ''}`} />
                         <button onClick={saveEdit} className="flex-1 bg-neutral-900 text-white rounded-lg text-sm">Зберегти</button>
                         <button onClick={() => setEditId(null)} className="px-3 bg-neutral-200 rounded-lg text-sm">Скас.</button>
                       </div>
@@ -2628,7 +2643,7 @@ export default function ShopPlatform() {
                 <div className={card}>
                   <SectionHead title="Домен" />
                   <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">Ваша адреса зараз</label>
-                  <input value={`${activeShop.name.toLowerCase()}.shopik.app`} disabled className={`w-full border rounded-xl p-3 text-sm mb-4 ${appDark ? 'bg-neutral-900 border-neutral-700 text-neutral-400' : 'bg-neutral-100 text-neutral-500'}`} />
+                  <input value={shopLink(activeShop)} disabled className={`w-full border rounded-xl p-3 text-sm mb-4 ${appDark ? 'bg-neutral-900 border-neutral-700 text-neutral-400' : 'bg-neutral-100 text-neutral-500'}`} />
                   <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">Власний домен</label>
                   <input placeholder="напр. mystore.com.ua" className={`${inputC} mb-3`} />
                   <div className={`rounded-xl p-4 text-[12px] leading-relaxed ${appDark ? 'bg-neutral-900 text-neutral-300' : 'bg-neutral-50 text-neutral-600'}`}>
@@ -2650,11 +2665,11 @@ export default function ShopPlatform() {
                 <div className={card}>
                   <SectionHead title="Посилання та QR" />
                   <div className="flex items-center gap-2 mb-3">
-                    <input value={`shopik.app/${activeShop.name.toLowerCase()}`} disabled className={`flex-1 border rounded-xl p-3 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-neutral-400' : 'bg-neutral-100 text-neutral-600'}`} />
-                    <button onClick={() => copyLink(`shopik.app/${activeShop.name.toLowerCase()}`)} className="bg-neutral-900 text-white px-4 rounded-xl text-sm">Копі</button>
+                    <input value={shopLink(activeShop)} disabled className={`flex-1 min-w-0 border rounded-xl p-3 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-neutral-400' : 'bg-neutral-100 text-neutral-600'}`} />
+                    <button onClick={() => copyLink(shopLink(activeShop))} className="bg-neutral-900 text-white px-4 rounded-xl text-sm flex-shrink-0">Копі</button>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="border rounded-xl p-2 bg-white">{renderQR(`shopik.app/${activeShop.name.toLowerCase()}`, 104)}</div>
+                    <div className="border rounded-xl p-2 bg-white">{renderQR(shopLink(activeShop), 104)}</div>
                     <p className="text-xs text-neutral-500">Постав посилання в шапку Instagram, а QR друкуй на пакетах, візитках і цінниках.</p>
                   </div>
                 </div>
@@ -2739,7 +2754,7 @@ export default function ShopPlatform() {
                             <button onClick={() => deletePromo(pr.code)} className="text-neutral-400 hover:text-red-600 flex-shrink-0 ml-2"><Trash2 className="w-4 h-4" /></button>
                           </div>
                           <div className="flex gap-1.5 mt-2">
-                            <input value={ref} disabled className="flex-1 min-w-0 bg-neutral-100 border rounded-lg px-2 py-1.5 text-[11px] text-neutral-600" />
+                            <input value={ref} disabled className={`flex-1 min-w-0 border rounded-lg px-2 py-1.5 text-[11px] ${appDark ? 'bg-neutral-900 border-neutral-700 text-neutral-400' : 'bg-neutral-100 text-neutral-600'}`} />
                             <button onClick={() => copyLink(ref)} className="bg-neutral-900 text-white px-2.5 rounded-lg text-[11px] flex-shrink-0">Копі</button>
                             <button onClick={() => setQrOpen(qrOpen === pr.code ? null : pr.code)} className="border rounded-lg px-2 flex-shrink-0"><Share2 className="w-3.5 h-3.5 text-neutral-600" /></button>
                           </div>
@@ -2754,10 +2769,10 @@ export default function ShopPlatform() {
                     })}
                     {(activeShop.promos || []).length === 0 && <p className="text-xs text-neutral-400">Промокодів ще немає</p>}
                   </div>
-                  <input value={newPromoLabel} onChange={(e) => setNewPromoLabel(e.target.value)} placeholder="Блогер / привід (напр. @anna_blog)" className="w-full border rounded-xl p-2.5 text-sm mb-2" />
+                  <input value={newPromoLabel} onChange={(e) => setNewPromoLabel(e.target.value)} placeholder="Блогер / привід (напр. @anna_blog)" className={`w-full border rounded-xl p-2.5 text-sm mb-2 ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : ''}`} />
                   <div className="flex gap-2">
-                    <input value={newPromoCode} onChange={(e) => setNewPromoCode(e.target.value)} placeholder="КОД (напр. ANNA10)" className="flex-1 border rounded-xl p-2.5 text-sm uppercase" />
-                    <input value={newPromoDisc} onChange={(e) => setNewPromoDisc(e.target.value)} type="number" placeholder="%" className="w-16 border rounded-xl p-2.5 text-sm" />
+                    <input value={newPromoCode} onChange={(e) => setNewPromoCode(e.target.value)} placeholder="КОД (напр. ANNA10)" className={`flex-1 border rounded-xl p-2.5 text-sm uppercase ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : ''}`} />
+                    <input value={newPromoDisc} onChange={(e) => setNewPromoDisc(e.target.value)} type="number" placeholder="%" className={`w-16 border rounded-xl p-2.5 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : ''}`} />
                     <button onClick={addPromo} className="bg-neutral-900 text-white px-4 rounded-xl text-sm font-medium">+</button>
                   </div>
                 </div>
