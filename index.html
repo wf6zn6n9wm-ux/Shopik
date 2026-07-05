@@ -180,6 +180,7 @@ export default function ShopPlatform() {
   const [aiDone, setAiDone] = useState(0);
   const [appDark, setAppDark] = useState(() => LS.get('appDark', true));
   const [setSection, setSetSection] = useState(null);
+  const [tgIdInput, setTgIdInput] = useState('');
   const [discScope, setDiscScope] = useState('all');
   const [discTarget, setDiscTarget] = useState('');
   const [discPct, setDiscPct] = useState('');
@@ -685,6 +686,22 @@ export default function ShopPlatform() {
     try {
       fetch('/api/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatId: shop.tgOwnerId, shopName: shop.name, order }) }).catch(() => {});
     } catch (e) {}
+  };
+  // Привʼязати / перевірити Telegram для сповіщень
+  const connectTgNotify = () => {
+    const id = parseInt(String(tgIdInput).replace(/\D/g, ''), 10);
+    if (!id) { flash('Введи свій Telegram ID (лише цифри)'); return; }
+    updateShop({ tgOwnerId: id });
+    setTgIdInput('');
+    flash('Telegram підключено ✓ Надсилаю тестове повідомлення…');
+    fetch('/api/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatId: id, shopName: activeShop.name, order: { product: 'Тестове замовлення', name: 'Перевірка звʼязку', phone: '—', comment: 'Якщо ви це бачите — сповіщення працюють ✅' } }) })
+      .then(r => r.json()).then(d => flash(d && d.ok ? 'Готово! Перевір Telegram ✅' : 'Не вдалося надіслати — натисни Start у боті й перевір BOT_TOKEN'))
+      .catch(() => {});
+  };
+  const testTgNotify = () => {
+    if (!activeShop || !activeShop.tgOwnerId) return;
+    flash('Надсилаю тестове повідомлення…');
+    notifyOrder(activeShop, { product: 'Тестове замовлення', name: 'Перевірка звʼязку', phone: '—', comment: 'Сповіщення працюють ✅' });
   };
 
   const placeOrder = () => {
@@ -2526,6 +2543,7 @@ export default function ShopPlatform() {
                 ['banner', '🖼', 'Банер', 'Фон, текст і фото банера'],
                 ['hours', '🕐', 'Режим роботи', 'Графік роботи магазину'],
                 ['contacts', '📞', 'Контакти', 'Instagram, Telegram, TikTok, телефон'],
+                ['notify', '🔔', 'Сповіщення в Telegram', 'Замовлення падають у ваш Telegram'],
                 ['domain', '🌐', 'Домен', 'Підключити власний домен'],
                 ['link', '🔗', 'Посилання та QR', 'Для шапки Instagram і друку'],
                 ['storefront', '⚙️', 'Налаштування вітрини', 'Таймер, доставка, розміри, відгуки…'],
@@ -2631,6 +2649,43 @@ export default function ShopPlatform() {
                     <div className={`flex items-center gap-2 border rounded-xl p-3 ${appDark ? 'border-neutral-700' : ''}`}><span className="w-4 text-center text-sm">🎵</span><input value={activeShop.social.tiktok || ''} onChange={(e) => updateShop({ social: { ...activeShop.social, tiktok: e.target.value } })} placeholder="tiktok.com/@…" className={`flex-1 text-sm focus:outline-none ${appDark ? 'bg-transparent text-white placeholder-neutral-500' : ''}`} /></div>
                     <div className={`flex items-center gap-2 border rounded-xl p-3 ${appDark ? 'border-neutral-700' : ''}`}><Phone className="w-4 h-4 text-neutral-400" /><input value={activeShop.social.phone} onChange={(e) => updateShop({ social: { ...activeShop.social, phone: e.target.value } })} placeholder="+380…" className={`flex-1 text-sm focus:outline-none ${appDark ? 'bg-transparent text-white placeholder-neutral-500' : ''}`} /></div>
                   </div>
+                </div>
+              );
+            }
+
+            // ===== СПОВІЩЕННЯ В TELEGRAM =====
+            if (setSection === 'notify') {
+              const connected = !!(activeShop && activeShop.tgOwnerId);
+              return (
+                <div className={card}>
+                  <SectionHead title="Сповіщення в Telegram" />
+                  <p className={`text-sm ${appDark ? 'text-neutral-300' : 'text-neutral-600'}`}>Щойно хтось оформить замовлення — воно миттєво прийде вам у Telegram (імʼя, телефон, товар).</p>
+
+                  {connected ? (
+                    <div className={`rounded-xl p-4 ${appDark ? 'bg-neutral-900' : 'bg-green-50'}`}>
+                      <p className="font-semibold text-sm flex items-center gap-2"><span>✅</span> Підключено</p>
+                      <p className={`text-xs mt-1 ${appDark ? 'text-neutral-400' : 'text-neutral-600'}`}>Telegram ID: {activeShop.tgOwnerId}</p>
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={testTgNotify} className="flex-1 border border-neutral-400 rounded-full py-2.5 text-sm font-medium">Надіслати тест</button>
+                        <button onClick={() => updateShop({ tgOwnerId: null })} className="flex-1 border border-neutral-400 text-red-600 rounded-full py-2.5 text-sm font-medium">Вимкнути</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className={`rounded-xl p-4 space-y-3 text-sm ${appDark ? 'bg-neutral-900 text-neutral-300' : 'bg-neutral-50 text-neutral-700'}`}>
+                        <p><b>1.</b> Відкрий нашого бота й натисни <b>Start</b>:</p>
+                        <a href={`https://t.me/${TG_BOT}`} target="_blank" rel="noreferrer" className="block text-center bg-[#229ED9] text-white rounded-full py-2.5 font-medium">Відкрити @{TG_BOT}</a>
+                        <p><b>2.</b> Дізнайся свій Telegram ID — відкрий цього бота, він одразу покаже число:</p>
+                        <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="block text-center border border-neutral-400 rounded-full py-2.5 font-medium">Дізнатись свій ID (@userinfobot)</a>
+                        <p><b>3.</b> Встав це число сюди:</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <input value={tgIdInput} onChange={(e) => setTgIdInput(e.target.value)} type="number" inputMode="numeric" placeholder="напр. 123456789" className={`flex-1 min-w-0 border rounded-xl p-3 text-sm ${appDark ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' : 'border-neutral-300'}`} />
+                        <button onClick={connectTgNotify} className="bg-neutral-900 text-white px-5 rounded-xl text-sm font-medium flex-shrink-0">Підключити</button>
+                      </div>
+                    </div>
+                  )}
+                  <p className={`text-[11px] leading-relaxed ${appDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Порада: спершу натисни Start у боті — інакше Telegram не дозволить надсилати вам повідомлення.</p>
                 </div>
               );
             }
