@@ -9,6 +9,7 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="root"></div>
@@ -117,7 +118,7 @@ const CAN = {
 };
 
 // ---- МОК-ДАННЫЕ ---------------------------------------------
-const STATS = [
+let STATS = [
   { id: "rev",    label: "Доход за месяц", value: "₴864 000", delta: +12.4, icon: DollarSign },
   { id: "shops",  label: "Активных магазинов", value: "1 342", delta: +5.1, icon: Store },
   { id: "users",  label: "Продавцов", value: "1 580", delta: +8.7, icon: Users },
@@ -183,14 +184,14 @@ Object.values(FINANCE_BY_MONTH).forEach((f) => {
 const EXPENSE_CATS = ["Зарплаты", "Реклама", "Серверы/хостинг", "Налоги", "Подписки/сервисы", "Блогеры", "Комиссии эквайринга", "Прочее"];
 
 // топ-магазины по обороту — для дашборда
-const TOP_SHOPS = [
+let TOP_SHOPS = [
   { name: "PLEASE", rev: 42100, pct: 100 },
   { name: "LOOM",   rev: 19700, pct: 47 },
   { name: "NUDE store", rev: 8400, pct: 20 },
   { name: "SOFT goods", rev: 3200, pct: 8 },
 ];
 
-const SHOPS = [
+let SHOPS = [
   { id: 1, name: "PLEASE",     owner: "Алёна К.",  ownerEmail: "alena@please.shop",  plan: "Pro",  status: "active", rev: "₴42 100", flags: 0, orders: 1284, products: 64, city: "Київ",   joined: "12.01.26", rating: 4.9 },
   { id: 2, name: "NUDE store", owner: "Дарья В.",  ownerEmail: "darya@nude.store",   plan: "Free", status: "active", rev: "₴8 400",  flags: 0, orders: 312,  products: 28, city: "Львів",  joined: "03.02.26", rating: 4.6 },
   { id: 3, name: "VELVET",     owner: "Ирина С.",  ownerEmail: "irina@velvet.shop",  plan: "Pro",  status: "review", rev: "₴0",      flags: 2, orders: 0,    products: 41, city: "Одеса",  joined: "20.06.26", rating: 0 },
@@ -199,7 +200,7 @@ const SHOPS = [
   { id: 6, name: "LOOM",       owner: "Юлия Р.",   ownerEmail: "yulia@loom.shop",    plan: "Pro",  status: "active", rev: "₴19 700", flags: 0, orders: 701,  products: 52, city: "Дніпро", joined: "08.12.25", rating: 4.8 },
 ];
 
-const USERS = [
+let USERS = [
   { id: 1, name: "Алёна Коваль",  email: "alena@please.shop",  phone: "+380 67 123-45-67", role: "seller", plan: "Premium", shopName: "PLEASE",     shops: 1, joined: "12.01.26", status: "active",  orders: 1284, spent: "₴4 497", since: "12.01.26", nextBill: "12.07.26" },
   { id: 2, name: "Дарья Власова", email: "darya@nude.store",   phone: "+380 50 987-65-43", role: "seller", plan: "Free",    shopName: "NUDE store", shops: 1, joined: "03.02.26", status: "active",  orders: 312,  spent: "₴0",     since: "03.02.26", nextBill: "—" },
   { id: 3, name: "Максим Адмін",  email: "max@shophub.app",    phone: "+380 63 555-10-20", role: "admin",  plan: null,      shopName: null,        shops: 0, joined: "01.11.25", status: "active",  orders: 0,    spent: "—",      since: "01.11.25", nextBill: "—" },
@@ -3361,7 +3362,135 @@ function SettingsView({ role }) {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(AdminPanel));
+/* ============================================================
+   ПІДКЛЮЧЕННЯ РЕАЛЬНИХ ДАНИХ
+   Вхід через Supabase Auth → запит /api/admin (лише для адмінів) →
+   підстановка реальних магазинів/продавців/показників у панель.
+   Розділи без джерела даних (фінанси, зарплати, підписки, реклама,
+   підтримка, модерація, аудит, розсилки) лишаються демонстраційними.
+   Якщо бекенд не налаштовано — м'який відкат у демо-режим.
+   ============================================================ */
+const SUPABASE_URL = 'https://cjxqdlvqofqvbymahkhm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqeHFkbHZxb2ZxdmJ5bWFoa2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwOTc2NjYsImV4cCI6MjA5ODY3MzY2Nn0.B3yR2usFYav5lwTfGR2yZb0vIAeOM5-_5CTYqprODSE';
+const _supa = (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+// підставляємо реальні дані у ті масиви, для яких є джерело
+function applyReal(payload) {
+  if (Array.isArray(payload.shops)) SHOPS = payload.shops;
+  if (Array.isArray(payload.users)) USERS = payload.users;
+  if (payload.stats) {
+    const s = payload.stats;
+    const n = (x) => Number(x || 0).toLocaleString("ru");
+    STATS = [
+      { id: "rev",   label: "Оборот магазинів",   value: "₴" + n(s.revenue),  delta: 0, icon: DollarSign },
+      { id: "shops", label: "Магазинів",          value: n(s.shops),          delta: 0, icon: Store },
+      { id: "users", label: "Продавців",          value: n(s.sellers),        delta: 0, icon: Users },
+      { id: "subs",  label: "Платних підписок",   value: n(s.paidSubs),       delta: 0, icon: CreditCard },
+    ];
+  }
+  if (Array.isArray(payload.shops) && payload.shops.length) {
+    const top = [...payload.shops].sort((a, b) => (b.revNum || 0) - (a.revNum || 0)).slice(0, 4);
+    const max = top[0] && top[0].revNum ? top[0].revNum : 1;
+    TOP_SHOPS = top.map((sh) => ({ name: sh.name, rev: sh.revNum || 0, pct: Math.round(((sh.revNum || 0) / max) * 100) || 0 }));
+  }
+}
+
+// плашка режиму даних (демо / часткові реальні)
+function DataBadge({ demo }) {
+  return (
+    <div className="fixed bottom-3 left-3 z-40 text-[11px] px-2.5 py-1.5 rounded-lg shadow-lg border"
+      style={demo
+        ? { background: "#7c2d12", color: "#fed7aa", borderColor: "#9a3412" }
+        : { background: "#0f172a", color: "#94a3b8", borderColor: "#1e293b" }}>
+      {demo
+        ? "Демо-дані · бекенд не підключено"
+        : "Реальні: магазини · продавці · дашборд. Решта розділів — демо."}
+    </div>
+  );
+}
+
+function LoginScreen({ email, setEmail, pass, setPass, err, busy, onSubmit }) {
+  return (
+    <div className="min-h-screen grid place-items-center bg-slate-950 px-4">
+      <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <div className="w-9 h-9 rounded-lg grid place-items-center font-black text-white"
+            style={{ background: "linear-gradient(135deg,#7C3AED,#2563EB)" }}>Ш</div>
+          <div className="leading-tight">
+            <div className="text-white font-bold text-sm">ШОПИК</div>
+            <div className="text-[10px] text-slate-500 tracking-wide">ADMIN</div>
+          </div>
+        </div>
+        <h1 className="text-lg font-bold text-white mb-1">Вхід в адмін-панель</h1>
+        <p className="text-xs text-slate-500 mb-4">Лише для адміністраторів платформи</p>
+        <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-2.5">
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            placeholder="Пошта" autoComplete="username"
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-slate-500 placeholder:text-slate-500" />
+          <input type="password" value={pass} onChange={(e) => setPass(e.target.value)}
+            placeholder="Пароль" autoComplete="current-password"
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-slate-500 placeholder:text-slate-500" />
+          {err && <div className="text-xs text-rose-400">{err}</div>}
+          <button type="submit" disabled={busy}
+            className="w-full py-2.5 rounded-lg bg-white text-slate-900 text-sm font-semibold hover:bg-slate-100 disabled:opacity-40">
+            {busy ? "Вхід…" : "Увійти"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Boot() {
+  const [phase, setPhase] = useState("loading"); // loading | login | ready | demo
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = async (token) => {
+    try {
+      const res = await fetch("/api/admin", { headers: token ? { Authorization: "Bearer " + token } : {} });
+      if (res.status === 401) { setPhase("login"); return; }
+      if (res.status === 403) { setErr("Ця пошта не має доступу до адмінки."); setPhase("login"); return; }
+      if (!res.ok) { setPhase("demo"); return; }        // не налаштовано / не задеплоєно
+      const data = await res.json();
+      if (!data || !data.ok) { setPhase("demo"); return; }
+      applyReal(data);
+      setPhase("ready");
+    } catch (e) { setPhase("demo"); }
+  };
+
+  useEffect(() => {
+    if (!_supa) { setPhase("demo"); return; }
+    _supa.auth.getSession().then(({ data }) => {
+      const token = data && data.session && data.session.access_token;
+      if (token) load(token); else setPhase("login");
+    }).catch(() => setPhase("login"));
+  }, []);
+
+  const signIn = async () => {
+    if (!_supa) { setPhase("demo"); return; }
+    setBusy(true); setErr("");
+    const { data, error } = await _supa.auth.signInWithPassword({ email: email.trim(), password: pass });
+    setBusy(false);
+    if (error) { setErr("Невірна пошта або пароль."); return; }
+    const token = data && data.session && data.session.access_token;
+    setPhase("loading"); load(token);
+  };
+
+  if (phase === "loading") {
+    return <div className="min-h-screen grid place-items-center bg-slate-950 text-slate-400 text-sm">Завантаження…</div>;
+  }
+  if (phase === "login") {
+    return <LoginScreen email={email} setEmail={setEmail} pass={pass} setPass={setPass} err={err} busy={busy} onSubmit={signIn} />;
+  }
+  // ready | demo
+  return (<React.Fragment><AdminPanel /><DataBadge demo={phase === "demo"} /></React.Fragment>);
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Boot));
 </script>
 </body>
 </html>
