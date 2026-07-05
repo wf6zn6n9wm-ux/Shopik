@@ -456,17 +456,39 @@ export default function ShopPlatform() {
     flash(`Пакет +${count} AI-фото активовано ✨`);
   };
 
+  // Зменшуємо фото перед відправкою до AI: менше токенів = дешевше й швидше.
+  // Для розпізнавання товару 1024px більш ніж достатньо. Оригінал у картці не чіпаємо.
+  const downscaleImage = (dataUrl, maxDim) => new Promise((resolve) => {
+    try {
+      if (typeof dataUrl !== 'string' || dataUrl.indexOf('data:image') !== 0) { resolve(dataUrl); return; }
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          if (scale >= 1) { resolve(dataUrl); return; }
+          const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        } catch (e) { resolve(dataUrl); }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    } catch (e) { resolve(dataUrl); }
+  });
+
   // Аналіз фото товару через AI (Claude vision) — повертає {name, price, description, category}
   // або null, якщо ключ не налаштовано / сталася помилка (тоді використаємо запасні значення).
   const aiAnalyze = (dataURL, categories) => {
-    return fetch('/api/ai-products', {
+    return downscaleImage(dataURL, 1024).then(small => fetch('/api/ai-products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: dataURL, categories: categories || [] })
+      body: JSON.stringify({ image: small, categories: categories || [] })
     })
       .then(r => r.json())
       .then(d => (d && d.ok && d.product) ? d.product : null)
-      .catch(() => null);
+      .catch(() => null));
   };
 
   const makeShop = (opts) => {
