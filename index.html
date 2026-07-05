@@ -417,6 +417,12 @@ export default function ShopPlatform() {
   };
   const logout = async () => { await auth.signOut(); setUser(null); setShops([]); setActiveShop(null); setPage('home'); flash('Ви вийшли'); };
 
+  // Перейти в панель магазину; якщо не залогінений — спершу реєстрація (а не вхід)
+  const goDashboard = () => {
+    if (auth.enabled && !user) { setAuthErr(''); setAuthMsg(''); setAuthMode('register'); setAfterAuthPage('dashboard'); setPage('auth'); }
+    else setPage('dashboard');
+  };
+
   const shopSlugOf = (shop) => shop.slug || slugify(shop.name, shop.id);
   const shopLink = (shop) => `${window.location.origin}${window.location.pathname}?s=${shopSlugOf(shop)}`;
   const tgShopLink = (shop) => `https://t.me/${TG_BOT}?startapp=${shopSlugOf(shop)}`;
@@ -1671,7 +1677,7 @@ export default function ShopPlatform() {
             <button onClick={() => { setDemoMode(false); setPage('home'); }} className="text-[11px] text-white/80 bg-black/50 px-3 py-1 rounded-full">← На головну</button>
           </div>
         ) : (
-          !isPublic && <button onClick={() => setPage('dashboard')} className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-neutral-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Вийти з перегляду</button>
+          !isPublic && <button onClick={goDashboard} className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-neutral-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Вийти з перегляду</button>
         )}
         <button onClick={() => setChatOpen(true)} className="fixed bottom-20 right-4 z-[60] w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-white" style={{ backgroundColor: a }}><Sparkles className="w-6 h-6" /></button>
         {chatOpen && (
@@ -1875,7 +1881,7 @@ export default function ShopPlatform() {
             <button onClick={() => { setDemoMode(false); setPage('home'); }} className="text-[11px] text-white/80 bg-black/50 px-3 py-1 rounded-full">← На головну</button>
           </div>
         ) : (
-          !isPublic && <button onClick={() => setPage('dashboard')} className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-neutral-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Вийти з перегляду</button>
+          !isPublic && <button onClick={goDashboard} className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-neutral-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Вийти з перегляду</button>
         )}
         <div className="max-w-sm mx-auto pb-24">
           <div className="text-center text-[11px] uppercase tracking-[0.2em] py-1.5" style={{ backgroundColor: ink, color: bg }}>Каталог</div>
@@ -1959,7 +1965,7 @@ export default function ShopPlatform() {
             <button onClick={() => { setDemoMode(false); setPage('home'); }} className="text-[11px] text-white/80 bg-black/50 px-3 py-1 rounded-full">← На головну</button>
           </div>
         ) : (
-          !isPublic && <button onClick={() => setPage('dashboard')} className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-neutral-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Вийти з перегляду</button>
+          !isPublic && <button onClick={goDashboard} className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-neutral-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Вийти з перегляду</button>
         )}
         {sizeGuide && (
           <div className="fixed inset-0 z-[80] flex items-end" onClick={() => setSizeGuide(false)}>
