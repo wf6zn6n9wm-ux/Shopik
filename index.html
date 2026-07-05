@@ -428,7 +428,7 @@ export default function ShopPlatform() {
   const tgShopLink = (shop) => `https://t.me/${TG_BOT}?startapp=${shopSlugOf(shop)}`;
   const shareShop = () => {
     if (!activeShop) return;
-    const url = tgShopLink(activeShop);
+    const url = shopLink(activeShop); // універсальне веб-посилання: працює у профілі Instagram, без входу
     if (navigator.share) { navigator.share({ title: activeShop.name, url }).catch(() => {}); }
     else if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => flash('Посилання скопійовано ✓')).catch(() => flash(url)); }
     else flash(url);
@@ -892,7 +892,6 @@ export default function ShopPlatform() {
 
   // копировать магазин (#70)
   const seeDemo = () => { const s = makeShop({ name: 'PLEASE', slogan: 'Український бренд одягу', bannerImage: phImg.velour }); s.social = { instagram: 'instagram.com/please', telegram: 't.me/please', tiktok: 'tiktok.com/@please', phone: '+380 67 123 45 67' }; setShops(prev => [...prev, s]); setActiveShop(s); setTab('NEW'); setDemoMode(true); setPage('preview'); flash('Так бачить магазин ваш покупець'); };
-  const aiBanner = () => { let i = banner; while (i === banner && bannerPresets.length > 1) i = Math.floor(Math.random() * bannerPresets.length); setBanner(i); setBannerImg(null); setAccent(accents[Math.floor(Math.random() * accents.length)]); flash('✨ AI підібрав банер'); };
   const planPrice = { Start: 499, Pro: 999, Max: 1499 };
   const activatePlan = () => { if (activeShop) { updateShop({ paid: true }); flash(`Тариф ${plan} активовано ✓`); } };
   const endTrialDemo = () => { if (activeShop) { updateShop({ trialEnd: Date.now() - 1000, paid: false }); flash('Демо: пробний період завершено'); } };
@@ -1283,7 +1282,6 @@ export default function ShopPlatform() {
                   <div className="grid grid-cols-3 gap-2">
                     {bannerPresets.map((bp, i) => (<button key={i} onClick={() => { setBanner(i); setBannerImg(null); }} className={`h-14 rounded-xl border-2 ${banner === i && !bannerImg ? (appDark ? 'border-white' : 'border-neutral-900') : 'border-transparent'}`} style={{ background: bp }} />))}
                   </div>
-                  <button onClick={aiBanner} className={`w-full mt-2 border text-sm py-2.5 rounded-full flex items-center justify-center gap-2 ${appDark ? 'border-neutral-700 text-neutral-200' : 'border-neutral-300 text-neutral-700'}`}><Sparkles className="w-4 h-4" /> Створити банер через AI</button>
                   <label className={`mt-2 border-2 border-dashed rounded-xl p-3 flex items-center justify-center gap-2 cursor-pointer ${appDark ? 'border-neutral-700' : 'border-neutral-300'}`}>
                     <span className={`text-xs flex items-center gap-2 ${appDark ? 'text-neutral-400' : 'text-neutral-500'}`}><ImageIcon className="w-4 h-4" /> Або завантаж своє фото</span>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => readImage(e.target.files[0], setBannerImg)} />
