@@ -10,10 +10,31 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+// Показуємо будь-яку помилку старту прямо на сторінці (замість «синього екрана»)
+window.addEventListener('error', function (e) {
+  var r = document.getElementById('root');
+  if (r && !r.firstChild) {
+    var msg = (e && (e.message || (e.error && e.error.message))) || 'Невідома помилка';
+    var stack = (e && e.error && e.error.stack) || '';
+    r.innerHTML = '<div style="color:#fca5a5;background:#0b1120;padding:20px;font:13px/1.6 ui-monospace,monospace;white-space:pre-wrap;word-break:break-word">'
+      + '⚠ Помилка запуску адмінки:\n\n' + msg + '\n\n' + stack + '</div>';
+  }
+});
+// Страховка: якщо через 5с сторінка досі порожня — показуємо підказку, а не «синій екран»
+setTimeout(function () {
+  var r = document.getElementById('root');
+  if (r && !r.firstChild) {
+    r.innerHTML = '<div style="color:#fca5a5;background:#0b1120;padding:20px;font:13px/1.6 ui-monospace,monospace;white-space:pre-wrap">'
+      + '⚠ Адмінка не запустилася.\n\nМожливо, скрипти не завантажились або сталася помилка компіляції.\n'
+      + 'Онови сторінку. Якщо не допомогло — надішли скріншот цього екрана.</div>';
+  }
+}, 5000);
+</script>
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel" data-presets="react">
+<script type="text/babel" data-type="module">
 const { useState, useMemo, useEffect } = React;
 
 /* ============================================================
