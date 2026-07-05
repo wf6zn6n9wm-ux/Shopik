@@ -42,8 +42,11 @@ module.exports = async (req, res) => {
       ? `Обери категорію зі списку, якщо пасує: ${categories.join(', ')}. Інакше запропонуй свою.`
       : 'Запропонуй доречну категорію.';
 
+    // Haiku — найдешевша модель Claude, її вистачає для карток товару.
+    // За потреби можна змінити через змінну оточення AI_MODEL (напр. claude-opus-4-8).
+    const MODEL = process.env.AI_MODEL || 'claude-haiku-4-5';
     const payload = {
-      model: 'claude-opus-4-8',
+      model: MODEL,
       max_tokens: 400,
       messages: [{
         role: 'user',
