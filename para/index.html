@@ -185,6 +185,27 @@
     background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);}
   .ptchip.on{background:rgba(251,191,36,.15);color:#fcd34d;border-color:rgba(251,191,36,.4);}
   @media (prefers-reduced-motion:reduce){.wcard,.sheet,.ovl,.burst,.wcard.pop{animation:none;}}
+
+  /* ===== Уровни / достижения / повышение ===== */
+  .lvl-road{display:flex;gap:6px;margin-top:14px;overflow-x:auto;padding-bottom:2px;}
+  .lvl-node{flex:0 0 auto;width:66px;text-align:center;opacity:.9;}
+  .lvl-node .lvl-emo{width:46px;height:46px;margin:0 auto;border-radius:14px;display:flex;align-items:center;
+    justify-content:center;font-size:22px;background:rgba(255,255,255,.05);border:1px solid var(--line);}
+  .lvl-node.cur .lvl-emo{background:var(--grad);border-color:transparent;box-shadow:0 6px 16px rgba(255,94,138,.35);}
+  .lvl-node.lk{opacity:.42;}
+  .lvl-node .lvl-nm{font-size:9px;color:var(--muted);margin-top:5px;line-height:1.1;}
+  .lvl-node.cur .lvl-nm{color:#fff;font-weight:600;}
+  .achv-earned{color:#6ee7b7;}
+  /* повышение уровня */
+  .lvup{width:100%;max-width:420px;margin:0 16px;background:#1c1622;border:1px solid var(--line);
+    border-radius:28px;padding:28px 22px calc(24px + env(safe-area-inset-bottom));text-align:center;
+    position:relative;overflow:hidden;animation:up .35s cubic-bezier(.2,.8,.2,1);}
+  .conf-wrap{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+  .conf{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;opacity:.9;
+    animation:conffall 1.4s linear forwards;}
+  @keyframes conffall{0%{transform:translateY(-10px) rotate(0);opacity:1;}
+    100%{transform:translateY(460px) rotate(540deg);opacity:0;}}
+  @media (prefers-reduced-motion:reduce){.conf{display:none;}.lvup{animation:none;}}
 </style>
 </head>
 <body>
@@ -576,7 +597,8 @@ function usScreen(){
     '<span class="rose" style="font-size:24px">❤</span><span>'+c.partner.emoji+'</span></div>'+
     '<div class="b" style="font-size:18px">'+esc(c.me.name)+' & '+esc(c.partner.name)+'</div>'+
     '<div class="small muted mt2">вместе уже <b style="color:#fff">'+together+'</b> '+daysWord(together)+'</div>'+
-    '<div class="row gap2 sb mt4" style="display:inline-flex;background:rgba(251,191,36,.1);color:#fcd34d;border-radius:999px;padding:8px 16px;font-size:14px">⭐ '+S.points+' общих очков</div></div>';
+    // очки показываем тут только когда нет карточки уровня (офлайн/демо), иначе — в карточке уровня
+    (S.progress?'':'<div class="row gap2 sb mt4" style="display:inline-flex;background:rgba(251,191,36,.1);color:#fcd34d;border-radius:999px;padding:8px 16px;font-size:14px">⭐ '+S.points+' общих очков</div>')+'</div>';
   var home=canHome?'<div class="card p4 row gap3 mb3"><div style="font-size:24px">📲</div>'+
     '<div class="flex1"><div class="small sb">На экран «Домой»</div>'+
     '<div class="xs muted">иконка PARA прямо на телефоне</div></div>'+
@@ -604,7 +626,7 @@ function usScreen(){
       '<button class="btn btn-ghost mt3" data-act="open-admin">⚙️ Открыть админку</button></div>';
   }
   var foot='<div class="center-t xs muted2 mt6">PARA · '+(TG?'Telegram Mini App':'веб-версия (PWA)')+'</div>';
-  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+stats+home+invite+reset+foot+'</div>';
+  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+levelCard()+stats+home+invite+reset+foot+'</div>';
 }
 
 // ---------- Полная админка (overlay внутри приложения) ----------
@@ -658,6 +680,64 @@ function adminView(){
     '<div style="height:24px"></div></div></div>';
 }
 
+// ---------- Уровни, достижения, повышение ----------
+function levelCard(){
+  if(!S.progress||!S.progress.level) return '';
+  var p=S.progress, lv=p.level, nx=p.next, pts=p.points;
+  var pct = nx ? Math.max(4,Math.min(100,Math.round((pts-lv.min)/((nx.min-lv.min)||1)*100))) : 100;
+  var bar='<div style="height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:12px">'+
+    '<div style="height:100%;width:'+pct+'%;background:var(--grad);border-radius:999px;transition:width .6s cubic-bezier(.2,.8,.2,1)"></div></div>';
+  var nextLine = nx
+    ? '<div class="xs muted mt2">До «'+esc(nx.name)+'» '+nx.emoji+' — ещё '+Math.max(0,nx.min-pts)+' очков</div>'
+    : '<div class="xs muted mt2">Максимальный уровень достигнут 👑</div>';
+  var levels=(S.config&&S.config.levels)||[];
+  var road=levels.map(function(l,i){
+    var locked=i>lv.index, cur=i===lv.index;
+    return '<button class="lvl-node'+(cur?' cur':'')+(locked?' lk':'')+'" data-act="lvl-info" data-i="'+i+'">'+
+      '<div class="lvl-emo">'+(locked?'🔒':l.emoji)+'</div><div class="lvl-nm">'+esc(l.name)+'</div></button>';
+  }).join('');
+  return '<div class="card p5 mb3">'+
+    '<div class="row between"><div class="sb" style="font-size:16px">'+lv.emoji+' '+esc(lv.name)+'</div>'+
+    '<div class="chipx gold" style="font-size:13px">⭐ '+pts+'</div></div>'+
+    bar+nextLine+
+    '<div class="lvl-road">'+road+'</div>'+
+    '<button class="btn btn-ghost mt3" data-act="open-achv">🏆 Достижения</button>'+
+  '</div>';
+}
+function achvView(){
+  var list=(S.progress&&S.progress.achievements)||[];
+  var earned=list.filter(function(a){return a.earned;}).length;
+  var items=list.map(function(a){
+    var d=a.earned&&a.date?new Date(a.date).toLocaleDateString('ru-RU'):null;
+    var status=a.earned?('<div class="xs achv-earned" style="margin-top:3px">✅ '+(d?('получено '+d):'получено')+'</div>')
+      :'<div class="xs muted2" style="margin-top:3px">🔒 ещё не получено</div>';
+    return '<div class="card p4 row gap3 mb3"'+(a.earned?'':' style="opacity:.55"')+'>'+
+      '<div class="wcat" style="--wcb:'+(a.earned?'rgba(255,94,138,.16)':'rgba(255,255,255,.05)')+'">'+(a.earned?a.icon:'🔒')+'</div>'+
+      '<div class="flex1"><div class="small sb">'+esc(a.title)+'</div>'+
+      '<div class="xs muted">'+esc(a.desc)+'</div>'+status+'</div></div>';
+  }).join('')||'<div class="muted small center-t">Пока нет достижений</div>';
+  return '<div class="app"><div class="wrap">'+
+    '<div class="row between mb4"><div class="b" style="font-size:20px">🏆 Достижения</div>'+
+    '<button class="btn btn-ghost btn-sm" data-act="close-achv">← Назад</button></div>'+
+    '<div class="small muted mb4">Получено '+earned+' из '+list.length+'</div>'+
+    items+'<div style="height:24px"></div></div></div>';
+}
+function levelupOverlay(){
+  var lv=S.levelup; if(!lv) return '';
+  var cols=['#ff5e8a','#c026d3','#fbbf24','#34d399','#60a5fa'];
+  var conf=''; for(var i=0;i<44;i++){ conf+='<span class="conf" style="left:'+(Math.random()*100).toFixed(1)+'%;background:'+cols[i%5]+';animation-delay:'+(Math.random()*0.5).toFixed(2)+'s"></span>'; }
+  var perks=(S.config&&S.config.levels[lv.index]&&S.config.levels[lv.index].perks)||[];
+  var perksHtml=perks.map(function(x){return '✨ '+esc(x);}).join('<br>');
+  return '<div class="ovl" style="align-items:center"><div class="lvup"><div class="conf-wrap">'+conf+'</div>'+
+    '<div class="xs muted" style="text-transform:uppercase;letter-spacing:.25em">🎉 Поздравляем</div>'+
+    '<div class="b mt2" style="font-size:20px">Вы достигли уровня</div>'+
+    '<div style="font-size:52px;margin:6px 0">'+lv.emoji+'</div>'+
+    '<div class="b rose" style="font-size:26px">'+esc(lv.name)+'</div>'+
+    '<div class="card p4 mt4" style="text-align:left"><div class="xs muted mb2">Разблокировано:</div>'+(perksHtml||'✨ Новый контент')+'</div>'+
+    '<button class="add-wish" style="margin-top:20px" data-act="level-continue">Продолжить</button>'+
+  '</div></div>';
+}
+
 var TABS=[
   ['today','Сегодня','🏠'],['wishes','Желания','⭐'],['quests','Квесты','🗺️'],
   ['dates','Даты','📅'],['us','Мы','💞']
@@ -688,6 +768,8 @@ function render(){
     }
     if(S.showAdmin && S.adminData){
       html=adminView();
+    } else if(S.showAchv){
+      html=achvView();
     } else {
       var screen={today:todayScreen,wishes:wishesScreen,quests:questsScreen,dates:datesScreen,us:usScreen}[S.tab]();
       html='<div class="app">'+screen+bottomNav()+'</div>';
@@ -698,6 +780,7 @@ function render(){
       '<span><b>'+esc(S.toast.label)+'</b> — '+esc(S.toast.hint)+'</span></div>';
   }
   if(S.wmodal){ html+=wishModal(); }
+  if(S.levelup){ html+=levelupOverlay(); }
   root.innerHTML=html;
   var wt=document.getElementById('wtitle'); if(wt && S.wmodal && !S.wmodal._f){ wt.focus(); S.wmodal._f=true; }
 }
@@ -754,6 +837,10 @@ var ACTS={
   'share-code':function(){ shareInvite(S.couple && S.couple.inviteCode); },
   'open-admin':function(){ if(!ONLINE)return; api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; S.showAdmin=true; render(); } else if(r&&r.reason==='forbidden'){ alert('Нет доступа. Твой ID: '+r.yourId); } else { alert('Ошибка: '+((r&&r.reason)||'')); } }).catch(function(){}); },
   'close-admin':function(){ S.showAdmin=false; render(); },
+  'open-achv':function(){ S.showAchv=true; haptic('light'); render(); if(ONLINE)refreshState(); },
+  'close-achv':function(){ S.showAchv=false; render(); },
+  'lvl-info':function(el){ var i=+el.dataset.i, lv=S.config&&S.config.levels[i], cur=S.progress&&S.progress.level.index; if(!lv)return; if(i>cur){ var perks=(lv.perks||[]).join(', '); alert('🔒 «'+lv.name+'» '+lv.emoji+'\nДоступно после '+lv.min+' очков.'+(perks?'\n\nОткроется: '+perks:'')); } haptic('light'); },
+  'level-continue':function(){ S.levelup=null; haptic('light'); render(); },
   'ob-share':shareInvite,
   'ob-create-confirm':function(){ if(CAN_ONLINE) onlineCreate(); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
   'ob-join-confirm':function(){ var c=(val('#ob-code')||'').toUpperCase().trim(); if(c.length<4)return; if(CAN_ONLINE) onlineJoin(c); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
@@ -767,8 +854,8 @@ var ACTS={
   'wish-pts':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.points=+el.dataset.p; haptic('light'); render(); } },
   'wish-save':function(){ var t=(val('#wtitle')||'').trim(); if(!t){ var el=document.getElementById('wtitle'); if(el)el.focus(); return; } var m=S.wmodal||{}; S.wishes.unshift({id:Date.now(),by:(ONLINE?'me':S.who),text:t,category:m.cat||'❤️',points:m.points||20,status:'new'}); save('wishes'); S.wmodal=null; haptic('success'); render(); },
   'wish-take':function(el){ var id=+el.dataset.id; S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},normWish(w),{status:'taken'}):w;}); save('wishes'); haptic('light'); render(); },
-  'wish-done':function(el){ var id=+el.dataset.id; var pts=0; S.wishes=S.wishes.map(function(w){ if(w.id===id){ var n=normWish(w); pts=n.points; return Object.assign({},n,{status:'done'}); } return w; }); S.points+=pts; save('wishes'); save('points'); track('quest'); track('points',pts); S.justDone=id; haptic('success'); render(); setTimeout(function(){ S.justDone=null; render(); },900); },
-  'quest-done':function(el){ var id=+el.dataset.id; var changed=false; S.quests=S.quests.map(function(q){ if(q.id===id&&!q.done){changed=true;S.points+=q.pts; track('quest'); track('points',q.pts); return Object.assign({},q,{done:true});} return q;}); if(changed){save('quests');save('points');haptic('success');} render(); },
+  'wish-done':function(el){ var id=+el.dataset.id; var pts=0; S.wishes=S.wishes.map(function(w){ if(w.id===id){ var n=normWish(w); pts=n.points; return Object.assign({},n,{status:'done'}); } return w; }); S.points+=pts; save('wishes'); save('points'); track('wish'); track('points',pts); S.justDone=id; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.justDone=null; render(); },900); },
+  'quest-done':function(el){ var id=+el.dataset.id; var changed=false; S.quests=S.quests.map(function(q){ if(q.id===id&&!q.done){changed=true;S.points+=q.pts; track('quest'); track('points',q.pts); return Object.assign({},q,{done:true});} return q;}); if(changed){save('quests');save('points');haptic('success');afterEarn();} render(); },
   'wheel':function(el){ var w=WHEEL[+el.dataset.i]; S.toast=w; haptic('light'); render(); setTimeout(function(){S.toast=null;render();},2200); },
   'home-add':function(){ try{TG.addToHomeScreen();haptic('light');}catch(e){} },
   'reset':function(){ S.couple=null; S.tab='today'; S.who='me'; S.ob={step:'welcome',mode:null,name:(TG_USER?(TG_USER.first_name||'Ты'):''),myCode:makeCode(),code:'',waiting:false}; save('couple'); save('tab'); save('who'); haptic('warning'); render(); }
@@ -785,8 +872,21 @@ function enterOnline(couple){
 async function refreshState(){
   try{
     var r=await api('state');
-    if(r&&r.ok&&r.couple){ ONLINE=true; S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today; render(); }
+    if(r&&r.ok&&r.couple){ ONLINE=true; S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today;
+      if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config; render(); checkLevelUp(); }
   }catch(e){}
+}
+// после начисления очков — подтянуть прогресс с сервера (немного погодя, чтобы событие успело записаться)
+function afterEarn(){ if(!ONLINE) return; setTimeout(refreshState, 700); }
+// показать экран повышения уровня, если пара поднялась выше запомненного
+function checkLevelUp(){
+  if(!S.progress||!S.progress.level) return;
+  var seen=lsGet('seenLevel',0), idx=S.progress.level.index;
+  if(idx>seen){
+    S.levelup=S.progress.level; lsSet('seenLevel',idx);
+    try{ if(navigator.vibrate) navigator.vibrate([40,60,40,60,140]); }catch(e){}
+    haptic('success'); render();
+  } else if(seen>idx){ lsSet('seenLevel',idx); } // сброс (например «сменить пару»)
 }
 async function onlineCreate(){
   S.ob.waiting=true; render();
@@ -810,7 +910,7 @@ async function onlineJoin(code){
 async function onlineAnswer(text){
   try{
     var r=await api('answer',{text:text});
-    if(r&&r.ok&&r.today){ S.srvToday=r.today; S.points+=10; save('points'); track('points',10); haptic('success'); }
+    if(r&&r.ok&&r.today){ S.srvToday=r.today; S.points+=10; save('points'); track('points',10); haptic('success'); afterEarn(); }
     render();
   }catch(e){ render(); }
 }
@@ -825,9 +925,11 @@ async function boot(){
     var r=await api('state');
     if(r&&r.ok){
       ONLINE=true;
-      if(r.couple){ S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today; }
+      if(r.couple){ S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today;
+        if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config; }
       else { S.couple=null; } // сервер — источник правды: онбординг с настоящим бэкендом
       render();
+      checkLevelUp();
       loadStats(); // если ты админ (ADMIN_TG_IDS) — подтянется статистика
     } // not_configured / ошибка → тихо остаёмся в демо
   }catch(e){}
