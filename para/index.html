@@ -176,6 +176,8 @@ async function api(action, payload){
   var j = await r.json().catch(function(){ return { ok:false, reason:'parse' }; });
   return j;
 }
+// событие для аналитики (квесты, очки) — только онлайн, «выстрелил и забыл»
+function track(type, amount){ if(!ONLINE) return; try{ api('track',{type:type,amount:amount||0}); }catch(e){} }
 
 // ---------- storage ----------
 function lsGet(k,d){ try{var v=localStorage.getItem('para_'+k);return v==null?d:JSON.parse(v);}catch(e){return d;} }
@@ -480,22 +482,41 @@ function usScreen(){
 }
 
 // ---------- Полная админка (overlay внутри приложения) ----------
-function admChart(growth){
-  var W=680,H=150,pad=18,n=growth.length||1;
-  var maxV=Math.max(1,(growth||[]).reduce(function(m,g){return Math.max(m,g.couples,g.answers);},0));
-  var bw=(W-pad*2)/n, bars='';
-  (growth||[]).forEach(function(g,i){
-    var x=pad+i*bw, ch=(H-pad*2)*(g.couples/maxV), ah=(H-pad*2)*(g.answers/maxV), gw=bw*0.32;
-    bars+='<rect x="'+(x+bw*0.14)+'" y="'+(H-pad-ah)+'" width="'+gw+'" height="'+ah+'" rx="2" fill="#ff5e8a"/>';
-    bars+='<rect x="'+(x+bw*0.14+gw+2)+'" y="'+(H-pad-ch)+'" width="'+gw+'" height="'+ch+'" rx="2" fill="#c026d3"/>';
-  });
-  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:140px">'+bars+'</svg>';
+function admCumulative(series){ var t=0; return (series||[]).map(function(p){ t+=p.v; return {date:p.date,v:t}; }); }
+function admLine(series, color){
+  series=series||[]; var W=680,H=120,pad=8,n=series.length;
+  if(!n) return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:96px"></svg>';
+  var max=Math.max(1,series.reduce(function(m,p){return Math.max(m,p.v);},0));
+  var pts=series.map(function(p,i){ var x=pad+(W-2*pad)*(i/((n-1)||1)); var y=H-pad-(H-2*pad)*(p.v/max); return [x,y]; });
+  var line=pts.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
+  var area=line+' L'+pts[n-1][0].toFixed(1)+' '+(H-pad)+' L'+pts[0][0].toFixed(1)+' '+(H-pad)+' Z';
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:96px">'+
+    '<path d="'+area+'" fill="'+color+'" opacity="0.12"/>'+
+    '<path d="'+line+'" fill="none" stroke="'+color+'" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>';
+}
+function admBars(series, color){
+  series=series||[]; var W=680,H=120,pad=8,n=series.length||1;
+  var max=Math.max(1,series.reduce(function(m,p){return Math.max(m,p.v);},0));
+  var bw=(W-2*pad)/n, bars='';
+  series.forEach(function(p,i){ var h=(H-2*pad)*(p.v/max); bars+='<rect x="'+(pad+i*bw+bw*0.15).toFixed(1)+'" y="'+(H-pad-h).toFixed(1)+'" width="'+(bw*0.7).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1.5" fill="'+color+'"/>'; });
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:96px">'+bars+'</svg>';
 }
 function adminView(){
-  var d=S.adminData, t=d.totals, list=d.couples||[];
-  var k=function(l,v){ return '<div class="card p4"><div class="xs muted">'+l+'</div><div class="b" style="font-size:26px;margin-top:2px">'+v+'</div></div>'; };
+  var d=S.adminData, t=d.totals||{}, s=d.series||{}, list=d.couples||[];
+  var k=function(icon,l,v){ return '<div class="card p4"><div class="xs muted">'+icon+' '+l+'</div><div class="b" style="font-size:23px;margin-top:3px">'+(v==null?0:v)+'</div></div>'; };
   var kpis='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
-    k('Пар всего',t.couples)+k('Связанных',t.linked)+k('Ответов сегодня',t.answersToday)+k('Ответов всего',t.answersTotal)+'</div>';
+    k('👥','Пользователей',t.users)+k('💕','Пар',t.couples)+
+    k('🔗','Активных пар',t.active)+k('⏳','Ожидают',t.waiting)+
+    k('📈','Новых сегодня',t.newToday)+k('📅','Новых за 7д',t.new7d)+
+    k('🎯','Квестов сегодня',t.questsToday)+k('⭐','Очков сегодня',t.pointsToday)+
+    k('💬','Ответов сегодня',t.answersToday)+k('🔥','DAU',t.dau)+'</div>';
+  var chartCard=function(title,svg){ return '<div class="card p4 mt3"><div class="small sb mb2">'+title+'</div>'+svg+'<div class="xs muted2 mt2">за 30 дней</div></div>'; };
+  var charts=
+    chartCard('👥 Рост пользователей', admLine(admCumulative(s.users),'#ff5e8a'))+
+    chartCard('💕 Рост пар', admLine(admCumulative(s.couples),'#c026d3'))+
+    chartCard('💬 Ответы по дням', admBars(s.answers,'#fbbf24'))+
+    chartCard('🎯 Квесты по дням', admBars(s.quests,'#34d399'))+
+    chartCard('🔥 Активность (DAU)', admBars(s.activity,'#60a5fa'));
   var rows=list.map(function(c){
     return '<div class="row between" style="padding:10px 0;border-bottom:1px solid var(--line)">'+
       '<div><div class="rose b" style="letter-spacing:.1em">'+esc(c.code)+'</div>'+
@@ -505,10 +526,8 @@ function adminView(){
   return '<div class="app"><div class="wrap">'+
     '<div class="row between mb4"><div class="b" style="font-size:20px">⚙️ Админка</div>'+
     '<button class="btn btn-ghost btn-sm" data-act="close-admin">← Назад</button></div>'+
-    kpis+
-    '<div class="card p4 mt4"><div class="small sb mb2">📈 Рост за 14 дней</div>'+admChart(d.growth)+
-    '<div class="xs muted mt2"><span style="color:#ff5e8a">■</span> ответы&nbsp;&nbsp;<span style="color:#c026d3">■</span> пары</div></div>'+
-    '<div class="small sb" style="margin:16px 0 8px">💞 Пары ('+list.length+')</div>'+
+    kpis+charts+
+    '<div class="small sb" style="margin:18px 0 8px">💞 Пары ('+list.length+')</div>'+
     '<div class="card p4">'+rows+'</div>'+
     '<div style="height:24px"></div></div></div>';
 }
@@ -615,7 +634,7 @@ var ACTS={
   'answer':function(){ var t=(val('#qa')||'').trim(); if(!t)return; if(ONLINE) onlineAnswer(t); else { var k=todayKey(); if(!S.answers[k])S.answers[k]={}; S.answers[k][S.who]=t; save('answers'); S.points+=10; save('points'); haptic('success'); render(); } },
   'wish-add':function(){ var t=(val('#wish-in')||'').trim(); if(!t)return; S.wishes.unshift({id:Date.now(),by:S.who,text:t,done:false}); save('wishes'); haptic('success'); render(); },
   'wish-toggle':function(el){ var id=+el.dataset.id; S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},w,{done:!w.done}):w;}); save('wishes'); haptic('light'); render(); },
-  'quest-done':function(el){ var id=+el.dataset.id; var changed=false; S.quests=S.quests.map(function(q){ if(q.id===id&&!q.done){changed=true;S.points+=q.pts;return Object.assign({},q,{done:true});} return q;}); if(changed){save('quests');save('points');haptic('success');} render(); },
+  'quest-done':function(el){ var id=+el.dataset.id; var changed=false; S.quests=S.quests.map(function(q){ if(q.id===id&&!q.done){changed=true;S.points+=q.pts; track('quest'); track('points',q.pts); return Object.assign({},q,{done:true});} return q;}); if(changed){save('quests');save('points');haptic('success');} render(); },
   'wheel':function(el){ var w=WHEEL[+el.dataset.i]; S.toast=w; haptic('light'); render(); setTimeout(function(){S.toast=null;render();},2200); },
   'home-add':function(){ try{TG.addToHomeScreen();haptic('light');}catch(e){} },
   'reset':function(){ S.couple=null; S.tab='today'; S.who='me'; S.ob={step:'welcome',mode:null,name:(TG_USER?(TG_USER.first_name||'Ты'):''),myCode:makeCode(),code:'',waiting:false}; save('couple'); save('tab'); save('who'); haptic('warning'); render(); }
@@ -657,7 +676,7 @@ async function onlineJoin(code){
 async function onlineAnswer(text){
   try{
     var r=await api('answer',{text:text});
-    if(r&&r.ok&&r.today){ S.srvToday=r.today; S.points+=10; save('points'); haptic('success'); }
+    if(r&&r.ok&&r.today){ S.srvToday=r.today; S.points+=10; save('points'); track('points',10); haptic('success'); }
     render();
   }catch(e){ render(); }
 }
