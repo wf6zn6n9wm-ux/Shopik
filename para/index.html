@@ -121,6 +121,70 @@
   .code-big{font-size:34px;font-weight:700;letter-spacing:.3em;color:#ffa7c0;}
   .fullw{width:100%;}
   .avatar{width:24px;height:24px;border-radius:999px;object-fit:cover;}
+
+  /* ===== Желания (redesign) ===== */
+  .add-wish{width:100%;border-radius:20px;padding:16px;font-weight:700;font-size:15px;color:#fff;
+    background:var(--grad);box-shadow:0 10px 26px rgba(192,38,211,.30);display:flex;align-items:center;
+    justify-content:center;gap:8px;transition:transform .12s;}
+  .add-wish:active{transform:scale(.98);}
+  .filters{display:flex;gap:7px;overflow-x:auto;padding:2px 0;margin:14px 0 4px;}
+  .filters .f{flex:0 0 auto;border:1px solid var(--line);background:var(--card2);color:var(--muted);
+    border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;transition:all .2s;white-space:nowrap;}
+  .filters .f.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 6px 16px rgba(255,94,138,.25);}
+  .wcard{position:relative;display:flex;align-items:center;gap:13px;border-radius:22px;padding:14px;
+    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));
+    border:1px solid var(--line);box-shadow:0 8px 22px rgba(0,0,0,.28);margin-bottom:12px;
+    overflow:hidden;animation:win .32s ease both;}
+  .wcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--wc,#ff5e8a);opacity:.9;}
+  .wcard.done{opacity:.62;}
+  @keyframes win{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .wcat{width:52px;height:52px;flex:0 0 auto;border-radius:16px;display:flex;align-items:center;
+    justify-content:center;font-size:26px;background:var(--wcb,rgba(255,94,138,.16));}
+  .wbody{flex:1;min-width:0;}
+  .wttl{font-size:15px;font-weight:600;line-height:1.25;}
+  .wttl.done{text-decoration:line-through;color:var(--muted);}
+  .wmeta{display:flex;align-items:center;gap:7px;margin-top:6px;flex-wrap:wrap;}
+  .chipx{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
+    padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--muted);}
+  .chipx.gold{background:rgba(251,191,36,.13);color:#fcd34d;}
+  .chipx.new{background:rgba(96,165,250,.14);color:#93c5fd;}
+  .chipx.taken{background:rgba(251,191,36,.14);color:#fcd34d;}
+  .chipx.doneb{background:rgba(52,211,153,.14);color:#6ee7b7;}
+  .wact{flex:0 0 auto;border-radius:14px;padding:10px 13px;font-size:13px;font-weight:700;
+    display:flex;align-items:center;gap:5px;transition:transform .12s;}
+  .wact:active{transform:scale(.94);}
+  .wact.take{background:var(--grad);color:#fff;box-shadow:0 6px 16px rgba(255,94,138,.28);}
+  .wact.fin{background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+  .wcheck{width:40px;height:40px;flex:0 0 auto;border-radius:999px;display:flex;align-items:center;
+    justify-content:center;font-size:18px;background:rgba(52,211,153,.16);color:#6ee7b7;}
+  .wcard.pop{animation:wpop .55s ease;}
+  @keyframes wpop{0%{transform:scale(1);}30%{transform:scale(1.035);}60%{transform:scale(.99);}100%{transform:scale(1);}}
+  .burst{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;
+    font-size:34px;animation:bst .7s ease forwards;}
+  @keyframes bst{0%{opacity:0;transform:scale(.4);}35%{opacity:1;transform:scale(1.1);}100%{opacity:0;transform:scale(1.4);}}
+  /* пустое состояние */
+  .wempty{text-align:center;padding:36px 20px;}
+  .wempty .ill{width:96px;height:96px;margin:0 auto 16px;border-radius:30px;display:flex;align-items:center;
+    justify-content:center;font-size:46px;background:radial-gradient(circle at 50% 35%,rgba(255,94,138,.28),rgba(192,38,211,.10));
+    box-shadow:inset 0 0 40px rgba(255,94,138,.15);}
+  /* модалка добавления */
+  .ovl{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+    display:flex;align-items:flex-end;justify-content:center;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0;}to{opacity:1;}}
+  .sheet{width:100%;max-width:480px;background:#1c1622;border:1px solid var(--line);
+    border-radius:26px 26px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+    animation:up .28s cubic-bezier(.2,.8,.2,1);}
+  @keyframes up{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  .grabber{width:38px;height:4px;border-radius:999px;background:rgba(255,255,255,.2);margin:0 auto 14px;}
+  .catgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:6px;}
+  .catopt{aspect-ratio:1;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:22px;background:rgba(255,255,255,.05);border:2px solid transparent;transition:all .15s;}
+  .catopt.on{border-color:var(--rose);background:rgba(255,94,138,.14);transform:scale(1.04);}
+  .ptrow{display:flex;gap:8px;margin-top:6px;}
+  .ptchip{flex:1;text-align:center;border-radius:12px;padding:10px 0;font-weight:700;font-size:14px;
+    background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);}
+  .ptchip.on{background:rgba(251,191,36,.15);color:#fcd34d;border-color:rgba(251,191,36,.4);}
+  @media (prefers-reduced-motion:reduce){.wcard,.sheet,.ovl,.burst,.wcard.pop{animation:none;}}
 </style>
 </head>
 <body>
@@ -233,9 +297,9 @@ var S = {
   tab:    lsGet('tab','today'),
   points: lsGet('points',120),
   wishes: lsGet('wishes',[
-    {id:1,by:'partner',text:'Съездить к морю на выходные',done:false},
-    {id:2,by:'me',text:'Пиццу и любимый сериал в пятницу',done:false},
-    {id:3,by:'partner',text:'Сходить на тот новый каток',done:true}
+    {id:1,by:'partner',text:'Съездить к морю на выходные',category:'🏖️',points:50,status:'new'},
+    {id:2,by:'me',text:'Пицца и любимый сериал в пятницу',category:'🍕',points:20,status:'taken'},
+    {id:3,by:'partner',text:'Сходить на тот новый каток',category:'❤️',points:30,status:'done'}
   ]),
   quests: lsGet('quests',[
     {id:1,text:'Приготовьте ужин вдвоём без телефонов',pts:30,done:false},
@@ -402,18 +466,80 @@ function todayScreen(){
     questionCard()+wheelCard()+'</div>';
 }
 
+// категории желаний: эмодзи, подпись, акцентный цвет
+var WCATS=[
+  {e:'❤️',l:'Вместе',c:'#ff5e8a'},{e:'🍕',l:'Еда',c:'#fbbf24'},{e:'🏖️',l:'Отдых',c:'#38bdf8'},
+  {e:'🎬',l:'Кино',c:'#c026d3'},{e:'☕',l:'Свидание',c:'#fb923c'},{e:'🎁',l:'Подарок',c:'#34d399'}
+];
+function wcat(e){ for(var i=0;i<WCATS.length;i++) if(WCATS[i].e===e) return WCATS[i]; return {e:e||'❤️',l:'',c:'#ff5e8a'}; }
+function hex2rgba(h,a){ h=h.replace('#',''); var n=parseInt(h,16); return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')'; }
+function normWish(w){ return { id:w.id, by:w.by||'me', text:w.text, category:w.category||'❤️',
+  points:w.points||20, status:w.status||(w.done?'done':'new') }; }
+
 function wishesScreen(){
-  var c=S.couple;
-  var items=S.wishes.map(function(w){
-    return '<div class="card p4 row gap3 mb3">'+
-      '<button class="chk'+(w.done?' on':'')+'" data-act="wish-toggle" data-id="'+w.id+'">'+(w.done?'✓':'')+'</button>'+
-      '<div class="flex1"><div class="small'+(w.done?' strike':'')+'">'+esc(w.text)+'</div>'+
-      '<div class="xs muted" style="margin-top:2px">'+c[w.by].emoji+' '+esc(c[w.by].name)+'</div></div></div>';
-  }).join('');
-  return '<div class="wrap">'+screenTitle('⭐','Желания','что бы вы хотели вместе')+
-    '<div class="row gap2 mb4"><input id="wish-in" class="input flex1" placeholder="Новое желание…">'+
-    '<button class="btn btn-primary" style="width:auto;padding:0 22px" data-act="wish-add">+</button></div>'+
-    items+'</div>';
+  var c=S.couple, filter=S.wfilter||'all';
+  var meName=function(by){ return by==='me' ? ((c.me.emoji||'👨')+' Я') : ((c.partner.emoji||'👩')+' '+esc(c.partner.name||'Партнёр')); };
+  var all=S.wishes.map(normWish);
+  var list=all.filter(function(w){
+    if(filter==='mine') return w.by==='me';
+    if(filter==='partner') return w.by==='partner';
+    if(filter==='done') return w.status==='done';
+    return true;
+  });
+
+  var FILTERS=[['all','Все'],['mine','Мои'],['partner','Партнёра'],['done','Выполненные']];
+  var filters='<div class="filters">'+FILTERS.map(function(f){
+    return '<button class="f'+(filter===f[0]?' on':'')+'" data-act="wfilter" data-f="'+f[0]+'">'+f[1]+'</button>';
+  }).join('')+'</div>';
+
+  var body;
+  if(!list.length){
+    body='<div class="wempty"><div class="ill">❤️</div>'+
+      '<div class="b" style="font-size:17px">'+(filter==='all'?'Пока нет совместных желаний':'Здесь пока пусто')+'</div>'+
+      '<div class="small muted mt2" style="max-width:280px;margin:8px auto 0;line-height:1.5">'+
+      (filter==='all'?'Добавьте первое желание и начните исполнять мечты вместе.':'Смени фильтр или добавь новое желание.')+'</div>'+
+      '<button class="add-wish" style="margin-top:20px" data-act="wish-open-add">➕ Добавить '+(filter==='all'?'первое ':'')+'желание</button></div>';
+  } else {
+    body=list.map(function(w){
+      var ct=wcat(w.category), pop=(S.justDone===w.id?' pop':'');
+      var badge = w.status==='new' ? '<span class="chipx new">🆕 Новое</span>'
+        : w.status==='taken' ? '<span class="chipx taken">🤝 Взято</span>'
+        : '<span class="chipx doneb">✅ Выполнено</span>';
+      var action = w.status==='new'
+        ? '<button class="wact take" data-act="wish-take" data-id="'+w.id+'">❤️ Беру</button>'
+        : w.status==='taken'
+        ? '<button class="wact fin" data-act="wish-done" data-id="'+w.id+'">✅ Выполнить</button>'
+        : '<div class="wcheck">✓</div>';
+      return '<div class="wcard'+(w.status==='done'?' done':'')+pop+'" style="--wc:'+ct.c+'">'+
+        (S.justDone===w.id?'<div class="burst">🎉</div>':'')+
+        '<div class="wcat" style="--wcb:'+hex2rgba(ct.c,0.16)+'">'+ct.e+'</div>'+
+        '<div class="wbody"><div class="wttl'+(w.status==='done'?' done':'')+'">'+esc(w.text)+'</div>'+
+        '<div class="wmeta"><span class="chipx">'+meName(w.by)+'</span>'+
+        '<span class="chipx gold">⭐ +'+w.points+'</span>'+badge+'</div></div>'+
+        action+'</div>';
+    }).join('');
+  }
+
+  return '<div class="wrap">'+screenTitle('⭐','Желания','мечты, которые исполняем вместе')+
+    (list.length?'<button class="add-wish" data-act="wish-open-add">➕ Добавить желание</button>':'')+
+    filters+'<div style="height:6px"></div>'+body+'</div>';
+}
+
+// модалка создания желания
+function wishModal(){
+  if(!S.wmodal) return '';
+  var cat=S.wmodal.cat||'❤️', pts=S.wmodal.points||20;
+  var cats=WCATS.map(function(x){ return '<button class="catopt'+(cat===x.e?' on':'')+'" data-act="wish-cat" data-e="'+x.e+'">'+x.e+'</button>'; }).join('');
+  var chips=[10,20,30,50].map(function(p){ return '<button class="ptchip'+(pts===p?' on':'')+'" data-act="wish-pts" data-p="'+p+'">⭐ '+p+'</button>'; }).join('');
+  return '<div class="ovl" onclick="if(event.target===this)__paraModalClose()"><div class="sheet">'+
+    '<div class="grabber"></div>'+
+    '<div class="b mb3" style="font-size:18px">Новое желание 💫</div>'+
+    '<input id="wtitle" class="input" placeholder="О чём мечтаете вместе?" autocomplete="off" value="'+esc(S.wmodal.text||'')+'">'+
+    '<div class="xs muted" style="margin:14px 0 4px">Категория</div><div class="catgrid">'+cats+'</div>'+
+    '<div class="xs muted" style="margin:14px 0 4px">Очки за исполнение</div><div class="ptrow">'+chips+'</div>'+
+    '<button class="add-wish" style="margin-top:18px" data-act="wish-save">Добавить желание</button>'+
+    '<button class="btn btn-ghost mt3" data-act="wish-cancel">Отмена</button>'+
+    '</div></div>';
 }
 
 function questsScreen(){
@@ -571,7 +697,9 @@ function render(){
     html+='<div class="toast"><span style="font-size:18px">'+S.toast.icon+'</span>'+
       '<span><b>'+esc(S.toast.label)+'</b> — '+esc(S.toast.hint)+'</span></div>';
   }
+  if(S.wmodal){ html+=wishModal(); }
   root.innerHTML=html;
+  var wt=document.getElementById('wtitle'); if(wt && S.wmodal && !S.wmodal._f){ wt.focus(); S.wmodal._f=true; }
 }
 
 // ============================================================
@@ -632,8 +760,14 @@ var ACTS={
   'tab':function(el){ S.tab=el.dataset.tab; save('tab'); haptic('light'); render(); if(S.tab==='us') loadStats(); },
   'who':function(el){ S.who=el.dataset.who; save('who'); haptic('light'); render(); },
   'answer':function(){ var t=(val('#qa')||'').trim(); if(!t)return; if(ONLINE) onlineAnswer(t); else { var k=todayKey(); if(!S.answers[k])S.answers[k]={}; S.answers[k][S.who]=t; save('answers'); S.points+=10; save('points'); haptic('success'); render(); } },
-  'wish-add':function(){ var t=(val('#wish-in')||'').trim(); if(!t)return; S.wishes.unshift({id:Date.now(),by:S.who,text:t,done:false}); save('wishes'); haptic('success'); render(); },
-  'wish-toggle':function(el){ var id=+el.dataset.id; S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},w,{done:!w.done}):w;}); save('wishes'); haptic('light'); render(); },
+  'wfilter':function(el){ S.wfilter=el.dataset.f; haptic('light'); render(); },
+  'wish-open-add':function(){ S.wmodal={cat:'❤️',points:20}; haptic('light'); render(); },
+  'wish-cancel':function(){ S.wmodal=null; render(); },
+  'wish-cat':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.cat=el.dataset.e; haptic('light'); render(); } },
+  'wish-pts':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.points=+el.dataset.p; haptic('light'); render(); } },
+  'wish-save':function(){ var t=(val('#wtitle')||'').trim(); if(!t){ var el=document.getElementById('wtitle'); if(el)el.focus(); return; } var m=S.wmodal||{}; S.wishes.unshift({id:Date.now(),by:(ONLINE?'me':S.who),text:t,category:m.cat||'❤️',points:m.points||20,status:'new'}); save('wishes'); S.wmodal=null; haptic('success'); render(); },
+  'wish-take':function(el){ var id=+el.dataset.id; S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},normWish(w),{status:'taken'}):w;}); save('wishes'); haptic('light'); render(); },
+  'wish-done':function(el){ var id=+el.dataset.id; var pts=0; S.wishes=S.wishes.map(function(w){ if(w.id===id){ var n=normWish(w); pts=n.points; return Object.assign({},n,{status:'done'}); } return w; }); S.points+=pts; save('wishes'); save('points'); track('quest'); track('points',pts); S.justDone=id; haptic('success'); render(); setTimeout(function(){ S.justDone=null; render(); },900); },
   'quest-done':function(el){ var id=+el.dataset.id; var changed=false; S.quests=S.quests.map(function(q){ if(q.id===id&&!q.done){changed=true;S.points+=q.pts; track('quest'); track('points',q.pts); return Object.assign({},q,{done:true});} return q;}); if(changed){save('quests');save('points');haptic('success');} render(); },
   'wheel':function(el){ var w=WHEEL[+el.dataset.i]; S.toast=w; haptic('light'); render(); setTimeout(function(){S.toast=null;render();},2200); },
   'home-add':function(){ try{TG.addToHomeScreen();haptic('light');}catch(e){} },
@@ -698,6 +832,9 @@ async function boot(){
     } // not_configured / ошибка → тихо остаёмся в демо
   }catch(e){}
 }
+
+// закрытие модалки по тапу на фон (вызывается из inline onclick оверлея)
+window.__paraModalClose=function(){ S.wmodal=null; render(); };
 
 document.getElementById('root').addEventListener('click',function(e){
   var el=e.target.closest('[data-act]'); if(!el)return;
