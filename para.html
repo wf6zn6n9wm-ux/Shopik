@@ -133,8 +133,10 @@
    • Внутри Telegram — работает как Mini App (авторизация по
      TG-аккаунту, кнопка «на экран Домой» через addToHomeScreen).
    • В браузере — как PWA (Safari → «На экран Домой»).
-   Данные пока в localStorage. Реальную синхронизацию пары
-   подключим через backend.
+   Внутри Telegram (при настроенном api/para.js + Supabase + бот)
+   пара связывается по-настоящему: код-приглашение соединяет два
+   аккаунта, вопрос дня с async-разблокировкой, пуши партнёру.
+   Вне Telegram или без ключей — локальный демо-режим (localStorage).
    ============================================================ */
 (function(){
 'use strict';
@@ -156,6 +158,23 @@ function haptic(type){
       else TG.HapticFeedback.impactOccurred(type);
     } else if (navigator.vibrate) navigator.vibrate(10);
   }catch(e){}
+}
+
+// ---------- backend (Supabase через serverless /api/para) ----------
+// Настоящая связь пары работает только внутри Telegram: подпись initData
+// подтверждает личность на сервере. Вне Telegram (браузер/Artifact) — ONLINE=false,
+// приложение работает локально в демо-режиме.
+var INIT_DATA = (TG && TG.initData) || '';
+var CAN_ONLINE = !!INIT_DATA;           // есть подписанные данные Telegram
+var ONLINE = false;                     // подтверждено, что бэкенд отвечает
+var NET_NOTE = '';                      // мягкая подсказка, если бэкенд не настроен
+async function api(action, payload){
+  var body = Object.assign({ action: action, initData: INIT_DATA }, payload || {});
+  var r = await fetch('/api/para', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  var j = await r.json().catch(function(){ return { ok:false, reason:'parse' }; });
+  return j;
 }
 
 // ---------- storage ----------
@@ -274,12 +293,13 @@ function pairView(){
       '<div class="code-big">'+esc(S.ob.myCode)+'</div></div>'+
       '<button class="btn btn-primary mt3" data-act="ob-share">Отправить партнёру</button>'+
       '<button class="btn btn-ghost mt3" data-act="ob-create-confirm">'+(S.ob.waiting?'Связываем…':'Партнёр уже ввёл код →')+'</button>'+
-      '<p class="center-t xs muted2 mt4">Пока синхронизация демо-режим: партнёр подставится автоматически.</p>';
+      '<p class="center-t xs muted2 mt4">Демо-режим: партнёр подставится автоматически. В Telegram связывание настоящее.</p>';
   } else {
     body='<input id="ob-code" class="input center-t" style="font-size:24px;font-weight:700;letter-spacing:.3em" '+
       'placeholder="КОД" maxlength="6" value="'+esc(S.ob.code)+'" '+
       'oninput="this.value=this.value.toUpperCase()">'+
-      '<button class="btn btn-primary mt3" data-act="ob-join-confirm">'+(S.ob.waiting?'Связываем…':'Присоединиться')+'</button>';
+      '<button class="btn btn-primary mt3" data-act="ob-join-confirm">'+(S.ob.waiting?'Связываем…':'Присоединиться')+'</button>'+
+      (S.ob.err?'<div class="center-t xs mt3" style="color:#fca5a5">'+esc(S.ob.err)+'</div>':'');
   }
   var back=(S.ob.mode&&!S.ob.waiting)?'<button class="mt6 muted small" data-act="ob-mode-back">← назад</button>':'';
   return '<div class="splash">'+head+'<div class="fullw" style="margin-top:32px;display:flex;flex-direction:column">'+body+'</div>'+back+'</div>';
@@ -314,22 +334,39 @@ function countdownCard(){
     '</div></div>';
 }
 
+// единые данные вопроса дня — для онлайна (реальный партнёр) и демо (локально)
+function todayData(){
+  var c=S.couple;
+  if(ONLINE && S.srvToday){
+    var t=S.srvToday, pn=(c.partner&&c.partner.name)||'партнёр';
+    return { q:t.question, mine:t.myAnswer, otherAns:t.partnerAnswer,
+      otherAnswered:t.partnerAnswered, both:t.bothAnswered, otherName:pn,
+      myEmoji:c.me.emoji, otherEmoji:c.partner.emoji, linked:!!c.linked };
+  }
+  var q=questionOfDay(), k=todayKey(), a=S.answers[k]||{};
+  var other=(S.who==='me')?'partner':'me';
+  return { q:q.text, mine:a[S.who], otherAns:(a[other]==='…'?'Секретный ответ 💌 (демо)':a[other]),
+    otherAnswered:!!a[other], both:!!(a.me&&a.partner), otherName:c[other].name,
+    myEmoji:c[S.who].emoji, otherEmoji:c[other].emoji, linked:true };
+}
 function questionCard(){
-  var c=S.couple, q=questionOfDay(), k=todayKey();
-  var a=S.answers[k]||{};
-  var other=(S.who==='me')?'partner':'me', otherName=esc(c[other].name);
-  var mine=a[S.who], otherAns=a[other], both=a.me&&a.partner;
+  var d=todayData(), otherName=esc(d.otherName);
   var head='<div class="row between mb3"><span class="pill" style="background:rgba(192,38,211,.15);color:#e879f9">💡 Вопрос дня</span>'+
-    (otherAns&&!mine?'<span class="xs muted">'+otherName+' уже ответил(а)</span>':'')+'</div>';
-  var qtext='<div class="sb mb4" style="font-size:18px;line-height:1.3">'+esc(q.text)+'</div>';
+    (d.otherAnswered&&!d.mine?'<span class="xs muted">'+otherName+' уже ответил(а)</span>':'')+'</div>';
+  var qtext='<div class="sb mb4" style="font-size:18px;line-height:1.3">'+esc(d.q)+'</div>';
   var body;
-  if(!mine){
+  if(!d.linked){
+    // онлайн, но партнёр ещё не присоединился
     body='<textarea id="qa" class="input" rows="2" placeholder="Твой ответ…"></textarea>'+
       '<button class="btn btn-primary mt3" data-act="answer">Ответить <span style="opacity:.8">· +10 очков</span></button>'+
-      (otherAns?'<div class="center-t xs muted2 mt3">🔒 Ответ '+otherName+' откроется после твоего</div>':'');
+      '<div class="center-t xs muted2 mt3">⏳ Партнёр ещё не в паре — отправь код из вкладки «Мы»</div>';
+  } else if(!d.mine){
+    body='<textarea id="qa" class="input" rows="2" placeholder="Твой ответ…"></textarea>'+
+      '<button class="btn btn-primary mt3" data-act="answer">Ответить <span style="opacity:.8">· +10 очков</span></button>'+
+      (d.otherAnswered?'<div class="center-t xs muted2 mt3">🔒 Ответ '+otherName+' откроется после твоего</div>':'');
   } else {
-    var meRow=answerRow(c[S.who].name,c[S.who].emoji,mine,true);
-    var oRow= both ? answerRow(otherName,c[other].emoji,(otherAns==='…'?'Секретный ответ 💌 (демо)':otherAns),false)
+    var meRow=answerRow(ONLINE?S.couple.me.name:S.couple[S.who].name,d.myEmoji,d.mine,true);
+    var oRow= d.both ? answerRow(otherName,d.otherEmoji,d.otherAns,false)
       : '<div style="background:rgba(0,0,0,.2);border-radius:16px;padding:12px 16px" class="center-t xs muted2">🔒 Ждём ответ '+otherName+'</div>';
     body=meRow+oRow;
   }
@@ -357,7 +394,8 @@ function todayScreen(){
     '<div class="row between mb4"><div><div class="xs muted">'+esc(dstr)+'</div>'+
     '<div class="b" style="font-size:20px">Сегодня</div></div>'+
     '<div class="row gap2 sb" style="background:rgba(251,191,36,.1);color:#fcd34d;border-radius:999px;padding:6px 12px;font-size:14px">⭐ '+S.points+'</div></div>'+
-    partnerSwitch()+'<div style="height:16px"></div>'+
+    // переключатель «глазами каждого» — только в демо; онлайн ты фиксированный человек
+    (ONLINE?'':partnerSwitch()+'<div style="height:16px"></div>')+
     countdownCard()+'<div style="height:16px"></div>'+
     questionCard()+wheelCard()+'</div>';
 }
@@ -467,6 +505,7 @@ function render(){
 // ============================================================
 function val(sel){var el=document.querySelector(sel);return el?el.value:'';}
 
+// демо-пейринг (вне Telegram): партнёр подставляется локально
 function finishPairing(partnerName){
   S.couple={
     me:{name:(S.ob.name||(TG_USER&&TG_USER.first_name)||'Ты').trim(),emoji:'🧔',birthday:{month:3,day:14}},
@@ -474,10 +513,20 @@ function finishPairing(partnerName){
     since:new Date().toISOString().slice(0,10), inviteCode:S.ob.myCode
   };
   save('couple');
-  // засеять демо-ответ партнёра
   var k=todayKey(); if(!S.answers[k])S.answers[k]={};
   if(!S.answers[k].partner){S.answers[k].partner='…';save('answers');}
   haptic('success'); render();
+}
+
+// онлайн-пара с сервера → форма, которую понимают экраны (даты рождения пока
+// по умолчанию, редактирование добавим в следующей фиче)
+function coupleFromServer(c){
+  return {
+    me:{ name:(c.me&&c.me.name)||'Ты', emoji:'🧔', birthday:{month:3,day:14} },
+    partner:{ name:(c.partner&&c.partner.name)||'Партнёр', emoji:'👩', birthday:{month:7,day:21} },
+    since:new Date().toISOString().slice(0,10),
+    inviteCode:c.inviteCode, linked:!!c.linked, online:true
+  };
 }
 
 function shareInvite(){
@@ -497,14 +546,14 @@ function shareInvite(){
 
 var ACTS={
   'ob-continue':function(){ S.ob.name=(val('#ob-name')||(TG_USER&&TG_USER.first_name)||'').trim(); S.ob.step='pair'; haptic('light'); render(); },
-  'ob-mode':function(el){ S.ob.mode=el.dataset.mode; haptic('light'); render(); },
+  'ob-mode':function(el){ var m=el.dataset.mode; if(m==='create'&&CAN_ONLINE){ haptic('light'); onlineCreate(); return; } S.ob.mode=m; S.ob.err=''; haptic('light'); render(); },
   'ob-mode-back':function(){ S.ob.mode=null; render(); },
   'ob-share':shareInvite,
-  'ob-create-confirm':function(){ S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); },
-  'ob-join-confirm':function(){ var c=(val('#ob-code')||'').toUpperCase(); if(c.length>=4){ S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700);} },
+  'ob-create-confirm':function(){ if(CAN_ONLINE) onlineCreate(); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
+  'ob-join-confirm':function(){ var c=(val('#ob-code')||'').toUpperCase().trim(); if(c.length<4)return; if(CAN_ONLINE) onlineJoin(c); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
   'tab':function(el){ S.tab=el.dataset.tab; save('tab'); haptic('light'); render(); },
   'who':function(el){ S.who=el.dataset.who; save('who'); haptic('light'); render(); },
-  'answer':function(){ var t=(val('#qa')||'').trim(); if(!t)return; var k=todayKey(); if(!S.answers[k])S.answers[k]={}; S.answers[k][S.who]=t; save('answers'); S.points+=10; save('points'); haptic('success'); render(); },
+  'answer':function(){ var t=(val('#qa')||'').trim(); if(!t)return; if(ONLINE) onlineAnswer(t); else { var k=todayKey(); if(!S.answers[k])S.answers[k]={}; S.answers[k][S.who]=t; save('answers'); S.points+=10; save('points'); haptic('success'); render(); } },
   'wish-add':function(){ var t=(val('#wish-in')||'').trim(); if(!t)return; S.wishes.unshift({id:Date.now(),by:S.who,text:t,done:false}); save('wishes'); haptic('success'); render(); },
   'wish-toggle':function(el){ var id=+el.dataset.id; S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},w,{done:!w.done}):w;}); save('wishes'); haptic('light'); render(); },
   'quest-done':function(el){ var id=+el.dataset.id; var changed=false; S.quests=S.quests.map(function(q){ if(q.id===id&&!q.done){changed=true;S.points+=q.pts;return Object.assign({},q,{done:true});} return q;}); if(changed){save('quests');save('points');haptic('success');} render(); },
@@ -512,6 +561,60 @@ var ACTS={
   'home-add':function(){ try{TG.addToHomeScreen();haptic('light');}catch(e){} },
   'reset':function(){ S.couple=null; S.tab='today'; S.who='me'; S.ob={step:'welcome',mode:null,name:(TG_USER?(TG_USER.first_name||'Ты'):''),myCode:makeCode(),code:'',waiting:false}; save('couple'); save('tab'); save('who'); haptic('warning'); render(); }
 };
+
+// ============================================================
+//  ОНЛАЙН (бэкенд): настоящая пара внутри Telegram
+// ============================================================
+function enterOnline(couple){
+  ONLINE=true; S.couple=coupleFromServer(couple); save('couple');
+  S.ob.waiting=false; S.ob.err=''; haptic('success'); render();
+  refreshState(); // подтянуть вопрос дня и ответы
+}
+async function refreshState(){
+  try{
+    var r=await api('state');
+    if(r&&r.ok&&r.couple){ ONLINE=true; S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today; render(); }
+  }catch(e){}
+}
+async function onlineCreate(){
+  S.ob.waiting=true; render();
+  try{
+    var r=await api('pair_create');
+    if(r&&r.ok&&r.couple){ enterOnline(r.couple); return; }
+    if(r&&r.reason==='not_configured'){ finishPairing('Татьяна'); return; } // бэкенд не настроен → демо
+    S.ob.waiting=false; S.ob.mode='create'; S.ob.err='Не удалось создать пару'; render();
+  }catch(e){ S.ob.waiting=false; S.ob.mode='create'; S.ob.err='Сеть недоступна'; render(); }
+}
+async function onlineJoin(code){
+  S.ob.waiting=true; S.ob.err=''; render();
+  try{
+    var r=await api('pair_join',{code:code});
+    if(r&&r.ok&&r.couple){ enterOnline(r.couple); return; }
+    if(r&&r.reason==='not_configured'){ finishPairing('Татьяна'); return; }
+    var m={not_found:'Код не найден',couple_full:'В этой паре уже двое',already_paired:'Ты уже в паре',bad_code:'Неверный код'};
+    S.ob.waiting=false; S.ob.err=(r&&m[r.reason])||'Не удалось присоединиться'; render();
+  }catch(e){ S.ob.waiting=false; S.ob.err='Сеть недоступна'; render(); }
+}
+async function onlineAnswer(text){
+  try{
+    var r=await api('answer',{text:text});
+    if(r&&r.ok&&r.today){ S.srvToday=r.today; S.points+=10; save('points'); haptic('success'); }
+    render();
+  }catch(e){ render(); }
+}
+async function boot(){
+  render(); // мгновенно показываем интерфейс (демо/онбординг)
+  if(!CAN_ONLINE) return; // вне Telegram — локальный демо-режим
+  try{
+    var r=await api('state');
+    if(r&&r.ok){
+      ONLINE=true;
+      if(r.couple){ S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today; }
+      else { S.couple=null; } // сервер — источник правды: онбординг с настоящим бэкендом
+      render();
+    } // not_configured / ошибка → тихо остаёмся в демо
+  }catch(e){}
+}
 
 document.getElementById('root').addEventListener('click',function(e){
   var el=e.target.closest('[data-act]'); if(!el)return;
@@ -523,7 +626,7 @@ if(START_PARAM && !S.couple){
   S.ob.step='pair'; S.ob.mode='join'; S.ob.code=START_PARAM.toUpperCase().slice(0,6);
 }
 
-render();
+boot();
 })();
 </script>
 </body>

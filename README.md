@@ -88,3 +88,93 @@ npm run dev
 - Щоб під час тестування не підтверджувати пошту щоразу, у Supabase:
   **Authentication → Providers → Email** вимкни *Confirm email*.
 - Для входу через Google додай провайдера в тому ж розділі (окремий крок).
+
+---
+
+# PARA — приложение для пары (`para.html`)
+
+Отдельный продукт: Telegram Mini App / PWA для двоих. Экраны: **Сегодня**
+(вопрос дня, отсчёт до дат), **Желания**, **Квесты**, **Даты**, **Мы**.
+Файл `para.html` самодостаточный (чистый JS + CSS, без внешних зависимостей),
+открывается где угодно; вне Telegram работает в локальном демо-режиме.
+
+## Настоящая связь пары (backend)
+
+Реализована сквозная фича **пейринг + «Вопрос дня»** через serverless-функцию
+`api/para.js` и **отдельный** проект Supabase (данные пар не смешиваются с
+магазинами Shopik). Внутри Telegram пользователь подтверждается подписью
+`initData` (HMAC токеном бота — подделать чужой аккаунт нельзя), пара
+связывается по коду-приглашению, а ответ партнёра на вопрос дня открывается
+только после твоего (async-разблокировка). Партнёру уходит пуш от бота.
+
+### 1. Создай отдельный проект Supabase и выполни SQL
+
+```sql
+create extension if not exists pgcrypto;
+
+create table para_couples (
+  id uuid primary key default gen_random_uuid(),
+  invite_code text unique not null,
+  created_at timestamptz default now()
+);
+
+create table para_members (
+  couple_id uuid references para_couples(id) on delete cascade,
+  tg_id     bigint not null,
+  name      text,
+  photo_url text,
+  slot      text check (slot in ('a','b')),
+  joined_at timestamptz default now(),
+  primary key (couple_id, tg_id)
+);
+-- один пользователь = одна пара (MVP)
+create unique index para_members_tg on para_members(tg_id);
+
+create table para_answers (
+  couple_id  uuid references para_couples(id) on delete cascade,
+  day        date not null,
+  tg_id      bigint not null,
+  answer     text not null,
+  created_at timestamptz default now(),
+  primary key (couple_id, day, tg_id)
+);
+
+-- RLS можно включить: доступ к таблицам идёт только из api/para.js
+-- service-role ключом (в браузер не попадает).
+alter table para_couples enable row level security;
+alter table para_members enable row level security;
+alter table para_answers enable row level security;
+```
+
+### 2. Заведи Telegram-бота
+
+1. У **@BotFather**: `/newbot` → получи **токен бота**.
+2. `/newapp` (или `/setmenubutton`) → привяжи **Mini App** к URL, где лежит
+   `para.html` (напр. `https://<домен>/para.html`).
+3. Ссылка-приглашение вида `https://t.me/<bot>?startapp=<КОД>` открывает
+   Mini App сразу на шаге присоединения по коду.
+
+### 3. Задай переменные окружения (Vercel → Settings → Environment Variables)
+
+- `PARA_SUPABASE_URL` — URL проекта Supabase для PARA.
+- `PARA_SUPABASE_SERVICE_ROLE_KEY` — service_role ключ этого проекта (секрет!).
+- `PARA_BOT_TOKEN` — токен бота PARA от @BotFather.
+
+*(Если отдельные `PARA_*` не заданы, функция читает и `SUPABASE_URL` /
+`SUPABASE_SERVICE_ROLE_KEY` / `BOT_TOKEN`. Для чистоты рекомендуются отдельные.)*
+
+Пока ключи не заданы, `api/para.js` возвращает `not_configured`, а `para.html`
+мягко откатывается в демо-режим — страница не ломается.
+
+### Что уже покрыто тестами
+
+`api/para.js` проверен: подпись `initData` (валидная принимается,
+поддельная/протухшая/с чужим токеном — отклоняются) и полный онлайн-флоу
+(создание пары → присоединение → ответы обоих) с корректной
+async-разблокировкой и пушами партнёру.
+
+### Дальше по плану (MVP)
+
+Настроение/чек-ин · общий стрик (со «заморозкой») · авто-воспоминания из
+ответов · умные напоминания о датах · движок квестов. Подключаются к уже
+готовому фундаменту пары.
