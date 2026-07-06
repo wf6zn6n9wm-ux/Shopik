@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>PARA — для двоих</title>
+
+<!-- PWA / iOS home-screen -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="PARA" />
+<meta name="theme-color" content="#17121b" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23231627'/%3E%3Cpath d='M90 140C60 118 44 100 44 78c0-15 12-26 26-26 9 0 16 4 20 11 4-7 11-11 20-11 14 0 26 11 26 26 0 22-16 40-46 62z' fill='%23ff5e8a'/%3E%3C/svg%3E" />
+
+<style>
+  html,body{margin:0;background:#17121b;min-height:100%;color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+  *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;}
+  ::-webkit-scrollbar{display:none;}
+</style>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-type="module">
+const { useState, useEffect, useRef, useMemo } = React;
+
+/* ============================================================
+   PARA — приложение для пары.
+   Работает в двух режимах:
+     • внутри Telegram — как Mini App (авторизация, пуши через бота,
+       кнопка «добавить на экран Домой» через WebApp.addToHomeScreen);
+     • в обычном браузере — как PWA (Safari → «На экран Домой»).
+   Данные пока хранятся локально (localStorage). Синхронизацию
+   между партнёрами добавим через backend (Supabase/serverless) —
+   структура кода к этому готова: весь стейт идёт через store().
+   ============================================================ */
+
+// ---- Telegram Mini App ----
+const TG = (window.Telegram && window.Telegram.WebApp) || null;
+if (TG) { try { TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor('#17121b'); } catch (e) {} }
+const haptic = (type = 'light') => {
+  try {
+    if (TG && TG.HapticFeedback) {
+      if (type === 'success' || type === 'error' || type === 'warning') TG.HapticFeedback.notificationOccurred(type);
+      else TG.HapticFeedback.impactOccurred(type);
+    } else if (navigator.vibrate) navigator.vibrate(10);
+  } catch (e) {}
+};
+
+// ---- локальное хранилище ----
+const lsGet = (k, d) => { try { const v = localStorage.getItem('para_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem('para_' + k, JSON.stringify(v)); } catch (e) {} };
+
+// маленький хук «состояние + автосохранение»
+const useStore = (key, initial) => {
+  const [val, setVal] = useState(() => lsGet(key, initial));
+  useEffect(() => { lsSet(key, val); }, [key, val]);
+  return [val, setVal];
+};
+
+// ---- утилиты дат ----
+const DAY = 86400000;
+const startOfDay = (d) => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
+// сколько дней до ближайшего дня рождения (по месяцу/дню)
+const daysUntilAnnual = (month, day) => {
+  const now = startOfDay(new Date());
+  const y = now.getFullYear();
+  let next = startOfDay(new Date(y, month - 1, day));
+  if (next < now) next = startOfDay(new Date(y + 1, month - 1, day));
+  return Math.round((next - now) / DAY);
+};
+const daysUntilDate = (iso) => Math.round((startOfDay(new Date(iso)) - startOfDay(new Date())) / DAY);
+const plural = (n, forms) => {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return forms[2];
+  if (b > 1 && b < 5) return forms[1];
+  if (b === 1) return forms[0];
+  return forms[2];
+};
+const daysWord = (n) => plural(n, ['день', 'дня', 'дней']);
+
+// ============================================================
+//  ДЕМО-ДАННЫЕ (пока нет backend)
+// ============================================================
+const DEFAULT_COUPLE = {
+  me:      { name: 'Андрей',  emoji: '🧔', birthday: { month: 3, day: 14 } },
+  partner: { name: 'Татьяна', emoji: '👩', birthday: { month: 7, day: 21 } },
+  since: '2021-05-02', // вместе с
+};
+
+const QUESTIONS = [
+  'Какой момент этой недели вдвоём был лучшим?',
+  'За что ты благодарен/благодарна мне сегодня?',
+  'О чём ты мечтаешь, но ещё не сказал(а) вслух?',
+  'Что бы ты хотел(а) сделать вместе в эти выходные?',
+  'Какая мелочь во мне тебя радует?',
+];
+// вопрос дня стабильно зависит от даты
+const questionOfDay = () => {
+  const idx = Math.floor(startOfDay(new Date()).getTime() / DAY) % QUESTIONS.length;
+  return { idx, text: QUESTIONS[idx] };
+};
+
+const WHEEL = [
+  { icon: '⚡', label: 'Быстро',  hint: 'мини-свидание на 15 минут' },
+  { icon: '💬', label: 'Твой ответ', hint: 'предложи своё' },
+  { icon: '⭐', label: 'Желание', hint: 'из списка желаний' },
+  { icon: '🗺️', label: 'Квест',   hint: 'задание для двоих' },
+  { icon: '🎟️', label: 'Купон',   hint: 'обменять очки' },
+];
+
+// ============================================================
+//  UI-примитивы
+// ============================================================
+const Card = ({ children, className = '', ...p }) => (
+  <div className={'rounded-3xl bg-white/[0.05] border border-white/10 backdrop-blur ' + className} {...p}>{children}</div>
+);
+
+const Pill = ({ children, className = '' }) => (
+  <span className={'inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ' + className}>{children}</span>
+);
+
+// ============================================================
+//  Переключатель «ДЛЯ ДВОИХ» (глазами каждого)
+// ============================================================
+function PartnerSwitch({ couple, who, setWho }) {
+  const people = [{ key: 'me', ...couple.me }, { key: 'partner', ...couple.partner }];
+  return (
+    <Card className="p-1.5 flex items-center gap-1 relative overflow-hidden">
+      <span className="absolute left-1/2 -translate-x-1/2 -top-2 text-[9px] uppercase tracking-[0.2em] text-white/30">Для двоих</span>
+      {people.map((p) => {
+        const active = who === p.key;
+        return (
+          <button key={p.key}
+            onClick={() => { setWho(p.key); haptic('light'); }}
+            className={'flex-1 rounded-2xl px-3 py-2.5 flex items-center justify-center gap-2 transition-all duration-300 '
+              + (active ? 'bg-gradient-to-r from-rose-500/90 to-fuchsia-500/80 shadow-lg shadow-rose-500/20' : 'opacity-50')}>
+            <span className="text-lg leading-none">{p.emoji}</span>
+            <span className="font-semibold text-sm">{p.name}</span>
+          </button>
+        );
+      })}
+    </Card>
+  );
+}
+
+// ============================================================
+//  Хедер с отсчётом до дня рождения
+// ============================================================
+function Countdown({ couple, who }) {
+  // показываем ближайший день рождения партнёра (глазами «who»)
+  const target = who === 'me' ? couple.partner : couple.me;
+  const days = daysUntilAnnual(target.birthday.month, target.birthday.day);
+  return (
+    <div className="relative overflow-hidden rounded-3xl p-5 mb-4"
+      style={{ background: 'linear-gradient(135deg,#3a1c3f 0%,#57223f 55%,#7a2a3a 100%)' }}>
+      <div className="absolute -right-6 -top-6 text-[120px] opacity-15 select-none">🎂</div>
+      <div className="relative">
+        <div className="text-xs uppercase tracking-widest text-white/60 mb-1">Через {days} {daysWord(days)}</div>
+        <div className="text-2xl font-bold leading-tight">День рождения<br/>{target.name} {target.emoji}</div>
+        <div className="mt-3 inline-flex items-center gap-2 text-sm text-white/80 bg-black/20 rounded-full px-3 py-1.5">
+          🎁 Время готовить сюрприз
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+//  Вопрос дня
+// ============================================================
+function QuestionOfDay({ couple, who, addPoints }) {
+  const q = questionOfDay();
+  const dayKey = startOfDay(new Date()).toISOString().slice(0, 10);
+  const [answers, setAnswers] = useStore('answers_' + dayKey, {}); // { me:'..', partner:'..' }
+  const [draft, setDraft] = useState('');
+  const other = who === 'me' ? 'partner' : 'me';
+  const otherName = couple[other].name;
+
+  // ДЕМО: партнёр «уже ответил» — заполним заглушку один раз
+  useEffect(() => {
+    if (!answers.partner && who === 'me') {
+      setAnswers((a) => ({ ...a, partner: '…' })); // скрытый ответ-заглушка
+    }
+    // eslint-disable-next-line
+  }, []);
+
+  const myAnswer = answers[who];
+  const otherAnswered = !!answers[other];
+  const bothAnswered = !!answers.me && !!answers.partner;
+
+  const submit = () => {
+    if (!draft.trim()) return;
+    setAnswers((a) => ({ ...a, [who]: draft.trim() }));
+    setDraft('');
+    addPoints(10);
+    haptic('success');
+  };
+
+  return (
+    <Card className="p-5 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <Pill className="bg-fuchsia-500/15 text-fuchsia-300">💡 Вопрос дня</Pill>
+        {otherAnswered && !myAnswer && (
+          <span className="text-[11px] text-white/50">{otherName} уже ответил(а)</span>
+        )}
+      </div>
+      <div className="text-lg font-semibold leading-snug mb-4">{q.text}</div>
+
+      {!myAnswer ? (
+        <>
+          <textarea value={draft} onChange={(e) => setDraft(e.target.value)}
+            rows={2} placeholder="Твой ответ…"
+            className="w-full resize-none rounded-2xl bg-black/25 border border-white/10 px-4 py-3 text-sm outline-none focus:border-rose-400/60 placeholder-white/30" />
+          <button onClick={submit} disabled={!draft.trim()}
+            className="mt-3 w-full rounded-2xl py-3 font-semibold bg-gradient-to-r from-rose-500 to-fuchsia-500 disabled:opacity-40 active:scale-[0.99] transition">
+            Ответить <span className="opacity-80">· +10 очков</span>
+          </button>
+          {otherAnswered && (
+            <div className="mt-3 text-center text-xs text-white/40">🔒 Ответ {otherName} откроется после твоего</div>
+          )}
+        </>
+      ) : (
+        <div className="space-y-2">
+          <AnswerRow name={couple[who].name} emoji={couple[who].emoji} text={myAnswer} mine />
+          {bothAnswered ? (
+            <AnswerRow name={otherName} emoji={couple[other].emoji}
+              text={answers[other] === '…' ? 'Секретный ответ 💌 (демо)' : answers[other]} />
+          ) : (
+            <div className="rounded-2xl bg-black/20 px-4 py-3 text-xs text-white/40 text-center">
+              🔒 Ждём ответ {otherName}
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+const AnswerRow = ({ name, emoji, text, mine }) => (
+  <div className={'rounded-2xl px-4 py-3 ' + (mine ? 'bg-rose-500/10 border border-rose-400/20' : 'bg-white/5')}>
+    <div className="text-[11px] text-white/50 mb-0.5">{emoji} {name}</div>
+    <div className="text-sm">{text}</div>
+  </div>
+);
+
+// ============================================================
+//  Колесо желаний (быстрые действия)
+// ============================================================
+function Wheel({ onPick }) {
+  return (
+    <Card className="p-5 mb-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="font-semibold">🎡 Колесо желаний</div>
+        <span className="text-xs text-white/40">чем займёмся?</span>
+      </div>
+      <div className="grid grid-cols-5 gap-2">
+        {WHEEL.map((w) => (
+          <button key={w.label} onClick={() => { onPick(w); haptic('light'); }}
+            className="flex flex-col items-center gap-1.5 rounded-2xl py-3 bg-white/[0.04] active:bg-white/10 active:scale-95 transition">
+            <span className="text-xl">{w.icon}</span>
+            <span className="text-[10px] text-white/70 leading-none text-center">{w.label}</span>
+          </button>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// ============================================================
+//  Экран «Сегодня»
+// ============================================================
+function TodayScreen({ couple, who, setWho, points, addPoints }) {
+  const [toast, setToast] = useState(null);
+  const pick = (w) => { setToast(w); setTimeout(() => setToast(null), 2200); };
+  return (
+    <div className="px-4 pt-3">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <div className="text-xs text-white/40">
+            {new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </div>
+          <div className="text-xl font-bold">Сегодня</div>
+        </div>
+        <div className="flex items-center gap-1.5 bg-amber-400/10 text-amber-300 rounded-full px-3 py-1.5 text-sm font-semibold">
+          ⭐ {points}
+        </div>
+      </div>
+
+      <PartnerSwitch couple={couple} who={who} setWho={setWho} />
+      <div className="h-4" />
+      <Countdown couple={couple} who={who} />
+      <QuestionOfDay couple={couple} who={who} addPoints={addPoints} />
+      <Wheel onPick={pick} />
+
+      {toast && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-40 rounded-2xl bg-black/80 backdrop-blur px-4 py-3 text-sm border border-white/10 flex items-center gap-2">
+          <span className="text-lg">{toast.icon}</span>
+          <span><b>{toast.label}</b> — {toast.hint}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+//  Экран «Желания»
+// ============================================================
+function WishesScreen({ couple, who }) {
+  const [wishes, setWishes] = useStore('wishes', [
+    { id: 1, by: 'partner', text: 'Съездить к морю на выходные', done: false },
+    { id: 2, by: 'me', text: 'Пиццу и любимый сериал в пятницу', done: false },
+    { id: 3, by: 'partner', text: 'Сходить на тот новый каток', done: true },
+  ]);
+  const [draft, setDraft] = useState('');
+  const add = () => {
+    if (!draft.trim()) return;
+    setWishes((w) => [{ id: Date.now(), by: who, text: draft.trim(), done: false }, ...w]);
+    setDraft(''); haptic('success');
+  };
+  const toggle = (id) => { setWishes((w) => w.map((x) => x.id === id ? { ...x, done: !x.done } : x)); haptic('light'); };
+  return (
+    <div className="px-4 pt-3">
+      <ScreenTitle emoji="⭐" title="Желания" sub="что бы вы хотели вместе" />
+      <div className="flex gap-2 mb-4">
+        <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()}
+          placeholder="Новое желание…"
+          className="flex-1 rounded-2xl bg-black/25 border border-white/10 px-4 py-3 text-sm outline-none focus:border-rose-400/60 placeholder-white/30" />
+        <button onClick={add} className="rounded-2xl px-5 font-semibold bg-gradient-to-r from-rose-500 to-fuchsia-500 active:scale-95 transition">+</button>
+      </div>
+      <div className="space-y-2">
+        {wishes.map((w) => (
+          <Card key={w.id} className="p-4 flex items-center gap-3">
+            <button onClick={() => toggle(w.id)}
+              className={'w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 '
+                + (w.done ? 'bg-rose-500 border-rose-500' : 'border-white/30')}>
+              {w.done && '✓'}
+            </button>
+            <div className="flex-1">
+              <div className={'text-sm ' + (w.done ? 'line-through text-white/40' : '')}>{w.text}</div>
+              <div className="text-[11px] text-white/40 mt-0.5">{couple[w.by].emoji} {couple[w.by].name}</div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+//  Экран «Квесты»
+// ============================================================
+function QuestsScreen({ addPoints }) {
+  const [quests, setQuests] = useStore('quests', [
+    { id: 1, text: 'Приготовьте ужин вдвоём без телефонов', pts: 30, done: false },
+    { id: 2, text: 'Напишите друг другу по 3 комплимента', pts: 20, done: false },
+    { id: 3, text: 'Вечер без соцсетей — только вы', pts: 40, done: false },
+    { id: 4, text: 'Сделайте совместное фото в новом месте', pts: 25, done: false },
+  ]);
+  const complete = (id) => {
+    setQuests((qs) => qs.map((q) => {
+      if (q.id === id && !q.done) { addPoints(q.pts); haptic('success'); return { ...q, done: true }; }
+      return q;
+    }));
+  };
+  return (
+    <div className="px-4 pt-3">
+      <ScreenTitle emoji="🗺️" title="Квесты" sub="задания для двоих — за очки" />
+      <div className="space-y-2">
+        {quests.map((q) => (
+          <Card key={q.id} className={'p-4 flex items-center gap-3 ' + (q.done ? 'opacity-50' : '')}>
+            <div className="flex-1">
+              <div className="text-sm">{q.text}</div>
+              <div className="text-[11px] text-amber-300 mt-1">⭐ +{q.pts} очков</div>
+            </div>
+            <button onClick={() => complete(q.id)} disabled={q.done}
+              className={'rounded-xl px-3 py-2 text-xs font-semibold shrink-0 '
+                + (q.done ? 'bg-white/5 text-white/40' : 'bg-gradient-to-r from-rose-500 to-fuchsia-500 active:scale-95')}>
+              {q.done ? 'Готово ✓' : 'Выполнить'}
+            </button>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+//  Экран «Даты»
+// ============================================================
+function DatesScreen({ couple }) {
+  const [dates, setDates] = useStore('dates', [
+    { id: 1, title: 'Годовщина', icon: '💍', iso: null, annual: { month: 5, day: 2 } },
+    { id: 2, title: 'День рождения ' + couple.partner.name, icon: '🎂', iso: null, annual: couple.partner.birthday },
+    { id: 3, title: 'День рождения ' + couple.me.name, icon: '🎂', iso: null, annual: couple.me.birthday },
+  ]);
+  const list = dates.map((d) => ({
+    ...d,
+    days: d.annual ? daysUntilAnnual(d.annual.month, d.annual.day) : daysUntilDate(d.iso),
+  })).sort((a, b) => a.days - b.days);
+  return (
+    <div className="px-4 pt-3">
+      <ScreenTitle emoji="📅" title="Даты" sub="важные дни, чтобы не забыть" />
+      <div className="space-y-2">
+        {list.map((d) => (
+          <Card key={d.id} className="p-4 flex items-center gap-4">
+            <div className="text-2xl">{d.icon}</div>
+            <div className="flex-1">
+              <div className="text-sm font-semibold">{d.title}</div>
+              <div className="text-[11px] text-white/40">через {d.days} {daysWord(d.days)}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold leading-none">{d.days}</div>
+              <div className="text-[10px] text-white/40 uppercase">{daysWord(d.days)}</div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+//  Экран «Мы»
+// ============================================================
+function UsScreen({ couple, points }) {
+  const together = Math.floor((startOfDay(new Date()) - startOfDay(new Date(couple.since))) / DAY);
+  const canHomeScreen = TG && typeof TG.addToHomeScreen === 'function';
+  const [added, setAdded] = useState(false);
+  useEffect(() => {
+    try {
+      if (canHomeScreen && TG.checkHomeScreenStatus) {
+        TG.checkHomeScreenStatus((s) => setAdded(s === 'added'));
+      }
+    } catch (e) {}
+  }, []);
+  return (
+    <div className="px-4 pt-3">
+      <ScreenTitle emoji="💞" title="Мы" sub="" />
+      <Card className="p-6 mb-4 text-center relative overflow-hidden">
+        <div className="flex items-center justify-center gap-4 text-4xl mb-3">
+          <span>{couple.me.emoji}</span><span className="text-rose-400 text-2xl">❤</span><span>{couple.partner.emoji}</span>
+        </div>
+        <div className="text-lg font-bold">{couple.me.name} & {couple.partner.name}</div>
+        <div className="text-sm text-white/50 mt-1">вместе уже <b className="text-white">{together}</b> {daysWord(together)}</div>
+        <div className="mt-4 inline-flex items-center gap-1.5 bg-amber-400/10 text-amber-300 rounded-full px-4 py-2 text-sm font-semibold">
+          ⭐ {points} общих очков
+        </div>
+      </Card>
+
+      {canHomeScreen && (
+        <Card className="p-4 mb-3 flex items-center gap-3">
+          <div className="text-2xl">📲</div>
+          <div className="flex-1">
+            <div className="text-sm font-semibold">На экран «Домой»</div>
+            <div className="text-[11px] text-white/40">{added ? 'уже добавлено' : 'иконка PARA прямо на телефоне'}</div>
+          </div>
+          <button onClick={() => { try { TG.addToHomeScreen(); haptic('light'); } catch (e) {} }} disabled={added}
+            className="rounded-xl px-4 py-2 text-xs font-semibold bg-gradient-to-r from-rose-500 to-fuchsia-500 disabled:opacity-40 active:scale-95">
+            {added ? 'Добавлено' : 'Добавить'}
+          </button>
+        </Card>
+      )}
+
+      <div className="text-center text-[11px] text-white/30 mt-6">
+        PARA · {TG ? 'Telegram Mini App' : 'веб-версия (PWA)'}
+      </div>
+    </div>
+  );
+}
+
+const ScreenTitle = ({ emoji, title, sub }) => (
+  <div className="mb-4">
+    <div className="text-xl font-bold flex items-center gap-2">{emoji} {title}</div>
+    {sub && <div className="text-xs text-white/40 mt-0.5">{sub}</div>}
+  </div>
+);
+
+// ============================================================
+//  Нижняя навигация
+// ============================================================
+const TABS = [
+  { key: 'today',  label: 'Сегодня', icon: '🏠' },
+  { key: 'wishes', label: 'Желания', icon: '⭐' },
+  { key: 'quests', label: 'Квесты',  icon: '🗺️' },
+  { key: 'dates',  label: 'Даты',    icon: '📅' },
+  { key: 'us',     label: 'Мы',      icon: '💞' },
+];
+
+function BottomNav({ tab, setTab }) {
+  return (
+    <div className="fixed bottom-0 inset-x-0 z-30 border-t border-white/10 bg-[#17121b]/90 backdrop-blur-xl"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="max-w-md mx-auto grid grid-cols-5">
+        {TABS.map((t) => {
+          const active = tab === t.key;
+          return (
+            <button key={t.key} onClick={() => { setTab(t.key); haptic('light'); }}
+              className={'flex flex-col items-center gap-0.5 py-2.5 transition ' + (active ? 'text-rose-400' : 'text-white/40')}>
+              <span className="text-lg leading-none">{t.icon}</span>
+              <span className="text-[10px] font-medium">{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+//  Корень
+// ============================================================
+function App() {
+  const [tab, setTab] = useStore('tab', 'today');
+  const [who, setWho] = useStore('who', 'me');        // чьими глазами смотрим
+  const [points, setPoints] = useStore('points', 120);
+  const [couple] = useStore('couple', DEFAULT_COUPLE);
+  const addPoints = (n) => setPoints((p) => p + n);
+
+  const screens = {
+    today:  <TodayScreen couple={couple} who={who} setWho={setWho} points={points} addPoints={addPoints} />,
+    wishes: <WishesScreen couple={couple} who={who} />,
+    quests: <QuestsScreen addPoints={addPoints} />,
+    dates:  <DatesScreen couple={couple} />,
+    us:     <UsScreen couple={couple} points={points} />,
+  };
+
+  return (
+    <div className="min-h-screen max-w-md mx-auto pb-24"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      {screens[tab]}
+      <BottomNav tab={tab} setTab={setTab} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
