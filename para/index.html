@@ -73,6 +73,76 @@
   .count{position:relative;overflow:hidden;border-radius:24px;padding:20px;
     background:linear-gradient(135deg,#3a1c3f 0%,#57223f 55%,#7a2a3a 100%);}
   .count .cake{position:absolute;right:-16px;top:-24px;font-size:120px;opacity:.15;}
+  /* динамическая карточка события */
+  .evc{position:relative;overflow:hidden;border-radius:24px;padding:22px 20px;min-height:150px;
+    box-shadow:0 16px 40px rgba(0,0,0,.30);animation:win .4s ease both;}
+  .evc.glow{box-shadow:0 20px 54px rgba(192,38,211,.5);}
+  .evc-illu{position:absolute;right:-8px;top:50%;transform:translateY(-50%);font-size:112px;
+    filter:drop-shadow(0 8px 22px rgba(0,0,0,.35));opacity:.96;pointer-events:none;}
+  .evc.glow .evc-illu{animation:evpulse 2.4s ease-in-out infinite;}
+  .evc-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;
+    letter-spacing:.12em;color:#fff;background:rgba(0,0,0,.28);padding:6px 12px;border-radius:999px;position:relative;}
+  .evc-title{font-size:22px;font-weight:800;line-height:1.16;margin-top:13px;max-width:66%;
+    position:relative;text-shadow:0 2px 8px rgba(0,0,0,.3);}
+  .evc-when{font-size:14.5px;color:rgba(255,255,255,.9);margin-top:7px;position:relative;}
+  .evc-when b{font-size:19px;color:#fff;font-weight:800;}
+  .evc-tip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:rgba(255,255,255,.92);
+    background:rgba(0,0,0,.22);border-radius:999px;padding:7px 13px;margin-top:14px;position:relative;max-width:74%;line-height:1.3;}
+  .evc-cta{margin-top:16px;display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14px;
+    color:#c026d3;background:#fff;border-radius:14px;padding:12px 18px;position:relative;
+    box-shadow:0 8px 20px rgba(0,0,0,.25);transition:transform .12s;}
+  .evc-cta:active{transform:scale(.96);}
+  @keyframes evpulse{0%,100%{transform:translateY(-50%) scale(1);}50%{transform:translateY(-50%) scale(1.07);}}
+  /* ✨ Для вас сегодня */
+  .fy-head{font-size:15px;font-weight:800;margin:2px 0 12px;}
+  .fy{display:flex;gap:14px;align-items:center;border-radius:26px;padding:16px;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.018));
+    border:1px solid var(--line);box-shadow:0 14px 34px rgba(0,0,0,.24);}
+  .fy-illu{flex:0 0 92px;height:92px;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:46px;
+    background:radial-gradient(circle at 50% 35%,rgba(255,94,138,.20),rgba(192,38,211,.07));}
+  .fy-body{flex:1;min-width:0;}
+  .fy-title{font-size:16px;font-weight:800;line-height:1.22;}
+  .fy-desc{font-size:13px;color:var(--muted);margin-top:5px;line-height:1.4;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .fy-pts{font-size:12.5px;font-weight:800;color:#fcd34d;margin-top:9px;}
+  .fy-btn{margin-top:11px;display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:13.5px;color:#fff;
+    background:var(--grad);border-radius:13px;padding:10px 16px;box-shadow:0 8px 20px rgba(192,38,211,.35);transition:transform .12s;}
+  .fy-btn:active{transform:scale(.96);}
+  .fy-done{border-radius:26px;padding:30px 20px;text-align:center;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.018));
+    border:1px solid var(--line);box-shadow:0 14px 34px rgba(0,0,0,.20);}
+  .rec-illu{width:150px;height:150px;margin:22px auto 0;border-radius:42px;display:flex;align-items:center;justify-content:center;font-size:74px;
+    background:radial-gradient(circle at 50% 34%,rgba(255,94,138,.26),rgba(192,38,211,.08));
+    box-shadow:inset 0 0 52px rgba(255,94,138,.16),0 16px 42px rgba(192,38,211,.22);animation:eIll .5s cubic-bezier(.2,.8,.2,1) both;}
+  /* Экран «Даты» */
+  .dt-hero{position:relative;overflow:hidden;border-radius:26px;padding:22px 20px;margin-bottom:18px;
+    box-shadow:0 18px 46px rgba(0,0,0,.30);animation:win .4s ease both;}
+  .dt-hero-illu{position:absolute;right:-6px;top:50%;transform:translateY(-50%);font-size:118px;
+    filter:drop-shadow(0 8px 22px rgba(0,0,0,.35));opacity:.96;pointer-events:none;}
+  .dt-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;letter-spacing:.12em;
+    color:#fff;background:rgba(0,0,0,.28);padding:6px 12px;border-radius:999px;position:relative;}
+  .dt-h-title{font-size:23px;font-weight:800;line-height:1.16;margin-top:13px;max-width:64%;
+    position:relative;text-shadow:0 2px 8px rgba(0,0,0,.3);}
+  .dt-h-when{font-size:16px;font-weight:700;color:rgba(255,255,255,.92);margin-top:8px;position:relative;}
+  .dt-h-when b{font-size:20px;color:#fff;font-weight:800;}
+  .dt-h-tip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:rgba(255,255,255,.92);
+    background:rgba(0,0,0,.22);border-radius:999px;padding:7px 13px;margin-top:14px;position:relative;max-width:70%;line-height:1.3;}
+  .dt-recs{display:flex;flex-direction:column;gap:7px;margin-top:14px;position:relative;max-width:76%;}
+  .dt-rec{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:#fff;
+    background:rgba(0,0,0,.22);border-radius:12px;padding:9px 12px;}
+  .dt-cta{margin-top:16px;display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14px;
+    color:#c026d3;background:#fff;border-radius:14px;padding:12px 18px;position:relative;
+    box-shadow:0 8px 20px rgba(0,0,0,.25);transition:transform .12s;}
+  .dt-cta:active{transform:scale(.96);}
+  .dt-row{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;border-radius:20px;
+    padding:18px 16px;margin-bottom:10px;border:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));}
+  .dt-row .acc{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 4px 4px 0;}
+  .dt-ic{flex:0 0 auto;font-size:30px;margin-left:4px;}
+  .dt-row .info{flex:1;min-width:0;}
+  .dt-row .nm{font-size:15px;font-weight:700;line-height:1.2;}
+  .dt-row .wh{font-size:13px;color:var(--muted);margin-top:3px;}
+  .dt-chev{color:var(--muted2);font-size:22px;font-weight:300;flex:0 0 auto;}
 
   /* partner switch */
   .switch{display:flex;gap:4px;padding:6px;position:relative;}
@@ -302,7 +372,12 @@
 
 // ---------- Telegram ----------
 var TG = (window.Telegram && window.Telegram.WebApp) || null;
-if (TG) { try { TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor('#17121b'); } catch(e){} }
+if (TG) { try {
+  TG.ready(); TG.expand();
+  // не давать свайпу вниз сворачивать приложение при прокрутке (Bot API 7.7+)
+  TG.disableVerticalSwipes && TG.disableVerticalSwipes();
+  TG.setHeaderColor && TG.setHeaderColor('#17121b');
+} catch(e){} }
 var TG_BOT = 'para_couple_bot';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
@@ -475,6 +550,8 @@ var S = {
   quests: lsGet('quests', []),          // старый формат (для миграции done)
   qdone: lsGet('qdone', {}),            // { questId: true } — выполненные квесты
   qcat: 'all',                          // активная категория фильтра
+  recDoneDay: lsGet('recDoneDay', null),// дата (YYYY-MM-DD) выполнения дневной рекомендации
+  recOpen: false,                       // открыт полноэкранный экран рекомендации
   dates: lsGet('dates',null),   // строим после онбординга
   answers: lsGet('answers',{}), // { 'YYYY-MM-DD': {me,partner} }
   // онбординг (в памяти)
@@ -564,15 +641,158 @@ function partnerSwitch(){
   return '<div class="card switch"><span class="cap">Для двоих</span>'+segs+'</div>';
 }
 
+function yearsWord(n){ return plural(n,['год','года','лет']); }
+// стиль карточки по числу оставшихся дней (день рождения → 3 → 7 → 14 → 30 → 50)
+function evGrad(days){
+  if(days===0) return 'linear-gradient(135deg,#f43f8e,#c026d3 55%,#7c3aed)';
+  if(days<=3)  return 'linear-gradient(135deg,#fb2e63,#c026d3)';
+  if(days<=7)  return 'linear-gradient(135deg,#d8447e,#a02fbf)';
+  if(days<=14) return 'linear-gradient(135deg,#8a2a6a,#5b2a8a)';
+  if(days<=30) return 'linear-gradient(135deg,#5a2350,#3a2a6a)';
+  return 'linear-gradient(135deg,#3a1c3f 0%,#57223f 55%,#7a2a3a 100%)';
+}
+// подсказка для дня рождения партнёра по «горизонту»
+function giftTip(days){
+  if(days===0) return '🎉 Сегодня! Подари внимание и заботу';
+  if(days<=3)  return '🎁 Подарок уже готов? Осталось совсем чуть-чуть';
+  if(days<=7)  return '🎁 Пора покупать подарок';
+  if(days<=14) return '💡 Самое время выбрать подарок';
+  if(days<=30) return '💡 Начни присматривать подарок';
+  return '💡 Ещё есть время подумать о подарке';
+}
+// собрать ближайшее актуальное событие (или полезный запасной вариант)
+function pickEvent(c){
+  var cands=[];
+  function pushBday(person, mine){
+    if(!person||!person.birthday) return;
+    var d=daysAnnual(person.birthday.month, person.birthday.day);
+    if(d>50) return;                          // показываем ДР только за ≤50 дней; после — исчезает
+    cands.push({
+      kind:'bday', days:d, emoji:'🎂', glow:(d<=3),
+      badge:(d===0?'🎉 СЕГОДНЯ':'🎂 ДЕНЬ РОЖДЕНИЯ'),
+      title:(mine?'Твой день рождения':'День рождения '+esc(person.name)),
+      when:(d===0?'Сегодня! 🥳':('Через <b>'+d+'</b> '+daysWord(d))),
+      tip:(mine?'💌 Добавь желание — партнёр узнает, что подарить':giftTip(d)),
+      cta:(mine?{label:'⭐ Мои желания',act:'ev-mywishes'}:{label:'🎁 Идеи подарков',act:'ev-gifts'})
+    });
+  }
+  pushBday(c.partner,false); pushBday(c.me,true);
+  // годовщина (по дате начала; не показываем для только что созданной пары)
+  if(c.since){
+    var sd=sod(new Date(c.since));
+    var together=Math.floor((sod(new Date())-sd)/DAY);
+    if(together>=60){
+      var d=daysAnnual(sd.getMonth()+1, sd.getDate());
+      var y=new Date().getFullYear(), nx=sod(new Date(y,sd.getMonth(),sd.getDate()));
+      if(nx<sod(new Date())) nx=sod(new Date(y+1,sd.getMonth(),sd.getDate()));
+      var yrs=nx.getFullYear()-sd.getFullYear();
+      if(d<=50 && yrs>=1){
+        cands.push({ kind:'anniv', days:d, emoji:'💞', glow:(d<=3),
+          badge:(d===0?'💞 СЕГОДНЯ':'💞 ГОДОВЩИНА'),
+          title:yrs+' '+yearsWord(yrs)+' вместе',
+          when:(d===0?'Сегодня ваш день! 💕':('Через <b>'+d+'</b> '+daysWord(d))),
+          tip:(d<=7?'✨ Спланируйте что-то особенное':'💫 Придумайте, как отметить'),
+          cta:{label:'📅 Наши даты',act:'ev-dates'} });
+      }
+    }
+  }
+  if(cands.length){ cands.sort(function(a,b){return a.days-b.days;}); return cands[0]; }
+  return fallbackEvent(c);
+}
+// когда нет ближайших дат — всегда показываем что-то полезное
+function fallbackEvent(c){
+  var together=c.since?Math.floor((sod(new Date())-sod(new Date(c.since)))/DAY):0;
+  // 1) приближается круглое число дней вместе
+  var MILE=[100,200,300,365,500,730,1000,1500,2000,3000,3650];
+  for(var i=0;i<MILE.length;i++){ var left=MILE[i]-together;
+    if(left>0 && left<=14){ return { kind:'milestone', days:left, emoji:'💞', glow:false,
+      badge:'💞 ВМЕСТЕ', title:'Скоро '+MILE[i]+' '+daysWord(MILE[i])+' вместе',
+      when:'Через <b>'+left+'</b> '+daysWord(left), tip:'✨ Отметьте этот день чем-то особенным',
+      cta:{label:'📅 Наши даты',act:'ev-dates'} }; } }
+  // 2) вопрос дня ещё не отвечен
+  var td=todayData();
+  if(td.linked && !td.mine){ return { kind:'q', days:0, emoji:'💬', glow:false,
+    badge:'💬 ВОПРОС ДНЯ', title:'Ответьте на вопрос дня', when:'',
+    tip:'👇 Ваш ответ ждёт партнёра — прямо ниже' }; }
+  // 3) незавершённый «квест дня»
+  var lvl=(effProgress().levelIndex)||0, qd=qToday(questDefs(),lvl);
+  if(qd && !S.qdone[qd.id]){ return { kind:'quest', days:0, emoji:qd.emoji, glow:false,
+    badge:'🗺️ КВЕСТ ДНЯ', title:esc(qd.title), when:'',
+    tip:'⭐ Выполните вместе и получите +'+qd.pts, cta:{label:'Открыть квесты',act:'ev-quests'} }; }
+  // 4) сколько вы уже вместе
+  return { kind:'together', days:0, emoji:'💞', glow:false, badge:'💞 МЫ ВМЕСТЕ',
+    title:'Вы вместе '+together+' '+daysWord(together), when:'',
+    tip:'❤️ Каждый день делает вас ближе' };
+}
 function countdownCard(){
-  var c=S.couple, t=(S.who==='me')?c.partner:c.me;
-  var d=daysAnnual(t.birthday.month,t.birthday.day);
-  return '<div class="count"><div class="cake">🎂</div>'+
-    '<div style="position:relative">'+
-    '<div class="xs muted" style="text-transform:uppercase;letter-spacing:.15em;margin-bottom:4px">Через '+d+' '+daysWord(d)+'</div>'+
-    '<div class="b" style="font-size:24px;line-height:1.15">День рождения<br>'+esc(t.name)+' '+t.emoji+'</div>'+
-    '<div class="row gap2 small mt3" style="display:inline-flex;background:rgba(0,0,0,.2);border-radius:999px;padding:6px 12px;color:rgba(255,255,255,.8)">🎁 Время готовить сюрприз</div>'+
+  var e=pickEvent(S.couple);
+  return '<div class="evc'+(e.glow?' glow':'')+'" style="background:'+evGrad(e.days)+'">'+
+    '<div class="evc-illu">'+e.emoji+'</div>'+
+    '<div class="evc-badge">'+e.badge+'</div>'+
+    '<div class="evc-title">'+e.title+'</div>'+
+    (e.when?'<div class="evc-when">'+e.when+'</div>':'')+
+    (e.tip?'<div class="evc-tip">'+e.tip+'</div>':'')+
+    (e.cta?'<div><button class="evc-cta" data-act="'+e.cta.act+'">'+e.cta.label+'</button></div>':'')+
+    '</div>';
+}
+
+// ============================================================
+//  «✨ Для вас сегодня» — одна дневная рекомендация для пары
+// ============================================================
+var FORYOU=[
+  {id:'pizza',   emoji:'🍕',pts:20,title:'Приготовьте домашнюю пиццу', desc:'Замесите тесто и соберите пиццу вдвоём.',
+    long:'Ничего не сближает так, как готовка вместе. Замесите тесто, выберите начинку по вкусу каждого и приготовьте пиццу своей мечты. Ужин, который вы сделали сами, всегда вкуснее.'},
+  {id:'walk',    emoji:'🚶',pts:15,title:'Прогуляйтесь вечером 30 минут', desc:'Без телефонов — просто вы вдвоём и разговор.',
+    long:'Оставьте телефоны дома и выйдите на неспешную вечернюю прогулку. Полчаса вдвоём, свежий воздух и разговоры обо всём — маленький ритуал, который делает вечер особенным.'},
+  {id:'breakfast',emoji:'☕',pts:15,title:'Позавтракайте вместе', desc:'Начните день с общего завтрака за столом.',
+    long:'Проснитесь чуть раньше и приготовьте завтрак вдвоём. Кофе, тосты и несколько спокойных минут вместе — лучший способ начать общий день.'},
+  {id:'movie',   emoji:'🎬',pts:20,title:'Посмотрите новый фильм', desc:'Выберите фильм, который ещё не видели.',
+    long:'Устройте домашний киновечер. Выберите фильм, который никто из вас ещё не смотрел, приготовьте что-нибудь вкусное и наслаждайтесь вечером вдвоём.'},
+  {id:'compliment',emoji:'❤️',pts:10,title:'Сделайте партнёру комплимент', desc:'Скажите что-то тёплое и искреннее.',
+    long:'Иногда нужно совсем немного. Скажите партнёру искренний комплимент — о том, что цените, чем восхищаетесь, за что благодарны. Тёплые слова стоят дороже подарков.'},
+  {id:'photo',   emoji:'📸',pts:15,title:'Сделайте совместное фото', desc:'Запечатлейте этот день вдвоём.',
+    long:'Остановите мгновение. Сделайте общее фото — дома, на улице, где угодно. Через годы такие снимки станут самыми ценными.'},
+  {id:'quest',   emoji:'🎯',pts:25,title:'Выполните случайный квест', desc:'Откройте «Квесты» и выберите задание.',
+    long:'Добавьте немного игры. Откройте «Квесты» и выполните любое задание для двоих — от простого до сложного. Каждый квест приносит очки и новые впечатления.'},
+  {id:'wish',    emoji:'🎁',pts:20,title:'Исполните одно желание', desc:'Порадуйте партнёра — исполните его желание.',
+    long:'Загляните в «Желания» партнёра и исполните одно из них. Маленький сюрприз без повода — то, что помнят.'},
+  {id:'message', emoji:'💌',pts:10,title:'Напишите друг другу сообщение', desc:'Пара тёплых строк — просто так.',
+    long:'Напишите партнёру короткое сообщение без повода — просто чтобы сказать, что думаете о нём. Такие мелочи и создают близость.'},
+  {id:'wheel',   emoji:'🎲',pts:15,title:'Пусть колесо выберет занятие', desc:'Доверьтесь случаю и проведите вечер вместе.',
+    long:'Не можете выбрать, чем заняться? Доверьтесь случаю — покрутите колесо желаний и сделайте то, что выпадет. Спонтанность делает вечер живым.'}
+];
+// одна рекомендация в сутки (детерминированно, без повторов несколько дней подряд)
+function todayRec(){ var day=Math.floor(sod(new Date()).getTime()/DAY); return FORYOU[(day*7)%FORYOU.length]; }
+function recDoneToday(){ return S.recDoneDay===todayKey(); }
+function forYouCard(){
+  var head='<div class="fy-head">✨ Для вас сегодня</div>';
+  if(recDoneToday()){
+    return head+'<div class="fy-done"><div style="font-size:42px">✅</div>'+
+      '<div class="sb mt3" style="font-size:15px">Сегодняшняя рекомендация выполнена</div>'+
+      '<div class="small muted mt2">Возвращайтесь завтра ❤️</div></div>';
+  }
+  var r=todayRec();
+  return head+'<div class="fy">'+
+    '<div class="fy-illu">'+r.emoji+'</div>'+
+    '<div class="fy-body">'+
+      '<div class="fy-title">'+esc(r.title)+'</div>'+
+      '<div class="fy-desc">'+esc(r.desc)+'</div>'+
+      '<div class="fy-pts">⭐ +'+r.pts+'</div>'+
+      '<button class="fy-btn" data-act="rec-open">Попробовать →</button>'+
     '</div></div>';
+}
+// полноэкранная страница рекомендации (не модалка)
+function recView(){
+  var r=todayRec();
+  return '<div class="app"><div class="wrap">'+
+    '<div class="row between mb4"><button class="btn btn-ghost btn-sm" data-act="rec-close">← Назад</button>'+
+    '<div class="xs muted" style="text-transform:uppercase;letter-spacing:.18em">Для вас сегодня</div></div>'+
+    '<div class="rec-illu">'+r.emoji+'</div>'+
+    '<div class="b" style="font-size:25px;text-align:center;margin-top:22px;line-height:1.2">'+esc(r.title)+'</div>'+
+    '<div class="small muted" style="text-align:center;max-width:330px;margin:14px auto 0;line-height:1.6">'+esc(r.long)+'</div>'+
+    '<div class="center-t" style="margin-top:18px"><span class="chipx gold" style="font-size:14px;padding:7px 14px">⭐ +'+r.pts+'</span></div>'+
+    '<button class="add-wish" style="margin-top:28px" data-act="rec-start">Начать</button>'+
+    '<div style="height:20px"></div></div></div>';
 }
 
 // единые данные вопроса дня — для онлайна (реальный партнёр) и демо (локально)
@@ -638,7 +858,7 @@ function todayScreen(){
     // переключатель «глазами каждого» — только в демо; онлайн ты фиксированный человек
     (ONLINE?'':partnerSwitch()+'<div style="height:16px"></div>')+
     countdownCard()+'<div style="height:16px"></div>'+
-    questionCard()+wheelCard()+'</div>';
+    questionCard()+forYouCard()+'</div>';
 }
 
 // категории желаний: эмодзи, подпись, акцентный цвет
@@ -844,18 +1064,59 @@ function questsScreen(){
     '</div>';
 }
 
+// цветовой приоритет: <30 дней — розовый, 30–90 — золотой, дальше — обычный
+function dateAccent(days){ if(days<30) return '#ff5e8a'; if(days<=90) return '#fbbf24'; return ''; }
+function dtHeroGrad(days){
+  if(days<7)  return 'linear-gradient(135deg,#fb2e63,#c026d3)';
+  if(days<30) return 'linear-gradient(135deg,#c62d6e,#7a2a9a)';
+  return 'linear-gradient(135deg,#6a3358,#3f2a72)';
+}
+function dateHero(x){
+  var d=x.t, days=x.days, isB=(d.icon==='🎂'), emo=isB?'🎂':(d.icon==='💍'?'💞':(d.icon||'📅'));
+  var badge=days===0?'🎉 СЕГОДНЯ':(days<7?'🔥 СОВСЕМ СКОРО':'✨ СКОРО');
+  var when=days===0?'Сегодня! 🥳':('через <b>'+days+'</b> '+daysWord(days));
+  var body;
+  if(days>0 && days<7){
+    body='<div class="dt-recs">'+
+      '<div class="dt-rec">🎁 Купить подарок</div>'+
+      '<div class="dt-rec">💐 Заказать цветы</div>'+
+      '<div class="dt-rec">✍️ Написать тёплое поздравление</div></div>';
+  } else {
+    var tip=isB?giftTip(days):(days<7?'💐 Спланируйте особенный день':'✨ Придумайте, как отметить');
+    body='<div class="dt-h-tip">'+tip+'</div>';
+  }
+  var cta=isB?'<button class="dt-cta" data-act="ev-gifts">🎁 Идеи подарков</button>'
+             :'<button class="dt-cta" data-act="ev-quests">💡 Идея свидания</button>';
+  return '<div class="dt-hero" style="background:'+dtHeroGrad(days)+'">'+
+    '<div class="dt-hero-illu">'+emo+'</div>'+
+    '<div class="dt-badge">'+badge+'</div>'+
+    '<div class="dt-h-title">'+esc(d.title)+'</div>'+
+    '<div class="dt-h-when">'+when+'</div>'+
+    body+'<div>'+cta+'</div></div>';
+}
+function dateRow(x){
+  var d=x.t, days=x.days, ac=dateAccent(days), num=ac||'#fff';
+  var when=days===0?'сегодня 🎉':('через <b style="color:'+num+'">'+days+'</b> '+daysWord(days));
+  return '<div class="dt-row">'+(ac?'<div class="acc" style="background:'+ac+'"></div>':'')+
+    '<div class="dt-ic">'+(d.icon||'📅')+'</div>'+
+    '<div class="info"><div class="nm">'+esc(d.title)+'</div><div class="wh">'+when+'</div></div>'+
+    '<div class="dt-chev">›</div></div>';
+}
 function datesScreen(){
-  var list=S.dates.map(function(d){
-    return {t:d, days:d.annual?daysAnnual(d.annual.month,d.annual.day):Math.round((sod(new Date(d.iso))-sod(new Date()))/DAY)};
-  }).sort(function(a,b){return a.days-b.days;});
-  var items=list.map(function(x){var d=x.t;
-    return '<div class="card p4 row gap4 mb3"><div style="font-size:24px">'+d.icon+'</div>'+
-      '<div class="flex1"><div class="small sb">'+esc(d.title)+'</div>'+
-      '<div class="xs muted">через '+x.days+' '+daysWord(x.days)+'</div></div>'+
-      '<div class="center-t"><div class="b" style="font-size:22px;line-height:1">'+x.days+'</div>'+
-      '<div class="tiny muted" style="text-transform:uppercase">'+daysWord(x.days)+'</div></div></div>';
-  }).join('');
-  return '<div class="wrap">'+screenTitle('📅','Даты','важные дни, чтобы не забыть')+items+'</div>';
+  var list=(S.dates||[]).map(function(d){
+    var days=d.annual?daysAnnual(d.annual.month,d.annual.day):Math.round((sod(new Date(d.iso))-sod(new Date()))/DAY);
+    return {t:d, days:days};
+  }).filter(function(x){return x.days>=0;}).sort(function(a,b){return a.days-b.days;});
+  var head=screenTitle('📅','Даты','важные дни, чтобы не забыть');
+  if(!list.length){
+    return '<div class="wrap">'+head+'<div class="wempty2"><div class="ill2">📅</div>'+
+      '<div class="et">Пока нет важных дат</div>'+
+      '<div class="es">Даты появятся автоматически из профиля вашей пары.</div></div></div>';
+  }
+  var hero='', start=0;
+  if(list[0].days<=50){ hero=dateHero(list[0]); start=1; }
+  var rows=list.slice(start).map(dateRow).join('');
+  return '<div class="wrap">'+head+hero+rows+'</div>';
 }
 
 function usScreen(){
@@ -1033,8 +1294,9 @@ function questBurst(){
   var b=S.qburst; if(!b) return '';
   var cols=['#ff5e8a','#c026d3','#fbbf24','#34d399','#60a5fa'];
   var conf=''; for(var i=0;i<40;i++){ conf+='<span class="conf" style="left:'+(Math.random()*100).toFixed(1)+'%;background:'+cols[i%5]+';animation-delay:'+(Math.random()*0.4).toFixed(2)+'s"></span>'; }
+  var txt=(b.label?b.label:(b.emoji||'🎉'))+' +'+b.pts+' ⭐';
   return '<div class="q-burst-wrap"><div class="conf-wrap" style="position:absolute;inset:0">'+conf+'</div>'+
-    '<div class="q-burst-badge">'+(b.emoji||'🎉')+' +'+b.pts+' ⭐</div></div>';
+    '<div class="q-burst-badge">'+txt+'</div></div>';
 }
 
 var TABS=[
@@ -1071,6 +1333,8 @@ function render(){
       html=achvView();
     } else if(S.showCust){
       html=custView();
+    } else if(S.recOpen){
+      html=recView();
     } else {
       var screen={today:todayScreen,wishes:wishesScreen,quests:questsScreen,dates:datesScreen,us:usScreen}[S.tab]();
       html='<div class="app">'+screen+bottomNav()+'</div>';
@@ -1155,6 +1419,15 @@ var ACTS={
   'answer':function(){ var t=(val('#qa')||'').trim(); if(!t)return; if(ONLINE) onlineAnswer(t); else { var k=todayKey(); if(!S.answers[k])S.answers[k]={}; S.answers[k][S.who]=t; save('answers'); S.points+=10; save('points'); haptic('success'); render(); } },
   'wfilter':function(el){ S.wfilter=el.dataset.f; haptic('light'); render(); },
   'wdonefilter':function(el){ S.wdonefilter=el.dataset.f; haptic('light'); render(); },
+  // переходы из карточки события
+  'ev-gifts':function(){ S.tab='wishes'; S.wfilter='partner'; save('tab'); haptic('light'); render(); },
+  'ev-mywishes':function(){ S.tab='wishes'; S.wfilter='mine'; save('tab'); haptic('light'); render(); },
+  'ev-dates':function(){ S.tab='dates'; save('tab'); haptic('light'); render(); },
+  'ev-quests':function(){ S.tab='quests'; save('tab'); haptic('light'); render(); },
+  // «Для вас сегодня»
+  'rec-open':function(){ S.recOpen=true; haptic('light'); render(); },
+  'rec-close':function(){ S.recOpen=false; render(); },
+  'rec-start':function(){ var r=todayRec(); if(recDoneToday()){ S.recOpen=false; render(); return; } S.recDoneDay=todayKey(); save('recDoneDay'); S.points+=r.pts; save('points'); track('points',r.pts); S.recOpen=false; S.qburst={pts:r.pts,label:'🎉 Отлично!'}; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.qburst=null; render(); },1600); },
   'wish-open-add':function(){ S.wmodal={cat:'❤️',points:20}; haptic('light'); render(); },
   'wish-cancel':function(){ S.wmodal=null; render(); },
   'wish-cat':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.cat=el.dataset.e; haptic('light'); render(); } },

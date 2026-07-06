@@ -44,6 +44,41 @@
   .center{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;padding:24px;}
   .muted{color:var(--muted);} .small{font-size:13px;}
   .tablewrap{overflow-x:auto;}
+  /* навигация между дашбордом и редактором конфига */
+  .nav2{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .nav2 button{border:1px solid var(--line);background:var(--card);color:var(--muted);
+    border-radius:12px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:all .18s;}
+  .nav2 button.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(255,94,138,.3);}
+  /* редактор конфигурации */
+  .cfg-sec{margin-bottom:26px;}
+  .cfg-sec>.sec-title{margin-top:0;}
+  .cfg-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;}
+  .cfg-card .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .cfg-card .hd .ix{font-size:12px;color:var(--muted2);font-weight:700;letter-spacing:.05em;}
+  .cfg-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  @media(min-width:640px){.cfg-grid{grid-template-columns:repeat(4,1fr);}}
+  .fld{display:flex;flex-direction:column;gap:4px;}
+  .fld.wide{grid-column:1/-1;}
+  .fld label{font-size:11px;color:var(--muted);font-weight:600;}
+  .fld input,.fld textarea,.fld select{background:rgba(0,0,0,.24);border:1px solid var(--line);color:#fff;
+    border-radius:10px;padding:9px 11px;font-size:13px;width:100%;font-family:inherit;}
+  .fld textarea{resize:vertical;min-height:52px;line-height:1.4;}
+  .fld input:focus,.fld textarea:focus,.fld select:focus{outline:none;border-color:var(--rose);}
+  .fld.chk{flex-direction:row;align-items:center;gap:8px;}
+  .fld.chk input{width:18px;height:18px;accent-color:var(--rose);}
+  .fld.chk label{font-size:13px;color:#fff;}
+  .del-row{border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.08);color:#fca5a5;
+    border-radius:9px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;}
+  .add-row{width:100%;border:1px dashed var(--line);background:transparent;color:var(--muted);
+    border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;transition:all .18s;}
+  .add-row:hover{color:#fff;border-color:var(--rose);}
+  .savebar{position:sticky;bottom:0;background:linear-gradient(0deg,var(--bg) 70%,transparent);
+    padding:14px 0 6px;margin-top:8px;display:flex;gap:10px;align-items:center;z-index:5;}
+  .savebar .save{flex:1;border:none;background:var(--grad);color:#fff;border-radius:14px;padding:14px;
+    font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 10px 26px rgba(192,38,211,.35);}
+  .savebar .save:disabled{opacity:.6;cursor:default;}
+  .savemsg{font-size:13px;font-weight:700;}
+  .savemsg.ok{color:var(--green);} .savemsg.err{color:#fca5a5;}
 </style>
 </head>
 <body>
@@ -59,10 +94,21 @@ var TG_BOT = 'para_couple_bot';
 var root = document.getElementById('root');
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+var AUTH = null;        // сохранённая авторизация (initData или Login Widget) для всех запросов
+var VIEW = 'dash';      // 'dash' | 'config'
+var DASH = null;        // последний ответ дашборда
+var CONFIG = null;      // редактируемый конфиг
 async function api(payload){
   var r = await fetch('/api/para',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify(Object.assign({action:'admin_dash'},payload))});
   return r.json().catch(function(){return {ok:false,reason:'parse'};});
+}
+async function post(action, extra){
+  try{
+    var r = await fetch('/api/para',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(Object.assign({action:action}, AUTH||{}, extra||{}))});
+    return await r.json();
+  }catch(e){ return {ok:false,reason:'network'}; }
 }
 
 // вход через Telegram Login Widget (браузер)
@@ -85,10 +131,11 @@ function showLogin(msg){
 function showMsg(msg){ root.innerHTML = '<div class="center"><div class="muted">'+esc(msg)+'</div></div>'; }
 
 async function load(payload){
+  AUTH = payload || AUTH;   // запоминаем авторизацию для дальнейших запросов (конфиг и т.д.)
   root.innerHTML = '<div class="center"><div class="muted">Загрузка данных…</div></div>';
   var r;
   try { r = await api(payload); } catch(e){ showMsg('Сеть недоступна'); return; }
-  if (r && r.ok) { render(r); return; }
+  if (r && r.ok) { DASH = r; VIEW='dash'; render(r); return; }
   if (r && r.reason === 'forbidden') { showMsg('Нет доступа к админке. Ваш Telegram ID: ' + r.yourId); return; }
   if (r && r.reason === 'bad_auth') { showLogin('Не удалось подтвердить вход. Попробуйте снова.'); return; }
   if (r && r.reason === 'not_configured') { showMsg('Бэкенд не настроен (нет ключей).'); return; }
@@ -147,6 +194,7 @@ function render(d){
     '<div class="wrap">'
     + '<div class="top"><div class="brand"><div class="logo">💞</div><div><b>PARA · Админка</b><div class="sub">панель управления</div></div></div>'
     + '<div class="who">'+esc((d.admin&&d.admin.name)||'Админ')+' <button class="btn" onclick="location.reload()">Обновить</button></div></div>'
+    + navBar('dash')
     + '<div class="kpis">'+kpis+'</div>'
     + '<div style="display:grid;gap:12px;margin-top:4px">'+charts+'</div>'
     + '<div class="sec-title">💞 Пары ('+list.length+')</div>'
@@ -158,6 +206,174 @@ function render(d){
 function kpi(lbl,val,cls){
   return '<div class="card kpi"><div class="lbl">'+lbl+'</div><div class="val '+(cls||'')+'">'+(val==null?0:val)+'</div></div>';
 }
+
+// ================== РЕДАКТОР КОНФИГУРАЦИИ ==================
+function navBar(active){
+  return '<div class="nav2">'
+    + '<button class="'+(active==='dash'?'on':'')+'" onclick="__go(\'dash\')">📊 Дашборд</button>'
+    + '<button class="'+(active==='config'?'on':'')+'" onclick="__go(\'config\')">⚙️ Уровни и награды</button>'
+    + '</div>';
+}
+window.__go = function(v){
+  if(v==='dash'){ VIEW='dash'; if(DASH) render(DASH); else load(AUTH); return; }
+  openConfig();
+};
+
+// схема секций: какие поля и как их приводить к типу
+var METRICS=[['points','Очки'],['questsDone','Квестов'],['wishesDone','Желаний'],['answersCount','Ответов'],['streak','Серия'],['levelIndex','Индекс уровня']];
+var DIFFS=[['easy','Легко'],['med','Средне'],['hard','Сложно']];
+function SECTIONS(){
+  var catOpts=((CONFIG&&CONFIG.categories)||[]).map(function(c){return [c.key,(c.emoji||'')+' '+c.name];});
+  return [
+    { key:'levels', title:'🏆 Уровни', tpl:function(){return {key:'',name:'',emoji:'⭐',min:0,perks:[]};},
+      label:function(it){return (it.emoji||'')+' '+(it.name||'новый уровень');},
+      fields:[
+        {k:'emoji',l:'Эмодзи',t:'text'},{k:'name',l:'Название',t:'text'},
+        {k:'key',l:'Ключ (лат.)',t:'text'},{k:'min',l:'Очков для уровня',t:'num'},
+        {k:'perks',l:'Награды (по одной в строке)',t:'lines',wide:true}
+      ] },
+    { key:'achievements', title:'🥇 Достижения', tpl:function(){return {key:'',icon:'🏅',title:'',desc:'',metric:'questsDone',gte:1,enabled:true};},
+      label:function(it){return (it.icon||'')+' '+(it.title||'новое достижение');},
+      fields:[
+        {k:'icon',l:'Иконка',t:'text'},{k:'title',l:'Название',t:'text'},
+        {k:'key',l:'Ключ (лат.)',t:'text'},{k:'metric',l:'Метрика',t:'select',opts:METRICS},
+        {k:'gte',l:'Порог (≥)',t:'num'},{k:'enabled',l:'Включено',t:'bool'},
+        {k:'desc',l:'Описание',t:'text',wide:true}
+      ] },
+    { key:'quests', title:'🗺️ Квесты', tpl:function(){var ids=((CONFIG&&CONFIG.quests)||[]).map(function(q){return +q.id||0;}); return {id:(ids.length?Math.max.apply(null,ids):0)+1,title:'',desc:'',pts:20,cat:(catOpts[0]&&catOpts[0][0])||'romance',emoji:'✨',time:'',diff:'easy',level:0,pairs:0,featured:false,enabled:true};},
+      label:function(it){return (it.emoji||'')+' '+(it.title||'новый квест');},
+      fields:[
+        {k:'emoji',l:'Эмодзи',t:'text'},{k:'title',l:'Название',t:'text'},
+        {k:'pts',l:'Очки',t:'num'},{k:'cat',l:'Категория',t:'select',opts:catOpts},
+        {k:'time',l:'Время',t:'text'},{k:'diff',l:'Сложность',t:'select',opts:DIFFS},
+        {k:'level',l:'С уровня (0..)',t:'num'},{k:'pairs',l:'Пар выполнили',t:'num'},
+        {k:'featured',l:'Кандидат в «Квест дня»',t:'bool'},{k:'enabled',l:'Включён',t:'bool'},
+        {k:'desc',l:'Описание',t:'text',wide:true},{k:'id',l:'ID',t:'num'}
+      ] },
+    { key:'categories', title:'🎨 Категории квестов', tpl:function(){return {key:'',name:'',emoji:'✨',color:'#ff5e8a'};},
+      label:function(it){return (it.emoji||'')+' '+(it.name||'новая категория');},
+      fields:[
+        {k:'emoji',l:'Эмодзи',t:'text'},{k:'name',l:'Название',t:'text'},
+        {k:'key',l:'Ключ (лат.)',t:'text'},{k:'color',l:'Цвет (#hex)',t:'text'}
+      ] },
+    { key:'themes', title:'🌈 Темы оформления', tpl:function(){return {key:'',name:'',level:0,grad:'linear-gradient(135deg,#ff5e8a,#c026d3)',rose:'#ff5e8a',fuchsia:'#c026d3'};},
+      label:function(it){return it.name||'новая тема';},
+      fields:[
+        {k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},
+        {k:'level',l:'С уровня',t:'num'},{k:'rose',l:'Основной цвет',t:'text'},
+        {k:'fuchsia',l:'Второй цвет',t:'text'},{k:'grad',l:'CSS-градиент',t:'text',wide:true}
+      ] },
+    { key:'frames', title:'🖼️ Рамки профиля', tpl:function(){return {key:'',name:'',level:0,css:''};},
+      label:function(it){return it.name||'новая рамка';},
+      fields:[
+        {k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},
+        {k:'level',l:'С уровня',t:'num'},{k:'css',l:'CSS (box-shadow…)',t:'text',wide:true}
+      ] }
+  ];
+}
+
+async function openConfig(){
+  VIEW='config';
+  root.innerHTML = '<div class="wrap">'+navBar('config')+'<div class="center" style="min-height:40vh"><div class="muted">Загрузка конфигурации…</div></div></div>';
+  var r = await post('config_get',{});
+  if(r && r.ok && r.config){ CONFIG = r.config; renderConfig(); }
+  else if(r && r.reason==='forbidden'){ root.innerHTML='<div class="wrap">'+navBar('config')+'<div class="center"><div class="muted">Нет доступа. Ваш ID: '+esc(r.yourId)+'</div></div></div>'; }
+  else { root.innerHTML='<div class="wrap">'+navBar('config')+'<div class="center"><div class="muted">Ошибка загрузки: '+esc((r&&r.reason)||'unknown')+'</div></div></div>'; }
+}
+
+function fieldHtml(sec, idx, f, it){
+  var v = it[f.k]; if(v==null) v='';
+  var wide = f.wide?' wide':'';
+  var da = 'data-sec="'+sec+'" data-k="'+f.k+'" data-t="'+f.t+'"';
+  if(f.t==='bool'){
+    return '<div class="fld chk'+wide+'"><input type="checkbox" '+da+(it[f.k]?' checked':'')+'><label>'+esc(f.l)+'</label></div>';
+  }
+  var inner;
+  if(f.t==='select'){
+    inner = '<select '+da+'>'+f.opts.map(function(o){
+      return '<option value="'+esc(o[0])+'"'+(String(v)===String(o[0])?' selected':'')+'>'+esc(o[1])+'</option>';
+    }).join('')+'</select>';
+  } else if(f.t==='lines'){
+    inner = '<textarea '+da+' rows="3">'+esc(Array.isArray(v)?v.join('\n'):v)+'</textarea>';
+  } else {
+    var typ = f.t==='num'?'number':'text';
+    inner = '<input type="'+typ+'" '+da+' value="'+esc(v)+'">';
+  }
+  return '<div class="fld'+wide+'"><label>'+esc(f.l)+'</label>'+inner+'</div>';
+}
+
+function renderConfig(){
+  var secs = SECTIONS();
+  var html = '<div class="wrap">'+navBar('config')
+    + '<div class="sec-title" style="margin-top:2px">⚙️ Уровни и награды <span class="muted small" style="font-weight:400">— меняется без кода, применяется у всех пар</span></div>';
+  secs.forEach(function(sec){
+    var items = (CONFIG[sec.key]||[]);
+    var cards = items.map(function(it, idx){
+      return '<div class="cfg-card" data-sec="'+sec.key+'" data-idx="'+idx+'">'
+        + '<div class="hd"><span class="ix">#'+(idx+1)+' · '+esc(sec.label(it))+'</span>'
+        + '<button class="del-row" onclick="__del(\''+sec.key+'\','+idx+')">Удалить</button></div>'
+        + '<div class="cfg-grid">'+sec.fields.map(function(f){return fieldHtml(sec.key,idx,f,it);}).join('')+'</div></div>';
+    }).join('');
+    html += '<div class="cfg-sec"><div class="sec-title">'+esc(sec.title)+' <span class="muted small" style="font-weight:400">('+items.length+')</span></div>'
+      + cards
+      + '<button class="add-row" onclick="__add(\''+sec.key+'\')">＋ Добавить</button></div>';
+  });
+  html += '<div class="savebar"><button class="save" onclick="__save()">💾 Сохранить изменения</button><span class="savemsg" id="savemsg"></span></div>';
+  html += '</div>';
+  root.innerHTML = html;
+}
+
+// собрать конфиг обратно из DOM (значения полей живут в инпутах до сохранения)
+function collectConfig(){
+  var secs = SECTIONS(), out = {};
+  secs.forEach(function(sec){
+    var cards = root.querySelectorAll('.cfg-card[data-sec="'+sec.key+'"]');
+    var arr = [];
+    Array.prototype.forEach.call(cards, function(card){
+      var obj = {};
+      // сохранить поля, которых нет в форме (на будущее) — из исходного элемента
+      var idx = +card.getAttribute('data-idx');
+      var orig = (CONFIG[sec.key]||[])[idx] || {};
+      for(var kk in orig){ if(Object.prototype.hasOwnProperty.call(orig,kk)) obj[kk]=orig[kk]; }
+      var inputs = card.querySelectorAll('[data-k]');
+      Array.prototype.forEach.call(inputs, function(inp){
+        var k=inp.getAttribute('data-k'), t=inp.getAttribute('data-t'), val;
+        if(t==='bool') val = inp.checked;
+        else if(t==='num') val = inp.value===''?0:Number(inp.value);
+        else if(t==='lines') val = inp.value.split('\n').map(function(s){return s.trim();}).filter(Boolean);
+        else val = inp.value;
+        obj[k]=val;
+      });
+      arr.push(obj);
+    });
+    out[sec.key]=arr;
+  });
+  return out;
+}
+
+window.__add = function(secKey){
+  CONFIG = collectConfig();
+  var sec = SECTIONS().filter(function(s){return s.key===secKey;})[0];
+  if(!CONFIG[secKey]) CONFIG[secKey]=[];
+  CONFIG[secKey].push(sec.tpl());
+  renderConfig();
+  window.scrollTo(0, document.body.scrollHeight);
+};
+window.__del = function(secKey, idx){
+  CONFIG = collectConfig();
+  CONFIG[secKey].splice(idx,1);
+  renderConfig();
+};
+window.__save = async function(){
+  CONFIG = collectConfig();
+  var btn = document.querySelector('.savebar .save'), msg=document.getElementById('savemsg');
+  if(btn){ btn.disabled=true; btn.textContent='Сохранение…'; }
+  var r = await post('config_save',{config:CONFIG});
+  if(btn){ btn.disabled=false; btn.textContent='💾 Сохранить изменения'; }
+  if(r && r.ok){ if(r.config) CONFIG=r.config; if(msg){ msg.className='savemsg ok'; msg.textContent='✓ Сохранено'; } }
+  else if(msg){ msg.className='savemsg err'; msg.textContent='Ошибка: '+((r&&r.reason)||'?'); }
+  if(msg) setTimeout(function(){ if(msg) msg.textContent=''; }, 4000);
+};
 
 // старт: внутри Telegram — по initData; в браузере — Login Widget
 if (TG_INIT) load({initData:TG_INIT});
