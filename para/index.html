@@ -453,10 +453,18 @@ function usScreen(){
     '<div class="flex1"><div class="small sb">На экран «Домой»</div>'+
     '<div class="xs muted">иконка PARA прямо на телефоне</div></div>'+
     '<button class="btn btn-primary btn-sm" data-act="home-add">Добавить</button></div>':'';
-  var invite=c.inviteCode?'<div class="card p4 row gap3 mb3"><div style="font-size:24px">🔗</div>'+
-    '<div class="flex1"><div class="small sb">Код пары</div>'+
-    '<div class="xs muted">для приглашения партнёра</div></div>'+
-    '<div class="b rose" style="font-size:18px;letter-spacing:.2em">'+esc(c.inviteCode)+'</div></div>':'';
+  var invite='';
+  if(c.inviteCode){
+    var shareBtn = c.linked ? '' :
+      '<button class="btn btn-primary mt3" data-act="share-code">📤 Пригласить партнёра</button>'+
+      '<div class="center-t xs muted2 mt2">Партнёр ещё не присоединился</div>';
+    invite='<div class="card p4 mb3">'+
+      '<div class="row gap3"><div style="font-size:24px">🔗</div>'+
+      '<div class="flex1"><div class="small sb">Код пары</div>'+
+      '<div class="xs muted">'+(c.linked?'вы в паре 💞':'для приглашения партнёра')+'</div></div>'+
+      '<div class="b rose" style="font-size:18px;letter-spacing:.2em">'+esc(c.inviteCode)+'</div></div>'+
+      shareBtn+'</div>';
+  }
   var reset='<button class="btn btn-ghost muted small" data-act="reset" style="font-weight:500">Выйти / сменить пару</button>';
   var foot='<div class="center-t xs muted2 mt6">PARA · '+(TG?'Telegram Mini App':'веб-версия (PWA)')+'</div>';
   return '<div class="wrap">'+screenTitle('💞','Мы','')+head+home+invite+reset+foot+'</div>';
@@ -529,9 +537,10 @@ function coupleFromServer(c){
   };
 }
 
-function shareInvite(){
-  var link='https://t.me/'+TG_BOT+'?startapp='+S.ob.myCode;
-  var text='Давай заведём наше PARA 💞 Мой код: '+S.ob.myCode;
+function shareInvite(code){
+  code = code || (S.couple && S.couple.inviteCode) || S.ob.myCode;
+  var link='https://t.me/'+TG_BOT+'?startapp='+code;
+  var text='Давай заведём наше PARA 💞 Заходи по ссылке — код подставится сам (или введи вручную: '+code+')';
   try{
     if(TG&&TG.openTelegramLink){
       TG.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(link)+'&text='+encodeURIComponent(text));
@@ -548,6 +557,7 @@ var ACTS={
   'ob-continue':function(){ S.ob.name=(val('#ob-name')||(TG_USER&&TG_USER.first_name)||'').trim(); S.ob.step='pair'; haptic('light'); render(); },
   'ob-mode':function(el){ var m=el.dataset.mode; if(m==='create'&&CAN_ONLINE){ haptic('light'); onlineCreate(); return; } S.ob.mode=m; S.ob.err=''; haptic('light'); render(); },
   'ob-mode-back':function(){ S.ob.mode=null; render(); },
+  'share-code':function(){ shareInvite(S.couple && S.couple.inviteCode); },
   'ob-share':shareInvite,
   'ob-create-confirm':function(){ if(CAN_ONLINE) onlineCreate(); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
   'ob-join-confirm':function(){ var c=(val('#ob-code')||'').toUpperCase().trim(); if(c.length<4)return; if(CAN_ONLINE) onlineJoin(c); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
