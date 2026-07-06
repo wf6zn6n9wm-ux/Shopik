@@ -145,6 +145,12 @@
   .dt-row .nm{font-size:15px;font-weight:700;line-height:1.2;}
   .dt-row .wh{font-size:13px;color:var(--muted);margin-top:3px;}
   .dt-chev{color:var(--muted2);font-size:22px;font-weight:300;flex:0 0 auto;}
+  .dt-addcard{display:flex;align-items:center;gap:13px;border-radius:20px;padding:16px;margin-top:6px;
+    border:1px dashed var(--line);background:rgba(255,255,255,.02);}
+  .dt-addic{width:44px;height:44px;flex:0 0 auto;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:22px;background:rgba(192,38,211,.14);}
+  .dt-addbtn{flex:0 0 auto;font-size:13px;font-weight:700;color:#fff;background:var(--grad);
+    border-radius:12px;padding:9px 15px;box-shadow:0 6px 16px rgba(192,38,211,.28);}
   /* редактор конфига во встроенной админке */
   .admtab{flex:1;border:1px solid var(--line);background:var(--card2);color:var(--muted);
     border-radius:12px;padding:11px;font-size:13px;font-weight:700;transition:all .18s;}
@@ -572,6 +578,8 @@ var S = {
   qcat: 'all',                          // активная категория фильтра
   recDoneDay: lsGet('recDoneDay', null),// дата (YYYY-MM-DD) выполнения дневной рекомендации
   recOpen: false,                       // открыт полноэкранный экран рекомендации
+  profile: lsGet('profile', null),      // правки профиля/дат пары (имена, ДР, годовщина, свои даты)
+  profileOpen: false,                   // открыт редактор профиля
   dates: lsGet('dates',null),   // строим после онбординга
   answers: lsGet('answers',{}), // { 'YYYY-MM-DD': {me,partner} }
   // онбординг (в памяти)
@@ -1119,21 +1127,120 @@ function dateRow(x){
     '<div class="info"><div class="nm">'+esc(d.title)+'</div><div class="wh">'+when+'</div></div>'+
     '<div class="dt-chev">›</div></div>';
 }
+// ---------- Профиль и даты: правки поверх данных пары ----------
+function pad2(n){ n=+n||0; return (n<10?'0':'')+n; }
+function dateMD(v){ if(!v) return null; var a=String(v).split('-'); return {month:+a[1], day:+a[2]}; }
+function md2date(md){ return md&&md.month?('2000-'+pad2(md.month)+'-'+pad2(md.day)):''; }
+// применить правки профиля к объекту пары (в памяти) — чтобы верхняя карточка и даты были едины
+function applyProfile(){
+  var c=S.couple, p=S.profile; if(!c||!p) return;
+  if(p.meEmoji) c.me.emoji=p.meEmoji;
+  if(p.partnerEmoji) c.partner.emoji=p.partnerEmoji;
+  if(p.meName) c.me.name=p.meName;
+  if(p.partnerName && !c.linked) c.partner.name=p.partnerName; // у связанной пары имя берём с сервера
+  if(p.meBd) c.me.birthday=p.meBd;
+  if(p.partnerBd) c.partner.birthday=p.partnerBd;
+  if(p.since) c.since=p.since;
+}
+// собрать список дат из (уже обновлённой) пары и своих событий
+function buildDates(){
+  var c=S.couple; if(!c){ S.dates=[]; return; }
+  var p=S.profile||{}, list=[];
+  var since=c.since;
+  if(since){ var sd=new Date(since); if(!isNaN(sd)) list.push({id:'anniv',title:'Годовщина',icon:'💍',annual:{month:sd.getMonth()+1,day:sd.getDate()}}); }
+  if(c.partner&&c.partner.birthday) list.push({id:'bd-partner',title:'День рождения '+(c.partner.name||'партнёра'),icon:'🎂',annual:c.partner.birthday});
+  if(c.me&&c.me.birthday) list.push({id:'bd-me',title:'День рождения '+(c.me.name||'вас'),icon:'🎂',annual:c.me.birthday});
+  (p.extra||[]).forEach(function(e){ if(e&&e.month) list.push({id:e.id,title:e.title||'Событие',icon:e.icon||'📅',annual:{month:e.month,day:e.day}}); });
+  S.dates=list; save('dates');
+}
+function refreshDates(){ if(S.profile) applyProfile(); buildDates(); }
+
 function datesScreen(){
+  refreshDates();
   var list=(S.dates||[]).map(function(d){
     var days=d.annual?daysAnnual(d.annual.month,d.annual.day):Math.round((sod(new Date(d.iso))-sod(new Date()))/DAY);
     return {t:d, days:days};
   }).filter(function(x){return x.days>=0;}).sort(function(a,b){return a.days-b.days;});
   var head=screenTitle('📅','Даты','важные дни, чтобы не забыть');
+  var addCard='<div class="dt-addcard" data-act="profile-open"><div class="dt-addic">📅</div>'+
+    '<div class="flex1"><div class="small sb">Профиль и даты</div>'+
+    '<div class="xs muted">Имена, дни рождения, годовщина, свои события</div></div>'+
+    '<div class="dt-addbtn">Изменить</div></div>';
   if(!list.length){
     return '<div class="wrap">'+head+'<div class="wempty2"><div class="ill2">📅</div>'+
       '<div class="et">Пока нет важных дат</div>'+
-      '<div class="es">Даты появятся автоматически из профиля вашей пары.</div></div></div>';
+      '<div class="es">Добавьте дни рождения и годовщину — и они появятся здесь.</div>'+
+      '<div class="eb"><button class="ebtn" data-act="profile-open">✏️ Заполнить профиль</button></div></div></div>';
   }
   var hero='', start=0;
   if(list[0].days<=50){ hero=dateHero(list[0]); start=1; }
   var rows=list.slice(start).map(dateRow).join('');
-  return '<div class="wrap">'+head+hero+rows+'</div>';
+  return '<div class="wrap">'+head+hero+rows+'<div style="height:6px"></div>'+addCard+'</div>';
+}
+
+// полноэкранный редактор профиля и дат
+function initProfileDraft(){
+  var c=S.couple||{me:{},partner:{}}, p=S.profile||{};
+  return {
+    meName:(p.meName||(c.me&&c.me.name)||''), partnerName:(p.partnerName||(c.partner&&c.partner.name)||''),
+    meEmoji:(p.meEmoji||(c.me&&c.me.emoji)||'🧔'), partnerEmoji:(p.partnerEmoji||(c.partner&&c.partner.emoji)||'👩'),
+    meBd:(p.meBd||(c.me&&c.me.birthday)||null), partnerBd:(p.partnerBd||(c.partner&&c.partner.birthday)||null),
+    since:(p.since||(c.since)||''), extra:((p.extra||[]).map(function(e){return Object.assign({},e);}))
+  };
+}
+function pfCollect(){
+  var d=S.profileDraft||initProfileDraft();
+  d.meName=(val('#pf-me-name')||'').trim(); d.meEmoji=(val('#pf-me-emoji')||'').trim()||'🧔';
+  d.meBd=dateMD(val('#pf-me-bd'));
+  if(!(S.couple&&S.couple.linked)) d.partnerName=(val('#pf-partner-name')||'').trim();
+  d.partnerEmoji=(val('#pf-partner-emoji')||'').trim()||'👩';
+  d.partnerBd=dateMD(val('#pf-partner-bd'));
+  d.since=val('#pf-since')||'';
+  var rows=document.querySelectorAll('.pf-extra'), arr=[];
+  Array.prototype.forEach.call(rows,function(r){
+    var t=(r.querySelector('[data-k="title"]').value||'').trim();
+    var dt=r.querySelector('[data-k="date"]').value;
+    var ic=(r.querySelector('[data-k="icon"]').value||'').trim()||'📅';
+    var md=dateMD(dt);
+    if(t&&md) arr.push({id:r.getAttribute('data-id')||('e'+arr.length), title:t, icon:ic, month:md.month, day:md.day});
+  });
+  d.extra=arr; S.profileDraft=d;
+}
+function profileView(){
+  var d=S.profileDraft||initProfileDraft();
+  var linked=!!(S.couple&&S.couple.linked);
+  var extra=(d.extra||[]).map(function(e,i){
+    return '<div class="pf-extra card p4 mb2" data-id="'+esc(e.id)+'" data-idx="'+i+'">'+
+      '<div class="row between mb2"><div class="xs muted2">Своё событие #'+(i+1)+'</div>'+
+      '<button class="cfgdel" data-act="pf-del" data-idx="'+i+'">Удалить</button></div>'+
+      '<div class="cfggrid">'+
+        '<div class="cfgfld" style="grid-column:1/-1"><div class="cfglbl">Название</div><input class="cfgin" data-k="title" value="'+esc(e.title||'')+'" placeholder="Например: первое свидание"></div>'+
+        '<div class="cfgfld"><div class="cfglbl">Иконка</div><input class="cfgin" data-k="icon" value="'+esc(e.icon||'🎉')+'"></div>'+
+        '<div class="cfgfld"><div class="cfglbl">Дата</div><input class="cfgin" type="date" data-k="date" value="'+md2date({month:e.month,day:e.day})+'"></div>'+
+      '</div></div>';
+  }).join('');
+  return '<div class="app"><div class="wrap">'+
+    '<div class="row between mb4"><div class="b" style="font-size:20px">✏️ Профиль и даты</div>'+
+    '<button class="btn btn-ghost btn-sm" data-act="profile-close">← Назад</button></div>'+
+    '<div class="small sb mb2">Вы</div>'+
+    '<div class="card p4 mb3"><div class="cfggrid">'+
+      '<div class="cfgfld"><div class="cfglbl">Ваше имя</div><input class="cfgin" id="pf-me-name" value="'+esc(d.meName||'')+'"></div>'+
+      '<div class="cfgfld"><div class="cfglbl">Эмодзи</div><input class="cfgin" id="pf-me-emoji" value="'+esc(d.meEmoji||'🧔')+'"></div>'+
+      '<div class="cfgfld" style="grid-column:1/-1"><div class="cfglbl">Ваш день рождения</div><input class="cfgin" type="date" id="pf-me-bd" value="'+md2date(d.meBd)+'"></div>'+
+    '</div></div>'+
+    '<div class="small sb mb2">Партнёр</div>'+
+    '<div class="card p4 mb3"><div class="cfggrid">'+
+      '<div class="cfgfld"><div class="cfglbl">Имя партнёра'+(linked?' · из его аккаунта':'')+'</div><input class="cfgin" id="pf-partner-name" value="'+esc(d.partnerName||'')+'"'+(linked?' disabled style="opacity:.6"':'')+'></div>'+
+      '<div class="cfgfld"><div class="cfglbl">Эмодзи</div><input class="cfgin" id="pf-partner-emoji" value="'+esc(d.partnerEmoji||'👩')+'"></div>'+
+      '<div class="cfgfld" style="grid-column:1/-1"><div class="cfglbl">День рождения партнёра</div><input class="cfgin" type="date" id="pf-partner-bd" value="'+md2date(d.partnerBd)+'"></div>'+
+    '</div></div>'+
+    '<div class="small sb mb2">Годовщина</div>'+
+    '<div class="card p4 mb3"><div class="cfgfld"><div class="cfglbl">Вы вместе с</div><input class="cfgin" type="date" id="pf-since" value="'+esc(d.since||'')+'"></div></div>'+
+    '<div class="small sb mb2">Свои даты</div>'+extra+
+    '<button class="cfgadd" data-act="pf-add">＋ Добавить свою дату</button>'+
+    '<div style="height:16px"></div>'+
+    '<button class="add-wish" data-act="profile-save">💾 Сохранить</button>'+
+    '<div style="height:24px"></div></div></div>';
 }
 
 function usScreen(){
@@ -1174,7 +1281,8 @@ function usScreen(){
       '<button class="btn btn-ghost mt3" data-act="open-admin">⚙️ Открыть админку</button></div>';
   }
   var foot='<div class="center-t xs muted2 mt6">PARA · '+(TG?'Telegram Mini App':'веб-версия (PWA)')+'</div>';
-  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+levelCard()+stats+home+invite+reset+foot+'</div>';
+  var profileBtn='<button class="btn btn-ghost mb3" style="width:100%;justify-content:center" data-act="profile-open">✏️ Профиль и даты</button>';
+  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+profileBtn+levelCard()+stats+home+invite+reset+foot+'</div>';
 }
 
 // ---------- Полная админка (overlay внутри приложения) ----------
@@ -1418,14 +1526,8 @@ function render(){
   if(!S.couple){
     html=(S.ob.step==='welcome')?welcomeView():pairView();
   } else {
-    if(!S.dates){
-      S.dates=[
-        {id:1,title:'Годовщина',icon:'💍',iso:null,annual:{month:5,day:2}},
-        {id:2,title:'День рождения '+S.couple.partner.name,icon:'🎂',iso:null,annual:S.couple.partner.birthday},
-        {id:3,title:'День рождения '+S.couple.me.name,icon:'🎂',iso:null,annual:S.couple.me.birthday}
-      ];
-      save('dates');
-    }
+    if(S.profile) applyProfile();
+    if(!S.dates) buildDates();
     if(S.showAdmin && S.adminData){
       html=adminView();
     } else if(S.showAchv){
@@ -1434,6 +1536,8 @@ function render(){
       html=custView();
     } else if(S.recOpen){
       html=recView();
+    } else if(S.profileOpen){
+      html=profileView();
     } else {
       var screen={today:todayScreen,wishes:wishesScreen,quests:questsScreen,dates:datesScreen,us:usScreen}[S.tab]();
       html='<div class="app">'+screen+bottomNav()+'</div>';
@@ -1533,6 +1637,12 @@ var ACTS={
   'rec-open':function(){ S.recOpen=true; haptic('light'); render(); },
   'rec-close':function(){ S.recOpen=false; render(); },
   'rec-start':function(){ var r=todayRec(); if(recDoneToday()){ S.recOpen=false; render(); return; } S.recDoneDay=todayKey(); save('recDoneDay'); S.points+=r.pts; save('points'); track('points',r.pts); S.recOpen=false; S.qburst={pts:r.pts,label:'🎉 Отлично!'}; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.qburst=null; render(); },1600); },
+  // профиль и даты
+  'profile-open':function(){ S.profileDraft=initProfileDraft(); S.profileOpen=true; haptic('light'); render(); },
+  'profile-close':function(){ S.profileOpen=false; S.profileDraft=null; render(); },
+  'pf-add':function(){ pfCollect(); S.profileDraft.extra.push({id:'e'+(S.profileDraft.extra.length+1)+'_'+(S.dates?S.dates.length:0),title:'',icon:'🎉',month:1,day:1}); haptic('light'); render(); },
+  'pf-del':function(el){ pfCollect(); S.profileDraft.extra.splice(+el.dataset.idx,1); haptic('light'); render(); },
+  'profile-save':function(){ pfCollect(); S.profile=S.profileDraft; save('profile'); applyProfile(); buildDates(); S.profileOpen=false; S.profileDraft=null; haptic('success'); render(); },
   'wish-open-add':function(){ S.wmodal={cat:'❤️',points:20}; haptic('light'); render(); },
   'wish-cancel':function(){ S.wmodal=null; render(); },
   'wish-cat':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.cat=el.dataset.e; haptic('light'); render(); } },
