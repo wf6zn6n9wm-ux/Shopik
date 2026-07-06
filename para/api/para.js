@@ -147,7 +147,11 @@ module.exports = async (req, res) => {
       return j;
     }
     async function myMembership() {
-      const rows = await sb('para_members?tg_id=eq.' + me.id + '&select=couple_id,tg_id,name,photo_url,slot,last_active');
+      // с last_active; если колонка ещё не создана (миграция не выполнена) — откат без неё,
+      // чтобы приложение продолжало работать
+      let rows;
+      try { rows = await sb('para_members?tg_id=eq.' + me.id + '&select=couple_id,tg_id,name,photo_url,slot,last_active'); }
+      catch (e) { rows = await sb('para_members?tg_id=eq.' + me.id + '&select=couple_id,tg_id,name,photo_url,slot'); }
       return (rows && rows[0]) || null;
     }
     async function logEvent(type, coupleId, amount) {
@@ -217,7 +221,7 @@ module.exports = async (req, res) => {
       const couples = await sb('para_couples?select=id,invite_code,created_at,para_members(name,slot)&order=created_at.desc');
       const membersRows = await sb('para_members?select=tg_id,joined_at');
       const answers = await sb('para_answers?select=day');
-      const events = await sb('para_events?created_at=gte.' + encodeURIComponent(since30) + '&select=type,tg_id,amount,created_at');
+      let events; try { events = await sb('para_events?created_at=gte.' + encodeURIComponent(since30) + '&select=type,tg_id,amount,created_at'); } catch (e) { events = []; }
       const cs = Array.isArray(couples) ? couples : [];
       const ms = Array.isArray(membersRows) ? membersRows : [];
       const as = Array.isArray(answers) ? answers : [];
