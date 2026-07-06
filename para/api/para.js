@@ -72,6 +72,20 @@ function makeCode() {
   return s;
 }
 
+// Простой rate-limit по tg_id (best-effort, в памяти инстанса). Основная защита —
+// подпись initData: без валидного Telegram-аккаунта до сюда не дойти. Это лишь
+// глушит частые всплески запросов от одного пользователя.
+const RL = new Map();
+function rateLimited(id, max, windowMs) {
+  max = max || 40; windowMs = windowMs || 60000;
+  const now = Date.now();
+  const arr = (RL.get(id) || []).filter((t) => now - t < windowMs);
+  arr.push(now);
+  RL.set(id, arr);
+  if (RL.size > 5000) RL.clear(); // страховка от роста памяти
+  return arr.length > max;
+}
+
 module.exports = async (req, res) => {
   try {
     if (req.method !== 'POST') { res.status(405).json({ ok: false, reason: 'method' }); return; }
@@ -88,8 +102,19 @@ module.exports = async (req, res) => {
     const me = verifyInitData(body.initData, BOT);
     if (!me) { res.status(401).json({ ok: false, reason: 'bad_auth' }); return; }
 
+    if (rateLimited(me.id)) { res.status(429).json({ ok: false, reason: 'rate_limited' }); return; }
+
+    const ADMINS = env('ADMIN_TG_IDS').split(',').map((s) => s.trim()).filter(Boolean);
+    const isAdmin = ADMINS.indexOf(String(me.id)) !== -1;
+
     // ---- helpers к Supabase REST ----
     const H = { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' };
+    async function sbCount(path) {
+      const r = await fetch(URL + '/rest/v1/' + path, { headers: Object.assign({}, H, { Prefer: 'count=exact', Range: '0-0' }) });
+      const cr = r.headers.get('content-range') || '';
+      const m = cr.match(/\/(\d+)$/);
+      return m ? Number(m[1]) : 0;
+    }
     async function sb(path, opts) {
       const r = await fetch(URL + '/rest/v1/' + path, Object.assign({ headers: H }, opts || {}));
       const t = await r.text();
@@ -139,6 +164,18 @@ module.exports = async (req, res) => {
     }
 
     const action = body.action;
+
+    // -------- STATS (только для админов из ADMIN_TG_IDS) --------
+    if (action === 'stats') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const day = todayUTC();
+      const couples = await sbCount('para_couples?select=id');
+      const members = await sbCount('para_members?select=tg_id');
+      const answersToday = await sbCount('para_answers?day=eq.' + day + '&select=tg_id');
+      const answersTotal = await sbCount('para_answers?select=tg_id');
+      res.status(200).json({ ok: true, stats: { couples: couples, members: members, linked: Math.max(0, members - couples), answersToday: answersToday, answersTotal: answersTotal } });
+      return;
+    }
 
     // -------- STATE --------
     if (action === 'state') {

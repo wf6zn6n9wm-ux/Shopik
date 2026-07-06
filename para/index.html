@@ -466,8 +466,16 @@ function usScreen(){
       shareBtn+'</div>';
   }
   var reset='<button class="btn btn-ghost muted small" data-act="reset" style="font-weight:500">Выйти / сменить пару</button>';
+  // статистика — видна только админам (ADMIN_TG_IDS)
+  var stats='';
+  if(ONLINE && S.stats){
+    var srow=function(k,v){ return '<div class="row between small mt2"><span class="muted">'+k+'</span><span class="b">'+v+'</span></div>'; };
+    stats='<div class="card p4 mb3"><div class="small sb mb2">📊 Статистика</div>'+
+      srow('Пар всего',S.stats.couples)+srow('Связанных пар',S.stats.linked)+
+      srow('Ответов сегодня',S.stats.answersToday)+srow('Ответов всего',S.stats.answersTotal)+'</div>';
+  }
   var foot='<div class="center-t xs muted2 mt6">PARA · '+(TG?'Telegram Mini App':'веб-версия (PWA)')+'</div>';
-  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+home+invite+reset+foot+'</div>';
+  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+stats+home+invite+reset+foot+'</div>';
 }
 
 var TABS=[
@@ -561,7 +569,7 @@ var ACTS={
   'ob-share':shareInvite,
   'ob-create-confirm':function(){ if(CAN_ONLINE) onlineCreate(); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
   'ob-join-confirm':function(){ var c=(val('#ob-code')||'').toUpperCase().trim(); if(c.length<4)return; if(CAN_ONLINE) onlineJoin(c); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
-  'tab':function(el){ S.tab=el.dataset.tab; save('tab'); haptic('light'); render(); },
+  'tab':function(el){ S.tab=el.dataset.tab; save('tab'); haptic('light'); render(); if(S.tab==='us') loadStats(); },
   'who':function(el){ S.who=el.dataset.who; save('who'); haptic('light'); render(); },
   'answer':function(){ var t=(val('#qa')||'').trim(); if(!t)return; if(ONLINE) onlineAnswer(t); else { var k=todayKey(); if(!S.answers[k])S.answers[k]={}; S.answers[k][S.who]=t; save('answers'); S.points+=10; save('points'); haptic('success'); render(); } },
   'wish-add':function(){ var t=(val('#wish-in')||'').trim(); if(!t)return; S.wishes.unshift({id:Date.now(),by:S.who,text:t,done:false}); save('wishes'); haptic('success'); render(); },
@@ -612,6 +620,10 @@ async function onlineAnswer(text){
     render();
   }catch(e){ render(); }
 }
+async function loadStats(){
+  if(!ONLINE) return;
+  try{ var r=await api('stats'); if(r&&r.ok){ S.stats=r.stats; render(); } }catch(e){}
+}
 async function boot(){
   render(); // мгновенно показываем интерфейс (демо/онбординг)
   if(!CAN_ONLINE) return; // вне Telegram — локальный демо-режим
@@ -622,6 +634,7 @@ async function boot(){
       if(r.couple){ S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today; }
       else { S.couple=null; } // сервер — источник правды: онбординг с настоящим бэкендом
       render();
+      loadStats(); // если ты админ (ADMIN_TG_IDS) — подтянется статистика
     } // not_configured / ошибка → тихо остаёмся в демо
   }catch(e){}
 }
