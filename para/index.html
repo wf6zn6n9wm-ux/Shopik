@@ -206,6 +206,21 @@
   @keyframes conffall{0%{transform:translateY(-10px) rotate(0);opacity:1;}
     100%{transform:translateY(460px) rotate(540deg);opacity:0;}}
   @media (prefers-reduced-motion:reduce){.conf{display:none;}.lvup{animation:none;}}
+
+  /* ===== Кастомизация ===== */
+  .thm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
+  .thm{position:relative;height:74px;border-radius:18px;border:2px solid transparent;overflow:hidden;
+    display:flex;align-items:flex-end;padding:9px;transition:transform .12s;}
+  .thm:active{transform:scale(.97);}
+  .thm.sel{border-color:#fff;}
+  .thm.lk{filter:grayscale(.7) brightness(.6);}
+  .thm-nm{font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);}
+  .thm-check{position:absolute;top:8px;right:9px;font-size:14px;color:#fff;}
+  .thm-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .frm{width:100%;display:flex;align-items:center;justify-content:space-between;border-radius:16px;
+    padding:14px 16px;margin-top:8px;background:var(--card2);border:1px solid var(--line);font-size:14px;font-weight:600;}
+  .frm.sel{border-color:var(--rose);background:rgba(255,94,138,.08);}
+  .frm.lk{opacity:.5;}
 </style>
 </head>
 <body>
@@ -309,10 +324,58 @@ function makeCode(){
   return s;
 }
 
+// ---------- Кастомизация (fallback, если конфиг с сервера не пришёл) ----------
+var BUILT_IN_THEMES=[
+  {key:'rose',name:'Розовый рассвет',level:0,grad:'linear-gradient(135deg,#ff5e8a,#c026d3)',rose:'#ff5e8a',fuchsia:'#c026d3'},
+  {key:'sunset',name:'Закат',level:1,grad:'linear-gradient(135deg,#fb7185,#f59e0b)',rose:'#fb7185',fuchsia:'#f59e0b'},
+  {key:'ocean',name:'Океан',level:1,grad:'linear-gradient(135deg,#22d3ee,#3b82f6)',rose:'#38bdf8',fuchsia:'#3b82f6'},
+  {key:'aurora',name:'Сияние',level:2,grad:'linear-gradient(135deg,#34d399,#22d3ee)',rose:'#34d399',fuchsia:'#22d3ee'},
+  {key:'grape',name:'Виноград',level:3,grad:'linear-gradient(135deg,#a78bfa,#ec4899)',rose:'#a78bfa',fuchsia:'#ec4899'},
+  {key:'gold',name:'Золото',level:4,grad:'linear-gradient(135deg,#fbbf24,#f97316)',rose:'#fbbf24',fuchsia:'#f97316'}
+];
+var BUILT_IN_FRAMES=[
+  {key:'none',name:'Без рамки',level:0,css:''},
+  {key:'glow',name:'Свечение 💫',level:1,css:'box-shadow:0 0 0 3px rgba(255,255,255,.12),0 0 34px var(--rose)'},
+  {key:'ring',name:'Кольцо 💍',level:2,css:'box-shadow:0 0 0 2px var(--rose),inset 0 0 0 1px rgba(255,255,255,.06)'},
+  {key:'gold',name:'Золотая 👑',level:3,css:'box-shadow:0 0 0 2px #fbbf24,0 0 30px rgba(251,191,36,.4)'},
+  {key:'legend',name:'Легендарная 🔮',level:4,css:'box-shadow:0 0 0 3px #a78bfa,0 0 44px rgba(167,139,250,.5)'}
+];
+function themesList(){ return (S.config&&S.config.themes)||BUILT_IN_THEMES; }
+function framesList(){ return (S.config&&S.config.frames)||BUILT_IN_FRAMES; }
+function curLevelIdx(){ return (S.progress&&S.progress.level&&S.progress.level.index)||0; }
+function applyTheme(key){
+  var list=themesList(), t=null; for(var i=0;i<list.length;i++) if(list[i].key===key) t=list[i];
+  if(!t) t=list[0];
+  var r=document.documentElement.style;
+  r.setProperty('--grad',t.grad); r.setProperty('--rose',t.rose); r.setProperty('--fuchsia',t.fuchsia);
+}
+function frameCss(){
+  var list=framesList(), key=S.frame||'none';
+  for(var i=0;i<list.length;i++) if(list[i].key===key) return list[i].css||'';
+  return '';
+}
+
+// квесты по уровням (level = с какого уровня пары открыт)
+var DEFAULT_QUESTS=[
+  {id:1,text:'Приготовьте ужин вдвоём без телефонов',pts:30,done:false,level:0},
+  {id:2,text:'Напишите друг другу по 3 комплимента',pts:20,done:false,level:0},
+  {id:3,text:'Вечер без соцсетей — только вы',pts:40,done:false,level:0},
+  {id:4,text:'Сделайте совместное фото в новом месте',pts:25,done:false,level:0},
+  {id:5,text:'Романтический ужин при свечах',pts:50,done:false,level:1},
+  {id:6,text:'Приготовьте новое блюдо вместе',pts:40,done:false,level:1},
+  {id:7,text:'Спланируйте мини-путешествие на выходные',pts:60,done:false,level:1},
+  {id:8,text:'Челлендж доверия: расскажите то, чего ещё не говорили',pts:70,done:false,level:2},
+  {id:9,text:'Поставьте совместную цель на месяц',pts:80,done:false,level:2},
+  {id:10,text:'Свидание вслепую: один придумывает — другой не знает',pts:100,done:false,level:3},
+  {id:11,text:'Легендарный квест: сюрприз-путешествие мечты',pts:150,done:false,level:4}
+];
+
 // ============================================================
 //  СОСТОЯНИЕ
 // ============================================================
 var S = {
+  theme: lsGet('theme','rose'),
+  frame: lsGet('frame','none'),
   couple: lsGet('couple', null),
   who:    lsGet('who','me'),
   tab:    lsGet('tab','today'),
@@ -322,12 +385,7 @@ var S = {
     {id:2,by:'me',text:'Пицца и любимый сериал в пятницу',category:'🍕',points:20,status:'taken'},
     {id:3,by:'partner',text:'Сходить на тот новый каток',category:'❤️',points:30,status:'done'}
   ]),
-  quests: lsGet('quests',[
-    {id:1,text:'Приготовьте ужин вдвоём без телефонов',pts:30,done:false},
-    {id:2,text:'Напишите друг другу по 3 комплимента',pts:20,done:false},
-    {id:3,text:'Вечер без соцсетей — только вы',pts:40,done:false},
-    {id:4,text:'Сделайте совместное фото в новом месте',pts:25,done:false}
-  ]),
+  quests: lsGet('quests', DEFAULT_QUESTS.slice()),
   dates: lsGet('dates',null),   // строим после онбординга
   answers: lsGet('answers',{}), // { 'YYYY-MM-DD': {me,partner} }
   // онбординг (в памяти)
@@ -344,6 +402,14 @@ function todayKey(){ return sod(new Date()).toISOString().slice(0,10); }
     if(!S.answers[k]) S.answers[k]={};
     if(!S.answers[k].partner){ S.answers[k].partner='…'; save('answers'); }
   }
+})();
+
+// добавить новые квесты по уровням тем, у кого сохранён старый набор (не теряя прогресс)
+(function mergeQuests(){
+  var have={}; S.quests.forEach(function(q){ have[q.id]=1; if(q.level==null)q.level=0; });
+  var added=false;
+  DEFAULT_QUESTS.forEach(function(q){ if(!have[q.id]){ S.quests.push(Object.assign({},q)); added=true; } });
+  if(added) save('quests');
 })();
 
 // ============================================================
@@ -564,7 +630,17 @@ function wishModal(){
 }
 
 function questsScreen(){
-  var items=S.quests.map(function(q){
+  var lvl=curLevelIdx();
+  var lvlName=function(i){ var L=(S.config&&S.config.levels)||[]; return (L[i]&&L[i].name)||('уровня '+(i+1)); };
+  var sorted=S.quests.slice().sort(function(a,b){ return (a.level||0)-(b.level||0); });
+  var items=sorted.map(function(q){
+    var need=q.level||0, locked=need>lvl;
+    if(locked){
+      return '<div class="card p4 row gap3 mb3" style="opacity:.55">'+
+        '<div class="flex1"><div class="small">'+esc(q.text)+'</div>'+
+        '<div class="xs muted2 mt2">🔒 Доступно на уровне «'+esc(lvlName(need))+'»</div></div>'+
+        '<div class="wcheck" style="background:rgba(255,255,255,.05);color:var(--muted)">🔒</div></div>';
+    }
     return '<div class="card p4 row gap3 mb3"'+(q.done?' style="opacity:.5"':'')+'>'+
       '<div class="flex1"><div class="small">'+esc(q.text)+'</div>'+
       '<div class="xs amber mt2">⭐ +'+q.pts+' очков</div></div>'+
@@ -592,7 +668,7 @@ function usScreen(){
   var c=S.couple;
   var together=Math.floor((sod(new Date())-sod(new Date(c.since)))/DAY);
   var canHome=TG&&typeof TG.addToHomeScreen==='function';
-  var head='<div class="card p6 mb4 center-t">'+
+  var head='<div class="card p6 mb4 center-t" style="'+frameCss()+'">'+
     '<div class="row center gap4" style="font-size:36px;margin-bottom:12px"><span>'+c.me.emoji+'</span>'+
     '<span class="rose" style="font-size:24px">❤</span><span>'+c.partner.emoji+'</span></div>'+
     '<div class="b" style="font-size:18px">'+esc(c.me.name)+' & '+esc(c.partner.name)+'</div>'+
@@ -701,8 +777,29 @@ function levelCard(){
     '<div class="chipx gold" style="font-size:13px">⭐ '+pts+'</div></div>'+
     bar+nextLine+
     '<div class="lvl-road">'+road+'</div>'+
-    '<button class="btn btn-ghost mt3" data-act="open-achv">🏆 Достижения</button>'+
+    '<div class="row gap2 mt3"><button class="btn btn-ghost flex1" data-act="open-achv">🏆 Достижения</button>'+
+    '<button class="btn btn-ghost flex1" data-act="open-cust">🎨 Оформление</button></div>'+
   '</div>';
+}
+function custView(){
+  var lvl=curLevelIdx();
+  var themes=themesList(), frames=framesList();
+  var tgrid=themes.map(function(t){ var lk=t.level>lvl, sel=(S.theme||'rose')===t.key;
+    return '<button class="thm'+(sel?' sel':'')+(lk?' lk':'')+'" data-act="set-theme" data-k="'+t.key+'" data-lv="'+t.level+'" style="background:'+t.grad+'">'+
+      (lk?'<span class="thm-lock">🔒</span>':(sel?'<span class="thm-check">✓</span>':''))+
+      '<span class="thm-nm">'+esc(t.name)+'</span></button>';
+  }).join('');
+  var frows=frames.map(function(f){ var lk=f.level>lvl, sel=(S.frame||'none')===f.key;
+    return '<button class="frm'+(sel?' sel':'')+(lk?' lk':'')+'" data-act="set-frame" data-k="'+f.key+'" data-lv="'+f.level+'">'+
+      '<span>'+esc(f.name)+'</span><span>'+(lk?'🔒':(sel?'<span class="rose">✓</span>':''))+'</span></button>';
+  }).join('');
+  return '<div class="app"><div class="wrap">'+
+    '<div class="row between mb4"><div class="b" style="font-size:20px">🎨 Оформление</div>'+
+    '<button class="btn btn-ghost btn-sm" data-act="close-cust">← Назад</button></div>'+
+    '<div class="small sb mb2">🌈 Темы</div><div class="thm-grid">'+tgrid+'</div>'+
+    '<div class="small sb" style="margin:20px 0 4px">🖼️ Рамка профиля</div>'+frows+
+    '<div class="xs muted2 mt4">Новое оформление открывается с каждым уровнем пары.</div>'+
+    '<div style="height:24px"></div></div></div>';
 }
 function achvView(){
   var list=(S.progress&&S.progress.achievements)||[];
@@ -770,6 +867,8 @@ function render(){
       html=adminView();
     } else if(S.showAchv){
       html=achvView();
+    } else if(S.showCust){
+      html=custView();
     } else {
       var screen={today:todayScreen,wishes:wishesScreen,quests:questsScreen,dates:datesScreen,us:usScreen}[S.tab]();
       html='<div class="app">'+screen+bottomNav()+'</div>';
@@ -839,6 +938,10 @@ var ACTS={
   'close-admin':function(){ S.showAdmin=false; render(); },
   'open-achv':function(){ S.showAchv=true; haptic('light'); render(); if(ONLINE)refreshState(); },
   'close-achv':function(){ S.showAchv=false; render(); },
+  'open-cust':function(){ S.showCust=true; haptic('light'); render(); },
+  'close-cust':function(){ S.showCust=false; render(); },
+  'set-theme':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx()){ alert('🔒 Тема откроется на уровне ниже. Доступно после '+lv+'-го уровня пары.'); return; } S.theme=el.dataset.k; lsSet('theme',S.theme); applyTheme(S.theme); haptic('success'); render(); },
+  'set-frame':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx()){ alert('🔒 Рамка откроется на уровне выше. Доступно после '+lv+'-го уровня пары.'); return; } S.frame=el.dataset.k; lsSet('frame',S.frame); haptic('success'); render(); },
   'lvl-info':function(el){ var i=+el.dataset.i, lv=S.config&&S.config.levels[i], cur=S.progress&&S.progress.level.index; if(!lv)return; if(i>cur){ var perks=(lv.perks||[]).join(', '); alert('🔒 «'+lv.name+'» '+lv.emoji+'\nДоступно после '+lv.min+' очков.'+(perks?'\n\nОткроется: '+perks:'')); } haptic('light'); },
   'level-continue':function(){ S.levelup=null; haptic('light'); render(); },
   'ob-share':shareInvite,
@@ -937,6 +1040,7 @@ async function boot(){
 
 // закрытие модалки по тапу на фон (вызывается из inline onclick оверлея)
 window.__paraModalClose=function(){ S.wmodal=null; render(); };
+try{ applyTheme(S.theme); }catch(e){} // применить выбранную тему при запуске
 
 document.getElementById('root').addEventListener('click',function(e){
   var el=e.target.closest('[data-act]'); if(!el)return;
