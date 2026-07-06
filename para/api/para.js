@@ -54,6 +54,22 @@ const DEFAULT_CONFIG = {
     { key: 'wishes_20',   icon: '🍕', title: '20 желаний',         desc: 'Исполнено 20 желаний',                   metric: 'wishesDone',  gte: 20 },
     { key: 'streak_30',   icon: '🔥', title: 'Серия 30 дней',      desc: '30 дней активности подряд',              metric: 'streak',      gte: 30 },
     { key: 'soulmates',   icon: '👑', title: 'Soulmates',          desc: 'Достигнут уровень Soulmates',            metric: 'levelIndex',  gte: 3 }
+  ],
+  // Кастомизация (открывается по уровню = индекс). level — с какого уровня доступно.
+  themes: [
+    { key: 'rose',   name: 'Розовый рассвет', level: 0, grad: 'linear-gradient(135deg,#ff5e8a,#c026d3)', rose: '#ff5e8a', fuchsia: '#c026d3' },
+    { key: 'sunset', name: 'Закат',           level: 1, grad: 'linear-gradient(135deg,#fb7185,#f59e0b)', rose: '#fb7185', fuchsia: '#f59e0b' },
+    { key: 'ocean',  name: 'Океан',           level: 1, grad: 'linear-gradient(135deg,#22d3ee,#3b82f6)', rose: '#38bdf8', fuchsia: '#3b82f6' },
+    { key: 'aurora', name: 'Сияние',          level: 2, grad: 'linear-gradient(135deg,#34d399,#22d3ee)', rose: '#34d399', fuchsia: '#22d3ee' },
+    { key: 'grape',  name: 'Виноград',        level: 3, grad: 'linear-gradient(135deg,#a78bfa,#ec4899)', rose: '#a78bfa', fuchsia: '#ec4899' },
+    { key: 'gold',   name: 'Золото',          level: 4, grad: 'linear-gradient(135deg,#fbbf24,#f97316)', rose: '#fbbf24', fuchsia: '#f97316' }
+  ],
+  frames: [
+    { key: 'none',   name: 'Без рамки',     level: 0, css: '' },
+    { key: 'glow',   name: 'Свечение 💫',    level: 1, css: 'box-shadow:0 0 0 3px rgba(255,255,255,.12),0 0 34px var(--rose)' },
+    { key: 'ring',   name: 'Кольцо 💍',      level: 2, css: 'box-shadow:0 0 0 2px var(--rose),inset 0 0 0 1px rgba(255,255,255,.06)' },
+    { key: 'gold',   name: 'Золотая 👑',     level: 3, css: 'box-shadow:0 0 0 2px #fbbf24,0 0 30px rgba(251,191,36,.4)' },
+    { key: 'legend', name: 'Легендарная 🔮', level: 4, css: 'box-shadow:0 0 0 3px #a78bfa,0 0 44px rgba(167,139,250,.5)' }
   ]
 };
 function levelIndexFor(points, levels) {
