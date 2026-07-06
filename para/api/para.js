@@ -36,6 +36,32 @@ function questionOfDay(day) {
 }
 function todayUTC() { return new Date().toISOString().slice(0, 10); }
 
+// ============================================================
+//  КОНФИГ УРОВНЕЙ И ДОСТИЖЕНИЙ (data-driven; в Phase 3 → таблица + админка)
+// ============================================================
+const DEFAULT_CONFIG = {
+  levels: [
+    { key: 'rookie',    name: 'Новички',           emoji: '🌱', min: 0,    perks: ['Простые домашние квесты'] },
+    { key: 'lovers',    name: 'Влюблённые',        emoji: '💕', min: 200,  perks: ['Романтические свидания', 'Совместная готовка', 'Мини-путешествия'] },
+    { key: 'perfect',   name: 'Идеальная пара',    emoji: '💍', min: 600,  perks: ['Сложные челленджи', 'Квесты на доверие', 'Совместные цели'] },
+    { key: 'soulmates', name: 'Soulmates',         emoji: '🔮', min: 1500, perks: ['Премиальные квесты', 'Особые события', 'Уникальные задания'] },
+    { key: 'legend',    name: 'Легендарная пара',  emoji: '👑', min: 3500, perks: ['Самые редкие квесты', 'Ограниченные события', 'Эксклюзивные награды'] }
+  ],
+  achievements: [
+    { key: 'first_quest', icon: '🥇', title: 'Первый квест',      desc: 'Выполнен первый совместный квест',      metric: 'questsDone',  gte: 1 },
+    { key: 'streak_7',    icon: '❤️', title: '7 дней подряд',      desc: 'Отвечали на вопрос дня 7 дней подряд',   metric: 'streak',      gte: 7 },
+    { key: 'quests_10',   icon: '🎬', title: '10 квестов',         desc: 'Выполнено 10 совместных квестов',        metric: 'questsDone',  gte: 10 },
+    { key: 'wishes_20',   icon: '🍕', title: '20 желаний',         desc: 'Исполнено 20 желаний',                   metric: 'wishesDone',  gte: 20 },
+    { key: 'streak_30',   icon: '🔥', title: 'Серия 30 дней',      desc: '30 дней активности подряд',              metric: 'streak',      gte: 30 },
+    { key: 'soulmates',   icon: '👑', title: 'Soulmates',          desc: 'Достигнут уровень Soulmates',            metric: 'levelIndex',  gte: 3 }
+  ]
+};
+function levelIndexFor(points, levels) {
+  let idx = 0;
+  for (let i = 0; i < levels.length; i++) if (points >= levels[i].min) idx = i;
+  return idx;
+}
+
 function env(name) {
   return process.env['PARA_' + name] || process.env[name] || '';
 }
@@ -162,6 +188,38 @@ module.exports = async (req, res) => {
     async function coupleMembers(coupleId) {
       return await sb('para_members?couple_id=eq.' + coupleId + '&select=tg_id,name,photo_url,slot&order=slot');
     }
+    // прогресс пары: общие очки (из событий), уровень, серия, достижения
+    async function coupleProgress(coupleId) {
+      let ev = [], ans = [];
+      try { ev = await sb('para_events?couple_id=eq.' + coupleId + '&select=type,amount,created_at'); } catch (e) {}
+      try { ans = await sb('para_answers?couple_id=eq.' + coupleId + '&select=day'); } catch (e) {}
+      ev = Array.isArray(ev) ? ev : []; ans = Array.isArray(ans) ? ans : [];
+      const points = ev.filter((e) => e.type === 'points').reduce((s, e) => s + (e.amount || 0), 0);
+      const questsDone = ev.filter((e) => e.type === 'quest').length;
+      const wishesDone = ev.filter((e) => e.type === 'wish').length;
+      const answersCount = ans.length;
+      const daysSet = {}; ans.forEach((a) => { daysSet[a.day] = 1; });
+      let streak = 0;
+      for (let i = 0; i < 400; i++) { const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10); if (daysSet[d]) streak++; else break; }
+      const levels = DEFAULT_CONFIG.levels;
+      const idx = levelIndexFor(points, levels);
+      const metrics = { points: points, questsDone: questsDone, wishesDone: wishesDone, answersCount: answersCount, streak: streak, levelIndex: idx };
+      // достижения: фиксируем дату получения событием achv_<key>
+      const earnedDates = {}; ev.forEach((e) => { if (e.type && e.type.indexOf('achv_') === 0) earnedDates[e.type.slice(5)] = e.created_at; });
+      const achievements = DEFAULT_CONFIG.achievements.map((a) => {
+        const met = (metrics[a.metric] || 0) >= a.gte;
+        let date = earnedDates[a.key] || null;
+        if (met && !date) { date = new Date().toISOString(); logEvent('achv_' + a.key, coupleId, 0); }
+        return { key: a.key, icon: a.icon, title: a.title, desc: a.desc, earned: met, date: date };
+      });
+      return {
+        points: points, questsDone: questsDone, wishesDone: wishesDone, answersCount: answersCount, streak: streak,
+        levelIndex: idx,
+        level: { index: idx, key: levels[idx].key, name: levels[idx].name, emoji: levels[idx].emoji, min: levels[idx].min },
+        next: idx < levels.length - 1 ? { name: levels[idx + 1].name, emoji: levels[idx + 1].emoji, min: levels[idx + 1].min } : null,
+        achievements: achievements
+      };
+    }
     async function todayState(coupleId) {
       const day = todayUTC();
       const q = questionOfDay(day);
@@ -270,7 +328,7 @@ module.exports = async (req, res) => {
     // -------- TRACK (клиентские события для аналитики) --------
     if (action === 'track') {
       const type = String(body.type || '');
-      if (['quest', 'points'].indexOf(type) === -1) { res.status(200).json({ ok: false, reason: 'bad_type' }); return; }
+      if (['quest', 'points', 'wish'].indexOf(type) === -1) { res.status(200).json({ ok: false, reason: 'bad_type' }); return; }
       const mem = await myMembership();
       await logEvent(type, mem && mem.couple_id, Number(body.amount) || 0);
       res.status(200).json({ ok: true });
@@ -291,7 +349,8 @@ module.exports = async (req, res) => {
       const cRows = await sb('para_couples?id=eq.' + mem.couple_id + '&select=invite_code');
       const code = (cRows && cRows[0] && cRows[0].invite_code) || null;
       const today = await todayState(mem.couple_id);
-      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today });
+      const progress = await coupleProgress(mem.couple_id);
+      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: DEFAULT_CONFIG });
       return;
     }
 
