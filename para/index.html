@@ -564,28 +564,54 @@ function normWish(w){ return { id:w.id, by:w.by||'me', text:w.text, category:w.c
   points:w.points||20, status:w.status||(w.done?'done':'new') }; }
 
 function wishesScreen(){
-  var c=S.couple, filter=S.wfilter||'all';
+  var c=S.couple, filter=S.wfilter||'all', donef=S.wdonefilter||'all';
   var meName=function(by){ return by==='me' ? ((c.me.emoji||'👨')+' Я') : ((c.partner.emoji||'👩')+' '+esc(c.partner.name||'Партнёр')); };
   var all=S.wishes.map(normWish);
+  var isActive=function(w){ return w.status!=='done'; };
+  // фильтрация по СТАТУСУ (не только по автору): активные — в Все/Мои/Партнёра, выполненные — отдельно
   var list=all.filter(function(w){
+    if(filter==='done'){
+      if(w.status!=='done') return false;
+      if(donef==='mine') return w.by==='me';
+      if(donef==='partner') return w.by==='partner';
+      return true;
+    }
+    if(!isActive(w)) return false;              // выполненные не показываем в остальных вкладках
     if(filter==='mine') return w.by==='me';
     if(filter==='partner') return w.by==='partner';
-    if(filter==='done') return w.status==='done';
-    return true;
+    return true;                                // 'all' — только активные обоих
   });
 
+  // счётчики для вкладок (обновляются мгновенно после выполнения — это просто пересчёт при render)
+  var act=all.filter(isActive);
+  var cnt={ all:act.length, mine:act.filter(function(w){return w.by==='me';}).length,
+    partner:act.filter(function(w){return w.by==='partner';}).length,
+    done:all.filter(function(w){return w.status==='done';}).length };
   var FILTERS=[['all','Все'],['mine','Мои'],['partner','Партнёра'],['done','Выполненные']];
   var filters='<div class="filters">'+FILTERS.map(function(f){
-    return '<button class="f'+(filter===f[0]?' on':'')+'" data-act="wfilter" data-f="'+f[0]+'">'+f[1]+'</button>';
+    var n=cnt[f[0]];
+    return '<button class="f'+(filter===f[0]?' on':'')+'" data-act="wfilter" data-f="'+f[0]+'">'+f[1]+
+      (n?' <span style="opacity:.7">'+n+'</span>':'')+'</button>';
   }).join('')+'</div>';
+  // под-фильтр внутри «Выполненные»
+  if(filter==='done'){
+    var SUB=[['all','Все'],['mine','Мои'],['partner','Партнёра']];
+    filters+='<div class="filters" style="margin-top:0">'+SUB.map(function(f){
+      return '<button class="f'+(donef===f[0]?' on':'')+'" data-act="wdonefilter" data-f="'+f[0]+'" style="padding:6px 12px;font-size:12px">'+f[1]+'</button>';
+    }).join('')+'</div>';
+  }
 
   var body;
   if(!list.length){
-    body='<div class="wempty"><div class="ill">❤️</div>'+
-      '<div class="b" style="font-size:17px">'+(filter==='all'?'Пока нет совместных желаний':'Здесь пока пусто')+'</div>'+
-      '<div class="small muted mt2" style="max-width:280px;margin:8px auto 0;line-height:1.5">'+
-      (filter==='all'?'Добавьте первое желание и начните исполнять мечты вместе.':'Смени фильтр или добавь новое желание.')+'</div>'+
-      '<button class="add-wish" style="margin-top:20px" data-act="wish-open-add">➕ Добавить '+(filter==='all'?'первое ':'')+'желание</button></div>';
+    var eTitle = filter==='done' ? 'Пока нет выполненных желаний'
+      : filter==='all' ? 'Пока нет активных желаний' : 'Здесь пока пусто';
+    var eSub = filter==='done' ? 'Выполните желание — и оно появится здесь.'
+      : filter==='all' ? 'Добавьте первое желание и начните исполнять мечты вместе.'
+      : 'Смени фильтр или добавь новое желание.';
+    body='<div class="wempty"><div class="ill">'+(filter==='done'?'✅':'❤️')+'</div>'+
+      '<div class="b" style="font-size:17px">'+eTitle+'</div>'+
+      '<div class="small muted mt2" style="max-width:280px;margin:8px auto 0;line-height:1.5">'+eSub+'</div>'+
+      (filter==='done'?'':'<button class="add-wish" style="margin-top:20px" data-act="wish-open-add">➕ Добавить '+(filter==='all'?'первое ':'')+'желание</button>')+'</div>';
   } else {
     body=list.map(function(w){
       var ct=wcat(w.category), pop=(S.justDone===w.id?' pop':'');
@@ -951,6 +977,7 @@ var ACTS={
   'who':function(el){ S.who=el.dataset.who; save('who'); haptic('light'); render(); },
   'answer':function(){ var t=(val('#qa')||'').trim(); if(!t)return; if(ONLINE) onlineAnswer(t); else { var k=todayKey(); if(!S.answers[k])S.answers[k]={}; S.answers[k][S.who]=t; save('answers'); S.points+=10; save('points'); haptic('success'); render(); } },
   'wfilter':function(el){ S.wfilter=el.dataset.f; haptic('light'); render(); },
+  'wdonefilter':function(el){ S.wdonefilter=el.dataset.f; haptic('light'); render(); },
   'wish-open-add':function(){ S.wmodal={cat:'❤️',points:20}; haptic('light'); render(); },
   'wish-cancel':function(){ S.wmodal=null; render(); },
   'wish-cat':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.cat=el.dataset.e; haptic('light'); render(); } },
