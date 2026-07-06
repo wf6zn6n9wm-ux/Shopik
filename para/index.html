@@ -472,10 +472,45 @@ function usScreen(){
     var srow=function(k,v){ return '<div class="row between small mt2"><span class="muted">'+k+'</span><span class="b">'+v+'</span></div>'; };
     stats='<div class="card p4 mb3"><div class="small sb mb2">📊 Статистика</div>'+
       srow('Пар всего',S.stats.couples)+srow('Связанных пар',S.stats.linked)+
-      srow('Ответов сегодня',S.stats.answersToday)+srow('Ответов всего',S.stats.answersTotal)+'</div>';
+      srow('Ответов сегодня',S.stats.answersToday)+srow('Ответов всего',S.stats.answersTotal)+
+      '<button class="btn btn-ghost mt3" data-act="open-admin">⚙️ Открыть админку</button></div>';
   }
   var foot='<div class="center-t xs muted2 mt6">PARA · '+(TG?'Telegram Mini App':'веб-версия (PWA)')+'</div>';
   return '<div class="wrap">'+screenTitle('💞','Мы','')+head+stats+home+invite+reset+foot+'</div>';
+}
+
+// ---------- Полная админка (overlay внутри приложения) ----------
+function admChart(growth){
+  var W=680,H=150,pad=18,n=growth.length||1;
+  var maxV=Math.max(1,(growth||[]).reduce(function(m,g){return Math.max(m,g.couples,g.answers);},0));
+  var bw=(W-pad*2)/n, bars='';
+  (growth||[]).forEach(function(g,i){
+    var x=pad+i*bw, ch=(H-pad*2)*(g.couples/maxV), ah=(H-pad*2)*(g.answers/maxV), gw=bw*0.32;
+    bars+='<rect x="'+(x+bw*0.14)+'" y="'+(H-pad-ah)+'" width="'+gw+'" height="'+ah+'" rx="2" fill="#ff5e8a"/>';
+    bars+='<rect x="'+(x+bw*0.14+gw+2)+'" y="'+(H-pad-ch)+'" width="'+gw+'" height="'+ch+'" rx="2" fill="#c026d3"/>';
+  });
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:140px">'+bars+'</svg>';
+}
+function adminView(){
+  var d=S.adminData, t=d.totals, list=d.couples||[];
+  var k=function(l,v){ return '<div class="card p4"><div class="xs muted">'+l+'</div><div class="b" style="font-size:26px;margin-top:2px">'+v+'</div></div>'; };
+  var kpis='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+    k('Пар всего',t.couples)+k('Связанных',t.linked)+k('Ответов сегодня',t.answersToday)+k('Ответов всего',t.answersTotal)+'</div>';
+  var rows=list.map(function(c){
+    return '<div class="row between" style="padding:10px 0;border-bottom:1px solid var(--line)">'+
+      '<div><div class="rose b" style="letter-spacing:.1em">'+esc(c.code)+'</div>'+
+      '<div class="xs muted">'+esc(c.members.join(' & ')||'—')+' · '+esc(c.created||'')+'</div></div>'+
+      '<span class="xs" style="'+(c.linked?'color:#34d399':'color:var(--muted)')+'">'+(c.linked?'в паре':'ждёт')+'</span></div>';
+  }).join('')||'<div class="muted small center-t" style="padding:16px">Пока нет пар</div>';
+  return '<div class="app"><div class="wrap">'+
+    '<div class="row between mb4"><div class="b" style="font-size:20px">⚙️ Админка</div>'+
+    '<button class="btn btn-ghost btn-sm" data-act="close-admin">← Назад</button></div>'+
+    kpis+
+    '<div class="card p4 mt4"><div class="small sb mb2">📈 Рост за 14 дней</div>'+admChart(d.growth)+
+    '<div class="xs muted mt2"><span style="color:#ff5e8a">■</span> ответы&nbsp;&nbsp;<span style="color:#c026d3">■</span> пары</div></div>'+
+    '<div class="small sb" style="margin:16px 0 8px">💞 Пары ('+list.length+')</div>'+
+    '<div class="card p4">'+rows+'</div>'+
+    '<div style="height:24px"></div></div></div>';
 }
 
 var TABS=[
@@ -506,8 +541,12 @@ function render(){
       ];
       save('dates');
     }
-    var screen={today:todayScreen,wishes:wishesScreen,quests:questsScreen,dates:datesScreen,us:usScreen}[S.tab]();
-    html='<div class="app">'+screen+bottomNav()+'</div>';
+    if(S.showAdmin && S.adminData){
+      html=adminView();
+    } else {
+      var screen={today:todayScreen,wishes:wishesScreen,quests:questsScreen,dates:datesScreen,us:usScreen}[S.tab]();
+      html='<div class="app">'+screen+bottomNav()+'</div>';
+    }
   }
   if(S.toast){
     html+='<div class="toast"><span style="font-size:18px">'+S.toast.icon+'</span>'+
@@ -566,6 +605,8 @@ var ACTS={
   'ob-mode':function(el){ var m=el.dataset.mode; if(m==='create'&&CAN_ONLINE){ haptic('light'); onlineCreate(); return; } S.ob.mode=m; S.ob.err=''; haptic('light'); render(); },
   'ob-mode-back':function(){ S.ob.mode=null; render(); },
   'share-code':function(){ shareInvite(S.couple && S.couple.inviteCode); },
+  'open-admin':function(){ if(!ONLINE)return; api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; S.showAdmin=true; render(); } else if(r&&r.reason==='forbidden'){ alert('Нет доступа. Твой ID: '+r.yourId); } else { alert('Ошибка: '+((r&&r.reason)||'')); } }).catch(function(){}); },
+  'close-admin':function(){ S.showAdmin=false; render(); },
   'ob-share':shareInvite,
   'ob-create-confirm':function(){ if(CAN_ONLINE) onlineCreate(); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
   'ob-join-confirm':function(){ var c=(val('#ob-code')||'').toUpperCase().trim(); if(c.length<4)return; if(CAN_ONLINE) onlineJoin(c); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
