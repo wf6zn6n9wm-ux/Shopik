@@ -143,6 +143,24 @@
   .dt-row .nm{font-size:15px;font-weight:700;line-height:1.2;}
   .dt-row .wh{font-size:13px;color:var(--muted);margin-top:3px;}
   .dt-chev{color:var(--muted2);font-size:22px;font-weight:300;flex:0 0 auto;}
+  /* редактор конфига во встроенной админке */
+  .admtab{flex:1;border:1px solid var(--line);background:var(--card2);color:var(--muted);
+    border-radius:12px;padding:11px;font-size:13px;font-weight:700;transition:all .18s;}
+  .admtab.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(255,94,138,.3);}
+  .cfgcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px;}
+  .cfggrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .cfgfld{display:flex;flex-direction:column;gap:3px;}
+  .cfglbl{font-size:10px;color:var(--muted);font-weight:600;}
+  .cfgin{background:rgba(0,0,0,.24);border:1px solid var(--line);color:#fff;border-radius:9px;
+    padding:8px 10px;font-size:13px;width:100%;font-family:inherit;}
+  .cfgin:focus{outline:none;border-color:var(--rose);}
+  textarea.cfgin{resize:vertical;min-height:46px;line-height:1.35;}
+  .cfgchk{display:flex;align-items:center;gap:7px;font-size:12px;color:#fff;}
+  .cfgchk input{width:17px;height:17px;accent-color:var(--rose);}
+  .cfgdel{border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.08);color:#fca5a5;
+    border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;}
+  .cfgadd{width:100%;border:1px dashed var(--line);background:transparent;color:var(--muted);
+    border-radius:12px;padding:10px;font-size:13px;font-weight:700;}
 
   /* partner switch */
   .switch{display:flex;gap:4px;padding:6px;position:relative;}
@@ -1180,7 +1198,7 @@ function admBars(series, color){
   series.forEach(function(p,i){ var h=(H-2*pad)*(p.v/max); bars+='<rect x="'+(pad+i*bw+bw*0.15).toFixed(1)+'" y="'+(H-pad-h).toFixed(1)+'" width="'+(bw*0.7).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1.5" fill="'+color+'"/>'; });
   return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:96px">'+bars+'</svg>';
 }
-function adminView(){
+function adminDashView(){
   var d=S.adminData, t=d.totals||{}, s=d.series||{}, list=d.couples||[];
   var k=function(icon,l,v){ return '<div class="card p4"><div class="xs muted">'+icon+' '+l+'</div><div class="b" style="font-size:23px;margin-top:3px">'+(v==null?0:v)+'</div></div>'; };
   var kpis='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
@@ -1202,12 +1220,94 @@ function adminView(){
       '<div class="xs muted">'+esc(c.members.join(' & ')||'—')+' · '+esc(c.created||'')+'</div></div>'+
       '<span class="xs" style="'+(c.linked?'color:#34d399':'color:var(--muted)')+'">'+(c.linked?'в паре':'ждёт')+'</span></div>';
   }).join('')||'<div class="muted small center-t" style="padding:16px">Пока нет пар</div>';
+  return kpis+charts+
+    '<div class="small sb" style="margin:18px 0 8px">💞 Пары ('+list.length+')</div>'+
+    '<div class="card p4">'+rows+'</div>';
+}
+// --- редактор конфигурации (уровни/награды) прямо во встроенной админке ---
+var CFG_METRICS=[['points','Очки'],['questsDone','Квестов'],['wishesDone','Желаний'],['answersCount','Ответов'],['streak','Серия'],['levelIndex','Индекс уровня']];
+var CFG_DIFFS=[['easy','Легко'],['med','Средне'],['hard','Сложно']];
+function cfgSections(){
+  var cfg=S.adminConfig||{};
+  var catOpts=(cfg.categories||[]).map(function(c){return [c.key,(c.emoji||'')+' '+c.name];});
+  return [
+    { key:'levels', title:'🏆 Уровни', tpl:function(){return {key:'',name:'',emoji:'⭐',min:0,perks:[]};},
+      label:function(it){return (it.emoji||'')+' '+(it.name||'новый уровень');},
+      fields:[{k:'emoji',l:'Эмодзи',t:'text'},{k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'min',l:'Очков для уровня',t:'num'},{k:'perks',l:'Награды (по одной в строке)',t:'lines',wide:true}] },
+    { key:'achievements', title:'🥇 Достижения', tpl:function(){return {key:'',icon:'🏅',title:'',desc:'',metric:'questsDone',gte:1,enabled:true};},
+      label:function(it){return (it.icon||'')+' '+(it.title||'новое достижение');},
+      fields:[{k:'icon',l:'Иконка',t:'text'},{k:'title',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'metric',l:'Метрика',t:'select',opts:CFG_METRICS},{k:'gte',l:'Порог (≥)',t:'num'},{k:'enabled',l:'Включено',t:'bool'},{k:'desc',l:'Описание',t:'text',wide:true}] },
+    { key:'quests', title:'🗺️ Квесты', tpl:function(){var ids=((S.adminConfig&&S.adminConfig.quests)||[]).map(function(q){return +q.id||0;}); return {id:(ids.length?Math.max.apply(null,ids):0)+1,title:'',desc:'',pts:20,cat:(catOpts[0]&&catOpts[0][0])||'romance',emoji:'✨',time:'',diff:'easy',level:0,pairs:0,featured:false,enabled:true};},
+      label:function(it){return (it.emoji||'')+' '+(it.title||'новый квест');},
+      fields:[{k:'emoji',l:'Эмодзи',t:'text'},{k:'title',l:'Название',t:'text'},{k:'pts',l:'Очки',t:'num'},{k:'cat',l:'Категория',t:'select',opts:catOpts},{k:'time',l:'Время',t:'text'},{k:'diff',l:'Сложность',t:'select',opts:CFG_DIFFS},{k:'level',l:'С уровня (0..)',t:'num'},{k:'pairs',l:'Пар выполнили',t:'num'},{k:'featured',l:'В «Квест дня»',t:'bool'},{k:'enabled',l:'Включён',t:'bool'},{k:'desc',l:'Описание',t:'text',wide:true},{k:'id',l:'ID',t:'num'}] },
+    { key:'categories', title:'🎨 Категории квестов', tpl:function(){return {key:'',name:'',emoji:'✨',color:'#ff5e8a'};},
+      label:function(it){return (it.emoji||'')+' '+(it.name||'новая категория');},
+      fields:[{k:'emoji',l:'Эмодзи',t:'text'},{k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'color',l:'Цвет (#hex)',t:'text'}] },
+    { key:'themes', title:'🌈 Темы оформления', tpl:function(){return {key:'',name:'',level:0,grad:'linear-gradient(135deg,#ff5e8a,#c026d3)',rose:'#ff5e8a',fuchsia:'#c026d3'};},
+      label:function(it){return it.name||'новая тема';},
+      fields:[{k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'level',l:'С уровня',t:'num'},{k:'rose',l:'Основной цвет',t:'text'},{k:'fuchsia',l:'Второй цвет',t:'text'},{k:'grad',l:'CSS-градиент',t:'text',wide:true}] },
+    { key:'frames', title:'🖼️ Рамки профиля', tpl:function(){return {key:'',name:'',level:0,css:''};},
+      label:function(it){return it.name||'новая рамка';},
+      fields:[{k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'level',l:'С уровня',t:'num'},{k:'css',l:'CSS (box-shadow…)',t:'text',wide:true}] }
+  ];
+}
+function cfgFieldHtml(sec,f,it){
+  var v=it[f.k]; if(v==null)v='';
+  var da='data-sec="'+sec+'" data-k="'+f.k+'" data-t="'+f.t+'"', wide=f.wide?'grid-column:1/-1;':'';
+  if(f.t==='bool') return '<label class="cfgchk" style="'+wide+'"><input type="checkbox" '+da+(it[f.k]?' checked':'')+'><span>'+esc(f.l)+'</span></label>';
+  var inner;
+  if(f.t==='select') inner='<select class="cfgin" '+da+'>'+f.opts.map(function(o){return '<option value="'+esc(o[0])+'"'+(String(v)===String(o[0])?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select>';
+  else if(f.t==='lines') inner='<textarea class="cfgin" '+da+' rows="3">'+esc(Array.isArray(v)?v.join('\n'):v)+'</textarea>';
+  else inner='<input class="cfgin" type="'+(f.t==='num'?'number':'text')+'" '+da+' value="'+esc(v)+'">';
+  return '<div class="cfgfld" style="'+wide+'"><div class="cfglbl">'+esc(f.l)+'</div>'+inner+'</div>';
+}
+function adminConfigView(){
+  if(!S.adminConfig) return '<div class="center-t muted small" style="padding:40px">Загрузка конфигурации…</div>';
+  var html=cfgSections().map(function(sec){
+    var items=S.adminConfig[sec.key]||[];
+    var cards=items.map(function(it,idx){
+      return '<div class="cfgcard" data-sec="'+sec.key+'" data-idx="'+idx+'">'+
+        '<div class="row between mb2"><div class="xs muted2">#'+(idx+1)+' · '+esc(sec.label(it))+'</div>'+
+        '<button class="cfgdel" data-act="cfg-del" data-sec="'+sec.key+'" data-idx="'+idx+'">Удалить</button></div>'+
+        '<div class="cfggrid">'+sec.fields.map(function(f){return cfgFieldHtml(sec.key,f,it);}).join('')+'</div></div>';
+    }).join('');
+    return '<div class="small sb" style="margin:18px 0 8px">'+esc(sec.title)+' <span class="muted2">('+items.length+')</span></div>'+
+      cards+'<button class="cfgadd" data-act="cfg-add" data-sec="'+sec.key+'">＋ Добавить</button>';
+  }).join('');
+  return html+'<div style="height:16px"></div>'+
+    '<button class="add-wish" data-act="cfg-save">💾 Сохранить изменения</button>'+
+    '<div class="center-t sb mt3" style="min-height:18px;'+(/Ошибка/.test(S.cfgMsg||'')?'color:#fca5a5':'color:#34d399')+'">'+esc(S.cfgMsg||'')+'</div>';
+}
+// собрать значения полей редактора из DOM (переживают ре-рендер)
+function cfgCollect(){
+  if(!S.adminConfig) return;
+  cfgSections().forEach(function(sec){
+    var cards=document.querySelectorAll('.cfgcard[data-sec="'+sec.key+'"]'), arr=[];
+    Array.prototype.forEach.call(cards,function(card){
+      var idx=+card.getAttribute('data-idx'), orig=(S.adminConfig[sec.key]||[])[idx]||{}, obj={};
+      for(var kk in orig){ if(Object.prototype.hasOwnProperty.call(orig,kk)) obj[kk]=orig[kk]; }
+      Array.prototype.forEach.call(card.querySelectorAll('[data-k]'),function(inp){
+        var k=inp.getAttribute('data-k'), t=inp.getAttribute('data-t'), val;
+        if(t==='bool') val=inp.checked;
+        else if(t==='num') val=inp.value===''?0:Number(inp.value);
+        else if(t==='lines') val=inp.value.split('\n').map(function(s){return s.trim();}).filter(Boolean);
+        else val=inp.value;
+        obj[k]=val;
+      });
+      arr.push(obj);
+    });
+    S.adminConfig[sec.key]=arr;
+  });
+}
+function adminView(){
+  var tab=S.adminTab||'dash';
+  var nav='<div class="row gap2 mb4">'+
+    '<button class="admtab'+(tab==='dash'?' on':'')+'" data-act="adm-tab" data-t="dash">📊 Дашборд</button>'+
+    '<button class="admtab'+(tab==='config'?' on':'')+'" data-act="adm-tab" data-t="config">⚙️ Уровни и награды</button></div>';
   return '<div class="app"><div class="wrap">'+
     '<div class="row between mb4"><div class="b" style="font-size:20px">⚙️ Админка</div>'+
     '<button class="btn btn-ghost btn-sm" data-act="close-admin">← Назад</button></div>'+
-    kpis+charts+
-    '<div class="small sb" style="margin:18px 0 8px">💞 Пары ('+list.length+')</div>'+
-    '<div class="card p4">'+rows+'</div>'+
+    nav+(tab==='config'?adminConfigView():adminDashView())+
     '<div style="height:24px"></div></div></div>';
 }
 
@@ -1403,6 +1503,12 @@ var ACTS={
   'share-code':function(){ shareInvite(S.couple && S.couple.inviteCode); },
   'open-admin':function(){ if(!ONLINE)return; api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; S.showAdmin=true; render(); } else if(r&&r.reason==='forbidden'){ alert('Нет доступа. Твой ID: '+r.yourId); } else { alert('Ошибка: '+((r&&r.reason)||'')); } }).catch(function(){}); },
   'close-admin':function(){ S.showAdmin=false; render(); },
+  'adm-tab':function(el){ var t=el.dataset.t; S.adminTab=t; haptic('light');
+    if(t==='config'&&!S.adminConfig){ api('config_get').then(function(r){ S.adminConfig=(r&&r.ok&&r.config)?r.config:(S.config||{levels:[],achievements:[],themes:[],frames:[],categories:[],quests:[]}); render(); }); }
+    render(); },
+  'cfg-add':function(el){ var k=el.dataset.sec; cfgCollect(); var sec=cfgSections().filter(function(s){return s.key===k;})[0]; if(!S.adminConfig[k])S.adminConfig[k]=[]; S.adminConfig[k].push(sec.tpl()); haptic('light'); render(); },
+  'cfg-del':function(el){ var k=el.dataset.sec, i=+el.dataset.idx; cfgCollect(); if(S.adminConfig[k])S.adminConfig[k].splice(i,1); haptic('light'); render(); },
+  'cfg-save':function(){ cfgCollect(); S.cfgMsg='Сохранение…'; render(); api('config_save',{config:S.adminConfig}).then(function(r){ if(r&&r.ok){ if(r.config){S.adminConfig=r.config;S.config=r.config;} S.cfgMsg='✓ Сохранено'; haptic('success'); } else { S.cfgMsg='Ошибка: '+((r&&r.reason)||'?'); haptic('warning'); } render(); setTimeout(function(){ S.cfgMsg=''; render(); },3000); }).catch(function(){ S.cfgMsg='Ошибка сети'; render(); }); },
   'open-achv':function(){ S.showAchv=true; haptic('light'); render(); if(ONLINE)refreshState(); },
   'close-achv':function(){ S.showAchv=false; render(); },
   'open-cust':function(){ S.showCust=true; haptic('light'); render(); },
