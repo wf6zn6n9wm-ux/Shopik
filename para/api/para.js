@@ -70,12 +70,50 @@ const DEFAULT_CONFIG = {
     { key: 'ring',   name: 'Кольцо 💍',      level: 2, css: 'box-shadow:0 0 0 2px var(--rose),inset 0 0 0 1px rgba(255,255,255,.06)' },
     { key: 'gold',   name: 'Золотая 👑',     level: 3, css: 'box-shadow:0 0 0 2px #fbbf24,0 0 30px rgba(251,191,36,.4)' },
     { key: 'legend', name: 'Легендарная 🔮', level: 4, css: 'box-shadow:0 0 0 3px #a78bfa,0 0 44px rgba(167,139,250,.5)' }
+  ],
+  // Категории квестов (для фильтра и цвета карточек)
+  categories: [
+    { key: 'romance',  name: 'Романтика',    emoji: '❤️', color: '#ff5e8a' },
+    { key: 'date',     name: 'Свидание',     emoji: '🍽', color: '#fb923c' },
+    { key: 'home',     name: 'Дом',          emoji: '🏠', color: '#fbbf24' },
+    { key: 'games',    name: 'Игры',         emoji: '🎮', color: '#a78bfa' },
+    { key: 'walk',     name: 'Прогулки',     emoji: '🚶', color: '#38bdf8' },
+    { key: 'travel',   name: 'Путешествия',  emoji: '✈️', color: '#34d399' },
+    { key: 'surprise', name: 'Сюрпризы',     emoji: '🎁', color: '#f472b6' },
+    { key: 'movie',    name: 'Фильмы',       emoji: '🎬', color: '#c026d3' }
+  ],
+  // Квесты (data-driven; редактируются в админке). diff: easy|med|hard. featured — кандидат в «Квест дня».
+  quests: [
+    { id: 1,  title: 'Приготовьте ужин вдвоём',        desc: 'Вечер без телефонов — приготовьте что-то вкусное вместе.', pts: 30,  cat: 'romance',  emoji: '🍝', time: '20–40 мин', diff: 'easy', level: 0, pairs: 428, featured: true,  enabled: true },
+    { id: 2,  title: 'Напишите по 3 комплимента',      desc: 'Скажите друг другу три искренних комплимента.',            pts: 20,  cat: 'romance',  emoji: '💌', time: '5–10 мин',  diff: 'easy', level: 0, pairs: 651, featured: true,  enabled: true },
+    { id: 3,  title: 'Вечер без соцсетей',             desc: 'Проведите вечер только вдвоём, без телефонов.',            pts: 40,  cat: 'home',     emoji: '📵', time: '2–3 часа',  diff: 'easy', level: 0, pairs: 312, featured: true,  enabled: true },
+    { id: 4,  title: 'Совместное фото в новом месте',  desc: 'Сходите туда, где ещё не были, и сделайте фото.',          pts: 25,  cat: 'walk',     emoji: '📸', time: '1–2 часа',  diff: 'easy', level: 0, pairs: 540, featured: true,  enabled: true },
+    { id: 5,  title: 'Ужин при свечах',                desc: 'Устройте романтический ужин при свечах дома.',             pts: 50,  cat: 'romance',  emoji: '🕯️', time: '1–2 часа',  diff: 'med',  level: 1, pairs: 208, featured: true,  enabled: true },
+    { id: 6,  title: 'Приготовьте пиццу вместе',       desc: 'Замесите тесто и соберите пиццу своей мечты.',             pts: 40,  cat: 'date',     emoji: '🍕', time: '30–40 мин', diff: 'easy', level: 1, pairs: 389, featured: false, enabled: true },
+    { id: 7,  title: 'Вечер настольных игр',           desc: 'Достаньте настолки и устройте турнир на двоих.',           pts: 30,  cat: 'games',    emoji: '🎲', time: '40–60 мин', diff: 'med',  level: 1, pairs: 274, featured: false, enabled: true },
+    { id: 8,  title: 'Мини-путешествие на выходные',   desc: 'Спланируйте и съездите в соседний город.',                 pts: 60,  cat: 'travel',   emoji: '🧳', time: '1–2 дня',   diff: 'med',  level: 1, pairs: 133, featured: true,  enabled: true },
+    { id: 9,  title: 'Посмотрите фильм без телефонов', desc: 'Выберите фильм и посмотрите, не отвлекаясь.',              pts: 20,  cat: 'movie',    emoji: '🎬', time: '60–90 мин', diff: 'easy', level: 1, pairs: 712, featured: false, enabled: true },
+    { id: 10, title: 'Челлендж доверия',               desc: 'Расскажите друг другу то, чего ещё не говорили.',          pts: 70,  cat: 'romance',  emoji: '🤝', time: '30–40 мин', diff: 'hard', level: 2, pairs: 96,  featured: true,  enabled: true },
+    { id: 11, title: 'Совместная цель на месяц',       desc: 'Поставьте общую цель и распишите шаги.',                   pts: 80,  cat: 'home',     emoji: '🎯', time: '30 мин',    diff: 'med',  level: 2, pairs: 71,  featured: false, enabled: true },
+    { id: 12, title: 'Свидание-сюрприз вслепую',       desc: 'Один придумывает свидание — другой не знает куда идёт.',   pts: 100, cat: 'surprise', emoji: '🎁', time: '2–4 часа',  diff: 'hard', level: 3, pairs: 38,  featured: true,  enabled: true }
   ]
 };
 function levelIndexFor(points, levels) {
   let idx = 0;
   for (let i = 0; i < levels.length; i++) if (points >= levels[i].min) idx = i;
   return idx;
+}
+// привести конфиг к валидному виду (недостающие секции — из дефолта)
+function normalizeConfig(c) {
+  c = c || {};
+  return {
+    levels: (Array.isArray(c.levels) && c.levels.length) ? c.levels : DEFAULT_CONFIG.levels,
+    achievements: Array.isArray(c.achievements) ? c.achievements : DEFAULT_CONFIG.achievements,
+    themes: Array.isArray(c.themes) && c.themes.length ? c.themes : DEFAULT_CONFIG.themes,
+    frames: Array.isArray(c.frames) && c.frames.length ? c.frames : DEFAULT_CONFIG.frames,
+    categories: Array.isArray(c.categories) && c.categories.length ? c.categories : DEFAULT_CONFIG.categories,
+    quests: Array.isArray(c.quests) && c.quests.length ? c.quests : DEFAULT_CONFIG.quests
+  };
 }
 
 function env(name) {
@@ -196,6 +234,11 @@ module.exports = async (req, res) => {
       catch (e) { rows = await sb('para_members?tg_id=eq.' + me.id + '&select=couple_id,tg_id,name,photo_url,slot'); }
       return (rows && rows[0]) || null;
     }
+    // конфиг уровней/наград: из таблицы para_config (редактируется в админке) либо дефолт
+    async function loadConfig() {
+      try { const rows = await sb('para_config?id=eq.1&select=data'); if (rows && rows[0] && rows[0].data) return normalizeConfig(rows[0].data); } catch (e) {}
+      return DEFAULT_CONFIG;
+    }
     async function logEvent(type, coupleId, amount) {
       try {
         await sb('para_events', { method: 'POST', body: JSON.stringify({ tg_id: me.id, couple_id: coupleId || null, type: type, amount: amount || 0 }) });
@@ -205,7 +248,8 @@ module.exports = async (req, res) => {
       return await sb('para_members?couple_id=eq.' + coupleId + '&select=tg_id,name,photo_url,slot&order=slot');
     }
     // прогресс пары: общие очки (из событий), уровень, серия, достижения
-    async function coupleProgress(coupleId) {
+    async function coupleProgress(coupleId, config) {
+      config = config || DEFAULT_CONFIG;
       let ev = [], ans = [];
       try { ev = await sb('para_events?couple_id=eq.' + coupleId + '&select=type,amount,created_at'); } catch (e) {}
       try { ans = await sb('para_answers?couple_id=eq.' + coupleId + '&select=day'); } catch (e) {}
@@ -217,12 +261,12 @@ module.exports = async (req, res) => {
       const daysSet = {}; ans.forEach((a) => { daysSet[a.day] = 1; });
       let streak = 0;
       for (let i = 0; i < 400; i++) { const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10); if (daysSet[d]) streak++; else break; }
-      const levels = DEFAULT_CONFIG.levels;
+      const levels = config.levels;
       const idx = levelIndexFor(points, levels);
       const metrics = { points: points, questsDone: questsDone, wishesDone: wishesDone, answersCount: answersCount, streak: streak, levelIndex: idx };
-      // достижения: фиксируем дату получения событием achv_<key>
+      // достижения: фиксируем дату получения событием achv_<key> (отключённые пропускаем)
       const earnedDates = {}; ev.forEach((e) => { if (e.type && e.type.indexOf('achv_') === 0) earnedDates[e.type.slice(5)] = e.created_at; });
-      const achievements = DEFAULT_CONFIG.achievements.map((a) => {
+      const achievements = config.achievements.filter((a) => a.enabled !== false).map((a) => {
         const met = (metrics[a.metric] || 0) >= a.gte;
         let date = earnedDates[a.key] || null;
         if (met && !date) { date = new Date().toISOString(); logEvent('achv_' + a.key, coupleId, 0); }
@@ -365,8 +409,28 @@ module.exports = async (req, res) => {
       const cRows = await sb('para_couples?id=eq.' + mem.couple_id + '&select=invite_code');
       const code = (cRows && cRows[0] && cRows[0].invite_code) || null;
       const today = await todayState(mem.couple_id);
-      const progress = await coupleProgress(mem.couple_id);
-      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: DEFAULT_CONFIG });
+      const config = await loadConfig();
+      const progress = await coupleProgress(mem.couple_id, config);
+      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: config });
+      return;
+    }
+
+    // -------- CONFIG (получить/сохранить; сохранение — только админ) --------
+    if (action === 'config_get') {
+      res.status(200).json({ ok: true, config: await loadConfig() });
+      return;
+    }
+    if (action === 'config_save') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const clean = normalizeConfig(body.config);
+      try {
+        await sb('para_config?on_conflict=id', {
+          method: 'POST',
+          headers: Object.assign({}, H, { Prefer: 'resolution=merge-duplicates,return=minimal' }),
+          body: JSON.stringify({ id: 1, data: clean, updated_at: new Date().toISOString() })
+        });
+      } catch (e) { res.status(200).json({ ok: false, reason: 'db_error', error: String(e && e.message).slice(0, 200) }); return; }
+      res.status(200).json({ ok: true, config: clean });
       return;
     }
 

@@ -127,10 +127,11 @@
     background:var(--grad);box-shadow:0 10px 26px rgba(192,38,211,.30);display:flex;align-items:center;
     justify-content:center;gap:8px;transition:transform .12s;}
   .add-wish:active{transform:scale(.98);}
-  .filters{display:flex;gap:7px;overflow-x:auto;padding:2px 0;margin:14px 0 4px;}
+  .filters{display:flex;gap:8px;overflow-x:auto;padding:2px 0;margin:14px 0 4px;}
   .filters .f{flex:0 0 auto;border:1px solid var(--line);background:var(--card2);color:var(--muted);
-    border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;transition:all .2s;white-space:nowrap;}
-  .filters .f.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 6px 16px rgba(255,94,138,.25);}
+    border-radius:999px;padding:10px 17px;font-size:13.5px;font-weight:600;transition:all .22s cubic-bezier(.2,.8,.2,1);white-space:nowrap;}
+  .filters .f.on{background:var(--grad);color:#fff;border-color:transparent;font-weight:700;
+    box-shadow:0 8px 22px rgba(255,94,138,.4),0 0 0 1px rgba(255,255,255,.12) inset;transform:translateY(-1px);}
   .wcard{position:relative;display:flex;align-items:center;gap:13px;border-radius:22px;padding:14px;
     background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));
     border:1px solid var(--line);box-shadow:0 8px 22px rgba(0,0,0,.28);margin-bottom:12px;
@@ -167,6 +168,27 @@
   .wempty .ill{width:96px;height:96px;margin:0 auto 16px;border-radius:30px;display:flex;align-items:center;
     justify-content:center;font-size:46px;background:radial-gradient(circle at 50% 35%,rgba(255,94,138,.28),rgba(192,38,211,.10));
     box-shadow:inset 0 0 40px rgba(255,94,138,.15);}
+  /* премиальный пустой экран «Желаний» */
+  .wempty2{margin:10px 0 4px;padding:32px 22px 26px;border-radius:28px;text-align:center;
+    background:linear-gradient(160deg,rgba(255,94,138,.12),rgba(192,38,211,.05) 60%,rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.07);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    box-shadow:0 22px 54px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.06);}
+  .wempty2 .ill2{width:124px;height:124px;margin:0 auto 18px;border-radius:38px;display:flex;
+    align-items:center;justify-content:center;font-size:58px;
+    background:radial-gradient(circle at 50% 32%,rgba(255,94,138,.34),rgba(192,38,211,.08));
+    box-shadow:inset 0 0 48px rgba(255,94,138,.20),0 14px 36px rgba(192,38,211,.24);
+    animation:eIll .55s cubic-bezier(.2,.8,.2,1) both;}
+  .wempty2 .et{font-size:19px;font-weight:800;letter-spacing:-.01em;line-height:1.25;animation:eUp .5s .12s ease both;}
+  .wempty2 .es{font-size:14px;color:var(--muted);max-width:272px;margin:9px auto 0;line-height:1.5;animation:eUp .5s .22s ease both;}
+  .wempty2 .eb{animation:eUp .5s .32s ease both;}
+  .ebtn{width:100%;height:56px;border-radius:18px;margin-top:22px;font-weight:800;font-size:15.5px;color:#fff;
+    background:var(--grad);display:flex;align-items:center;justify-content:center;gap:9px;
+    box-shadow:0 14px 32px rgba(192,38,211,.42),inset 0 1px 0 rgba(255,255,255,.18);
+    transition:transform .14s,box-shadow .14s;}
+  .ebtn:active{transform:scale(.97);box-shadow:0 7px 18px rgba(192,38,211,.34);}
+  @keyframes eIll{from{opacity:0;transform:scale(.72) translateY(6px);}to{opacity:1;transform:none;}}
+  @keyframes eUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){.wempty2 .ill2,.wempty2 .et,.wempty2 .es,.wempty2 .eb{animation:none;}}
   /* модалка добавления */
   .ovl{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
     display:flex;align-items:flex-end;justify-content:center;animation:fade .2s ease;}
@@ -221,6 +243,43 @@
     padding:14px 16px;margin-top:8px;background:var(--card2);border:1px solid var(--line);font-size:14px;font-weight:600;}
   .frm.sel{border-color:var(--rose);background:rgba(255,94,138,.08);}
   .frm.lk{opacity:.5;}
+
+  /* ===== Квесты (redesign) ===== */
+  .q-head{padding:16px;margin-bottom:12px;}
+  .q-lvl-emo{width:48px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;background:var(--grad);box-shadow:0 6px 18px rgba(255,94,138,.3);}
+  .qbar{height:8px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden;}
+  .qbar>div{height:100%;background:var(--grad);border-radius:999px;transition:width .6s cubic-bezier(.2,.8,.2,1);}
+  .q-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .q-stat{padding:14px;}
+  .qod{position:relative;overflow:hidden;border-radius:26px;padding:20px;margin-bottom:18px;
+    background:linear-gradient(135deg,var(--qc,#ff5e8a),#7a1fa2);box-shadow:0 16px 40px rgba(122,31,162,.35);
+    animation:win .4s ease both;}
+  .qod-illu{position:absolute;right:-4px;top:14px;font-size:110px;filter:drop-shadow(0 8px 20px rgba(0,0,0,.35));opacity:.96;}
+  .qod-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(0,0,0,.28);color:#fff;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;position:relative;}
+  .qod-title{font-size:23px;font-weight:800;line-height:1.15;margin-top:12px;max-width:64%;text-shadow:0 2px 8px rgba(0,0,0,.3);position:relative;}
+  .qod-desc{font-size:13px;color:rgba(255,255,255,.85);margin-top:8px;max-width:62%;line-height:1.4;position:relative;}
+  .qod-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px;position:relative;}
+  .qod .chipx{background:rgba(0,0,0,.24);color:#fff;}
+  .qod-social{font-size:12px;color:rgba(255,255,255,.85);margin-top:14px;position:relative;}
+  .qod-ava{display:inline-flex;width:22px;height:22px;border-radius:999px;background:rgba(255,255,255,.22);align-items:center;justify-content:center;font-size:12px;margin-right:-6px;border:1.5px solid rgba(122,31,162,.7);vertical-align:middle;}
+  .qod-btn{width:100%;margin-top:16px;border-radius:16px;padding:15px;font-weight:800;font-size:15px;color:#c026d3;background:#fff;box-shadow:0 8px 22px rgba(0,0,0,.28);transition:transform .12s;position:relative;}
+  .qod-btn:active{transform:scale(.98);}
+  .q-sec-title{font-size:15px;font-weight:700;margin:2px 0 10px;}
+  .q-cats{display:flex;gap:12px;overflow-x:auto;padding:2px 0 6px;}
+  .q-cat{flex:0 0 auto;width:66px;text-align:center;}
+  .q-cat-ic{width:56px;height:56px;margin:0 auto;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:26px;
+    background:rgba(255,255,255,.05);border:1px solid var(--line);transition:all .2s;}
+  .q-cat-nm{font-size:10px;color:var(--muted);margin-top:6px;}
+  .q-cat.on .q-cat-nm{color:#fff;font-weight:600;}
+  .q-recs{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 8px;}
+  .q-rec{flex:0 0 168px;position:relative;border-radius:20px;padding:10px;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 22px rgba(0,0,0,.25);}
+  .q-rec-illu{height:96px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:46px;}
+  .q-rec-title{font-size:13px;font-weight:700;line-height:1.2;margin-top:9px;min-height:32px;}
+  .q-diff{font-size:11px;font-weight:700;}
+  .q-rec-play{position:absolute;right:12px;bottom:12px;width:38px;height:38px;border-radius:999px;background:var(--grad);color:#fff;font-size:14px;box-shadow:0 6px 16px rgba(255,94,138,.4);display:flex;align-items:center;justify-content:center;}
+  .q-rec-play:active{transform:scale(.92);}
+  .q-burst-wrap{position:fixed;inset:0;z-index:55;pointer-events:none;display:flex;align-items:center;justify-content:center;}
+  .q-burst-badge{background:rgba(0,0,0,.82);color:#fcd34d;font-weight:800;font-size:22px;padding:14px 22px;border-radius:18px;border:1px solid var(--line);animation:wpop .5s ease;}
 </style>
 </head>
 <body>
@@ -355,20 +414,48 @@ function frameCss(){
   return '';
 }
 
-// квесты по уровням (level = с какого уровня пары открыт)
-var DEFAULT_QUESTS=[
-  {id:1,text:'Приготовьте ужин вдвоём без телефонов',pts:30,done:false,level:0},
-  {id:2,text:'Напишите друг другу по 3 комплимента',pts:20,done:false,level:0},
-  {id:3,text:'Вечер без соцсетей — только вы',pts:40,done:false,level:0},
-  {id:4,text:'Сделайте совместное фото в новом месте',pts:25,done:false,level:0},
-  {id:5,text:'Романтический ужин при свечах',pts:50,done:false,level:1},
-  {id:6,text:'Приготовьте новое блюдо вместе',pts:40,done:false,level:1},
-  {id:7,text:'Спланируйте мини-путешествие на выходные',pts:60,done:false,level:1},
-  {id:8,text:'Челлендж доверия: расскажите то, чего ещё не говорили',pts:70,done:false,level:2},
-  {id:9,text:'Поставьте совместную цель на месяц',pts:80,done:false,level:2},
-  {id:10,text:'Свидание вслепую: один придумывает — другой не знает',pts:100,done:false,level:3},
-  {id:11,text:'Легендарный квест: сюрприз-путешествие мечты',pts:150,done:false,level:4}
+// уровни (fallback, если конфиг не пришёл)
+var BUILT_IN_LEVELS=[
+  {key:'rookie',name:'Новички',emoji:'🌱',min:0},{key:'lovers',name:'Влюблённые',emoji:'💞',min:200},
+  {key:'perfect',name:'Идеальная пара',emoji:'💍',min:600},{key:'soulmates',name:'Soulmates',emoji:'🔮',min:1500},
+  {key:'legend',name:'Легендарная пара',emoji:'👑',min:3500}
 ];
+// категории квестов (fallback)
+var BUILT_IN_QCATS=[
+  {key:'romance',name:'Романтика',emoji:'❤️',color:'#ff5e8a'},{key:'date',name:'Свидание',emoji:'🍽',color:'#fb923c'},
+  {key:'home',name:'Дом',emoji:'🏠',color:'#fbbf24'},{key:'games',name:'Игры',emoji:'🎮',color:'#a78bfa'},
+  {key:'walk',name:'Прогулки',emoji:'🚶',color:'#38bdf8'},{key:'travel',name:'Путешествия',emoji:'✈️',color:'#34d399'},
+  {key:'surprise',name:'Сюрпризы',emoji:'🎁',color:'#f472b6'},{key:'movie',name:'Фильмы',emoji:'🎬',color:'#c026d3'}
+];
+// квесты (fallback; в проде приходят из конфига — редактируются в админке)
+var BUILT_IN_QUESTS=[
+  {id:1,title:'Приготовьте ужин вдвоём',desc:'Вечер без телефонов — приготовьте что-то вкусное вместе.',pts:30,cat:'romance',emoji:'🍝',time:'20–40 мин',diff:'easy',level:0,pairs:428,featured:true,enabled:true},
+  {id:2,title:'Напишите по 3 комплимента',desc:'Скажите друг другу три искренних комплимента.',pts:20,cat:'romance',emoji:'💌',time:'5–10 мин',diff:'easy',level:0,pairs:651,featured:true,enabled:true},
+  {id:3,title:'Вечер без соцсетей',desc:'Проведите вечер только вдвоём, без телефонов.',pts:40,cat:'home',emoji:'📵',time:'2–3 часа',diff:'easy',level:0,pairs:312,featured:true,enabled:true},
+  {id:4,title:'Совместное фото в новом месте',desc:'Сходите туда, где ещё не были, и сделайте фото.',pts:25,cat:'walk',emoji:'📸',time:'1–2 часа',diff:'easy',level:0,pairs:540,featured:true,enabled:true},
+  {id:5,title:'Ужин при свечах',desc:'Устройте романтический ужин при свечах дома.',pts:50,cat:'romance',emoji:'🕯️',time:'1–2 часа',diff:'med',level:1,pairs:208,featured:true,enabled:true},
+  {id:6,title:'Приготовьте пиццу вместе',desc:'Замесите тесто и соберите пиццу своей мечты.',pts:40,cat:'date',emoji:'🍕',time:'30–40 мин',diff:'easy',level:1,pairs:389,featured:false,enabled:true},
+  {id:7,title:'Вечер настольных игр',desc:'Достаньте настолки и устройте турнир на двоих.',pts:30,cat:'games',emoji:'🎲',time:'40–60 мин',diff:'med',level:1,pairs:274,featured:false,enabled:true},
+  {id:8,title:'Мини-путешествие на выходные',desc:'Спланируйте и съездите в соседний город.',pts:60,cat:'travel',emoji:'🧳',time:'1–2 дня',diff:'med',level:1,pairs:133,featured:true,enabled:true},
+  {id:9,title:'Фильм без телефонов',desc:'Выберите фильм и посмотрите, не отвлекаясь.',pts:20,cat:'movie',emoji:'🎬',time:'60–90 мин',diff:'easy',level:1,pairs:712,featured:false,enabled:true},
+  {id:10,title:'Челлендж доверия',desc:'Расскажите друг другу то, чего ещё не говорили.',pts:70,cat:'romance',emoji:'🤝',time:'30–40 мин',diff:'hard',level:2,pairs:96,featured:true,enabled:true},
+  {id:11,title:'Совместная цель на месяц',desc:'Поставьте общую цель и распишите шаги.',pts:80,cat:'home',emoji:'🎯',time:'30 мин',diff:'med',level:2,pairs:71,featured:false,enabled:true},
+  {id:12,title:'Свидание-сюрприз вслепую',desc:'Один придумывает свидание — другой не знает куда идёт.',pts:100,cat:'surprise',emoji:'🎁',time:'2–4 часа',diff:'hard',level:3,pairs:38,featured:true,enabled:true}
+];
+function questDefs(){ return ((S.config&&S.config.quests)||BUILT_IN_QUESTS).filter(function(q){return q.enabled!==false;}); }
+function qcatsList(){ return (S.config&&S.config.categories)||BUILT_IN_QCATS; }
+function qcatOf(key){ var l=qcatsList(); for(var i=0;i<l.length;i++) if(l[i].key===key) return l[i]; return {key:key,name:'',emoji:'✨',color:'#ff5e8a'}; }
+function levelsList(){ return (S.config&&S.config.levels)||BUILT_IN_LEVELS; }
+// прогресс для UI: серверный если есть, иначе локальный из S.points
+function effProgress(){
+  if(S.progress&&S.progress.level) return S.progress;
+  var lv=levelsList(), pts=S.points||0, idx=0;
+  for(var i=0;i<lv.length;i++) if(pts>=lv[i].min) idx=i;
+  return { points:pts, streak:0, levelIndex:idx,
+    level:{index:idx,name:lv[idx].name,emoji:lv[idx].emoji,min:lv[idx].min},
+    next: idx<lv.length-1?{name:lv[idx+1].name,emoji:lv[idx+1].emoji,min:lv[idx+1].min}:null };
+}
+var QDIFF={easy:{l:'Легко',c:'#34d399'},med:{l:'Средне',c:'#fb923c'},hard:{l:'Сложно',c:'#f87171'}};
 
 // ============================================================
 //  СОСТОЯНИЕ
@@ -385,7 +472,9 @@ var S = {
     {id:2,by:'me',text:'Пицца и любимый сериал в пятницу',category:'🍕',points:20,status:'taken'},
     {id:3,by:'partner',text:'Сходить на тот новый каток',category:'❤️',points:30,status:'done'}
   ]),
-  quests: lsGet('quests', DEFAULT_QUESTS.slice()),
+  quests: lsGet('quests', []),          // старый формат (для миграции done)
+  qdone: lsGet('qdone', {}),            // { questId: true } — выполненные квесты
+  qcat: 'all',                          // активная категория фильтра
   dates: lsGet('dates',null),   // строим после онбординга
   answers: lsGet('answers',{}), // { 'YYYY-MM-DD': {me,partner} }
   // онбординг (в памяти)
@@ -404,12 +493,11 @@ function todayKey(){ return sod(new Date()).toISOString().slice(0,10); }
   }
 })();
 
-// добавить новые квесты по уровням тем, у кого сохранён старый набор (не теряя прогресс)
-(function mergeQuests(){
-  var have={}; S.quests.forEach(function(q){ have[q.id]=1; if(q.level==null)q.level=0; });
-  var added=false;
-  DEFAULT_QUESTS.forEach(function(q){ if(!have[q.id]){ S.quests.push(Object.assign({},q)); added=true; } });
-  if(added) save('quests');
+// миграция: перенести старые выполненные квесты (done) в карту qdone
+(function migrateQuestDone(){
+  var changed=false;
+  (S.quests||[]).forEach(function(q){ if(q&&q.done&&!S.qdone[q.id]){ S.qdone[q.id]=true; changed=true; } });
+  if(changed) save('qdone');
 })();
 
 // ============================================================
@@ -603,15 +691,18 @@ function wishesScreen(){
 
   var body;
   if(!list.length){
-    var eTitle = filter==='done' ? 'Пока нет выполненных желаний'
-      : filter==='all' ? 'Пока нет активных желаний' : 'Здесь пока пусто';
+    var eTitle = filter==='done' ? '✨ Пока нет выполненных желаний'
+      : filter==='all' ? '❤️ Здесь будут ваши общие мечты' : 'Здесь пока пусто';
     var eSub = filter==='done' ? 'Выполните желание — и оно появится здесь.'
-      : filter==='all' ? 'Добавьте первое желание и начните исполнять мечты вместе.'
+      : filter==='all' ? 'Добавьте первое желание и начните создавать воспоминания вместе.'
       : 'Смени фильтр или добавь новое желание.';
-    body='<div class="wempty"><div class="ill">'+(filter==='done'?'✅':'❤️')+'</div>'+
-      '<div class="b" style="font-size:17px">'+eTitle+'</div>'+
-      '<div class="small muted mt2" style="max-width:280px;margin:8px auto 0;line-height:1.5">'+eSub+'</div>'+
-      (filter==='done'?'':'<button class="add-wish" style="margin-top:20px" data-act="wish-open-add">➕ Добавить '+(filter==='all'?'первое ':'')+'желание</button>')+'</div>';
+    var eIll = filter==='done' ? '✅' : '❤️';
+    var eBtn = filter==='done' ? '' :
+      '<div class="eb"><button class="ebtn" data-act="wish-open-add">➕ Добавить '+(filter==='all'?'первое ':'')+'желание</button></div>';
+    body='<div class="wempty2"><div class="ill2">'+eIll+'</div>'+
+      '<div class="et">'+eTitle+'</div>'+
+      '<div class="es">'+eSub+'</div>'+
+      eBtn+'</div>';
   } else {
     body=list.map(function(w){
       var ct=wcat(w.category), pop=(S.justDone===w.id?' pop':'');
@@ -655,25 +746,102 @@ function wishModal(){
     '</div></div>';
 }
 
+function qUnlocked(q,lvl){ return (q.level||0)<=lvl; }
+function socialAvas(){ return '<span class="qod-ava">🧑</span><span class="qod-ava">👩</span><span class="qod-ava">🧔</span>'; }
+// «Квест дня» — детерминированный выбор из featured/разблокированных, ротация по дню
+function qToday(defs,lvl){
+  var pool=defs.filter(function(q){ return q.featured&&qUnlocked(q,lvl); });
+  if(!pool.length) pool=defs.filter(function(q){ return qUnlocked(q,lvl); });
+  if(!pool.length) pool=defs;
+  if(!pool.length) return null;
+  var day=Math.floor(sod(new Date()).getTime()/DAY);
+  return pool[day%pool.length];
+}
 function questsScreen(){
-  var lvl=curLevelIdx();
-  var lvlName=function(i){ var L=(S.config&&S.config.levels)||[]; return (L[i]&&L[i].name)||('уровня '+(i+1)); };
-  var sorted=S.quests.slice().sort(function(a,b){ return (a.level||0)-(b.level||0); });
-  var items=sorted.map(function(q){
-    var need=q.level||0, locked=need>lvl;
-    if(locked){
-      return '<div class="card p4 row gap3 mb3" style="opacity:.55">'+
-        '<div class="flex1"><div class="small">'+esc(q.text)+'</div>'+
-        '<div class="xs muted2 mt2">🔒 Доступно на уровне «'+esc(lvlName(need))+'»</div></div>'+
-        '<div class="wcheck" style="background:rgba(255,255,255,.05);color:var(--muted)">🔒</div></div>';
-    }
-    return '<div class="card p4 row gap3 mb3"'+(q.done?' style="opacity:.5"':'')+'>'+
-      '<div class="flex1"><div class="small">'+esc(q.text)+'</div>'+
-      '<div class="xs amber mt2">⭐ +'+q.pts+' очков</div></div>'+
-      '<button class="btn '+(q.done?'btn-ghost':'btn-primary')+' btn-sm" '+(q.done?'disabled':'')+
-      ' data-act="quest-done" data-id="'+q.id+'">'+(q.done?'Готово ✓':'Выполнить')+'</button></div>';
+  var prog=effProgress(), lvl=prog.levelIndex||0, defs=questDefs();
+  var unlocked=defs.filter(function(q){ return qUnlocked(q,lvl); });
+  var doneN=unlocked.filter(function(q){ return S.qdone[q.id]; }).length;
+  var totalN=unlocked.length, streak=prog.streak||0, pts=prog.points||0;
+
+  // ---- шапка: уровень, очки, прогресс до следующего ----
+  var pct, ntxt;
+  if(prog.next){ var span=prog.next.min-prog.level.min;
+    pct=Math.max(5,Math.min(100,Math.round(((pts-prog.level.min)/(span||1))*100)));
+    ntxt='до «'+esc(prog.next.name)+'» ещё '+Math.max(0,prog.next.min-pts)+' ⭐'; }
+  else { pct=100; ntxt='максимальный уровень 👑'; }
+  var head='<div class="card q-head"><div class="row gap3" style="align-items:center">'+
+    '<div class="q-lvl-emo">'+prog.level.emoji+'</div>'+
+    '<div class="flex1"><div class="b" style="font-size:16px">'+esc(prog.level.name)+'</div>'+
+      '<div class="xs muted mt1">'+ntxt+'</div></div>'+
+    '<div style="text-align:right"><div class="b amber" style="font-size:19px">⭐ '+pts+'</div>'+
+      '<div class="xs muted">'+(streak>0?('🔥 '+streak+' дн.'):'очков')+'</div></div>'+
+    '</div><div class="qbar mt3"><div style="width:'+pct+'%"></div></div></div>';
+
+  // ---- статистика ----
+  var stats='<div class="q-stats">'+
+    '<div class="card q-stat"><div class="b" style="font-size:22px">'+doneN+' / '+totalN+'</div>'+
+      '<div class="xs muted mt1">квестов выполнено</div></div>'+
+    '<div class="card q-stat"><div class="b" style="font-size:22px">🔥 '+streak+'</div>'+
+      '<div class="xs muted mt1">'+(streak===1?'день подряд':'дней подряд')+'</div></div>'+
+    '</div>';
+
+  // ---- квест дня ----
+  var qd=qToday(defs,lvl), qod='';
+  if(qd){
+    var c=qcatOf(qd.cat), dd=QDIFF[qd.diff]||QDIFF.easy, done=!!S.qdone[qd.id];
+    qod='<div class="qod" style="--qc:'+c.color+'">'+
+      '<div class="qod-illu">'+qd.emoji+'</div>'+
+      '<div class="qod-badge">⭐ КВЕСТ ДНЯ</div>'+
+      '<div class="qod-title">'+esc(qd.title)+'</div>'+
+      '<div class="qod-desc">'+esc(qd.desc)+'</div>'+
+      '<div class="qod-chips">'+
+        '<span class="chipx">⭐ +'+qd.pts+'</span>'+
+        '<span class="chipx">⏱ '+esc(qd.time)+'</span>'+
+        '<span class="chipx" style="color:'+dd.c+'">'+dd.l+'</span>'+
+        '<span class="chipx">'+c.emoji+' '+esc(c.name)+'</span>'+
+      '</div>'+
+      '<div class="qod-social">'+socialAvas()+' &nbsp;'+qd.pairs+' пар уже выполнили</div>'+
+      (done
+        ? '<button class="btn qod-btn" disabled style="opacity:.75">Выполнено ✓</button>'
+        : '<button class="btn qod-btn" data-act="quest-done" data-id="'+qd.id+'">Выполнить квест →</button>')+
+      '</div>';
+  }
+
+  // ---- категории ----
+  var cats=[{key:'all',name:'Все',emoji:'✨',color:'#ff5e8a'}].concat(qcatsList());
+  var catHtml=cats.map(function(cat){
+    var on=S.qcat===cat.key;
+    var icStyle=on?('background:'+hex2rgba(cat.color,.92)+';border-color:transparent;box-shadow:0 8px 20px '+hex2rgba(cat.color,.4)):'';
+    return '<div class="q-cat'+(on?' on':'')+'" data-act="qcat" data-k="'+cat.key+'">'+
+      '<div class="q-cat-ic" style="'+icStyle+'">'+cat.emoji+'</div>'+
+      '<div class="q-cat-nm">'+esc(cat.name)+'</div></div>';
   }).join('');
-  return '<div class="wrap">'+screenTitle('🗺️','Квесты','задания для двоих — за очки')+items+'</div>';
+
+  // ---- рекомендации ----
+  var rec=defs.filter(function(q){ return (S.qcat==='all'||q.cat===S.qcat); });
+  var recHtml=rec.map(function(q){
+    var c=qcatOf(q.cat), dd=QDIFF[q.diff]||QDIFF.easy;
+    var locked=!qUnlocked(q,lvl), done=!!S.qdone[q.id];
+    var play=locked
+      ? '<div class="q-rec-play" style="background:rgba(255,255,255,.12);box-shadow:none">🔒</div>'
+      : (done
+        ? '<div class="q-rec-play" style="background:var(--green);box-shadow:none">✓</div>'
+        : '<button class="q-rec-play" data-act="quest-done" data-id="'+q.id+'">▶</button>');
+    return '<div class="q-rec"'+(locked?' style="opacity:.6"':'')+'>'+
+      '<div class="q-rec-illu" style="background:'+hex2rgba(c.color,.16)+';position:relative">'+q.emoji+
+        '<span style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.4);color:#fcd34d;font-size:10px;font-weight:700;padding:3px 7px;border-radius:999px">⭐+'+q.pts+'</span></div>'+
+      '<div class="q-rec-title">'+esc(q.title)+'</div>'+
+      '<div class="q-diff" style="color:'+dd.c+';margin-top:2px">'+(locked?('🔒 ур. '+((q.level||0)+1)):dd.l)+'</div>'+
+      play+
+      '</div>';
+  }).join('') || '<div class="muted small" style="padding:18px 4px">В этой категории пока нет квестов.</div>';
+
+  return '<div class="wrap">'+
+    screenTitle('🗺️','Квесты','задания для двоих — за очки')+
+    head+stats+qod+
+    '<div class="q-sec-title">Категории</div><div class="q-cats">'+catHtml+'</div>'+
+    '<div class="q-sec-title">Рекомендуем для вас</div><div class="q-recs">'+recHtml+'</div>'+
+    '</div>';
 }
 
 function datesScreen(){
@@ -861,6 +1029,14 @@ function levelupOverlay(){
   '</div></div>';
 }
 
+function questBurst(){
+  var b=S.qburst; if(!b) return '';
+  var cols=['#ff5e8a','#c026d3','#fbbf24','#34d399','#60a5fa'];
+  var conf=''; for(var i=0;i<40;i++){ conf+='<span class="conf" style="left:'+(Math.random()*100).toFixed(1)+'%;background:'+cols[i%5]+';animation-delay:'+(Math.random()*0.4).toFixed(2)+'s"></span>'; }
+  return '<div class="q-burst-wrap"><div class="conf-wrap" style="position:absolute;inset:0">'+conf+'</div>'+
+    '<div class="q-burst-badge">'+(b.emoji||'🎉')+' +'+b.pts+' ⭐</div></div>';
+}
+
 var TABS=[
   ['today','Сегодня','🏠'],['wishes','Желания','⭐'],['quests','Квесты','🗺️'],
   ['dates','Даты','📅'],['us','Мы','💞']
@@ -905,6 +1081,7 @@ function render(){
       '<span><b>'+esc(S.toast.label)+'</b> — '+esc(S.toast.hint)+'</span></div>';
   }
   if(S.wmodal){ html+=wishModal(); }
+  if(S.qburst){ html+=questBurst(); }
   if(S.levelup){ html+=levelupOverlay(); }
   root.innerHTML=html;
   var wt=document.getElementById('wtitle'); if(wt && S.wmodal && !S.wmodal._f){ wt.focus(); S.wmodal._f=true; }
@@ -985,7 +1162,8 @@ var ACTS={
   'wish-save':function(){ var t=(val('#wtitle')||'').trim(); if(!t){ var el=document.getElementById('wtitle'); if(el)el.focus(); return; } var m=S.wmodal||{}; S.wishes.unshift({id:Date.now(),by:(ONLINE?'me':S.who),text:t,category:m.cat||'❤️',points:m.points||20,status:'new'}); save('wishes'); S.wmodal=null; haptic('success'); render(); },
   'wish-take':function(el){ var id=+el.dataset.id; S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},normWish(w),{status:'taken'}):w;}); save('wishes'); haptic('light'); render(); },
   'wish-done':function(el){ var id=+el.dataset.id; var pts=0; S.wishes=S.wishes.map(function(w){ if(w.id===id){ var n=normWish(w); pts=n.points; return Object.assign({},n,{status:'done'}); } return w; }); S.points+=pts; save('wishes'); save('points'); track('wish'); track('points',pts); S.justDone=id; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.justDone=null; render(); },900); },
-  'quest-done':function(el){ var id=+el.dataset.id; var changed=false; S.quests=S.quests.map(function(q){ if(q.id===id&&!q.done){changed=true;S.points+=q.pts; track('quest'); track('points',q.pts); return Object.assign({},q,{done:true});} return q;}); if(changed){save('quests');save('points');haptic('success');afterEarn();} render(); },
+  'qcat':function(el){ S.qcat=el.dataset.k; haptic('light'); render(); },
+  'quest-done':function(el){ var id=+el.dataset.id; if(S.qdone[id])return; var defs=questDefs(),q=null; for(var i=0;i<defs.length;i++) if(defs[i].id===id) q=defs[i]; if(!q)return; S.qdone[id]=true; save('qdone'); S.points+=q.pts; save('points'); track('quest'); track('points',q.pts); S.qburst={pts:q.pts,emoji:q.emoji}; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.qburst=null; render(); },1500); },
   'wheel':function(el){ var w=WHEEL[+el.dataset.i]; S.toast=w; haptic('light'); render(); setTimeout(function(){S.toast=null;render();},2200); },
   'home-add':function(){ try{TG.addToHomeScreen();haptic('light');}catch(e){} },
   'reset':function(){ S.couple=null; S.tab='today'; S.who='me'; S.ob={step:'welcome',mode:null,name:(TG_USER?(TG_USER.first_name||'Ты'):''),myCode:makeCode(),code:'',waiting:false}; save('couple'); save('tab'); save('who'); haptic('warning'); render(); }
