@@ -65,6 +65,27 @@ function verifyInitData(initData, botToken) {
   } catch (e) { return null; }
 }
 
+// проверка подписи Telegram Login Widget (вход в браузерную админку).
+// Отличие от initData: секрет = SHA256(bot_token), а не HMAC('WebAppData').
+function verifyLoginWidget(auth, botToken) {
+  try {
+    if (!auth || !auth.hash || !botToken) return null;
+    const hash = auth.hash;
+    const rest = {};
+    Object.keys(auth).forEach((k) => { if (k !== 'hash' && auth[k] != null) rest[k] = auth[k]; });
+    const dcs = Object.keys(rest).sort().map((k) => k + '=' + rest[k]).join('\n');
+    const secret = crypto.createHash('sha256').update(botToken).digest();
+    const calc = crypto.createHmac('sha256', secret).update(dcs).digest('hex');
+    if (calc !== hash) return null;
+    if (auth.auth_date && (Date.now() / 1000 - Number(auth.auth_date)) > 86400) return null;
+    return {
+      id: Number(auth.id),
+      name: (auth.first_name || '') + (auth.last_name ? ' ' + auth.last_name : ''),
+      photo_url: auth.photo_url || null
+    };
+  } catch (e) { return null; }
+}
+
 function makeCode() {
   const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let s = '';
@@ -99,12 +120,15 @@ module.exports = async (req, res) => {
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
     body = body || {};
 
-    const me = verifyInitData(body.initData, BOT);
+    let me = verifyInitData(body.initData, BOT);
+    if (!me && body.auth) me = verifyLoginWidget(body.auth, BOT); // вход в браузерную админку
     if (!me) { res.status(401).json({ ok: false, reason: 'bad_auth' }); return; }
 
     if (rateLimited(me.id)) { res.status(429).json({ ok: false, reason: 'rate_limited' }); return; }
 
-    const ADMINS = env('ADMIN_TG_IDS').split(',').map((s) => s.trim()).filter(Boolean);
+    // Админы: список из ADMIN_TG_IDS + владелец по умолчанию (чтобы не настраивать env).
+    const DEFAULT_ADMINS = ['6029995640'];
+    const ADMINS = env('ADMIN_TG_IDS').split(',').map((s) => s.trim()).filter(Boolean).concat(DEFAULT_ADMINS);
     const isAdmin = ADMINS.indexOf(String(me.id)) !== -1;
 
     // ---- helpers к Supabase REST ----
@@ -174,6 +198,42 @@ module.exports = async (req, res) => {
       const answersToday = await sbCount('para_answers?day=eq.' + day + '&select=tg_id');
       const answersTotal = await sbCount('para_answers?select=tg_id');
       res.status(200).json({ ok: true, stats: { couples: couples, members: members, linked: Math.max(0, members - couples), answersToday: answersToday, answersTotal: answersTotal } });
+      return;
+    }
+
+    // -------- ADMIN DASHBOARD (только для админов) --------
+    if (action === 'admin_dash') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const today = todayUTC();
+      // пары с участниками (PostgREST embed по внешнему ключу)
+      const couples = await sb('para_couples?select=id,invite_code,created_at,para_members(name,slot)&order=created_at.desc');
+      const answers = await sb('para_answers?select=day');
+      const cs = Array.isArray(couples) ? couples : [];
+      const as = Array.isArray(answers) ? answers : [];
+      const memCount = (c) => (c.para_members ? c.para_members.length : 0);
+      const totals = {
+        couples: cs.length,
+        members: cs.reduce((s, c) => s + memCount(c), 0),
+        linked: cs.filter((c) => memCount(c) >= 2).length,
+        answersTotal: as.length,
+        answersToday: as.filter((a) => a.day === today).length
+      };
+      // рост за 14 дней
+      const cByDay = {}, aByDay = {};
+      cs.forEach((c) => { const d = String(c.created_at || '').slice(0, 10); if (d) cByDay[d] = (cByDay[d] || 0) + 1; });
+      as.forEach((a) => { if (a.day) aByDay[a.day] = (aByDay[a.day] || 0) + 1; });
+      const growth = [];
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+        growth.push({ date: d, couples: cByDay[d] || 0, answers: aByDay[d] || 0 });
+      }
+      const list = cs.slice(0, 60).map((c) => ({
+        code: c.invite_code,
+        created: String(c.created_at || '').slice(0, 10),
+        members: (c.para_members || []).map((m) => m.name || '—'),
+        linked: memCount(c) >= 2
+      }));
+      res.status(200).json({ ok: true, admin: { name: me.name }, totals: totals, growth: growth, couples: list });
       return;
     }
 
