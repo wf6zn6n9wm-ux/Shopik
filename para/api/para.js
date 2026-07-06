@@ -147,8 +147,13 @@ module.exports = async (req, res) => {
       return j;
     }
     async function myMembership() {
-      const rows = await sb('para_members?tg_id=eq.' + me.id + '&select=couple_id,tg_id,name,photo_url,slot');
+      const rows = await sb('para_members?tg_id=eq.' + me.id + '&select=couple_id,tg_id,name,photo_url,slot,last_active');
       return (rows && rows[0]) || null;
+    }
+    async function logEvent(type, coupleId, amount) {
+      try {
+        await sb('para_events', { method: 'POST', body: JSON.stringify({ tg_id: me.id, couple_id: coupleId || null, type: type, amount: amount || 0 }) });
+      } catch (e) { /* аналитика не должна ломать основной поток */ }
     }
     async function coupleMembers(coupleId) {
       return await sb('para_members?couple_id=eq.' + coupleId + '&select=tg_id,name,photo_url,slot&order=slot');
@@ -204,36 +209,67 @@ module.exports = async (req, res) => {
     // -------- ADMIN DASHBOARD (только для админов) --------
     if (action === 'admin_dash') {
       if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const DAY = 86400000;
       const today = todayUTC();
-      // пары с участниками (PostgREST embed по внешнему ключу)
+      const ago = (n) => new Date(Date.now() - n * DAY).toISOString().slice(0, 10);
+      const since30 = new Date(Date.now() - 29 * DAY).toISOString();
+
       const couples = await sb('para_couples?select=id,invite_code,created_at,para_members(name,slot)&order=created_at.desc');
+      const membersRows = await sb('para_members?select=tg_id,joined_at');
       const answers = await sb('para_answers?select=day');
+      const events = await sb('para_events?created_at=gte.' + encodeURIComponent(since30) + '&select=type,tg_id,amount,created_at');
       const cs = Array.isArray(couples) ? couples : [];
+      const ms = Array.isArray(membersRows) ? membersRows : [];
       const as = Array.isArray(answers) ? answers : [];
+      const ev = Array.isArray(events) ? events : [];
       const memCount = (c) => (c.para_members ? c.para_members.length : 0);
+      const d10 = (s) => String(s || '').slice(0, 10);
+
+      const evToday = ev.filter((e) => d10(e.created_at) === today);
       const totals = {
+        users: ms.length,
         couples: cs.length,
-        members: cs.reduce((s, c) => s + memCount(c), 0),
-        linked: cs.filter((c) => memCount(c) >= 2).length,
+        active: cs.filter((c) => memCount(c) >= 2).length,
+        waiting: cs.filter((c) => memCount(c) === 1).length,
+        newToday: ms.filter((m) => d10(m.joined_at) === today).length,
+        new7d: ms.filter((m) => d10(m.joined_at) >= ago(6)).length,
+        questsToday: evToday.filter((e) => e.type === 'quest').length,
+        pointsToday: evToday.filter((e) => e.type === 'points').reduce((s, e) => s + (e.amount || 0), 0),
+        answersToday: as.filter((a) => a.day === today).length,
         answersTotal: as.length,
-        answersToday: as.filter((a) => a.day === today).length
+        dau: new Set(evToday.map((e) => e.tg_id)).size
       };
-      // рост за 14 дней
-      const cByDay = {}, aByDay = {};
-      cs.forEach((c) => { const d = String(c.created_at || '').slice(0, 10); if (d) cByDay[d] = (cByDay[d] || 0) + 1; });
-      as.forEach((a) => { if (a.day) aByDay[a.day] = (aByDay[a.day] || 0) + 1; });
-      const growth = [];
-      for (let i = 13; i >= 0; i--) {
-        const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
-        growth.push({ date: d, couples: cByDay[d] || 0, answers: aByDay[d] || 0 });
-      }
-      const list = cs.slice(0, 60).map((c) => ({
+
+      // серии за 30 дней
+      const days = []; for (let i = 29; i >= 0; i--) days.push(ago(i));
+      const bucket = (fn) => { const m = {}; days.forEach((d) => m[d] = 0); fn(m); return days.map((d) => ({ date: d, v: m[d] || 0 })); };
+      const activeSets = {}; days.forEach((d) => activeSets[d] = new Set());
+      ev.forEach((e) => { const d = d10(e.created_at); if (activeSets[d]) activeSets[d].add(e.tg_id); });
+      const series = {
+        users: bucket((m) => ms.forEach((r) => { const d = d10(r.joined_at); if (d in m) m[d]++; })),
+        couples: bucket((m) => cs.forEach((c) => { const d = d10(c.created_at); if (d in m) m[d]++; })),
+        answers: bucket((m) => as.forEach((a) => { if (a.day in m) m[a.day]++; })),
+        quests: bucket((m) => ev.forEach((e) => { if (e.type === 'quest') { const d = d10(e.created_at); if (d in m) m[d]++; } })),
+        activity: days.map((d) => ({ date: d, v: activeSets[d].size }))
+      };
+
+      const list = cs.slice(0, 80).map((c) => ({
         code: c.invite_code,
-        created: String(c.created_at || '').slice(0, 10),
+        created: d10(c.created_at),
         members: (c.para_members || []).map((m) => m.name || '—'),
         linked: memCount(c) >= 2
       }));
-      res.status(200).json({ ok: true, admin: { name: me.name }, totals: totals, growth: growth, couples: list });
+      res.status(200).json({ ok: true, admin: { name: me.name }, totals: totals, series: series, couples: list });
+      return;
+    }
+
+    // -------- TRACK (клиентские события для аналитики) --------
+    if (action === 'track') {
+      const type = String(body.type || '');
+      if (['quest', 'points'].indexOf(type) === -1) { res.status(200).json({ ok: false, reason: 'bad_type' }); return; }
+      const mem = await myMembership();
+      await logEvent(type, mem && mem.couple_id, Number(body.amount) || 0);
+      res.status(200).json({ ok: true });
       return;
     }
 
@@ -241,6 +277,12 @@ module.exports = async (req, res) => {
     if (action === 'state') {
       const mem = await myMembership();
       if (!mem) { res.status(200).json({ ok: true, couple: null }); return; }
+      // отметка активности (для DAU и графика активности) — раз в день на пользователя
+      const dNow = todayUTC();
+      if (!mem.last_active || String(mem.last_active).slice(0, 10) !== dNow) {
+        try { await sb('para_members?tg_id=eq.' + me.id, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify({ last_active: new Date().toISOString() }) }); } catch (e) {}
+        await logEvent('active', mem.couple_id, 0);
+      }
       const members = await coupleMembers(mem.couple_id);
       const cRows = await sb('para_couples?id=eq.' + mem.couple_id + '&select=invite_code');
       const code = (cRows && cRows[0] && cRows[0].invite_code) || null;

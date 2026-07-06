@@ -95,31 +95,47 @@ async function load(payload){
   showMsg('Ошибка: ' + ((r && r.reason) || 'unknown'));
 }
 
-// простой столбчатый график (14 дней): пары и ответы
-function chartSVG(growth){
-  var W=920, H=180, pad=24, n=growth.length;
-  var maxV = Math.max(1, growth.reduce(function(m,g){return Math.max(m,g.couples,g.answers);},0));
-  var bw = (W - pad*2) / n;
-  var bars='', labels='';
-  growth.forEach(function(g,i){
-    var x = pad + i*bw;
-    var ch = (H-pad*2) * (g.couples/maxV);
-    var ah = (H-pad*2) * (g.answers/maxV);
-    var gw = bw*0.32;
-    bars += '<rect x="'+(x+bw*0.14)+'" y="'+(H-pad-ah)+'" width="'+gw+'" height="'+ah+'" rx="2" fill="#ff5e8a"/>';
-    bars += '<rect x="'+(x+bw*0.14+gw+2)+'" y="'+(H-pad-ch)+'" width="'+gw+'" height="'+ch+'" rx="2" fill="#c026d3"/>';
-    if(i%2===0){ labels += '<text x="'+(x+bw/2)+'" y="'+(H-6)+'" fill="rgba(255,255,255,.4)" font-size="9" text-anchor="middle">'+g.date.slice(5)+'</text>'; }
-  });
-  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+bars+labels+'</svg>';
+// графики (30 дней)
+function cumulative(series){ var t=0; return (series||[]).map(function(p){ t+=p.v; return {date:p.date,v:t}; }); }
+function lineChart(series, color){
+  series=series||[]; var W=920,H=140,pad=10,n=series.length;
+  if(!n) return '<svg class="chart" viewBox="0 0 '+W+' '+H+'"></svg>';
+  var max=Math.max(1,series.reduce(function(m,p){return Math.max(m,p.v);},0));
+  var pts=series.map(function(p,i){ var x=pad+(W-2*pad)*(i/((n-1)||1)); var y=H-pad-(H-2*pad)*(p.v/max); return [x,y]; });
+  var line=pts.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
+  var area=line+' L'+pts[n-1][0].toFixed(1)+' '+(H-pad)+' L'+pts[0][0].toFixed(1)+' '+(H-pad)+' Z';
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'
+    +'<path d="'+area+'" fill="'+color+'" opacity="0.13"/>'
+    +'<path d="'+line+'" fill="none" stroke="'+color+'" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>';
+}
+function barChart(series, color){
+  series=series||[]; var W=920,H=140,pad=10,n=series.length||1;
+  var max=Math.max(1,series.reduce(function(m,p){return Math.max(m,p.v);},0));
+  var bw=(W-2*pad)/n, bars='';
+  series.forEach(function(p,i){ var h=(H-2*pad)*(p.v/max); bars+='<rect x="'+(pad+i*bw+bw*0.15).toFixed(1)+'" y="'+(H-pad-h).toFixed(1)+'" width="'+(bw*0.7).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1.5" fill="'+color+'"/>'; });
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+bars+'</svg>';
 }
 
 function render(d){
-  var t = d.totals, list = d.couples || [];
+  var t = d.totals || {}, s = d.series || {}, list = d.couples || [];
   var kpis = ''
-    + kpi('Пар всего', t.couples, 'rose')
-    + kpi('Связанных пар', t.linked, 'green')
-    + kpi('Ответов сегодня', t.answersToday, 'amber')
-    + kpi('Ответов всего', t.answersTotal, '');
+    + kpi('👥 Пользователей', t.users, 'rose')
+    + kpi('💕 Пар', t.couples, '')
+    + kpi('🔗 Активных пар', t.active, 'green')
+    + kpi('⏳ Ожидают', t.waiting, '')
+    + kpi('📈 Новых сегодня', t.newToday, 'amber')
+    + kpi('📅 Новых за 7д', t.new7d, '')
+    + kpi('🎯 Квестов сегодня', t.questsToday, 'green')
+    + kpi('⭐ Очков сегодня', t.pointsToday, 'amber')
+    + kpi('💬 Ответов сегодня', t.answersToday, '')
+    + kpi('🔥 DAU', t.dau, 'rose');
+  var chart = function(title, svg){ return '<div class="card"><div class="sec-title">'+title+'</div>'+svg+'<div class="small muted" style="margin-top:6px">за 30 дней</div></div>'; };
+  var charts = ''
+    + chart('👥 Рост пользователей', lineChart(cumulative(s.users),'#ff5e8a'))
+    + chart('💕 Рост пар', lineChart(cumulative(s.couples),'#c026d3'))
+    + chart('💬 Ответы по дням', barChart(s.answers,'#fbbf24'))
+    + chart('🎯 Квесты по дням', barChart(s.quests,'#34d399'))
+    + chart('🔥 Активность (DAU)', barChart(s.activity,'#60a5fa'));
   var rows = list.map(function(c){
     return '<tr><td class="mono">'+esc(c.code)+'</td>'
       + '<td>'+esc(c.members.join(' & ')||'—')+'</td>'
@@ -132,11 +148,7 @@ function render(d){
     + '<div class="top"><div class="brand"><div class="logo">💞</div><div><b>PARA · Админка</b><div class="sub">панель управления</div></div></div>'
     + '<div class="who">'+esc((d.admin&&d.admin.name)||'Админ')+' <button class="btn" onclick="location.reload()">Обновить</button></div></div>'
     + '<div class="kpis">'+kpis+'</div>'
-    + '<div class="card">'
-    + '<div class="sec-title">📈 Рост за 14 дней</div>'
-    + chartSVG(d.growth||[])
-    + '<div class="legend"><span><span class="dot" style="background:#ff5e8a"></span>Новые ответы</span><span><span class="dot" style="background:#c026d3"></span>Новые пары</span></div>'
-    + '</div>'
+    + '<div style="display:grid;gap:12px;margin-top:4px">'+charts+'</div>'
     + '<div class="sec-title">💞 Пары ('+list.length+')</div>'
     + '<div class="card" style="padding:6px 10px"><div class="tablewrap"><table>'
     + '<thead><tr><th>Код</th><th>Участники</th><th>Статус</th><th>Создана</th></tr></thead>'
@@ -144,7 +156,7 @@ function render(d){
     + '</div>';
 }
 function kpi(lbl,val,cls){
-  return '<div class="card kpi"><div class="lbl">'+lbl+'</div><div class="val '+(cls||'')+'">'+val+'</div></div>';
+  return '<div class="card kpi"><div class="lbl">'+lbl+'</div><div class="val '+(cls||'')+'">'+(val==null?0:val)+'</div></div>';
 }
 
 // старт: внутри Telegram — по initData; в браузере — Login Widget
