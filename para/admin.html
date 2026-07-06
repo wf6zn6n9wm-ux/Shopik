@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>PARA — Админка</title>
+<meta name="theme-color" content="#12101a" />
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --bg:#12101a; --card:rgba(255,255,255,.05); --line:rgba(255,255,255,.10);
+    --muted:rgba(255,255,255,.45); --muted2:rgba(255,255,255,.28);
+    --rose:#ff5e8a; --fuchsia:#c026d3; --amber:#fbbf24; --green:#34d399;
+    --grad:linear-gradient(135deg,#ff5e8a,#c026d3);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+  html,body{background:var(--bg);color:#fff;min-height:100%;}
+  ::-webkit-scrollbar{display:none;}
+  .wrap{max-width:920px;margin:0 auto;padding:20px 16px 60px;}
+  .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:12px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .logo{width:38px;height:38px;border-radius:11px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .brand b{font-size:18px;} .brand .sub{font-size:11px;color:var(--muted);}
+  .who{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;}
+  .btn{border:1px solid var(--line);background:var(--card);color:#fff;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;}
+  .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px;}
+  @media(min-width:640px){.kpis{grid-template-columns:repeat(4,1fr);}}
+  .kpi .lbl{font-size:12px;color:var(--muted);}
+  .kpi .val{font-size:30px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums;}
+  .kpi .val.rose{color:var(--rose);} .kpi .val.green{color:var(--green);} .kpi .val.amber{color:var(--amber);}
+  .sec-title{font-size:14px;font-weight:700;margin:22px 0 10px;display:flex;align-items:center;gap:8px;}
+  .chart{width:100%;height:180px;}
+  .legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:8px;}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;}
+  td.mono{font-family:ui-monospace,Menlo,monospace;letter-spacing:.08em;color:#ffa7c0;font-weight:700;}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;}
+  .tag.on{background:rgba(52,211,153,.15);color:var(--green);}
+  .tag.off{background:rgba(255,255,255,.06);color:var(--muted);}
+  .center{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;padding:24px;}
+  .muted{color:var(--muted);} .small{font-size:13px;}
+  .tablewrap{overflow-x:auto;}
+</style>
+</head>
+<body>
+<div id="root"><div class="center"><div class="muted">Загрузка…</div></div></div>
+
+<script>
+(function(){
+'use strict';
+var TG = (window.Telegram && window.Telegram.WebApp) || null;
+if (TG) { try { TG.ready(); TG.expand(); } catch(e){} }
+var TG_INIT = (TG && TG.initData) || '';
+var TG_BOT = 'para_couple_bot';
+var root = document.getElementById('root');
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+async function api(payload){
+  var r = await fetch('/api/para',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(Object.assign({action:'admin_dash'},payload))});
+  return r.json().catch(function(){return {ok:false,reason:'parse'};});
+}
+
+// вход через Telegram Login Widget (браузер)
+window.onTelegramAuth = function(user){ load({auth:user}); };
+
+function showLogin(msg){
+  root.innerHTML = '<div class="center">'
+    + '<div class="logo" style="width:64px;height:64px;border-radius:20px;font-size:32px">💞</div>'
+    + '<div><b style="font-size:22px">PARA · Админка</b><div class="muted small" style="margin-top:6px">Войдите через Telegram, чтобы открыть панель</div></div>'
+    + (msg?'<div class="small" style="color:#fca5a5">'+esc(msg)+'</div>':'')
+    + '<div id="tglogin"></div></div>';
+  var s = document.createElement('script');
+  s.async = true; s.src = 'https://telegram.org/js/telegram-widget.js?22';
+  s.setAttribute('data-telegram-login', TG_BOT);
+  s.setAttribute('data-size','large');
+  s.setAttribute('data-radius','12');
+  s.setAttribute('data-onauth','onTelegramAuth(user)');
+  document.getElementById('tglogin').appendChild(s);
+}
+function showMsg(msg){ root.innerHTML = '<div class="center"><div class="muted">'+esc(msg)+'</div></div>'; }
+
+async function load(payload){
+  root.innerHTML = '<div class="center"><div class="muted">Загрузка данных…</div></div>';
+  var r;
+  try { r = await api(payload); } catch(e){ showMsg('Сеть недоступна'); return; }
+  if (r && r.ok) { render(r); return; }
+  if (r && r.reason === 'forbidden') { showMsg('Нет доступа к админке. Ваш Telegram ID: ' + r.yourId); return; }
+  if (r && r.reason === 'bad_auth') { showLogin('Не удалось подтвердить вход. Попробуйте снова.'); return; }
+  if (r && r.reason === 'not_configured') { showMsg('Бэкенд не настроен (нет ключей).'); return; }
+  showMsg('Ошибка: ' + ((r && r.reason) || 'unknown'));
+}
+
+// простой столбчатый график (14 дней): пары и ответы
+function chartSVG(growth){
+  var W=920, H=180, pad=24, n=growth.length;
+  var maxV = Math.max(1, growth.reduce(function(m,g){return Math.max(m,g.couples,g.answers);},0));
+  var bw = (W - pad*2) / n;
+  var bars='', labels='';
+  growth.forEach(function(g,i){
+    var x = pad + i*bw;
+    var ch = (H-pad*2) * (g.couples/maxV);
+    var ah = (H-pad*2) * (g.answers/maxV);
+    var gw = bw*0.32;
+    bars += '<rect x="'+(x+bw*0.14)+'" y="'+(H-pad-ah)+'" width="'+gw+'" height="'+ah+'" rx="2" fill="#ff5e8a"/>';
+    bars += '<rect x="'+(x+bw*0.14+gw+2)+'" y="'+(H-pad-ch)+'" width="'+gw+'" height="'+ch+'" rx="2" fill="#c026d3"/>';
+    if(i%2===0){ labels += '<text x="'+(x+bw/2)+'" y="'+(H-6)+'" fill="rgba(255,255,255,.4)" font-size="9" text-anchor="middle">'+g.date.slice(5)+'</text>'; }
+  });
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+bars+labels+'</svg>';
+}
+
+function render(d){
+  var t = d.totals, list = d.couples || [];
+  var kpis = ''
+    + kpi('Пар всего', t.couples, 'rose')
+    + kpi('Связанных пар', t.linked, 'green')
+    + kpi('Ответов сегодня', t.answersToday, 'amber')
+    + kpi('Ответов всего', t.answersTotal, '');
+  var rows = list.map(function(c){
+    return '<tr><td class="mono">'+esc(c.code)+'</td>'
+      + '<td>'+esc(c.members.join(' & ')||'—')+'</td>'
+      + '<td><span class="tag '+(c.linked?'on':'off')+'">'+(c.linked?'в паре':'ждёт')+'</span></td>'
+      + '<td class="muted">'+esc(c.created||'—')+'</td></tr>';
+  }).join('') || '<tr><td colspan="4" class="muted" style="text-align:center;padding:24px">Пока нет пар</td></tr>';
+
+  root.innerHTML =
+    '<div class="wrap">'
+    + '<div class="top"><div class="brand"><div class="logo">💞</div><div><b>PARA · Админка</b><div class="sub">панель управления</div></div></div>'
+    + '<div class="who">'+esc((d.admin&&d.admin.name)||'Админ')+' <button class="btn" onclick="location.reload()">Обновить</button></div></div>'
+    + '<div class="kpis">'+kpis+'</div>'
+    + '<div class="card">'
+    + '<div class="sec-title">📈 Рост за 14 дней</div>'
+    + chartSVG(d.growth||[])
+    + '<div class="legend"><span><span class="dot" style="background:#ff5e8a"></span>Новые ответы</span><span><span class="dot" style="background:#c026d3"></span>Новые пары</span></div>'
+    + '</div>'
+    + '<div class="sec-title">💞 Пары ('+list.length+')</div>'
+    + '<div class="card" style="padding:6px 10px"><div class="tablewrap"><table>'
+    + '<thead><tr><th>Код</th><th>Участники</th><th>Статус</th><th>Создана</th></tr></thead>'
+    + '<tbody>'+rows+'</tbody></table></div></div>'
+    + '</div>';
+}
+function kpi(lbl,val,cls){
+  return '<div class="card kpi"><div class="lbl">'+lbl+'</div><div class="val '+(cls||'')+'">'+val+'</div></div>';
+}
+
+// старт: внутри Telegram — по initData; в браузере — Login Widget
+if (TG_INIT) load({initData:TG_INIT});
+else showLogin();
+})();
+</script>
+</body>
+</html>
