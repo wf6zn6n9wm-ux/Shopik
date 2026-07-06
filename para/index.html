@@ -115,25 +115,27 @@
     background:radial-gradient(circle at 50% 34%,rgba(255,94,138,.26),rgba(192,38,211,.08));
     box-shadow:inset 0 0 52px rgba(255,94,138,.16),0 16px 42px rgba(192,38,211,.22);animation:eIll .5s cubic-bezier(.2,.8,.2,1) both;}
   /* Экран «Даты» */
-  .dt-hero{position:relative;overflow:hidden;border-radius:26px;padding:22px 20px;margin-bottom:18px;
-    box-shadow:0 18px 46px rgba(0,0,0,.30);animation:win .4s ease both;}
-  .dt-hero-illu{position:absolute;right:-6px;top:50%;transform:translateY(-50%);font-size:118px;
-    filter:drop-shadow(0 8px 22px rgba(0,0,0,.35));opacity:.96;pointer-events:none;}
-  .dt-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;letter-spacing:.12em;
-    color:#fff;background:rgba(0,0,0,.28);padding:6px 12px;border-radius:999px;position:relative;}
-  .dt-h-title{font-size:23px;font-weight:800;line-height:1.16;margin-top:13px;max-width:64%;
-    position:relative;text-shadow:0 2px 8px rgba(0,0,0,.3);}
-  .dt-h-when{font-size:16px;font-weight:700;color:rgba(255,255,255,.92);margin-top:8px;position:relative;}
-  .dt-h-when b{font-size:20px;color:#fff;font-weight:800;}
-  .dt-h-tip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:rgba(255,255,255,.92);
-    background:rgba(0,0,0,.22);border-radius:999px;padding:7px 13px;margin-top:14px;position:relative;max-width:70%;line-height:1.3;}
-  .dt-recs{display:flex;flex-direction:column;gap:7px;margin-top:14px;position:relative;max-width:76%;}
-  .dt-rec{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:#fff;
-    background:rgba(0,0,0,.22);border-radius:12px;padding:9px 12px;}
-  .dt-cta{margin-top:16px;display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14px;
-    color:#c026d3;background:#fff;border-radius:14px;padding:12px 18px;position:relative;
-    box-shadow:0 8px 20px rgba(0,0,0,.25);transition:transform .12s;}
-  .dt-cta:active{transform:scale(.96);}
+  .dt-hero{position:relative;overflow:hidden;border-radius:24px;padding:22px 20px;margin-bottom:16px;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid var(--line);box-shadow:0 14px 34px rgba(0,0,0,.30);animation:win .4s ease both;}
+  .dt-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(135% 100% at 112% -12%,rgba(192,38,211,.22),transparent 50%),
+              radial-gradient(90% 90% at -12% 118%,rgba(255,94,138,.10),transparent 52%);}
+  .dt-hero>*{position:relative;}
+  .dt-hero-emoji{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:56px;
+    filter:drop-shadow(0 6px 22px rgba(255,94,138,.5));pointer-events:none;}
+  .dt-hero-tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+    padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.06);margin-bottom:12px;}
+  .dt-hero-title{font-size:20px;font-weight:800;line-height:1.2;max-width:68%;}
+  .dt-hero-days{font-size:14px;color:var(--muted);margin-top:9px;}
+  .dt-hero-days b{font-weight:800;font-size:16px;}
+  .dt-hero-tip{font-size:12.5px;color:var(--muted);margin-top:8px;max-width:74%;line-height:1.35;}
+  .dt-recs{margin-top:9px;display:flex;flex-direction:column;gap:5px;max-width:74%;}
+  .dt-rec{font-size:12.5px;color:var(--muted);}
+  .dt-hero-btn{margin-top:16px;display:inline-flex;align-items:center;gap:7px;background:var(--grad);color:#fff;
+    font-weight:700;font-size:13.5px;border-radius:16px;padding:11px 17px;
+    box-shadow:0 8px 20px rgba(192,38,211,.30);transition:transform .12s;}
+  .dt-hero-btn:active{transform:scale(.96);}
   .dt-row{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;border-radius:20px;
     padding:18px 16px;margin-bottom:10px;border:1px solid var(--line);
     background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));}
@@ -1084,33 +1086,30 @@ function questsScreen(){
 
 // цветовой приоритет: <30 дней — розовый, 30–90 — золотой, дальше — обычный
 function dateAccent(days){ if(days<30) return '#ff5e8a'; if(days<=90) return '#fbbf24'; return ''; }
-function dtHeroGrad(days){
-  if(days<7)  return 'linear-gradient(135deg,#fb2e63,#c026d3)';
-  if(days<30) return 'linear-gradient(135deg,#c62d6e,#7a2a9a)';
-  return 'linear-gradient(135deg,#6a3358,#3f2a72)';
-}
 function dateHero(x){
   var d=x.t, days=x.days, isB=(d.icon==='🎂'), emo=isB?'🎂':(d.icon==='💍'?'💞':(d.icon||'📅'));
-  var badge=days===0?'🎉 СЕГОДНЯ':(days<7?'🔥 СОВСЕМ СКОРО':'✨ СКОРО');
-  var when=days===0?'Сегодня! 🥳':('через <b>'+days+'</b> '+daysWord(days));
+  var ac=dateAccent(days)||'#ff5e8a';
+  var tag=days===0?'Сегодня':(days<7?'Совсем скоро':'Скоро');
+  var when=days===0?'сегодня 🥳':('через <b style="color:'+ac+'">'+days+'</b> '+daysWord(days));
   var body;
   if(days>0 && days<7){
     body='<div class="dt-recs">'+
       '<div class="dt-rec">🎁 Купить подарок</div>'+
       '<div class="dt-rec">💐 Заказать цветы</div>'+
-      '<div class="dt-rec">✍️ Написать тёплое поздравление</div></div>';
+      '<div class="dt-rec">✍️ Написать поздравление</div></div>';
   } else {
-    var tip=isB?giftTip(days):(days<7?'💐 Спланируйте особенный день':'✨ Придумайте, как отметить');
-    body='<div class="dt-h-tip">'+tip+'</div>';
+    var tip=isB?giftTip(days):'✨ Придумайте, как отметить';
+    body='<div class="dt-hero-tip">'+tip+'</div>';
   }
-  var cta=isB?'<button class="dt-cta" data-act="ev-gifts">🎁 Идеи подарков</button>'
-             :'<button class="dt-cta" data-act="ev-quests">💡 Идея свидания</button>';
-  return '<div class="dt-hero" style="background:'+dtHeroGrad(days)+'">'+
-    '<div class="dt-hero-illu">'+emo+'</div>'+
-    '<div class="dt-badge">'+badge+'</div>'+
-    '<div class="dt-h-title">'+esc(d.title)+'</div>'+
-    '<div class="dt-h-when">'+when+'</div>'+
-    body+'<div>'+cta+'</div></div>';
+  var cta=isB?'<button class="dt-hero-btn" data-act="ev-gifts">🎁 Идеи подарков <span style="opacity:.65">›</span></button>'
+             :'<button class="dt-hero-btn" data-act="ev-quests">💡 Идея свидания <span style="opacity:.65">›</span></button>';
+  return '<div class="dt-hero">'+
+    '<div class="dt-hero-emoji">'+emo+'</div>'+
+    '<div class="dt-hero-tag" style="color:'+ac+'">'+tag+'</div>'+
+    '<div class="dt-hero-title">'+esc(d.title)+'</div>'+
+    '<div class="dt-hero-days">'+when+'</div>'+
+    body+
+    '<div>'+cta+'</div></div>';
 }
 function dateRow(x){
   var d=x.t, days=x.days, ac=dateAccent(days), num=ac||'#fff';
