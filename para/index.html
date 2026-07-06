@@ -302,7 +302,12 @@
 
 // ---------- Telegram ----------
 var TG = (window.Telegram && window.Telegram.WebApp) || null;
-if (TG) { try { TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor('#17121b'); } catch(e){} }
+if (TG) { try {
+  TG.ready(); TG.expand();
+  // не давать свайпу вниз сворачивать приложение при прокрутке (Bot API 7.7+)
+  TG.disableVerticalSwipes && TG.disableVerticalSwipes();
+  TG.setHeaderColor && TG.setHeaderColor('#17121b');
+} catch(e){} }
 var TG_BOT = 'para_couple_bot';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
