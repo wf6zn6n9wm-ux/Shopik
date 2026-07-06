@@ -46,6 +46,13 @@ const { useState, useEffect, useRef, useMemo } = React;
 // ---- Telegram Mini App ----
 const TG = (window.Telegram && window.Telegram.WebApp) || null;
 if (TG) { try { TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor('#17121b'); } catch (e) {} }
+const TG_BOT = 'para_app_bot'; // имя бота (заменить на реальное при подключении)
+// данные пользователя из Telegram (если открыто внутри Telegram)
+const TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
+// код-приглашение из ссылки t.me/<bot>?startapp=<код>  (или ?startapp=<код> в URL)
+const START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
+  || new URLSearchParams(location.search).get('startapp')
+  || new URLSearchParams(location.search).get('code') || '';
 const haptic = (type = 'light') => {
   try {
     if (TG && TG.HapticFeedback) {
@@ -431,7 +438,7 @@ function DatesScreen({ couple }) {
 // ============================================================
 //  Экран «Мы»
 // ============================================================
-function UsScreen({ couple, points }) {
+function UsScreen({ couple, points, onReset }) {
   const together = Math.floor((startOfDay(new Date()) - startOfDay(new Date(couple.since))) / DAY);
   const canHomeScreen = TG && typeof TG.addToHomeScreen === 'function';
   const [added, setAdded] = useState(false);
@@ -469,6 +476,22 @@ function UsScreen({ couple, points }) {
           </button>
         </Card>
       )}
+
+      {couple.inviteCode && (
+        <Card className="p-4 mb-3 flex items-center gap-3">
+          <div className="text-2xl">🔗</div>
+          <div className="flex-1">
+            <div className="text-sm font-semibold">Код пары</div>
+            <div className="text-[11px] text-white/40">для приглашения партнёра</div>
+          </div>
+          <div className="text-lg font-bold tracking-[0.2em] text-rose-300">{couple.inviteCode}</div>
+        </Card>
+      )}
+
+      <button onClick={onReset}
+        className="w-full rounded-2xl py-3.5 text-sm font-medium text-white/50 bg-white/[0.03] border border-white/10 active:scale-[0.99] transition">
+        Выйти / сменить пару
+      </button>
 
       <div className="text-center text-[11px] text-white/30 mt-6">
         PARA · {TG ? 'Telegram Mini App' : 'веб-версия (PWA)'}
@@ -516,21 +539,184 @@ function BottomNav({ tab, setTab }) {
 }
 
 // ============================================================
+//  ВХОД / ОНБОРДИНГ — знакомимся и связываем пару
+// ============================================================
+// генератор кода-приглашения (без цифр/букв, которые легко спутать)
+const makeCode = () => {
+  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 6; i++) s += abc[Math.floor(Math.random() * abc.length)];
+  return s;
+};
+
+function Onboarding({ onDone }) {
+  // шаги: welcome → pair
+  const tgName = TG_USER ? (TG_USER.first_name || 'Ты') : '';
+  const [step, setStep] = useState('welcome');
+  const [name, setName] = useState(tgName);
+  const [mode, setMode] = useState(null);   // 'create' | 'join' | null
+  const [code, setCode] = useState('');     // код, который вводит присоединяющийся
+  const [myCode] = useState(makeCode);      // мой код-приглашение
+  const [waiting, setWaiting] = useState(false);
+
+  // пришли по ссылке-приглашению → сразу к присоединению
+  useEffect(() => {
+    if (START_PARAM) { setStep('pair'); setMode('join'); setCode(START_PARAM.toUpperCase().slice(0, 6)); }
+  }, []);
+
+  const finish = (partnerName) => {
+    onDone({
+      me:      { name: (name || tgName || 'Ты').trim(), emoji: '🧔', birthday: { month: 3, day: 14 } },
+      partner: { name: (partnerName || 'Партнёр'), emoji: '👩', birthday: { month: 7, day: 21 } },
+      since: new Date().toISOString().slice(0, 10),
+      inviteCode: myCode,
+    });
+    haptic('success');
+  };
+
+  const shareInvite = () => {
+    const link = `https://t.me/${TG_BOT}?startapp=${myCode}`;
+    const text = `Давай заведём наше PARA 💞 Мой код: ${myCode}`;
+    if (TG && TG.openTelegramLink) {
+      TG.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+    } else if (navigator.share) {
+      navigator.share({ title: 'PARA', text, url: link }).catch(() => {});
+    } else {
+      navigator.clipboard && navigator.clipboard.writeText(link);
+      alert('Ссылка скопирована:\n' + link);
+    }
+    haptic('light');
+  };
+
+  // ---- ЭКРАН ПРИВЕТСТВИЯ ----
+  if (step === 'welcome') {
+    return (
+      <Splash>
+        <div className="text-center">
+          <Logo />
+          <h1 className="text-3xl font-bold mt-5">PARA</h1>
+          <p className="text-white/50 mt-2 text-sm">Приложение для двоих —<br/>вопросы, желания, квесты и важные даты</p>
+        </div>
+        <div className="w-full space-y-3 mt-10">
+          {TG_USER ? (
+            <button onClick={() => { setStep('pair'); haptic('light'); }}
+              className="w-full rounded-2xl py-4 font-semibold bg-gradient-to-r from-rose-500 to-fuchsia-500 active:scale-[0.99] transition flex items-center justify-center gap-2">
+              Продолжить как {tgName}
+              {TG_USER.photo_url && <img src={TG_USER.photo_url} className="w-6 h-6 rounded-full" alt="" />}
+            </button>
+          ) : (
+            <>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Как тебя зовут?"
+                className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-4 text-center outline-none focus:border-rose-400/60 placeholder-white/30" />
+              <button onClick={() => name.trim() && (setStep('pair'), haptic('light'))} disabled={!name.trim()}
+                className="w-full rounded-2xl py-4 font-semibold bg-gradient-to-r from-rose-500 to-fuchsia-500 disabled:opacity-40 active:scale-[0.99] transition">
+                Продолжить
+              </button>
+              <a href={`https://t.me/${TG_BOT}`} target="_blank" rel="noreferrer"
+                className="block w-full rounded-2xl py-3.5 font-medium text-center bg-white/5 border border-white/10 active:scale-[0.99] transition">
+                ✈️ Войти через Telegram
+              </a>
+            </>
+          )}
+        </div>
+      </Splash>
+    );
+  }
+
+  // ---- ЭКРАН СВЯЗИ ПАРЫ ----
+  return (
+    <Splash>
+      <div className="text-center">
+        <div className="text-5xl mb-3">💞</div>
+        <h2 className="text-2xl font-bold">Ваша пара</h2>
+        <p className="text-white/50 mt-2 text-sm">Свяжите два телефона, чтобы всё было общим</p>
+      </div>
+
+      {!mode && (
+        <div className="w-full space-y-3 mt-8">
+          <button onClick={() => { setMode('create'); haptic('light'); }}
+            className="w-full rounded-2xl py-4 font-semibold bg-gradient-to-r from-rose-500 to-fuchsia-500 active:scale-[0.99] transition">
+            Создать пару
+          </button>
+          <button onClick={() => { setMode('join'); haptic('light'); }}
+            className="w-full rounded-2xl py-4 font-medium bg-white/5 border border-white/10 active:scale-[0.99] transition">
+            У меня есть код
+          </button>
+        </div>
+      )}
+
+      {mode === 'create' && (
+        <div className="w-full mt-8">
+          <Card className="p-6 text-center">
+            <div className="text-xs uppercase tracking-widest text-white/40 mb-2">Твой код-приглашение</div>
+            <div className="text-4xl font-bold tracking-[0.3em] text-rose-300">{myCode}</div>
+          </Card>
+          <button onClick={shareInvite}
+            className="w-full mt-3 rounded-2xl py-4 font-semibold bg-gradient-to-r from-rose-500 to-fuchsia-500 active:scale-[0.99] transition">
+            Отправить партнёру
+          </button>
+          <button onClick={() => { setWaiting(true); setTimeout(() => finish('Татьяна'), 900); }}
+            className="w-full mt-3 rounded-2xl py-3.5 font-medium bg-white/5 border border-white/10 active:scale-[0.99] transition">
+            {waiting ? 'Связываем…' : 'Партнёр уже ввёл код →'}
+          </button>
+          <p className="text-center text-[11px] text-white/30 mt-4">
+            Пока синхронизация демо-режим: партнёр подставится автоматически.
+          </p>
+        </div>
+      )}
+
+      {mode === 'join' && (
+        <div className="w-full mt-8">
+          <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 6))}
+            placeholder="КОД ПАРТНЁРА" maxLength={6}
+            className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-4 text-center text-2xl font-bold tracking-[0.3em] outline-none focus:border-rose-400/60 placeholder-white/20" />
+          <button onClick={() => { if (code.length === 6) { setWaiting(true); setTimeout(() => finish('Татьяна'), 900); } }}
+            disabled={code.length < 6}
+            className="w-full mt-3 rounded-2xl py-4 font-semibold bg-gradient-to-r from-rose-500 to-fuchsia-500 disabled:opacity-40 active:scale-[0.99] transition">
+            {waiting ? 'Связываем…' : 'Присоединиться'}
+          </button>
+        </div>
+      )}
+
+      {mode && !waiting && (
+        <button onClick={() => setMode(null)} className="mt-6 text-sm text-white/40">← назад</button>
+      )}
+    </Splash>
+  );
+}
+
+const Splash = ({ children }) => (
+  <div className="min-h-screen max-w-md mx-auto px-6 flex flex-col items-center justify-center"
+    style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    {children}
+  </div>
+);
+
+const Logo = () => (
+  <div className="w-20 h-20 mx-auto rounded-3xl flex items-center justify-center text-4xl"
+    style={{ background: 'linear-gradient(135deg,#ff5e8a,#c026d3)' }}>💞</div>
+);
+
+// ============================================================
 //  Корень
 // ============================================================
 function App() {
   const [tab, setTab] = useStore('tab', 'today');
   const [who, setWho] = useStore('who', 'me');        // чьими глазами смотрим
   const [points, setPoints] = useStore('points', 120);
-  const [couple] = useStore('couple', DEFAULT_COUPLE);
+  const [couple, setCouple] = useStore('couple', null); // null → ещё не прошли вход
   const addPoints = (n) => setPoints((p) => p + n);
+  const reset = () => { setCouple(null); setTab('today'); setWho('me'); haptic('warning'); };
+
+  // ещё не связаны в пару → показываем вход
+  if (!couple) return <Onboarding onDone={setCouple} />;
 
   const screens = {
     today:  <TodayScreen couple={couple} who={who} setWho={setWho} points={points} addPoints={addPoints} />,
     wishes: <WishesScreen couple={couple} who={who} />,
     quests: <QuestsScreen addPoints={addPoints} />,
     dates:  <DatesScreen couple={couple} />,
-    us:     <UsScreen couple={couple} points={points} />,
+    us:     <UsScreen couple={couple} points={points} onReset={reset} />,
   };
 
   return (
