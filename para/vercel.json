@@ -14,9 +14,11 @@
     }
   ],
   "crons": [
-    { "path": "/api/cron", "schedule": "0 9 * * *" }
+    { "path": "/api/cron", "schedule": "0 9 * * *" },
+    { "path": "/api/evening", "schedule": "0 18 * * *" }
   ],
   "functions": {
-    "api/cron.js": { "maxDuration": 60 }
+    "api/cron.js": { "maxDuration": 60 },
+    "api/evening.js": { "maxDuration": 60 }
   }
 }
