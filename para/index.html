@@ -231,6 +231,9 @@
   .urow-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
   .urow-seen{font-size:11px;color:var(--muted2);flex:0 0 auto;white-space:nowrap;}
   .urow-seen.on{color:#34d399;font-weight:700;}
+  .pcode{color:var(--rose);font-weight:800;letter-spacing:.08em;font-size:14px;}
+  .uchip-f{font-size:12px;font-weight:700;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);cursor:pointer;}
+  .uchip-f.on{background:var(--grad);color:#fff;border-color:transparent;}
 
   /* partner switch */
   .switch{display:flex;gap:4px;padding:6px;position:relative;}
@@ -475,7 +478,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v17 · раздел Пользователи';
+var APP_VERSION = 'v18 · раздел Пары';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1561,6 +1564,7 @@ function cfgCollect(){
 }
 function adminView(){
   if(S.admUsers) return adminUsersView();
+  if(S.admPairs) return adminPairsView();
   var tab=S.adminTab||'dash';
   var nav='<div class="row gap2 mb4">'+
     '<button class="admtab'+(tab==='dash'?' on':'')+'" data-act="adm-tab" data-t="dash">📊 Дашборд</button>'+
@@ -1621,6 +1625,56 @@ function adminUsersView(){
     '<input id="adm-search" class="input" placeholder="🔍 Поиск по имени" oninput="__admFilter(this.value)" autocomplete="off" style="margin-bottom:10px">'+
     '<div class="adm-card" id="adm-user-list" style="padding:6px 14px">'+rows+'</div>';
   return '<div class="app"><div class="wrap">'+head+totalCard+srcCard+listCard+'<div style="height:20px"></div></div></div>';
+}
+
+// ---------- Раздел «Пары» (детально) ----------
+function admPairRow(p){
+  var online=p.lastActive && (Date.now()-Date.parse(p.lastActive) < 5*60*1000);
+  var names=(p.members||[]).filter(Boolean).join(' & ')||'—';
+  var sub=p.linked
+    ? (p.points?('⭐ '+p.points+' очков'):'без активности')+' · '+esc(p.created||'')
+    : '⏳ ждёт партнёра · '+esc(p.created||'');
+  var seen=p.lastActive?admLastSeen(p.lastActive):'';
+  var search=((names+' '+(p.code||'')).toLowerCase());
+  return '<div class="urow" data-name="'+esc(search)+'">'+
+    '<div class="uav uav-l" style="letter-spacing:0;font-size:13px;font-weight:800">'+(p.linked?'💞':'⏳')+'</div>'+
+    '<div class="flex1" style="min-width:0"><div class="urow-nm"><span class="pcode">'+esc(p.code||'—')+'</span>'+
+      (online?'<span class="udot"></span>':'')+
+      (p.linked?'<span class="uchip">в паре</span>':'<span class="uchip wait">ждёт</span>')+'</div>'+
+    '<div class="urow-sub">'+esc(names)+'</div>'+
+    '<div class="urow-sub muted2">'+sub+'</div></div>'+
+    (seen?'<div class="urow-seen'+(online?' on':'')+'">'+esc(seen)+'</div>':'')+'</div>';
+}
+function adminPairsView(){
+  var d=S.adminData||{}, t=d.totals||{}, s=d.series||{}, p=S.admPairsData;
+  var head='<div class="row between mb4"><button class="btn btn-ghost btn-sm" data-act="adm-pairs-close">← Назад</button>'+
+    '<div class="b" style="font-size:18px">Пары</div><div style="width:64px"></div></div>';
+  var cum=admCumulative(s.couples), baseline=Math.max(0,(t.couples||0)-(cum.length?cum[cum.length-1].v:0));
+  if(baseline>0) cum=cum.map(function(x){return {date:x.date,v:x.v+baseline};});
+  var totalCard='<div class="adm-card"><div class="adm-kpi-lbl">Всего пар</div>'+
+    '<div class="adm-big">'+(t.couples||0)+'</div>'+admChip(admDelta7Total(s.couples))+
+    '<div style="height:6px"></div>'+admChart(cum,30)+'</div>';
+  if(!p){
+    return '<div class="app"><div class="wrap">'+head+totalCard+
+      '<div class="center-t muted small" style="padding:34px">Загрузка списка…</div></div></div>';
+  }
+  var st=p.stats||{linked:0,waiting:0}, tot=(st.linked||0)+(st.waiting||0);
+  var conv=tot?Math.round((st.linked||0)/tot*100):0;
+  var statCard='<div class="adm-card mt3"><div class="row between" style="align-items:center;margin-bottom:12px">'+
+    '<div class="t" style="font-size:15px;font-weight:800">Статус пар</div><div class="b" style="color:#ff8fb0">'+conv+'% связано</div></div>'+
+    admSrcRow('💞 В паре', st.linked||0, tot, '#34d399')+
+    admSrcRow('⏳ Ждут партнёра', st.waiting||0, tot, '#fbbf24')+
+    '<div class="xs muted2 mt2">В паре — присоединились оба; ждут — партнёр ещё не вошёл по ссылке.</div></div>';
+  var fil=window.__admPairFilter||'all';
+  var chip=function(k,l){ return '<button class="uchip-f'+(fil===k?' on':'')+'" data-act="adm-pair-filter" data-f="'+k+'">'+l+'</button>'; };
+  var filters='<div class="row gap2" style="margin-bottom:10px">'+chip('all','Все')+chip('linked','В паре')+chip('wait','Ждут')+'</div>';
+  var arr=(p.pairs||[]).filter(function(x){ return fil==='all'||(fil==='linked'&&x.linked)||(fil==='wait'&&!x.linked); });
+  var rows=arr.map(admPairRow).join('')||'<div class="muted small center-t" style="padding:20px">Нет пар</div>';
+  var listCard='<div class="adm-sec-h"><div class="t">Список</div><div class="d">'+(p.count||0)+'</div></div>'+
+    '<input id="adm-psearch" class="input" placeholder="🔍 Поиск по коду или имени" oninput="__admPairSearch(this.value)" autocomplete="off" style="margin-bottom:10px">'+
+    filters+
+    '<div class="adm-card" id="adm-pair-list" style="padding:6px 14px">'+rows+'</div>';
+  return '<div class="app"><div class="wrap">'+head+totalCard+statCard+listCard+'<div style="height:20px"></div></div></div>';
 }
 
 // ---------- Уровни, достижения, повышение ----------
@@ -1817,7 +1871,9 @@ var ACTS={
   'adm-users-close':function(){ S.admUsers=false; render(); },
   'adm-range':function(el){ S.admRange=+el.dataset.r; haptic('light'); render(); },
   'adm-refresh':function(){ haptic('light'); api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; render(); } }); },
-  'adm-pairs':function(){ var e=document.getElementById('adm-pairs-anchor'); if(e)e.scrollIntoView({behavior:'smooth',block:'start'}); haptic('light'); },
+  'adm-pairs':function(){ S.admPairs=true; S.admPairsData=null; window.__admPairFilter='all'; haptic('light'); render(); api('admin_pairs').then(function(r){ S.admPairsData=(r&&r.ok)?r:{pairs:[],stats:{linked:0,waiting:0},count:0}; render(); }).catch(function(){ S.admPairsData={pairs:[],stats:{linked:0,waiting:0},count:0}; render(); }); },
+  'adm-pairs-close':function(){ S.admPairs=false; render(); },
+  'adm-pair-filter':function(el){ window.__admPairFilter=el.dataset.f||'all'; render(); },
   'admin-remind':function(){ S.remindMsg='Отправляем…'; render(); api('remind_waiting').then(function(r){ if(r&&r.ok){ S.remindMsg='✅ Отправлено: '+r.sent+(r.skipped?(' · пропущено (недавно напоминали): '+r.skipped):''); haptic('success'); } else { S.remindMsg='Ошибка: '+((r&&r.reason)||'?'); haptic('warning'); } render(); setTimeout(function(){ S.remindMsg=''; render(); },6000); }).catch(function(){ S.remindMsg='Ошибка сети'; render(); }); },
   'adm-tab':function(el){ var t=el.dataset.t; S.adminTab=t; haptic('light');
     if(t==='config'&&!S.adminConfig){ api('config_get').then(function(r){ S.adminConfig=(r&&r.ok&&r.config)?r.config:(S.config||{levels:[],achievements:[],themes:[],frames:[],categories:[],quests:[]}); render(); }); }
@@ -1978,6 +2034,8 @@ async function boot(){
 window.__paraModalClose=function(){ S.wmodal=null; render(); };
 // фильтр списка пользователей по имени (без ре-рендера — чтобы не терять фокус)
 window.__admFilter=function(q){ q=(q||'').trim().toLowerCase(); var list=document.getElementById('adm-user-list'); if(!list)return;
+  var rows=list.querySelectorAll('.urow'); for(var i=0;i<rows.length;i++){ var nm=rows[i].getAttribute('data-name')||''; rows[i].style.display=(!q||nm.indexOf(q)>=0)?'':'none'; } };
+window.__admPairSearch=function(q){ q=(q||'').trim().toLowerCase(); var list=document.getElementById('adm-pair-list'); if(!list)return;
   var rows=list.querySelectorAll('.urow'); for(var i=0;i<rows.length;i++){ var nm=rows[i].getAttribute('data-name')||''; rows[i].style.display=(!q||nm.indexOf(q)>=0)?'':'none'; } };
 try{ applyTheme(S.theme); }catch(e){} // применить выбранную тему при запуске
 
