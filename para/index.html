@@ -410,6 +410,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
+var APP_VERSION = 'v7 · 07.07';   // видимая версия — для диагностики кэша/деплоя
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -627,7 +628,8 @@ function welcomeView(){
       '<button class="btn btn-primary mt3" data-act="ob-continue">Продолжить</button>'+
       '<a class="btn btn-ghost mt3" style="text-decoration:none" href="https://t.me/'+TG_BOT+'" target="_blank" rel="noreferrer">✈️ Войти через Telegram</a>';
   }
-  return '<div class="splash">'+top+'<div class="fullw" style="margin-top:40px;display:flex;flex-direction:column">'+body+'</div></div>';
+  return '<div class="splash">'+top+'<div class="fullw" style="margin-top:40px;display:flex;flex-direction:column">'+body+'</div>'+
+    '<div class="center-t xs muted2" style="margin-top:24px">'+APP_VERSION+'</div></div>';
 }
 
 function pairView(){
@@ -1286,7 +1288,7 @@ function usScreen(){
       srow('Ответов сегодня',S.stats.answersToday)+srow('Ответов всего',S.stats.answersTotal)+
       '<button class="btn btn-ghost mt3" data-act="open-admin">⚙️ Открыть админку</button></div>';
   }
-  var foot='<div class="center-t xs muted2 mt6">PARA · '+(TG?'Telegram Mini App':'веб-версия (PWA)')+'</div>';
+  var foot='<div class="center-t xs muted2 mt6">PARA · '+(TG?'Telegram Mini App':'веб-версия (PWA)')+' · '+APP_VERSION+'</div>';
   var profileBtn='<button class="btn btn-ghost mb3" style="width:100%;justify-content:center" data-act="profile-open">✏️ Профиль и даты</button>';
   return '<div class="wrap">'+screenTitle('💞','Мы','')+head+profileBtn+levelCard()+stats+home+invite+reset+foot+'</div>';
 }
