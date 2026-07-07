@@ -387,6 +387,35 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // -------- ADMIN USERS (список пользователей для раздела «Пользователи») --------
+    if (action === 'admin_users') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const d10 = (s) => String(s || '').slice(0, 10);
+      let rows;
+      try { rows = await sb('para_members?select=tg_id,name,photo_url,slot,last_active,joined_at,couple_id&order=last_active.desc.nullslast&limit=300'); }
+      catch (e) { rows = await sb('para_members?select=tg_id,name,photo_url,slot,joined_at,couple_id&order=joined_at.desc&limit=300'); }
+      rows = Array.isArray(rows) ? rows : [];
+      // размеры пар (для статуса «в паре»)
+      let couples = [];
+      try { couples = await sb('para_couples?select=id,para_members(tg_id)'); } catch (e) {}
+      const cnt = {}; (couples || []).forEach((c) => { cnt[c.id] = (c.para_members ? c.para_members.length : 0); });
+      const users = rows.map((m) => ({
+        id: m.tg_id,
+        name: m.name || '—',
+        photo: m.photo_url || '',
+        lastActive: m.last_active || m.joined_at || null,
+        joined: d10(m.joined_at),
+        source: m.slot === 'b' ? 'invite' : 'direct',
+        linked: (cnt[m.couple_id] || 0) >= 2
+      }));
+      const sources = {
+        direct: users.filter((u) => u.source === 'direct').length,
+        invite: users.filter((u) => u.source === 'invite').length
+      };
+      res.status(200).json({ ok: true, users: users, sources: sources, count: users.length });
+      return;
+    }
+
     // -------- TRACK (клиентские события для аналитики) --------
     if (action === 'track') {
       const type = String(body.type || '');

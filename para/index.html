@@ -214,6 +214,23 @@
   .adm-foot{display:flex;align-items:center;justify-content:space-between;margin-top:22px;padding-top:14px;
     border-top:1px solid var(--line);font-size:12px;color:var(--muted);}
   .adm-refresh{font-size:12px;font-weight:700;color:#ff8fb0;padding:6px 10px;border-radius:9px;background:rgba(255,94,138,.08);}
+  /* раздел «Пользователи» */
+  .adm-kpi-lbl{font-size:12px;color:var(--muted);}
+  .adm-big{font-size:40px;font-weight:800;line-height:1;margin:6px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .src-row{margin-bottom:13px;}
+  .src-bar{height:8px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:7px;}
+  .src-bar>div{height:100%;border-radius:999px;transition:width .7s cubic-bezier(.2,.8,.2,1);}
+  .urow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);}
+  .urow:last-child{border-bottom:none;}
+  .uav{width:42px;height:42px;border-radius:50%;flex:0 0 auto;object-fit:cover;background:rgba(255,255,255,.06);}
+  .uav-l{display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;background:var(--grad);}
+  .urow-nm{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .udot{width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399;display:inline-block;}
+  .uchip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(52,211,153,.15);color:#34d399;}
+  .uchip.wait{background:rgba(255,255,255,.06);color:var(--muted);}
+  .urow-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .urow-seen{font-size:11px;color:var(--muted2);flex:0 0 auto;white-space:nowrap;}
+  .urow-seen.on{color:#34d399;font-weight:700;}
 
   /* partner switch */
   .switch{display:flex;gap:4px;padding:6px;position:relative;}
@@ -458,7 +475,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v16 · премиум-дашборд';
+var APP_VERSION = 'v17 · раздел Пользователи';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1414,7 +1431,7 @@ function adminDashView(){
       '<div class="val">'+(v==null?0:v)+'</div>'+admChip(delta)+'</div>';
   };
   var hero='<div class="adm-hero">'+
-    kpi('👥','Пользователи',t.users, admDelta7Total(s.users))+
+    kpi('👥','Пользователи',t.users, admDelta7Total(s.users),'adm-users-open')+
     kpi('💞','Пар',t.couples, admDelta7Total(s.couples),'adm-pairs')+
     kpi('🔗','Активных пар',t.active, null,'adm-pairs')+
     kpi('🔥','DAU',t.dau, admDeltaDay(s.activity))+
@@ -1543,6 +1560,7 @@ function cfgCollect(){
   });
 }
 function adminView(){
+  if(S.admUsers) return adminUsersView();
   var tab=S.adminTab||'dash';
   var nav='<div class="row gap2 mb4">'+
     '<button class="admtab'+(tab==='dash'?' on':'')+'" data-act="adm-tab" data-t="dash">📊 Дашборд</button>'+
@@ -1552,6 +1570,57 @@ function adminView(){
     '<button class="btn btn-ghost btn-sm" data-act="close-admin">← Назад</button></div>'+
     nav+(tab==='config'?adminConfigView():adminDashView())+
     '<div style="height:24px"></div></div></div>';
+}
+
+// ---------- Раздел «Пользователи» (детально) ----------
+function admLastSeen(iso){
+  if(!iso) return '';
+  var t=Date.parse(iso); if(!t) return '';
+  if(Date.now()-t < 5*60*1000) return 'онлайн';
+  var d=new Date(t), now=new Date();
+  var hm=d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  if(d.toDateString()===now.toDateString()) return 'сегодня, '+hm;
+  if(new Date(now.getTime()-86400000).toDateString()===d.toDateString()) return 'вчера, '+hm;
+  return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'})+', '+hm;
+}
+function admUserRow(x){
+  var online=x.lastActive && (Date.now()-Date.parse(x.lastActive) < 5*60*1000);
+  var av=x.photo ? '<img class="uav" src="'+esc(x.photo)+'" alt="" referrerpolicy="no-referrer">'
+    : '<div class="uav uav-l">'+esc(((x.name||'?').trim().charAt(0)||'?').toUpperCase())+'</div>';
+  return '<div class="urow" data-name="'+esc((x.name||'').toLowerCase())+'">'+av+
+    '<div class="flex1" style="min-width:0"><div class="urow-nm">'+esc(x.name)+(online?'<span class="udot"></span>':'')+
+    (x.linked?'<span class="uchip">в паре</span>':'<span class="uchip wait">ждёт</span>')+'</div>'+
+    '<div class="urow-sub">'+(x.source==='invite'?'💌 по приглашению':'🚀 прямой заход')+'</div></div>'+
+    '<div class="urow-seen'+(online?' on':'')+'">'+esc(admLastSeen(x.lastActive))+'</div></div>';
+}
+function admSrcRow(label,val,tot,color){
+  var pct=Math.round(val/Math.max(1,tot)*100);
+  return '<div class="src-row"><div class="row between small"><span>'+label+'</span><span class="b">'+val+' <span class="muted">('+pct+'%)</span></span></div>'+
+    '<div class="src-bar"><div style="width:'+Math.max(2,pct)+'%;background:'+color+'"></div></div></div>';
+}
+function adminUsersView(){
+  var d=S.adminData||{}, t=d.totals||{}, s=d.series||{}, u=S.admUsersData;
+  var head='<div class="row between mb4"><button class="btn btn-ghost btn-sm" data-act="adm-users-close">← Назад</button>'+
+    '<div class="b" style="font-size:18px">Пользователи</div><div style="width:64px"></div></div>';
+  var cumUsers=admCumulative(s.users), baseline=Math.max(0,(t.users||0)-(cumUsers.length?cumUsers[cumUsers.length-1].v:0));
+  if(baseline>0) cumUsers=cumUsers.map(function(p){return {date:p.date,v:p.v+baseline};});
+  var totalCard='<div class="adm-card"><div class="adm-kpi-lbl">Всего пользователей</div>'+
+    '<div class="adm-big">'+(t.users||0)+'</div>'+admChip(admDelta7Total(s.users))+
+    '<div style="height:6px"></div>'+admChart(cumUsers,30)+'</div>';
+  if(!u){
+    return '<div class="app"><div class="wrap">'+head+totalCard+
+      '<div class="center-t muted small" style="padding:34px">Загрузка списка…</div></div></div>';
+  }
+  var src=u.sources||{direct:0,invite:0}, tot=(src.direct||0)+(src.invite||0);
+  var srcCard='<div class="adm-card mt3"><div class="t" style="font-size:15px;font-weight:800;margin-bottom:12px">Источники пользователей</div>'+
+    admSrcRow('🚀 Прямой заход', src.direct||0, tot, '#ff5e8a')+
+    admSrcRow('💌 По приглашению', src.invite||0, tot, '#c026d3')+
+    '<div class="xs muted2 mt2">Прямой — открыли бота сами; по приглашению — вошли по ссылке партнёра.</div></div>';
+  var rows=(u.users||[]).map(admUserRow).join('')||'<div class="muted small center-t" style="padding:20px">Нет данных</div>';
+  var listCard='<div class="adm-sec-h"><div class="t">Список</div><div class="d">'+(u.count||0)+'</div></div>'+
+    '<input id="adm-search" class="input" placeholder="🔍 Поиск по имени" oninput="__admFilter(this.value)" autocomplete="off" style="margin-bottom:10px">'+
+    '<div class="adm-card" id="adm-user-list" style="padding:6px 14px">'+rows+'</div>';
+  return '<div class="app"><div class="wrap">'+head+totalCard+srcCard+listCard+'<div style="height:20px"></div></div></div>';
 }
 
 // ---------- Уровни, достижения, повышение ----------
@@ -1744,6 +1813,8 @@ var ACTS={
   'share-code':function(){ shareInvite(S.couple && S.couple.inviteCode); },
   'open-admin':function(){ if(!ONLINE)return; api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; S.showAdmin=true; render(); } else if(r&&r.reason==='forbidden'){ alert('Нет доступа. Твой ID: '+r.yourId); } else { alert('Ошибка: '+((r&&r.reason)||'')); } }).catch(function(){}); },
   'close-admin':function(){ S.showAdmin=false; render(); },
+  'adm-users-open':function(){ S.admUsers=true; S.admUsersData=null; haptic('light'); render(); api('admin_users').then(function(r){ S.admUsersData=(r&&r.ok)?r:{users:[],sources:{direct:0,invite:0},count:0}; render(); }).catch(function(){ S.admUsersData={users:[],sources:{direct:0,invite:0},count:0}; render(); }); },
+  'adm-users-close':function(){ S.admUsers=false; render(); },
   'adm-range':function(el){ S.admRange=+el.dataset.r; haptic('light'); render(); },
   'adm-refresh':function(){ haptic('light'); api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; render(); } }); },
   'adm-pairs':function(){ var e=document.getElementById('adm-pairs-anchor'); if(e)e.scrollIntoView({behavior:'smooth',block:'start'}); haptic('light'); },
@@ -1905,6 +1976,9 @@ async function boot(){
 
 // закрытие модалки по тапу на фон (вызывается из inline onclick оверлея)
 window.__paraModalClose=function(){ S.wmodal=null; render(); };
+// фильтр списка пользователей по имени (без ре-рендера — чтобы не терять фокус)
+window.__admFilter=function(q){ q=(q||'').trim().toLowerCase(); var list=document.getElementById('adm-user-list'); if(!list)return;
+  var rows=list.querySelectorAll('.urow'); for(var i=0;i<rows.length;i++){ var nm=rows[i].getAttribute('data-name')||''; rows[i].style.display=(!q||nm.indexOf(q)>=0)?'':'none'; } };
 try{ applyTheme(S.theme); }catch(e){} // применить выбранную тему при запуске
 
 document.getElementById('root').addEventListener('click',function(e){
