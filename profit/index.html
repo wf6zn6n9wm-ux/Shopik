@@ -96,6 +96,11 @@
   .rolesw button .rn{font-size:10px;font-weight:700;opacity:.7;display:block;margin-top:1px;}
   .rolesw button.on.owner{background:linear-gradient(135deg,rgba(56,189,248,.9),rgba(14,165,233,.9));color:#04121c;}
   .rolesw button.on.manager{background:var(--grad-gold);color:#2a1a02;}
+  .rolepill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;padding:8px 13px;border-radius:11px;}
+  .rolepill.owner{background:rgba(56,189,248,.16);color:#7dd3fc;}
+  .rolepill.manager{background:rgba(251,191,36,.16);color:var(--amber);}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+  .dot.on{background:var(--emerald);box-shadow:0 0 8px var(--emerald);} .dot.off{background:var(--muted2);}
 
   /* hero balance */
   .hero{position:relative;overflow:hidden;border-radius:26px;padding:22px 20px;
@@ -144,6 +149,15 @@
   .exp .fl .op{color:var(--muted);}
   .formula{font-size:12.5px;color:var(--muted);line-height:1.55;}
 
+  /* onboarding / invite */
+  .onb{border-radius:22px;padding:20px;border:1px solid var(--line);background:var(--card);}
+  .invb{border-radius:20px;padding:16px;background:linear-gradient(180deg,rgba(56,189,248,.10),rgba(56,189,248,.02));
+    border:1px solid rgba(56,189,248,.25);margin-bottom:16px;}
+  .codebox{font-size:30px;font-weight:900;letter-spacing:.22em;text-align:center;padding:14px;border-radius:14px;
+    background:rgba(0,0,0,.32);border:1px dashed var(--line);margin:10px 0;color:#fff;}
+  .orline{display:flex;align-items:center;gap:10px;margin:18px 0;}
+  .orline .ln{flex:1;height:1px;background:var(--line);}
+
   /* empty */
   .empty{text-align:center;padding:38px 20px;}
   .empty .ic{font-size:54px;}
@@ -156,6 +170,10 @@
     background:linear-gradient(90deg,var(--amber) var(--fill,30%),rgba(255,255,255,.12) var(--fill,30%));}
   .range::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;
     background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.4);border:3px solid var(--amber);}
+  .range[disabled]{opacity:.6;}
+  .banner{border-radius:14px;padding:11px 13px;font-size:12px;line-height:1.45;margin-bottom:12px;}
+  .banner.demo{background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.25);color:#fcd9a0;}
+  .banner.live{background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.25);color:#a7f3d0;}
 
   /* toast */
   .toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:100px;z-index:60;
@@ -172,6 +190,7 @@
     color:var(--muted2);font-size:10.5px;font-weight:700;transition:color .18s;}
   .nav button.on{color:var(--emerald);}
   .nav button svg{width:23px;height:23px;}
+  .nav.hide{display:none;}
 
   /* modal */
   .ov{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
@@ -186,6 +205,11 @@
 
   .anim{animation:fade .3s ease both;}
   @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  /* splash */
+  .splash{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:var(--bg);}
+  .spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:var(--emerald);animation:sp 1s linear infinite;}
+  @keyframes sp{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
@@ -202,17 +226,14 @@
       </div>
       <div class="xs muted right" id="pctBadge"></div>
     </div>
-    <div class="rolesw mt3" id="rolesw">
-      <button data-role="owner">Владелец<span class="rn" id="rnOwner"></span></button>
-      <button data-role="manager">Управляющая<span class="rn" id="rnMgr"></span></button>
-    </div>
+    <div class="mt3" id="rolesw"></div>
   </div>
 
   <div class="wrap" id="view"></div>
 </div>
 
 <!-- bottom nav -->
-<div class="nav">
+<div class="nav" id="navBar">
   <div class="nav-in" id="nav">
     <button data-tab="deals">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
@@ -231,6 +252,7 @@
 
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
+<div class="splash" id="splash"><div class="spin"></div><div class="small muted">Подключение…</div></div>
 
 <script>
 "use strict";
@@ -239,15 +261,40 @@ const DEFAULTS={
   settings:{sharePct:30, currency:'грн', ownerName:'Я', managerName:'Управляющая'},
   role:'owner', tab:'deals', deals:[]
 };
-function load(){
+function loadLocal(){
   try{
     const r=JSON.parse(localStorage.getItem(KEY));
     if(r&&r.settings) return {...DEFAULTS,...r, settings:{...DEFAULTS.settings,...r.settings}};
   }catch(e){}
   return JSON.parse(JSON.stringify(DEFAULTS));
 }
-let S=load();
-function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+let S=loadLocal();               // локальное состояние (демо-режим + UI: tab)
+function saveLocal(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+
+// сетевое состояние
+let ONLINE=false, SHOP=null, DEALS=[], MYNAME='';
+
+// текущий «вид» — единый источник для рендера (демо или онлайн)
+const V={online:false, role:'owner', deals:[], sharePct:30, currency:'грн', ownerName:'Я', managerName:'Управляющая', shop:null};
+function buildView(){
+  V.online=ONLINE;
+  if(ONLINE){
+    V.shop=SHOP;
+    if(SHOP){
+      V.role=SHOP.role; V.deals=DEALS; V.sharePct=SHOP.sharePct; V.currency=SHOP.currency||'грн';
+      const partner=SHOP.partner;
+      if(SHOP.role==='owner'){ V.ownerName=SHOP.me.name||'Владелец'; V.managerName=partner?partner.name:'Управляющая'; }
+      else{ V.managerName=SHOP.me.name||'Управляющая'; V.ownerName=partner?partner.name:'Владелец'; }
+    }else{
+      // онлайн, но магазина ещё нет → экран онбординга (нейтральные значения)
+      V.role='owner'; V.deals=[]; V.sharePct=30; V.currency='грн'; V.ownerName='Владелец'; V.managerName='Управляющая';
+    }
+  }else{
+    V.shop=null; V.role=S.role; V.deals=S.deals;
+    V.sharePct=S.settings.sharePct; V.currency=S.settings.currency;
+    V.ownerName=S.settings.ownerName; V.managerName=S.settings.managerName;
+  }
+}
 
 /* --- helpers --- */
 const $=id=>document.getElementById(id);
@@ -255,7 +302,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
 function money(n){
   n=Math.round(Number(n)||0);
   const s=Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');
-  return (n<0?'−':'')+s+' '+S.settings.currency;
+  return (n<0?'−':'')+s+' '+V.currency;
 }
 function num(v){ return Math.max(0, Math.round(Number(String(v).replace(/[^\d.-]/g,''))||0)); }
 let uidc=0;
@@ -263,21 +310,19 @@ function uid(){ return 'd'+Date.now().toString(36)+(uidc++).toString(36); }
 
 /* --- business logic --- */
 function calc(d){
-  const pct=S.settings.sharePct/100;
+  const pct=V.sharePct/100;
   const net=(d.salePrice||0)-(d.purchase||0)-(d.salary||0);
   const mgrShare=Math.round(net*pct);
   const ownShare=net-mgrShare;
-  return {
-    net, mgrShare, ownShare,
+  return {net, mgrShare, ownShare,
     mgrTotal:(d.purchase||0)+(d.salary||0)+mgrShare, // возврат вложенного + зарплата + доля
-    ownTotal:ownShare
-  };
+    ownTotal:ownShare};
 }
 function totals(){
   const t={turnover:0,net:0,salaryTotal:0,mgrEarn:0,ownProfit:0,
     investedNow:0,investedAll:0,mgrWithdrawable:0,mgrWithdrawn:0,
     ownReceivable:0,ownReceived:0,soldCount:0,saleCount:0};
-  S.deals.forEach(d=>{
+  V.deals.forEach(d=>{
     t.investedAll+=d.purchase||0;
     if(d.status==='onsale'){ t.investedNow+=d.purchase||0; t.saleCount++; return; }
     const c=calc(d); t.soldCount++;
@@ -291,23 +336,73 @@ function totals(){
 
 /* --- toast --- */
 let toT;
-function toast(m){ const el=$('toast'); el.textContent=m; el.classList.add('on'); clearTimeout(toT); toT=setTimeout(()=>el.classList.remove('on'),1900); }
+function toast(m){ const el=$('toast'); el.textContent=m; el.classList.add('on'); clearTimeout(toT); toT=setTimeout(()=>el.classList.remove('on'),2100); }
+
+/* ============ NETWORK ============ */
+function tgInitData(){ try{ return (window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData)||''; }catch(e){ return ''; } }
+async function api(action, extra){
+  const r=await fetch('/api/profit',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(Object.assign({action, initData:tgInitData()}, extra||{}))});
+  return r.json();
+}
+const ERR={forbidden:'Менять это может только владелец', not_found:'Товар не найден',
+  shop_full:'В магазине уже двое', not_configured:'Сервер не подключён', bad_auth:'Ошибка входа Telegram',
+  rate_limited:'Слишком часто — подождите', bad_code:'Неверный код', bad_input:'Проверьте введённые данные',
+  no_shop:'Сначала создайте или войдите в магазин'};
+function applyState(j){ if('shop' in j){ SHOP=j.shop||null; DEALS=j.deals||[]; } if(j.me&&j.me.name) MYNAME=j.me.name; }
+async function apiCall(action, extra, okMsg){
+  try{
+    const j=await api(action, extra);
+    if(!j || j.ok===false){ toast(ERR[j&&j.reason]||'Не удалось, попробуйте ещё раз'); return false; }
+    applyState(j); buildView(); render(); if(okMsg) toast(okMsg);
+    return true;
+  }catch(e){ toast('Нет связи с сервером'); return false; }
+}
+async function boot(){
+  const initData=tgInitData();
+  if(!initData){ ONLINE=false; buildView(); render(); hideSplash(); return; } // не в Telegram → демо
+  try{
+    const j=await api('state');
+    if(!j || j.reason==='not_configured' || j.reason==='bad_auth'){ ONLINE=false; buildView(); render(); hideSplash(); return; }
+    ONLINE=true; applyState(j);
+    // авто-вход по коду из ссылки-приглашения (?startapp=CODE)
+    const sp=(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initDataUnsafe&&Telegram.WebApp.initDataUnsafe.start_param)||'';
+    if(!SHOP && sp){ await apiCall('shop_join',{code:sp}); hideSplash(); return; }
+    buildView(); render(); hideSplash();
+  }catch(e){ ONLINE=false; buildView(); render(); hideSplash(); }
+}
+function hideSplash(){ const s=$('splash'); if(s){ s.style.opacity='0'; s.style.transition='opacity .3s'; setTimeout(()=>s.remove(),320); } }
 
 /* ============ RENDER ============ */
 function render(){
-  // header state
-  $('pctBadge').innerHTML='доля управляющей<br><span class="am eb" style="font-size:14px">'+S.settings.sharePct+'%</span>';
-  $('rnOwner').textContent=S.settings.ownerName;
-  $('rnMgr').textContent=S.settings.managerName;
-  document.querySelectorAll('#rolesw button').forEach(b=>{
-    const on=b.dataset.role===S.role;
-    b.classList.toggle('on',on);
-    b.classList.toggle('owner',b.dataset.role==='owner');
-    b.classList.toggle('manager',b.dataset.role==='manager');
-  });
+  // header %
+  $('pctBadge').innerHTML='доля управляющей<br><span class="am eb" style="font-size:14px">'+V.sharePct+'%</span>';
+  // role area
+  const rs=$('rolesw');
+  if(V.online){
+    if(V.shop){
+      const partnerName=V.role==='owner'?V.managerName:V.ownerName;
+      const linked=!!V.shop.linked;
+      rs.innerHTML=`<div class="row between" style="padding:2px 2px">
+        <span class="rolepill ${V.role}">${V.role==='owner'?'👑 Вы — владелец':'🛍 Вы — управляющая'}</span>
+        <span class="row gap1 small muted"><span class="dot ${linked?'on':'off'}"></span>${linked?esc(partnerName):'ждём партнёра'}</span></div>`;
+    } else { rs.innerHTML=''; }
+  }else{
+    rs.className='rolesw mt3';
+    rs.innerHTML=`<button data-role="owner">Владелец<span class="rn">${esc(S.settings.ownerName)}</span></button>
+      <button data-role="manager">Управляющая<span class="rn">${esc(S.settings.managerName)}</span></button>`;
+    rs.querySelectorAll('button').forEach(b=>{const on=b.dataset.role===V.role;b.classList.toggle('on',on);
+      b.classList.toggle('owner',b.dataset.role==='owner');b.classList.toggle('manager',b.dataset.role==='manager');});
+  }
+  if(!V.online){ rs.className='rolesw mt3'; } else { rs.className='mt3'; }
+
+  const onboarding=V.online && !V.shop;
+  $('navBar').classList.toggle('hide', onboarding);
   document.querySelectorAll('#nav button').forEach(b=> b.classList.toggle('on', b.dataset.tab===S.tab));
+
   const v=$('view');
-  if(S.tab==='deals') v.innerHTML=viewDeals();
+  if(onboarding) v.innerHTML=viewOnboard();
+  else if(S.tab==='deals') v.innerHTML=viewDeals();
   else if(S.tab==='summary') v.innerHTML=viewSummary();
   else v.innerHTML=viewSettings();
   v.className='wrap anim';
@@ -315,9 +410,40 @@ function render(){
   bindSettings();
 }
 
+/* ---- ONBOARDING (online, no shop) ---- */
+function viewOnboard(){
+  return `
+  <div class="hero owner mt2">
+    <div class="hero-cap">Учёт прибыли на двоих</div>
+    <div class="hero-big" style="font-size:25px;line-height:1.15">Общий магазин<br>для вас двоих</div>
+    <div class="hero-sub">Данные будут синхронны у владельца и управляющей — каждый видит их со своего телефона.</div>
+  </div>
+  <div class="onb mt4">
+    <div class="b mb2">👑 Вы — владелец</div>
+    <div class="small muted mb3" style="line-height:1.5">Создайте магазин и передайте код управляющей. Вы заводите товары и вносите закупки.</div>
+    <button class="btn btn-primary" data-act="createShop">Создать магазин</button>
+  </div>
+  <div class="orline"><div class="ln"></div><span class="xs muted">или</span><div class="ln"></div></div>
+  <div class="onb">
+    <div class="b mb2">🛍 Вы — управляющая</div>
+    <div class="small muted mb3" style="line-height:1.5">Введите код, который дал владелец. Вы вносите продажи и зарплату.</div>
+    <input class="input mb3" id="joinCode" placeholder="КОД, напр. K7M2QX" maxlength="8"
+      style="text-transform:uppercase;text-align:center;letter-spacing:.18em;font-weight:800">
+    <button class="btn btn-gold" data-act="joinShop">Войти по коду</button>
+  </div>`;
+}
+
 /* ---- DEALS ---- */
+function inviteBanner(){
+  return `<div class="invb">
+    <div class="b sky mb2">🔗 Пригласите управляющую</div>
+    <div class="small muted">Передайте ей этот код — пусть введёт его при входе в приложение:</div>
+    <div class="codebox">${esc(V.shop.inviteCode)}</div>
+    <button class="btn btn-ghost btn-sm" data-act="copyCode">Скопировать код</button>
+  </div>`;
+}
 function dealCard(d){
-  const isOwner=S.role==='owner';
+  const isOwner=V.role==='owner';
   const c=calc(d);
   let status = d.status==='onsale'
     ? '<span class="pill pill-sale">в продаже</span>'
@@ -325,28 +451,25 @@ function dealCard(d){
   let body='';
   body+=`<div class="kv"><span class="kk">Закупка</span><span class="vv">${money(d.purchase)}</span></div>`;
   if(d.status==='onsale'){
-    body+=`<div class="small muted" style="margin-top:2px">Деньги вложила: <b class="am">${esc(S.settings.managerName)}</b></div>`;
+    body+=`<div class="small muted" style="margin-top:2px">Деньги вложила: <b class="am">${esc(V.managerName)}</b></div>`;
     body+= isOwner
       ? `<div class="row gap2 mt3"><button class="btn btn-ghost btn-sm" data-act="editDeal" data-id="${d.id}">Изменить</button><button class="btn btn-primary btn-sm flex1" data-act="sell" data-id="${d.id}">Внести продажу</button></div>`
       : `<button class="btn btn-gold btn-sm mt3" data-act="sell" data-id="${d.id}">Внести продажу</button>`;
     return dealWrap(d,status,body);
   }
-  // sold
   body+=`<div class="kv"><span class="kk">Продажа</span><span class="vv">${money(d.salePrice)}</span></div>`;
   body+=`<div class="kv"><span class="kk">Зарплата</span><span class="vv am">${money(d.salary)}</span></div>`;
   body+=`<div class="split">`;
   body+=`<div class="kv" style="padding:2px 0"><span class="kk">Чистая прибыль</span><span class="vv em">${money(c.net)}</span></div>`;
   body+=`<div class="divi"></div>`;
-  body+=`<div class="kv" style="padding:2px 0"><span class="kk">${esc(S.settings.managerName)} · ${S.settings.sharePct}%</span><span class="vv am">${money(c.mgrShare)}</span></div>`;
-  body+=`<div class="kv" style="padding:2px 0"><span class="kk">${esc(S.settings.ownerName)} · ${100-S.settings.sharePct}%</span><span class="vv sky">${money(c.ownShare)}</span></div>`;
+  body+=`<div class="kv" style="padding:2px 0"><span class="kk">${esc(V.managerName)} · ${V.sharePct}%</span><span class="vv am">${money(c.mgrShare)}</span></div>`;
+  body+=`<div class="kv" style="padding:2px 0"><span class="kk">${esc(V.ownerName)} · ${100-V.sharePct}%</span><span class="vv sky">${money(c.ownShare)}</span></div>`;
   body+=`</div>`;
-  // role-focused totals
   if(isOwner){
     body+=`<div class="kv" style="margin-top:9px"><span class="kk">${d.settled?'Получено':'К получению'}, вам</span><span class="vv sky">${money(c.ownTotal)}</span></div>`;
   }else{
     body+=`<div class="kv" style="margin-top:9px"><span class="kk">${d.settled?'Забрано':'Можно забрать'} <span class="muted2">(вложенное+ЗП+доля)</span></span><span class="vv am">${money(c.mgrTotal)}</span></div>`;
   }
-  // actions
   body+=`<div class="row gap2 mt3">`;
   if(isOwner) body+=`<button class="btn btn-ghost btn-sm" data-act="editSold" data-id="${d.id}">Изменить</button>`;
   body+= d.settled
@@ -363,18 +486,18 @@ function dealWrap(d,status,body){
     </div>${body}</div>`;
 }
 function viewDeals(){
-  const isOwner=S.role==='owner';
+  const isOwner=V.role==='owner';
   let h='';
-  // add button (owner заводит товар с закупкой)
+  if(V.online && V.shop && !V.shop.linked) h+=inviteBanner();
   h+= isOwner
     ? `<button class="btn btn-primary" data-act="addDeal"><span style="font-size:18px;line-height:1">＋</span> Добавить товар (закупку)</button>`
     : `<div class="card p4 row gap3"><div style="font-size:30px">📥</div><div class="flex1"><div class="sb">Товар заводит владелец</div><div class="small muted mt1">Он вносит закупку. Ты вносишь продажу и зарплату по проданным.</div></div></div>`;
 
-  const onsale=S.deals.filter(d=>d.status==='onsale');
-  const sold=S.deals.filter(d=>d.status==='sold'&&!d.settled);
-  const settled=S.deals.filter(d=>d.status==='sold'&&d.settled);
+  const onsale=V.deals.filter(d=>d.status==='onsale');
+  const sold=V.deals.filter(d=>d.status==='sold'&&!d.settled);
+  const settled=V.deals.filter(d=>d.status==='sold'&&d.settled);
 
-  if(!S.deals.length){
+  if(!V.deals.length){
     h+=`<div class="empty"><div class="ic">👟</div><div class="t">Пока нет товаров</div>
       <div class="d">${isOwner?'Добавь первую закупку — например «Nike Air Max», закупка 2000 ₴. Управляющая позже внесёт продажу.':'Как только владелец добавит закупку, ты сможешь внести продажу.'}</div></div>`;
     h+=explainerCard();
@@ -386,7 +509,7 @@ function viewDeals(){
   return h;
 }
 function explainerCard(){
-  const pct=S.settings.sharePct, c=S.settings.currency;
+  const pct=V.sharePct, c=V.currency;
   const net=4000-2000-200, ms=Math.round(net*pct/100), os=net-ms;
   return `<div class="exp mt4">
     <div class="b mb2">Как считается прибыль</div>
@@ -405,17 +528,13 @@ function explainerCard(){
 }
 
 /* ---- SUMMARY ---- */
-function viewSummary(){
-  const t=totals();
-  if(S.role==='owner') return summaryOwner(t);
-  return summaryManager(t);
-}
+function viewSummary(){ return V.role==='owner'?summaryOwner(totals()):summaryManager(totals()); }
 function summaryOwner(t){
   return `
   <div class="hero owner">
-    <div class="hero-cap">💰 К получению от «${esc(S.settings.managerName)}»</div>
+    <div class="hero-cap">💰 К получению от «${esc(V.managerName)}»</div>
     <div class="hero-big sky">${money(t.ownReceivable)}</div>
-    <div class="hero-sub">Твоя доля с проданных, но ещё не рассчитанных товаров (${100-S.settings.sharePct}% чистой прибыли).</div>
+    <div class="hero-sub">Твоя доля с проданных, но ещё не рассчитанных товаров (${100-V.sharePct}% чистой прибыли).</div>
   </div>
   <div class="grid2 mt4">
     <div class="stat"><div class="k">Оборот (продажи)</div><div class="v">${money(t.turnover)}</div></div>
@@ -429,7 +548,7 @@ function summaryOwner(t){
     <div class="stat"><div class="k">Зарплат выплачено</div><div class="v sm">${money(t.salaryTotal)}</div></div>
   </div>
   <div class="card p4 mt4 small muted" style="line-height:1.5">
-    <b class="sky">Как читать:</b> «${esc(S.settings.managerName)}» покупает товар за свои деньги (${money(t.investedNow)} сейчас в обороте). После продажи она возвращает вложенное и зарплату, а <b>чистую прибыль</b> вы делите ${S.settings.sharePct}/${100-S.settings.sharePct}. Кнопкой «Рассчитаться» на товаре фиксируешь, что доля тебе передана.
+    <b class="sky">Как читать:</b> «${esc(V.managerName)}» покупает товар за свои деньги (${money(t.investedNow)} сейчас в обороте). После продажи она возвращает вложенное и зарплату, а <b>чистую прибыль</b> вы делите ${V.sharePct}/${100-V.sharePct}. Кнопкой «Рассчитаться» на товаре фиксируешь, что доля тебе передана.
   </div>
   ${explainerCard()}`;
 }
@@ -438,7 +557,7 @@ function summaryManager(t){
   <div class="hero manager">
     <div class="hero-cap">✋ Можно забрать сейчас</div>
     <div class="hero-big am">${money(t.mgrWithdrawable)}</div>
-    <div class="hero-sub">С проданных, ещё не рассчитанных товаров: вложенная закупка + зарплата + твоя доля (${S.settings.sharePct}%).</div>
+    <div class="hero-sub">С проданных, ещё не рассчитанных товаров: вложенная закупка + зарплата + твоя доля (${V.sharePct}%).</div>
   </div>
   <div class="grid2 mt4">
     <div class="stat"><div class="k">Вложено сейчас</div><div class="v am">${money(t.investedNow)}</div></div>
@@ -452,26 +571,51 @@ function summaryManager(t){
     <div class="stat"><div class="k">Оборот магазина</div><div class="v sm">${money(t.turnover)}</div></div>
   </div>
   <div class="card p4 mt4 small muted" style="line-height:1.5">
-    <b class="am">Как читать:</b> ты вложила своих денег на <b>${money(t.investedNow)}</b> (пока товар не продан). После продажи забираешь вложенное назад + зарплату + ${S.settings.sharePct}% чистой прибыли. Владельцу уходит ${100-S.settings.sharePct}%. «Можно забрать» — это готовые к выплате деньги по товарам, где ещё не нажата «Рассчитаться».
+    <b class="am">Как читать:</b> ты вложила своих денег на <b>${money(t.investedNow)}</b> (пока товар не продан). После продажи забираешь вложенное назад + зарплату + ${V.sharePct}% чистой прибыли. Владельцу уходит ${100-V.sharePct}%. «Можно забрать» — это готовые к выплате деньги по товарам, где ещё не нажата «Рассчитаться».
   </div>
   ${explainerCard()}`;
 }
 
 /* ---- SETTINGS ---- */
 function viewSettings(){
+  return V.online ? settingsOnline() : settingsDemo();
+}
+function pctCard(editable){
+  const s=V.sharePct;
+  return `<div class="cfg">
+    <div class="row between mb2"><div class="b">Доля управляющей от прибыли</div><div class="am eb" style="font-size:22px" id="pctLive">${s}%</div></div>
+    <input type="range" min="0" max="100" step="1" value="${s}" class="range" id="pctRange" style="--fill:${s}%" ${editable?'':'disabled'}>
+    <div class="row between small muted mt2"><span>Владельцу: <b class="sky" id="ownPctLive">${100-s}%</b></span><span>Управляющей: <b class="am">${s}%</b></span></div>
+    ${editable?`<div class="row gap2 mt3 wrapf">
+      <button class="chip" data-setpct="20">20%</button><button class="chip" data-setpct="30">30%</button>
+      <button class="chip" data-setpct="40">40%</button><button class="chip" data-setpct="50">50%</button></div>`
+      :`<div class="small muted2 mt2">Процент задаёт владелец.</div>`}
+  </div>`;
+}
+function settingsOnline(){
+  const isOwner=V.role==='owner';
+  const linked=V.shop&&V.shop.linked;
+  let h=`<div class="banner live">🟢 Онлайн-режим. Данные общие и синхронны с партнёром.</div>`;
+  h+=pctCard(isOwner);
+  h+=`<div class="cfg">
+    <div class="lbl">Валюта</div>
+    <input class="input" id="cfgCur" value="${esc(V.currency)}" placeholder="грн" ${isOwner?'':'disabled'}>
+    ${isOwner?`<button class="btn btn-primary mt3" data-act="saveCurOnline">Сохранить валюту</button>`:`<div class="small muted2 mt2">Валюту задаёт владелец.</div>`}
+  </div>`;
+  h+=`<div class="cfg">
+    <div class="b mb2">Магазин</div>
+    <div class="kv"><span class="kk">Вы</span><span class="vv">${esc(V.shop.me.name)} · ${isOwner?'владелец':'управляющая'}</span></div>
+    <div class="kv"><span class="kk">Партнёр</span><span class="vv">${linked?esc(isOwner?V.managerName:V.ownerName):'ещё не в магазине'}</span></div>
+    ${!linked?`<div class="small muted mt2">Код приглашения:</div><div class="codebox">${esc(V.shop.inviteCode)}</div><button class="btn btn-ghost btn-sm" data-act="copyCode">Скопировать код</button>`:''}
+  </div>`;
+  h+=`<div class="small muted2 ct mt4">Доля · v1 · онлайн-синхронизация</div>`;
+  return h;
+}
+function settingsDemo(){
   const s=S.settings;
   return `
-  <div class="cfg">
-    <div class="row between mb2"><div class="b">Доля управляющей от прибыли</div><div class="am eb" style="font-size:22px" id="pctLive">${s.sharePct}%</div></div>
-    <input type="range" min="0" max="100" step="1" value="${s.sharePct}" class="range" id="pctRange" style="--fill:${s.sharePct}%">
-    <div class="row between small muted mt2"><span>Владельцу: <b class="sky" id="ownPctLive">${100-s.sharePct}%</b></span><span>Управляющей: <b class="am">${s.sharePct}%</b></span></div>
-    <div class="row gap2 mt3 wrapf">
-      <button class="chip" data-setpct="20">20%</button>
-      <button class="chip" data-setpct="30">30%</button>
-      <button class="chip" data-setpct="40">40%</button>
-      <button class="chip" data-setpct="50">50%</button>
-    </div>
-  </div>
+  <div class="banner demo">🟡 Демо-режим: данные хранятся только на этом устройстве. Открой приложение через Telegram-бота, чтобы вести общий учёт с управляющей.</div>
+  ${pctCard(true)}
   <div class="cfg">
     <div class="lbl">Имя владельца (тебя)</div>
     <input class="input mb3" id="cfgOwner" value="${esc(s.ownerName)}" placeholder="Я">
@@ -483,20 +627,24 @@ function viewSettings(){
   </div>
   <div class="cfg">
     <div class="b mb2">Данные</div>
-    <div class="small muted mb3" style="line-height:1.5">Всё хранится на этом устройстве. Роль вверху переключает вид: слева — что видит владелец, справа — управляющая.</div>
+    <div class="small muted mb3" style="line-height:1.5">Роль вверху переключает вид: слева — что видит владелец, справа — управляющая.</div>
     <button class="btn btn-danger" data-act="reset">Очистить все товары</button>
   </div>
-  <div class="small muted2 ct mt4">Доля · v1 · учёт совместной прибыли</div>`;
+  <div class="small muted2 ct mt4">Доля · v1 · демо-режим</div>`;
 }
 function bindSettings(){
   const r=$('pctRange');
-  if(r){
+  if(r && !r.disabled){
     r.oninput=()=>{
       const v=+r.value; r.style.setProperty('--fill',v+'%');
-      $('pctLive').textContent=v+'%'; $('ownPctLive').textContent=(100-v)+'%';
-      S.settings.sharePct=v; // live, save on release
+      $('pctLive').textContent=v+'%'; const op=$('ownPctLive'); if(op) op.textContent=(100-v)+'%';
+      V.sharePct=v;
+      $('pctBadge').innerHTML='доля управляющей<br><span class="am eb" style="font-size:14px">'+v+'%</span>';
     };
-    r.onchange=()=>{ save(); toast('Доля управляющей: '+S.settings.sharePct+'%'); $('pctBadge').innerHTML='доля управляющей<br><span class="am eb" style="font-size:14px">'+S.settings.sharePct+'%</span>'; };
+    r.onchange=()=>{
+      if(V.online){ apiCall('settings_save',{share_pct:+r.value},'Доля: '+r.value+'%'); }
+      else{ S.settings.sharePct=+r.value; saveLocal(); toast('Доля управляющей: '+r.value+'%'); }
+    };
   }
 }
 
@@ -511,7 +659,7 @@ function sheetAddDeal(d){
     <div class="sh-title mb4">${edit?'Изменить товар':'Новый товар'}</div>
     <div class="lbl">Название</div>
     <input class="input mb3" id="fName" value="${edit?esc(d.name):''}" placeholder="Nike Air Max 90">
-    <div class="lbl">Закупка (сколько вложила управляющая), ${esc(S.settings.currency)}</div>
+    <div class="lbl">Закупка (сколько вложила управляющая), ${esc(V.currency)}</div>
     <input class="input" id="fPurchase" inputmode="numeric" value="${edit?d.purchase:''}" placeholder="2000">
     <div class="row gap2 mt3 wrapf">
       ${[1000,1500,2000,2500].map(x=>`<button class="chip" data-fill="fPurchase" data-val="${x}">${x}</button>`).join('')}
@@ -523,7 +671,7 @@ function sheetAddDeal(d){
 }
 function sheetSell(d){
   const editing = d.status==='sold';
-  const c=S.settings.currency;
+  const c=V.currency;
   openSheet(`
     <div class="sh-title">${editing?'Изменить продажу':'Внести продажу'}</div>
     <div class="small muted mt1 mb4">${esc(d.name)} · закупка ${money(d.purchase)}</div>
@@ -550,74 +698,117 @@ function sheetSell(d){
 function previewSplit(purchase){
   const sale=num($('fSale')?$('fSale').value:0);
   const salary=num($('fSalary')?$('fSalary').value:0);
-  const pct=S.settings.sharePct/100;
+  const pct=V.sharePct/100;
   const net=sale-purchase-salary;
   const ms=Math.round(net*pct), os=net-ms;
   const el=$('preview'); if(!el) return;
   el.innerHTML=`
     <div class="kv" style="padding:3px 0"><span class="kk">Чистая прибыль</span><span class="vv ${net<0?'rd':'em'}">${money(net)}</span></div>
     <div class="divi"></div>
-    <div class="kv" style="padding:3px 0"><span class="kk">${esc(S.settings.managerName)} (${S.settings.sharePct}%) + вложенное + ЗП</span><span class="vv am">${money(purchase+salary+ms)}</span></div>
-    <div class="kv" style="padding:3px 0"><span class="kk">${esc(S.settings.ownerName)} (${100-S.settings.sharePct}%)</span><span class="vv sky">${money(os)}</span></div>`;
+    <div class="kv" style="padding:3px 0"><span class="kk">${esc(V.managerName)} (${V.sharePct}%) + вложенное + ЗП</span><span class="vv am">${money(purchase+salary+ms)}</span></div>
+    <div class="kv" style="padding:3px 0"><span class="kk">${esc(V.ownerName)} (${100-V.sharePct}%)</span><span class="vv sky">${money(os)}</span></div>`;
 }
 window.previewSplit=previewSplit;
 
 /* ============ ACTIONS ============ */
 document.addEventListener('click',e=>{
   const roleBtn=e.target.closest('#rolesw button');
-  if(roleBtn){ S.role=roleBtn.dataset.role; save(); render(); return; }
+  if(roleBtn){ S.role=roleBtn.dataset.role; saveLocal(); buildView(); render(); return; }
   const navBtn=e.target.closest('#nav button');
-  if(navBtn){ S.tab=navBtn.dataset.tab; save(); render(); return; }
+  if(navBtn){ S.tab=navBtn.dataset.tab; saveLocal(); render(); return; }
 
   const fill=e.target.closest('[data-fill]');
   if(fill){ const inp=$(fill.dataset.fill); if(inp){ inp.value=fill.dataset.val; if(fill.dataset.preview!=null) previewSplit(+fill.dataset.preview); } return; }
   const salpct=e.target.closest('[data-salpct]');
   if(salpct){ const sale=num($('fSale')?$('fSale').value:0); const inp=$('fSalary'); if(inp){ inp.value=Math.round(sale*(+salpct.dataset.salpct)/100); previewSplit(+salpct.dataset.preview); } return; }
   const setpct=e.target.closest('[data-setpct]');
-  if(setpct){ S.settings.sharePct=+setpct.dataset.setpct; save(); render(); toast('Доля управляющей: '+S.settings.sharePct+'%'); return; }
+  if(setpct){ const v=+setpct.dataset.setpct;
+    if(V.online){ apiCall('settings_save',{share_pct:v},'Доля: '+v+'%'); }
+    else{ S.settings.sharePct=v; saveLocal(); buildView(); render(); toast('Доля управляющей: '+v+'%'); }
+    return; }
 
   const a=e.target.closest('[data-act]'); if(!a) return;
   const act=a.dataset.act, id=a.dataset.id;
-  const d=id?S.deals.find(x=>x.id===id):null;
+  const d=id?V.deals.find(x=>x.id===id):null;
 
-  if(act==='addDeal'){ sheetAddDeal(null); }
-  else if(act==='editDeal'||act==='editSold'){ sheetAddDeal(d); }
-  else if(act==='createDeal'){
+  /* ---- onboarding ---- */
+  if(act==='createShop'){ apiCall('shop_create', null); return; }
+  if(act==='joinShop'){
+    const code=($('joinCode').value||'').toUpperCase().trim();
+    if(code.length<4){ toast('Введите код'); return; }
+    apiCall('shop_join',{code}); return;
+  }
+  if(act==='copyCode'){
+    const code=V.shop&&V.shop.inviteCode||'';
+    try{ navigator.clipboard.writeText(code); toast('Код скопирован: '+code); }
+    catch(e){ toast('Код: '+code); }
+    return;
+  }
+
+  /* ---- deals ---- */
+  if(act==='addDeal'){ sheetAddDeal(null); return; }
+  if(act==='editDeal'||act==='editSold'){ sheetAddDeal(d); return; }
+  if(act==='sell'){ sheetSell(d); return; }
+
+  if(act==='createDeal'){
     const name=$('fName').value.trim(), p=num($('fPurchase').value);
     if(!name){ toast('Введи название'); return; }
     if(!p){ toast('Введи сумму закупки'); return; }
-    S.deals.unshift({id:uid(),name,purchase:p,salePrice:0,salary:0,status:'onsale',settled:false,createdAt:Date.now()});
-    save(); closeSheet(); render(); toast('Товар добавлен');
+    if(V.online){ apiCall('deal_add',{name,purchase:p},'Товар добавлен').then(ok=>{ if(ok) closeSheet(); }); }
+    else{ S.deals.unshift({id:uid(),name,purchase:p,salePrice:0,salary:0,status:'onsale',settled:false,createdAt:Date.now()});
+      saveLocal(); closeSheet(); buildView(); render(); toast('Товар добавлен'); }
+    return;
   }
-  else if(act==='saveDeal'){
-    d.name=$('fName').value.trim()||d.name; d.purchase=num($('fPurchase').value);
-    save(); closeSheet(); render(); toast('Сохранено');
+  if(act==='saveDeal'){
+    const name=$('fName').value.trim()||d.name, p=num($('fPurchase').value);
+    if(V.online){ apiCall('deal_edit',{id,name,purchase:p},'Сохранено').then(ok=>{ if(ok) closeSheet(); }); }
+    else{ d.name=name; d.purchase=p; saveLocal(); closeSheet(); buildView(); render(); toast('Сохранено'); }
+    return;
   }
-  else if(act==='delDeal'){ S.deals=S.deals.filter(x=>x.id!==id); save(); closeSheet(); render(); toast('Удалено'); }
-  else if(act==='sell'){ sheetSell(d); }
-  else if(act==='saveSell'||act==='updateSell'){
+  if(act==='delDeal'){
+    if(V.online){ apiCall('deal_delete',{id},'Удалено').then(ok=>{ if(ok) closeSheet(); }); }
+    else{ S.deals=S.deals.filter(x=>x.id!==id); saveLocal(); closeSheet(); buildView(); render(); toast('Удалено'); }
+    return;
+  }
+  if(act==='saveSell'||act==='updateSell'){
     const sale=num($('fSale').value);
     if(!sale){ toast('Введи сумму продажи'); return; }
-    d.salePrice=sale; d.salary=num($('fSalary').value); d.status='sold'; d.soldAt=Date.now();
-    save(); closeSheet(); render(); toast('Продажа проведена');
+    const salary=num($('fSalary').value);
+    if(V.online){ apiCall('deal_sell',{id,sale,salary},'Продажа проведена').then(ok=>{ if(ok) closeSheet(); }); }
+    else{ d.salePrice=sale; d.salary=salary; d.status='sold'; d.soldAt=Date.now();
+      saveLocal(); closeSheet(); buildView(); render(); toast('Продажа проведена'); }
+    return;
   }
-  else if(act==='settle'){ d.settled=true; d.settledAt=Date.now(); save(); render(); toast('Рассчитано ✓'); }
-  else if(act==='unsettle'){ d.settled=false; save(); render(); }
-  else if(act==='saveCfg'){
+  if(act==='settle'){
+    if(V.online){ apiCall('deal_settle',{id,settled:true},'Рассчитано ✓'); }
+    else{ d.settled=true; saveLocal(); buildView(); render(); toast('Рассчитано ✓'); }
+    return;
+  }
+  if(act==='unsettle'){
+    if(V.online){ apiCall('deal_settle',{id,settled:false}); }
+    else{ d.settled=false; saveLocal(); buildView(); render(); }
+    return;
+  }
+
+  /* ---- settings ---- */
+  if(act==='saveCurOnline'){ apiCall('settings_save',{currency:$('cfgCur').value.trim()||'грн'},'Сохранено'); return; }
+  if(act==='saveCfg'){
     S.settings.ownerName=$('cfgOwner').value.trim()||'Я';
     S.settings.managerName=$('cfgMgr').value.trim()||'Управляющая';
     S.settings.currency=$('cfgCur').value.trim()||'грн';
-    save(); render(); toast('Настройки сохранены');
+    saveLocal(); buildView(); render(); toast('Настройки сохранены');
+    return;
   }
-  else if(act==='reset'){
-    if(confirm('Удалить все товары? Настройки останутся.')){ S.deals=[]; save(); render(); toast('Очищено'); }
+  if(act==='reset'){
+    if(confirm('Удалить все товары? Настройки останутся.')){ S.deals=[]; saveLocal(); buildView(); render(); toast('Очищено'); }
+    return;
   }
 });
 
 /* --- Telegram chrome --- */
 try{ const tg=window.Telegram&&window.Telegram.WebApp; if(tg){ tg.ready(); tg.expand&&tg.expand(); tg.setHeaderColor&&tg.setHeaderColor('#0b1210'); } }catch(e){}
 
-render();
+boot();
 </script>
 </body>
 </html>

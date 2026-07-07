@@ -131,9 +131,98 @@ npm run dev
 Процент доли управляющей (ползунок + пресеты 20/30/40/50 %), имена сторон, валюта.
 Пример расчёта (2000 → 4000, ЗП 200) наглядно показан прямо в приложении.
 
-> Сейчас данные хранятся на устройстве (одно устройство, роли переключаются
-> вручную). Следующий шаг — общий бэкенд (Supabase + Telegram, как в PARA), чтобы
-> владелец и управляющая видели синхронные данные каждый со своего телефона.
+## Общая синхронизация двоих (backend)
+
+По умолчанию (без ключей) приложение работает в **демо-режиме**: данные хранятся
+на этом устройстве, роль переключается вручную. Чтобы владелец и управляющая
+вели **общий учёт** и видели синхронные данные каждый со своего телефона,
+подключается serverless-функция `profit/api/profit.js` + **отдельный** проект
+Supabase и Telegram-бот. Вход — по подписи Telegram `initData` (HMAC токеном
+бота, подделать чужой аккаунт нельзя); доступ к базе — только с сервера
+service-role ключом (в браузер не попадает).
+
+Кто входит через ссылку-приглашение первым и создаёт магазин — становится
+**владельцем**; кто входит по коду — **управляющей**. Права: владелец заводит
+товары/закупки, правит их и задаёт процент доли; управляющая вносит продажи и
+зарплату. Ключевые события шлют пуш второму участнику (присоединение, продажа с
+суммой доли, «рассчитано»).
+
+### 1. Создай отдельный проект Supabase и выполни SQL
+
+```sql
+create extension if not exists pgcrypto;
+
+create table profit_shops (
+  id uuid primary key default gen_random_uuid(),
+  invite_code text unique not null,
+  owner_tg   bigint,
+  share_pct  int  default 30,      -- доля управляющей, %
+  currency   text default 'грн',
+  created_at timestamptz default now()
+);
+
+create table profit_members (
+  shop_id  uuid references profit_shops(id) on delete cascade,
+  tg_id    bigint not null,
+  name     text,
+  photo_url text,
+  role     text check (role in ('owner','manager')),
+  joined_at timestamptz default now(),
+  primary key (shop_id, tg_id)
+);
+-- один пользователь = один магазин (MVP)
+create unique index profit_members_tg on profit_members(tg_id);
+
+create table profit_deals (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid references profit_shops(id) on delete cascade,
+  name     text,
+  purchase bigint  default 0,      -- закупка (деньги управляющей)
+  sale     bigint  default 0,      -- продажа
+  salary   bigint  default 0,      -- зарплата с продажи
+  status   text    default 'onsale',   -- onsale | sold
+  settled  boolean default false,      -- «рассчитано»
+  created_at  timestamptz default now(),
+  sold_at     timestamptz,
+  settled_at  timestamptz
+);
+
+-- RLS можно включить: доступ к таблицам идёт только из profit/api/profit.js
+-- service-role ключом (в браузер не попадает).
+alter table profit_shops   enable row level security;
+alter table profit_members enable row level security;
+alter table profit_deals   enable row level security;
+```
+
+### 2. Заведи Telegram-бота
+
+1. У **@BotFather**: `/newbot` → получи **токен бота**.
+2. `/newapp` (или `/setmenubutton`) → привяжи **Mini App** к домену «Доли».
+3. Ссылка-приглашение вида `https://t.me/<bot>?startapp=<КОД>` открывает
+   приложение сразу со входом в магазин по коду (управляющая входит одним
+   касанием, код вводить не нужно).
+
+### 3. Задай переменные окружения (Vercel → Settings → Environment Variables)
+
+- `PROFIT_SUPABASE_URL` — URL проекта Supabase для «Доли».
+- `PROFIT_SUPABASE_SERVICE_ROLE_KEY` — service_role ключ этого проекта (секрет!).
+- `PROFIT_BOT_TOKEN` — токен Telegram-бота от @BotFather.
+- `PROFIT_BOT_USERNAME` — *(необяз.)* юзернейм бота для ссылок-приглашений.
+- `PROFIT_APP_URL` — *(необяз.)* URL мини-аппа для кнопок «Открыть».
+
+*(Если отдельные `PROFIT_*` не заданы, функция читает и `SUPABASE_URL` /
+`SUPABASE_SERVICE_ROLE_KEY` / `BOT_TOKEN`. Для чистоты рекомендуются отдельные.)*
+
+Пока ключи не заданы, `api/profit.js` возвращает `not_configured`, а `index.html`
+мягко откатывается в демо-режим — страница не ломается.
+
+### Что покрыто тестами
+
+`api/profit.js` проверен: подпись `initData` (валидная принимается,
+поддельная/с чужим токеном — отклоняются) и раздел прибыли (2000→4000, ЗП 200:
+чистая 1800, управляющей 540, владельцу 1260, «можно забрать» 2740). Фронтенд
+проверен end-to-end в обоих режимах: демо (localStorage) и онлайн (онбординг →
+создание магазина → приглашение по коду → добавление товара → продажа → расчёт).
 
 ---
 
