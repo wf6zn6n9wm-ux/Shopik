@@ -174,6 +174,46 @@
     border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;}
   .cfgadd{width:100%;border:1px dashed var(--line);background:transparent;color:var(--muted);
     border-radius:12px;padding:10px;font-size:13px;font-weight:700;}
+  /* ===== премиальный дашборд админки ===== */
+  .adm-sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:20px 2px 10px;}
+  .adm-sec-h .t{font-size:15px;font-weight:800;letter-spacing:-.01em;}
+  .adm-sec-h .d{font-size:12.5px;color:var(--muted);font-weight:600;}
+  .adm-hero{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .adm-kpi{position:relative;overflow:hidden;border-radius:18px;padding:15px 15px 14px;
+    background:linear-gradient(160deg,rgba(255,94,138,.12),rgba(192,38,211,.05) 70%,rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 26px rgba(0,0,0,.22);transition:transform .12s;}
+  .adm-kpi[data-act]:active{transform:scale(.98);}
+  .adm-kpi .ic{font-size:15px;}
+  .adm-kpi .lbl{font-size:11.5px;color:var(--muted);margin-top:7px;}
+  .adm-kpi .val{font-size:28px;font-weight:800;line-height:1;margin-top:5px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .adm-delta{display:inline-block;font-size:11px;font-weight:800;margin-top:8px;}
+  .adm-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;}
+  .adm-toggle{display:inline-flex;background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px;}
+  .adm-toggle button{font-size:12px;font-weight:700;color:var(--muted);padding:6px 11px;border-radius:8px;transition:all .18s;}
+  .adm-toggle button.on{background:var(--grad);color:#fff;box-shadow:0 4px 12px rgba(255,94,138,.3);}
+  .adm-chart-wrap{position:relative;margin-top:8px;}
+  .adm-badge{position:absolute;top:0;right:0;background:rgba(0,0,0,.4);border:1px solid var(--line);
+    color:#fff;font-size:12px;font-weight:800;padding:5px 10px;border-radius:10px;z-index:2;}
+  .adm-x{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted2);margin-top:6px;padding:0 2px;}
+  .adm-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .adm-mini{border-radius:16px;padding:12px;background:var(--card);border:1px solid var(--line);transition:transform .12s;}
+  .adm-mini[data-act]:active{transform:scale(.97);}
+  .adm-mini .lbl{font-size:10.5px;color:var(--muted);}
+  .adm-mini .val{font-size:21px;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .adm-mini .adm-delta{margin-top:5px;font-size:10.5px;}
+  .adm-link-num{font-size:32px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .adm-bar{height:12px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:12px;}
+  .adm-bar>div{height:100%;border-radius:999px;background:var(--grad);
+    box-shadow:0 0 20px rgba(255,94,138,.55);transition:width .8s cubic-bezier(.2,.8,.2,1);}
+  .adm-cta{width:100%;margin-top:16px;border-radius:16px;padding:16px;font-weight:800;font-size:15px;color:#fff;
+    background:var(--grad);display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 14px 30px rgba(192,38,211,.42),inset 0 1px 0 rgba(255,255,255,.18);transition:transform .14s;}
+  .adm-cta:active{transform:scale(.98);}
+  .adm-pill{font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--muted);}
+  .adm-pill.on{background:rgba(52,211,153,.16);color:#34d399;}
+  .adm-foot{display:flex;align-items:center;justify-content:space-between;margin-top:22px;padding-top:14px;
+    border-top:1px solid var(--line);font-size:12px;color:var(--muted);}
+  .adm-refresh{font-size:12px;font-weight:700;color:#ff8fb0;padding:6px 10px;border-radius:9px;background:rgba(255,94,138,.08);}
 
   /* partner switch */
   .switch{display:flex;gap:4px;padding:6px;position:relative;}
@@ -418,7 +458,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v15 · вечернее напоминание';
+var APP_VERSION = 'v16 · премиум-дашборд';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1337,59 +1377,95 @@ function usScreen(){
 
 // ---------- Полная админка (overlay внутри приложения) ----------
 function admCumulative(series){ var t=0; return (series||[]).map(function(p){ t+=p.v; return {date:p.date,v:t}; }); }
-function admLine(series, color){
-  series=series||[]; var W=680,H=120,pad=8,n=series.length;
-  if(!n) return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:96px"></svg>';
-  var max=Math.max(1,series.reduce(function(m,p){return Math.max(m,p.v);},0));
-  var pts=series.map(function(p,i){ var x=pad+(W-2*pad)*(i/((n-1)||1)); var y=H-pad-(H-2*pad)*(p.v/max); return [x,y]; });
-  var line=pts.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
-  var area=line+' L'+pts[n-1][0].toFixed(1)+' '+(H-pad)+' L'+pts[0][0].toFixed(1)+' '+(H-pad)+' Z';
-  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:96px">'+
-    '<path d="'+area+'" fill="'+color+'" opacity="0.12"/>'+
-    '<path d="'+line+'" fill="none" stroke="'+color+'" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>';
-}
-function admBars(series, color){
-  series=series||[]; var W=680,H=120,pad=8,n=series.length||1;
-  var max=Math.max(1,series.reduce(function(m,p){return Math.max(m,p.v);},0));
-  var bw=(W-2*pad)/n, bars='';
-  series.forEach(function(p,i){ var h=(H-2*pad)*(p.v/max); bars+='<rect x="'+(pad+i*bw+bw*0.15).toFixed(1)+'" y="'+(H-pad-h).toFixed(1)+'" width="'+(bw*0.7).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1.5" fill="'+color+'"/>'; });
-  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:96px">'+bars+'</svg>';
+// дельты из дневных серий (честно, из реальных данных)
+function admPct(a,b){ if(b<=0) return a>0?{v:100,up:true}:null; var p=Math.round((a-b)/b*100); if(p===0) return null; return {v:p,up:p>0}; }
+function admSum(s,from,to){ var x=0; for(var i=from;i<to&&i>=0&&i<s.length;i++){ if(s[i]) x+=s[i].v; } return x; }
+function admDeltaDay(s){ if(!s||s.length<2) return null; return admPct(s[s.length-1].v, s[s.length-2].v); } // сегодня vs вчера
+function admDelta7Total(s){ if(!s||s.length<8) return null; return admPct(admSum(s,0,s.length), admSum(s,0,s.length-7)); } // накопленный рост за 7д
+function admDelta7v7(s){ if(!s||s.length<14) return null; var n=s.length; return admPct(admSum(s,n-7,n), admSum(s,n-14,n-7)); } // последние 7д vs предыдущие 7д
+function admChip(d){ if(!d) return ''; var up=d.up, c=up?'#34d399':'#f87171'; return '<span class="adm-delta" style="color:'+c+'">'+(up?'+':'−')+Math.abs(d.v)+'% '+(up?'↑':'↓')+'</span>'; }
+function admDayLabel(iso){ if(!iso) return ''; var p=String(iso).split('-'); var mm=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'][(+p[1]-1)||0]; return (+p[2])+' '+mm; }
+// премиальный график: накопительная кривая с заливкой-градиентом
+function admChart(cum, range){
+  var pts=(cum||[]).slice(-range); var n=pts.length;
+  if(n<2) return '<div class="muted small center-t" style="padding:34px">Пока мало данных для графика</div>';
+  var W=680,H=150,pad=10, vals=pts.map(function(p){return p.v;});
+  var max=Math.max.apply(null,vals), min=Math.min.apply(null,vals), rng=Math.max(1,max-min);
+  var X=function(i){ return pad+(W-2*pad)*(i/(n-1)); };
+  var Y=function(v){ return pad+(H-2*pad)-(H-2*pad)*((v-min)/rng); };
+  var line=pts.map(function(p,i){ return (i?'L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1); }).join(' ');
+  var area=line+' L'+X(n-1).toFixed(1)+' '+(H-pad)+' L'+X(0).toFixed(1)+' '+(H-pad)+' Z';
+  var last=pts[n-1];
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:150px">'+
+    '<defs><linearGradient id="agrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5e8a" stop-opacity="0.30"/><stop offset="1" stop-color="#ff5e8a" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+area+'" fill="url(#agrad)"/>'+
+    '<path d="'+line+'" fill="none" stroke="#ff5e8a" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  var badge='<div class="adm-badge">'+last.v+' · '+admDayLabel(last.date)+'</div>';
+  var xax='<div class="adm-x"><span>'+admDayLabel(pts[0].date)+'</span><span>'+admDayLabel(pts[Math.floor(n/2)].date)+'</span><span>'+admDayLabel(last.date)+'</span></div>';
+  return '<div class="adm-chart-wrap">'+badge+svg+'</div>'+xax;
 }
 function adminDashView(){
   var d=S.adminData, t=d.totals||{}, s=d.series||{}, list=d.couples||[];
-  var k=function(icon,l,v){ return '<div class="card p4"><div class="xs muted">'+icon+' '+l+'</div><div class="b" style="font-size:23px;margin-top:3px">'+(v==null?0:v)+'</div></div>'; };
-  var kpis='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
-    k('👥','Пользователей',t.users)+k('💕','Пар',t.couples)+
-    k('🔗','Активных пар',t.active)+k('⏳','Ожидают',t.waiting)+
-    k('📈','Новых сегодня',t.newToday)+k('📅','Новых за 7д',t.new7d)+
-    k('🎯','Квестов сегодня',t.questsToday)+k('⭐','Очков сегодня',t.pointsToday)+
-    k('💬','Ответов сегодня',t.answersToday)+k('🔥','DAU',t.dau)+'</div>';
-  var chartCard=function(title,svg){ return '<div class="card p4 mt3"><div class="small sb mb2">'+title+'</div>'+svg+'<div class="xs muted2 mt2">за 30 дней</div></div>'; };
-  var charts=
-    chartCard('👥 Рост пользователей', admLine(admCumulative(s.users),'#ff5e8a'))+
-    chartCard('💕 Рост пар', admLine(admCumulative(s.couples),'#c026d3'))+
-    chartCard('💬 Ответы по дням', admBars(s.answers,'#fbbf24'))+
-    chartCard('🎯 Квесты по дням', admBars(s.quests,'#34d399'))+
-    chartCard('🔥 Активность (DAU)', admBars(s.activity,'#60a5fa'));
-  var rows=list.map(function(c){
-    return '<div class="row between" style="padding:10px 0;border-bottom:1px solid var(--line)">'+
-      '<div><div class="rose b" style="letter-spacing:.1em">'+esc(c.code)+'</div>'+
-      '<div class="xs muted">'+esc(c.members.join(' & ')||'—')+' · '+esc(c.created||'')+'</div></div>'+
-      '<span class="xs" style="'+(c.linked?'color:#34d399':'color:var(--muted)')+'">'+(c.linked?'в паре':'ждёт')+'</span></div>';
-  }).join('')||'<div class="muted small center-t" style="padding:16px">Пока нет пар</div>';
-  // конверсия в связанные пары + рассылка напоминаний
+  var range=S.admRange||30;
+  var today=new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+  // hero-KPI с дельтами (визуальная иерархия — акцентные градиентные карточки)
+  var kpi=function(ic,l,v,delta,act){
+    return '<div class="adm-kpi"'+(act?' data-act="'+act+'"':'')+'><div class="ic">'+ic+'</div><div class="lbl">'+l+'</div>'+
+      '<div class="val">'+(v==null?0:v)+'</div>'+admChip(delta)+'</div>';
+  };
+  var hero='<div class="adm-hero">'+
+    kpi('👥','Пользователи',t.users, admDelta7Total(s.users))+
+    kpi('💞','Пар',t.couples, admDelta7Total(s.couples),'adm-pairs')+
+    kpi('🔗','Активных пар',t.active, null,'adm-pairs')+
+    kpi('🔥','DAU',t.dau, admDeltaDay(s.activity))+
+    '</div>';
+  // главный график — накопительный рост пользователей (кривая всегда завершается на реальном total)
+  var cumUsers=admCumulative(s.users);
+  var baseline=Math.max(0,(t.users||0)-(cumUsers.length?cumUsers[cumUsers.length-1].v:0));
+  if(baseline>0) cumUsers=cumUsers.map(function(p){return {date:p.date,v:p.v+baseline};});
+  var chart='<div class="adm-card mt3"><div class="adm-sec-h" style="margin:0 0 4px">'+
+    '<div class="t">📈 Рост пользователей</div>'+
+    '<div class="adm-toggle"><button class="'+(range===7?'on':'')+'" data-act="adm-range" data-r="7">7 дней</button>'+
+    '<button class="'+(range===30?'on':'')+'" data-act="adm-range" data-r="30">30 дней</button></div></div>'+
+    admChart(cumUsers, range)+'</div>';
+  // вторичные метрики — плоские карточки (ниже в иерархии)
+  var mini=function(ic,l,v,delta,act){ return '<div class="adm-mini"'+(act?' data-act="'+act+'"':'')+'><div class="lbl">'+ic+' '+l+'</div><div class="val">'+(v==null?0:v)+'</div>'+admChip(delta)+'</div>'; };
+  var grid='<div class="adm-grid3 mt3">'+
+    mini('📈','Новых сегодня',t.newToday, admDeltaDay(s.users))+
+    mini('📅','Новых за 7д',t.new7d, admDelta7v7(s.users))+
+    mini('⏳','Ожидают',t.waiting, null,'adm-pairs')+
+    mini('🎯','Квесты',t.questsToday, admDeltaDay(s.quests))+
+    mini('⭐','Очки',t.pointsToday, admDeltaDay(s.points))+
+    mini('💬','Ответы',t.answersToday, admDeltaDay(s.answers))+
+    '</div>';
+  // связывание пар — наглядный progress bar + Primary CTA
   var waiting=t.waiting||0, active=t.active||0, total=t.couples||0, conv=total?Math.round(active/total*100):0;
-  var remindCard='<div class="card p4 mt3" style="border:1px solid rgba(255,94,138,.25)">'+
-    '<div class="small sb mb2">🔗 Связывание пар</div>'+
-    '<div class="row between small"><span class="muted">Связано</span><span class="b" style="color:#34d399">'+active+' / '+total+' ('+conv+'%)</span></div>'+
-    '<div class="row between small mt2"><span class="muted">Ждут партнёра</span><span class="b" style="color:#fbbf24">'+waiting+'</span></div>'+
-    '<button class="add-wish" style="margin-top:12px" data-act="admin-remind">🔔 Напомнить ожидающим ('+waiting+')</button>'+
-    '<div class="xs muted2 mt2">Разошлём приглашающим, у кого партнёр ещё не зашёл (не чаще раза в 20 ч).</div>'+
+  var linkCard='<div class="adm-card mt3">'+
+    '<div class="row between" style="align-items:center"><div class="t" style="font-size:15px;font-weight:800">🔗 Связывание пар</div>'+
+      '<div class="xs muted">цель — довести до пары</div></div>'+
+    '<div class="row between" style="align-items:flex-end;margin-top:12px"><div><span class="adm-link-num">'+active+'</span>'+
+      '<span class="muted" style="font-size:16px;font-weight:700"> / '+total+'</span></div>'+
+      '<div class="adm-link-num" style="color:#ff8fb0">'+conv+'%</div></div>'+
+    '<div class="adm-bar"><div style="width:'+Math.max(3,conv)+'%"></div></div>'+
+    '<div class="row between small mt3"><span class="muted">⏳ Ждут партнёра</span><span class="b" style="color:#fbbf24">'+waiting+'</span></div>'+
+    '<button class="adm-cta" data-act="admin-remind">✈️ Напомнить ожидающим ('+waiting+')</button>'+
+    '<div class="xs muted2 center-t mt2">Разошлём приглашение с ссылкой тем, у кого партнёр ещё не зашёл</div>'+
     (S.remindMsg?'<div class="center-t small mt2" style="color:'+(/Ошибк/.test(S.remindMsg)?'#fca5a5':'#34d399')+'">'+esc(S.remindMsg)+'</div>':'')+
     '</div>';
-  return kpis+remindCard+charts+
-    '<div class="small sb" style="margin:18px 0 8px">💞 Пары ('+list.length+')</div>'+
-    '<div class="card p4">'+rows+'</div>';
+  // список пар
+  var rows=list.map(function(c){
+    return '<div class="row between" style="padding:11px 0;border-bottom:1px solid var(--line)">'+
+      '<div><div class="rose b" style="letter-spacing:.1em">'+esc(c.code)+'</div>'+
+      '<div class="xs muted mt1">'+esc(c.members.join(' & ')||'—')+' · '+esc(c.created||'')+'</div></div>'+
+      '<span class="adm-pill '+(c.linked?'on':'')+'">'+(c.linked?'в паре':'ждёт')+'</span></div>';
+  }).join('')||'<div class="muted small center-t" style="padding:16px">Пока нет пар</div>';
+  var pairsCard='<div class="adm-sec-h" id="adm-pairs-anchor"><div class="t">💞 Пары</div><div class="d">'+list.length+'</div></div>'+
+    '<div class="adm-card">'+rows+'</div>';
+  var foot='<div class="adm-foot"><span>Обновлено: '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})+'</span>'+
+    '<button class="adm-refresh" data-act="adm-refresh">Обновить ↻</button></div>';
+  return '<div class="adm-sec-h" style="margin-top:4px"><div class="t">Главное за сегодня</div><div class="d">'+today+'</div></div>'+
+    hero+chart+grid+linkCard+
+    '<div style="height:4px"></div>'+pairsCard+foot;
 }
 // --- редактор конфигурации (уровни/награды) прямо во встроенной админке ---
 var CFG_METRICS=[['points','Очки'],['questsDone','Квестов'],['wishesDone','Желаний'],['answersCount','Ответов'],['streak','Серия'],['levelIndex','Индекс уровня']];
@@ -1668,6 +1744,9 @@ var ACTS={
   'share-code':function(){ shareInvite(S.couple && S.couple.inviteCode); },
   'open-admin':function(){ if(!ONLINE)return; api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; S.showAdmin=true; render(); } else if(r&&r.reason==='forbidden'){ alert('Нет доступа. Твой ID: '+r.yourId); } else { alert('Ошибка: '+((r&&r.reason)||'')); } }).catch(function(){}); },
   'close-admin':function(){ S.showAdmin=false; render(); },
+  'adm-range':function(el){ S.admRange=+el.dataset.r; haptic('light'); render(); },
+  'adm-refresh':function(){ haptic('light'); api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; render(); } }); },
+  'adm-pairs':function(){ var e=document.getElementById('adm-pairs-anchor'); if(e)e.scrollIntoView({behavior:'smooth',block:'start'}); haptic('light'); },
   'admin-remind':function(){ S.remindMsg='Отправляем…'; render(); api('remind_waiting').then(function(r){ if(r&&r.ok){ S.remindMsg='✅ Отправлено: '+r.sent+(r.skipped?(' · пропущено (недавно напоминали): '+r.skipped):''); haptic('success'); } else { S.remindMsg='Ошибка: '+((r&&r.reason)||'?'); haptic('warning'); } render(); setTimeout(function(){ S.remindMsg=''; render(); },6000); }).catch(function(){ S.remindMsg='Ошибка сети'; render(); }); },
   'adm-tab':function(el){ var t=el.dataset.t; S.adminTab=t; haptic('light');
     if(t==='config'&&!S.adminConfig){ api('config_get').then(function(r){ S.adminConfig=(r&&r.ok&&r.config)?r.config:(S.config||{levels:[],achievements:[],themes:[],frames:[],categories:[],quests:[]}); render(); }); }

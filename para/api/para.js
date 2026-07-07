@@ -373,6 +373,7 @@ module.exports = async (req, res) => {
         couples: bucket((m) => cs.forEach((c) => { const d = d10(c.created_at); if (d in m) m[d]++; })),
         answers: bucket((m) => as.forEach((a) => { if (a.day in m) m[a.day]++; })),
         quests: bucket((m) => ev.forEach((e) => { if (e.type === 'quest') { const d = d10(e.created_at); if (d in m) m[d]++; } })),
+        points: bucket((m) => ev.forEach((e) => { if (e.type === 'points') { const d = d10(e.created_at); if (d in m) m[d] += (e.amount || 0); } })),
         activity: days.map((d) => ({ date: d, v: activeSets[d].size }))
       };
 
