@@ -234,6 +234,39 @@
   .pcode{color:var(--rose);font-weight:800;letter-spacing:.08em;font-size:14px;}
   .uchip-f{font-size:12px;font-weight:700;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);cursor:pointer;}
   .uchip-f.on{background:var(--grad);color:#fff;border-color:transparent;}
+  /* аналитика: кнопка календаря, кликабельные точки, показатели за период */
+  .adm-cal-btn{width:38px;height:32px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:16px;cursor:pointer;line-height:1;}
+  .adm-cal-btn.on{background:var(--grad);border-color:transparent;}
+  .adm-range-chip{display:inline-flex;align-items:center;gap:8px;margin:2px 0 8px;padding:5px 8px 5px 12px;border-radius:999px;background:rgba(255,94,138,.14);color:#ff8fb0;font-size:12.5px;font-weight:700;}
+  .adm-range-chip button{border:none;background:rgba(255,255,255,.12);color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;cursor:pointer;line-height:1;}
+  .adm-dot{position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#ff5e8a;box-shadow:0 0 0 2px rgba(11,7,16,.9);pointer-events:none;opacity:.55;transition:.15s;}
+  .adm-dot.on{opacity:1;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;box-shadow:0 0 0 3px rgba(11,7,16,.95),0 0 14px #ff5e8a;}
+  .adm-hit{position:absolute;top:0;height:150px;background:transparent;border:none;padding:0;cursor:pointer;}
+  .adm-guide{position:absolute;top:6px;bottom:22px;width:1.5px;margin-left:-.75px;background:linear-gradient(#ff5e8a,rgba(255,94,138,0));pointer-events:none;}
+  .adm-day-card{border:1px solid rgba(255,94,138,.25);}
+  .adm-day-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--muted);}
+  .adm-day-row:last-child{border-bottom:none;}
+  .adm-day-row .b{color:#fff;font-size:15px;}
+  .adm-day-x{width:26px;height:26px;border-radius:50%;border:none;background:rgba(255,255,255,.06);color:var(--muted);font-size:12px;cursor:pointer;}
+  .adm-pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .adm-pcell{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:11px 12px;}
+  .adm-pcell .pl{font-size:11.5px;color:var(--muted);margin-bottom:4px;}
+  .adm-pcell .pv{font-size:22px;font-weight:800;letter-spacing:-.02em;}
+  /* календарь */
+  .cal-ovl{align-items:flex-end;}
+  .cal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);}
+  .cal-sheet{position:relative;width:100%;max-width:440px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(0,0,0,.5);}
+  .cal-sel{font-size:13px;color:#ff8fb0;font-weight:700;}
+  .cal-nav{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#fff;font-size:20px;cursor:pointer;line-height:1;}
+  .cal-nav:disabled{opacity:.3;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-dows{margin-bottom:4px;}
+  .cal-dow{text-align:center;font-size:11px;color:var(--muted2);padding:2px 0;}
+  .cal-cell{aspect-ratio:1;border:none;background:transparent;color:#fff;font-size:14px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .cal-cell.empty{visibility:hidden;}
+  .cal-cell.dis{color:var(--muted2);opacity:.35;cursor:default;}
+  .cal-cell.mid{background:rgba(255,94,138,.14);border-radius:0;}
+  .cal-cell.sel{background:var(--grad);color:#fff;font-weight:800;}
 
   /* partner switch */
   .switch{display:flex;gap:4px;padding:6px;position:relative;}
@@ -478,7 +511,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v18 · раздел Пары';
+var APP_VERSION = 'v19 · аналитика по периоду';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1424,6 +1457,113 @@ function admChart(cum, range){
   var xax='<div class="adm-x"><span>'+admDayLabel(pts[0].date)+'</span><span>'+admDayLabel(pts[Math.floor(n/2)].date)+'</span><span>'+admDayLabel(last.date)+'</span></div>';
   return '<div class="adm-chart-wrap">'+badge+svg+'</div>'+xax;
 }
+// ----- аналитика по периоду: календарь, показатели за период, клик по точке -----
+function admFullDate(iso){ if(!iso) return ''; var p=String(iso).split('-'); var mm=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'][(+p[1]-1)||0]; return (+p[2])+' '+mm; }
+function admDates(){ var s=(S.adminData&&S.adminData.series&&S.adminData.series.users)||[]; return s.map(function(p){return p.date;}); }
+function admWindow(){
+  var dates=admDates(); if(!dates.length) return null;
+  var minD=dates[0], maxD=dates[dates.length-1];
+  if(S.admFrom&&S.admTo) return {from:S.admFrom,to:S.admTo,custom:true,min:minD,max:maxD};
+  var r=S.admRange||30, from=dates[Math.max(0,dates.length-r)];
+  return {from:from,to:maxD,custom:false,min:minD,max:maxD};
+}
+function admPeriod(w){
+  var S0=(S.adminData&&S.adminData.series)||{};
+  function inw(p){ return p.date>=w.from&&p.date<=w.to; }
+  function sum(name){ var x=0; (S0[name]||[]).forEach(function(p){ if(inw(p)) x+=p.v; }); return x; }
+  function peak(name){ var x=0; (S0[name]||[]).forEach(function(p){ if(inw(p)&&p.v>x) x=p.v; }); return x; }
+  var dc=0; (S0.users||[]).forEach(function(p){ if(inw(p)) dc++; }); dc=dc||1;
+  return { newUsers:sum('users'), newCouples:sum('couples'), quests:sum('quests'), points:sum('points'),
+    answers:sum('answers'), dauPeak:peak('activity'), dauAvg:Math.round(sum('activity')/dc), days:dc };
+}
+function admPeriodCard(w){
+  if(!w) return ''; var per=admPeriod(w);
+  var lbl=(S.admFrom&&S.admTo)?(admDayLabel(w.from)+' — '+admDayLabel(w.to)):('за '+per.days+' дн.');
+  var cell=function(ic,l,v){ return '<div class="adm-pcell"><div class="pl">'+ic+' '+l+'</div><div class="pv">'+v+'</div></div>'; };
+  return '<div class="adm-card mt3"><div class="adm-sec-h" style="margin:0 0 10px"><div class="t">📊 Показатели за период</div><div class="d">'+lbl+'</div></div>'+
+    '<div class="adm-pgrid">'+
+      cell('👥','Новых',per.newUsers)+cell('💞','Новых пар',per.newCouples)+cell('🔥','Пик DAU',per.dauPeak)+
+      cell('🎯','Квесты',per.quests)+cell('⭐','Очки',per.points)+cell('💬','Ответы',per.answers)+
+    '</div></div>';
+}
+function admDayCard(){
+  var d=S.admDay; if(!d||!S.adminData) return '';
+  var S0=S.adminData.series||{};
+  function val(name){ var a=S0[name]||[]; for(var i=0;i<a.length;i++) if(a[i].date===d) return a[i].v; return 0; }
+  var row=function(ic,l,v){ return '<div class="adm-day-row"><span>'+ic+' '+l+'</span><span class="b">'+v+'</span></div>'; };
+  return '<div class="adm-card mt2 adm-day-card"><div class="row between" style="align-items:center;margin-bottom:8px">'+
+    '<div class="b">📅 '+admFullDate(d)+'</div><button class="adm-day-x" data-act="adm-day-close">✕</button></div>'+
+    row('👥','Новых пользователей',val('users'))+row('💞','Новых пар',val('couples'))+row('🔥','Активных (DAU)',val('activity'))+
+    row('🎯','Квесты',val('quests'))+row('⭐','Очки (начислено)',val('points'))+row('💬','Ответы',val('answers'))+'</div>';
+}
+// накопительная кривая, обрезанная под окно, с кликабельными точками
+function admGrowthChart(w){
+  var d=S.adminData||{}, t=d.totals||{}, s=d.series||{};
+  var cum=admCumulative(s.users);
+  var baseline=Math.max(0,(t.users||0)-(cum.length?cum[cum.length-1].v:0));
+  if(baseline>0) cum=cum.map(function(p){return {date:p.date,v:p.v+baseline};});
+  var pts=cum.filter(function(p){ return p.date>=w.from&&p.date<=w.to; }); var n=pts.length;
+  if(n<2) return '<div class="muted small center-t" style="padding:30px 20px">Выбран один день — подробности в «Показателях за период» ниже</div>';
+  var W=680,H=150,pad=10, vals=pts.map(function(p){return p.v;});
+  var max=Math.max.apply(null,vals), min=Math.min.apply(null,vals), rng=Math.max(1,max-min);
+  var X=function(i){ return pad+(W-2*pad)*(i/(n-1)); };
+  var Y=function(v){ return pad+(H-2*pad)-(H-2*pad)*((v-min)/rng); };
+  var line=pts.map(function(p,i){ return (i?'L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1); }).join(' ');
+  var area=line+' L'+X(n-1).toFixed(1)+' '+(H-pad)+' L'+X(0).toFixed(1)+' '+(H-pad)+' Z';
+  var last=pts[n-1], bpt=last;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:150px">'+
+    '<defs><linearGradient id="agrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5e8a" stop-opacity="0.30"/><stop offset="1" stop-color="#ff5e8a" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+area+'" fill="url(#agrad)"/>'+
+    '<path d="'+line+'" fill="none" stroke="#ff5e8a" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  var xp=[]; for(var k=0;k<n;k++) xp.push(X(k)/W*100);
+  var dots='', hits='', guide='';
+  for(var i=0;i<n;i++){
+    var lp=xp[i], tp=Y(pts[i].v), sel=(S.admDay===pts[i].date);
+    var le=(i===0)?0:(xp[i-1]+xp[i])/2, re=(i===n-1)?100:(xp[i]+xp[i+1])/2; // сегмент «ближайшей точки»
+    if(sel){ bpt=pts[i]; guide='<div class="adm-guide" style="left:'+lp.toFixed(2)+'%"></div>'; }
+    dots+='<span class="adm-dot'+(sel?' on':'')+'" style="left:'+lp.toFixed(2)+'%;top:'+tp.toFixed(1)+'px"></span>';
+    hits+='<button class="adm-hit" data-act="adm-day" data-d="'+pts[i].date+'" style="left:'+le.toFixed(2)+'%;width:'+(re-le).toFixed(2)+'%" aria-label="'+admDayLabel(pts[i].date)+'"></button>';
+  }
+  dots=hits+dots;
+  var badge='<div class="adm-badge">'+bpt.v+' · '+admDayLabel(bpt.date)+'</div>';
+  var xax='<div class="adm-x"><span>'+admDayLabel(pts[0].date)+'</span><span>'+admDayLabel(pts[Math.floor(n/2)].date)+'</span><span>'+admDayLabel(last.date)+'</span></div>';
+  return '<div class="adm-chart-wrap">'+badge+guide+svg+dots+'</div>'+
+    '<div class="xs muted2 center-t mt1">Нажмите на точку графика — покажем показатели за день</div>'+xax;
+}
+// календарь выбора периода
+function calShift(ym,delta){ var y=+ym.slice(0,4),m=+ym.slice(5,7)-1+delta; return new Date(Date.UTC(y,m,1)).toISOString().slice(0,7); }
+function calOverlay(){
+  if(!S.calOpen) return '';
+  var w=admWindow(); if(!w) return '';
+  var minD=w.min,maxD=w.max, ym=S.calMonth||maxD.slice(0,7);
+  var y=+ym.slice(0,4),mo=+ym.slice(5,7)-1;
+  var startDow=(new Date(Date.UTC(y,mo,1)).getUTCDay()+6)%7;
+  var dim=new Date(Date.UTC(y,mo+1,0)).getUTCDate();
+  var monthName=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'][mo];
+  var cells=''; for(var i=0;i<startDow;i++) cells+='<div class="cal-cell empty"></div>';
+  for(var dn=1;dn<=dim;dn++){
+    var ds=ym+'-'+(dn<10?'0':'')+dn, dis=ds<minD||ds>maxD;
+    var isF=S.calFrom&&ds===S.calFrom, isT=S.calTo&&ds===S.calTo, inR=S.calFrom&&S.calTo&&ds>S.calFrom&&ds<S.calTo;
+    var cls='cal-cell'+(dis?' dis':'')+(isF||isT?' sel':'')+(inR?' mid':'');
+    cells+='<button class="'+cls+'"'+(dis?' disabled':' data-act="cal-pick" data-d="'+ds+'"')+'>'+dn+'</button>';
+  }
+  var prevOk=ym>minD.slice(0,7), nextOk=ym<maxD.slice(0,7);
+  var dows=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(function(x){return '<div class="cal-dow">'+x+'</div>';}).join('');
+  var selLabel=S.calFrom?(admFullDate(S.calFrom)+(S.calTo&&S.calTo!==S.calFrom?' — '+admFullDate(S.calTo):'')):'Выберите дату или диапазон';
+  return '<div class="ovl cal-ovl"><div class="cal-backdrop" data-act="cal-close"></div><div class="cal-sheet">'+
+    '<div class="row between" style="align-items:center;margin-bottom:6px"><div class="b" style="font-size:16px">📅 Период аналитики</div>'+
+      '<button class="adm-day-x" data-act="cal-close">✕</button></div>'+
+    '<div class="cal-sel">'+selLabel+'</div>'+
+    '<div class="row between" style="align-items:center;margin:12px 0 6px"><button class="cal-nav"'+(prevOk?' data-act="cal-prev"':' disabled')+'>‹</button>'+
+      '<div class="b">'+monthName+' '+y+'</div>'+
+      '<button class="cal-nav"'+(nextOk?' data-act="cal-next"':' disabled')+'>›</button></div>'+
+    '<div class="cal-grid cal-dows">'+dows+'</div><div class="cal-grid">'+cells+'</div>'+
+    '<div class="row gap2" style="margin-top:10px"><button class="uchip-f" data-act="cal-preset" data-r="7">Последние 7 дней</button>'+
+      '<button class="uchip-f" data-act="cal-preset" data-r="30">30 дней</button></div>'+
+    '<div class="row gap2" style="margin-top:14px"><button class="btn btn-ghost flex1" data-act="cal-reset">Сбросить</button>'+
+      '<button class="add-wish flex1" style="margin:0"'+(S.calFrom?'':' disabled')+' data-act="cal-apply">Применить</button></div>'+
+  '</div></div>';
+}
 function adminDashView(){
   var d=S.adminData, t=d.totals||{}, s=d.series||{}, list=d.couples||[];
   var range=S.admRange||30;
@@ -1439,15 +1579,18 @@ function adminDashView(){
     kpi('🔗','Активных пар',t.active, null,'adm-pairs')+
     kpi('🔥','DAU',t.dau, admDeltaDay(s.activity))+
     '</div>';
-  // главный график — накопительный рост пользователей (кривая всегда завершается на реальном total)
-  var cumUsers=admCumulative(s.users);
-  var baseline=Math.max(0,(t.users||0)-(cumUsers.length?cumUsers[cumUsers.length-1].v:0));
-  if(baseline>0) cumUsers=cumUsers.map(function(p){return {date:p.date,v:p.v+baseline};});
+  // главный график — накопительный рост пользователей за выбранный период
+  var w=admWindow(), customOn=!!(S.admFrom&&S.admTo);
+  var rangeChip=customOn?('<div class="adm-range-chip">'+admDayLabel(w.from)+' — '+admDayLabel(w.to)+'<button data-act="adm-clear-range">✕</button></div>'):'';
   var chart='<div class="adm-card mt3"><div class="adm-sec-h" style="margin:0 0 4px">'+
     '<div class="t">📈 Рост пользователей</div>'+
-    '<div class="adm-toggle"><button class="'+(range===7?'on':'')+'" data-act="adm-range" data-r="7">7 дней</button>'+
-    '<button class="'+(range===30?'on':'')+'" data-act="adm-range" data-r="30">30 дней</button></div></div>'+
-    admChart(cumUsers, range)+'</div>';
+    '<div class="row gap2" style="align-items:center">'+
+      '<div class="adm-toggle"><button class="'+(!customOn&&range===7?'on':'')+'" data-act="adm-range" data-r="7">7д</button>'+
+      '<button class="'+(!customOn&&range===30?'on':'')+'" data-act="adm-range" data-r="30">30д</button></div>'+
+      '<button class="adm-cal-btn'+(customOn?' on':'')+'" data-act="adm-cal-open">📅</button>'+
+    '</div></div>'+rangeChip+
+    (w?admGrowthChart(w):'')+'</div>'+
+    admDayCard()+admPeriodCard(w);
   // вторичные метрики — плоские карточки (ниже в иерархии)
   var mini=function(ic,l,v,delta,act){ return '<div class="adm-mini"'+(act?' data-act="'+act+'"':'')+'><div class="lbl">'+ic+' '+l+'</div><div class="val">'+(v==null?0:v)+'</div>'+admChip(delta)+'</div>'; };
   var grid='<div class="adm-grid3 mt3">'+
@@ -1811,6 +1954,7 @@ function render(){
   if(S.wmodal){ html+=wishModal(); }
   if(S.qburst){ html+=questBurst(); }
   if(S.levelup){ html+=levelupOverlay(); }
+  if(S.calOpen){ html+=calOverlay(); }
   root.innerHTML=html;
   var wt=document.getElementById('wtitle'); if(wt && S.wmodal && !S.wmodal._f){ wt.focus(); S.wmodal._f=true; }
 }
@@ -1869,7 +2013,18 @@ var ACTS={
   'close-admin':function(){ S.showAdmin=false; render(); },
   'adm-users-open':function(){ S.admUsers=true; S.admUsersData=null; haptic('light'); render(); api('admin_users').then(function(r){ S.admUsersData=(r&&r.ok)?r:{users:[],sources:{direct:0,invite:0},count:0}; render(); }).catch(function(){ S.admUsersData={users:[],sources:{direct:0,invite:0},count:0}; render(); }); },
   'adm-users-close':function(){ S.admUsers=false; render(); },
-  'adm-range':function(el){ S.admRange=+el.dataset.r; haptic('light'); render(); },
+  'adm-range':function(el){ S.admRange=+el.dataset.r; S.admFrom=null; S.admTo=null; S.admDay=null; haptic('light'); render(); },
+  'adm-clear-range':function(){ S.admFrom=null; S.admTo=null; S.admDay=null; S.admRange=S.admRange||30; haptic('light'); render(); },
+  'adm-day':function(el){ S.admDay=(S.admDay===el.dataset.d)?null:el.dataset.d; haptic('light'); render(); },
+  'adm-day-close':function(){ S.admDay=null; render(); },
+  'adm-cal-open':function(){ var w=admWindow()||{}; S.calFrom=S.admFrom||w.from||null; S.calTo=S.admTo||w.to||null; S.calMonth=(S.calTo||w.to||'').slice(0,7); S.calOpen=true; haptic('light'); render(); },
+  'cal-close':function(){ S.calOpen=false; render(); },
+  'cal-prev':function(){ S.calMonth=calShift(S.calMonth||'',-1); render(); },
+  'cal-next':function(){ S.calMonth=calShift(S.calMonth||'',1); render(); },
+  'cal-pick':function(el){ var d=el.dataset.d; if(!S.calFrom||(S.calFrom&&S.calTo)){ S.calFrom=d; S.calTo=null; } else if(d<S.calFrom){ S.calTo=S.calFrom; S.calFrom=d; } else { S.calTo=d; } haptic('light'); render(); },
+  'cal-reset':function(){ S.calFrom=null; S.calTo=null; render(); },
+  'cal-preset':function(el){ S.admFrom=null; S.admTo=null; S.admRange=+el.dataset.r; S.admDay=null; S.calOpen=false; haptic('light'); render(); },
+  'cal-apply':function(){ if(!S.calFrom) return; S.admFrom=S.calFrom; S.admTo=S.calTo||S.calFrom; S.admRange=null; S.admDay=null; S.calOpen=false; haptic('success'); render(); },
   'adm-refresh':function(){ haptic('light'); api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; render(); } }); },
   'adm-pairs':function(){ S.admPairs=true; S.admPairsData=null; window.__admPairFilter='all'; haptic('light'); render(); api('admin_pairs').then(function(r){ S.admPairsData=(r&&r.ok)?r:{pairs:[],stats:{linked:0,waiting:0},count:0}; render(); }).catch(function(){ S.admPairsData={pairs:[],stats:{linked:0,waiting:0},count:0}; render(); }); },
   'adm-pairs-close':function(){ S.admPairs=false; render(); },
