@@ -418,7 +418,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v10 · приглашения';
+var APP_VERSION = 'v11 · конверсия пар';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1377,7 +1377,17 @@ function adminDashView(){
       '<div class="xs muted">'+esc(c.members.join(' & ')||'—')+' · '+esc(c.created||'')+'</div></div>'+
       '<span class="xs" style="'+(c.linked?'color:#34d399':'color:var(--muted)')+'">'+(c.linked?'в паре':'ждёт')+'</span></div>';
   }).join('')||'<div class="muted small center-t" style="padding:16px">Пока нет пар</div>';
-  return kpis+charts+
+  // конверсия в связанные пары + рассылка напоминаний
+  var waiting=t.waiting||0, active=t.active||0, total=t.couples||0, conv=total?Math.round(active/total*100):0;
+  var remindCard='<div class="card p4 mt3" style="border:1px solid rgba(255,94,138,.25)">'+
+    '<div class="small sb mb2">🔗 Связывание пар</div>'+
+    '<div class="row between small"><span class="muted">Связано</span><span class="b" style="color:#34d399">'+active+' / '+total+' ('+conv+'%)</span></div>'+
+    '<div class="row between small mt2"><span class="muted">Ждут партнёра</span><span class="b" style="color:#fbbf24">'+waiting+'</span></div>'+
+    '<button class="add-wish" style="margin-top:12px" data-act="admin-remind">🔔 Напомнить ожидающим ('+waiting+')</button>'+
+    '<div class="xs muted2 mt2">Разошлём приглашающим, у кого партнёр ещё не зашёл (не чаще раза в 20 ч).</div>'+
+    (S.remindMsg?'<div class="center-t small mt2" style="color:'+(/Ошибк/.test(S.remindMsg)?'#fca5a5':'#34d399')+'">'+esc(S.remindMsg)+'</div>':'')+
+    '</div>';
+  return kpis+remindCard+charts+
     '<div class="small sb" style="margin:18px 0 8px">💞 Пары ('+list.length+')</div>'+
     '<div class="card p4">'+rows+'</div>';
 }
@@ -1658,6 +1668,7 @@ var ACTS={
   'share-code':function(){ shareInvite(S.couple && S.couple.inviteCode); },
   'open-admin':function(){ if(!ONLINE)return; api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; S.showAdmin=true; render(); } else if(r&&r.reason==='forbidden'){ alert('Нет доступа. Твой ID: '+r.yourId); } else { alert('Ошибка: '+((r&&r.reason)||'')); } }).catch(function(){}); },
   'close-admin':function(){ S.showAdmin=false; render(); },
+  'admin-remind':function(){ S.remindMsg='Отправляем…'; render(); api('remind_waiting').then(function(r){ if(r&&r.ok){ S.remindMsg='✅ Отправлено: '+r.sent+(r.skipped?(' · пропущено (недавно напоминали): '+r.skipped):''); haptic('success'); } else { S.remindMsg='Ошибка: '+((r&&r.reason)||'?'); haptic('warning'); } render(); setTimeout(function(){ S.remindMsg=''; render(); },6000); }).catch(function(){ S.remindMsg='Ошибка сети'; render(); }); },
   'adm-tab':function(el){ var t=el.dataset.t; S.adminTab=t; haptic('light');
     if(t==='config'&&!S.adminConfig){ api('config_get').then(function(r){ S.adminConfig=(r&&r.ok&&r.config)?r.config:(S.config||{levels:[],achievements:[],themes:[],frames:[],categories:[],quests:[]}); render(); }); }
     render(); },
@@ -1739,10 +1750,10 @@ async function refreshState(){
 function celebrateLink(){
   S.showInvite=false; stopLinkPoll();
   var nm=(S.couple&&S.couple.partner&&S.couple.partner.name)||'Партнёр';
-  S.qburst={label:'💞 '+nm+' в паре!'};
+  S.qburst={label:'💞 '+nm+' в паре!', pts:100};
   try{ if(navigator.vibrate) navigator.vibrate([40,60,40,60,140]); }catch(e){}
   haptic('success'); render();
-  setTimeout(function(){ S.qburst=null; render(); }, 2400);
+  setTimeout(function(){ S.qburst=null; render(); }, 2600);
 }
 // опрос сервера, пока ждём присоединения партнёра
 function startLinkPoll(){
