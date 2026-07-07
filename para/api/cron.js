@@ -47,6 +47,42 @@ module.exports = async (req, res) => {
   try {
     const couples = await sb('para_couples?select=id,invite_code,created_at,para_members(tg_id,slot)&order=created_at.desc');
     const now = Date.now();
+
+    // ===== 1) Пуш «вопрос дня» участникам связанных пар, кто ещё не ответил =====
+    let dqSent = 0, dqSkipped = 0;
+    try {
+      const day = new Date().toISOString().slice(0, 10);
+      const startDay = day + 'T00:00:00Z';
+      const linked = (couples || []).filter((c) => (c.para_members || []).length >= 2);
+      let answered = [];
+      try { answered = await sb('para_answers?day=eq.' + day + '&select=tg_id'); } catch (e) {}
+      const answeredSet = {}; (answered || []).forEach((a) => { answeredSet[a.tg_id] = true; });
+      let notified = [];
+      try { notified = await sb('para_events?type=eq.dq&created_at=gte.' + encodeURIComponent(startDay) + '&select=tg_id'); } catch (e) {}
+      const notifiedSet = {}; (notified || []).forEach((n) => { notifiedSet[n.tg_id] = true; });
+      const targets = [];
+      for (let a = 0; a < linked.length; a++) {
+        const mm = linked[a].para_members || [];
+        for (let b = 0; b < mm.length; b++) {
+          const tid = mm[b].tg_id;
+          if (!tid || answeredSet[tid] || notifiedSet[tid]) continue;
+          targets.push({ tg_id: tid, couple_id: linked[a].id });
+        }
+      }
+      const kbOpen = { inline_keyboard: [[{ text: '💬 Ответить на вопрос', web_app: { url: APP } }]] };
+      for (let i = 0; i < targets.length; i += 25) { // батчами, чтобы не упереться в лимиты/таймаут
+        const chunk = targets.slice(i, i + 25);
+        await Promise.all(chunk.map(async (t) => {
+          try {
+            await tgSend(t.tg_id, '💬 Новый вопрос дня в PARA — ответьте вдвоём и станьте ещё ближе ❤️', kbOpen);
+            await sb('para_events', { method: 'POST', body: JSON.stringify({ tg_id: t.tg_id, couple_id: t.couple_id, type: 'dq', amount: 0 }) }).catch(() => {});
+            dqSent++;
+          } catch (e) { dqSkipped++; }
+        }));
+      }
+    } catch (e) {}
+
+    // ===== 2) Напоминания «зависшим» парам (партнёр не присоединился) =====
     const minAge = now - 24 * 3600 * 1000;      // старше 24 часов
     const maxAge = now - 7 * 24 * 3600 * 1000;  // но моложе 7 дней
     const waiting = (couples || []).filter((c) => {
@@ -89,7 +125,7 @@ module.exports = async (req, res) => {
         sent++;
       } catch (e) { skipped++; }
     }
-    res.status(200).json({ ok: true, sent: sent, skipped: skipped, candidates: waiting.length });
+    res.status(200).json({ ok: true, dailyQuestion: { sent: dqSent, skipped: dqSkipped }, reminders: { sent: sent, skipped: skipped, candidates: waiting.length } });
   } catch (e) {
     res.status(200).json({ ok: false, error: String(e && e.message).slice(0, 200) });
   }
