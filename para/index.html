@@ -221,6 +221,14 @@
     justify-content:center;font-size:40px;background:var(--grad);}
   .code-big{font-size:34px;font-weight:700;letter-spacing:.3em;color:#ffa7c0;}
   .fullw{width:100%;}
+  /* баннер приглашения партнёра */
+  .inv-banner{border-radius:22px;padding:18px;margin-bottom:16px;
+    background:linear-gradient(135deg,rgba(255,94,138,.16),rgba(192,38,211,.10));
+    border:1px solid rgba(255,255,255,.08);box-shadow:0 12px 30px rgba(192,38,211,.20);}
+  .inv-row{display:flex;align-items:center;gap:12px;}
+  .inv-emo{width:44px;height:44px;flex:0 0 auto;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:22px;background:rgba(255,255,255,.07);}
+  .inv-code{margin-top:12px;text-align:center;font-size:22px;font-weight:800;letter-spacing:.28em;color:#ff9ec0;}
   .avatar{width:24px;height:24px;border-radius:999px;object-fit:cover;}
 
   /* ===== Желания (redesign) ===== */
@@ -410,7 +418,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v9 · авто-деплой';   // маркер для проверки авто-деплоя
+var APP_VERSION = 'v10 · приглашения';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -433,6 +441,8 @@ function haptic(type){
 var INIT_DATA = (TG && TG.initData) || '';
 var CAN_ONLINE = !!INIT_DATA;           // есть подписанные данные Telegram
 var ONLINE = false;                     // подтверждено, что бэкенд отвечает
+var LINK_POLL = null;                   // опрос сервера в ожидании партнёра
+var prevLinked = null;                  // предыдущее состояние «в паре» (для детекта присоединения)
 var NET_NOTE = '';                      // мягкая подсказка, если бэкенд не настроен
 async function api(action, payload){
   var body = Object.assign({ action: action, initData: INIT_DATA }, payload || {});
@@ -586,6 +596,7 @@ var S = {
   recOpen: false,                       // открыт полноэкранный экран рекомендации
   profile: lsGet('profile', null),      // правки профиля/дат пары (имена, ДР, годовщина, свои даты)
   profileOpen: false,                   // открыт редактор профиля
+  showInvite: false,                    // полноэкранный шаг «пригласи партнёра» после создания пары
   dates: lsGet('dates',null),   // строим после онбординга
   answers: lsGet('answers',{}), // { 'YYYY-MM-DD': {me,partner} }
   // онбординг (в памяти)
@@ -648,14 +659,44 @@ function pairView(){
       '<button class="btn btn-ghost mt3" data-act="ob-create-confirm">'+(S.ob.waiting?'Связываем…':'Партнёр уже ввёл код →')+'</button>'+
       '<p class="center-t xs muted2 mt4">Демо-режим: партнёр подставится автоматически. В Telegram связывание настоящее.</p>';
   } else {
-    body='<input id="ob-code" class="input center-t" style="font-size:24px;font-weight:700;letter-spacing:.3em" '+
+    var invited=S.ob.invited && S.ob.code;
+    body=(invited?'<div class="center-t small" style="color:#ffa7c0;margin-bottom:10px">💌 Вас пригласили в пару</div>':'')+
+      '<input id="ob-code" class="input center-t" style="font-size:24px;font-weight:700;letter-spacing:.3em" '+
       'placeholder="КОД" maxlength="6" value="'+esc(S.ob.code)+'" '+
       'oninput="this.value=this.value.toUpperCase()">'+
-      '<button class="btn btn-primary mt3" data-act="ob-join-confirm">'+(S.ob.waiting?'Связываем…':'Присоединиться')+'</button>'+
+      '<button class="btn btn-primary mt3" data-act="ob-join-confirm">'+(S.ob.waiting?'Связываем…':(invited?'Присоединиться к паре 💞':'Присоединиться'))+'</button>'+
       (S.ob.err?'<div class="center-t xs mt3" style="color:#fca5a5">'+esc(S.ob.err)+'</div>':'');
   }
   var back=(S.ob.mode&&!S.ob.waiting)?'<button class="mt6 muted small" data-act="ob-mode-back">← назад</button>':'';
   return '<div class="splash">'+head+'<div class="fullw" style="margin-top:32px;display:flex;flex-direction:column">'+body+'</div>'+back+'</div>';
+}
+
+// полноэкранный шаг после создания пары: пригласить партнёра
+function inviteView(){
+  var code=(S.couple&&S.couple.inviteCode)||S.ob.myCode||'';
+  return '<div class="splash"><div class="center-t">'+
+    '<div style="font-size:52px">💌</div>'+
+    '<h2 class="b" style="font-size:24px;margin-top:14px">Остался один шаг</h2>'+
+    '<p class="muted small mt2" style="max-width:300px;margin:8px auto 0;line-height:1.5">Пригласите партнёра — и всё станет общим: вопрос дня, желания, квесты и очки на двоих.</p>'+
+    '</div>'+
+    '<div class="fullw" style="margin-top:24px;display:flex;flex-direction:column">'+
+      '<div class="card p6 center-t"><div class="xs muted" style="text-transform:uppercase;letter-spacing:.2em;margin-bottom:8px">Ваш код-приглашение</div>'+
+        '<div class="code-big">'+esc(code)+'</div></div>'+
+      '<button class="add-wish" style="margin-top:16px" data-act="invite-share">📤 Отправить приглашение</button>'+
+      '<button class="btn btn-ghost mt3" data-act="invite-skip">Продолжить без партнёра →</button>'+
+      '<div class="center-t xs muted2 mt4" style="line-height:1.5">⏳ Как только партнёр войдёт по ссылке, вы автоматически окажетесь в паре 💞</div>'+
+    '</div></div>';
+}
+// баннер-напоминание внутри приложения, пока партнёр не присоединился
+function inviteBanner(){
+  if(!ONLINE || !S.couple || S.couple.linked) return '';
+  var code=S.couple.inviteCode||'';
+  return '<div class="inv-banner">'+
+    '<div class="inv-row"><div class="inv-emo">⏳</div>'+
+    '<div class="flex1"><div class="sb" style="font-size:15px">Партнёр ещё не в паре</div>'+
+    '<div class="xs muted mt1">Пригласите — и всё станет общим 💞</div></div></div>'+
+    (code?'<div class="inv-code">'+esc(code)+'</div>':'')+
+    '<button class="add-wish" style="margin-top:12px" data-act="invite-share">📤 Пригласить партнёра</button></div>';
 }
 
 // ============================================================
@@ -891,6 +932,7 @@ function todayScreen(){
     '<div class="row between mb4"><div><div class="xs muted">'+esc(dstr)+'</div>'+
     '<div class="b" style="font-size:20px">Сегодня</div></div>'+
     '<div class="row gap2 sb" style="background:rgba(251,191,36,.1);color:#fcd34d;border-radius:999px;padding:6px 12px;font-size:14px">⭐ '+S.points+'</div></div>'+
+    inviteBanner()+
     // переключатель «глазами каждого» — только в демо; онлайн ты фиксированный человек
     (ONLINE?'':partnerSwitch()+'<div style="height:16px"></div>')+
     countdownCard()+'<div style="height:16px"></div>'+
@@ -1509,7 +1551,7 @@ function questBurst(){
   var b=S.qburst; if(!b) return '';
   var cols=['#ff5e8a','#c026d3','#fbbf24','#34d399','#60a5fa'];
   var conf=''; for(var i=0;i<40;i++){ conf+='<span class="conf" style="left:'+(Math.random()*100).toFixed(1)+'%;background:'+cols[i%5]+';animation-delay:'+(Math.random()*0.4).toFixed(2)+'s"></span>'; }
-  var txt=(b.label?b.label:(b.emoji||'🎉'))+' +'+b.pts+' ⭐';
+  var txt=(b.label?b.label:(b.emoji||'🎉'))+(b.pts?(' +'+b.pts+' ⭐'):'');
   return '<div class="q-burst-wrap"><div class="conf-wrap" style="position:absolute;inset:0">'+conf+'</div>'+
     '<div class="q-burst-badge">'+txt+'</div></div>';
 }
@@ -1536,7 +1578,9 @@ function render(){
   } else {
     if(S.profile) applyProfile();
     if(!S.dates) buildDates();
-    if(S.showAdmin && S.adminData){
+    if(S.showInvite && !S.couple.linked){
+      html=inviteView();
+    } else if(S.showAdmin && S.adminData){
       html=adminView();
     } else if(S.showAchv){
       html=achvView();
@@ -1594,7 +1638,7 @@ function coupleFromServer(c){
 function shareInvite(code){
   code = code || (S.couple && S.couple.inviteCode) || S.ob.myCode;
   var link='https://t.me/'+TG_BOT+'?startapp='+code;
-  var text='Давай заведём наше PARA 💞 Заходи по ссылке — код подставится сам (или введи вручную: '+code+')';
+  var text='Я завёл(а) нам PARA 💞 — приложение для нас двоих: вопрос дня, общие желания, квесты и важные даты. Нажми, чтобы войти в нашу пару (код подставится сам). Если что — код: '+code;
   try{
     if(TG&&TG.openTelegramLink){
       TG.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(link)+'&text='+encodeURIComponent(text));
@@ -1629,6 +1673,8 @@ var ACTS={
   'lvl-info':function(el){ var i=+el.dataset.i, lv=S.config&&S.config.levels[i], cur=S.progress&&S.progress.level.index; if(!lv)return; if(i>cur){ var perks=(lv.perks||[]).join(', '); alert('🔒 «'+lv.name+'» '+lv.emoji+'\nДоступно после '+lv.min+' очков.'+(perks?'\n\nОткроется: '+perks:'')); } haptic('light'); },
   'level-continue':function(){ S.levelup=null; haptic('light'); render(); },
   'ob-share':shareInvite,
+  'invite-share':function(){ shareInvite(S.couple && S.couple.inviteCode); },
+  'invite-skip':function(){ S.showInvite=false; haptic('light'); render(); },
   'ob-create-confirm':function(){ if(CAN_ONLINE) onlineCreate(); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
   'ob-join-confirm':function(){ var c=(val('#ob-code')||'').toUpperCase().trim(); if(c.length<4)return; if(CAN_ONLINE) onlineJoin(c); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
   'tab':function(el){ S.tab=el.dataset.tab; save('tab'); haptic('light'); render(); if(S.tab==='us') loadStats(); },
@@ -1662,7 +1708,7 @@ var ACTS={
   'quest-done':function(el){ var id=+el.dataset.id; if(S.qdone[id])return; var defs=questDefs(),q=null; for(var i=0;i<defs.length;i++) if(defs[i].id===id) q=defs[i]; if(!q)return; S.qdone[id]=true; save('qdone'); S.points+=q.pts; save('points'); track('quest'); track('points',q.pts); S.qburst={pts:q.pts,emoji:q.emoji}; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.qburst=null; render(); },1500); },
   'wheel':function(el){ var w=WHEEL[+el.dataset.i]; S.toast=w; haptic('light'); render(); setTimeout(function(){S.toast=null;render();},2200); },
   'home-add':function(){ try{TG.addToHomeScreen();haptic('light');}catch(e){} },
-  'reset':function(){ S.couple=null; S.tab='today'; S.who='me'; S.ob={step:'welcome',mode:null,name:(TG_USER?(TG_USER.first_name||'Ты'):''),myCode:makeCode(),code:'',waiting:false}; save('couple'); save('tab'); save('who'); haptic('warning'); render(); }
+  'reset':function(){ stopLinkPoll(); prevLinked=null; S.showInvite=false; S.couple=null; S.tab='today'; S.who='me'; S.ob={step:'welcome',mode:null,name:(TG_USER?(TG_USER.first_name||'Ты'):''),myCode:makeCode(),code:'',waiting:false}; save('couple'); save('tab'); save('who'); haptic('warning'); render(); }
 };
 
 // ============================================================
@@ -1670,16 +1716,42 @@ var ACTS={
 // ============================================================
 function enterOnline(couple){
   ONLINE=true; S.couple=coupleFromServer(couple); save('couple');
-  S.ob.waiting=false; S.ob.err=''; haptic('success'); render();
+  S.ob.waiting=false; S.ob.err='';
+  if(S.couple.linked){ prevLinked=true; celebrateLink(); }      // присоединился к паре — сразу связаны
+  else { prevLinked=false; S.showInvite=true; startLinkPoll(); } // создатель — ждём партнёра
+  haptic('success'); render();
   refreshState(); // подтянуть вопрос дня и ответы
 }
 async function refreshState(){
   try{
     var r=await api('state');
-    if(r&&r.ok&&r.couple){ ONLINE=true; S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today;
-      if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config; render(); checkLevelUp(); }
+    if(r&&r.ok&&r.couple){
+      var nowLinked=!!r.couple.linked;
+      ONLINE=true; S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today;
+      if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config;
+      if(nowLinked && prevLinked===false){ celebrateLink(); }   // партнёр только что присоединился!
+      prevLinked=nowLinked;
+      render(); checkLevelUp();
+    }
   }catch(e){}
 }
+// пара стала связанной — празднуем, останавливаем опрос
+function celebrateLink(){
+  S.showInvite=false; stopLinkPoll();
+  var nm=(S.couple&&S.couple.partner&&S.couple.partner.name)||'Партнёр';
+  S.qburst={label:'💞 '+nm+' в паре!'};
+  try{ if(navigator.vibrate) navigator.vibrate([40,60,40,60,140]); }catch(e){}
+  haptic('success'); render();
+  setTimeout(function(){ S.qburst=null; render(); }, 2400);
+}
+// опрос сервера, пока ждём присоединения партнёра
+function startLinkPoll(){
+  stopLinkPoll(); if(!ONLINE) return;
+  LINK_POLL=setInterval(function(){
+    if(S.couple && !S.couple.linked) refreshState(); else stopLinkPoll();
+  }, 6000);
+}
+function stopLinkPoll(){ if(LINK_POLL){ clearInterval(LINK_POLL); LINK_POLL=null; } }
 // после начисления очков — подтянуть прогресс с сервера (немного погодя, чтобы событие успело записаться)
 function afterEarn(){ if(!ONLINE) return; setTimeout(refreshState, 700); }
 // показать экран повышения уровня, если пара поднялась выше запомненного
@@ -1730,7 +1802,9 @@ async function boot(){
     if(r&&r.ok){
       ONLINE=true;
       if(r.couple){ S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today;
-        if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config; }
+        if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config;
+        prevLinked=!!r.couple.linked;
+        if(!S.couple.linked) startLinkPoll(); } // вернувшийся создатель всё ещё ждёт партнёра
       else { S.couple=null; } // сервер — источник правды: онбординг с настоящим бэкендом
       render();
       checkLevelUp();
@@ -1748,9 +1822,9 @@ document.getElementById('root').addEventListener('click',function(e){
   var fn=ACTS[el.dataset.act]; if(fn){ e.preventDefault(); fn(el); }
 });
 
-// пришли по ссылке-приглашению → сразу к вводу кода
+// пришли по ссылке-приглашению → сразу к присоединению
 if(START_PARAM && !S.couple){
-  S.ob.step='pair'; S.ob.mode='join'; S.ob.code=START_PARAM.toUpperCase().slice(0,6);
+  S.ob.step='pair'; S.ob.mode='join'; S.ob.invited=true; S.ob.code=START_PARAM.toUpperCase().slice(0,6);
 }
 
 boot();
