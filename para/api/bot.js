@@ -13,6 +13,11 @@
 
 function env(name) { return process.env['PARA_' + name] || process.env[name] || ''; }
 const DEFAULT_APP_URL = 'https://para-psi.vercel.app/';
+const APP_VERSION = '7';   // бамп при каждом релизе — заставляет Telegram открыть свежий URL (обход кэша)
+function appUrl() {
+  const base = env('APP_URL') || DEFAULT_APP_URL;
+  return base + (base.indexOf('?') >= 0 ? '&' : '?') + 'v=' + APP_VERSION;
+}
 
 const WELCOME =
   '❤️ Добро пожаловать в PARA!\n\n' +
@@ -46,9 +51,9 @@ async function isRegistered(userId) {
 
 module.exports = async (req, res) => {
   const TOKEN = env('BOT_TOKEN');
-  const APP_URL = env('APP_URL') || DEFAULT_APP_URL;
+  const APP_URL = appUrl();
 
-  // ---- разовая привязка вебхука: /api/bot?setup=1 ----
+  // ---- разовая привязка вебхука + кнопки меню: /api/bot?setup=1 ----
   if (req.method === 'GET') {
     if (!TOKEN) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
     const host = req.headers['x-forwarded-host'] || req.headers.host;
@@ -56,7 +61,15 @@ module.exports = async (req, res) => {
     try {
       const r = await tg('setWebhook', TOKEN, { url: hook, allowed_updates: ['message'] });
       const j = await r.json().catch(() => ({}));
-      res.status(200).json({ ok: true, webhook: hook, telegram: j });
+      // обновляем URL кнопки-меню на версионированный (обход кэша Telegram)
+      let menu = null;
+      try {
+        const m = await tg('setChatMenuButton', TOKEN, {
+          menu_button: { type: 'web_app', text: 'Открыть PARA', web_app: { url: APP_URL } }
+        });
+        menu = await m.json().catch(() => ({}));
+      } catch (e) { menu = { error: String(e && e.message) }; }
+      res.status(200).json({ ok: true, webhook: hook, appUrl: APP_URL, telegram: j, menuButton: menu });
     } catch (e) {
       res.status(200).json({ ok: false, error: String(e && e.message) });
     }
