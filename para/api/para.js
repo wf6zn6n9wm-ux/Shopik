@@ -194,6 +194,7 @@ module.exports = async (req, res) => {
     const URL = env('SUPABASE_URL');
     const SERVICE = env('SUPABASE_SERVICE_ROLE_KEY');
     const BOT = env('BOT_TOKEN');
+    const BOT_USER = env('BOT_USERNAME') || 'para_couple_bot';
     if (!URL || !SERVICE || !BOT) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
 
     let body = req.body;
@@ -447,17 +448,24 @@ module.exports = async (req, res) => {
       const reminded = {};
       (recent || []).forEach((r) => { if (r.couple_id) reminded[r.couple_id] = true; });
       const APP = env('APP_URL') || 'https://para-psi.vercel.app/';
-      const btn = { inline_keyboard: [[{ text: '🚀 Открыть PARA', web_app: { url: APP } }]] };
+      const shareText = 'Я завёл(а) нам PARA 💞 — приложение для нас двоих: вопрос дня, желания, квесты и важные даты. Нажми, чтобы войти в нашу пару 👇';
       let sent = 0, skipped = 0;
       for (let i = 0; i < waiting.length; i++) {
         const c = waiting[i];
         if (reminded[c.id]) { skipped++; continue; }
         const m = (c.para_members || [])[0];
         if (!m || !m.tg_id) { skipped++; continue; }
+        // персональная ссылка-приглашение: партнёр открывает её и входит в пару одним касанием
+        const inviteLink = 'https://t.me/' + BOT_USER + '?startapp=' + c.invite_code;
+        const shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(inviteLink) + '&text=' + encodeURIComponent(shareText);
+        const kb = { inline_keyboard: [
+          [{ text: '📤 Отправить партнёру', url: shareUrl }],
+          [{ text: '🚀 Открыть PARA', web_app: { url: APP } }]
+        ] };
         try {
           await sendPush(BOT, m.tg_id,
-            'Ваш партнёр ещё не присоединился к PARA 💞\n\nОтправьте ему приглашение ещё раз — и всё станет общим: вопрос дня, желания, квесты и очки на двоих. За связывание пары дарим +100 очков 🎁\n\nВаш код-приглашение: ' + c.invite_code,
-            btn);
+            'Ваш партнёр ещё не присоединился к PARA 💞\n\nПерешлите ему эту ссылку — он войдёт в вашу пару одним касанием (код вводить не нужно):\n' + inviteLink + '\n\nЗа связывание пары дарим +100 очков 🎁',
+            kb);
           await sb('para_events', { method: 'POST', body: JSON.stringify({ tg_id: m.tg_id, couple_id: c.id, type: 'remind', amount: 0 }) }).catch(() => {});
           sent++;
         } catch (e) { skipped++; }
