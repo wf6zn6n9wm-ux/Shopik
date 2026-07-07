@@ -434,6 +434,38 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // -------- REMIND WAITING (admin) --------
+    // разослать напоминания создателям «зависших» пар, где партнёр ещё не присоединился
+    if (action === 'remind_waiting') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const couples = await sb('para_couples?select=id,invite_code,para_members(tg_id,slot)&order=created_at.desc');
+      const waiting = (couples || []).filter((c) => (c.para_members || []).length === 1);
+      // не спамим: пропускаем пары, кому уже напоминали за последние 20 часов
+      let recent = [];
+      const since = new Date(Date.now() - 20 * 3600 * 1000).toISOString();
+      try { recent = await sb('para_events?type=eq.remind&created_at=gte.' + encodeURIComponent(since) + '&select=couple_id'); } catch (e) {}
+      const reminded = {};
+      (recent || []).forEach((r) => { if (r.couple_id) reminded[r.couple_id] = true; });
+      const APP = env('APP_URL') || 'https://para-psi.vercel.app/';
+      const btn = { inline_keyboard: [[{ text: '🚀 Открыть PARA', web_app: { url: APP } }]] };
+      let sent = 0, skipped = 0;
+      for (let i = 0; i < waiting.length; i++) {
+        const c = waiting[i];
+        if (reminded[c.id]) { skipped++; continue; }
+        const m = (c.para_members || [])[0];
+        if (!m || !m.tg_id) { skipped++; continue; }
+        try {
+          await sendPush(BOT, m.tg_id,
+            'Ваш партнёр ещё не присоединился к PARA 💞\n\nОтправьте ему приглашение ещё раз — и всё станет общим: вопрос дня, желания, квесты и очки на двоих. За связывание пары дарим +100 очков 🎁\n\nВаш код-приглашение: ' + c.invite_code,
+            btn);
+          await sb('para_events', { method: 'POST', body: JSON.stringify({ tg_id: m.tg_id, couple_id: c.id, type: 'remind', amount: 0 }) }).catch(() => {});
+          sent++;
+        } catch (e) { skipped++; }
+      }
+      res.status(200).json({ ok: true, sent: sent, skipped: skipped, waiting: waiting.length });
+      return;
+    }
+
     // -------- PAIR CREATE --------
     if (action === 'pair_create') {
       const existing = await myMembership();
@@ -480,11 +512,14 @@ module.exports = async (req, res) => {
         method: 'POST',
         body: JSON.stringify({ couple_id: couple.id, tg_id: me.id, name: me.name, photo_url: me.photo_url, slot: 'b' })
       });
-      // уведомим первого партнёра, что пара собралась
+      // бонус за связывание пары (+100 очков паре — одно событие на пару)
+      await logEvent('points', couple.id, 100).catch(() => {});
+      await logEvent('paired', couple.id, 0).catch(() => {});
+      // уведомим первого партнёра, что пара собралась (+ бонус)
       const first = members[0];
-      if (first) sendPush(BOT, first.tg_id, '💞 ' + me.name + ' присоединился(ась) к вашей паре в PARA!').catch(() => {});
+      if (first) sendPush(BOT, first.tg_id, '💞 ' + me.name + ' присоединился(ась) к вашей паре в PARA!\n🎁 Вам начислено +100 очков за то, что вы вместе. Открывайте приложение и исполняйте желания вдвоём!').catch(() => {});
       const all = await coupleMembers(couple.id);
-      res.status(200).json({ ok: true, couple: coupleView(couple.id, couple.invite_code, all) });
+      res.status(200).json({ ok: true, couple: coupleView(couple.id, couple.invite_code, all), bonus: 100 });
       return;
     }
 
@@ -529,10 +564,12 @@ module.exports = async (req, res) => {
 module.exports._verifyInitData = verifyInitData;
 module.exports._questionOfDay = questionOfDay;
 
-async function sendPush(botToken, chatId, text) {
+async function sendPush(botToken, chatId, text, replyMarkup) {
+  const payload = { chat_id: chatId, text: text };
+  if (replyMarkup) payload.reply_markup = replyMarkup;
   return fetch('https://api.telegram.org/bot' + botToken + '/sendMessage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text: text })
+    body: JSON.stringify(payload)
   });
 }
