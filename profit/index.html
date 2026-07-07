@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>Доля — учёт прибыли магазина</title>
+
+<!-- PWA / iOS home-screen -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Доля" />
+<meta name="theme-color" content="#0b1210" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%230f1a16'/%3E%3Cpath d='M90 40a50 50 0 100 100 50 50 0 000-100zm0 18a32 32 0 110 64 32 32 0 010-64z' fill='%2334d399'/%3E%3Cpath d='M90 58v64' stroke='%2334d399' stroke-width='10' stroke-linecap='round'/%3E%3C/svg%3E" />
+
+<!-- Telegram SDK (необязателен; если не загрузится — приложение всё равно работает) -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+  :root{
+    --bg:#0b1210; --bg2:#0f1a16;
+    --card:rgba(255,255,255,.05); --card2:rgba(255,255,255,.03);
+    --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.06);
+    --muted:rgba(255,255,255,.48); --muted2:rgba(255,255,255,.30);
+    --emerald:#34d399; --emerald2:#10b981; --teal:#2dd4bf;
+    --amber:#fbbf24; --sky:#38bdf8; --red:#f87171;
+    --grad:linear-gradient(135deg,#34d399,#10b981);
+    --grad-gold:linear-gradient(135deg,#fbbf24,#f59e0b);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+  html,body{background:var(--bg);color:#fff;min-height:100%;}
+  body{overscroll-behavior-y:none;
+    background:
+      radial-gradient(120% 60% at 100% 0%,rgba(16,185,129,.12),transparent 55%),
+      radial-gradient(90% 50% at 0% 100%,rgba(45,212,191,.08),transparent 55%),
+      var(--bg);}
+  ::-webkit-scrollbar{display:none;}
+  button{cursor:pointer;border:none;background:none;color:inherit;font-size:inherit;}
+  input{font-size:16px;color:#fff;outline:none;}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;padding-top:env(safe-area-inset-top);}
+
+  .wrap{padding:10px 16px 120px;}
+  .row{display:flex;align-items:center;}
+  .between{justify-content:space-between;}
+  .center{justify-content:center;}
+  .gap1{gap:4px;} .gap2{gap:8px;} .gap3{gap:12px;}
+  .col{display:flex;flex-direction:column;}
+  .flex1{flex:1;}
+  .wrapf{flex-wrap:wrap;}
+  .mt1{margin-top:4px;} .mt2{margin-top:8px;} .mt3{margin-top:12px;} .mt4{margin-top:16px;} .mt5{margin-top:20px;} .mt6{margin-top:24px;}
+  .mb2{margin-bottom:8px;} .mb3{margin-bottom:12px;} .mb4{margin-bottom:16px;}
+  .muted{color:var(--muted);} .muted2{color:var(--muted2);}
+  .small{font-size:12.5px;} .xs{font-size:11px;} .tiny{font-size:10px;}
+  .b{font-weight:700;} .sb{font-weight:600;} .eb{font-weight:800;}
+  .ct{text-align:center;} .right{text-align:right;}
+  .em{color:var(--emerald);} .am{color:var(--amber);} .rd{color:var(--red);} .sky{color:var(--sky);}
+  .up{text-transform:uppercase;letter-spacing:.08em;}
+  .nowrap{white-space:nowrap;}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;}
+  .p3{padding:12px;} .p4{padding:16px;} .p5{padding:20px;}
+
+  .btn{border-radius:16px;padding:14px;font-weight:700;width:100%;transition:transform .1s,opacity .2s;
+    display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn:active{transform:scale(.98);}
+  .btn-primary{background:var(--grad);color:#04140e;box-shadow:0 10px 26px rgba(16,185,129,.28);}
+  .btn-gold{background:var(--grad-gold);color:#2a1a02;box-shadow:0 10px 26px rgba(245,158,11,.24);}
+  .btn-ghost{background:var(--card2);border:1px solid var(--line);color:#fff;}
+  .btn-danger{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:var(--red);}
+  .btn[disabled]{opacity:.4;pointer-events:none;}
+  .btn-sm{width:auto;padding:9px 15px;font-size:13px;border-radius:13px;}
+
+  .input{width:100%;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:15px;
+    padding:14px 15px;transition:border-color .2s;}
+  .input:focus{border-color:rgba(52,211,153,.6);}
+  .input::placeholder{color:var(--muted2);}
+  .lbl{font-size:12px;font-weight:700;color:var(--muted);margin:0 0 6px 3px;}
+
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;
+    text-transform:uppercase;letter-spacing:.06em;padding:5px 9px;border-radius:999px;}
+  .pill-sale{background:rgba(56,189,248,.14);color:#7dd3fc;}
+  .pill-sold{background:rgba(52,211,153,.14);color:var(--emerald);}
+  .pill-settled{background:rgba(255,255,255,.08);color:var(--muted);}
+
+  /* header */
+  .hd{padding:14px 16px 2px;}
+  .logo{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    background:var(--grad);color:#04140e;font-weight:900;font-size:20px;box-shadow:0 8px 20px rgba(16,185,129,.30);}
+  .rolesw{display:flex;gap:4px;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:14px;padding:4px;}
+  .rolesw button{flex:1;padding:9px 6px;border-radius:11px;font-size:12.5px;font-weight:800;color:var(--muted);
+    transition:all .18s;line-height:1.05;}
+  .rolesw button .rn{font-size:10px;font-weight:700;opacity:.7;display:block;margin-top:1px;}
+  .rolesw button.on.owner{background:linear-gradient(135deg,rgba(56,189,248,.9),rgba(14,165,233,.9));color:#04121c;}
+  .rolesw button.on.manager{background:var(--grad-gold);color:#2a1a02;}
+
+  /* hero balance */
+  .hero{position:relative;overflow:hidden;border-radius:26px;padding:22px 20px;
+    border:1px solid var(--line);box-shadow:0 18px 40px rgba(0,0,0,.34);}
+  .hero.owner{background:linear-gradient(160deg,#0b2536 0%,#0e2b2a 60%,#0c1a18 100%);}
+  .hero.manager{background:linear-gradient(160deg,#2e2410 0%,#26301f 55%,#101a14 100%);}
+  .hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 90% at 108% -10%,rgba(52,211,153,.18),transparent 52%);}
+  .hero>*{position:relative;}
+  .hero-cap{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.02em;}
+  .hero-big{font-size:38px;font-weight:900;letter-spacing:-.02em;line-height:1.05;margin-top:6px;}
+  .hero-sub{font-size:12.5px;color:var(--muted);margin-top:7px;line-height:1.4;}
+
+  /* stat grid */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;}
+  .stat .k{font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.25;}
+  .stat .v{font-size:19px;font-weight:800;margin-top:6px;letter-spacing:-.01em;}
+  .stat .v.sm{font-size:16px;}
+
+  /* deal card */
+  .deal{position:relative;background:var(--card);border:1px solid var(--line);border-radius:20px;
+    padding:15px 15px 14px;margin-bottom:12px;overflow:hidden;}
+  .deal .acc{position:absolute;left:0;top:0;bottom:0;width:4px;}
+  .deal .acc.sale{background:var(--sky);} .deal .acc.sold{background:var(--emerald);}
+  .deal .acc.settled{background:rgba(255,255,255,.25);}
+  .dname{font-size:16px;font-weight:800;line-height:1.2;padding-right:6px;}
+  .kv{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:4px 0;}
+  .kv .kk{color:var(--muted);}
+  .kv .vv{font-weight:700;}
+  .split{background:rgba(0,0,0,.22);border:1px solid var(--line2);border-radius:14px;padding:11px 12px;margin-top:10px;}
+  .divi{height:1px;background:var(--line2);margin:8px 0;}
+
+  /* section head */
+  .sh{font-size:13px;font-weight:800;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin:22px 3px 12px;}
+
+  /* quick chips */
+  .chip{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:11px;
+    padding:8px 12px;font-size:12.5px;font-weight:700;color:#fff;}
+  .chip:active{transform:scale(.96);}
+
+  /* explainer */
+  .exp{background:linear-gradient(180deg,rgba(52,211,153,.08),rgba(52,211,153,.02));
+    border:1px solid rgba(52,211,153,.22);border-radius:20px;padding:16px;}
+  .exp .fl{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;}
+  .exp .fl .op{color:var(--muted);}
+  .formula{font-size:12.5px;color:var(--muted);line-height:1.55;}
+
+  /* empty */
+  .empty{text-align:center;padding:38px 20px;}
+  .empty .ic{font-size:54px;}
+  .empty .t{font-size:17px;font-weight:800;margin-top:12px;}
+  .empty .d{font-size:13.5px;color:var(--muted);margin-top:7px;line-height:1.5;}
+
+  /* settings */
+  .cfg{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px;}
+  .range{width:100%;-webkit-appearance:none;height:6px;border-radius:999px;outline:none;margin-top:4px;
+    background:linear-gradient(90deg,var(--amber) var(--fill,30%),rgba(255,255,255,.12) var(--fill,30%));}
+  .range::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;
+    background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.4);border:3px solid var(--amber);}
+
+  /* toast */
+  .toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:100px;z-index:60;
+    background:rgba(20,30,26,.96);border:1px solid var(--line);border-radius:14px;padding:12px 18px;
+    font-size:13.5px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.5);opacity:0;pointer-events:none;
+    transition:opacity .25s,transform .25s;max-width:88%;text-align:center;}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* bottom nav */
+  .nav{position:fixed;bottom:0;left:0;right:0;z-index:30;border-top:1px solid var(--line);
+    background:rgba(11,18,16,.92);backdrop-filter:blur(20px);padding-bottom:env(safe-area-inset-bottom);}
+  .nav-in{max-width:480px;margin:0 auto;display:flex;}
+  .nav button{flex:1;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;
+    color:var(--muted2);font-size:10.5px;font-weight:700;transition:color .18s;}
+  .nav button.on{color:var(--emerald);}
+  .nav button svg{width:23px;height:23px;}
+
+  /* modal */
+  .ov{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+    display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s;}
+  .ov.on{opacity:1;pointer-events:auto;}
+  .sheet{width:100%;max-width:480px;background:var(--bg2);border:1px solid var(--line);
+    border-radius:26px 26px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+    transform:translateY(30px);transition:transform .26s cubic-bezier(.2,.9,.3,1);max-height:92vh;overflow-y:auto;}
+  .ov.on .sheet{transform:translateY(0);}
+  .grab{width:38px;height:4px;border-radius:999px;background:rgba(255,255,255,.2);margin:0 auto 14px;}
+  .sh-title{font-size:19px;font-weight:900;}
+
+  .anim{animation:fade .3s ease both;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- header -->
+  <div class="hd">
+    <div class="row between">
+      <div class="row gap2">
+        <div class="logo">₴</div>
+        <div class="col">
+          <div class="b" style="font-size:17px;line-height:1;">Доля</div>
+          <div class="tiny muted" style="margin-top:3px;">учёт прибыли магазина</div>
+        </div>
+      </div>
+      <div class="xs muted right" id="pctBadge"></div>
+    </div>
+    <div class="rolesw mt3" id="rolesw">
+      <button data-role="owner">Владелец<span class="rn" id="rnOwner"></span></button>
+      <button data-role="manager">Управляющая<span class="rn" id="rnMgr"></span></button>
+    </div>
+  </div>
+
+  <div class="wrap" id="view"></div>
+</div>
+
+<!-- bottom nav -->
+<div class="nav">
+  <div class="nav-in" id="nav">
+    <button data-tab="deals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      Товары
+    </button>
+    <button data-tab="summary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="14" y="8" width="3" height="10" rx="1"/></svg>
+      Итоги
+    </button>
+    <button data-tab="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Настройки
+    </button>
+  </div>
+</div>
+
+<div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const KEY='profit_state_v1';
+const DEFAULTS={
+  settings:{sharePct:30, currency:'грн', ownerName:'Я', managerName:'Управляющая'},
+  role:'owner', tab:'deals', deals:[]
+};
+function load(){
+  try{
+    const r=JSON.parse(localStorage.getItem(KEY));
+    if(r&&r.settings) return {...DEFAULTS,...r, settings:{...DEFAULTS.settings,...r.settings}};
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULTS));
+}
+let S=load();
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+
+/* --- helpers --- */
+const $=id=>document.getElementById(id);
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function money(n){
+  n=Math.round(Number(n)||0);
+  const s=Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+  return (n<0?'−':'')+s+' '+S.settings.currency;
+}
+function num(v){ return Math.max(0, Math.round(Number(String(v).replace(/[^\d.-]/g,''))||0)); }
+let uidc=0;
+function uid(){ return 'd'+Date.now().toString(36)+(uidc++).toString(36); }
+
+/* --- business logic --- */
+function calc(d){
+  const pct=S.settings.sharePct/100;
+  const net=(d.salePrice||0)-(d.purchase||0)-(d.salary||0);
+  const mgrShare=Math.round(net*pct);
+  const ownShare=net-mgrShare;
+  return {
+    net, mgrShare, ownShare,
+    mgrTotal:(d.purchase||0)+(d.salary||0)+mgrShare, // возврат вложенного + зарплата + доля
+    ownTotal:ownShare
+  };
+}
+function totals(){
+  const t={turnover:0,net:0,salaryTotal:0,mgrEarn:0,ownProfit:0,
+    investedNow:0,investedAll:0,mgrWithdrawable:0,mgrWithdrawn:0,
+    ownReceivable:0,ownReceived:0,soldCount:0,saleCount:0};
+  S.deals.forEach(d=>{
+    t.investedAll+=d.purchase||0;
+    if(d.status==='onsale'){ t.investedNow+=d.purchase||0; t.saleCount++; return; }
+    const c=calc(d); t.soldCount++;
+    t.turnover+=d.salePrice||0; t.net+=c.net; t.salaryTotal+=d.salary||0;
+    t.mgrEarn+=(d.salary||0)+c.mgrShare; t.ownProfit+=c.ownShare;
+    if(d.settled){ t.mgrWithdrawn+=c.mgrTotal; t.ownReceived+=c.ownShare; }
+    else { t.mgrWithdrawable+=c.mgrTotal; t.ownReceivable+=c.ownShare; }
+  });
+  return t;
+}
+
+/* --- toast --- */
+let toT;
+function toast(m){ const el=$('toast'); el.textContent=m; el.classList.add('on'); clearTimeout(toT); toT=setTimeout(()=>el.classList.remove('on'),1900); }
+
+/* ============ RENDER ============ */
+function render(){
+  // header state
+  $('pctBadge').innerHTML='доля управляющей<br><span class="am eb" style="font-size:14px">'+S.settings.sharePct+'%</span>';
+  $('rnOwner').textContent=S.settings.ownerName;
+  $('rnMgr').textContent=S.settings.managerName;
+  document.querySelectorAll('#rolesw button').forEach(b=>{
+    const on=b.dataset.role===S.role;
+    b.classList.toggle('on',on);
+    b.classList.toggle('owner',b.dataset.role==='owner');
+    b.classList.toggle('manager',b.dataset.role==='manager');
+  });
+  document.querySelectorAll('#nav button').forEach(b=> b.classList.toggle('on', b.dataset.tab===S.tab));
+  const v=$('view');
+  if(S.tab==='deals') v.innerHTML=viewDeals();
+  else if(S.tab==='summary') v.innerHTML=viewSummary();
+  else v.innerHTML=viewSettings();
+  v.className='wrap anim';
+  requestAnimationFrame(()=>v.className='wrap');
+  bindSettings();
+}
+
+/* ---- DEALS ---- */
+function dealCard(d){
+  const isOwner=S.role==='owner';
+  const c=calc(d);
+  let status = d.status==='onsale'
+    ? '<span class="pill pill-sale">в продаже</span>'
+    : (d.settled?'<span class="pill pill-settled">рассчитано</span>':'<span class="pill pill-sold">продано</span>');
+  let body='';
+  body+=`<div class="kv"><span class="kk">Закупка</span><span class="vv">${money(d.purchase)}</span></div>`;
+  if(d.status==='onsale'){
+    body+=`<div class="small muted" style="margin-top:2px">Деньги вложила: <b class="am">${esc(S.settings.managerName)}</b></div>`;
+    body+= isOwner
+      ? `<div class="row gap2 mt3"><button class="btn btn-ghost btn-sm" data-act="editDeal" data-id="${d.id}">Изменить</button><button class="btn btn-primary btn-sm flex1" data-act="sell" data-id="${d.id}">Внести продажу</button></div>`
+      : `<button class="btn btn-gold btn-sm mt3" data-act="sell" data-id="${d.id}">Внести продажу</button>`;
+    return dealWrap(d,status,body);
+  }
+  // sold
+  body+=`<div class="kv"><span class="kk">Продажа</span><span class="vv">${money(d.salePrice)}</span></div>`;
+  body+=`<div class="kv"><span class="kk">Зарплата</span><span class="vv am">${money(d.salary)}</span></div>`;
+  body+=`<div class="split">`;
+  body+=`<div class="kv" style="padding:2px 0"><span class="kk">Чистая прибыль</span><span class="vv em">${money(c.net)}</span></div>`;
+  body+=`<div class="divi"></div>`;
+  body+=`<div class="kv" style="padding:2px 0"><span class="kk">${esc(S.settings.managerName)} · ${S.settings.sharePct}%</span><span class="vv am">${money(c.mgrShare)}</span></div>`;
+  body+=`<div class="kv" style="padding:2px 0"><span class="kk">${esc(S.settings.ownerName)} · ${100-S.settings.sharePct}%</span><span class="vv sky">${money(c.ownShare)}</span></div>`;
+  body+=`</div>`;
+  // role-focused totals
+  if(isOwner){
+    body+=`<div class="kv" style="margin-top:9px"><span class="kk">${d.settled?'Получено':'К получению'}, вам</span><span class="vv sky">${money(c.ownTotal)}</span></div>`;
+  }else{
+    body+=`<div class="kv" style="margin-top:9px"><span class="kk">${d.settled?'Забрано':'Можно забрать'} <span class="muted2">(вложенное+ЗП+доля)</span></span><span class="vv am">${money(c.mgrTotal)}</span></div>`;
+  }
+  // actions
+  body+=`<div class="row gap2 mt3">`;
+  if(isOwner) body+=`<button class="btn btn-ghost btn-sm" data-act="editSold" data-id="${d.id}">Изменить</button>`;
+  body+= d.settled
+    ? `<button class="btn btn-ghost btn-sm flex1" data-act="unsettle" data-id="${d.id}">Вернуть в «к расчёту»</button>`
+    : `<button class="btn ${isOwner?'btn-primary':'btn-gold'} btn-sm flex1" data-act="settle" data-id="${d.id}">Рассчитаться</button>`;
+  body+=`</div>`;
+  return dealWrap(d,status,body);
+}
+function dealWrap(d,status,body){
+  const accls = d.status==='onsale'?'sale':(d.settled?'settled':'sold');
+  return `<div class="deal"><div class="acc ${accls}"></div>
+    <div class="row between" style="align-items:flex-start">
+      <div class="dname flex1">${esc(d.name||'Без названия')}</div>${status}
+    </div>${body}</div>`;
+}
+function viewDeals(){
+  const isOwner=S.role==='owner';
+  let h='';
+  // add button (owner заводит товар с закупкой)
+  h+= isOwner
+    ? `<button class="btn btn-primary" data-act="addDeal"><span style="font-size:18px;line-height:1">＋</span> Добавить товар (закупку)</button>`
+    : `<div class="card p4 row gap3"><div style="font-size:30px">📥</div><div class="flex1"><div class="sb">Товар заводит владелец</div><div class="small muted mt1">Он вносит закупку. Ты вносишь продажу и зарплату по проданным.</div></div></div>`;
+
+  const onsale=S.deals.filter(d=>d.status==='onsale');
+  const sold=S.deals.filter(d=>d.status==='sold'&&!d.settled);
+  const settled=S.deals.filter(d=>d.status==='sold'&&d.settled);
+
+  if(!S.deals.length){
+    h+=`<div class="empty"><div class="ic">👟</div><div class="t">Пока нет товаров</div>
+      <div class="d">${isOwner?'Добавь первую закупку — например «Nike Air Max», закупка 2000 ₴. Управляющая позже внесёт продажу.':'Как только владелец добавит закупку, ты сможешь внести продажу.'}</div></div>`;
+    h+=explainerCard();
+    return h;
+  }
+  if(onsale.length){ h+=`<div class="sh">В продаже · ${onsale.length}</div>`; onsale.forEach(d=>h+=dealCard(d)); }
+  if(sold.length){ h+=`<div class="sh">Продано · к расчёту · ${sold.length}</div>`; sold.forEach(d=>h+=dealCard(d)); }
+  if(settled.length){ h+=`<div class="sh">Рассчитано · ${settled.length}</div>`; settled.forEach(d=>h+=dealCard(d)); }
+  return h;
+}
+function explainerCard(){
+  const pct=S.settings.sharePct, c=S.settings.currency;
+  const net=4000-2000-200, ms=Math.round(net*pct/100), os=net-ms;
+  return `<div class="exp mt4">
+    <div class="b mb2">Как считается прибыль</div>
+    <div class="formula mb3">Продажа − Закупка − Зарплата = <b class="em">чистая прибыль</b>.<br>
+    От неё <b class="am">${pct}%</b> — управляющей, <b class="sky">${100-pct}%</b> — владельцу.<br>
+    Управляющая также забирает назад <b>вложенную закупку</b> и <b>зарплату</b>.</div>
+    <div style="height:1px;background:rgba(255,255,255,.1);margin:4px 0 10px"></div>
+    <div class="xs muted up mb2">Пример</div>
+    <div class="fl"><span class="op">Продажа</span><b>4 000 ${c}</b></div>
+    <div class="fl"><span class="op">− Закупка</span><b>2 000 ${c}</b></div>
+    <div class="fl"><span class="op">− Зарплата</span><b>200 ${c}</b></div>
+    <div class="fl" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:7px"><span class="op">Чистая прибыль</span><b class="em">${net} ${c}</b></div>
+    <div class="fl"><span class="op">Управляющей (${pct}%)</span><b class="am">${ms} ${c}</b></div>
+    <div class="fl"><span class="op">Владельцу (${100-pct}%)</span><b class="sky">${os} ${c}</b></div>
+  </div>`;
+}
+
+/* ---- SUMMARY ---- */
+function viewSummary(){
+  const t=totals();
+  if(S.role==='owner') return summaryOwner(t);
+  return summaryManager(t);
+}
+function summaryOwner(t){
+  return `
+  <div class="hero owner">
+    <div class="hero-cap">💰 К получению от «${esc(S.settings.managerName)}»</div>
+    <div class="hero-big sky">${money(t.ownReceivable)}</div>
+    <div class="hero-sub">Твоя доля с проданных, но ещё не рассчитанных товаров (${100-S.settings.sharePct}% чистой прибыли).</div>
+  </div>
+  <div class="grid2 mt4">
+    <div class="stat"><div class="k">Оборот (продажи)</div><div class="v">${money(t.turnover)}</div></div>
+    <div class="stat"><div class="k">Чистая прибыль</div><div class="v em">${money(t.net)}</div></div>
+    <div class="stat"><div class="k">Моя доля всего</div><div class="v sky">${money(t.ownProfit)}</div></div>
+    <div class="stat"><div class="k">Уже получено</div><div class="v sm">${money(t.ownReceived)}</div></div>
+  </div>
+  <div class="sh">Вложения партнёра</div>
+  <div class="grid2">
+    <div class="stat"><div class="k">Вложено в товар сейчас</div><div class="v am sm">${money(t.investedNow)}</div></div>
+    <div class="stat"><div class="k">Зарплат выплачено</div><div class="v sm">${money(t.salaryTotal)}</div></div>
+  </div>
+  <div class="card p4 mt4 small muted" style="line-height:1.5">
+    <b class="sky">Как читать:</b> «${esc(S.settings.managerName)}» покупает товар за свои деньги (${money(t.investedNow)} сейчас в обороте). После продажи она возвращает вложенное и зарплату, а <b>чистую прибыль</b> вы делите ${S.settings.sharePct}/${100-S.settings.sharePct}. Кнопкой «Рассчитаться» на товаре фиксируешь, что доля тебе передана.
+  </div>
+  ${explainerCard()}`;
+}
+function summaryManager(t){
+  return `
+  <div class="hero manager">
+    <div class="hero-cap">✋ Можно забрать сейчас</div>
+    <div class="hero-big am">${money(t.mgrWithdrawable)}</div>
+    <div class="hero-sub">С проданных, ещё не рассчитанных товаров: вложенная закупка + зарплата + твоя доля (${S.settings.sharePct}%).</div>
+  </div>
+  <div class="grid2 mt4">
+    <div class="stat"><div class="k">Вложено сейчас</div><div class="v am">${money(t.investedNow)}</div></div>
+    <div class="stat"><div class="k">Заработано (ЗП+доля)</div><div class="v em">${money(t.mgrEarn)}</div></div>
+    <div class="stat"><div class="k">Зарплата всего</div><div class="v sm">${money(t.salaryTotal)}</div></div>
+    <div class="stat"><div class="k">Уже забрано</div><div class="v sm">${money(t.mgrWithdrawn)}</div></div>
+  </div>
+  <div class="sh">Твоя доля прибыли</div>
+  <div class="grid2">
+    <div class="stat"><div class="k">Доля с проданного</div><div class="v am sm">${money(t.mgrEarn - t.salaryTotal)}</div></div>
+    <div class="stat"><div class="k">Оборот магазина</div><div class="v sm">${money(t.turnover)}</div></div>
+  </div>
+  <div class="card p4 mt4 small muted" style="line-height:1.5">
+    <b class="am">Как читать:</b> ты вложила своих денег на <b>${money(t.investedNow)}</b> (пока товар не продан). После продажи забираешь вложенное назад + зарплату + ${S.settings.sharePct}% чистой прибыли. Владельцу уходит ${100-S.settings.sharePct}%. «Можно забрать» — это готовые к выплате деньги по товарам, где ещё не нажата «Рассчитаться».
+  </div>
+  ${explainerCard()}`;
+}
+
+/* ---- SETTINGS ---- */
+function viewSettings(){
+  const s=S.settings;
+  return `
+  <div class="cfg">
+    <div class="row between mb2"><div class="b">Доля управляющей от прибыли</div><div class="am eb" style="font-size:22px" id="pctLive">${s.sharePct}%</div></div>
+    <input type="range" min="0" max="100" step="1" value="${s.sharePct}" class="range" id="pctRange" style="--fill:${s.sharePct}%">
+    <div class="row between small muted mt2"><span>Владельцу: <b class="sky" id="ownPctLive">${100-s.sharePct}%</b></span><span>Управляющей: <b class="am">${s.sharePct}%</b></span></div>
+    <div class="row gap2 mt3 wrapf">
+      <button class="chip" data-setpct="20">20%</button>
+      <button class="chip" data-setpct="30">30%</button>
+      <button class="chip" data-setpct="40">40%</button>
+      <button class="chip" data-setpct="50">50%</button>
+    </div>
+  </div>
+  <div class="cfg">
+    <div class="lbl">Имя владельца (тебя)</div>
+    <input class="input mb3" id="cfgOwner" value="${esc(s.ownerName)}" placeholder="Я">
+    <div class="lbl">Имя управляющей</div>
+    <input class="input mb3" id="cfgMgr" value="${esc(s.managerName)}" placeholder="Управляющая">
+    <div class="lbl">Валюта</div>
+    <input class="input" id="cfgCur" value="${esc(s.currency)}" placeholder="грн">
+    <button class="btn btn-primary mt4" data-act="saveCfg">Сохранить</button>
+  </div>
+  <div class="cfg">
+    <div class="b mb2">Данные</div>
+    <div class="small muted mb3" style="line-height:1.5">Всё хранится на этом устройстве. Роль вверху переключает вид: слева — что видит владелец, справа — управляющая.</div>
+    <button class="btn btn-danger" data-act="reset">Очистить все товары</button>
+  </div>
+  <div class="small muted2 ct mt4">Доля · v1 · учёт совместной прибыли</div>`;
+}
+function bindSettings(){
+  const r=$('pctRange');
+  if(r){
+    r.oninput=()=>{
+      const v=+r.value; r.style.setProperty('--fill',v+'%');
+      $('pctLive').textContent=v+'%'; $('ownPctLive').textContent=(100-v)+'%';
+      S.settings.sharePct=v; // live, save on release
+    };
+    r.onchange=()=>{ save(); toast('Доля управляющей: '+S.settings.sharePct+'%'); $('pctBadge').innerHTML='доля управляющей<br><span class="am eb" style="font-size:14px">'+S.settings.sharePct+'%</span>'; };
+  }
+}
+
+/* ============ MODALS ============ */
+function openSheet(html){ $('sheet').innerHTML='<div class="grab"></div>'+html; $('ov').classList.add('on'); }
+function closeSheet(){ $('ov').classList.remove('on'); }
+$('ov').addEventListener('click',e=>{ if(e.target.id==='ov') closeSheet(); });
+
+function sheetAddDeal(d){
+  const edit=!!d;
+  openSheet(`
+    <div class="sh-title mb4">${edit?'Изменить товар':'Новый товар'}</div>
+    <div class="lbl">Название</div>
+    <input class="input mb3" id="fName" value="${edit?esc(d.name):''}" placeholder="Nike Air Max 90">
+    <div class="lbl">Закупка (сколько вложила управляющая), ${esc(S.settings.currency)}</div>
+    <input class="input" id="fPurchase" inputmode="numeric" value="${edit?d.purchase:''}" placeholder="2000">
+    <div class="row gap2 mt3 wrapf">
+      ${[1000,1500,2000,2500].map(x=>`<button class="chip" data-fill="fPurchase" data-val="${x}">${x}</button>`).join('')}
+    </div>
+    <button class="btn btn-primary mt4" data-act="${edit?'saveDeal':'createDeal'}" ${edit?`data-id="${d.id}"`:''}>${edit?'Сохранить':'Добавить товар'}</button>
+    ${edit?`<button class="btn btn-danger mt2" data-act="delDeal" data-id="${d.id}">Удалить товар</button>`:''}
+  `);
+  setTimeout(()=>$('fName')&&$('fName').focus(),200);
+}
+function sheetSell(d){
+  const editing = d.status==='sold';
+  const c=S.settings.currency;
+  openSheet(`
+    <div class="sh-title">${editing?'Изменить продажу':'Внести продажу'}</div>
+    <div class="small muted mt1 mb4">${esc(d.name)} · закупка ${money(d.purchase)}</div>
+    <div class="lbl">Продажа (за сколько продали), ${esc(c)}</div>
+    <input class="input" id="fSale" inputmode="numeric" value="${editing?d.salePrice:''}" placeholder="4000" oninput="previewSplit(${d.purchase})">
+    <div class="row gap2 mt3 wrapf">
+      ${[3000,3500,4000,4500].map(x=>`<button class="chip" data-fill="fSale" data-val="${x}" data-preview="${d.purchase}">${x}</button>`).join('')}
+    </div>
+    <div class="lbl mt4">Зарплата с этой продажи, ${esc(c)}</div>
+    <input class="input" id="fSalary" inputmode="numeric" value="${editing?d.salary:''}" placeholder="200" oninput="previewSplit(${d.purchase})">
+    <div class="small muted mt2 mb2">Быстрые кнопки — перенести значение в зарплату:</div>
+    <div class="row gap2 wrapf">
+      <button class="chip" data-fill="fSalary" data-val="200" data-preview="${d.purchase}">200</button>
+      <button class="chip" data-salpct="5" data-preview="${d.purchase}">5% продажи</button>
+      <button class="chip" data-salpct="10" data-preview="${d.purchase}">10% продажи</button>
+      <button class="chip" data-fill="fSalary" data-val="0" data-preview="${d.purchase}">Без ЗП</button>
+    </div>
+    <div class="split mt4" id="preview"></div>
+    <button class="btn btn-gold mt4" data-act="${editing?'updateSell':'saveSell'}" data-id="${d.id}">${editing?'Сохранить':'Провести продажу'}</button>
+  `);
+  previewSplit(d.purchase);
+  setTimeout(()=>$('fSale')&&$('fSale').focus(),200);
+}
+function previewSplit(purchase){
+  const sale=num($('fSale')?$('fSale').value:0);
+  const salary=num($('fSalary')?$('fSalary').value:0);
+  const pct=S.settings.sharePct/100;
+  const net=sale-purchase-salary;
+  const ms=Math.round(net*pct), os=net-ms;
+  const el=$('preview'); if(!el) return;
+  el.innerHTML=`
+    <div class="kv" style="padding:3px 0"><span class="kk">Чистая прибыль</span><span class="vv ${net<0?'rd':'em'}">${money(net)}</span></div>
+    <div class="divi"></div>
+    <div class="kv" style="padding:3px 0"><span class="kk">${esc(S.settings.managerName)} (${S.settings.sharePct}%) + вложенное + ЗП</span><span class="vv am">${money(purchase+salary+ms)}</span></div>
+    <div class="kv" style="padding:3px 0"><span class="kk">${esc(S.settings.ownerName)} (${100-S.settings.sharePct}%)</span><span class="vv sky">${money(os)}</span></div>`;
+}
+window.previewSplit=previewSplit;
+
+/* ============ ACTIONS ============ */
+document.addEventListener('click',e=>{
+  const roleBtn=e.target.closest('#rolesw button');
+  if(roleBtn){ S.role=roleBtn.dataset.role; save(); render(); return; }
+  const navBtn=e.target.closest('#nav button');
+  if(navBtn){ S.tab=navBtn.dataset.tab; save(); render(); return; }
+
+  const fill=e.target.closest('[data-fill]');
+  if(fill){ const inp=$(fill.dataset.fill); if(inp){ inp.value=fill.dataset.val; if(fill.dataset.preview!=null) previewSplit(+fill.dataset.preview); } return; }
+  const salpct=e.target.closest('[data-salpct]');
+  if(salpct){ const sale=num($('fSale')?$('fSale').value:0); const inp=$('fSalary'); if(inp){ inp.value=Math.round(sale*(+salpct.dataset.salpct)/100); previewSplit(+salpct.dataset.preview); } return; }
+  const setpct=e.target.closest('[data-setpct]');
+  if(setpct){ S.settings.sharePct=+setpct.dataset.setpct; save(); render(); toast('Доля управляющей: '+S.settings.sharePct+'%'); return; }
+
+  const a=e.target.closest('[data-act]'); if(!a) return;
+  const act=a.dataset.act, id=a.dataset.id;
+  const d=id?S.deals.find(x=>x.id===id):null;
+
+  if(act==='addDeal'){ sheetAddDeal(null); }
+  else if(act==='editDeal'||act==='editSold'){ sheetAddDeal(d); }
+  else if(act==='createDeal'){
+    const name=$('fName').value.trim(), p=num($('fPurchase').value);
+    if(!name){ toast('Введи название'); return; }
+    if(!p){ toast('Введи сумму закупки'); return; }
+    S.deals.unshift({id:uid(),name,purchase:p,salePrice:0,salary:0,status:'onsale',settled:false,createdAt:Date.now()});
+    save(); closeSheet(); render(); toast('Товар добавлен');
+  }
+  else if(act==='saveDeal'){
+    d.name=$('fName').value.trim()||d.name; d.purchase=num($('fPurchase').value);
+    save(); closeSheet(); render(); toast('Сохранено');
+  }
+  else if(act==='delDeal'){ S.deals=S.deals.filter(x=>x.id!==id); save(); closeSheet(); render(); toast('Удалено'); }
+  else if(act==='sell'){ sheetSell(d); }
+  else if(act==='saveSell'||act==='updateSell'){
+    const sale=num($('fSale').value);
+    if(!sale){ toast('Введи сумму продажи'); return; }
+    d.salePrice=sale; d.salary=num($('fSalary').value); d.status='sold'; d.soldAt=Date.now();
+    save(); closeSheet(); render(); toast('Продажа проведена');
+  }
+  else if(act==='settle'){ d.settled=true; d.settledAt=Date.now(); save(); render(); toast('Рассчитано ✓'); }
+  else if(act==='unsettle'){ d.settled=false; save(); render(); }
+  else if(act==='saveCfg'){
+    S.settings.ownerName=$('cfgOwner').value.trim()||'Я';
+    S.settings.managerName=$('cfgMgr').value.trim()||'Управляющая';
+    S.settings.currency=$('cfgCur').value.trim()||'грн';
+    save(); render(); toast('Настройки сохранены');
+  }
+  else if(act==='reset'){
+    if(confirm('Удалить все товары? Настройки останутся.')){ S.deals=[]; save(); render(); toast('Очищено'); }
+  }
+});
+
+/* --- Telegram chrome --- */
+try{ const tg=window.Telegram&&window.Telegram.WebApp; if(tg){ tg.ready(); tg.expand&&tg.expand(); tg.setHeaderColor&&tg.setHeaderColor('#0b1210'); } }catch(e){}
+
+render();
+</script>
+</body>
+</html>
