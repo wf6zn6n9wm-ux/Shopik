@@ -1,31 +1,30 @@
 // Serverless-функция (Vercel) — бэкенд «Доля»: общий учёт прибыли магазина
 // для двоих (владелец + управляющая), синхронно на двух телефонах.
 //
-// Идентификация — по подписи Telegram initData (проверяем HMAC токеном бота),
-// поэтому подделать чужой tg_id нельзя. Доступ к базе — только отсюда,
-// service-role ключом (в браузер он не попадает).
+// Модель «Склад»:
+//   • Владелец заводит МОДЕЛЬ (фото + название) и добавляет ПАРЫ по размерам:
+//     у каждого лота своя закупка за пару, позже добавляется доставка за пару.
+//     Себестоимость пары = закупка + доставка. Товар оплачивает владелец.
+//   • Управляющая продаёт: выбирает модель+размер, вносит цену продажи и зарплату.
+//     Прибыль = продажа − себестоимость − зарплата, делится (по умолч. 30% ей / 70% ему).
+//     Владельцу возвращается вложенная себестоимость + его доля; управляющей — зарплата + её доля.
+//     Остаток выбранного размера уменьшается на 1.
+//
+// Идентификация — по подписи Telegram initData (HMAC токеном бота). Доступ к базе —
+// только отсюда, service-role ключом (в браузер он не попадает).
 //
 // Действия (POST { action, initData, ... }):
-//   state                       → магазин (роль, %, валюта, партнёр, код) + список товаров
-//   shop_create                 → создать магазин (ты — владелец), вернуть код-приглашение
-//   shop_join {code}            → войти в магазин по коду (ты — управляющая)
-//   settings_save {share_pct,currency}   → владелец меняет процент доли и валюту
-//   deal_add {name,purchase}    → владелец заводит товар (закупку)
-//   deal_edit {id,name,purchase} → владелец правит товар
-//   deal_delete {id}            → владелец удаляет товар
-//   deal_sell {id,sale,salary}  → внести продажу и зарплату (товар → «продано»)
-//   deal_settle {id,settled}    → отметить/снять «рассчитано»
+//   state
+//   shop_create · shop_join {code} · settings_save {share_pct,currency}
+//   product_add {name,photo} · product_edit {id,name,photo} · product_delete {id}
+//   stock_add {product_id,size,qty,purchase} · stock_edit {id,size,qty,purchase,shipping}
+//   stock_ship {id,shipping} · stock_delete {id}
+//   sale_add {product_id,size,sale,salary} · sale_settle {id,settled} · sale_delete {id}
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
-//   PROFIT_SUPABASE_URL              — URL проекта Supabase для «Доли»
-//   PROFIT_SUPABASE_SERVICE_ROLE_KEY — service_role ключ этого проекта (секрет!)
-//   PROFIT_BOT_TOKEN                 — токен Telegram-бота (от @BotFather)
-//   PROFIT_BOT_USERNAME  — (необяз.) юзернейм бота для ссылок-приглашений
-//   PROFIT_APP_URL       — (необяз.) URL мини-аппа для кнопки «Открыть»
-// (для удобства читаются и без префикса PROFIT_, если отдельные не заданы)
-//
-// Без ключей возвращаем reason:"not_configured", а index.html мягко откатывается
-// в локальный демо-режим (одно устройство) и не ломается.
+//   PROFIT_SUPABASE_URL / PROFIT_SUPABASE_SERVICE_ROLE_KEY / PROFIT_BOT_TOKEN
+// (читаются и без префикса PROFIT_, если отдельные не заданы). Без ключей —
+// reason:"not_configured", а index.html мягко откатывается в демо-режим.
 
 const crypto = require('crypto');
 
@@ -33,7 +32,6 @@ function env(name) {
   return process.env['PROFIT_' + name] || process.env[name] || '';
 }
 
-// --- проверка подписи Telegram WebApp initData ---
 function verifyInitData(initData, botToken) {
   try {
     if (!initData || !botToken) return null;
@@ -46,7 +44,7 @@ function verifyInitData(initData, botToken) {
     const calc = crypto.createHmac('sha256', secret).update(dcs).digest('hex');
     if (calc !== hash) return null;
     const authDate = Number(params.get('auth_date') || 0);
-    if (authDate && (Date.now() / 1000 - authDate) > 86400) return null; // свежесть — сутки
+    if (authDate && (Date.now() / 1000 - authDate) > 86400) return null;
     const user = JSON.parse(params.get('user') || 'null');
     if (!user || !user.id) return null;
     return {
@@ -64,19 +62,23 @@ function makeCode() {
   return s;
 }
 function n0(v) { return Math.max(0, Math.round(Number(v) || 0)); }
+function sizeNorm(v) { return String(v == null ? '' : v).trim().slice(0, 12); }
 
-// раздел прибыли по товару (для текста пуша). Клиент считает так же.
-function split(deal, pct) {
-  const net = n0(deal.sale) - n0(deal.purchase) - n0(deal.salary);
+// раздел прибыли по проданной паре (для пуша). Клиент считает так же.
+function split(sale, cost, salary, pct) {
+  const net = n0(sale) - n0(cost) - n0(salary);
   const mgrShare = Math.round(net * pct / 100);
   const ownShare = net - mgrShare;
-  return { net, mgrShare, ownShare, mgrTotal: n0(deal.purchase) + n0(deal.salary) + mgrShare };
+  return {
+    net, mgrShare, ownShare,
+    mgrTotal: n0(salary) + mgrShare,        // управляющей: зарплата + её доля
+    ownTotal: n0(cost) + ownShare           // владельцу: возврат себестоимости + его доля
+  };
 }
 
-// rate-limit по tg_id (best-effort, в памяти инстанса)
 const RL = new Map();
 function rateLimited(id, max, windowMs) {
-  max = max || 60; windowMs = windowMs || 60000;
+  max = max || 80; windowMs = windowMs || 60000;
   const now = Date.now();
   const arr = (RL.get(id) || []).filter((t) => now - t < windowMs);
   arr.push(now);
@@ -92,8 +94,6 @@ module.exports = async (req, res) => {
     const URL = env('SUPABASE_URL');
     const SERVICE = env('SUPABASE_SERVICE_ROLE_KEY');
     const BOT = env('BOT_TOKEN');
-    const BOT_USER = env('BOT_USERNAME') || '';
-    const APP = env('APP_URL') || '';
     if (!URL || !SERVICE || !BOT) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
 
     let body = req.body;
@@ -104,7 +104,6 @@ module.exports = async (req, res) => {
     if (!me) { res.status(401).json({ ok: false, reason: 'bad_auth' }); return; }
     if (rateLimited(me.id)) { res.status(429).json({ ok: false, reason: 'rate_limited' }); return; }
 
-    // ---- helpers к Supabase REST ----
     const H = { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' };
     async function sb(path, opts) {
       const r = await fetch(URL + '/rest/v1/' + path, Object.assign({ headers: H }, opts || {}));
@@ -124,13 +123,6 @@ module.exports = async (req, res) => {
       const rows = await sb('profit_shops?id=eq.' + shopId + '&select=id,invite_code,share_pct,currency,owner_tg');
       return (rows && rows[0]) || null;
     }
-    async function shopDeals(shopId) {
-      const rows = await sb('profit_deals?shop_id=eq.' + shopId + '&select=id,name,purchase,sale,salary,status,settled,created_at,sold_at&order=created_at.desc');
-      return (rows || []).map((d) => ({
-        id: d.id, name: d.name, purchase: n0(d.purchase), salePrice: n0(d.sale), salary: n0(d.salary),
-        status: d.status, settled: !!d.settled, createdAt: d.created_at, soldAt: d.sold_at
-      }));
-    }
     function shopView(shop, members) {
       const partner = members.find((m) => Number(m.tg_id) !== me.id) || null;
       const mine = members.find((m) => Number(m.tg_id) === me.id) || null;
@@ -144,19 +136,36 @@ module.exports = async (req, res) => {
         linked: members.length >= 2
       };
     }
-    // пуш всем участникам магазина, кроме себя
-    async function pushOthers(members, text, kb) {
-      const others = members.filter((m) => Number(m.tg_id) !== me.id);
-      for (let i = 0; i < others.length; i++) {
-        sendPush(BOT, others[i].tg_id, text, kb).catch(() => {});
-      }
+    async function shopProducts(shopId) {
+      const prods = await sb('profit_products?shop_id=eq.' + shopId + '&select=id,name,photo,created_at&order=created_at.desc');
+      const stock = await sb('profit_stock?shop_id=eq.' + shopId + '&select=id,product_id,size,qty,purchase,shipping,created_at&order=created_at.asc');
+      const byProd = {};
+      (stock || []).forEach((s) => {
+        (byProd[s.product_id] = byProd[s.product_id] || []).push({
+          id: s.id, size: s.size, qty: n0(s.qty), purchase: n0(s.purchase),
+          shipping: s.shipping == null ? null : n0(s.shipping)
+        });
+      });
+      return (prods || []).map((p) => ({ id: p.id, name: p.name, photo: p.photo || null, stock: byProd[p.id] || [] }));
     }
-    // общий ответ «текущее состояние»
+    async function shopSales(shopId) {
+      const rows = await sb('profit_sales?shop_id=eq.' + shopId + '&select=id,product_id,name,size,sale,salary,cost,settled,sold_at&order=sold_at.desc');
+      return (rows || []).map((s) => ({
+        id: s.id, productId: s.product_id, name: s.name, size: s.size,
+        sale: n0(s.sale), salary: n0(s.salary), cost: n0(s.cost),
+        settled: !!s.settled, soldAt: s.sold_at
+      }));
+    }
+    async function pushOthers(members, text) {
+      const others = members.filter((m) => Number(m.tg_id) !== me.id);
+      for (let i = 0; i < others.length; i++) sendPush(BOT, others[i].tg_id, text).catch(() => {});
+    }
     async function stateResponse(shopId) {
       const shop = await shopRow(shopId);
       const members = await shopMembers(shopId);
-      const deals = await shopDeals(shopId);
-      return { ok: true, shop: shopView(shop, members), deals: deals };
+      const products = await shopProducts(shopId);
+      const sales = await shopSales(shopId);
+      return { ok: true, shop: shopView(shop, members), products, sales };
     }
 
     const action = body.action;
@@ -169,7 +178,7 @@ module.exports = async (req, res) => {
       return;
     }
 
-    // -------- SHOP CREATE (создатель = владелец) --------
+    // -------- SHOP CREATE --------
     if (action === 'shop_create') {
       const existing = await myMembership();
       if (existing) { res.status(200).json(await stateResponse(existing.shop_id)); return; }
@@ -177,23 +186,19 @@ module.exports = async (req, res) => {
       for (let i = 0; i < 5 && !shop; i++) {
         try {
           const rows = await sb('profit_shops', {
-            method: 'POST',
-            headers: Object.assign({}, H, { Prefer: 'return=representation' }),
+            method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
             body: JSON.stringify({ invite_code: makeCode(), owner_tg: me.id, share_pct: 30, currency: 'грн' })
           });
           shop = rows && rows[0];
         } catch (e) { if (String(e).indexOf('409') === -1) throw e; }
       }
       if (!shop) { res.status(200).json({ ok: false, reason: 'code_collision' }); return; }
-      await sb('profit_members', {
-        method: 'POST',
-        body: JSON.stringify({ shop_id: shop.id, tg_id: me.id, name: me.name, photo_url: me.photo_url, role: 'owner' })
-      });
+      await sb('profit_members', { method: 'POST', body: JSON.stringify({ shop_id: shop.id, tg_id: me.id, name: me.name, photo_url: me.photo_url, role: 'owner' }) });
       res.status(200).json(await stateResponse(shop.id));
       return;
     }
 
-    // -------- SHOP JOIN (входящий = управляющая) --------
+    // -------- SHOP JOIN --------
     if (action === 'shop_join') {
       const code = String(body.code || '').toUpperCase().trim();
       if (code.length < 4) { res.status(200).json({ ok: false, reason: 'bad_code' }); return; }
@@ -204,12 +209,9 @@ module.exports = async (req, res) => {
       if (!shop) { res.status(200).json({ ok: false, reason: 'not_found' }); return; }
       const members = await shopMembers(shop.id);
       if (members.length >= 2) { res.status(200).json({ ok: false, reason: 'shop_full' }); return; }
-      await sb('profit_members', {
-        method: 'POST',
-        body: JSON.stringify({ shop_id: shop.id, tg_id: me.id, name: me.name, photo_url: me.photo_url, role: 'manager' })
-      });
+      await sb('profit_members', { method: 'POST', body: JSON.stringify({ shop_id: shop.id, tg_id: me.id, name: me.name, photo_url: me.photo_url, role: 'manager' }) });
       const first = members[0];
-      if (first) sendPush(BOT, first.tg_id, '🤝 ' + me.name + ' присоединился(ась) как управляющая. Теперь вы ведёте учёт прибыли вместе — заводите товары и вносите закупки.').catch(() => {});
+      if (first) sendPush(BOT, first.tg_id, '🤝 ' + me.name + ' присоединился(ась) как управляющая. Теперь вы ведёте склад и учёт прибыли вместе.').catch(() => {});
       res.status(200).json(await stateResponse(shop.id));
       return;
     }
@@ -218,107 +220,150 @@ module.exports = async (req, res) => {
     const mem = await myMembership();
     if (!mem) { res.status(200).json({ ok: false, reason: 'no_shop' }); return; }
     const isOwner = mem.role === 'owner';
+    const SHOP = mem.shop_id;
 
-    // -------- SETTINGS SAVE (только владелец) --------
+    // -------- SETTINGS SAVE (владелец) --------
     if (action === 'settings_save') {
       if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
       const patch = {};
       if (body.share_pct != null) patch.share_pct = Math.min(100, Math.max(0, Math.round(Number(body.share_pct) || 0)));
       if (body.currency != null) patch.currency = String(body.currency).slice(0, 12) || 'грн';
       if (Object.keys(patch).length) {
-        await sb('profit_shops?id=eq.' + mem.shop_id, {
-          method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(patch)
-        });
+        await sb('profit_shops?id=eq.' + SHOP, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(patch) });
       }
-      res.status(200).json(await stateResponse(mem.shop_id));
+      res.status(200).json(await stateResponse(SHOP));
       return;
     }
 
-    // -------- DEAL ADD (только владелец) --------
-    if (action === 'deal_add') {
+    // -------- PRODUCT ADD/EDIT/DELETE (владелец) --------
+    if (action === 'product_add') {
       if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
       const name = String(body.name || '').trim().slice(0, 120);
-      const purchase = n0(body.purchase);
-      if (!name || !purchase) { res.status(200).json({ ok: false, reason: 'bad_input' }); return; }
-      await sb('profit_deals', {
-        method: 'POST',
-        body: JSON.stringify({ shop_id: mem.shop_id, name: name, purchase: purchase, status: 'onsale' })
-      });
-      const members = await shopMembers(mem.shop_id);
-      pushOthers(members, '👟 Новый товар «' + name + '» в продаже. Закупка ' + purchase + '. Как продадите — внесите продажу и зарплату.');
-      res.status(200).json(await stateResponse(mem.shop_id));
+      if (!name) { res.status(200).json({ ok: false, reason: 'bad_input' }); return; }
+      const photo = typeof body.photo === 'string' && body.photo.length < 700000 ? body.photo : null;
+      await sb('profit_products', { method: 'POST', body: JSON.stringify({ shop_id: SHOP, name, photo }) });
+      res.status(200).json(await stateResponse(SHOP));
       return;
     }
-
-    // -------- DEAL EDIT (только владелец) --------
-    if (action === 'deal_edit') {
+    if (action === 'product_edit') {
       if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
       const id = String(body.id || '');
       const patch = {};
       if (body.name != null) patch.name = String(body.name).trim().slice(0, 120);
-      if (body.purchase != null) patch.purchase = n0(body.purchase);
-      await sb('profit_deals?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + mem.shop_id, {
-        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(patch)
-      });
-      res.status(200).json(await stateResponse(mem.shop_id));
+      if (body.photo !== undefined) patch.photo = (typeof body.photo === 'string' && body.photo.length < 700000) ? body.photo : null;
+      await sb('profit_products?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(patch) });
+      res.status(200).json(await stateResponse(SHOP));
       return;
     }
-
-    // -------- DEAL DELETE (только владелец) --------
-    if (action === 'deal_delete') {
+    if (action === 'product_delete') {
       if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
       const id = String(body.id || '');
-      await sb('profit_deals?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + mem.shop_id, {
-        method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' })
-      });
-      res.status(200).json(await stateResponse(mem.shop_id));
+      await sb('profit_stock?product_id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP, { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) });
+      await sb('profit_products?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP, { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) });
+      res.status(200).json(await stateResponse(SHOP));
       return;
     }
 
-    // -------- DEAL SELL (любой участник) --------
-    if (action === 'deal_sell') {
+    // -------- STOCK ADD/EDIT/SHIP/DELETE (владелец) --------
+    if (action === 'stock_add') {
+      if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      const product_id = String(body.product_id || '');
+      const size = sizeNorm(body.size);
+      const qty = Math.max(1, n0(body.qty) || 1);
+      const purchase = n0(body.purchase);
+      if (!product_id || !size) { res.status(200).json({ ok: false, reason: 'bad_input' }); return; }
+      const prod = await sb('profit_products?id=eq.' + encodeURIComponent(product_id) + '&shop_id=eq.' + SHOP + '&select=id,name');
+      if (!prod || !prod[0]) { res.status(200).json({ ok: false, reason: 'not_found' }); return; }
+      const ship = body.shipping == null ? null : n0(body.shipping);
+      await sb('profit_stock', { method: 'POST', body: JSON.stringify({ shop_id: SHOP, product_id, size, qty, purchase, shipping: ship }) });
+      const members = await shopMembers(SHOP);
+      pushOthers(members, '📦 На склад добавлено: «' + prod[0].name + '», размер ' + size + ' — ' + qty + ' пар(ы).');
+      res.status(200).json(await stateResponse(SHOP));
+      return;
+    }
+    if (action === 'stock_edit') {
+      if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
       const id = String(body.id || '');
+      const patch = {};
+      if (body.size != null) patch.size = sizeNorm(body.size);
+      if (body.qty != null) patch.qty = Math.max(0, n0(body.qty));
+      if (body.purchase != null) patch.purchase = n0(body.purchase);
+      if (body.shipping !== undefined) patch.shipping = body.shipping == null ? null : n0(body.shipping);
+      await sb('profit_stock?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(patch) });
+      res.status(200).json(await stateResponse(SHOP));
+      return;
+    }
+    if (action === 'stock_ship') {
+      if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      const id = String(body.id || '');
+      await sb('profit_stock?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify({ shipping: n0(body.shipping) }) });
+      res.status(200).json(await stateResponse(SHOP));
+      return;
+    }
+    if (action === 'stock_delete') {
+      if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      const id = String(body.id || '');
+      await sb('profit_stock?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP, { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) });
+      res.status(200).json(await stateResponse(SHOP));
+      return;
+    }
+
+    // -------- SALE ADD (любой участник) — продать пару со склада --------
+    if (action === 'sale_add') {
+      const product_id = String(body.product_id || '');
+      const size = sizeNorm(body.size);
       const sale = n0(body.sale);
-      if (!sale) { res.status(200).json({ ok: false, reason: 'bad_input' }); return; }
       const salary = n0(body.salary);
-      const rows = await sb('profit_deals?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + mem.shop_id + '&select=id,name,purchase');
-      const deal = rows && rows[0];
-      if (!deal) { res.status(200).json({ ok: false, reason: 'not_found' }); return; }
-      await sb('profit_deals?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + mem.shop_id, {
-        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
-        body: JSON.stringify({ sale: sale, salary: salary, status: 'sold', sold_at: new Date().toISOString() })
-      });
-      const shop = await shopRow(mem.shop_id);
-      const members = await shopMembers(mem.shop_id);
-      const s = split({ purchase: deal.purchase, sale: sale, salary: salary }, shop.share_pct == null ? 30 : shop.share_pct);
-      // владельцу важна его доля, управляющей — что можно забрать
-      const others = members.filter((m) => Number(m.tg_id) !== me.id);
-      others.forEach((o) => {
+      if (!product_id || !size || !sale) { res.status(200).json({ ok: false, reason: 'bad_input' }); return; }
+      const prod = await sb('profit_products?id=eq.' + encodeURIComponent(product_id) + '&shop_id=eq.' + SHOP + '&select=id,name');
+      if (!prod || !prod[0]) { res.status(200).json({ ok: false, reason: 'not_found' }); return; }
+      // FIFO: самый ранний лот этого размера с остатком > 0
+      const lots = await sb('profit_stock?product_id=eq.' + encodeURIComponent(product_id) + '&shop_id=eq.' + SHOP + '&size=eq.' + encodeURIComponent(size) + '&qty=gt.0&select=id,qty,purchase,shipping&order=created_at.asc');
+      const lot = lots && lots[0];
+      if (!lot) { res.status(200).json({ ok: false, reason: 'out_of_stock' }); return; }
+      const cost = n0(lot.purchase) + (lot.shipping == null ? 0 : n0(lot.shipping));
+      await sb('profit_stock?id=eq.' + lot.id + '&shop_id=eq.' + SHOP, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify({ qty: n0(lot.qty) - 1 }) });
+      await sb('profit_sales', { method: 'POST', body: JSON.stringify({ shop_id: SHOP, product_id, name: prod[0].name, size, sale, salary, cost }) });
+      const shop = await shopRow(SHOP);
+      const members = await shopMembers(SHOP);
+      const s = split(sale, cost, salary, shop.share_pct == null ? 30 : shop.share_pct);
+      members.filter((m) => Number(m.tg_id) !== me.id).forEach((o) => {
         const txt = o.role === 'owner'
-          ? '💰 Продажа «' + deal.name + '» за ' + sale + '. Чистая прибыль ' + s.net + '. Ваша доля: ' + s.ownShare + '.'
-          : '💰 Продажа «' + deal.name + '» за ' + sale + '. Можно забрать (вложенное+ЗП+доля): ' + s.mgrTotal + '.';
+          ? '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Прибыль ' + s.net + '. Вам к получению: ' + s.ownTotal + ' (себестоимость ' + cost + ' + доля ' + s.ownShare + ').'
+          : '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Тебе: зарплата ' + salary + ' + доля ' + s.mgrShare + ' = ' + s.mgrTotal + '.';
         sendPush(BOT, o.tg_id, txt).catch(() => {});
       });
-      res.status(200).json(await stateResponse(mem.shop_id));
+      res.status(200).json(await stateResponse(SHOP));
       return;
     }
 
-    // -------- DEAL SETTLE (любой участник) --------
-    if (action === 'deal_settle') {
+    // -------- SALE SETTLE --------
+    if (action === 'sale_settle') {
       const id = String(body.id || '');
       const settled = !!body.settled;
-      const rows = await sb('profit_deals?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + mem.shop_id + '&select=id,name');
-      const deal = rows && rows[0];
-      if (!deal) { res.status(200).json({ ok: false, reason: 'not_found' }); return; }
-      await sb('profit_deals?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + mem.shop_id, {
-        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
-        body: JSON.stringify({ settled: settled, settled_at: settled ? new Date().toISOString() : null })
-      });
-      if (settled) {
-        const members = await shopMembers(mem.shop_id);
-        pushOthers(members, '✅ Товар «' + deal.name + '» рассчитан — деньги распределены.');
+      const rows = await sb('profit_sales?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP + '&select=id,name,size');
+      const sale = rows && rows[0];
+      if (!sale) { res.status(200).json({ ok: false, reason: 'not_found' }); return; }
+      await sb('profit_sales?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify({ settled, settled_at: settled ? new Date().toISOString() : null }) });
+      if (settled) { const members = await shopMembers(SHOP); pushOthers(members, '✅ Продажа «' + sale.name + '» (' + sale.size + ') рассчитана — деньги распределены.'); }
+      res.status(200).json(await stateResponse(SHOP));
+      return;
+    }
+
+    // -------- SALE DELETE (владелец) — вернуть пару на склад --------
+    if (action === 'sale_delete') {
+      if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      const id = String(body.id || '');
+      const rows = await sb('profit_sales?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP + '&select=id,product_id,size,cost');
+      const sale = rows && rows[0];
+      if (!sale) { res.status(200).json({ ok: false, reason: 'not_found' }); return; }
+      // вернуть 1 пару в самый ранний лот того же размера (или в любой этого размера)
+      if (sale.product_id) {
+        const lots = await sb('profit_stock?product_id=eq.' + encodeURIComponent(sale.product_id) + '&shop_id=eq.' + SHOP + '&size=eq.' + encodeURIComponent(sale.size) + '&select=id,qty&order=created_at.asc');
+        if (lots && lots[0]) await sb('profit_stock?id=eq.' + lots[0].id + '&shop_id=eq.' + SHOP, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify({ qty: n0(lots[0].qty) + 1 }) });
       }
-      res.status(200).json(await stateResponse(mem.shop_id));
+      await sb('profit_sales?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP, { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) });
+      res.status(200).json(await stateResponse(SHOP));
       return;
     }
 
@@ -328,14 +373,11 @@ module.exports = async (req, res) => {
   }
 };
 
-// экспорт для юнит-тестов
 module.exports._verifyInitData = verifyInitData;
 module.exports._split = split;
 
-async function sendPush(botToken, chatId, text, replyMarkup) {
-  const payload = { chat_id: chatId, text: text };
-  if (replyMarkup) payload.reply_markup = replyMarkup;
+async function sendPush(botToken, chatId, text) {
   return fetch('https://api.telegram.org/bot' + botToken + '/sendMessage', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text })
   });
 }
