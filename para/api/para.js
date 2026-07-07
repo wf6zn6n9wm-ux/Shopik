@@ -416,6 +416,31 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // -------- ADMIN PAIRS (детальный список пар) --------
+    if (action === 'admin_pairs') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const d10 = (s) => String(s || '').slice(0, 10);
+      let couples;
+      try { couples = await sb('para_couples?select=id,invite_code,created_at,para_members(tg_id,name,last_active)&order=created_at.desc&limit=300'); }
+      catch (e) { couples = await sb('para_couples?select=id,invite_code,created_at,para_members(tg_id,name)&order=created_at.desc&limit=300'); }
+      couples = Array.isArray(couples) ? couples : [];
+      let pev = [];
+      try { pev = await sb('para_events?type=eq.points&select=couple_id,amount'); } catch (e) {}
+      const pts = {}; (pev || []).forEach((e) => { if (e.couple_id) pts[e.couple_id] = (pts[e.couple_id] || 0) + (e.amount || 0); });
+      const pairs = couples.map((c) => {
+        const mm = c.para_members || [];
+        const la = mm.map((m) => m.last_active).filter(Boolean).sort().pop() || null;
+        return {
+          id: c.id, code: c.invite_code, created: d10(c.created_at),
+          members: mm.map((m) => m.name || '—'),
+          linked: mm.length >= 2, points: pts[c.id] || 0, lastActive: la
+        };
+      });
+      const stats = { linked: pairs.filter((p) => p.linked).length, waiting: pairs.filter((p) => !p.linked).length };
+      res.status(200).json({ ok: true, pairs: pairs, stats: stats, count: pairs.length });
+      return;
+    }
+
     // -------- TRACK (клиентские события для аналитики) --------
     if (action === 'track') {
       const type = String(body.type || '');
