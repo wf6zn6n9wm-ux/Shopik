@@ -512,7 +512,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v22 · метрики за выбранный период';
+var APP_VERSION = 'v23 · желания: показ ошибок';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -2072,8 +2072,13 @@ var ACTS={
   'wish-cat':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.cat=el.dataset.e; haptic('light'); render(); } },
   'wish-pts':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.points=+el.dataset.p; haptic('light'); render(); } },
   'wish-save':function(){ var t=(val('#wtitle')||'').trim(); if(!t){ var el=document.getElementById('wtitle'); if(el)el.focus(); return; } var m=S.wmodal||{}; var cat=m.cat||'❤️', pts=m.points||20;
-    if(ONLINE&&S.couple){ S.wmodal=null; haptic('success'); render();
-      api('wish_add',{text:t,category:cat,points:pts}).then(function(r){ if(r&&r.ok&&r.wishes){ S.wishes=mapServerWishes(r.wishes); render(); } }); return; }
+    if(ONLINE&&S.couple){
+      S.wishes.unshift({id:'tmp'+Date.now(),by:'me',text:t,category:cat,points:pts,status:'new'}); // покажем сразу (оптимистично)
+      S.wmodal=null; haptic('success'); render();
+      api('wish_add',{text:t,category:cat,points:pts}).then(function(r){
+        if(r&&r.ok&&r.wishes){ S.wishes=mapServerWishes(r.wishes); render(); }
+        else { showToast('⚠️','Не сохранилось',(r&&(r.error||r.reason))||'ошибка сервера'); refreshWishes(); }
+      }).catch(function(){ showToast('⚠️','Нет связи','попробуйте ещё раз'); refreshWishes(); }); return; }
     S.wishes.unshift({id:Date.now(),by:S.who,text:t,category:cat,points:pts,status:'new'}); save('wishes'); S.wmodal=null; haptic('success'); render(); },
   'wish-take':function(el){ var id=+el.dataset.id;
     if(ONLINE&&S.couple){ S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},normWish(w),{status:'taken'}):w;}); haptic('light'); render();
@@ -2137,6 +2142,7 @@ function stopLinkPoll(){ if(LINK_POLL){ clearInterval(LINK_POLL); LINK_POLL=null
 async function refreshWishes(){ if(!ONLINE||!S.couple) return; try{ var r=await api('wishes'); if(r&&r.ok&&r.wishes){ S.wishes=mapServerWishes(r.wishes); render(); } }catch(e){} }
 function startWishPoll(){ stopWishPoll(); if(!ONLINE||!S.couple) return; WISH_POLL=setInterval(function(){ if(S.tab==='wishes') refreshWishes(); else stopWishPoll(); }, 12000); }
 function stopWishPoll(){ if(WISH_POLL){ clearInterval(WISH_POLL); WISH_POLL=null; } }
+function showToast(icon,label,hint){ S.toast={icon:icon,label:label,hint:hint}; render(); setTimeout(function(){ S.toast=null; render(); },3000); }
 // после начисления очков — подтянуть прогресс с сервера (немного погодя, чтобы событие успело записаться)
 function afterEarn(){ if(!ONLINE) return; setTimeout(refreshState, 700); }
 // показать экран повышения уровня, если пара поднялась выше запомненного
