@@ -512,7 +512,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v21 · создано/связались пар';
+var APP_VERSION = 'v22 · метрики за выбранный период';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1597,16 +1597,8 @@ function adminDashView(){
     '</div></div>'+rangeChip+
     (w?admGrowthChart(w):'')+'</div>'+
     admDayCard()+admPeriodCard(w);
-  // вторичные метрики — плоские карточки (ниже в иерархии)
-  var mini=function(ic,l,v,delta,act){ return '<div class="adm-mini"'+(act?' data-act="'+act+'"':'')+'><div class="lbl">'+ic+' '+l+'</div><div class="val">'+(v==null?0:v)+'</div>'+admChip(delta)+'</div>'; };
-  var grid='<div class="adm-grid3 mt3">'+
-    mini('📈','Новых сегодня',t.newToday, admDeltaDay(s.users))+
-    mini('📅','Новых за 7д',t.new7d, admDelta7v7(s.users))+
-    mini('⏳','Ожидают',t.waiting, null,'adm-pairs')+
-    mini('🎯','Квесты',t.questsToday, admDeltaDay(s.quests))+
-    mini('⭐','Очки',t.pointsToday, admDeltaDay(s.points))+
-    mini('💬','Ответы',t.answersToday, admDeltaDay(s.answers))+
-    '</div>';
+  // (вторичная фиксированная сетка убрана — все эти метрики теперь в «Показателях за период»,
+  //  которые следуют за выбранным днём/неделей/периодом, чтобы не было двух наборов чисел)
   // связывание пар — наглядный progress bar + Primary CTA
   var waiting=t.waiting||0, active=t.active||0, total=t.couples||0, conv=total?Math.round(active/total*100):0;
   var linkCard='<div class="adm-card mt3">'+
@@ -1633,7 +1625,7 @@ function adminDashView(){
   var foot='<div class="adm-foot"><span>Обновлено: '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})+'</span>'+
     '<button class="adm-refresh" data-act="adm-refresh">Обновить ↻</button></div>';
   return '<div class="adm-sec-h" style="margin-top:4px"><div class="t">Главное за сегодня</div><div class="d">'+today+'</div></div>'+
-    hero+chart+grid+linkCard+
+    hero+chart+linkCard+
     '<div style="height:4px"></div>'+pairsCard+foot;
 }
 // --- редактор конфигурации (уровни/награды) прямо во встроенной админке ---
