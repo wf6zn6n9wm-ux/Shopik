@@ -248,6 +248,15 @@ module.exports = async (req, res) => {
     async function coupleMembers(coupleId) {
       return await sb('para_members?couple_id=eq.' + coupleId + '&select=tg_id,name,photo_url,slot&order=slot');
     }
+    // общий список желаний пары (синхронизируется между партнёрами). mine — моё это желание или партнёра.
+    async function coupleWishes(coupleId, myId) {
+      let rows = [];
+      try { rows = await sb('para_wishes?couple_id=eq.' + coupleId + '&order=created_at.desc&select=id,author,text,category,points,status,taken_by,created_at'); } catch (e) { rows = []; }
+      return (Array.isArray(rows) ? rows : []).map((w) => ({
+        id: w.id, text: w.text, category: w.category || '❤️', points: w.points || 20,
+        status: w.status || 'new', mine: String(w.author) === String(myId), taken_by: w.taken_by || null
+      }));
+    }
     // прогресс пары: общие очки (из событий), уровень, серия, достижения
     async function coupleProgress(coupleId, config) {
       config = config || DEFAULT_CONFIG;
@@ -467,7 +476,73 @@ module.exports = async (req, res) => {
       const today = await todayState(mem.couple_id);
       const config = await loadConfig();
       const progress = await coupleProgress(mem.couple_id, config);
-      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: config });
+      const wishes = await coupleWishes(mem.couple_id, me.id);
+      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: config, wishes: wishes });
+      return;
+    }
+
+    // -------- WISHES (общий список желаний пары — синхронизируется между партнёрами) --------
+    if (action === 'wishes') {
+      const mem = await myMembership();
+      if (!mem) { res.status(200).json({ ok: true, wishes: [] }); return; }
+      res.status(200).json({ ok: true, wishes: await coupleWishes(mem.couple_id, me.id) });
+      return;
+    }
+    if (action === 'wish_add') {
+      const mem = await myMembership();
+      if (!mem) { res.status(200).json({ ok: false, reason: 'no_couple' }); return; }
+      const text = String(body.text || '').trim().slice(0, 200);
+      if (!text) { res.status(200).json({ ok: false, reason: 'empty' }); return; }
+      const cat = String(body.category || '❤️').slice(0, 8);
+      let pts = parseInt(body.points, 10); if ([10, 20, 30, 50].indexOf(pts) === -1) pts = 20;
+      try {
+        await sb('para_wishes', { method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
+          body: JSON.stringify({ couple_id: mem.couple_id, author: me.id, text: text, category: cat, points: pts, status: 'new' }) });
+      } catch (e) { res.status(200).json({ ok: false, reason: 'db_error', error: String(e && e.message).slice(0, 200) }); return; }
+      // партнёру — мягкий пуш о новом желании
+      try {
+        const others = (await coupleMembers(mem.couple_id)).filter((m) => String(m.tg_id) !== String(me.id));
+        if (others[0]) sendPush(BOT, others[0].tg_id, '💫 ' + (me.name || 'Партнёр') + ' добавил(а) новое желание в PARA — загляните вдвоём ❤️').catch(() => {});
+      } catch (e) {}
+      res.status(200).json({ ok: true, wishes: await coupleWishes(mem.couple_id, me.id) });
+      return;
+    }
+    if (action === 'wish_take') {
+      const mem = await myMembership();
+      if (!mem) { res.status(200).json({ ok: false, reason: 'no_couple' }); return; }
+      const id = parseInt(body.id, 10);
+      if (id) { try { await sb('para_wishes?id=eq.' + id + '&couple_id=eq.' + mem.couple_id + '&status=eq.new',
+        { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify({ status: 'taken', taken_by: me.id }) }); } catch (e) {} }
+      res.status(200).json({ ok: true, wishes: await coupleWishes(mem.couple_id, me.id) });
+      return;
+    }
+    if (action === 'wish_done') {
+      const mem = await myMembership();
+      if (!mem) { res.status(200).json({ ok: false, reason: 'no_couple' }); return; }
+      const id = parseInt(body.id, 10);
+      let awarded = 0;
+      if (id) {
+        let row = null;
+        try { const rows = await sb('para_wishes?id=eq.' + id + '&couple_id=eq.' + mem.couple_id + '&select=points,status'); row = rows && rows[0]; } catch (e) {}
+        if (row && row.status !== 'done') {
+          try { await sb('para_wishes?id=eq.' + id + '&couple_id=eq.' + mem.couple_id,
+            { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify({ status: 'done', done_at: new Date().toISOString() }) }); } catch (e) {}
+          awarded = row.points || 0;
+          await logEvent('wish', mem.couple_id, 0);
+          if (awarded) await logEvent('points', mem.couple_id, awarded);
+        }
+      }
+      res.status(200).json({ ok: true, awarded: awarded, wishes: await coupleWishes(mem.couple_id, me.id) });
+      return;
+    }
+    if (action === 'wish_del') {
+      const mem = await myMembership();
+      if (!mem) { res.status(200).json({ ok: false, reason: 'no_couple' }); return; }
+      const id = parseInt(body.id, 10);
+      // удалить может только автор и только не выполненное желание
+      if (id) { try { await sb('para_wishes?id=eq.' + id + '&couple_id=eq.' + mem.couple_id + '&author=eq.' + me.id + '&status=neq.done',
+        { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) }); } catch (e) {} }
+      res.status(200).json({ ok: true, wishes: await coupleWishes(mem.couple_id, me.id) });
       return;
     }
 
