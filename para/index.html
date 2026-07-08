@@ -252,6 +252,7 @@
   .adm-pcell{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:11px 12px;}
   .adm-pcell .pl{font-size:11.5px;color:var(--muted);margin-bottom:4px;}
   .adm-pcell .pv{font-size:22px;font-weight:800;letter-spacing:-.02em;}
+  .adm-pcell .psub{font-size:10.5px;color:#34d399;font-weight:700;margin-top:2px;}
   /* календарь */
   .cal-ovl{align-items:flex-end;}
   .cal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);}
@@ -511,7 +512,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v20 · общие желания пары';
+var APP_VERSION = 'v21 · создано/связались пар';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1477,16 +1478,17 @@ function admPeriod(w){
   function sum(name){ var x=0; (S0[name]||[]).forEach(function(p){ if(inw(p)) x+=p.v; }); return x; }
   function peak(name){ var x=0; (S0[name]||[]).forEach(function(p){ if(inw(p)&&p.v>x) x=p.v; }); return x; }
   var dc=0; (S0.users||[]).forEach(function(p){ if(inw(p)) dc++; }); dc=dc||1;
-  return { newUsers:sum('users'), newCouples:sum('couples'), quests:sum('quests'), points:sum('points'),
+  return { newUsers:sum('users'), newCouples:sum('couples'), newCouplesLinked:sum('couplesLinked'),
+    quests:sum('quests'), points:sum('points'),
     answers:sum('answers'), dauPeak:peak('activity'), dauAvg:Math.round(sum('activity')/dc), days:dc };
 }
 function admPeriodCard(w){
   if(!w) return ''; var per=admPeriod(w);
   var lbl=(S.admFrom&&S.admTo)?(admDayLabel(w.from)+' — '+admDayLabel(w.to)):('за '+per.days+' дн.');
-  var cell=function(ic,l,v){ return '<div class="adm-pcell"><div class="pl">'+ic+' '+l+'</div><div class="pv">'+v+'</div></div>'; };
+  var cell=function(ic,l,v,sub){ return '<div class="adm-pcell"><div class="pl">'+ic+' '+l+'</div><div class="pv">'+v+'</div>'+(sub?'<div class="psub">'+sub+'</div>':'')+'</div>'; };
   return '<div class="adm-card mt3"><div class="adm-sec-h" style="margin:0 0 10px"><div class="t">📊 Показатели за период</div><div class="d">'+lbl+'</div></div>'+
     '<div class="adm-pgrid">'+
-      cell('👥','Новых',per.newUsers)+cell('💞','Новых пар',per.newCouples)+cell('🔥','Пик DAU',per.dauPeak)+
+      cell('👥','Новых',per.newUsers)+cell('💞','Создано пар',per.newCouples,'связались: '+(per.newCouplesLinked||0))+cell('🔥','Пик DAU',per.dauPeak)+
       cell('🎯','Квесты',per.quests)+cell('⭐','Очки',per.points)+cell('💬','Ответы',per.answers)+
     '</div></div>';
 }
