@@ -512,7 +512,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v23 · желания: показ ошибок';
+var APP_VERSION = 'v24 · ввод желания без лагов';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1953,8 +1953,10 @@ function render(){
   if(S.qburst){ html+=questBurst(); }
   if(S.levelup){ html+=levelupOverlay(); }
   if(S.calOpen){ html+=calOverlay(); }
+  // не терять уже набранный текст при любом ре-рендере, пока открыто окно желания
+  if(S.wmodal){ var _wt=document.getElementById('wtitle'); if(_wt) S.wmodal.text=_wt.value; }
   root.innerHTML=html;
-  var wt=document.getElementById('wtitle'); if(wt && S.wmodal && !S.wmodal._f){ wt.focus(); S.wmodal._f=true; }
+  var wt=document.getElementById('wtitle'); if(wt && S.wmodal && !S.wmodal._f){ wt.focus(); try{ var _p=wt.value.length; wt.setSelectionRange(_p,_p); }catch(e){} S.wmodal._f=true; }
 }
 
 // ============================================================
@@ -2139,7 +2141,7 @@ function startLinkPoll(){
 }
 function stopLinkPoll(){ if(LINK_POLL){ clearInterval(LINK_POLL); LINK_POLL=null; } }
 // синхронизация общего списка желаний пары
-async function refreshWishes(){ if(!ONLINE||!S.couple) return; try{ var r=await api('wishes'); if(r&&r.ok&&r.wishes){ S.wishes=mapServerWishes(r.wishes); render(); } }catch(e){} }
+async function refreshWishes(){ if(!ONLINE||!S.couple||S.wmodal) return; /* не дёргаем ре-рендер, пока открыто окно ввода */ try{ var r=await api('wishes'); if(r&&r.ok&&r.wishes){ if(S.wmodal) return; S.wishes=mapServerWishes(r.wishes); render(); } }catch(e){} }
 function startWishPoll(){ stopWishPoll(); if(!ONLINE||!S.couple) return; WISH_POLL=setInterval(function(){ if(S.tab==='wishes') refreshWishes(); else stopWishPoll(); }, 12000); }
 function stopWishPoll(){ if(WISH_POLL){ clearInterval(WISH_POLL); WISH_POLL=null; } }
 function showToast(icon,label,hint){ S.toast={icon:icon,label:label,hint:hint}; render(); setTimeout(function(){ S.toast=null; render(); },3000); }
