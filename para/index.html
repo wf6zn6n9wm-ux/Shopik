@@ -512,7 +512,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v25 · желания без дёрганья';
+var APP_VERSION = 'v26 · ре-рендер только при изменениях';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1925,6 +1925,8 @@ function bottomNav(){
 // ============================================================
 function render(){
   var root=document.getElementById('root'), html;
+  // сохранить набранный текст ДО построения разметки (чтобы не потерять при ре-рендере)
+  if(S.wmodal){ var _wt0=document.getElementById('wtitle'); if(_wt0) S.wmodal.text=_wt0.value; }
   if(!S.couple){
     html=(S.ob.step==='welcome')?welcomeView():pairView();
   } else {
@@ -1955,8 +1957,10 @@ function render(){
   if(S.qburst){ html+=questBurst(); }
   if(S.levelup){ html+=levelupOverlay(); }
   if(S.calOpen){ html+=calOverlay(); }
-  // не терять уже набранный текст при любом ре-рендере, пока открыто окно желания
-  if(S.wmodal){ var _wt=document.getElementById('wtitle'); if(_wt) S.wmodal.text=_wt.value; }
+  // если разметка не изменилась — НЕ трогаем DOM (иначе фоновые опросы «дёргают» экран,
+  // сбрасывают фокус, скролл и анимации). Заодно сохраняются ввод и позиция страницы.
+  if(html===S._lastHtml) return;
+  S._lastHtml=html;
   root.innerHTML=html;
   var wt=document.getElementById('wtitle'); if(wt && S.wmodal && !S.wmodal._f){ wt.focus(); try{ var _p=wt.value.length; wt.setSelectionRange(_p,_p); }catch(e){} S.wmodal._f=true; }
 }
