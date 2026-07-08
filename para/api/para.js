@@ -380,6 +380,7 @@ module.exports = async (req, res) => {
       const series = {
         users: bucket((m) => ms.forEach((r) => { const d = d10(r.joined_at); if (d in m) m[d]++; })),
         couples: bucket((m) => cs.forEach((c) => { const d = d10(c.created_at); if (d in m) m[d]++; })),
+        couplesLinked: bucket((m) => cs.forEach((c) => { if (memCount(c) >= 2) { const d = d10(c.created_at); if (d in m) m[d]++; } })),
         answers: bucket((m) => as.forEach((a) => { if (a.day in m) m[a.day]++; })),
         quests: bucket((m) => ev.forEach((e) => { if (e.type === 'quest') { const d = d10(e.created_at); if (d in m) m[d]++; } })),
         points: bucket((m) => ev.forEach((e) => { if (e.type === 'points') { const d = d10(e.created_at); if (d in m) m[d] += (e.amount || 0); } })),
