@@ -512,7 +512,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v24 · ввод желания без лагов';
+var APP_VERSION = 'v25 · желания без дёрганья';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1046,6 +1046,8 @@ function normWish(w){ return { id:w.id, by:w.by||'me', text:w.text, category:w.c
 // желания с сервера → форма экрана (by: моё это желание или партнёра)
 function mapServerWishes(arr){ return (arr||[]).map(function(w){ return { id:w.id, by:(w.mine?'me':'partner'),
   text:w.text, category:w.category||'❤️', points:w.points||20, status:w.status||'new' }; }); }
+// применить желания с сервера + запомнить «подпись», чтобы фоновый опрос не дёргал экран впустую
+function applyServerWishes(arr){ var mapped=mapServerWishes(arr); S.wishes=mapped; S._wishSig=JSON.stringify(mapped); return mapped; }
 
 function wishesScreen(){
   var c=S.couple, filter=S.wfilter||'all', donef=S.wdonefilter||'all';
@@ -2078,17 +2080,17 @@ var ACTS={
       S.wishes.unshift({id:'tmp'+Date.now(),by:'me',text:t,category:cat,points:pts,status:'new'}); // покажем сразу (оптимистично)
       S.wmodal=null; haptic('success'); render();
       api('wish_add',{text:t,category:cat,points:pts}).then(function(r){
-        if(r&&r.ok&&r.wishes){ S.wishes=mapServerWishes(r.wishes); render(); }
+        if(r&&r.ok&&r.wishes){ applyServerWishes(r.wishes); render(); }
         else { showToast('⚠️','Не сохранилось',(r&&(r.error||r.reason))||'ошибка сервера'); refreshWishes(); }
       }).catch(function(){ showToast('⚠️','Нет связи','попробуйте ещё раз'); refreshWishes(); }); return; }
     S.wishes.unshift({id:Date.now(),by:S.who,text:t,category:cat,points:pts,status:'new'}); save('wishes'); S.wmodal=null; haptic('success'); render(); },
   'wish-take':function(el){ var id=+el.dataset.id;
     if(ONLINE&&S.couple){ S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},normWish(w),{status:'taken'}):w;}); haptic('light'); render();
-      api('wish_take',{id:id}).then(function(r){ if(r&&r.ok&&r.wishes){ S.wishes=mapServerWishes(r.wishes); render(); } }); return; }
+      api('wish_take',{id:id}).then(function(r){ if(r&&r.ok&&r.wishes){ applyServerWishes(r.wishes); render(); } }); return; }
     S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},normWish(w),{status:'taken'}):w;}); save('wishes'); haptic('light'); render(); },
   'wish-done':function(el){ var id=+el.dataset.id;
     if(ONLINE&&S.couple){ S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},normWish(w),{status:'done'}):w;}); S.justDone=id; haptic('success'); render();
-      api('wish_done',{id:id}).then(function(r){ if(r&&r.ok){ if(r.wishes)S.wishes=mapServerWishes(r.wishes); render(); afterEarn(); } });
+      api('wish_done',{id:id}).then(function(r){ if(r&&r.ok){ if(r.wishes)applyServerWishes(r.wishes); render(); afterEarn(); } });
       setTimeout(function(){ S.justDone=null; render(); },900); return; }
     var pts=0; S.wishes=S.wishes.map(function(w){ if(w.id===id){ var n=normWish(w); pts=n.points; return Object.assign({},n,{status:'done'}); } return w; }); S.points+=pts; save('wishes'); save('points'); track('wish'); track('points',pts); S.justDone=id; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.justDone=null; render(); },900); },
   'qcat':function(el){ S.qcat=el.dataset.k; haptic('light'); render(); },
@@ -2116,7 +2118,7 @@ async function refreshState(){
       var nowLinked=!!r.couple.linked;
       ONLINE=true; S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today;
       if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config;
-      if(r.wishes) S.wishes=mapServerWishes(r.wishes);          // общий список желаний пары
+      if(r.wishes) applyServerWishes(r.wishes);                 // общий список желаний пары
       if(nowLinked && prevLinked===false){ celebrateLink(); }   // партнёр только что присоединился!
       prevLinked=nowLinked;
       render(); checkLevelUp();
@@ -2141,7 +2143,12 @@ function startLinkPoll(){
 }
 function stopLinkPoll(){ if(LINK_POLL){ clearInterval(LINK_POLL); LINK_POLL=null; } }
 // синхронизация общего списка желаний пары
-async function refreshWishes(){ if(!ONLINE||!S.couple||S.wmodal) return; /* не дёргаем ре-рендер, пока открыто окно ввода */ try{ var r=await api('wishes'); if(r&&r.ok&&r.wishes){ if(S.wmodal) return; S.wishes=mapServerWishes(r.wishes); render(); } }catch(e){} }
+async function refreshWishes(){ if(!ONLINE||!S.couple||S.wmodal) return; /* не дёргаем ре-рендер, пока открыто окно ввода */
+  try{ var r=await api('wishes'); if(r&&r.ok&&r.wishes){ if(S.wmodal) return;
+    var mapped=mapServerWishes(r.wishes), sig=JSON.stringify(mapped);
+    if(sig===S._wishSig) return;                 // ничего не изменилось — не перерисовываем (иначе экран «дёргается»)
+    S.wishes=mapped; S._wishSig=sig; render();
+  } }catch(e){} }
 function startWishPoll(){ stopWishPoll(); if(!ONLINE||!S.couple) return; WISH_POLL=setInterval(function(){ if(S.tab==='wishes') refreshWishes(); else stopWishPoll(); }, 12000); }
 function stopWishPoll(){ if(WISH_POLL){ clearInterval(WISH_POLL); WISH_POLL=null; } }
 function showToast(icon,label,hint){ S.toast={icon:icon,label:label,hint:hint}; render(); setTimeout(function(){ S.toast=null; render(); },3000); }
@@ -2196,7 +2203,7 @@ async function boot(){
       ONLINE=true;
       if(r.couple){ S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today;
         if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config;
-        if(r.wishes) S.wishes=mapServerWishes(r.wishes);
+        if(r.wishes) applyServerWishes(r.wishes);
         prevLinked=!!r.couple.linked;
         if(!S.couple.linked) startLinkPoll(); } // вернувшийся создатель всё ещё ждёт партнёра
       else { S.couple=null; } // сервер — источник правды: онбординг с настоящим бэкендом
