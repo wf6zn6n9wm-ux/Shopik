@@ -255,9 +255,9 @@
   .adm-pcell .pv{font-size:22px;font-weight:800;letter-spacing:-.02em;}
   .adm-pcell .psub{font-size:10.5px;color:#34d399;font-weight:700;margin-top:2px;}
   /* календарь */
-  .cal-ovl{align-items:flex-end;}
+  .cal-ovl{align-items:flex-end;animation:fade .2s ease;}
   .cal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);}
-  .cal-sheet{position:relative;width:100%;max-width:440px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(0,0,0,.5);}
+  .cal-sheet{position:relative;width:100%;max-width:440px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(0,0,0,.5);animation:up .28s cubic-bezier(.2,.9,.3,1);}
   .cal-sel{font-size:13px;color:#ff8fb0;font-weight:700;}
   .cal-nav{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#fff;font-size:20px;cursor:pointer;line-height:1;}
   .cal-nav:disabled{opacity:.3;}
@@ -381,6 +381,9 @@
   .think-btn:active{transform:scale(.97);}
   .think-btn.cd{background:rgba(255,255,255,.06);color:var(--muted);box-shadow:none;cursor:default;}
   .think-ic{font-size:20px;}
+  .think-wrap{position:relative;}
+  .think-heart{position:absolute;left:50%;top:2px;transform:translateX(-50%);font-size:30px;pointer-events:none;z-index:2;animation:heartUp 1.1s ease-out forwards;}
+  @keyframes heartUp{0%{opacity:0;transform:translate(-50%,0) scale(.5);}20%{opacity:1;}100%{opacity:0;transform:translate(-50%,-72px) scale(1.35);}}
   /* серия дней */
   .streak-strip{display:flex;align-items:center;gap:12px;border-radius:16px;padding:12px 14px;margin-bottom:12px;
     background:linear-gradient(180deg,rgba(251,146,60,.10),rgba(255,94,138,.06));border:1px solid rgba(251,146,60,.22);}
@@ -553,7 +556,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v35 · +28 квестов, +20 идей';
+var APP_VERSION = 'v36 · полировка (анимации)';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1210,8 +1213,9 @@ function moodCard(){
 }
 function thinkBtn(){
   var cd=S._thinkCd && Date.now()<S._thinkCd;
-  return '<button class="think-btn'+(cd?' cd':'')+'" data-act="think-ping"'+(cd?' disabled':'')+'>'+
-    '<span class="think-ic">💭</span> '+(cd?'Отправлено ❤️':'Думаю о тебе')+'</button>';
+  return '<div class="think-wrap">'+(S._thinkBurst?'<span class="think-heart">❤️</span>':'')+
+    '<button class="think-btn'+(cd?' cd':'')+'" data-act="think-ping"'+(cd?' disabled':'')+'>'+
+    '<span class="think-ic">💭</span> '+(cd?'Отправлено ❤️':'Думаю о тебе')+'</button></div>';
 }
 // серия дней подряд (отвечали на вопрос дня) — мотивирует заходить каждый день
 function streakStrip(){
@@ -2406,7 +2410,8 @@ var ACTS={
     S.moods.me={emoji:e,note:note}; haptic('light');
     if(ONLINE&&S.couple){ api('mood_set',{emoji:e,note:note}).then(function(r){ if(r&&r.ok&&r.moods){ applyMoods(r.moods); } showToast('✅','Сохранено','настроение обновлено'); render(); }); }
     else { showToast('✅','Сохранено',''); render(); } },
-  'think-ping':function(){ if(S._thinkCd&&Date.now()<S._thinkCd) return; S._thinkCd=Date.now()+30000; haptic('success');
+  'think-ping':function(){ if(S._thinkCd&&Date.now()<S._thinkCd) return; S._thinkCd=Date.now()+30000; S._thinkBurst=true; haptic('success');
+    setTimeout(function(){ S._thinkBurst=false; render(); }, 1100);
     if(ONLINE&&S.couple){ api('ping').then(function(r){
       if(r&&r.ok&&r.sent){ showToast('💌','Отправлено',((S.couple.partner&&S.couple.partner.name)||'Партнёр')+' получит пуш ❤️'); }
       else if(r&&r.reason==='too_soon'){ S._thinkCd=Date.now()+8000; showToast('⏳','Чуть позже','подожди немного'); }
