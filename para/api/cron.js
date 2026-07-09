@@ -70,15 +70,58 @@ module.exports = async (req, res) => {
         }
       }
       const kbOpen = { inline_keyboard: [[{ text: '💬 Ответить на вопрос', web_app: { url: APP } }]] };
+      // текст пуша чередуется по дням, чтобы не приедался
+      const MORNING = [
+        '💬 Новый вопрос дня в PARA — ответьте вдвоём и станьте ещё ближе ❤️',
+        '☀️ Доброе утро! В PARA новый вопрос дня — узнайте что-то новое друг о друге',
+        '💞 Пара минут для вас двоих: ответьте на сегодняшний вопрос в PARA',
+        '💭 Сегодняшний вопрос дня уже ждёт вас в PARA — ответьте вдвоём',
+        '❤️ Начните день с PARA: новый вопрос, чтобы стать чуть ближе',
+        '✨ В PARA свежий вопрос дня — маленький ритуал, который сближает'
+      ];
+      const morningText = MORNING[Math.floor(now / 86400000) % MORNING.length];
       for (let i = 0; i < targets.length; i += 25) { // батчами, чтобы не упереться в лимиты/таймаут
         const chunk = targets.slice(i, i + 25);
         await Promise.all(chunk.map(async (t) => {
           try {
-            await tgSend(t.tg_id, '💬 Новый вопрос дня в PARA — ответьте вдвоём и станьте ещё ближе ❤️', kbOpen);
+            await tgSend(t.tg_id, morningText, kbOpen);
             await sb('para_events', { method: 'POST', body: JSON.stringify({ tg_id: t.tg_id, couple_id: t.couple_id, type: 'dq', amount: 0 }) }).catch(() => {});
             dqSent++;
           } catch (e) { dqSkipped++; }
         }));
+      }
+    } catch (e) {}
+
+    // ===== 1b) Итог недели (по воскресеньям) — тёплая сводка активности пары =====
+    let weeklySent = 0;
+    try {
+      if (new Date().getUTCDay() === 0) {
+        const weekAgoDay = new Date(now - 7 * 86400000).toISOString().slice(0, 10);
+        const weekAgoIso = new Date(now - 7 * 86400000).toISOString();
+        const linked = (couples || []).filter((c) => (c.para_members || []).length >= 2);
+        let ans7 = [], ev7 = [], done7 = [];
+        try { ans7 = await sb('para_answers?day=gte.' + weekAgoDay + '&select=couple_id'); } catch (e) {}
+        try { ev7 = await sb('para_events?created_at=gte.' + encodeURIComponent(weekAgoIso) + '&type=in.(quest,wish)&select=couple_id,type'); } catch (e) {}
+        try { done7 = await sb('para_events?type=eq.weekly&created_at=gte.' + encodeURIComponent(new Date(now - 6 * 86400000).toISOString()) + '&select=couple_id'); } catch (e) {}
+        const aC = {}, qC = {}, wC = {}, sent = {};
+        (ans7 || []).forEach((a) => { if (a.couple_id) aC[a.couple_id] = (aC[a.couple_id] || 0) + 1; });
+        (ev7 || []).forEach((e) => { if (!e.couple_id) return; if (e.type === 'quest') qC[e.couple_id] = (qC[e.couple_id] || 0) + 1; else if (e.type === 'wish') wC[e.couple_id] = (wC[e.couple_id] || 0) + 1; });
+        (done7 || []).forEach((s) => { if (s.couple_id) sent[s.couple_id] = true; });
+        const targets = linked.filter((c) => !sent[c.id]);
+        const kbOpen = { inline_keyboard: [[{ text: '❤️ Открыть PARA', web_app: { url: APP } }]] };
+        for (let i = 0; i < targets.length; i += 20) {
+          const chunk = targets.slice(i, i + 20);
+          await Promise.all(chunk.map(async (c) => {
+            const a = aC[c.id] || 0, q = qC[c.id] || 0, w = wC[c.id] || 0;
+            const text = (a + q + w === 0)
+              ? '🗓️ Итог недели в PARA\n\nНа этой неделе вы ещё не заходили вдвоём. Новая неделя — отличный повод ответить на вопрос дня и стать ближе ❤️'
+              : '🗓️ Ваша неделя в PARA:\n\n💬 ответов на вопрос дня: ' + a + '\n🎯 квестов выполнено: ' + q + '\n⭐ желаний исполнено: ' + w + '\n\nОтличная неделя вдвоём — так держать! ❤️';
+            const mm = c.para_members || [];
+            for (let b = 0; b < mm.length; b++) { if (mm[b].tg_id) { try { await tgSend(mm[b].tg_id, text, kbOpen); } catch (e) {} } }
+            await sb('para_events', { method: 'POST', body: JSON.stringify({ tg_id: (mm[0] && mm[0].tg_id) || null, couple_id: c.id, type: 'weekly', amount: 0 }) }).catch(() => {});
+            weeklySent++;
+          }));
+        }
       }
     } catch (e) {}
 
@@ -125,7 +168,7 @@ module.exports = async (req, res) => {
         sent++;
       } catch (e) { skipped++; }
     }
-    res.status(200).json({ ok: true, dailyQuestion: { sent: dqSent, skipped: dqSkipped }, reminders: { sent: sent, skipped: skipped, candidates: waiting.length } });
+    res.status(200).json({ ok: true, dailyQuestion: { sent: dqSent, skipped: dqSkipped }, weekly: { sent: weeklySent }, reminders: { sent: sent, skipped: skipped, candidates: waiting.length } });
   } catch (e) {
     res.status(200).json({ ok: false, error: String(e && e.message).slice(0, 200) });
   }
