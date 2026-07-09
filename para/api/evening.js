@@ -69,12 +69,21 @@ module.exports = async (req, res) => {
     }
 
     const kb = { inline_keyboard: [[{ text: '🌙 Открыть PARA', web_app: { url: APP } }]] };
+    // текст чередуется по дням, чтобы вечерний пуш не приедался
+    const EVENING = [
+      'Как прошёл день? 🌙\n\nЗагляните в PARA вдвоём: ответьте на вопрос дня, загадайте желание или выполните квест. Пара минут — и вы стали ближе ❤️',
+      'Вечер вдвоём 🌙\n\nОтветьте на вопрос дня в PARA, пока не легли спать — маленький ритуал, который сближает ❤️',
+      'Перед сном — пара минут для вас двоих 🌙\n\nВопрос дня в PARA уже ждёт. Ответьте вдвоём и станьте чуть ближе ❤️',
+      'Не забудьте про PARA сегодня 🌙\n\nОтвет на вопрос дня, желание или тёплое слово партнёру — вечер станет теплее ❤️',
+      'Как ты сегодня? 🌙\n\nПоделитесь настроением и ответьте на вопрос дня в PARA — это займёт минуту ❤️'
+    ];
+    const eveningText = EVENING[Math.floor(Date.now() / 86400000) % EVENING.length];
     let sent = 0, skipped = 0;
     for (let i = 0; i < targets.length; i += 25) {
       const chunk = targets.slice(i, i + 25);
       await Promise.all(chunk.map(async (t) => {
         try {
-          await tgSend(t.tg_id, 'Как прошёл день? 🌙\n\nЗагляните в PARA вдвоём: ответьте на вопрос дня, загадайте желание или выполните квест. Пара минут — и вы стали ближе ❤️', kb);
+          await tgSend(t.tg_id, eveningText, kb);
           await sb('para_events', { method: 'POST', body: JSON.stringify({ tg_id: t.tg_id, couple_id: t.couple_id, type: 'ev', amount: 0 }) }).catch(() => {});
           sent++;
         } catch (e) { skipped++; }
