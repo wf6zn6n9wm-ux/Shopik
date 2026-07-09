@@ -381,6 +381,15 @@
   .think-btn:active{transform:scale(.97);}
   .think-btn.cd{background:rgba(255,255,255,.06);color:var(--muted);box-shadow:none;cursor:default;}
   .think-ic{font-size:20px;}
+  /* серия дней */
+  .streak-strip{display:flex;align-items:center;gap:12px;border-radius:16px;padding:12px 14px;margin-bottom:12px;
+    background:linear-gradient(180deg,rgba(251,146,60,.10),rgba(255,94,138,.06));border:1px solid rgba(251,146,60,.22);}
+  .streak-strip.s0{background:rgba(255,255,255,.03);border-color:var(--line);}
+  .streak-fire{font-size:26px;flex:0 0 auto;filter:grayscale(.6);opacity:.7;}
+  .streak-fire.on{filter:none;opacity:1;animation:flamePulse 1.8s ease-in-out infinite;}
+  @keyframes flamePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.13)}}
+  .streak-bar{height:6px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px;}
+  .streak-bar>div{height:100%;border-radius:999px;background:linear-gradient(90deg,#fb923c,#ff5e8a);transition:width .6s cubic-bezier(.2,.8,.2,1);}
   .wcheck{width:40px;height:40px;flex:0 0 auto;border-radius:999px;display:flex;align-items:center;
     justify-content:center;font-size:18px;background:rgba(52,211,153,.16);color:#6ee7b7;}
   .wcard.pop{animation:wpop .55s ease;}
@@ -534,7 +543,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v30 · 60 вопросов дня';
+var APP_VERSION = 'v31 · серия дней (streak)';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1126,6 +1135,23 @@ function thinkBtn(){
   return '<button class="think-btn'+(cd?' cd':'')+'" data-act="think-ping"'+(cd?' disabled':'')+'>'+
     '<span class="think-ic">💭</span> '+(cd?'Отправлено ❤️':'Думаю о тебе')+'</button>';
 }
+// серия дней подряд (отвечали на вопрос дня) — мотивирует заходить каждый день
+function streakStrip(){
+  var s=(effProgress().streak)||0;
+  var MS=[3,7,14,30,60,100,180,365], next=null;
+  for(var i=0;i<MS.length;i++){ if(MS[i]>s){ next=MS[i]; break; } }
+  if(s<=0){
+    return '<div class="streak-strip s0"><span class="streak-fire">🔥</span>'+
+      '<div class="flex1"><div class="small sb">Начните серию дней</div>'+
+      '<div class="xs muted">Ответьте на вопрос дня вдвоём — и серия пойдёт</div></div></div>';
+  }
+  var pct=next?Math.max(6,Math.min(100,Math.round(s/next*100))):100;
+  var sub=next?('до '+next+' — ещё '+(next-s)+' '+daysWord(next-s)):'легендарная серия 👑';
+  return '<div class="streak-strip"><span class="streak-fire on">🔥</span>'+
+    '<div class="flex1"><div class="row between" style="align-items:baseline"><div class="small sb">'+s+' '+daysWord(s)+' подряд</div>'+
+    '<div class="xs muted">'+sub+'</div></div>'+
+    '<div class="streak-bar"><div style="width:'+pct+'%"></div></div></div></div>';
+}
 function todayScreen(){
   var now=new Date();
   var dstr=now.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
@@ -1139,6 +1165,7 @@ function todayScreen(){
     countdownCard()+'<div style="height:16px"></div>'+
     moodCard()+'<div style="height:12px"></div>'+
     thinkBtn()+'<div style="height:16px"></div>'+
+    streakStrip()+
     questionCard()+forYouCard()+'</div>';
 }
 
