@@ -181,7 +181,7 @@
 
   function intro(){
     const steps=[
-      {i:"dumbbell",t:"Постав на себе",d:"Кидаєш 500 ₴, що 21 день ходиш у зал. Тримаєш слово — забираєш удвічі більше."},
+      {i:"dumbbell",t:"Постав на себе",d:"Кидаєш 500 ⭐, що 21 день ходиш у зал. Тримаєш слово — забираєш удвічі більше."},
       {i:"camera",t:"Щодня — фото",d:"Кожен день кидаєш фото з тренування. Це твій пруф."},
       {i:"spark",t:"AI-рефері вирішує",d:"AI дивиться на фото і каже: зал це чи диван. Обдурити важко."},
       {i:"coins",t:"Виконав — забираєш ×2",d:"Пройшов усі дні — отримуєш ставку у подвійному розмірі. Зірвався — гроші згорають."},
@@ -201,7 +201,7 @@
   function header(){
     return `<div class="between" style="margin-bottom:24px">
       <div class="brand"><div class="logo">${svg("dumbbell",20)}</div>Гантеля</div>
-      <button class="chip" data-act="go" data-page="wallet"><span style="color:var(--amber)">${svg("wallet",15)}</span><span class="num">${fmt(S.balance)} ₴</span></button>
+      <button class="chip" data-act="go" data-page="wallet"><span style="color:var(--amber)">${svg("wallet",15)}</span><span class="num">${fmt(S.balance)} ⭐</span></button>
     </div>`;
   }
 
@@ -216,9 +216,9 @@
         <button class="btn btn-primary" data-act="create-open">Створити челендж</button>
       </div>`;
     } else if(ch.status==="won"){
-      body=cardResult("🏆","Ти зробив це!",`${ch.days} днів пройдено. Виплата <b>${fmt(ch.stake*2)} ₴</b> (×2) зарахована на баланс.`,"Дисципліна &gt; мотивація 🔥","good");
+      body=cardResult("🏆","Ти зробив це!",`${ch.days} днів пройдено. Виплата <b>${fmt(ch.stake*2)} ⭐</b> (×2) зарахована на баланс.`,"Дисципліна &gt; мотивація 🔥","good");
     } else if(ch.status==="failed"){
-      body=cardResult("🔥","Ставка згоріла",`Пропущено день — <b>${fmt(ch.stake)} ₴</b> згоріли.`,"Дисципліна коштує грошей. Спробуй ще.","bad");
+      body=cardResult("🔥","Ставка згоріла",`Пропущено день — <b>${fmt(ch.stake)} ⭐</b> згоріли.`,"Дисципліна коштує грошей. Спробуй ще.","bad");
     } else {
       const checkedToday=ch.lastCheckin===today(), left=ch.days-ch.done;
       body=`<div class="stack rise">
@@ -228,14 +228,14 @@
             <div class="eyebrow" style="margin-top:4px">днів у залі</div></div>
           </div>
           <div class="g3" style="width:100%;margin-top:22px">
-            ${stat("coins","Ставка",fmt(ch.stake)+" ₴")}${stat("flame","Лишилось",left+" дн.")}${stat("shield","Виграш",fmt(ch.stake*2)+" ₴")}
+            ${stat("coins","Ставка",fmt(ch.stake)+" ⭐")}${stat("flame","Лишилось",left+" дн.")}${stat("shield","Виграш",fmt(ch.stake*2)+" ⭐")}
           </div>
         </div>
         <div class="card2 between">
           <div class="row" style="min-width:0"><div style="width:36px;height:36px;border-radius:11px;background:var(--goodbg);color:var(--good);display:grid;place-items:center;flex:0 0 auto">${svg("coins",18)}</div>
           <div style="min-width:0"><div class="mut" style="font-size:12px">Виконаєш челендж — забираєш</div>
-          <div style="font-weight:800" class="num">${fmt(ch.stake*2)} ₴ <span style="color:var(--good)">×2</span></div></div></div>
-          <span class="badge" style="color:#fca5a5;background:var(--badbg);border:1px solid var(--badln);flex:0 0 auto">🔥 −${fmt(ch.stake)} ₴</span>
+          <div style="font-weight:800" class="num">${fmt(ch.stake*2)} ⭐ <span style="color:var(--good)">×2</span></div></div></div>
+          <span class="badge" style="color:#fca5a5;background:var(--badbg);border:1px solid var(--badln);flex:0 0 auto">🔥 −${fmt(ch.stake)} ⭐</span>
         </div>
         ${streakGrid(ch)}
         ${checkedToday
@@ -319,7 +319,7 @@
       <h1 style="font-size:24px;font-weight:800;margin-bottom:16px">Гаманець</h1>
       <div class="card" style="background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(251,191,36,.10));margin-bottom:16px">
         <div class="mut" style="font-size:14px">Доступно</div>
-        <div class="num" style="font-size:38px;font-weight:800;margin-top:4px">${fmt(S.balance)} <span class="mut" style="font-size:24px">₴</span></div>
+        <div class="num" style="font-size:38px;font-weight:800;margin-top:4px">${fmt(S.balance)} <span class="mut" style="font-size:24px">⭐</span></div>
       </div>
       <div class="seg" style="margin-bottom:16px">
         ${["topup:Поповнити","withdraw:Вивід","history:Історія"].map(x=>{const[k,l]=x.split(":");return `<button class="${ui.wtab===k?'on':''}" data-act="wtab" data-k="${k}">${l}</button>`;}).join("")}
@@ -329,25 +329,28 @@
   function topupTab(){
     const a=parseInt(ui.tuAmount,10)||0;
     return `<div class="stack rise">
-      <div class="g2">${methodBtn(ui.tuMethod==="card","tu-method","card","card","Картка / грн","Visa · Mastercard")}${methodBtn(ui.tuMethod==="usdt","tu-method","usdt","coins","USDT","TRC-20 · за курсом")}</div>
-      <div class="g4">${[200,500,1000,2000].map(q=>`<button class="pill ${a===q?'on':''}" data-act="tu-quick" data-v="${q}">${q}</button>`).join("")}</div>
-      <input class="field big num" id="tuAmount" data-model="tuAmount" data-numeric="1" inputmode="numeric" placeholder="Сума, ₴" value="${esc(ui.tuAmount)}"/>
-      <button class="btn btn-primary" id="tuBtn" data-act="tu-submit" ${a<50?"disabled":""}>Поповнити на <span class="num">${fmt(a)}</span> ₴</button>
-      <p class="mut2" style="font-size:12px;text-align:center;line-height:1.5">Прототип: оплата симулюється. У проді — Fondy / monobank acquiring або крипто-шлюз.</p>
+      <div class="card2 row" style="gap:12px">
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(251,191,36,.15);display:grid;place-items:center;flex:0 0 auto;font-size:24px">⭐</div>
+        <div><div style="font-weight:700">Оплата зірками Telegram</div><div class="mut2" style="font-size:12px">Telegram Stars · миттєво, без комісій</div></div>
+      </div>
+      <div class="g4">${[100,250,500,1000].map(q=>`<button class="pill ${a===q?'on':''}" data-act="tu-quick" data-v="${q}">${q} ⭐</button>`).join("")}</div>
+      <input class="field big num" id="tuAmount" data-model="tuAmount" data-numeric="1" inputmode="numeric" placeholder="Скільки зірок" value="${esc(ui.tuAmount)}"/>
+      <button class="btn btn-primary" id="tuBtn" data-act="tu-submit" ${a<10?"disabled":""}>Поповнити на <span class="num">${fmt(a)}</span> ⭐</button>
+      <p class="mut2" style="font-size:12px;text-align:center;line-height:1.5">Прототип: оплата симулюється. У проді — Telegram Stars через <code>openInvoice</code> (валюта XTR).</p>
     </div>`;
   }
   function withdrawTab(){
     const a=parseInt(ui.wdAmount,10)||0, ok=a>=50&&a<=S.balance&&ui.wdDest.trim().length>=6;
     return `<div class="stack rise">
       <div class="g2">${methodBtn(ui.wdMethod==="card","wd-method","card","card","На картку","грн")}${methodBtn(ui.wdMethod==="usdt","wd-method","usdt","coins","USDT","TRC-20")}</div>
-      <input class="field big num" id="wdAmount" data-model="wdAmount" data-numeric="1" inputmode="numeric" placeholder="Сума, ₴" value="${esc(ui.wdAmount)}"/>
+      <input class="field big num" id="wdAmount" data-model="wdAmount" data-numeric="1" inputmode="numeric" placeholder="Сума, ⭐" value="${esc(ui.wdAmount)}"/>
       <input class="field" id="wdDest" data-model="wdDest" placeholder="${ui.wdMethod==="card"?"Номер картки":"USDT-адреса (TRC-20)"}" value="${esc(ui.wdDest)}"/>
       <button class="btn btn-primary" id="wdBtn" data-act="wd-submit" ${ok?"":"disabled"}>Подати заявку на вивід</button>
       <div class="card2 row"><span style="color:#93c5fd;flex:0 0 auto">${svg("clock",18)}</span>
         <p style="font-size:14px" class="mut">Вивід — <b style="color:var(--txt)">ручний</b>. Після заявки кошти виплачуються протягом <b style="color:var(--txt)">24 годин</b>.</p></div>
       ${S.wds.length?`<div class="stack"><div class="eyebrow" style="padding:0 4px">Заявки</div>
         ${S.wds.map(w=>`<div class="card2 between">
-          <div style="min-width:0"><div style="font-weight:700"><span class="num">${fmt(w.amount)}</span> ₴ · ${w.method==="usdt"?"USDT":"картка"}</div>
+          <div style="min-width:0"><div style="font-weight:700"><span class="num">${fmt(w.amount)}</span> ⭐ · ${w.method==="usdt"?"USDT":"картка"}</div>
           <div class="mut2" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w.dest)}</div></div>
           ${w.status==="processing"
             ? `<span class="badge" style="color:var(--amber);background:var(--warnbg);border:1px solid var(--warnln)">${svg("clock",12)} до 24 год</span>`
@@ -364,7 +367,7 @@
       <div class="row" style="min-width:0"><div style="width:36px;height:36px;border-radius:11px;background:var(--surface);display:grid;place-items:center;font-size:14px">${TXI[t.type]||"•"}</div>
       <div style="min-width:0"><div style="font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.note)}</div>
       <div class="mut2" style="font-size:12px">${new Date(t.ts).toLocaleDateString("uk-UA",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div></div></div>
-      ${t.amount?`<div class="num" style="font-weight:800;font-size:14px;flex:0 0 auto;color:${t.amount>0?"var(--good)":"var(--txt)"}">${t.amount>0?"+":""}${fmt(t.amount)} ₴</div>`:""}
+      ${t.amount?`<div class="num" style="font-weight:800;font-size:14px;flex:0 0 auto;color:${t.amount>0?"var(--good)":"var(--txt)"}">${t.amount>0?"+":""}${fmt(t.amount)} ⭐</div>`:""}
     </div>`).join("")}</div>`;
   }
 
@@ -395,10 +398,6 @@
         <h3 style="font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="color:var(--good)">${svg("coins",18)}</span> Звідки ×2</h3>
         <p class="mut" style="font-size:13px;line-height:1.55;margin:0">Ставки тих, хто зірвався, формують спільний банк. Хто дійшов до кінця — забирає свою ставку у подвійному розмірі з цього банку. Платформа бере невелику комісію з банку — на цьому й заробляє.</p>
       </div>
-      <div class="card2 row" style="align-items:flex-start;margin-top:16px;border-color:var(--warnln);background:var(--warnbg)">
-        <span style="color:var(--amber);flex:0 0 auto">${svg("shield",18)}</span>
-        <p style="font-size:12px;color:#f4d58a;line-height:1.5;margin:0">Перед запуском модель варто показати юристу: виплати ×2 можуть трактуватись як парі / азартна гра. Уточни ліцензування та податки.</p>
-      </div>
     </div>`;
   }
   function historyList(){
@@ -406,11 +405,11 @@
     return `<div class="card stack">
       <h3 style="font-weight:800;display:flex;align-items:center;gap:8px"><span class="mut">${svg("flame",18)}</span> Мої челленджі</h3>
       ${S.history.map(h=>`<div class="between">
-        <div><div style="font-weight:700;font-size:14px" class="num">${fmt(h.stake)} ₴ · ${h.days} днів</div>
+        <div><div style="font-weight:700;font-size:14px" class="num">${fmt(h.stake)} ⭐ · ${h.days} днів</div>
         <div class="mut2" style="font-size:12px">${new Date(h.ts).toLocaleDateString("uk-UA",{day:"numeric",month:"short",year:"numeric"})} · пройдено ${h.done}/${h.days}</div></div>
         ${h.status==="won"
-          ? `<span class="badge" style="color:var(--good);background:var(--goodbg);border:1px solid var(--goodln)">🏆 +${fmt(h.stake)} ₴</span>`
-          : `<span class="badge" style="color:#fca5a5;background:var(--badbg);border:1px solid var(--badln)">🔥 −${fmt(h.stake)} ₴</span>`}
+          ? `<span class="badge" style="color:var(--good);background:var(--goodbg);border:1px solid var(--goodln)">🏆 +${fmt(h.stake)} ⭐</span>`
+          : `<span class="badge" style="color:#fca5a5;background:var(--badbg);border:1px solid var(--badln)">🔥 −${fmt(h.stake)} ⭐</span>`}
       </div>`).join("")}
     </div>`;
   }
@@ -424,17 +423,17 @@
         <button class="close" data-act="create-close">${svg("x",18)}</button></div>
       <label class="mut" style="font-size:14px">Ставка на себе</label>
       <div class="g4" style="margin:8px 0 8px">${[300,500,1000,2000].map(s=>`<button class="pill ${ui.stake===s?'on':''}" data-act="set-stake" data-v="${s}">${s}</button>`).join("")}</div>
-      <input class="field num" id="stakeCustom" data-model="stakeCustom" data-numeric="1" inputmode="numeric" placeholder="Своя сума, ₴" value="${[300,500,1000,2000].includes(ui.stake)?'':ui.stake}" style="margin-bottom:20px"/>
+      <input class="field num" id="stakeCustom" data-model="stakeCustom" data-numeric="1" inputmode="numeric" placeholder="Своя сума, ⭐" value="${[300,500,1000,2000].includes(ui.stake)?'':ui.stake}" style="margin-bottom:20px"/>
       <label class="mut" style="font-size:14px">Скільки днів у зал</label>
       <div class="g4" style="margin:8px 0 20px">${[7,14,21,30].map(d=>`<button class="pill ${ui.days===d?'on':''}" data-act="set-days" data-v="${d}">${d}</button>`).join("")}</div>
       <div class="card2 stack" style="padding:16px;margin-bottom:16px">
-        <div class="between"><span class="mut" style="font-size:14px">Ставка (спишеться зараз)</span><span class="num" id="sumStake" style="font-size:14px;font-weight:800">${fmt(ui.stake)} ₴</span></div>
-        <div class="between"><span style="font-size:14px;color:var(--good)">Виконаєш — забираєш</span><span class="num" id="sumPrize" style="font-size:14px;font-weight:800;color:var(--good)">${fmt(prize)} ₴ ×2</span></div>
-        <div class="between"><span style="font-size:14px;color:var(--bad)">Зірвешся — згорає</span><span class="num" id="sumBurn" style="font-size:14px;font-weight:700;color:var(--bad)">−${fmt(ui.stake)} ₴</span></div>
+        <div class="between"><span class="mut" style="font-size:14px">Ставка (спишеться зараз)</span><span class="num" id="sumStake" style="font-size:14px;font-weight:800">${fmt(ui.stake)} ⭐</span></div>
+        <div class="between"><span style="font-size:14px;color:var(--good)">Виконаєш — забираєш</span><span class="num" id="sumPrize" style="font-size:14px;font-weight:800;color:var(--good)">${fmt(prize)} ⭐ ×2</span></div>
+        <div class="between"><span style="font-size:14px;color:var(--bad)">Зірвешся — згорає</span><span class="num" id="sumBurn" style="font-size:14px;font-weight:700;color:var(--bad)">−${fmt(ui.stake)} ⭐</span></div>
       </div>
       ${enough
         ? `<button class="btn btn-grad" data-act="create-confirm">Прийняти виклик</button>`
-        : `<div class="stack"><div style="text-align:center;font-size:14px;color:var(--amber)">Не вистачає <span class="num">${fmt(total-S.balance)}</span> ₴ на балансі</div>
+        : `<div class="stack"><div style="text-align:center;font-size:14px;color:var(--amber)">Не вистачає <span class="num">${fmt(total-S.balance)}</span> ⭐ на балансі</div>
            <button class="btn btn-primary" data-act="create-topup">Поповнити гаманець</button></div>`}
     </div>`;
   }
@@ -483,7 +482,7 @@
   }
   function failChallenge(){
     const ch=S.challenge;if(!ch||ch.status!=="active")return;
-    addTxn({type:"burn",amount:0,note:`Зрив — ${fmt(ch.stake)} ₴ згоріли`});
+    addTxn({type:"burn",amount:0,note:`Зрив — ${fmt(ch.stake)} ⭐ згоріли`});
     S.history.unshift({stake:ch.stake,days:ch.days,done:ch.done,status:"failed",ts:Date.now()});
     ch.status="failed";save();render();toast("Челендж зірвано. Ставка згоріла 🔥");
   }
@@ -507,7 +506,7 @@
     if(a==="wtab"){ui.wtab=k;render();return;}
     if(a==="tu-method"){ui.tuMethod=k;render();return;}
     if(a==="tu-quick"){ui.tuAmount=v;render();return;}
-    if(a==="tu-submit"){const amt=parseInt(ui.tuAmount,10)||0;if(amt<50)return;S.balance+=amt;addTxn({type:"topup",amount:amt,note:ui.tuMethod==="usdt"?"Поповнення USDT":"Поповнення карткою"});ui.tuAmount="";save();render();toast("+"+fmt(amt)+" ₴ зараховано");return;}
+    if(a==="tu-submit"){const amt=parseInt(ui.tuAmount,10)||0;if(amt<10)return;S.balance+=amt;addTxn({type:"topup",amount:amt,note:"Поповнення зірками"});ui.tuAmount="";save();render();toast("+"+fmt(amt)+" ⭐ зараховано");return;}
     if(a==="wd-method"){ui.wdMethod=k;render();return;}
     if(a==="wd-submit"){const amt=parseInt(ui.wdAmount,10)||0;if(amt<50||amt>S.balance||ui.wdDest.trim().length<6)return;S.balance-=amt;S.wds.unshift({id:uid(),ts:Date.now(),amount:amt,dest:ui.wdDest.trim(),method:ui.wdMethod,status:"processing"});addTxn({type:"withdraw",amount:-amt,note:"Заявка на вивід"});ui.wdAmount="";ui.wdDest="";save();render();toast("Заявку прийнято · до 24 год");return;}
     if(a==="wd-done"){const p=S.wds.find(w=>w.status==="processing");if(p){p.status="done";save();render();toast("Вивід виконано");}return;}
@@ -522,12 +521,12 @@
     // live-update submit buttons without full re-render (keeps focus)
     if(el.dataset.model==="stakeCustom"){
       ui.stake=parseInt(val,10)||0; const P=ui.stake*2;
-      const a=document.getElementById("sumStake"); if(a)a.textContent=fmt(ui.stake)+" ₴";
-      const b=document.getElementById("sumPrize"); if(b)b.textContent=fmt(P)+" ₴ ×2";
-      const c=document.getElementById("sumBurn"); if(c)c.textContent="−"+fmt(ui.stake)+" ₴";
+      const a=document.getElementById("sumStake"); if(a)a.textContent=fmt(ui.stake)+" ⭐";
+      const b=document.getElementById("sumPrize"); if(b)b.textContent=fmt(P)+" ⭐ ×2";
+      const c=document.getElementById("sumBurn"); if(c)c.textContent="−"+fmt(ui.stake)+" ⭐";
       document.querySelectorAll('[data-act="set-stake"]').forEach(btn=>btn.classList.toggle("on",+btn.dataset.v===ui.stake));
     }
-    if(el.dataset.model==="tuAmount"){const a=parseInt(val,10)||0;const b=document.getElementById("tuBtn");if(b){b.disabled=a<50;b.innerHTML='Поповнити на <span class="num">'+fmt(a)+'</span> ₴';}}
+    if(el.dataset.model==="tuAmount"){const a=parseInt(val,10)||0;const b=document.getElementById("tuBtn");if(b){b.disabled=a<10;b.innerHTML='Поповнити на <span class="num">'+fmt(a)+'</span> ⭐';}}
     if(el.dataset.model==="wdAmount"||el.dataset.model==="wdDest"){const a=parseInt(ui.wdAmount,10)||0;const ok=a>=50&&a<=S.balance&&ui.wdDest.trim().length>=6;const b=document.getElementById("wdBtn");if(b)b.disabled=!ok;}
   });
 

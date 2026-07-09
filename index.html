@@ -172,7 +172,7 @@ function App() {
   function failChallenge() {
     setChallenge((ch) => {
       if (!ch || ch.status !== 'active') return ch;
-      addTxn({ type: 'burn', amount: 0, note: `Зрив — ${fmt(ch.stake)} ₴ згоріли` });
+      addTxn({ type: 'burn', amount: 0, note: `Зрив — ${fmt(ch.stake)} ⭐ згоріли` });
       addHistory({ stake: ch.stake, days: ch.days, done: ch.done, status: 'failed' });
       return { ...ch, status: 'failed', failedAt: Date.now() };
     });
@@ -183,10 +183,10 @@ function App() {
   function resetChallenge() { setChallenge(null); setPage('home'); }
 
   /* --- гаманець --- */
-  function topup(amount, method) {
+  function topup(amount) {
     setBalance((b) => b + amount);
-    addTxn({ type: 'topup', amount, method, note: method === 'usdt' ? 'Поповнення USDT' : 'Поповнення карткою' });
-    notify(`+${fmt(amount)} ₴ зараховано`);
+    addTxn({ type: 'topup', amount, note: 'Поповнення зірками' });
+    notify(`+${fmt(amount)} ⭐ зараховано`);
   }
   function requestWithdraw(amount, dest, method) {
     if (amount > balance) { notify('Сума більша за баланс'); return false; }
@@ -221,7 +221,7 @@ function App() {
 /* ---------- Онбординг ---------- */
 function Intro({ onDone }) {
   const steps = [
-    { icon: <Dumbbell size={34}/>, t: 'Постав на себе', d: 'Кидаєш 500 ₴, що 21 день ходиш у зал. Тримаєш слово — забираєш удвічі більше.' },
+    { icon: <Dumbbell size={34}/>, t: 'Постав на себе', d: 'Кидаєш 500 ⭐, що 21 день ходиш у зал. Тримаєш слово — забираєш удвічі більше.' },
     { icon: <Camera size={34}/>, t: 'Щодня — фото', d: 'Кожен день кидаєш фото з тренування. Це твій пруф.' },
     { icon: <Sparkles size={34}/>, t: 'AI-рефері вирішує', d: 'AI дивиться на фото і каже: зал це чи диван. Обдурити важко.' },
     { icon: <Coins size={34}/>, t: 'Виконав — забираєш ×2', d: 'Пройшов усі дні — отримуєш ставку у подвійному розмірі. Зірвався — гроші згорають.' },
@@ -256,7 +256,7 @@ function Home({ challenge, balance, setPage, onCreate, onFail, onReset }) {
           <span className="font-extrabold text-lg tracking-tight">Гантеля</span>
         </div>
         <button onClick={() => setPage('wallet')} className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-sm">
-          <Wallet size={15} className="text-amber-300"/><span className="font-semibold">{fmt(balance)} ₴</span>
+          <Wallet size={15} className="text-amber-300"/><span className="font-semibold">{fmt(balance)} ⭐</span>
         </button>
       </div>
 
@@ -284,7 +284,7 @@ function ChallengeCard({ challenge: ch, setPage, onFail, onReset, onCreate }) {
     <div className="rise rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center">
       <div className="text-5xl mb-3">🏆</div>
       <h2 className="text-2xl font-extrabold mb-1">Ти зробив це!</h2>
-      <p className="text-slate-300 text-sm mb-1">{ch.days} днів пройдено. Виплата <b>{fmt(ch.stake * MULT)} ₴</b> (×2) зарахована на баланс.</p>
+      <p className="text-slate-300 text-sm mb-1">{ch.days} днів пройдено. Виплата <b>{fmt(ch.stake * MULT)} ⭐</b> (×2) зарахована на баланс.</p>
       <p className="text-emerald-300 text-sm mb-5">Дисципліна &gt; мотивація 🔥</p>
       <button onClick={onCreate} className="w-full py-3.5 rounded-2xl bg-white text-black font-bold mb-2">Новий челендж</button>
       <button onClick={onReset} className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 text-sm">Закрити</button>
@@ -295,7 +295,7 @@ function ChallengeCard({ challenge: ch, setPage, onFail, onReset, onCreate }) {
     <div className="rise rounded-3xl border border-red-500/30 bg-red-500/10 p-6 text-center">
       <div className="text-5xl mb-3">🔥</div>
       <h2 className="text-2xl font-extrabold mb-1">Ставка згоріла</h2>
-      <p className="text-slate-300 text-sm mb-1">Пропущено день — <b>{fmt(ch.stake)} ₴</b> згоріли.</p>
+      <p className="text-slate-300 text-sm mb-1">Пропущено день — <b>{fmt(ch.stake)} ⭐</b> згоріли.</p>
       <p className="text-slate-400 text-sm mb-5">Дисципліна коштує грошей. Спробуй ще.</p>
       <button onClick={onCreate} className="w-full py-3.5 rounded-2xl bg-white text-black font-bold mb-2">Спробувати знову</button>
       <button onClick={onReset} className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 text-sm">Закрити</button>
@@ -313,9 +313,9 @@ function ChallengeCard({ challenge: ch, setPage, onFail, onReset, onCreate }) {
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2 w-full mt-6 text-center">
-          <Stat icon={<Coins size={16}/>} label="Ставка" val={`${fmt(ch.stake)} ₴`} />
+          <Stat icon={<Coins size={16}/>} label="Ставка" val={`${fmt(ch.stake)} ⭐`} />
           <Stat icon={<Flame size={16}/>} label="Лишилось" val={`${left} дн.`} />
-          <Stat icon={<Shield size={16}/>} label="Виграш" val={`${fmt(ch.stake * MULT)} ₴`} />
+          <Stat icon={<Shield size={16}/>} label="Виграш" val={`${fmt(ch.stake * MULT)} ⭐`} />
         </div>
       </div>
 
@@ -324,10 +324,10 @@ function ChallengeCard({ challenge: ch, setPage, onFail, onReset, onCreate }) {
           <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-300 grid place-items-center shrink-0"><Coins size={18}/></div>
           <div className="min-w-0">
             <div className="text-xs text-slate-400">Виконаєш челендж — забираєш</div>
-            <div className="font-bold">{fmt(ch.stake * MULT)} ₴ <span className="text-emerald-300">×2</span></div>
+            <div className="font-bold">{fmt(ch.stake * MULT)} ⭐ <span className="text-emerald-300">×2</span></div>
           </div>
         </div>
-        <span className="text-xs font-semibold text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-1 shrink-0">🔥 −{fmt(ch.stake)} ₴</span>
+        <span className="text-xs font-semibold text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-1 shrink-0">🔥 −{fmt(ch.stake)} ⭐</span>
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
@@ -548,7 +548,7 @@ function WalletPage({ balance, txns, withdrawals, topup, requestWithdraw, markWi
       <h1 className="text-2xl font-extrabold mb-4">Гаманець</h1>
       <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-blue-500/15 to-amber-400/10 p-6 mb-4">
         <div className="text-slate-300 text-sm">Доступно</div>
-        <div className="text-4xl font-extrabold mt-1">{fmt(balance)} <span className="text-2xl text-slate-400">₴</span></div>
+        <div className="text-4xl font-extrabold mt-1">{fmt(balance)} <span className="text-2xl text-slate-400">⭐</span></div>
       </div>
 
       <div className="flex gap-2 mb-4 bg-white/[0.04] p-1 rounded-2xl">
@@ -565,28 +565,28 @@ function WalletPage({ balance, txns, withdrawals, topup, requestWithdraw, markWi
 }
 
 function TopupForm({ onTopup }) {
-  const [method, setMethod] = useState('card');
   const [amount, setAmount] = useState('');
-  const quick = [200, 500, 1000, 2000];
+  const quick = [100, 250, 500, 1000];
   const a = parseInt(amount, 10) || 0;
   return (
     <div className="space-y-4 rise">
-      <div className="grid grid-cols-2 gap-3">
-        <MethodBtn active={method==='card'} onClick={() => setMethod('card')} icon={<CreditCard size={20}/>} title="Картка / грн" sub="Visa · Mastercard" />
-        <MethodBtn active={method==='usdt'} onClick={() => setMethod('usdt')} icon={<Coins size={20}/>} title="USDT" sub="TRC-20 · за курсом" />
-      </div>
-      <div>
-        <div className="flex gap-2 mb-3">
-          {quick.map((q) => <button key={q} onClick={() => setAmount(String(q))} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border ${a===q?'bg-white text-black border-white':'bg-white/5 border-white/10 text-slate-300'}`}>{q}</button>)}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex items-center gap-3">
+        <div className="w-11 h-11 rounded-xl bg-amber-400/15 grid place-items-center text-2xl shrink-0">⭐</div>
+        <div>
+          <div className="font-semibold">Оплата зірками Telegram</div>
+          <div className="text-xs text-slate-500">Telegram Stars · миттєво, без комісій</div>
         </div>
-        <input value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g,''))} inputMode="numeric" placeholder="Сума, ₴"
-          className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-lg font-semibold outline-none focus:border-white/30" />
       </div>
-      <button disabled={a < 50} onClick={() => { onTopup(a, method); setAmount(''); }}
+      <div className="grid grid-cols-4 gap-2">
+        {quick.map((q) => <button key={q} onClick={() => setAmount(String(q))} className={`py-2.5 rounded-xl text-sm font-semibold border ${a===q?'bg-white text-black border-white':'bg-white/5 border-white/10 text-slate-300'}`}>{q} ⭐</button>)}
+      </div>
+      <input value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g,''))} inputMode="numeric" placeholder="Скільки зірок"
+        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-lg font-semibold outline-none focus:border-white/30" />
+      <button disabled={a < 10} onClick={() => { onTopup(a); setAmount(''); }}
         className="w-full py-4 rounded-2xl bg-white text-black font-bold disabled:opacity-40 active:scale-[.98] transition">
-        Поповнити на {a ? fmt(a) : 0} ₴
+        Поповнити на {a ? fmt(a) : 0} ⭐
       </button>
-      <p className="text-xs text-slate-500 text-center">Прототип: оплата симулюється. У проді — Fondy / monobank acquiring або крипто-шлюз.</p>
+      <p className="text-xs text-slate-500 text-center">Прототип: оплата симулюється. У проді — Telegram Stars через <code className="bg-white/10 px-1 rounded">openInvoice</code> (валюта XTR).</p>
     </div>
   );
 }
@@ -603,7 +603,7 @@ function WithdrawForm({ balance, onWithdraw, withdrawals, onDone }) {
         <MethodBtn active={method==='card'} onClick={() => setMethod('card')} icon={<CreditCard size={20}/>} title="На картку" sub="грн" />
         <MethodBtn active={method==='usdt'} onClick={() => setMethod('usdt')} icon={<Coins size={20}/>} title="USDT" sub="TRC-20" />
       </div>
-      <input value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g,''))} inputMode="numeric" placeholder="Сума, ₴"
+      <input value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g,''))} inputMode="numeric" placeholder="Сума, ⭐"
         className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-lg font-semibold outline-none focus:border-white/30" />
       <input value={dest} onChange={(e) => setDest(e.target.value)} placeholder={method==='card' ? 'Номер картки' : 'USDT-адреса (TRC-20)'}
         className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 outline-none focus:border-white/30" />
@@ -622,7 +622,7 @@ function WithdrawForm({ balance, onWithdraw, withdrawals, onDone }) {
           {withdrawals.map((w) => (
             <div key={w.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 flex items-center justify-between">
               <div className="min-w-0">
-                <div className="font-semibold">{fmt(w.amount)} ₴ · {w.method === 'usdt' ? 'USDT' : 'картка'}</div>
+                <div className="font-semibold">{fmt(w.amount)} ⭐ · {w.method === 'usdt' ? 'USDT' : 'картка'}</div>
                 <div className="text-xs text-slate-500 truncate">{w.dest}</div>
               </div>
               {w.status === 'processing'
@@ -670,7 +670,7 @@ function History({ txns }) {
               <div className="min-w-0"><div className="text-sm font-medium truncate">{t.note}</div>
                 <div className="text-xs text-slate-500">{new Date(t.ts).toLocaleDateString('uk-UA', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}</div></div>
             </div>
-            {t.amount !== 0 && <div className={`font-bold text-sm shrink-0 ${t.amount > 0 ? 'text-emerald-300' : 'text-slate-300'}`}>{t.amount > 0 ? '+' : ''}{fmt(t.amount)} ₴</div>}
+            {t.amount !== 0 && <div className={`font-bold text-sm shrink-0 ${t.amount > 0 ? 'text-emerald-300' : 'text-slate-300'}`}>{t.amount > 0 ? '+' : ''}{fmt(t.amount)} ⭐</div>}
           </div>
         );
       })}
@@ -711,12 +711,12 @@ function Profile({ challenge, notify, history }) {
           {hist.map((h, k) => (
             <div key={k} className="flex items-center justify-between">
               <div>
-                <div className="font-semibold text-sm">{fmt(h.stake)} ₴ · {h.days} днів</div>
+                <div className="font-semibold text-sm">{fmt(h.stake)} ⭐ · {h.days} днів</div>
                 <div className="text-xs text-slate-500">{new Date(h.ts).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' })} · пройдено {h.done}/{h.days}</div>
               </div>
               {h.status === 'won'
-                ? <span className="text-xs font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1">🏆 +{fmt(h.stake)} ₴</span>
-                : <span className="text-xs font-semibold text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-1">🔥 −{fmt(h.stake)} ₴</span>}
+                ? <span className="text-xs font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1">🏆 +{fmt(h.stake)} ⭐</span>
+                : <span className="text-xs font-semibold text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-1">🔥 −{fmt(h.stake)} ⭐</span>}
             </div>
           ))}
         </div>
@@ -742,10 +742,6 @@ function Profile({ challenge, notify, history }) {
         <p className="text-sm text-slate-400 leading-relaxed">Ставки тих, хто зірвався, формують спільний банк. Хто дійшов до кінця — забирає свою ставку у подвійному розмірі з цього банку. Платформа бере невелику комісію з банку — на цьому й заробляє.</p>
       </div>
 
-      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-4 mt-4 flex gap-3">
-        <Shield size={18} className="text-amber-300 shrink-0 mt-0.5"/>
-        <p className="text-xs text-amber-100/90">Перед запуском модель варто показати юристу: виплати ×2 можуть трактуватись як парі / азартна гра. Уточни ліцензування та податки.</p>
-      </div>
     </div>
   );
 }
@@ -774,7 +770,7 @@ function CreateSheet({ balance, onClose, onCreate, goWallet }) {
           <div className="grid grid-cols-4 gap-2 mt-2">
             {stakes.map((s) => <button key={s} onClick={() => setStake(s)} className={`py-3 rounded-xl font-bold text-sm border ${stake===s?'bg-white text-black border-white':'bg-white/5 border-white/10 text-slate-300'}`}>{s}</button>)}
           </div>
-          <input value={stakes.includes(stake) ? '' : (stake || '')} onChange={(e) => setStake(parseInt(e.target.value.replace(/\D/g,''), 10) || 0)} inputMode="numeric" placeholder="Своя сума, ₴"
+          <input value={stakes.includes(stake) ? '' : (stake || '')} onChange={(e) => setStake(parseInt(e.target.value.replace(/\D/g,''), 10) || 0)} inputMode="numeric" placeholder="Своя сума, ⭐"
             className="w-full mt-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-white/30 text-sm" />
         </div>
 
@@ -786,9 +782,9 @@ function CreateSheet({ balance, onClose, onCreate, goWallet }) {
         </div>
 
         <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 space-y-2 text-sm mb-4">
-          <Row l="Ставка (спишеться зараз)" r={`${fmt(stake)} ₴`} bold />
-          <div className="flex justify-between"><span className="text-emerald-300">Виконаєш — забираєш</span><span className="font-extrabold text-emerald-300">{fmt(prize)} ₴ ×2</span></div>
-          <div className="flex justify-between"><span className="text-red-300">Зірвешся — згорає</span><span className="font-semibold text-red-300">−{fmt(stake)} ₴</span></div>
+          <Row l="Ставка (спишеться зараз)" r={`${fmt(stake)} ⭐`} bold />
+          <div className="flex justify-between"><span className="text-emerald-300">Виконаєш — забираєш</span><span className="font-extrabold text-emerald-300">{fmt(prize)} ⭐ ×2</span></div>
+          <div className="flex justify-between"><span className="text-red-300">Зірвешся — згорає</span><span className="font-semibold text-red-300">−{fmt(stake)} ⭐</span></div>
         </div>
 
         {enough ? (
@@ -797,7 +793,7 @@ function CreateSheet({ balance, onClose, onCreate, goWallet }) {
           </button>
         ) : (
           <div className="space-y-2">
-            <div className="text-center text-sm text-amber-300">Не вистачає {fmt(total - balance)} ₴ на балансі</div>
+            <div className="text-center text-sm text-amber-300">Не вистачає {fmt(total - balance)} ⭐ на балансі</div>
             <button onClick={goWallet} className="w-full py-4 rounded-2xl bg-white text-black font-bold">Поповнити гаманець</button>
           </div>
         )}
