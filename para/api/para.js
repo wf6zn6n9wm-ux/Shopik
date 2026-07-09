@@ -257,6 +257,18 @@ module.exports = async (req, res) => {
         status: w.status || 'new', mine: String(w.author) === String(myId), taken_by: w.taken_by || null
       }));
     }
+    // настроение дня обоих партнёров (за сегодня). Тихо деградирует, если таблицы ещё нет.
+    async function coupleMoods(coupleId, myId) {
+      const day = todayUTC();
+      let rows = [];
+      try { rows = await sb('para_moods?couple_id=eq.' + coupleId + '&day=eq.' + day + '&select=tg_id,emoji,note'); } catch (e) { rows = []; }
+      const out = { me: {}, partner: {} };
+      (Array.isArray(rows) ? rows : []).forEach((r) => {
+        const t = { emoji: r.emoji || '', note: r.note || '' };
+        if (String(r.tg_id) === String(myId)) out.me = t; else out.partner = t;
+      });
+      return out;
+    }
     // прогресс пары: общие очки (из событий), уровень, серия, достижения
     async function coupleProgress(coupleId, config) {
       config = config || DEFAULT_CONFIG;
@@ -504,7 +516,52 @@ module.exports = async (req, res) => {
       const config = await loadConfig();
       const progress = await coupleProgress(mem.couple_id, config);
       const wishes = await coupleWishes(mem.couple_id, me.id);
-      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: config, wishes: wishes });
+      const moods = await coupleMoods(mem.couple_id, me.id);
+      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: config, wishes: wishes, moods: moods });
+      return;
+    }
+
+    // -------- НАСТРОЕНИЕ ДНЯ --------
+    if (action === 'mood_set') {
+      const mem = await myMembership();
+      if (!mem) { res.status(200).json({ ok: false, reason: 'no_couple' }); return; }
+      const day = todayUTC();
+      const emoji = String(body.emoji || '').slice(0, 8);
+      const note = String(body.note || '').slice(0, 120);
+      try {
+        await sb('para_moods?on_conflict=tg_id,day', {
+          method: 'POST',
+          headers: Object.assign({}, H, { Prefer: 'resolution=merge-duplicates,return=minimal' }),
+          body: JSON.stringify({ couple_id: mem.couple_id, tg_id: me.id, day: day, emoji: emoji, note: note, updated_at: new Date().toISOString() })
+        });
+      } catch (e) { res.status(200).json({ ok: false, reason: 'db_error', error: String(e && e.message).slice(0, 200) }); return; }
+      try {
+        const others = (await coupleMembers(mem.couple_id)).filter((m) => String(m.tg_id) !== String(me.id));
+        if (others[0]) sendPush(BOT, others[0].tg_id, (emoji || '🌤️') + ' ' + (me.name || 'Партнёр') + ' поделился(ась) настроением в PARA' + (note ? ': «' + note + '»' : '')).catch(() => {});
+      } catch (e) {}
+      res.status(200).json({ ok: true, moods: await coupleMoods(mem.couple_id, me.id) });
+      return;
+    }
+
+    // -------- «ДУМАЮ О ТЕБЕ» (мгновенный пинг партнёру) --------
+    if (action === 'ping') {
+      const mem = await myMembership();
+      if (!mem) { res.status(200).json({ ok: false, reason: 'no_couple' }); return; }
+      // мягкий дедуп: не чаще одного пинга в 40 секунд
+      let recent = [];
+      try { recent = await sb('para_events?type=eq.ping&tg_id=eq.' + me.id + '&created_at=gte.' + encodeURIComponent(new Date(Date.now() - 40000).toISOString()) + '&select=id'); } catch (e) {}
+      if (recent && recent.length) { res.status(200).json({ ok: true, sent: 0, reason: 'too_soon' }); return; }
+      const APP = env('APP_URL') || 'https://para-psi.vercel.app/';
+      const kb = { inline_keyboard: [[{ text: '❤️ Открыть PARA', web_app: { url: APP } }]] };
+      let sent = 0;
+      try {
+        const others = (await coupleMembers(mem.couple_id)).filter((m) => String(m.tg_id) !== String(me.id));
+        for (let i = 0; i < others.length; i++) {
+          if (others[i].tg_id) { await sendPush(BOT, others[i].tg_id, '💭 ' + (me.name || 'Партнёр') + ' думает о тебе ❤️', kb).catch(() => {}); sent++; }
+        }
+      } catch (e) {}
+      await logEvent('ping', mem.couple_id, 0);
+      res.status(200).json({ ok: true, sent: sent });
       return;
     }
 
