@@ -553,7 +553,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v33 · архив вопросов дня';
+var APP_VERSION = 'v34 · сохранение ввода ответа';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -2141,6 +2141,8 @@ function render(){
   // сохранить набранный текст ДО построения разметки (чтобы не потерять при ре-рендере)
   if(S.wmodal){ var _wt0=document.getElementById('wtitle'); if(_wt0) S.wmodal.text=_wt0.value; }
   var _mn0=document.getElementById('mood-note'); if(_mn0 && S.moods && S.moods.me) S.moods.me.note=_mn0.value;
+  // ответ на вопрос дня (#qa) не привязан к состоянию — запомним значение и фокус, восстановим после
+  var _qa0=document.getElementById('qa'), _qaVal=_qa0?_qa0.value:null, _qaFoc=_qa0&&document.activeElement===_qa0, _qaSel=_qa0?_qa0.selectionStart:null;
   if(!S.couple){
     html=(S.ob.step==='welcome')?welcomeView():pairView();
   } else {
@@ -2179,6 +2181,8 @@ function render(){
   S._lastHtml=html;
   root.innerHTML=html;
   var wt=document.getElementById('wtitle'); if(wt && S.wmodal && !S.wmodal._f){ wt.focus(); try{ var _p=wt.value.length; wt.setSelectionRange(_p,_p); }catch(e){} S.wmodal._f=true; }
+  // вернуть недописанный ответ на вопрос дня и фокус
+  if(_qaVal){ var _qa1=document.getElementById('qa'); if(_qa1){ _qa1.value=_qaVal; if(_qaFoc){ _qa1.focus(); try{ _qa1.setSelectionRange(_qaSel,_qaSel); }catch(e){} } } }
 }
 
 // ============================================================
