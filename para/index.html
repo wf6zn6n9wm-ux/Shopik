@@ -362,6 +362,25 @@
   .wact.fin{background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
   .wact.del{width:40px;height:40px;justify-content:center;padding:0;font-size:17px;border-radius:999px;
     background:rgba(248,113,113,.12);color:#fca5a5;border:1px solid rgba(248,113,113,.25);}
+  /* настроение дня */
+  .mood-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .mood-pick{font-size:23px;width:42px;height:42px;flex:0 0 auto;border-radius:12px;border:1px solid var(--line);
+    background:rgba(255,255,255,.03);cursor:pointer;transition:transform .1s;line-height:1;}
+  .mood-pick:active{transform:scale(.9);}
+  .mood-pick.on{background:var(--grad);border-color:transparent;transform:scale(1.06);box-shadow:0 4px 14px rgba(255,94,138,.3);}
+  .mood-me{display:flex;align-items:center;gap:12px;padding:2px 0;}
+  .mood-emo{font-size:30px;flex:0 0 auto;line-height:1;}
+  .mood-change{margin-left:auto;font-size:12px;color:var(--rose);background:none;border:none;font-weight:700;cursor:pointer;}
+  .mood-note-row{display:flex;gap:8px;margin-top:10px;}
+  .mood-note{flex:1;}
+  .mood-note-save{flex:0 0 auto;width:46px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:17px;cursor:pointer;}
+  .mood-div{height:1px;background:var(--line);margin:12px 0;}
+  /* «думаю о тебе» */
+  .think-btn{width:100%;border:none;border-radius:16px;padding:15px;font-size:16px;font-weight:800;color:#fff;cursor:pointer;
+    background:var(--grad);box-shadow:0 8px 22px rgba(255,94,138,.32);display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s;}
+  .think-btn:active{transform:scale(.97);}
+  .think-btn.cd{background:rgba(255,255,255,.06);color:var(--muted);box-shadow:none;cursor:default;}
+  .think-ic{font-size:20px;}
   .wcheck{width:40px;height:40px;flex:0 0 auto;border-radius:999px;display:flex;align-items:center;
     justify-content:center;font-size:18px;background:rgba(52,211,153,.16);color:#6ee7b7;}
   .wcard.pop{animation:wpop .55s ease;}
@@ -515,7 +534,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v28 · админ-вкладка «Желания»';
+var APP_VERSION = 'v29 · настроение дня + «думаю о тебе»';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1023,6 +1042,35 @@ function wheelCard(){
     '<span class="xs muted">чем займёмся?</span></div><div class="wheel">'+btns+'</div></div>';
 }
 
+// ---------- Настроение дня + «Думаю о тебе» ----------
+var MOODS=['🥰','😄','😊','😌','😐','😴','😔','😢','😡','🤒'];
+function applyMoods(m){ S.moods=m||{me:{},partner:{}}; }
+function moodCard(){
+  var m=S.moods||{me:{},partner:{}};
+  var pn=(S.couple&&S.couple.partner&&S.couple.partner.name)||'Партнёр';
+  var mine=m.me&&m.me.emoji, editing=S.moodEdit||!mine;
+  var block;
+  if(editing){
+    block='<div class="xs muted mb2">Как ты сегодня?</div><div class="mood-row">'+
+      MOODS.map(function(e){ var on=(mine===e); return '<button class="mood-pick'+(on?' on':'')+'" data-act="mood-set" data-e="'+e+'">'+e+'</button>'; }).join('')+'</div>';
+  } else {
+    block='<div class="mood-me"><span class="mood-emo">'+esc(m.me.emoji)+'</span>'+
+      '<div class="flex1"><div class="xs muted">Ты сегодня</div>'+(m.me.note?'<div class="small">'+esc(m.me.note)+'</div>':'<div class="small muted2">без слов</div>')+'</div>'+
+      '<button class="mood-change" data-act="mood-edit">изменить</button></div>';
+  }
+  var noteInput = (mine && !editing) ? '<div class="mood-note-row"><input id="mood-note" class="input mood-note" maxlength="120" autocomplete="off" placeholder="пара слов о дне…" value="'+esc(m.me.note||'')+'"><button class="mood-note-save" data-act="mood-note" aria-label="Сохранить">💾</button></div>' : '';
+  var pm=m.partner&&m.partner.emoji;
+  var pBlock='<div class="mood-me"><span class="mood-emo">'+(pm?esc(m.partner.emoji):'🫥')+'</span>'+
+    '<div class="flex1"><div class="xs muted">'+esc(pn)+'</div>'+
+    (pm?(m.partner.note?'<div class="small">'+esc(m.partner.note)+'</div>':'<div class="small muted2">без слов</div>'):'<div class="small muted2">ещё не отметил(а) сегодня</div>')+'</div></div>';
+  return '<div class="card p4"><div class="sb mb3" style="font-size:15px">🌤️ Настроение дня</div>'+
+    block+noteInput+'<div class="mood-div"></div>'+pBlock+'</div>';
+}
+function thinkBtn(){
+  var cd=S._thinkCd && Date.now()<S._thinkCd;
+  return '<button class="think-btn'+(cd?' cd':'')+'" data-act="think-ping"'+(cd?' disabled':'')+'>'+
+    '<span class="think-ic">💭</span> '+(cd?'Отправлено ❤️':'Думаю о тебе')+'</button>';
+}
 function todayScreen(){
   var now=new Date();
   var dstr=now.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
@@ -1034,6 +1082,8 @@ function todayScreen(){
     // переключатель «глазами каждого» — только в демо; онлайн ты фиксированный человек
     (ONLINE?'':partnerSwitch()+'<div style="height:16px"></div>')+
     countdownCard()+'<div style="height:16px"></div>'+
+    moodCard()+'<div style="height:12px"></div>'+
+    thinkBtn()+'<div style="height:16px"></div>'+
     questionCard()+forYouCard()+'</div>';
 }
 
@@ -1960,6 +2010,7 @@ function render(){
   var root=document.getElementById('root'), html;
   // сохранить набранный текст ДО построения разметки (чтобы не потерять при ре-рендере)
   if(S.wmodal){ var _wt0=document.getElementById('wtitle'); if(_wt0) S.wmodal.text=_wt0.value; }
+  var _mn0=document.getElementById('mood-note'); if(_mn0 && S.moods && S.moods.me) S.moods.me.note=_mn0.value;
   if(!S.couple){
     html=(S.ob.step==='welcome')?welcomeView():pairView();
   } else {
@@ -2139,6 +2190,23 @@ var ACTS={
       S.wishes=S.wishes.filter(function(w){return w.id!==id;}); save('wishes'); haptic('light'); render(); };
     if(TG&&TG.showConfirm){ TG.showConfirm('Удалить это желание из списка?',function(ok){ if(ok) doDel(); }); }
     else if(window.confirm('Удалить это желание из списка?')){ doDel(); } },
+  'mood-set':function(el){ var e=el.dataset.e; if(!S.moods)S.moods={me:{},partner:{}}; var note=(S.moods.me&&S.moods.me.note)||'';
+    S.moods.me={emoji:e,note:note}; S.moodEdit=false; haptic('success'); render();
+    if(ONLINE&&S.couple){ api('mood_set',{emoji:e,note:note}).then(function(r){ if(r&&r.ok&&r.moods){ applyMoods(r.moods); render(); } else { showToast('⚠️','Не сохранилось',(r&&(r.error||r.reason))||'ошибка'); } }); } },
+  'mood-edit':function(){ S.moodEdit=true; render(); },
+  'mood-note':function(){ var note=(val('#mood-note')||'').trim(); if(!S.moods)S.moods={me:{},partner:{}}; var e=(S.moods.me&&S.moods.me.emoji)||'😊';
+    S.moods.me={emoji:e,note:note}; haptic('light');
+    if(ONLINE&&S.couple){ api('mood_set',{emoji:e,note:note}).then(function(r){ if(r&&r.ok&&r.moods){ applyMoods(r.moods); } showToast('✅','Сохранено','настроение обновлено'); render(); }); }
+    else { showToast('✅','Сохранено',''); render(); } },
+  'think-ping':function(){ if(S._thinkCd&&Date.now()<S._thinkCd) return; S._thinkCd=Date.now()+30000; haptic('success');
+    if(ONLINE&&S.couple){ api('ping').then(function(r){
+      if(r&&r.ok&&r.sent){ showToast('💌','Отправлено',((S.couple.partner&&S.couple.partner.name)||'Партнёр')+' получит пуш ❤️'); }
+      else if(r&&r.reason==='too_soon'){ S._thinkCd=Date.now()+8000; showToast('⏳','Чуть позже','подожди немного'); }
+      else if(r&&r.reason==='no_couple'){ showToast('💭','Пока некому','партнёр ещё не в паре'); }
+      else { showToast('💭','Готово','о тебе думают ❤️'); }
+      render(); }).catch(function(){ showToast('⚠️','Нет связи','попробуйте ещё раз'); render(); }); }
+    else { showToast('💌','Отправлено','партнёру ушёл бы пуш ❤️'); render(); }
+    setTimeout(function(){ render(); }, 30500); },
   'qcat':function(el){ S.qcat=el.dataset.k; haptic('light'); render(); },
   'quest-done':function(el){ var id=+el.dataset.id; if(S.qdone[id])return; var defs=questDefs(),q=null; for(var i=0;i<defs.length;i++) if(defs[i].id===id) q=defs[i]; if(!q)return; S.qdone[id]=true; save('qdone'); S.points+=q.pts; save('points'); track('quest'); track('points',q.pts); S.qburst={pts:q.pts,emoji:q.emoji}; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.qburst=null; render(); },1500); },
   'wheel':function(el){ var w=WHEEL[+el.dataset.i]; S.toast=w; haptic('light'); render(); setTimeout(function(){S.toast=null;render();},2200); },
@@ -2165,6 +2233,7 @@ async function refreshState(){
       ONLINE=true; S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today;
       if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config;
       if(r.wishes) applyServerWishes(r.wishes);                 // общий список желаний пары
+      if(r.moods) applyMoods(r.moods);                          // настроение дня обоих
       if(nowLinked && prevLinked===false){ celebrateLink(); }   // партнёр только что присоединился!
       prevLinked=nowLinked;
       render(); checkLevelUp();
@@ -2250,6 +2319,7 @@ async function boot(){
       if(r.couple){ S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today;
         if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config;
         if(r.wishes) applyServerWishes(r.wishes);
+        if(r.moods) applyMoods(r.moods);
         prevLinked=!!r.couple.linked;
         if(!S.couple.linked) startLinkPoll(); } // вернувшийся создатель всё ещё ждёт партнёра
       else { S.couple=null; } // сервер — источник правды: онбординг с настоящим бэкендом
