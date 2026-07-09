@@ -451,6 +451,32 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // -------- ADMIN: все желания всех пар (модерация/обзор) --------
+    if (action === 'admin_wishes') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const d10 = (s) => String(s || '').slice(0, 10);
+      let wishes = [];
+      try { wishes = await sb('para_wishes?order=created_at.desc&limit=1000&select=id,couple_id,author,text,category,points,status,created_at'); } catch (e) { wishes = []; }
+      wishes = Array.isArray(wishes) ? wishes : [];
+      let members = [], couples = [];
+      try { members = await sb('para_members?select=tg_id,name,couple_id'); } catch (e) {}
+      try { couples = await sb('para_couples?select=id,invite_code'); } catch (e) {}
+      const nameByTg = {}; (members || []).forEach((m) => { nameByTg[m.tg_id] = m.name; });
+      const codeById = {}; (couples || []).forEach((c) => { codeById[c.id] = c.invite_code; });
+      const list = wishes.map((w) => ({
+        id: w.id, text: w.text, category: w.category || '❤️', points: w.points || 20,
+        status: w.status || 'new', created: d10(w.created_at),
+        author: nameByTg[w.author] || '—', code: codeById[w.couple_id] || '—'
+      }));
+      const stats = {
+        total: list.length,
+        done: list.filter((w) => w.status === 'done').length,
+        active: list.filter((w) => w.status !== 'done').length
+      };
+      res.status(200).json({ ok: true, wishes: list, stats: stats, count: list.length });
+      return;
+    }
+
     // -------- TRACK (клиентские события для аналитики) --------
     if (action === 'track') {
       const type = String(body.type || '');

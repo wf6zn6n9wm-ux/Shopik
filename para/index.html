@@ -515,7 +515,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v27 · удаление желаний + тап по датам';
+var APP_VERSION = 'v28 · админ-вкладка «Желания»';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1714,11 +1714,13 @@ function adminView(){
   var tab=S.adminTab||'dash';
   var nav='<div class="row gap2 mb4">'+
     '<button class="admtab'+(tab==='dash'?' on':'')+'" data-act="adm-tab" data-t="dash">📊 Дашборд</button>'+
-    '<button class="admtab'+(tab==='config'?' on':'')+'" data-act="adm-tab" data-t="config">⚙️ Уровни и награды</button></div>';
+    '<button class="admtab'+(tab==='wishes'?' on':'')+'" data-act="adm-tab" data-t="wishes">💫 Желания</button>'+
+    '<button class="admtab'+(tab==='config'?' on':'')+'" data-act="adm-tab" data-t="config">⚙️ Уровни</button></div>';
+  var content=tab==='config'?adminConfigView():(tab==='wishes'?adminWishesView():adminDashView());
   return '<div class="app"><div class="wrap">'+
     '<div class="row between mb4"><div class="b" style="font-size:20px">⚙️ Админка</div>'+
     '<button class="btn btn-ghost btn-sm" data-act="close-admin">← Назад</button></div>'+
-    nav+(tab==='config'?adminConfigView():adminDashView())+
+    nav+content+
     '<div style="height:24px"></div></div></div>';
 }
 
@@ -1821,6 +1823,34 @@ function adminPairsView(){
     filters+
     '<div class="adm-card" id="adm-pair-list" style="padding:6px 14px">'+rows+'</div>';
   return '<div class="app"><div class="wrap">'+head+totalCard+statCard+listCard+'<div style="height:20px"></div></div></div>';
+}
+
+// ---------- Админ-вкладка «Желания» (все желания всех пар) ----------
+function admWishRow(w){
+  var st=w.status==='done'?{t:'✅ выполнено',c:''}:w.status==='taken'?{t:'🤝 взято',c:' wait'}:{t:'🆕 новое',c:' wait'};
+  var search=((w.text||'')+' '+(w.author||'')+' '+(w.code||'')).toLowerCase();
+  return '<div class="urow" data-name="'+esc(search)+'">'+
+    '<div class="uav uav-l" style="font-size:17px;background:rgba(255,255,255,.06)">'+esc(w.category||'❤️')+'</div>'+
+    '<div class="flex1" style="min-width:0"><div class="urow-nm" style="font-weight:600">'+esc(w.text||'—')+'</div>'+
+    '<div class="urow-sub">'+esc(w.author||'—')+' · <span class="pcode" style="font-size:11.5px">'+esc(w.code||'—')+'</span> · '+esc(w.created||'')+'</div></div>'+
+    '<span class="uchip'+st.c+'">'+st.t+'</span></div>';
+}
+function adminWishesView(){
+  var w=S.admWishesData;
+  if(!w){ return '<div class="center-t muted small" style="padding:34px">Загрузка желаний…</div>'; }
+  var st=w.stats||{total:0,active:0,done:0};
+  var k=function(ic,l,v){ return '<div class="adm-kpi" style="padding:14px 10px"><div class="ic">'+ic+'</div><div class="lbl">'+l+'</div><div class="val" style="font-size:26px">'+(v||0)+'</div></div>'; };
+  var statCard='<div class="adm-hero" style="grid-template-columns:repeat(3,1fr)">'+k('💫','Всего',st.total)+k('⏳','Активные',st.active)+k('✅','Выполнены',st.done)+'</div>';
+  var fil=window.__admWishFilter||'all';
+  var chip=function(kk,l){ return '<button class="uchip-f'+(fil===kk?' on':'')+'" data-act="adm-wish-filter" data-f="'+kk+'">'+l+'</button>'; };
+  var filters='<div class="row gap2" style="margin:0 0 10px">'+chip('all','Все')+chip('active','Активные')+chip('done','Выполненные')+'</div>';
+  var arr=(w.wishes||[]).filter(function(x){ return fil==='all'||(fil==='active'&&x.status!=='done')||(fil==='done'&&x.status==='done'); });
+  var rows=arr.map(admWishRow).join('')||'<div class="muted small center-t" style="padding:20px">Нет желаний</div>';
+  var listCard='<div class="adm-sec-h" style="margin-top:14px"><div class="t">Все желания</div><div class="d">'+(w.count||0)+'</div></div>'+
+    '<input id="adm-wsearch" class="input" placeholder="🔍 Поиск по тексту, имени или коду" oninput="__admWishSearch(this.value)" autocomplete="off" style="margin-bottom:10px">'+
+    filters+
+    '<div class="adm-card" id="adm-wish-list" style="padding:6px 14px">'+rows+'</div>';
+  return statCard+listCard;
 }
 
 // ---------- Уровни, достижения, повышение ----------
@@ -2041,7 +2071,9 @@ var ACTS={
   'admin-remind':function(){ S.remindMsg='Отправляем…'; render(); api('remind_waiting').then(function(r){ if(r&&r.ok){ S.remindMsg='✅ Отправлено: '+r.sent+(r.skipped?(' · пропущено (недавно напоминали): '+r.skipped):''); haptic('success'); } else { S.remindMsg='Ошибка: '+((r&&r.reason)||'?'); haptic('warning'); } render(); setTimeout(function(){ S.remindMsg=''; render(); },6000); }).catch(function(){ S.remindMsg='Ошибка сети'; render(); }); },
   'adm-tab':function(el){ var t=el.dataset.t; S.adminTab=t; haptic('light');
     if(t==='config'&&!S.adminConfig){ api('config_get').then(function(r){ S.adminConfig=(r&&r.ok&&r.config)?r.config:(S.config||{levels:[],achievements:[],themes:[],frames:[],categories:[],quests:[]}); render(); }); }
+    if(t==='wishes'&&!S.admWishesData){ window.__admWishFilter='all'; api('admin_wishes').then(function(r){ S.admWishesData=(r&&r.ok)?r:{wishes:[],stats:{total:0,active:0,done:0},count:0}; render(); }).catch(function(){ S.admWishesData={wishes:[],stats:{total:0,active:0,done:0},count:0}; render(); }); }
     render(); },
+  'adm-wish-filter':function(el){ window.__admWishFilter=el.dataset.f||'all'; render(); },
   'cfg-add':function(el){ var k=el.dataset.sec; cfgCollect(); var sec=cfgSections().filter(function(s){return s.key===k;})[0]; if(!S.adminConfig[k])S.adminConfig[k]=[]; S.adminConfig[k].push(sec.tpl()); haptic('light'); render(); },
   'cfg-del':function(el){ var k=el.dataset.sec, i=+el.dataset.idx; cfgCollect(); if(S.adminConfig[k])S.adminConfig[k].splice(i,1); haptic('light'); render(); },
   'cfg-save':function(){ cfgCollect(); S.cfgMsg='Сохранение…'; render(); api('config_save',{config:S.adminConfig}).then(function(r){ if(r&&r.ok){ if(r.config){S.adminConfig=r.config;S.config=r.config;} S.cfgMsg='✓ Сохранено'; haptic('success'); } else { S.cfgMsg='Ошибка: '+((r&&r.reason)||'?'); haptic('warning'); } render(); setTimeout(function(){ S.cfgMsg=''; render(); },3000); }).catch(function(){ S.cfgMsg='Ошибка сети'; render(); }); },
@@ -2235,6 +2267,8 @@ window.__paraModalClose=function(){ S.wmodal=null; render(); };
 window.__admFilter=function(q){ q=(q||'').trim().toLowerCase(); var list=document.getElementById('adm-user-list'); if(!list)return;
   var rows=list.querySelectorAll('.urow'); for(var i=0;i<rows.length;i++){ var nm=rows[i].getAttribute('data-name')||''; rows[i].style.display=(!q||nm.indexOf(q)>=0)?'':'none'; } };
 window.__admPairSearch=function(q){ q=(q||'').trim().toLowerCase(); var list=document.getElementById('adm-pair-list'); if(!list)return;
+  var rows=list.querySelectorAll('.urow'); for(var i=0;i<rows.length;i++){ var nm=rows[i].getAttribute('data-name')||''; rows[i].style.display=(!q||nm.indexOf(q)>=0)?'':'none'; } };
+window.__admWishSearch=function(q){ q=(q||'').trim().toLowerCase(); var list=document.getElementById('adm-wish-list'); if(!list)return;
   var rows=list.querySelectorAll('.urow'); for(var i=0;i<rows.length;i++){ var nm=rows[i].getAttribute('data-name')||''; rows[i].style.display=(!q||nm.indexOf(q)>=0)?'':'none'; } };
 try{ applyTheme(S.theme); }catch(e){} // применить выбранную тему при запуске
 
