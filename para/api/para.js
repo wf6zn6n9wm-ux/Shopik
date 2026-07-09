@@ -620,6 +620,23 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // -------- АРХИВ «ВОПРОС ДНЯ» (история вопросов и ответов пары) --------
+    if (action === 'answers_history') {
+      const mem = await myMembership();
+      if (!mem) { res.status(200).json({ ok: true, history: [], count: 0 }); return; }
+      let rows = [];
+      try { rows = await sb('para_answers?couple_id=eq.' + mem.couple_id + '&order=day.desc&limit=180&select=day,tg_id,text'); } catch (e) { rows = []; }
+      const byDay = {};
+      (Array.isArray(rows) ? rows : []).forEach((r) => {
+        if (!byDay[r.day]) byDay[r.day] = { day: r.day, mine: '', partner: '' };
+        if (String(r.tg_id) === String(me.id)) byDay[r.day].mine = r.text || ''; else byDay[r.day].partner = r.text || '';
+      });
+      const days = Object.keys(byDay).sort().reverse();
+      const history = days.map((d) => ({ day: d, question: questionOfDay(d).text, mine: byDay[d].mine, partner: byDay[d].partner }));
+      res.status(200).json({ ok: true, history: history, count: history.length });
+      return;
+    }
+
     // -------- WISHES (общий список желаний пары — синхронизируется между партнёрами) --------
     if (action === 'wishes') {
       const mem = await myMembership();
