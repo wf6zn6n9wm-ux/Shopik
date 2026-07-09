@@ -396,6 +396,10 @@
   .ustat-ic{font-size:19px;line-height:1;}
   .ustat-v{font-size:20px;font-weight:800;margin-top:4px;letter-spacing:-.02em;}
   .ustat-l{font-size:10.5px;color:var(--muted);margin-top:2px;}
+  /* архив вопросов */
+  .arch-answers{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
+  .arch-ans{display:flex;gap:8px;font-size:13.5px;line-height:1.45;align-items:flex-start;}
+  .arch-who{flex:0 0 auto;font-weight:700;color:var(--rose);font-size:11px;background:rgba(255,94,138,.12);border-radius:8px;padding:3px 9px;}
   .wcheck{width:40px;height:40px;flex:0 0 auto;border-radius:999px;display:flex;align-items:center;
     justify-content:center;font-size:18px;background:rgba(52,211,153,.16);color:#6ee7b7;}
   .wcard.pop{animation:wpop .55s ease;}
@@ -549,7 +553,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v32 · наша статистика пары';
+var APP_VERSION = 'v33 · архив вопросов дня';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1548,6 +1552,29 @@ function ourStatsCard(){
       cell('🏆',((p.levelIndex||0)+1),'уровень')+
     '</div></div>';
 }
+// Архив «Вопрос дня» — дневник пары из прошлых вопросов и ответов
+function archiveView(){
+  var d=S.archiveData;
+  var head='<div class="row between mb4"><div class="b" style="font-size:20px">📖 Наши вопросы</div>'+
+    '<button class="btn btn-ghost btn-sm" data-act="archive-close">← Назад</button></div>';
+  if(!d){ return '<div class="app"><div class="wrap">'+head+'<div class="center-t muted small" style="padding:40px">Загрузка истории…</div></div></div>'; }
+  var pn=(S.couple&&S.couple.partner&&S.couple.partner.name)||'Партнёр';
+  var mn=(S.couple&&S.couple.me&&S.couple.me.name)||'Я';
+  var body;
+  if(!d.history||!d.history.length){
+    body='<div class="wempty2"><div class="ill2">📖</div><div class="et">Здесь будет ваша история</div>'+
+      '<div class="es">Отвечайте на вопрос дня — и все ваши вопросы и ответы сохранятся тут, как дневник пары.</div></div>';
+  } else {
+    body=d.history.map(function(h){
+      var ans=function(who,txt){ return txt?('<div class="arch-ans"><span class="arch-who">'+esc(who)+'</span><span>'+esc(txt)+'</span></div>'):''; };
+      return '<div class="card p4 mb3"><div class="xs muted2">'+esc(admFullDate(h.day))+'</div>'+
+        '<div class="small sb mt1" style="line-height:1.3">'+esc(h.question)+'</div>'+
+        '<div class="arch-answers">'+ans(mn,h.mine)+ans(pn,h.partner)+
+        (!h.mine&&!h.partner?'<div class="xs muted2">нет ответов</div>':'')+'</div></div>';
+    }).join('');
+  }
+  return '<div class="app"><div class="wrap">'+head+body+'<div style="height:24px"></div></div></div>';
+}
 function usScreen(){
   var c=S.couple;
   var together=Math.floor((sod(new Date())-sod(new Date(c.since)))/DAY);
@@ -1587,7 +1614,8 @@ function usScreen(){
   }
   var foot='<div class="center-t xs muted2 mt6">PARA · '+(TG?'Telegram Mini App':'веб-версия (PWA)')+' · '+APP_VERSION+'</div>';
   var profileBtn='<button class="btn btn-ghost mb3" style="width:100%;justify-content:center" data-act="profile-open">✏️ Профиль и даты</button>';
-  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+profileBtn+levelCard()+ourStatsCard()+stats+home+invite+reset+foot+'</div>';
+  var archiveBtn='<button class="btn btn-ghost mb3" style="width:100%;justify-content:center" data-act="archive-open">📖 Наши прошлые вопросы</button>';
+  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+profileBtn+levelCard()+ourStatsCard()+archiveBtn+stats+home+invite+reset+foot+'</div>';
 }
 
 // ---------- Полная админка (overlay внутри приложения) ----------
@@ -2128,6 +2156,8 @@ function render(){
       html=custView();
     } else if(S.recOpen){
       html=recView();
+    } else if(S.archiveOpen){
+      html=archiveView();
     } else if(S.profileOpen){
       html=profileView();
     } else {
@@ -2295,6 +2325,10 @@ var ACTS={
   'mood-set':function(el){ var e=el.dataset.e; if(!S.moods)S.moods={me:{},partner:{}}; var note=(S.moods.me&&S.moods.me.note)||'';
     S.moods.me={emoji:e,note:note}; S.moodEdit=false; haptic('success'); render();
     if(ONLINE&&S.couple){ api('mood_set',{emoji:e,note:note}).then(function(r){ if(r&&r.ok&&r.moods){ applyMoods(r.moods); render(); } else { showToast('⚠️','Не сохранилось',(r&&(r.error||r.reason))||'ошибка'); } }); } },
+  'archive-open':function(){ S.archiveOpen=true; S.archiveData=null; haptic('light'); render();
+    if(ONLINE&&S.couple){ api('answers_history').then(function(r){ S.archiveData=(r&&r.ok)?r:{history:[],count:0}; render(); }).catch(function(){ S.archiveData={history:[],count:0}; render(); }); }
+    else { S.archiveData={history:[],count:0}; render(); } },
+  'archive-close':function(){ S.archiveOpen=false; render(); },
   'mood-edit':function(){ S.moodEdit=true; render(); },
   'mood-note':function(){ var note=(val('#mood-note')||'').trim(); if(!S.moods)S.moods={me:{},partner:{}}; var e=(S.moods.me&&S.moods.me.emoji)||'😊';
     S.moods.me={emoji:e,note:note}; haptic('light');
