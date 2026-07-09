@@ -142,8 +142,9 @@
     box-shadow:0 8px 20px rgba(192,38,211,.30);transition:transform .12s;}
   .dt-hero-btn:active{transform:scale(.96);}
   .dt-row{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;border-radius:20px;
-    padding:18px 16px;margin-bottom:10px;border:1px solid var(--line);
+    padding:18px 16px;margin-bottom:10px;border:1px solid var(--line);cursor:pointer;transition:transform .1s,background .15s;
     background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));}
+  .dt-row:active{transform:scale(.985);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));}
   .dt-row .acc{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 4px 4px 0;}
   .dt-ic{flex:0 0 auto;font-size:30px;margin-left:4px;}
   .dt-row .info{flex:1;min-width:0;}
@@ -359,6 +360,8 @@
   .wact:active{transform:scale(.94);}
   .wact.take{background:var(--grad);color:#fff;box-shadow:0 6px 16px rgba(255,94,138,.28);}
   .wact.fin{background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+  .wact.del{width:40px;height:40px;justify-content:center;padding:0;font-size:17px;border-radius:999px;
+    background:rgba(248,113,113,.12);color:#fca5a5;border:1px solid rgba(248,113,113,.25);}
   .wcheck{width:40px;height:40px;flex:0 0 auto;border-radius:999px;display:flex;align-items:center;
     justify-content:center;font-size:18px;background:rgba(52,211,153,.16);color:#6ee7b7;}
   .wcard.pop{animation:wpop .55s ease;}
@@ -512,7 +515,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v26 · ре-рендер только при изменениях';
+var APP_VERSION = 'v27 · удаление желаний + тап по датам';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1111,7 +1114,7 @@ function wishesScreen(){
         ? '<button class="wact take" data-act="wish-take" data-id="'+w.id+'">❤️ Беру</button>'
         : w.status==='taken'
         ? '<button class="wact fin" data-act="wish-done" data-id="'+w.id+'">✅ Выполнить</button>'
-        : '<div class="wcheck">✓</div>';
+        : '<button class="wact del" data-act="wish-del" data-id="'+w.id+'" aria-label="Удалить">🗑</button>';
       return '<div class="wcard'+(w.status==='done'?' done':'')+pop+'" style="--wc:'+ct.c+'">'+
         (S.justDone===w.id?'<div class="burst">🎉</div>':'')+
         '<div class="wcat" style="--wcb:'+hex2rgba(ct.c,0.16)+'">'+ct.e+'</div>'+
@@ -1272,7 +1275,7 @@ function dateHero(x){
 function dateRow(x){
   var d=x.t, days=x.days, ac=dateAccent(days), num=ac||'#fff';
   var when=days===0?'сегодня 🎉':('через <b style="color:'+num+'">'+days+'</b> '+daysWord(days));
-  return '<div class="dt-row">'+(ac?'<div class="acc" style="background:'+ac+'"></div>':'')+
+  return '<div class="dt-row" data-act="profile-open" role="button">'+(ac?'<div class="acc" style="background:'+ac+'"></div>':'')+
     '<div class="dt-ic">'+(d.icon||'📅')+'</div>'+
     '<div class="info"><div class="nm">'+esc(d.title)+'</div><div class="wh">'+when+'</div></div>'+
     '<div class="dt-chev">›</div></div>';
@@ -2097,6 +2100,13 @@ var ACTS={
       api('wish_done',{id:id}).then(function(r){ if(r&&r.ok){ if(r.wishes)applyServerWishes(r.wishes); render(); afterEarn(); } });
       setTimeout(function(){ S.justDone=null; render(); },900); return; }
     var pts=0; S.wishes=S.wishes.map(function(w){ if(w.id===id){ var n=normWish(w); pts=n.points; return Object.assign({},n,{status:'done'}); } return w; }); S.points+=pts; save('wishes'); save('points'); track('wish'); track('points',pts); S.justDone=id; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.justDone=null; render(); },900); },
+  'wish-del':function(el){ var id=+el.dataset.id;
+    var doDel=function(){
+      if(ONLINE&&S.couple){ S.wishes=S.wishes.filter(function(w){return w.id!==id;}); haptic('light'); render();
+        api('wish_del',{id:id}).then(function(r){ if(r&&r.ok&&r.wishes){ applyServerWishes(r.wishes); render(); } }); return; }
+      S.wishes=S.wishes.filter(function(w){return w.id!==id;}); save('wishes'); haptic('light'); render(); };
+    if(TG&&TG.showConfirm){ TG.showConfirm('Удалить это желание из списка?',function(ok){ if(ok) doDel(); }); }
+    else if(window.confirm('Удалить это желание из списка?')){ doDel(); } },
   'qcat':function(el){ S.qcat=el.dataset.k; haptic('light'); render(); },
   'quest-done':function(el){ var id=+el.dataset.id; if(S.qdone[id])return; var defs=questDefs(),q=null; for(var i=0;i<defs.length;i++) if(defs[i].id===id) q=defs[i]; if(!q)return; S.qdone[id]=true; save('qdone'); S.points+=q.pts; save('points'); track('quest'); track('points',q.pts); S.qburst={pts:q.pts,emoji:q.emoji}; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.qburst=null; render(); },1500); },
   'wheel':function(el){ var w=WHEEL[+el.dataset.i]; S.toast=w; haptic('light'); render(); setTimeout(function(){S.toast=null;render();},2200); },

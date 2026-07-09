@@ -540,9 +540,16 @@ module.exports = async (req, res) => {
       const mem = await myMembership();
       if (!mem) { res.status(200).json({ ok: false, reason: 'no_couple' }); return; }
       const id = parseInt(body.id, 10);
-      // удалить может только автор и только не выполненное желание
-      if (id) { try { await sb('para_wishes?id=eq.' + id + '&couple_id=eq.' + mem.couple_id + '&author=eq.' + me.id + '&status=neq.done',
-        { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) }); } catch (e) {} }
+      // выполненное желание может убрать из списка любой из пары (это общая история);
+      // невыполненное — только его автор
+      if (id) {
+        let row = null;
+        try { const rows = await sb('para_wishes?id=eq.' + id + '&couple_id=eq.' + mem.couple_id + '&select=author,status'); row = rows && rows[0]; } catch (e) {}
+        if (row && (row.status === 'done' || String(row.author) === String(me.id))) {
+          try { await sb('para_wishes?id=eq.' + id + '&couple_id=eq.' + mem.couple_id,
+            { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) }); } catch (e) {}
+        }
+      }
       res.status(200).json({ ok: true, wishes: await coupleWishes(mem.couple_id, me.id) });
       return;
     }
