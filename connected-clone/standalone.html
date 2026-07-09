@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Підготовка до ЄВІ, ТЗНК, ЄФВВ та ЄВВ | Connected</title>
+<meta name="description" content="Онлайн-школа підготовки до ЄВІ, ТЗНК, ЄФВВ та ЄВВ для вступу в магістратуру та аспірантуру." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --brand:#1FB6A6;--brand-dark:#0E8A7D;--brand-light:#E6F7F4;
+    --ink:#0F172A;--ink-soft:#475569;
+    --blue:#3B82F6;--violet:#8B5CF6;--amber:#F59E0B;--rose:#F43F5E;
+    --line:rgba(15,23,42,.1);
+    --shadow-card:0 10px 40px -12px rgba(15,23,42,.18);
+    --shadow-soft:0 4px 24px -8px rgba(15,23,42,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:"Work Sans",system-ui,-apple-system,sans-serif;color:var(--ink);background:#fff;line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  ul,ol{list-style:none}
+  h1,h2,h3,h4{color:var(--ink);font-weight:800;letter-spacing:-.02em;line-height:1.15}
+  .marker{font-family:"Caveat",cursive;font-weight:700}
+  .container{max-width:1200px;margin:0 auto;padding:0 16px}
+  @media(min-width:640px){.container{padding:0 24px}}
+  .section{padding:64px 0}
+  @media(min-width:640px){.section{padding:96px 0}}
+  .section.alt{background:rgba(230,247,244,.45)}
+  .ic{display:inline-flex;align-items:center;justify-content:center;width:1em;height:1em;flex-shrink:0}
+  .ic svg{width:100%;height:100%;display:block}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--brand-light);color:var(--brand-dark);font-weight:600;font-size:14px;padding:6px 16px;border-radius:999px}
+  .eyebrow .ic{font-size:16px}
+  .section-head{display:flex;flex-direction:column;align-items:center;text-align:center}
+  .title{font-size:30px;margin-top:16px}
+  @media(min-width:640px){.title{font-size:38px}}
+  .lead{margin-top:16px;color:var(--ink-soft);max-width:44rem}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;font-weight:600;font-size:14px;height:44px;padding:0 24px;cursor:pointer;border:none;transition:background .2s,border-color .2s,color .2s,transform .2s;white-space:nowrap;font-family:inherit}
+  .btn .ic{font-size:18px}
+  .btn.lg{height:56px;padding:0 32px;font-size:16px}
+  .btn.sm{height:36px;padding:0 16px}
+  .btn-primary{background:var(--brand);color:#fff;box-shadow:var(--shadow-soft)}
+  .btn-primary:hover{background:var(--brand-dark)}
+  .btn-outline{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn-outline:hover{border-color:var(--brand);color:var(--brand)}
+  .btn-white{background:#fff;color:var(--brand-dark);box-shadow:var(--shadow-soft)}
+  .btn-white:hover{transform:translateY(-1px)}
+
+  /* Promo */
+  .promo{display:block;background:linear-gradient(90deg,var(--blue),var(--violet));color:#fff}
+  .promo .row{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:10px 16px;font-size:14px;font-weight:500}
+  @media(min-width:640px){.promo .row{flex-direction:row;gap:12px}}
+  .promo .cta{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+  .promo .cta .ic{font-size:16px}
+  .promo:hover .cta{text-decoration:underline}
+
+  /* Header */
+  .header{position:sticky;top:0;z-index:50;background:#fff;transition:box-shadow .2s,background .2s}
+  .header.scrolled{box-shadow:var(--shadow-soft);background:rgba(255,255,255,.9);backdrop-filter:blur(8px)}
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:16px;height:64px}
+  @media(min-width:640px){.bar{height:80px}}
+  .logo{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:800}
+  .logo .mark{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:12px;background:var(--brand);color:#fff;font-size:20px}
+  .nav{display:none;align-items:center;gap:2px}
+  @media(min-width:1024px){.nav{display:flex}}
+  .nav-link{padding:8px 16px;border-radius:999px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;font-family:inherit;color:var(--ink)}
+  .nav-link:hover{background:var(--brand-light)}
+  .nav-link .ic{font-size:16px;transition:transform .2s}
+  .dropdown{position:relative}
+  .dropdown:hover .nav-link .ic{transform:rotate(180deg)}
+  .dropdown-menu{position:absolute;left:0;top:100%;width:288px;padding-top:8px;visibility:hidden;opacity:0;transition:opacity .15s}
+  .dropdown:hover .dropdown-menu{visibility:visible;opacity:1}
+  .dropdown-panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:8px;box-shadow:var(--shadow-card)}
+  .dd-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px}
+  .dd-item:hover{background:var(--brand-light)}
+  .dd-badge{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:var(--brand-light);color:var(--brand-dark);font-size:12px;font-weight:700;flex-shrink:0}
+  .dd-item span.t{font-size:14px;font-weight:500}
+  .burger{display:inline-flex;font-size:24px;background:none;border:none;cursor:pointer;color:var(--ink);padding:4px}
+  @media(min-width:1024px){.burger{display:none}}
+  .only-sm{display:none}
+  @media(min-width:640px){.only-sm{display:inline-flex}}
+  .mobile-menu{border-top:1px solid var(--line);background:#fff}
+  .mobile-menu.hidden{display:none}
+  @media(min-width:1024px){.mobile-menu{display:none!important}}
+  .mobile-menu nav{display:flex;flex-direction:column;gap:4px;padding:16px 0}
+  .mobile-menu a{padding:12px;border-radius:12px;font-weight:600}
+  .mobile-menu a:hover{background:var(--brand-light)}
+
+  /* Hero */
+  .hero{background:linear-gradient(to bottom,rgba(230,247,244,.6),#fff);overflow:hidden}
+  .hero-grid{display:grid;gap:48px;align-items:center;padding:56px 0}
+  @media(min-width:640px){.hero-grid{padding:88px 0}}
+  @media(min-width:1024px){.hero-grid{grid-template-columns:1fr 1fr}}
+  .hero-title{font-size:38px;margin-top:20px}
+  @media(min-width:640px){.hero-title{font-size:52px}}
+  @media(min-width:1024px){.hero-title{font-size:60px}}
+  .hero-title .hl{color:var(--brand)}
+  .hero-lead{margin-top:20px;max-width:36rem;font-size:18px;color:var(--ink-soft)}
+  .hero-list{margin-top:24px;display:flex;flex-direction:column;gap:10px}
+  .hero-list li{display:flex;align-items:center;gap:12px}
+  .hero-list .ic{color:var(--brand);font-size:22px}
+  .hero-cta{margin-top:32px;display:flex;flex-direction:column;gap:12px}
+  @media(min-width:640px){.hero-cta{flex-direction:row}}
+  .hero-visual{position:relative;max-width:26rem;margin:0 auto;width:100%}
+  .photo-card{aspect-ratio:4/5;border-radius:32px;box-shadow:var(--shadow-card);background:radial-gradient(circle at 30% 20%,#E6F7F4,transparent 60%),linear-gradient(135deg,rgba(31,182,166,.25),rgba(139,92,246,.25));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center}
+  .avatar-lg{width:112px;height:112px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:800}
+  .photo-card .cap{font-family:"Caveat",cursive;font-weight:700;font-size:26px;color:var(--ink-soft)}
+  .float{position:absolute;background:#fff;border-radius:16px;padding:16px;box-shadow:var(--shadow-card)}
+  .float.bl{bottom:-20px;left:-12px}
+  .float.tr{top:24px;right:-8px}
+  .float .big{font-size:28px;font-weight:800;color:var(--brand)}
+  .float .sm{font-size:13px;color:var(--ink-soft)}
+  .float .stars{display:flex;gap:2px;color:var(--amber);font-size:16px}
+  .stats-wrap{padding-bottom:56px}
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;border:1px solid var(--line);background:#fff;border-radius:16px;padding:24px;box-shadow:var(--shadow-soft)}
+  @media(min-width:640px){.stats{grid-template-columns:repeat(4,1fr);padding:32px}}
+  .stat{text-align:center}
+  .stat .num{font-size:30px;font-weight:800;color:var(--brand)}
+  @media(min-width:640px){.stat .num{font-size:36px}}
+  .stat .lbl{margin-top:4px;font-size:14px;color:var(--ink-soft)}
+
+  /* Courses */
+  .tabs{margin-top:32px;display:inline-flex;gap:4px;background:rgba(15,23,42,.05);padding:6px;border-radius:999px}
+  .tab{border:none;background:none;cursor:pointer;padding:10px 24px;border-radius:999px;font-size:14px;font-weight:600;color:var(--ink-soft);font-family:inherit;transition:all .2s}
+  .tab.active{background:#fff;color:var(--brand-dark);box-shadow:var(--shadow-soft)}
+  .courses-grid{margin-top:48px;display:grid;gap:24px}
+  @media(min-width:640px){.courses-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:1024px){.courses-grid{grid-template-columns:repeat(3,1fr)}}
+  .course-card{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;box-shadow:var(--shadow-soft);transition:box-shadow .2s,transform .2s}
+  .course-card:hover{box-shadow:var(--shadow-card);transform:translateY(-2px)}
+  .course-head{padding:24px;color:#fff}
+  .course-head h3{color:#fff;font-size:20px;margin-top:16px}
+  .course-head .sub{margin-top:4px;font-size:14px;color:rgba(255,255,255,.9)}
+  .badge{display:inline-flex;background:rgba(255,255,255,.22);padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.02em}
+  .course-body{padding:24px;display:flex;flex-direction:column;flex:1}
+  .course-body .desc{color:var(--ink-soft)}
+  .course-meta{margin-top:16px;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-soft)}
+  .course-meta .ic{color:var(--brand);font-size:16px}
+  .course-foot{margin-top:24px;display:flex;align-items:flex-end;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding-top:16px}
+  .old{margin-right:8px;font-size:14px;color:var(--ink-soft);text-decoration:line-through}
+  .price{font-size:24px;font-weight:800}
+
+  /* Why */
+  .why-grid{margin-top:40px;display:grid;gap:20px}
+  @media(min-width:640px){.why-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:1024px){.why-grid{grid-template-columns:repeat(4,1fr)}}
+  .why-card{display:flex;flex-direction:column;padding:24px;border-radius:16px;box-shadow:var(--shadow-soft)}
+  .why-card .ic{font-size:32px}
+  .why-card .v{margin-top:16px;font-size:34px;font-weight:800}
+  .why-card .t{margin-top:8px;font-size:18px;font-weight:700}
+  .why-card .d{margin-top:8px;font-size:14px;opacity:.92}
+  .why-card.c-brand{background:var(--brand);color:#fff}
+  .why-card.c-violet{background:var(--violet);color:#fff}
+  .why-card.c-white{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .why-card.c-white .ic{color:var(--brand)}
+  .why-card.c-white .d{color:var(--ink-soft)}
+
+  /* Features + quote */
+  .feature-grid{margin-top:48px;display:grid;gap:32px}
+  @media(min-width:768px){.feature-grid{grid-template-columns:repeat(3,1fr)}}
+  .feature{text-align:center}
+  @media(min-width:768px){.feature{text-align:left}}
+  .feature .ico{width:56px;height:56px;border-radius:16px;background:var(--brand-light);color:var(--brand-dark);display:inline-flex;align-items:center;justify-content:center;font-size:28px}
+  .feature h3{margin-top:20px;font-size:20px}
+  .feature p{margin-top:8px;color:var(--ink-soft)}
+  .quote-box{margin-top:64px;background:var(--ink);color:#fff;border-radius:32px;overflow:hidden}
+  .quote-inner{display:grid;gap:28px;align-items:center;padding:32px}
+  @media(min-width:640px){.quote-inner{padding:48px}}
+  @media(min-width:1024px){.quote-inner{grid-template-columns:auto 1fr}}
+  .quote-avatar{width:96px;height:96px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:800;flex-shrink:0}
+  .quote-box .ic{color:var(--brand);font-size:32px}
+  .quote-box blockquote{margin-top:12px;font-size:20px;font-weight:500;line-height:1.6}
+  @media(min-width:640px){.quote-box blockquote{font-size:24px}}
+  .quote-box .who{margin-top:20px;font-family:"Caveat",cursive;font-weight:700;font-size:26px;color:var(--brand)}
+
+  /* Steps */
+  .steps{margin-top:48px;display:flex;flex-direction:column;gap:16px}
+  .step{display:flex;flex-direction:column;gap:16px;border:1px solid var(--line);background:#fff;border-radius:16px;padding:24px;box-shadow:var(--shadow-soft)}
+  @media(min-width:640px){.step{flex-direction:row;align-items:center;gap:24px}}
+  .step .n{width:56px;height:56px;border-radius:16px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;flex-shrink:0}
+  .step h3{font-size:18px}
+  .step p{margin-top:4px;color:var(--ink-soft)}
+
+  /* Reviews */
+  .reviews-grid{margin-top:48px;display:grid;gap:32px}
+  @media(min-width:1024px){.reviews-grid{grid-template-columns:1fr 1fr}}
+  .review-card{display:flex;flex-direction:column;justify-content:space-between;border:1px solid var(--line);background:rgba(230,247,244,.45);border-radius:16px;padding:32px;box-shadow:var(--shadow-soft)}
+  .stars{display:flex;gap:3px;color:var(--amber);font-size:20px}
+  .review-text{margin-top:20px;font-size:20px;font-weight:500;line-height:1.6}
+  .review-foot{margin-top:32px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .review-who{display:flex;align-items:center;gap:12px}
+  .review-av{width:48px;height:48px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0}
+  .review-name{font-weight:700}
+  .review-role{font-size:14px;color:var(--ink-soft)}
+  .review-nav{display:flex;gap:8px}
+  .rbtn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);font-size:18px}
+  .rbtn:hover{border-color:var(--brand);color:var(--brand)}
+  .dots{margin-top:24px;display:flex;justify-content:center;gap:8px}
+  .dot{height:8px;width:8px;border-radius:999px;background:rgba(15,23,42,.2);border:none;cursor:pointer;transition:all .2s;padding:0}
+  .dot.active{width:24px;background:var(--brand)}
+  .video-card{position:relative;border-radius:16px;overflow:hidden;background:var(--ink);box-shadow:var(--shadow-card);min-height:240px}
+  .video-bg{aspect-ratio:16/9;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,var(--brand),var(--ink))}
+  .play-btn{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--brand-dark);display:flex;align-items:center;justify-content:center;font-size:30px;border:none;cursor:pointer;padding-left:6px;transition:transform .2s}
+  .video-card:hover .play-btn{transform:scale(1.08)}
+  .video-cap{position:absolute;left:0;right:0;bottom:0;padding:24px;background:linear-gradient(to top,var(--ink),transparent)}
+  .video-cap .t{font-family:"Caveat",cursive;font-weight:700;font-size:26px;color:#fff}
+  .video-cap .s{font-size:14px;color:rgba(255,255,255,.7)}
+
+  /* Universities */
+  .marquee{position:relative;margin-top:40px;overflow:hidden}
+  .marquee-track{display:flex;width:max-content;gap:16px;animation:marquee 30s linear infinite}
+  @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .uni{display:flex;align-items:center;height:80px;padding:0 32px;white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:16px;font-size:18px;font-weight:700;color:var(--ink-soft);box-shadow:var(--shadow-soft)}
+  .fade{position:absolute;top:0;bottom:0;width:96px;pointer-events:none}
+  .fade.l{left:0;background:linear-gradient(to right,rgba(230,247,244,.45),transparent)}
+  .fade.r{right:0;background:linear-gradient(to left,rgba(230,247,244,.45),transparent)}
+  .cta-panel{margin-top:48px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:24px;background:var(--brand);color:#fff;border-radius:32px;padding:32px;text-align:center}
+  @media(min-width:640px){.cta-panel{padding:48px}}
+  @media(min-width:1024px){.cta-panel{flex-direction:row;text-align:left}}
+  .cta-panel h3{color:#fff;font-size:24px}
+  @media(min-width:640px){.cta-panel h3{font-size:30px}}
+  .cta-panel p{margin-top:8px;color:rgba(255,255,255,.92)}
+
+  /* Schedule */
+  .schedule-grid{display:grid;gap:48px}
+  @media(min-width:1024px){.schedule-grid{grid-template-columns:1fr 1.3fr;align-items:start}}
+  @media(min-width:1024px){.schedule-left{position:sticky;top:112px}}
+  .sticky-note{margin-top:32px;max-width:20rem;transform:rotate(-2deg);background:rgba(245,158,11,.92);border-radius:12px;padding:20px;box-shadow:var(--shadow-card)}
+  .sticky-note p{font-family:"Caveat",cursive;font-weight:700;font-size:24px;color:var(--ink)}
+  .timeline{position:relative;display:flex;flex-direction:column;gap:32px;border-left:2px solid rgba(31,182,166,.3);padding-left:32px}
+  .timeline li{position:relative}
+  .tdot{position:absolute;left:-41px;width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .tdate{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--brand)}
+  .ttitle{margin-top:4px;font-size:18px;font-weight:600}
+  .tnote{margin-top:4px;font-family:"Caveat",cursive;font-weight:700;font-size:22px;color:var(--rose)}
+
+  /* FAQ */
+  .faq-wrap{max-width:48rem;margin:0 auto}
+  .faq{margin-top:40px;border:1px solid var(--line);border-radius:16px;background:#fff;overflow:hidden}
+  .faq-item{padding:0 20px;border-top:1px solid var(--line)}
+  .faq-item:first-child{border-top:none}
+  @media(min-width:640px){.faq-item{padding:0 24px}}
+  .faq-q{display:flex;width:100%;align-items:center;justify-content:space-between;gap:16px;padding:20px 0;background:none;border:none;cursor:pointer;text-align:left;font-size:16px;font-weight:600;color:var(--ink);font-family:inherit}
+  @media(min-width:640px){.faq-q{font-size:18px}}
+  .faq-q .ic{color:var(--brand);font-size:20px;transition:transform .3s}
+  .faq-item.open .faq-q .ic{transform:rotate(180deg)}
+  .faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease}
+  .faq-a p{padding-bottom:20px;color:var(--ink-soft);line-height:1.65}
+  .faq-item.open .faq-a{max-height:400px}
+
+  /* More questions */
+  .more-grid{display:grid;gap:24px}
+  @media(min-width:1024px){.more-grid{grid-template-columns:1fr 1fr}}
+  .more-cta{display:flex;flex-direction:column;justify-content:center;border:1px solid var(--line);background:rgba(230,247,244,.55);border-radius:32px;padding:32px}
+  @media(min-width:640px){.more-cta{padding:40px}}
+  .more-cta>.ic{color:var(--brand);font-size:40px}
+  .more-cta h3{margin-top:16px;font-size:24px}
+  @media(min-width:640px){.more-cta h3{font-size:30px}}
+  .more-cta p{margin-top:12px;color:var(--ink-soft)}
+  .more-btns{margin-top:24px;display:flex;flex-direction:column;gap:12px}
+  @media(min-width:640px){.more-btns{flex-direction:row}}
+  .yt-card{position:relative;display:flex;flex-direction:column;justify-content:flex-end;border-radius:32px;overflow:hidden;background:var(--ink);color:#fff;padding:32px;box-shadow:var(--shadow-card);min-height:260px}
+  @media(min-width:640px){.yt-card{padding:40px}}
+  .yt-bg{position:absolute;inset:0;background:radial-gradient(circle at 70% 30%,rgba(244,63,94,.4),transparent 60%)}
+  .yt-inner{position:relative}
+  .yt-tag{display:inline-flex;align-items:center;gap:8px;background:var(--rose);padding:6px 16px;border-radius:999px;font-size:14px;font-weight:600}
+  .yt-tag .ic{font-size:16px}
+  .yt-card h3{color:#fff;margin-top:16px;font-size:24px}
+  @media(min-width:640px){.yt-card h3{font-size:30px}}
+  .yt-card p{margin-top:8px;color:rgba(255,255,255,.82)}
+  .yt-link{margin-top:20px;display:inline-flex;font-weight:600;color:var(--rose)}
+  .yt-card:hover .yt-link{text-decoration:underline}
+
+  /* Courses secondary */
+  .sec-head{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:16px}
+  @media(min-width:640px){.sec-head{flex-direction:row;align-items:flex-end}}
+  .link-arrow{display:inline-flex;align-items:center;gap:8px;font-weight:600;color:var(--brand-dark)}
+  .link-arrow .ic{font-size:16px}
+  .link-arrow:hover{text-decoration:underline}
+  .sec-grid{margin-top:40px;display:grid;gap:16px}
+  @media(min-width:640px){.sec-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:1024px){.sec-grid{grid-template-columns:repeat(3,1fr)}}
+  .sec-item{display:flex;align-items:center;gap:16px;border:1px solid var(--line);background:#fff;border-radius:16px;padding:20px;box-shadow:var(--shadow-soft);transition:box-shadow .2s}
+  .sec-item:hover{box-shadow:var(--shadow-card)}
+  .sec-badge{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;flex-shrink:0}
+  .sec-meta{min-width:0}
+  .sec-meta .n{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sec-meta .s{font-size:14px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sec-item .arr{margin-left:auto;color:var(--ink-soft);font-size:20px}
+  .sec-item:hover .arr{color:var(--brand)}
+
+  /* Footer */
+  .footer{background:var(--ink);color:#fff}
+  .footer .grid{display:grid;gap:40px;padding:64px 0}
+  @media(min-width:1024px){.footer .grid{grid-template-columns:1.4fr 1fr 1fr 1fr}}
+  .footer .logo{color:#fff}
+  .footer .about{margin-top:16px;max-width:20rem;font-size:14px;color:rgba(255,255,255,.7)}
+  .socials{margin-top:24px;display:flex;gap:12px}
+  .soc{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:20px;transition:background .2s}
+  .soc:hover{background:var(--brand)}
+  .footer h4{color:#fff;font-size:16px}
+  .footer ul.links{margin-top:16px;display:flex;flex-direction:column;gap:10px;font-size:14px;color:rgba(255,255,255,.7)}
+  .footer ul.links a:hover{color:var(--brand)}
+  .footer .contact li{display:flex;align-items:center;gap:8px}
+  .footer .contact .ic{color:var(--brand);font-size:16px}
+  .foot-bot{margin-top:48px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid rgba(255,255,255,.1);padding-top:32px;font-size:14px;color:rgba(255,255,255,.6)}
+  @media(min-width:640px){.foot-bot{flex-direction:row}}
+  .pay{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
+  .pay .chip{background:rgba(255,255,255,.1);padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;color:rgba(255,255,255,.8)}
+</style>
+</head>
+<body>
+
+<!-- Promo -->
+<a href="#" class="promo">
+  <div class="container row">
+    <span class="ic" data-ic="sparkles"></span>
+    <span>Безкоштовний вебінар «Як вступити до магістратури у 2026 році»</span>
+    <span class="cta">Зареєструватися <span class="ic" data-ic="arrow-right"></span></span>
+  </div>
+</a>
+
+<!-- Header -->
+<header class="header" id="header">
+  <div class="container bar">
+    <a href="#" class="logo"><span class="mark"><span class="ic" data-ic="cap"></span></span> Connected</a>
+    <nav class="nav">
+      <div class="dropdown">
+        <button class="nav-link">Курси <span class="ic" data-ic="chevron-down"></span></button>
+        <div class="dropdown-menu"><div class="dropdown-panel" id="dd-courses"></div></div>
+      </div>
+      <a href="#why" class="nav-link">Чому ми</a>
+      <a href="#steps" class="nav-link">Як навчаємось</a>
+      <a href="#reviews" class="nav-link">Відгуки</a>
+      <a href="#schedule" class="nav-link">Розклад</a>
+      <a href="#faq" class="nav-link">FAQ</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn btn-primary only-sm">Записатися</button>
+      <button class="burger" id="burger" aria-label="Меню"><span class="ic" data-ic="menu"></span></button>
+    </div>
+  </div>
+  <div class="mobile-menu hidden" id="mobile-menu">
+    <nav class="container">
+      <a href="#courses">Курси</a><a href="#why">Чому ми</a><a href="#steps">Як навчаємось</a>
+      <a href="#reviews">Відгуки</a><a href="#schedule">Розклад</a><a href="#faq">FAQ</a>
+      <button class="btn btn-primary" style="margin-top:8px">Записатися</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow"><span class="ic" data-ic="star"></span> Онлайн-школа підготовки до вступу</span>
+        <h1 class="hero-title">Підготовка до <span class="hl">ЄВІ, ТЗНК, ЄФВВ</span> та ЄВВ</h1>
+        <p class="hero-lead">Готуємо до вступу в магістратуру та аспірантуру з нуля до результату. Структуровані курси, живі заняття та підтримка на кожному кроці.</p>
+        <ul class="hero-list">
+          <li><span class="ic" data-ic="check"></span> Живі онлайн-заняття та записи</li>
+          <li><span class="ic" data-ic="check"></span> Індивідуальний план підготовки</li>
+          <li><span class="ic" data-ic="check"></span> Підтримка куратора до вступу</li>
+        </ul>
+        <div class="hero-cta">
+          <a href="#courses" class="btn btn-primary lg">Обрати курс <span class="ic" data-ic="arrow-right"></span></a>
+          <a href="#more" class="btn btn-outline lg">Безкоштовна консультація</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="photo-card">
+          <div class="avatar-lg">C</div>
+          <p class="cap">фото засновника</p>
+        </div>
+        <div class="float bl"><div class="big">93%</div><div class="sm">студентів вступають</div></div>
+        <div class="float tr">
+          <div class="stars"><span class="ic" data-ic="star"></span><span class="ic" data-ic="star"></span><span class="ic" data-ic="star"></span><span class="ic" data-ic="star"></span><span class="ic" data-ic="star"></span></div>
+          <div class="sm" style="margin-top:4px;font-weight:600;color:var(--ink)">4.9 / 5.0</div>
+        </div>
+      </div>
+    </div>
+    <div class="container stats-wrap">
+      <div class="stats">
+        <div class="stat"><div class="num">93%</div><div class="lbl">наших студентів вступають</div></div>
+        <div class="stat"><div class="num">150+</div><div class="lbl">годин практики на курсі</div></div>
+        <div class="stat"><div class="num">5 000+</div><div class="lbl">випускників за 5 років</div></div>
+        <div class="stat"><div class="num">4.9</div><div class="lbl">середня оцінка курсів</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Courses -->
+  <section id="courses" class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Наші напрями</span>
+        <h2 class="title">Оберіть курс для свого вступу</h2>
+        <p class="lead">Програми побудовані під формат офіційних іспитів і ведуть вас від базового рівня до впевненого результату.</p>
+        <div class="tabs">
+          <button class="tab active" data-track="magistracy">Магістратура</button>
+          <button class="tab" data-track="phd">Аспірантура</button>
+        </div>
+      </div>
+      <div class="courses-grid" id="courses-grid"></div>
+    </div>
+  </section>
+
+  <!-- Why -->
+  <section id="why" class="section alt">
+    <div class="container">
+      <div style="max-width:42rem">
+        <span class="eyebrow">Чому обирають Connected</span>
+        <h2 class="title">Результат, який можна виміряти</h2>
+        <p class="lead">Ми не просто «проходимо програму» — ми доводимо вас до конкретного балу, потрібного для вступу.</p>
+      </div>
+      <div class="why-grid">
+        <div class="why-card c-brand"><span class="ic" data-ic="trending"></span><div class="v">93%</div><div class="t">Вступають за результатами</div><div class="d">Більшість студентів отримують бал, достатній для вступу на бюджет чи контракт.</div></div>
+        <div class="why-card c-white"><span class="ic" data-ic="clock"></span><div class="v">150+</div><div class="t">Годин практики</div><div class="d">Реальні завдання у форматі іспиту, розбори помилок і пробні тести.</div></div>
+        <div class="why-card c-white"><span class="ic" data-ic="users"></span><div class="v">1 на 1</div><div class="t">Підтримка куратора</div><div class="d">Особистий куратор тримає вас у графіку та відповідає на питання щодня.</div></div>
+        <div class="why-card c-violet"><span class="ic" data-ic="badge"></span><div class="v">5 років</div><div class="t">Досвіду підготовки</div><div class="d">Методики, відточені на тисячах студентів, та актуальні матеріали.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- More than prep -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head" style="max-width:42rem;margin:0 auto">
+        <span class="eyebrow">Більше, ніж підготовка</span>
+        <h2 class="title">Ми супроводжуємо вас до вступу</h2>
+      </div>
+      <div class="feature-grid">
+        <div class="feature"><div class="ico"><span class="ic" data-ic="compass"></span></div><h3>Стратегія вступу</h3><p>Не лише знання, а й чіткий план: куди подаватись, які дедлайни та як максимізувати шанси.</p></div>
+        <div class="feature"><div class="ico"><span class="ic" data-ic="heart"></span></div><h3>Спільнота та мотивація</h3><p>Ви навчаєтесь у групі однодумців, де легше тримати темп і не здаватися на півдорозі.</p></div>
+        <div class="feature"><div class="ico"><span class="ic" data-ic="rocket"></span></div><h3>Навички на майбутнє</h3><p>Англійська, логіка та академічне письмо лишаються з вами далеко після іспиту.</p></div>
+      </div>
+      <div class="quote-box">
+        <div class="quote-inner">
+          <div class="quote-avatar">C</div>
+          <div>
+            <span class="ic" data-ic="quote"></span>
+            <blockquote>«Ми створили Connected, щоб вступ перестав бути лотереєю. Кожен студент заслуговує на чіткий план і підтримку — і саме це ми даємо».</blockquote>
+            <p class="who">Засновник Connected</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Steps -->
+  <section id="steps" class="section alt">
+    <div class="container">
+      <div style="max-width:42rem">
+        <span class="eyebrow">Як проходить навчання</span>
+        <h2 class="title">5 кроків до вступу</h2>
+        <p class="lead">Прозорий шлях від першої заявки до зарахування — ви завжди знаєте, що робити далі.</p>
+      </div>
+      <ol class="steps" id="steps-list"></ol>
+    </div>
+  </section>
+
+  <!-- Reviews -->
+  <section id="reviews" class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Відгуки студентів</span>
+        <h2 class="title">Нам довіряють тисячі вступників</h2>
+      </div>
+      <div class="reviews-grid">
+        <div class="review-card">
+          <div>
+            <div class="stars" id="review-stars"></div>
+            <p class="review-text" id="review-text"></p>
+          </div>
+          <div class="review-foot">
+            <div class="review-who">
+              <span class="review-av" id="review-av"></span>
+              <div><div class="review-name" id="review-name"></div><div class="review-role" id="review-role"></div></div>
+            </div>
+            <div class="review-nav">
+              <button class="rbtn" id="review-prev" aria-label="Попередній"><span class="ic" data-ic="chevron-left"></span></button>
+              <button class="rbtn" id="review-next" aria-label="Наступний"><span class="ic" data-ic="chevron-right"></span></button>
+            </div>
+          </div>
+          <div class="dots" id="review-dots"></div>
+        </div>
+        <div class="video-card">
+          <div class="video-bg"><button class="play-btn" aria-label="Відтворити"><span class="ic" data-ic="play"></span></button></div>
+          <div class="video-cap"><div class="t">Історія вступу нашої випускниці</div><div class="s">Відео-відгук · 2:14</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Universities -->
+  <section class="section alt">
+    <div class="container section-head">
+      <span class="eyebrow">Наші студенти вступають до</span>
+      <h2 class="title">Провідні університети України</h2>
+    </div>
+    <div class="marquee">
+      <div class="marquee-track" id="uni-track"></div>
+      <div class="fade l"></div><div class="fade r"></div>
+    </div>
+    <div class="container">
+      <div class="cta-panel">
+        <div>
+          <h3>Готові розпочати підготовку?</h3>
+          <p>Залиште заявку — підберемо курс під ваш вступ і дамо безкоштовну консультацію.</p>
+        </div>
+        <button class="btn btn-white lg">Залишити заявку <span class="ic" data-ic="arrow-right"></span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Schedule -->
+  <section id="schedule" class="section">
+    <div class="container schedule-grid">
+      <div class="schedule-left">
+        <span class="eyebrow">Розклад 2026</span>
+        <h2 class="title">Ключові дати вступної кампанії</h2>
+        <p class="lead" style="margin-left:0">Тримайте дедлайни під контролем — ми нагадаємо про кожен важливий етап.</p>
+        <div class="sticky-note"><p>Не відкладай реєстрацію на останній день! ✍️</p></div>
+      </div>
+      <ol class="timeline" id="timeline"></ol>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="section alt">
+    <div class="container faq-wrap">
+      <div class="section-head">
+        <span class="eyebrow">Часті питання</span>
+        <h2 class="title">Відповідаємо на головне</h2>
+      </div>
+      <div class="faq" id="faq-list"></div>
+    </div>
+  </section>
+
+  <!-- More questions -->
+  <section id="more" class="section">
+    <div class="container more-grid">
+      <div class="more-cta">
+        <span class="ic" data-ic="message"></span>
+        <h3>Залишились питання?</h3>
+        <p>Напишіть нам — менеджер відповість, допоможе обрати курс і розкаже про знижки та розстрочку.</p>
+        <div class="more-btns">
+          <button class="btn btn-primary lg">Поставити питання</button>
+          <button class="btn btn-outline lg">Замовити дзвінок</button>
+        </div>
+      </div>
+      <a href="#" class="yt-card">
+        <div class="yt-bg"></div>
+        <div class="yt-inner">
+          <span class="yt-tag"><span class="ic" data-ic="youtube"></span> YouTube</span>
+          <h3>Безкоштовні уроки на нашому каналі</h3>
+          <p>Розбори завдань, лайфхаки та поради щодо вступу — нові відео щотижня.</p>
+          <span class="yt-link">Перейти на канал →</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- Courses secondary -->
+  <section class="section alt">
+    <div class="container">
+      <div class="sec-head">
+        <div><span class="eyebrow">Усі програми</span><h2 class="title">Наші курси</h2></div>
+        <a href="#courses" class="link-arrow">Переглянути всі <span class="ic" data-ic="arrow-right"></span></a>
+      </div>
+      <div class="sec-grid" id="sec-grid"></div>
+    </div>
+  </section>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="grid">
+      <div>
+        <a href="#" class="logo"><span class="mark"><span class="ic" data-ic="cap"></span></span> Connected</a>
+        <p class="about">Онлайн-школа підготовки до ЄВІ, ТЗНК, ЄФВВ та ЄВВ. Допомагаємо вступити до магістратури та аспірантури.</p>
+        <div class="socials">
+          <a href="#" class="soc"><span class="ic" data-ic="instagram"></span></a>
+          <a href="#" class="soc"><span class="ic" data-ic="send"></span></a>
+          <a href="#" class="soc"><span class="ic" data-ic="youtube"></span></a>
+          <a href="#" class="soc"><span class="ic" data-ic="facebook"></span></a>
+        </div>
+      </div>
+      <div><h4>Курси</h4><ul class="links" id="footer-courses"></ul></div>
+      <div><h4>Навігація</h4><ul class="links">
+        <li><a href="#courses">Курси</a></li><li><a href="#why">Чому ми</a></li><li><a href="#steps">Як навчаємось</a></li>
+        <li><a href="#reviews">Відгуки</a></li><li><a href="#schedule">Розклад</a></li><li><a href="#faq">FAQ</a></li>
+      </ul></div>
+      <div><h4>Контакти</h4><ul class="links contact">
+        <li><span class="ic" data-ic="phone"></span> +380 (00) 000-00-00</li>
+        <li><span class="ic" data-ic="mail"></span> hello@connected.com.ua</li>
+      </ul></div>
+    </div>
+    <div class="foot-bot">
+      <p>© 2026 Connected. Усі права захищені.</p>
+      <div class="pay"><span>Оплата:</span><span class="chip">Visa</span><span class="chip">Mastercard</span><span class="chip">Apple Pay</span><span class="chip">Google Pay</span></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ===== Inline SVG icons (no external dependency) =====
+const A='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+const AF='viewBox="0 0 24 24" fill="currentColor" stroke="none"';
+const ICONS={
+  sparkles:`<svg ${A}><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M5 17l.7 1.6L7.3 19.3l-1.6.7L5 21.6l-.7-1.6L2.7 19.3l1.6-.7z"/></svg>`,
+  'arrow-right':`<svg ${A}><line x1="4" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+  cap:`<svg ${A}><path d="M2 9l10-4 10 4-10 4z"/><path d="M6 11v5c0 1.1 2.7 2 6 2s6-.9 6-2v-5"/></svg>`,
+  'chevron-down':`<svg ${A}><polyline points="6 9 12 15 18 9"/></svg>`,
+  'chevron-left':`<svg ${A}><polyline points="15 18 9 12 15 6"/></svg>`,
+  'chevron-right':`<svg ${A}><polyline points="9 18 15 12 9 6"/></svg>`,
+  menu:`<svg ${A}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`,
+  star:`<svg ${AF}><path d="M12 2l3 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.9 21l1.2-6.8-5-4.9 6.9-1z"/></svg>`,
+  check:`<svg ${A}><circle cx="12" cy="12" r="9"/><polyline points="8 12 11 15 16 9"/></svg>`,
+  clock:`<svg ${A}><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 12"/></svg>`,
+  trending:`<svg ${A}><polyline points="3 17 9 11 13 15 21 7"/><polyline points="16 7 21 7 21 12"/></svg>`,
+  users:`<svg ${A}><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.7-5 5.5-5s5.5 2 5.5 5"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6"/><path d="M17 15c2.2.5 4 2.3 4 5"/></svg>`,
+  badge:`<svg ${A}><path d="M12 2.4l2.3 1.7 2.8-.2.8 2.7 2.3 1.7-1.1 2.6 1.1 2.6-2.3 1.7-.8 2.7-2.8-.2L12 21.6l-2.3-1.7-2.8.2-.8-2.7-2.3-1.7 1.1-2.6-1.1-2.6 2.3-1.7.8-2.7 2.8.2z"/><polyline points="9 12 11 14 15 10"/></svg>`,
+  compass:`<svg ${A}><circle cx="12" cy="12" r="9"/><polygon points="16 8 13.5 13.5 8 16 10.5 10.5"/></svg>`,
+  heart:`<svg ${A}><path d="M12 20s-7-4.4-7-9.2A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7 2.8C19 15.6 12 20 12 20z"/></svg>`,
+  rocket:`<svg ${A}><path d="M5 15c-1.2 1-1.8 4.8-1.8 4.8S7 19.2 8 18"/><path d="M9.5 14.5c5-2 8-6 9-11-5 1-9 4-11 9"/><circle cx="14.5" cy="9.5" r="1.4"/></svg>`,
+  quote:`<svg ${A}><path d="M9 7H5v6h4c0 2.2-1.3 3.3-3 3.6"/><path d="M19 7h-4v6h4c0 2.2-1.3 3.3-3 3.6"/></svg>`,
+  play:`<svg ${AF}><polygon points="7 5 19 12 7 19"/></svg>`,
+  calendar:`<svg ${A}><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>`,
+  message:`<svg ${A}><path d="M21 11.5a8 8 0 0 1-11.8 7L4 20l1.5-5.2A8 8 0 1 1 21 11.5z"/></svg>`,
+  youtube:`<svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="19" height="12" rx="3.5" stroke="currentColor" stroke-width="2"/><polygon points="10.2 9.3 15.5 12 10.2 14.7" fill="currentColor"/></svg>`,
+  instagram:`<svg ${A}><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/></svg>`,
+  send:`<svg ${A}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9"/></svg>`,
+  facebook:`<svg ${AF}><path d="M14 8.5V7c0-1 .4-1.6 1.7-1.6H17.5V2.4H14.7C11.9 2.4 10.4 4 10.4 6.7V8.5H8v3.2h2.4V21.6h3.6V11.7h2.6l.5-3.2z"/></svg>`,
+  phone:`<svg ${A}><path d="M5 4h3.4l1.7 4.3-2.1 1.4a12 12 0 0 0 5 5l1.4-2.1 4.3 1.7V19a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 3 6.2 2 2 0 0 1 5 4z"/></svg>`,
+  mail:`<svg ${A}><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>`,
+};
+function hydrateIcons(root){(root||document).querySelectorAll('.ic[data-ic]').forEach(el=>{el.innerHTML=ICONS[el.dataset.ic]||'';el.removeAttribute('data-ic');});}
+
+// ===== Data =====
+const GRAD={
+  'blue-violet':'linear-gradient(135deg,var(--blue),var(--violet))',
+  'brand':'linear-gradient(135deg,var(--brand),var(--brand-dark))',
+  'amber-rose':'linear-gradient(135deg,var(--amber),var(--rose))',
+  'violet-blue':'linear-gradient(135deg,var(--violet),var(--blue))',
+  'dark-blue':'linear-gradient(135deg,var(--brand-dark),var(--blue))',
+};
+const courses=[
+  {badge:'ЄВІ',title:'Англійська мова (ЄВІ)',sub:'Єдиний вступний іспит',desc:'Граматика, читання, лексика та стратегії виконання тесту з нуля до впевненого результату.',price:'4 900 ₴',old:'6 500 ₴',dur:'3 місяці',grad:'blue-violet',track:'magistracy'},
+  {badge:'ТЗНК',title:'ТЗНК',sub:'Тест загальної навчальної компетентності',desc:'Логіка, аналітичне читання та робота з даними. Розбираємо всі типи завдань на практиці.',price:'4 500 ₴',old:'5 900 ₴',dur:'2.5 місяці',grad:'brand',track:'magistracy'},
+  {badge:'ЄФВВ',title:'ЄФВВ (Право)',sub:'Єдиний фаховий вступний іспит',desc:'Фахова частина для вступу в магістратуру права. Теорія, тести та консультації викладача.',price:'5 400 ₴',old:'7 200 ₴',dur:'3 місяці',grad:'amber-rose',track:'magistracy'},
+  {badge:'ЄВВ',title:'Підготовка до аспірантури',sub:'Єдине вступне випробування',desc:'Іноземна мова та фахова підготовка для вступу до аспірантури з індивідуальним планом.',price:'6 200 ₴',old:null,dur:'4 місяці',grad:'violet-blue',track:'phd'},
+  {badge:'ЄВІ',title:'Англійська для аспірантів',sub:'Рівень B2+',desc:'Поглиблений курс для тих, хто вступає в аспірантуру та готується до наукової діяльності.',price:'5 800 ₴',old:null,dur:'3.5 місяці',grad:'dark-blue',track:'phd'},
+];
+const steps=[
+  {n:'01',title:'Залишаєте заявку',text:"Ви обираєте курс і залишаєте заявку. Менеджер зв'язується з вами та визначає ваш рівень."},
+  {n:'02',title:'Проходите вхідне тестування',text:'Безкоштовне тестування показує сильні та слабкі сторони, щоб скласти індивідуальний план.'},
+  {n:'03',title:'Навчаєтесь онлайн',text:'Живі заняття у Zoom, записи всіх уроків та доступ до платформи з домашніми завданнями.'},
+  {n:'04',title:'Отримуєте підтримку',text:'Куратор перевіряє домашні завдання, відповідає на питання та тримає вас у графіку.'},
+  {n:'05',title:'Складаєте іспит і вступаєте',text:'Ви здаєте пробні іспити, виходите на потрібний бал і вступаєте до обраного університету.'},
+];
+const reviews=[
+  {name:'Олена К.',role:'Вступила в магістратуру КНУ',text:'За три місяці підняла англійську з нуля до 170+ балів на ЄВІ. Викладачі пояснюють так, що все стає зрозуміло.',rating:5},
+  {name:'Дмитро С.',role:'ЄФВВ, право',text:'Структуровані матеріали і постійна підтримка куратора. Склав фаховий на високий бал з першого разу.',rating:5},
+  {name:'Марія Л.',role:'ТЗНК',text:'Спочатку боялася логічних завдань, але після розборів усе стало системним. Дуже рекомендую!',rating:5},
+  {name:'Андрій П.',role:'Вступив в аспірантуру',text:'Індивідуальний план і живі заняття — саме те, що потрібно для серйозної підготовки. Дякую команді!',rating:5},
+];
+const universities=['КНУ ім. Шевченка','КПІ ім. Сікорського','НаУКМА','ЛНУ ім. Франка','ХНУ ім. Каразіна','КНЕУ','НУ «Львівська політехніка»','ОНУ ім. Мечникова'];
+const schedule=[
+  {date:'Лютий 2026',title:'Старт реєстрації на пробні іспити',note:null},
+  {date:'Березень 2026',title:'Реєстрація вступників',note:'не пропустіть дедлайн!'},
+  {date:'Травень 2026',title:'Основна сесія ТЗНК та ЄВІ',note:null},
+  {date:'Червень 2026',title:'ЄФВВ та фахові іспити',note:null},
+  {date:'Липень 2026',title:'Подача заяв до магістратури',note:null},
+];
+const faqs=[
+  {q:'Чи підходить курс, якщо я починаю з нуля?',a:'Так. Ми починаємо з базового рівня та поступово доводимо вас до результату. Перед стартом ви проходите безкоштовне тестування рівня.'},
+  {q:'Як проходять заняття?',a:'Заняття проходять онлайн у форматі живих груп у Zoom. Усі уроки записуються, тож ви завжди можете переглянути матеріал ще раз.'},
+  {q:'Що буде, якщо я пропущу заняття?',a:'Ви отримуєте запис заняття та матеріали. Куратор допоможе наздогнати групу та відповість на питання.'},
+  {q:'Чи є розстрочка на оплату?',a:'Так, доступна оплата частинами від банків-партнерів, а також гнучкі тарифи для різних бюджетів.'},
+  {q:'Чи допоможете з подачею документів?',a:'Ми консультуємо щодо дедлайнів, переліку документів та стратегії вступу до обраних університетів.'},
+];
+
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// ===== Render: courses =====
+function courseCard(c){
+  return `<div class="course-card">
+    <div class="course-head" style="background:${GRAD[c.grad]}">
+      <span class="badge">${esc(c.badge)}</span>
+      <h3>${esc(c.title)}</h3><p class="sub">${esc(c.sub)}</p>
+    </div>
+    <div class="course-body">
+      <p class="desc">${esc(c.desc)}</p>
+      <div class="course-meta"><span class="ic" data-ic="clock"></span> Тривалість: ${esc(c.dur)}</div>
+      <div class="course-foot">
+        <div>${c.old?`<span class="old">${esc(c.old)}</span>`:''}<span class="price">${esc(c.price)}</span></div>
+        <button class="btn btn-primary sm">Детальніше <span class="ic" data-ic="arrow-right"></span></button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderCourses(track){
+  const g=document.getElementById('courses-grid');
+  g.innerHTML=courses.filter(c=>c.track===track).map(courseCard).join('');
+  hydrateIcons(g);
+}
+document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCourses(btn.dataset.track);
+}));
+
+// dropdown + footer + secondary
+document.getElementById('dd-courses').innerHTML=courses.map(c=>`<a href="#courses" class="dd-item"><span class="dd-badge">${esc(c.badge)}</span><span class="t">${esc(c.title)}</span></a>`).join('');
+document.getElementById('footer-courses').innerHTML=courses.map(c=>`<li><a href="#courses">${esc(c.title)}</a></li>`).join('');
+document.getElementById('sec-grid').innerHTML=courses.map(c=>`<a href="#courses" class="sec-item"><span class="sec-badge" style="background:${GRAD[c.grad]}">${esc(c.badge)}</span><span class="sec-meta"><span class="n">${esc(c.title)}</span><br><span class="s">${esc(c.sub)}</span></span><span class="ic arr" data-ic="arrow-right"></span></a>`).join('');
+
+// steps
+document.getElementById('steps-list').innerHTML=steps.map(s=>`<li class="step"><span class="n">${s.n}</span><div><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></div></li>`).join('');
+
+// universities (doubled for seamless loop)
+document.getElementById('uni-track').innerHTML=[...universities,...universities].map(u=>`<div class="uni">${esc(u)}</div>`).join('');
+
+// schedule
+document.getElementById('timeline').innerHTML=schedule.map(e=>`<li><span class="tdot"><span class="ic" data-ic="calendar"></span></span><div class="tdate">${esc(e.date)}</div><div class="ttitle">${esc(e.title)}</div>${e.note?`<div class="tnote">${esc(e.note)}</div>`:''}</li>`).join('');
+
+// FAQ accordion
+const faqList=document.getElementById('faq-list');
+faqList.innerHTML=faqs.map(f=>`<div class="faq-item"><button class="faq-q">${esc(f.q)} <span class="ic" data-ic="chevron-down"></span></button><div class="faq-a"><p>${esc(f.a)}</p></div></div>`).join('');
+faqList.querySelectorAll('.faq-q').forEach(btn=>btn.addEventListener('click',()=>{
+  const item=btn.parentElement;
+  const isOpen=item.classList.contains('open');
+  faqList.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+  if(!isOpen)item.classList.add('open');
+}));
+
+// Reviews carousel
+let rIdx=0;
+function renderReview(){
+  const r=reviews[rIdx];
+  document.getElementById('review-stars').innerHTML=Array.from({length:r.rating}).map(()=>`<span class="ic" data-ic="star"></span>`).join('');
+  document.getElementById('review-text').textContent='«'+r.text+'»';
+  document.getElementById('review-name').textContent=r.name;
+  document.getElementById('review-role').textContent=r.role;
+  document.getElementById('review-av').textContent=r.name.charAt(0);
+  const dots=document.getElementById('review-dots');
+  dots.innerHTML=reviews.map((_,i)=>`<button class="dot ${i===rIdx?'active':''}" data-i="${i}"></button>`).join('');
+  dots.querySelectorAll('.dot').forEach(d=>d.addEventListener('click',()=>{rIdx=+d.dataset.i;renderReview();}));
+  hydrateIcons(document.getElementById('review-stars'));
+}
+document.getElementById('review-prev').addEventListener('click',()=>{rIdx=(rIdx-1+reviews.length)%reviews.length;renderReview();});
+document.getElementById('review-next').addEventListener('click',()=>{rIdx=(rIdx+1)%reviews.length;renderReview();});
+
+// Header behaviour
+document.getElementById('burger').addEventListener('click',()=>document.getElementById('mobile-menu').classList.toggle('hidden'));
+document.querySelectorAll('#mobile-menu a').forEach(a=>a.addEventListener('click',()=>document.getElementById('mobile-menu').classList.add('hidden')));
+window.addEventListener('scroll',()=>{document.getElementById('header').classList.toggle('scrolled',window.scrollY>8);});
+
+// Init
+renderCourses('magistracy');
+renderReview();
+hydrateIcons();
+</script>
+</body>
+</html>
