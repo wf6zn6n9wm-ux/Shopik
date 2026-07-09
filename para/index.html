@@ -390,6 +390,12 @@
   @keyframes flamePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.13)}}
   .streak-bar{height:6px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px;}
   .streak-bar>div{height:100%;border-radius:999px;background:linear-gradient(90deg,#fb923c,#ff5e8a);transition:width .6s cubic-bezier(.2,.8,.2,1);}
+  /* наша статистика */
+  .ustat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .ustat{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:12px 6px;text-align:center;}
+  .ustat-ic{font-size:19px;line-height:1;}
+  .ustat-v{font-size:20px;font-weight:800;margin-top:4px;letter-spacing:-.02em;}
+  .ustat-l{font-size:10.5px;color:var(--muted);margin-top:2px;}
   .wcheck{width:40px;height:40px;flex:0 0 auto;border-radius:999px;display:flex;align-items:center;
     justify-content:center;font-size:18px;background:rgba(52,211,153,.16);color:#6ee7b7;}
   .wcard.pop{animation:wpop .55s ease;}
@@ -543,7 +549,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v31 · серия дней (streak)';
+var APP_VERSION = 'v32 · наша статистика пары';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1528,6 +1534,20 @@ function profileView(){
     '<div style="height:24px"></div></div></div>';
 }
 
+// «Наша статистика» — совместные достижения пары (из существующего progress)
+function ourStatsCard(){
+  var p=S.progress; if(!p) return '';
+  var cell=function(ic,v,l){ return '<div class="ustat"><div class="ustat-ic">'+ic+'</div><div class="ustat-v">'+v+'</div><div class="ustat-l">'+l+'</div></div>'; };
+  return '<div class="card p4 mb3"><div class="sb mb3" style="font-size:15px">📊 Наша статистика</div>'+
+    '<div class="ustat-grid">'+
+      cell('🔥',(p.streak||0),'дней подряд')+
+      cell('💬',(p.answersCount||0),'ответов')+
+      cell('⭐',(p.wishesDone||0),'желаний')+
+      cell('🎯',(p.questsDone||0),'квестов')+
+      cell('✨',(p.points||0),'очков')+
+      cell('🏆',((p.levelIndex||0)+1),'уровень')+
+    '</div></div>';
+}
 function usScreen(){
   var c=S.couple;
   var together=Math.floor((sod(new Date())-sod(new Date(c.since)))/DAY);
@@ -1567,7 +1587,7 @@ function usScreen(){
   }
   var foot='<div class="center-t xs muted2 mt6">PARA · '+(TG?'Telegram Mini App':'веб-версия (PWA)')+' · '+APP_VERSION+'</div>';
   var profileBtn='<button class="btn btn-ghost mb3" style="width:100%;justify-content:center" data-act="profile-open">✏️ Профиль и даты</button>';
-  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+profileBtn+levelCard()+stats+home+invite+reset+foot+'</div>';
+  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+profileBtn+levelCard()+ourStatsCard()+stats+home+invite+reset+foot+'</div>';
 }
 
 // ---------- Полная админка (overlay внутри приложения) ----------
