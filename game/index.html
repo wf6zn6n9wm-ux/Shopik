@@ -37,51 +37,80 @@
   #app{position:fixed; inset:0; display:flex; flex-direction:column}
   .hide{display:none !important}
 
-  /* ============ MENU ============ */
-  #menu{
-    position:absolute; inset:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
-    background:
-      radial-gradient(120% 80% at 50% -10%, #35205e 0%, transparent 60%),
-      radial-gradient(90% 60% at 10% 110%, #3a1546 0%, transparent 55%),
-      var(--bg);
+  /* ============ MENU (стиль Journey) ============ */
+  #menu{position:absolute; inset:0; display:flex; flex-direction:column; background:#f3e8d2; overflow:hidden}
+  .m-header{
+    position:relative; flex:none; z-index:1; overflow:hidden;
+    padding:calc(env(safe-area-inset-top) + 16px) 18px 44px;
+    background:linear-gradient(180deg,#8b62dd 0%,#7a4fd0 100%);
+    display:flex; align-items:center; gap:12px;
   }
-  .menu-inner{max-width:560px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 26px) 18px 40px}
-  .brand{display:flex; align-items:center; gap:12px; margin-bottom:6px}
-  .brand .logo{
-    width:56px;height:56px;border-radius:18px;display:grid;place-items:center;font-size:30px;
-    background:var(--grad); box-shadow:0 12px 30px -8px rgba(169,123,255,.7);
+  .m-header .spark{position:absolute; color:rgba(255,255,255,.75); pointer-events:none; text-shadow:0 0 8px rgba(255,255,255,.4)}
+  .m-avatar{
+    width:58px;height:58px;flex:none;border-radius:14px;background:#f3e8d2;border:3px solid #fff;
+    display:grid;place-items:center;font-size:32px; box-shadow:0 4px 0 rgba(0,0,0,.15); z-index:2;
   }
-  .brand h1{font-size:26px; margin:0; letter-spacing:-.4px; font-weight:800}
-  .brand p{margin:2px 0 0; color:var(--muted); font-size:13.5px}
-  .stat-row{display:flex; gap:10px; margin:20px 0 8px}
-  .stat{flex:1; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 14px}
-  .stat b{display:block; font-size:22px; font-weight:800}
-  .stat span{font-size:12px; color:var(--muted)}
-  .sec-title{margin:24px 4px 12px; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted2); font-weight:700}
-  .lv{
-    position:relative; display:flex; gap:14px; align-items:center; width:100%; text-align:left;
-    background:var(--card); border:1px solid var(--line); border-radius:22px; padding:14px; margin-bottom:14px;
-    color:inherit; cursor:pointer; transition:transform .12s ease, border-color .2s;
-    overflow:hidden;
+  .m-logo{
+    flex:1; text-align:center; z-index:2;
+    font-family:'Comic Sans MS','Chalkboard SE','Segoe Print',system-ui,cursive;
+    font-size:38px; font-weight:800; color:#ffd36b; transform:rotate(-3deg); line-height:1;
+    text-shadow:2px 0 #a45a12,-2px 0 #a45a12,0 2px #a45a12,0 -2px #a45a12,2px 2px #a45a12,-2px 2px 0 #a45a12,0 5px 0 #7a3f0c;
   }
-  .lv:active{transform:scale(.985)}
-  .lv .thumb{
-    width:78px;height:78px;flex:none;border-radius:16px;display:grid;place-items:center;font-size:40px;
-    position:relative; overflow:hidden;
+  .m-gear{
+    width:54px;height:54px;flex:none;border:none;border-radius:50%;background:#fff;color:#5a4a2a;font-size:24px;
+    display:grid;place-items:center;cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.15); z-index:2;
   }
-  .lv .thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.25))}
-  .lv .meta{flex:1; min-width:0}
-  .lv .meta h3{margin:0 0 3px; font-size:17px; font-weight:800}
-  .lv .meta p{margin:0; font-size:13px; color:var(--muted)}
-  .lv .stars{display:flex; gap:3px; margin-top:8px; font-size:14px}
-  .lv .stars i{filter:grayscale(1) opacity(.35); font-style:normal}
-  .lv .stars i.on{filter:none}
-  .lv .go{flex:none; width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:18px;background:rgba(255,255,255,.08)}
-  .lv.locked{opacity:.55}
-  .lv.locked .go{background:transparent}
-  .lv .best{position:absolute; top:12px; right:14px; font-size:11px; color:var(--muted2)}
-  .foot{margin-top:26px; text-align:center; color:var(--muted2); font-size:12px; line-height:1.6}
-  .foot a{color:var(--violet); text-decoration:none}
+  .m-gear:active{transform:translateY(2px)}
+  .m-body{
+    position:relative; flex:1; margin-top:-26px; background:#f3e8d2; border-radius:26px 26px 0 0;
+    overflow-y:auto; -webkit-overflow-scrolling:touch; padding:26px 0 16px; z-index:2;
+  }
+  .m-tab{
+    display:inline-block; margin:0 0 14px 18px; background:#fff; border:2px solid #e0d3b4; border-bottom:none;
+    padding:8px 20px; border-radius:14px 14px 0 0; font-weight:800; color:#4a3d6b; font-size:15px;
+    box-shadow:0 -2px 6px rgba(0,0,0,.04);
+  }
+  .m-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:0 16px}
+  .card{
+    position:relative; text-align:left; background:#fffdf6; border:2.5px solid #e2d6b8; border-radius:20px;
+    padding:0 0 12px; cursor:pointer; overflow:hidden; box-shadow:0 4px 0 rgba(120,95,45,.16);
+    transition:transform .1s ease; color:inherit; display:flex; flex-direction:column;
+  }
+  .card:active{transform:translateY(2px)}
+  .card.locked{cursor:default; box-shadow:0 4px 0 rgba(120,95,45,.1)}
+  .card-top{padding:12px 8px 8px; text-align:center}
+  .card-top h3{margin:0; font-size:15.5px; font-weight:800; color:#2c2348}
+  .card-top p{margin:2px 0 0; font-size:11.5px; font-weight:700; color:#9186ac}
+  .card-thumb{position:relative; margin:0 10px; height:118px; border-radius:14px; overflow:hidden; border:2px solid rgba(30,20,50,.14)}
+  .card-thumb .te{position:absolute; transform:translate(-50%,-50%); filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+  .card-badge{position:absolute; top:7px; left:7px; z-index:3; font-size:17px; background:#fff; border-radius:8px;
+    padding:1px 6px; box-shadow:0 2px 4px rgba(0,0,0,.2); border:1.5px solid rgba(0,0,0,.08)}
+  .card-lock{position:absolute; inset:0; z-index:4; background:rgba(24,18,40,.5); display:grid; place-items:center; color:#fff; font-size:34px}
+  .card-counter{position:absolute; left:50%; bottom:8px; transform:translateX(-50%); z-index:3;
+    background:#fff; border:2px solid rgba(0,0,0,.1); border-radius:11px; padding:3px 14px;
+    font-weight:800; font-size:13px; color:#2c2348; box-shadow:0 2px 5px rgba(0,0,0,.25)}
+  .card-foot{padding:10px 10px 0}
+  .play{
+    display:block; width:100%; border:none; cursor:pointer; border-radius:13px; padding:11px; font-size:15.5px; font-weight:800;
+    color:#fff; background:linear-gradient(180deg,#84df5f,#57c22f); box-shadow:0 3px 0 #3d9421; text-shadow:0 1px 1px rgba(0,0,0,.2);
+  }
+  .play:active{transform:translateY(2px); box-shadow:0 1px 0 #3d9421}
+  .locked-text{text-align:center; font-size:12.5px; font-weight:800; color:#9d9070; line-height:1.35; padding:6px 6px 2px}
+  .card-stars{display:flex; justify-content:center; gap:3px; margin-top:8px; font-size:14px}
+  .card-stars i{filter:grayscale(1) opacity(.28); font-style:normal}
+  .card-stars i.on{filter:none}
+  .m-nav{
+    flex:none; display:flex; align-items:flex-end; justify-content:space-around;
+    background:#eaddc0; border-top:2px solid #d8c9a4; padding:8px 6px calc(env(safe-area-inset-bottom) + 8px);
+  }
+  .m-nav button{border:none; background:none; cursor:pointer; font-size:24px; color:#8a7c58;
+    display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 8px; border-radius:12px}
+  .m-nav button:active{background:rgba(0,0,0,.05)}
+  .m-nav .center{
+    background:#fff; margin-top:-26px; border:2.5px solid #d8c9a4; border-radius:18px; padding:8px 18px;
+    font-size:30px; box-shadow:0 5px 12px rgba(0,0,0,.15);
+  }
+  .m-nav .center span{font-size:12px; font-weight:800; color:#2c2348}
 
   /* ============ GAME ============ */
   #game{position:absolute; inset:0; display:flex; flex-direction:column; background:#0d0718}
@@ -197,28 +226,27 @@
 
   <!-- ===================== MENU ===================== -->
   <section id="menu">
-    <div class="menu-inner">
-      <div class="brand">
-        <div class="logo">🔍</div>
-        <div>
-          <h1>Найди предметы</h1>
-          <p>Игра-искалка: отыщи все спрятанные вещи на картинке</p>
-        </div>
-      </div>
-
-      <div class="stat-row">
-        <div class="stat"><b id="st-stars">0</b><span>⭐ звёзд собрано</span></div>
-        <div class="stat"><b id="st-levels">0/3</b><span>🏁 уровней пройдено</span></div>
-      </div>
-
-      <div class="sec-title">Уровни</div>
-      <div id="levels"></div>
-
-      <div class="foot">
-        Тапни по предмету из списка, чтобы найти его.<br/>
-        Двигай картинку пальцем, разводи пальцы — приближай. 🔍 — подсказка.
-      </div>
+    <div class="m-header">
+      <span class="spark" style="top:22%;left:26%;font-size:14px">✦</span>
+      <span class="spark" style="top:58%;left:20%;font-size:20px">✦</span>
+      <span class="spark" style="top:30%;left:62%;font-size:12px">✦</span>
+      <span class="spark" style="top:64%;left:72%;font-size:16px">✦</span>
+      <span class="spark" style="top:16%;left:84%;font-size:13px">✦</span>
+      <div class="m-avatar">🦫</div>
+      <div class="m-logo">Искалка</div>
+      <button class="m-gear" id="btn-menu-settings">⚙️</button>
     </div>
+    <div class="m-body">
+      <div class="m-tab">Классика</div>
+      <div class="m-grid" id="levels"></div>
+    </div>
+    <nav class="m-nav">
+      <button data-nav="collection">🔎<span style="font-size:10px">Находки</span></button>
+      <button data-nav="shop">🏪<span style="font-size:10px">Магазин</span></button>
+      <button class="center" data-nav="home">✈️<span>Главная</span></button>
+      <button data-nav="daily">🗓️<span style="font-size:10px">День</span></button>
+      <button data-nav="awards">🏅<span style="font-size:10px">Награды</span></button>
+    </nav>
   </section>
 
   <!-- ===================== GAME ===================== -->
@@ -431,29 +459,38 @@ function buildLayout(scene){
 let G=null; // текущая игра
 const viewport=$("#viewport"), world=$("#world");
 
+const THUMB_SPOTS=[[22,32],[70,26],[44,58],[80,66],[16,72],[58,80]];
 function renderMenu(){
   const wrap=$("#levels");wrap.innerHTML="";
-  let totalStars=0, done=0;
   SCENES.forEach((sc,i)=>{
     const st=save.stars[sc.id]||0;
-    totalStars+=st; if(st>0)done++;
     const locked=i>0 && !(save.stars[SCENES[i-1].id]>0);
+    const total=sc.targets.reduce((a,t)=>a+t.count,0);
+    const collage=sc.targets.slice(0,6).map((t,k)=>
+      `<span class="te" style="left:${THUMB_SPOTS[k][0]}%;top:${THUMB_SPOTS[k][1]}%;font-size:${22+(k%3)*4}px">${t.e}</span>`).join("");
     const el=document.createElement("button");
-    el.className="lv"+(locked?" locked":"");
+    el.className="card"+(locked?" locked":"");
     el.innerHTML=`
-      <div class="thumb" style="background:${sc.thumbBg}">${sc.emoji}</div>
-      <div class="meta">
+      <div class="card-top">
         <h3>${sc.title}</h3>
-        <p>${locked?"🔒 Пройди предыдущий уровень":sc.sub}</p>
-        <div class="stars">${[0,1,2].map(k=>`<i class="${k<st?'on':''}">⭐</i>`).join("")}</div>
+        <p>${sc.sub}</p>
       </div>
-      <div class="go">${locked?"🔒":"▶"}</div>`;
+      <div class="card-thumb" style="background:${sc.thumbBg}">
+        <span class="card-badge">${sc.emoji}</span>
+        ${collage}
+        ${locked?`<div class="card-lock">🔒</div>`
+                :`<span class="card-counter">0/${total}</span>`}
+      </div>
+      <div class="card-foot">
+        ${locked
+          ? `<div class="locked-text">Завершите<br/>предыдущий уровень</div>`
+          : `<button class="play">Играть</button>
+             <div class="card-stars">${[0,1,2].map(k=>`<i class="${k<st?'on':''}">⭐</i>`).join("")}</div>`}
+      </div>`;
     if(!locked)el.onclick=()=>startGame(i);
     else el.onclick=()=>toast("Сначала пройди предыдущий уровень 🔒");
     wrap.appendChild(el);
   });
-  $("#st-stars").textContent=totalStars;
-  $("#st-levels").textContent=done+"/"+SCENES.length;
 }
 
 /* ------------------------------------------------------------------ */
@@ -771,9 +808,10 @@ function goMenu(){
 }
 function toast(msg){
   const t=document.createElement("div");t.className="toast";t.textContent=msg;
-  $("#game").appendChild(t);setTimeout(()=>t.remove(),2000);
+  $("#app").appendChild(t);setTimeout(()=>t.remove(),2000);
 }
 function openSettings(){
+  const inGame = !$("#game").classList.contains("hide");
   const ov=document.createElement("div");ov.className="overlay";
   ov.innerHTML=`
     <div class="modal">
@@ -783,18 +821,15 @@ function openSettings(){
         <span>🔊 Звук</span>
         <div class="switch ${save.sound?'on':''}" id="sw-sound"><b></b></div>
       </div>
-      <div class="settings-row">
-        <span>🔍 Осталось подсказок</span>
-        <b>${G?G.hints:3}</b>
-      </div>
-      <button class="btn" id="s-resume">Продолжить</button>
-      <button class="btn sec" id="s-menu">🏠 Выйти в меню</button>
+      ${inGame?`<div class="settings-row"><span>🔍 Осталось подсказок</span><b>${G?G.hints:3}</b></div>`:``}
+      <button class="btn" id="s-resume">${inGame?'Продолжить':'Закрыть'}</button>
+      ${inGame?`<button class="btn sec" id="s-menu">🏠 Выйти в меню</button>`:``}
       <button class="btn sec" id="s-reset">Сбросить весь прогресс</button>
     </div>`;
-  $("#game").appendChild(ov);
+  $("#app").appendChild(ov);
   $("#sw-sound").onclick=()=>{save.sound=!save.sound;persist();$("#sw-sound").classList.toggle("on",save.sound);if(save.sound)sTap()};
   $("#s-resume").onclick=()=>ov.remove();
-  $("#s-menu").onclick=()=>{ov.remove();goMenu()};
+  const sm=$("#s-menu");if(sm)sm.onclick=()=>{ov.remove();goMenu()};
   $("#s-reset").onclick=()=>{
     if(confirm("Сбросить все звёзды и прогресс?")){save={stars:{},sound:save.sound};persist();ov.remove();goMenu()}
   };
@@ -802,8 +837,16 @@ function openSettings(){
 
 $("#btn-home").onclick=goMenu;
 $("#btn-settings").onclick=openSettings;
+$("#btn-menu-settings").onclick=openSettings;
 $("#btn-hint").onclick=useHint;
 $("#btn-zoomreset").onclick=resetView;
+document.querySelectorAll(".m-nav button").forEach(b=>{
+  b.onclick=()=>{
+    const nav=b.dataset.nav;
+    if(nav==="home")toast("Ты уже на главной 🙂");
+    else toast("Раздел «"+b.textContent.trim()+"» скоро появится ✨");
+  };
+});
 window.addEventListener("resize",()=>{if(G&&!G.over)applyView()});
 
 /* ------------------------------------------------------------------ */
