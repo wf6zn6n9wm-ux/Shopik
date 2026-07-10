@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>Найди предметы — игра-искалка</title>
+
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Найди предметы" />
+<meta name="theme-color" content="#1b1030" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%231b1030'/%3E%3Ccircle cx='78' cy='78' r='34' fill='none' stroke='%23f8c14a' stroke-width='12'/%3E%3Cpath d='M104 104l34 34' stroke='%23f8c14a' stroke-width='16' stroke-linecap='round'/%3E%3C/svg%3E" />
+
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#160c26; --bg2:#1e123a;
+    --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.12);
+    --ink:#f4eefb; --muted:rgba(244,238,251,.6); --muted2:rgba(244,238,251,.38);
+    --gold:#f8c14a; --gold2:#f0a52e;
+    --violet:#a97bff; --pink:#ff6fae; --green:#4ade80; --red:#ff6b6b; --sky:#5ec8ff;
+    --grad:linear-gradient(135deg,#a97bff,#ff6fae);
+    --grad-gold:linear-gradient(135deg,#f8c14a,#f0a52e);
+    --tray-h:118px;
+  }
+  html,body{margin:0;height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Color Emoji","Apple Color Emoji",sans-serif;
+    background:var(--bg); color:var(--ink);
+    overflow:hidden; overscroll-behavior:none; user-select:none; -webkit-user-select:none;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  #app{position:fixed; inset:0; display:flex; flex-direction:column}
+  .hide{display:none !important}
+
+  /* ============ MENU ============ */
+  #menu{
+    position:absolute; inset:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    background:
+      radial-gradient(120% 80% at 50% -10%, #35205e 0%, transparent 60%),
+      radial-gradient(90% 60% at 10% 110%, #3a1546 0%, transparent 55%),
+      var(--bg);
+  }
+  .menu-inner{max-width:560px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 26px) 18px 40px}
+  .brand{display:flex; align-items:center; gap:12px; margin-bottom:6px}
+  .brand .logo{
+    width:56px;height:56px;border-radius:18px;display:grid;place-items:center;font-size:30px;
+    background:var(--grad); box-shadow:0 12px 30px -8px rgba(169,123,255,.7);
+  }
+  .brand h1{font-size:26px; margin:0; letter-spacing:-.4px; font-weight:800}
+  .brand p{margin:2px 0 0; color:var(--muted); font-size:13.5px}
+  .stat-row{display:flex; gap:10px; margin:20px 0 8px}
+  .stat{flex:1; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 14px}
+  .stat b{display:block; font-size:22px; font-weight:800}
+  .stat span{font-size:12px; color:var(--muted)}
+  .sec-title{margin:24px 4px 12px; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted2); font-weight:700}
+  .lv{
+    position:relative; display:flex; gap:14px; align-items:center; width:100%; text-align:left;
+    background:var(--card); border:1px solid var(--line); border-radius:22px; padding:14px; margin-bottom:14px;
+    color:inherit; cursor:pointer; transition:transform .12s ease, border-color .2s;
+    overflow:hidden;
+  }
+  .lv:active{transform:scale(.985)}
+  .lv .thumb{
+    width:78px;height:78px;flex:none;border-radius:16px;display:grid;place-items:center;font-size:40px;
+    position:relative; overflow:hidden;
+  }
+  .lv .thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.25))}
+  .lv .meta{flex:1; min-width:0}
+  .lv .meta h3{margin:0 0 3px; font-size:17px; font-weight:800}
+  .lv .meta p{margin:0; font-size:13px; color:var(--muted)}
+  .lv .stars{display:flex; gap:3px; margin-top:8px; font-size:14px}
+  .lv .stars i{filter:grayscale(1) opacity(.35); font-style:normal}
+  .lv .stars i.on{filter:none}
+  .lv .go{flex:none; width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:18px;background:rgba(255,255,255,.08)}
+  .lv.locked{opacity:.55}
+  .lv.locked .go{background:transparent}
+  .lv .best{position:absolute; top:12px; right:14px; font-size:11px; color:var(--muted2)}
+  .foot{margin-top:26px; text-align:center; color:var(--muted2); font-size:12px; line-height:1.6}
+  .foot a{color:var(--violet); text-decoration:none}
+
+  /* ============ GAME ============ */
+  #game{position:absolute; inset:0; display:flex; flex-direction:column; background:#0d0718}
+  .topbar{
+    position:relative; z-index:6; display:flex; align-items:center; gap:10px;
+    padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;
+    background:linear-gradient(180deg, rgba(13,7,24,.92), rgba(13,7,24,.55) 70%, transparent);
+  }
+  .icon-btn{
+    width:42px;height:42px;flex:none;border:none;border-radius:14px;background:rgba(255,255,255,.1);
+    color:var(--ink); font-size:19px; display:grid;place-items:center; cursor:pointer; backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.12);
+  }
+  .icon-btn:active{transform:scale(.92)}
+  .topmid{flex:1; text-align:center; min-width:0}
+  .topmid .t{font-size:14.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .topmid .pbar{height:6px; border-radius:99px; background:rgba(255,255,255,.12); margin-top:6px; overflow:hidden}
+  .topmid .pfill{height:100%; width:0; background:var(--grad-gold); border-radius:99px; transition:width .35s cubic-bezier(.2,.8,.2,1)}
+  .chip-time{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-width:58px; padding:5px 10px; border-radius:12px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+  }
+  .chip-time b{font-size:15px; font-variant-numeric:tabular-nums; font-weight:800}
+  .chip-time span{font-size:9px; color:var(--muted); letter-spacing:.1em}
+
+  #viewport{position:relative; flex:1; overflow:hidden; touch-action:none; background:#0d0718}
+  #world{position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform}
+  .amb{position:absolute; pointer-events:none; transform:translate(-50%,-50%); filter:blur(.4px)}
+  .obj{
+    position:absolute; transform:translate(-50%,-50%) rotate(var(--r)); border:none; background:none; padding:0; margin:0;
+    line-height:1; cursor:pointer; filter:drop-shadow(0 3px 4px rgba(0,0,0,.45)); transition:opacity .25s, transform .25s;
+  }
+  .obj.found{opacity:.25; filter:grayscale(1) drop-shadow(0 0 0 transparent); pointer-events:none}
+  .obj.hintpulse{animation:hintpulse 1.1s ease-in-out 2}
+  @keyframes hintpulse{0%,100%{transform:translate(-50%,-50%) rotate(var(--r)) scale(1)}50%{transform:translate(-50%,-50%) rotate(var(--r)) scale(1.55)}}
+  .ring{position:absolute; width:10px;height:10px;border-radius:50%; pointer-events:none; transform:translate(-50%,-50%); z-index:50}
+  .ring.good{box-shadow:0 0 0 3px var(--green); animation:ringpop .55s ease-out forwards}
+  .ring.bad{box-shadow:0 0 0 3px var(--red); animation:ringpop .45s ease-out forwards}
+  @keyframes ringpop{0%{opacity:1;width:10px;height:10px}100%{opacity:0;width:120px;height:120px}}
+  .flabel{position:absolute; transform:translate(-50%,-50%); pointer-events:none; z-index:60;
+    background:rgba(20,10,36,.9); border:1px solid var(--line); color:#fff; font-size:12px; font-weight:700;
+    padding:4px 9px; border-radius:99px; white-space:nowrap; animation:floatup 1s ease-out forwards}
+  @keyframes floatup{0%{opacity:0; margin-top:6px}20%{opacity:1}100%{opacity:0; margin-top:-26px}}
+
+  .fabs{position:absolute; right:12px; bottom:calc(var(--tray-h) + 14px); z-index:6; display:flex; flex-direction:column; gap:12px}
+  .fab{
+    width:56px;height:56px;border-radius:18px;border:none;cursor:pointer; position:relative;
+    display:grid;place-items:center; font-size:23px; color:#3a2409;
+    background:var(--grad-gold); box-shadow:0 10px 24px -8px rgba(248,193,74,.8);
+  }
+  .fab.ghost{background:rgba(255,255,255,.12); color:#fff; box-shadow:none; border:1px solid rgba(255,255,255,.14)}
+  .fab:active{transform:scale(.93)}
+  .fab .badge{position:absolute; top:-6px; right:-6px; min-width:22px;height:22px;padding:0 5px;border-radius:11px;
+    background:var(--red); color:#fff; font-size:12px; font-weight:800; display:grid;place-items:center; border:2px solid #0d0718}
+
+  .tray{
+    position:relative; z-index:6; height:var(--tray-h); flex:none;
+    background:linear-gradient(180deg, rgba(13,7,24,.4), #14092a 40%);
+    border-top:1px solid rgba(255,255,255,.08);
+    padding:10px 0 calc(env(safe-area-inset-bottom) + 8px);
+  }
+  .tray-scroll{display:flex; gap:10px; overflow-x:auto; padding:0 14px; height:100%; align-items:center; scrollbar-width:none}
+  .tray-scroll::-webkit-scrollbar{display:none}
+  .tcard{
+    flex:none; width:72px; height:88px; border-radius:16px; background:var(--card); border:1px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; position:relative;
+    transition:transform .2s, opacity .3s;
+  }
+  .tcard .e{font-size:32px; line-height:1}
+  .tcard .nm{font-size:10px; color:var(--muted); max-width:66px; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .tcard .cnt{position:absolute; top:-7px; right:-7px; min-width:24px;height:24px;padding:0 5px;border-radius:12px;
+    background:var(--grad); color:#fff; font-size:13px; font-weight:800; display:grid;place-items:center; border:2px solid #14092a}
+  .tcard.done{opacity:.45}
+  .tcard.done .e{filter:grayscale(1)}
+  .tcard.done .cnt{background:var(--green); font-size:12px}
+  .tcard.bump{transform:translateY(-6px) scale(1.06)}
+
+  /* ============ MODAL ============ */
+  .overlay{position:absolute; inset:0; z-index:20; background:rgba(8,4,16,.72); backdrop-filter:blur(6px);
+    display:grid; place-items:center; padding:22px; animation:fade .25s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .modal{width:100%; max-width:380px; background:linear-gradient(180deg,#241541,#1a0e30); border:1px solid var(--line);
+    border-radius:26px; padding:26px 22px; text-align:center; box-shadow:0 30px 70px -20px rgba(0,0,0,.8)}
+  .modal .big{font-size:52px; margin-bottom:6px}
+  .modal h2{margin:2px 0 6px; font-size:23px; font-weight:800}
+  .modal p{margin:0 0 4px; color:var(--muted); font-size:14px}
+  .win-stars{font-size:40px; letter-spacing:6px; margin:14px 0 6px}
+  .win-stars i{font-style:normal; filter:grayscale(1) opacity(.3); transition:filter .3s}
+  .win-stars i.on{filter:none; animation:starpop .4s ease}
+  @keyframes starpop{0%{transform:scale(0) rotate(-40deg)}70%{transform:scale(1.3)}100%{transform:scale(1)}}
+  .win-meta{display:flex; gap:10px; margin:14px 0 20px}
+  .win-meta .m{flex:1; background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:14px; padding:10px}
+  .win-meta .m b{display:block; font-size:19px; font-weight:800}
+  .win-meta .m span{font-size:11px; color:var(--muted)}
+  .btn{display:block; width:100%; border:none; cursor:pointer; border-radius:16px; padding:15px; font-size:16px; font-weight:800;
+    color:#3a2409; background:var(--grad-gold); margin-top:10px}
+  .btn.sec{background:rgba(255,255,255,.09); color:#fff; border:1px solid var(--line)}
+  .btn:active{transform:scale(.98)}
+  .settings-row{display:flex; align-items:center; justify-content:space-between; padding:14px 2px; border-bottom:1px solid var(--line)}
+  .settings-row:last-of-type{border-bottom:none}
+  .switch{width:52px;height:30px;border-radius:99px;background:rgba(255,255,255,.15);position:relative;cursor:pointer;transition:.2s;flex:none}
+  .switch.on{background:var(--green)}
+  .switch b{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s}
+  .switch.on b{left:25px}
+  .toast{position:absolute; left:50%; bottom:calc(var(--tray-h) + 30px); transform:translateX(-50%); z-index:15;
+    background:rgba(20,10,36,.94); border:1px solid var(--line); color:#fff; padding:10px 16px; border-radius:99px;
+    font-size:13.5px; font-weight:600; animation:toast 2s ease forwards; pointer-events:none; white-space:nowrap}
+  @keyframes toast{0%{opacity:0;transform:translate(-50%,10px)}12%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-8px)}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===================== MENU ===================== -->
+  <section id="menu">
+    <div class="menu-inner">
+      <div class="brand">
+        <div class="logo">🔍</div>
+        <div>
+          <h1>Найди предметы</h1>
+          <p>Игра-искалка: отыщи все спрятанные вещи на картинке</p>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat"><b id="st-stars">0</b><span>⭐ звёзд собрано</span></div>
+        <div class="stat"><b id="st-levels">0/3</b><span>🏁 уровней пройдено</span></div>
+      </div>
+
+      <div class="sec-title">Уровни</div>
+      <div id="levels"></div>
+
+      <div class="foot">
+        Тапни по предмету из списка, чтобы найти его.<br/>
+        Двигай картинку пальцем, разводи пальцы — приближай. 🔍 — подсказка.
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== GAME ===================== -->
+  <section id="game" class="hide">
+    <div class="topbar">
+      <button class="icon-btn" id="btn-home">🏠</button>
+      <div class="topmid">
+        <div class="t" id="lv-title">—</div>
+        <div class="pbar"><div class="pfill" id="pfill"></div></div>
+      </div>
+      <div class="chip-time"><b id="clock">0:00</b><span id="found-lbl">0/0</span></div>
+      <button class="icon-btn" id="btn-settings">⚙️</button>
+    </div>
+
+    <div id="viewport">
+      <div id="world"></div>
+    </div>
+
+    <div class="fabs">
+      <button class="fab ghost" id="btn-zoomreset" title="Сбросить масштаб">⤢</button>
+      <button class="fab" id="btn-hint" title="Подсказка">🔍<span class="badge" id="hint-badge">3</span></button>
+    </div>
+
+    <div class="tray">
+      <div class="tray-scroll" id="tray"></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+"use strict";
+/* ------------------------------------------------------------------ */
+/* Утилиты                                                            */
+/* ------------------------------------------------------------------ */
+const $ = s => document.querySelector(s);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function fmt(s){const m=Math.floor(s/60),ss=s%60;return m+":"+String(ss).padStart(2,"0")}
+
+/* ------------------------------------------------------------------ */
+/* Данные сцен                                                        */
+/* ------------------------------------------------------------------ */
+const WORLD_W = 1000, WORLD_H = 1740;
+
+const SCENES = [
+  {
+    id:"winter",
+    title:"Уютное дупло",
+    sub:"Зимний вечер в дереве с белками",
+    emoji:"🌰",
+    thumbBg:"radial-gradient(120% 120% at 50% 0%,#2a3f6e,#5a3a1e 60%,#3a2412)",
+    par:80,
+    bg:`
+      radial-gradient(120% 55% at 50% 0%, #0e1b3d 0%, #16264f 30%, transparent 62%),
+      radial-gradient(100% 60% at 50% 100%, #4a2f16 0%, #3a2412 45%, #241407 100%),
+      linear-gradient(180deg,#0c1730 0%,#2c1c10 46%,#1c1108 100%)`,
+    ambient:[["❄️",120,80,60,.5],["❄️",860,120,52,.5],["⭐",300,60,40,.7],["⭐",700,180,34,.6],
+             ["🌙",90,110,90,.9],["🎄",900,300,120,.5],["🌲",70,340,150,.4],["🪵",500,1400,120,.35]],
+    decoys:["🍄","🌲","❄️","🔑","📚","🕰️","🐿️","🦊","🦉","🍎","🫖","🎄","🌟","💡","🪑","🖼️","🧸","🪟","🛷","🧦","🍯","🕸️","🐌","🪺","🍂"],
+    targets:[
+      {e:"🧣",name:"Шарф",count:3},
+      {e:"⛄",name:"Снеговик",count:3},
+      {e:"👠",name:"Туфли",count:2},
+      {e:"☕",name:"Какао",count:3},
+      {e:"🥕",name:"Морковь",count:3},
+      {e:"🎁",name:"Подарок",count:4},
+      {e:"🕯️",name:"Свеча",count:3},
+      {e:"🍪",name:"Печенье",count:3},
+    ],
+  },
+  {
+    id:"greece",
+    title:"Греческий дворик",
+    sub:"Санторини: белые дома и синее море",
+    emoji:"🏛️",
+    thumbBg:"radial-gradient(120% 120% at 50% 0%,#8fd3ff,#eef4fb 55%,#2b7fc4)",
+    par:85,
+    bg:`
+      radial-gradient(120% 45% at 50% 0%, #7ec8f5 0%, #bfe4fb 35%, transparent 60%),
+      radial-gradient(110% 45% at 50% 100%, #1c7fc0 0%, #2b93d1 40%, transparent 75%),
+      linear-gradient(180deg,#aee0fb 0%,#e9f3fb 40%,#dfeef8 60%,#2e93cf 100%)`,
+    ink:"#20364a",
+    ambient:[["☁️",180,120,110,.9],["☁️",720,90,90,.85],["🏛️",120,360,150,.35],["🌊",500,1640,220,.4],
+             ["⛵",820,1500,80,.7],["🌺",900,700,90,.4],["🍋",90,720,70,.5],["☀️",860,180,70,.8]],
+    decoys:["🌺","🍋","🐚","🦀","🐟","⛵","🏺","🫒","🍇","🧿","🎣","☕","🍷","🥗","🌊","🐦","🪷","🧺","🕶️","📿","🍅","🧅","🪑","🛥️","🦩"],
+    targets:[
+      {e:"🐈",name:"Кот",count:4},
+      {e:"🍦",name:"Мороженое",count:4},
+      {e:"🍉",name:"Арбуз",count:3},
+      {e:"📷",name:"Камера",count:2},
+      {e:"⚓",name:"Якорь",count:2},
+      {e:"🏺",name:"Амфора",count:3},
+      {e:"🕶️",name:"Очки",count:3},
+      {e:"🐕",name:"Пёс",count:2},
+    ],
+  },
+  {
+    id:"pantry",
+    title:"Кладовка мышей",
+    sub:"Крохотный мир среди банок и круп",
+    emoji:"🧀",
+    thumbBg:"radial-gradient(120% 120% at 50% 0%,#f3e2c0,#c9a26a 60%,#8a6636)",
+    par:90,
+    bg:`
+      radial-gradient(120% 50% at 50% 0%, #f6ecd6 0%, #ecd8b4 40%, transparent 65%),
+      radial-gradient(110% 55% at 50% 100%, #a9793f 0%, #8a6636 45%, #5f451f 100%),
+      linear-gradient(180deg,#f2e2c2 0%,#d9bd8e 46%,#a67c45 100%)`,
+    ink:"#3a2a12",
+    ambient:[["🫙",200,220,150,.4],["🫙",760,260,150,.4],["🍯",120,900,110,.4],["🧺",880,1000,120,.4],
+             ["🪵",500,1660,220,.35],["🕯️",90,520,80,.5],["📻",900,600,90,.4]],
+    decoys:["🐭","🍎","🥄","🍵","🕯️","📚","🧵","🪜","🧸","🍯","🧦","🪣","🧼","🦆","🛁","📻","🍞","🥫","🫙","🧅","🍇","🪤","🔦","🧶","🥚"],
+    targets:[
+      {e:"🧀",name:"Сыр",count:3},
+      {e:"🥖",name:"Хлеб",count:5},
+      {e:"🫖",name:"Чайник",count:4},
+      {e:"👓",name:"Очки",count:3},
+      {e:"🧣",name:"Шарф",count:4},
+      {e:"🍪",name:"Печенье",count:4},
+      {e:"🔑",name:"Ключ",count:2},
+      {e:"🐁",name:"Мышка",count:3},
+    ],
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/* Прогресс (localStorage)                                            */
+/* ------------------------------------------------------------------ */
+const SAVE_KEY = "hidden_object_progress_v1";
+let save = load();
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(SAVE_KEY));if(d&&d.stars)return d}catch(e){}
+  return {stars:{}, sound:true};
+}
+function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save))}catch(e){}}
+
+/* ------------------------------------------------------------------ */
+/* Звук                                                               */
+/* ------------------------------------------------------------------ */
+let AC=null;
+function beep(freq,dur,type,vol){
+  if(!save.sound)return;
+  try{
+    AC=AC||new(window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==="suspended")AC.resume();
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type=type||"sine";o.frequency.value=freq;
+    g.gain.setValueAtTime(0,AC.currentTime);
+    g.gain.linearRampToValueAtTime(vol||.15,AC.currentTime+.01);
+    g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+(dur||.15));
+    o.connect(g);g.connect(AC.destination);
+    o.start();o.stop(AC.currentTime+(dur||.15));
+  }catch(e){}
+}
+const sGood=()=>{beep(660,.09,"triangle",.16);setTimeout(()=>beep(990,.12,"triangle",.16),70)};
+const sBad =()=>beep(150,.16,"sawtooth",.12);
+const sWin =()=>{[523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.22,"triangle",.16),i*130))};
+const sTap =()=>beep(440,.05,"sine",.08);
+
+/* ------------------------------------------------------------------ */
+/* Построение расстановки предметов                                   */
+/* ------------------------------------------------------------------ */
+function buildLayout(scene){
+  const rnd = mulberry32(hash(scene.id)+7);
+  const placed=[];
+  const pad=64, topPad=110, botPad=90;
+  function tryPlace(size){
+    for(let k=0;k<80;k++){
+      const x=pad+rnd()*(WORLD_W-2*pad);
+      const y=topPad+rnd()*(WORLD_H-topPad-botPad);
+      let ok=true;
+      for(const p of placed){
+        const md=(size+p.size)*0.42+6;
+        if(Math.abs(x-p.x)<md && Math.abs(y-p.y)<md){ok=false;break}
+      }
+      if(ok)return {x,y,size};
+    }
+    // запасной вариант — просто где угодно
+    return {x:pad+rnd()*(WORLD_W-2*pad), y:topPad+rnd()*(WORLD_H-topPad-botPad), size};
+  }
+  let id=0;
+  const objects=[];
+  // цели
+  scene.targets.forEach((t,ti)=>{
+    for(let i=0;i<t.count;i++){
+      const size=44+Math.floor(rnd()*20);
+      const pos=tryPlace(size);placed.push(pos);
+      objects.push({id:id++, e:t.e, x:pos.x, y:pos.y, size:pos.size,
+        rot:(rnd()*40-20), target:ti, found:false});
+    }
+  });
+  // декорации-обманки
+  const decoyCount=44;
+  for(let i=0;i<decoyCount;i++){
+    const e=scene.decoys[Math.floor(rnd()*scene.decoys.length)];
+    const size=36+Math.floor(rnd()*26);
+    const pos=tryPlace(size);placed.push(pos);
+    objects.push({id:id++, e, x:pos.x, y:pos.y, size:pos.size,
+      rot:(rnd()*40-20), target:-1, found:false});
+  }
+  // случайный z-порядок, чтобы предметы частично перекрывались
+  objects.forEach(o=>o.z=Math.floor(rnd()*100));
+  objects.sort((a,b)=>a.z-b.z);
+  return objects;
+}
+
+/* ------------------------------------------------------------------ */
+/* Состояние игры                                                     */
+/* ------------------------------------------------------------------ */
+let G=null; // текущая игра
+const viewport=$("#viewport"), world=$("#world");
+
+function renderMenu(){
+  const wrap=$("#levels");wrap.innerHTML="";
+  let totalStars=0, done=0;
+  SCENES.forEach((sc,i)=>{
+    const st=save.stars[sc.id]||0;
+    totalStars+=st; if(st>0)done++;
+    const locked=i>0 && !(save.stars[SCENES[i-1].id]>0);
+    const el=document.createElement("button");
+    el.className="lv"+(locked?" locked":"");
+    el.innerHTML=`
+      <div class="thumb" style="background:${sc.thumbBg}">${sc.emoji}</div>
+      <div class="meta">
+        <h3>${sc.title}</h3>
+        <p>${locked?"🔒 Пройди предыдущий уровень":sc.sub}</p>
+        <div class="stars">${[0,1,2].map(k=>`<i class="${k<st?'on':''}">⭐</i>`).join("")}</div>
+      </div>
+      <div class="go">${locked?"🔒":"▶"}</div>`;
+    if(!locked)el.onclick=()=>startGame(i);
+    else el.onclick=()=>toast("Сначала пройди предыдущий уровень 🔒");
+    wrap.appendChild(el);
+  });
+  $("#st-stars").textContent=totalStars;
+  $("#st-levels").textContent=done+"/"+SCENES.length;
+}
+
+/* ------------------------------------------------------------------ */
+/* Запуск уровня                                                      */
+/* ------------------------------------------------------------------ */
+let tickTimer=null;
+function startGame(idx){
+  const scene=SCENES[idx];
+  const objects=buildLayout(scene);
+  const remaining=scene.targets.map(t=>t.count);
+  const total=remaining.reduce((a,b)=>a+b,0);
+  G={idx,scene,objects,remaining,total,found:0,time:0,hints:3,wrongTaps:0,over:false};
+
+  $("#menu").classList.add("hide");
+  $("#game").classList.remove("hide");
+  $("#lv-title").textContent=scene.title;
+  $("#hint-badge").textContent=G.hints;
+
+  // фон
+  viewport.style.background=scene.bg;
+  const inkFab = scene.ink||"#fff";
+
+  // мир
+  world.style.width=WORLD_W+"px";
+  world.style.height=WORLD_H+"px";
+  world.innerHTML="";
+  // ambient
+  (scene.ambient||[]).forEach(a=>{
+    const [e,x,y,s,o]=a;
+    const d=document.createElement("div");
+    d.className="amb";d.textContent=e;
+    d.style.left=x+"px";d.style.top=y+"px";d.style.fontSize=s+"px";d.style.opacity=o;
+    world.appendChild(d);
+  });
+  // объекты
+  objects.forEach(o=>{
+    const b=document.createElement("button");
+    b.className="obj";b.dataset.id=o.id;
+    b.textContent=o.e;
+    b.style.left=o.x+"px";b.style.top=o.y+"px";
+    b.style.fontSize=o.size+"px";
+    b.style.setProperty("--r",o.rot+"deg");
+    b.style.zIndex=10+o.z;
+    world.appendChild(b);
+    o.el=b;
+  });
+
+  renderTray();
+  updateHUD();
+  resetView();
+  clearInterval(tickTimer);
+  tickTimer=setInterval(()=>{
+    if(G.over)return;
+    G.time++;
+    $("#clock").textContent=fmt(G.time);
+  },1000);
+}
+
+function renderTray(){
+  const tray=$("#tray");tray.innerHTML="";
+  G.scene.targets.forEach((t,i)=>{
+    const done=G.remaining[i]<=0;
+    const c=document.createElement("div");
+    c.className="tcard"+(done?" done":"");
+    c.dataset.ti=i;
+    c.innerHTML=`<div class="e">${t.e}</div><div class="nm">${t.name}</div>
+      <div class="cnt">${done?"✓":G.remaining[i]}</div>`;
+    tray.appendChild(c);
+  });
+}
+function updateHUD(){
+  $("#found-lbl").textContent=G.found+"/"+G.total;
+  $("#clock").textContent=fmt(G.time);
+  $("#pfill").style.width=(100*G.found/G.total)+"%";
+}
+
+/* ------------------------------------------------------------------ */
+/* Тап по предмету                                                    */
+/* ------------------------------------------------------------------ */
+function hitAt(clientX,clientY){
+  const el=document.elementFromPoint(clientX,clientY);
+  if(!el)return null;
+  const btn=el.closest?el.closest(".obj"):null;
+  return btn;
+}
+function ripple(clientX,clientY,good){
+  const r=document.createElement("div");
+  r.className="ring "+(good?"good":"bad");
+  const vp=viewport.getBoundingClientRect();
+  r.style.left=(clientX-vp.left)+"px";
+  r.style.top=(clientY-vp.top)+"px";
+  viewport.appendChild(r);
+  setTimeout(()=>r.remove(),600);
+}
+function floatLabel(obj,text){
+  const vp=viewport.getBoundingClientRect();
+  const rect=obj.el.getBoundingClientRect();
+  const l=document.createElement("div");
+  l.className="flabel";l.textContent=text;
+  l.style.left=(rect.left+rect.width/2-vp.left)+"px";
+  l.style.top=(rect.top+rect.height/2-vp.top)+"px";
+  viewport.appendChild(l);
+  setTimeout(()=>l.remove(),1000);
+}
+function handleTap(clientX,clientY){
+  if(!G||G.over)return;
+  const btn=hitAt(clientX,clientY);
+  if(!btn){ return; }
+  const id=+btn.dataset.id;
+  const obj=G.objects.find(o=>o.id===id);
+  if(!obj||obj.found)return;
+  if(obj.target>=0 && G.remaining[obj.target]>0){
+    // найдено!
+    obj.found=true;
+    obj.el.classList.add("found");
+    G.remaining[obj.target]--;
+    G.found++;
+    sGood();
+    ripple(clientX,clientY,true);
+    const t=G.scene.targets[obj.target];
+    floatLabel(obj,t.name);
+    // обновить карточку
+    const card=document.querySelector('.tcard[data-ti="'+obj.target+'"]');
+    if(card){
+      card.classList.add("bump");
+      setTimeout(()=>card.classList.remove("bump"),220);
+      if(G.remaining[obj.target]<=0){card.classList.add("done");card.querySelector(".cnt").textContent="✓"}
+      else card.querySelector(".cnt").textContent=G.remaining[obj.target];
+    }
+    updateHUD();
+    if(G.found>=G.total)win();
+  }else{
+    // мимо / обманка
+    G.wrongTaps++;
+    G.time+=2; // штраф
+    sBad();
+    ripple(clientX,clientY,false);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Пан / зум                                                          */
+/* ------------------------------------------------------------------ */
+let view={scale:1,tx:0,ty:0,min:1,max:3};
+const pointers=new Map();
+let gesture=null; // {mode:'pan'|'pinch', ...}
+let downInfo=null; // для распознавания тапа
+
+function applyView(){
+  const vw=viewport.clientWidth, vh=viewport.clientHeight;
+  const sw=WORLD_W*view.scale, sh=WORLD_H*view.scale;
+  // ограничение панорамирования
+  if(sw<=vw) view.tx=(vw-sw)/2; else view.tx=Math.min(0,Math.max(vw-sw,view.tx));
+  if(sh<=vh) view.ty=(vh-sh)/2; else view.ty=Math.min(0,Math.max(vh-sh,view.ty));
+  world.style.transform=`translate(${view.tx}px,${view.ty}px) scale(${view.scale})`;
+}
+function resetView(){
+  const vw=viewport.clientWidth;
+  view.min=vw/WORLD_W;
+  view.scale=view.min;
+  view.max=view.min*3.2;
+  view.tx=0;view.ty=0;
+  applyView();
+}
+function centerOn(wx,wy,targetScale){
+  const vw=viewport.clientWidth, vh=viewport.clientHeight;
+  view.scale=Math.min(view.max,Math.max(view.min,targetScale||view.scale));
+  view.tx=vw/2 - wx*view.scale;
+  view.ty=vh/2 - wy*view.scale;
+  applyView();
+}
+
+viewport.addEventListener("pointerdown",e=>{
+  viewport.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===1){
+    downInfo={x:e.clientX,y:e.clientY,t:Date.now(),moved:0};
+    gesture={mode:"pan",lastX:e.clientX,lastY:e.clientY};
+  }else if(pointers.size===2){
+    const pts=[...pointers.values()];
+    const dx=pts[0].x-pts[1].x, dy=pts[0].y-pts[1].y;
+    gesture={mode:"pinch",startDist:Math.hypot(dx,dy),startScale:view.scale,
+      cx:(pts[0].x+pts[1].x)/2, cy:(pts[0].y+pts[1].y)/2};
+    downInfo=null;
+  }
+},{passive:false});
+
+viewport.addEventListener("pointermove",e=>{
+  if(!pointers.has(e.pointerId))return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(!gesture)return;
+  if(gesture.mode==="pinch" && pointers.size>=2){
+    const pts=[...pointers.values()];
+    const dx=pts[0].x-pts[1].x, dy=pts[0].y-pts[1].y;
+    const dist=Math.hypot(dx,dy);
+    const ns=Math.min(view.max,Math.max(view.min,gesture.startScale*dist/gesture.startDist));
+    // зум вокруг центра щипка
+    const vp=viewport.getBoundingClientRect();
+    const cx=gesture.cx-vp.left, cy=gesture.cy-vp.top;
+    const wx=(cx-view.tx)/view.scale, wy=(cy-view.ty)/view.scale;
+    view.scale=ns;
+    view.tx=cx-wx*view.scale;
+    view.ty=cy-wy*view.scale;
+    applyView();
+  }else if(gesture.mode==="pan"){
+    const dx=e.clientX-gesture.lastX, dy=e.clientY-gesture.lastY;
+    gesture.lastX=e.clientX;gesture.lastY=e.clientY;
+    view.tx+=dx;view.ty+=dy;
+    if(downInfo)downInfo.moved+=Math.abs(dx)+Math.abs(dy);
+    applyView();
+  }
+},{passive:false});
+
+function endPointer(e){
+  const wasTap = downInfo && pointers.size===1 && downInfo.moved<10 && (Date.now()-downInfo.t)<400;
+  pointers.delete(e.pointerId);
+  try{viewport.releasePointerCapture(e.pointerId)}catch(_){}
+  if(pointers.size===0){
+    if(wasTap) handleTap(e.clientX,e.clientY);
+    gesture=null;downInfo=null;
+  }else if(pointers.size===1){
+    const p=[...pointers.entries()][0][1];
+    gesture={mode:"pan",lastX:p.x,lastY:p.y};
+    downInfo=null;
+  }
+}
+viewport.addEventListener("pointerup",endPointer);
+viewport.addEventListener("pointercancel",endPointer);
+
+// колесо мыши — зум (для десктопа)
+viewport.addEventListener("wheel",e=>{
+  e.preventDefault();
+  const vp=viewport.getBoundingClientRect();
+  const cx=e.clientX-vp.left, cy=e.clientY-vp.top;
+  const wx=(cx-view.tx)/view.scale, wy=(cy-view.ty)/view.scale;
+  const ns=Math.min(view.max,Math.max(view.min,view.scale*(e.deltaY<0?1.15:0.87)));
+  view.scale=ns;view.tx=cx-wx*view.scale;view.ty=cy-wy*view.scale;
+  applyView();
+},{passive:false});
+
+/* ------------------------------------------------------------------ */
+/* Подсказка                                                          */
+/* ------------------------------------------------------------------ */
+function useHint(){
+  if(!G||G.over)return;
+  if(G.hints<=0){toast("Подсказки закончились 😅");return}
+  const left=G.objects.filter(o=>o.target>=0 && !o.found);
+  if(!left.length)return;
+  const o=left[Math.floor(Math.random()*left.length)];
+  G.hints--;
+  $("#hint-badge").textContent=G.hints;
+  centerOn(o.x,o.y,Math.min(view.max, Math.max(view.scale, view.min*2)));
+  setTimeout(()=>{
+    o.el.classList.add("hintpulse");
+    setTimeout(()=>o.el.classList.remove("hintpulse"),2400);
+  },260);
+  sTap();
+  toast("Ищи: "+G.scene.targets[o.target].name);
+}
+
+/* ------------------------------------------------------------------ */
+/* Победа                                                             */
+/* ------------------------------------------------------------------ */
+function stfor(){
+  // звёзды по времени и подсказкам
+  const par=G.scene.par;
+  let stars=1;
+  if(G.time<=par*1.7 && G.hints>=1) stars=2;
+  if(G.time<=par && G.hints>=2 && G.wrongTaps<=6) stars=3;
+  return stars;
+}
+function win(){
+  G.over=true;
+  clearInterval(tickTimer);
+  sWin();
+  const stars=stfor();
+  const prev=save.stars[G.scene.id]||0;
+  if(stars>prev){save.stars[G.scene.id]=stars;persist()}
+  const isLast=G.idx>=SCENES.length-1;
+  const nextLocked=isLast;
+  const ov=document.createElement("div");
+  ov.className="overlay";ov.id="win-ov";
+  ov.innerHTML=`
+    <div class="modal">
+      <div class="big">🎉</div>
+      <h2>Уровень пройден!</h2>
+      <p>${G.scene.title}</p>
+      <div class="win-stars">${[0,1,2].map(k=>`<i class="${k<stars?'on':''}" style="animation-delay:${k*.18}s">⭐</i>`).join("")}</div>
+      <div class="win-meta">
+        <div class="m"><b>${fmt(G.time)}</b><span>время</span></div>
+        <div class="m"><b>${G.total}</b><span>найдено</span></div>
+        <div class="m"><b>${3-G.hints}/3</b><span>подсказок</span></div>
+      </div>
+      ${nextLocked
+        ? `<button class="btn" id="w-menu">🏠 В меню</button>`
+        : `<button class="btn" id="w-next">Следующий уровень ▶</button>
+           <button class="btn sec" id="w-menu">В меню</button>`}
+      <button class="btn sec" id="w-replay">↻ Заново</button>
+    </div>`;
+  $("#game").appendChild(ov);
+  const nx=$("#w-next");if(nx)nx.onclick=()=>{ov.remove();startGame(G.idx+1)};
+  $("#w-menu").onclick=()=>{ov.remove();goMenu()};
+  $("#w-replay").onclick=()=>{ov.remove();startGame(G.idx)};
+}
+
+/* ------------------------------------------------------------------ */
+/* Настройки / навигация                                              */
+/* ------------------------------------------------------------------ */
+function goMenu(){
+  clearInterval(tickTimer);
+  $("#game").classList.add("hide");
+  $("#menu").classList.remove("hide");
+  document.querySelectorAll(".overlay").forEach(o=>o.remove());
+  renderMenu();
+}
+function toast(msg){
+  const t=document.createElement("div");t.className="toast";t.textContent=msg;
+  $("#game").appendChild(t);setTimeout(()=>t.remove(),2000);
+}
+function openSettings(){
+  const ov=document.createElement("div");ov.className="overlay";
+  ov.innerHTML=`
+    <div class="modal">
+      <div class="big">⚙️</div>
+      <h2>Настройки</h2>
+      <div class="settings-row">
+        <span>🔊 Звук</span>
+        <div class="switch ${save.sound?'on':''}" id="sw-sound"><b></b></div>
+      </div>
+      <div class="settings-row">
+        <span>🔍 Осталось подсказок</span>
+        <b>${G?G.hints:3}</b>
+      </div>
+      <button class="btn" id="s-resume">Продолжить</button>
+      <button class="btn sec" id="s-menu">🏠 Выйти в меню</button>
+      <button class="btn sec" id="s-reset">Сбросить весь прогресс</button>
+    </div>`;
+  $("#game").appendChild(ov);
+  $("#sw-sound").onclick=()=>{save.sound=!save.sound;persist();$("#sw-sound").classList.toggle("on",save.sound);if(save.sound)sTap()};
+  $("#s-resume").onclick=()=>ov.remove();
+  $("#s-menu").onclick=()=>{ov.remove();goMenu()};
+  $("#s-reset").onclick=()=>{
+    if(confirm("Сбросить все звёзды и прогресс?")){save={stars:{},sound:save.sound};persist();ov.remove();goMenu()}
+  };
+}
+
+$("#btn-home").onclick=goMenu;
+$("#btn-settings").onclick=openSettings;
+$("#btn-hint").onclick=useHint;
+$("#btn-zoomreset").onclick=resetView;
+window.addEventListener("resize",()=>{if(G&&!G.over)applyView()});
+
+/* ------------------------------------------------------------------ */
+renderMenu();
+</script>
+</body>
+</html>
