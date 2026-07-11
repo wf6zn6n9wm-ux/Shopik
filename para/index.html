@@ -51,8 +51,10 @@
   .center-t{text-align:center;}
   .amber{color:var(--amber);} .rose{color:var(--rose);}
 
-  .card{background:var(--card);border:1px solid var(--line);border-radius:24px;
-    backdrop-filter:blur(8px);}
+  /* фон приложения почти сплошной тёмный — backdrop-filter давал frosted-эффект,
+     который почти не виден, но заставлял браузер пересчитывать размытие фона под
+     КАЖДОЙ карточкой на каждом кадре прокрутки. Убрано ради плавного скролла. */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:24px;}
   .p4{padding:16px;} .p5{padding:20px;} .p6{padding:24px;}
 
   .btn{border-radius:18px;padding:14px;font-weight:600;width:100%;transition:transform .1s,opacity .2s;
@@ -143,7 +145,8 @@
   .dt-hero-btn:active{transform:scale(.96);}
   .dt-row{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;border-radius:20px;
     padding:18px 16px;margin-bottom:10px;border:1px solid var(--line);cursor:pointer;transition:transform .1s,background .15s;
-    background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));}
+    background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+    content-visibility:auto;contain-intrinsic-size:auto 84px;}
   .dt-row:active{transform:scale(.985);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));}
   .dt-row .acc{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 4px 4px 0;}
   .dt-ic{flex:0 0 auto;font-size:30px;margin-left:4px;}
@@ -221,7 +224,8 @@
   .src-row{margin-bottom:13px;}
   .src-bar{height:8px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:7px;}
   .src-bar>div{height:100%;border-radius:999px;transition:width .7s cubic-bezier(.2,.8,.2,1);}
-  .urow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);}
+  .urow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);
+    content-visibility:auto;contain-intrinsic-size:auto 62px;} /* длинные админ-списки: виртуализация off-screen строк */
   .urow:last-child{border-bottom:none;}
   .uav{width:42px;height:42px;border-radius:50%;flex:0 0 auto;object-fit:cover;background:rgba(255,255,255,.06);}
   .uav-l{display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;background:var(--grad);}
@@ -299,9 +303,12 @@
     animation:pop .2s ease;}
   @keyframes pop{from{opacity:0;transform:translate(-50%,8px);}to{opacity:1;transform:translate(-50%,0);}}
 
-  /* bottom nav */
+  /* bottom nav: фиксированная панель поверх прокручиваемого контента. blur(20px)
+     заставлял браузер заново размывать всё, что проезжает под ней, на КАЖДОМ кадре
+     скролла — главная причина рывков при прокрутке. Панель почти непрозрачна, поэтому
+     размытие незаметно: убрано, фон сделан плотнее. */
   .nav{position:fixed;bottom:0;left:0;right:0;z-index:30;border-top:1px solid var(--line);
-    background:rgba(23,18,27,.92);backdrop-filter:blur(20px);padding-bottom:env(safe-area-inset-bottom);}
+    background:#191320;padding-bottom:env(safe-area-inset-bottom);}
   .nav .in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);}
   .nav button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0;
     color:var(--muted);transition:color .2s;}
@@ -339,7 +346,8 @@
   .wcard{position:relative;display:flex;align-items:center;gap:13px;border-radius:22px;padding:14px;
     background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));
     border:1px solid var(--line);box-shadow:0 8px 22px rgba(0,0,0,.28);margin-bottom:12px;
-    overflow:hidden;animation:win .32s ease both;}
+    overflow:hidden;animation:win .32s ease both;
+    content-visibility:auto;contain-intrinsic-size:auto 92px;} /* строки списка вне экрана не считаются/не красятся */
   .wcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--wc,#ff5e8a);opacity:.9;}
   .wcard.done{opacity:.62;}
   @keyframes win{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
@@ -556,7 +564,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v37 · синхронизация профиля и дат';
+var APP_VERSION = 'v38 · производительность (плавность)';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -2002,7 +2010,7 @@ function admLastSeen(iso){
 }
 function admUserRow(x){
   var online=x.lastActive && (Date.now()-Date.parse(x.lastActive) < 5*60*1000);
-  var av=x.photo ? '<img class="uav" src="'+esc(x.photo)+'" alt="" referrerpolicy="no-referrer">'
+  var av=x.photo ? '<img class="uav" src="'+esc(x.photo)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">'
     : '<div class="uav uav-l">'+esc(((x.name||'?').trim().charAt(0)||'?').toUpperCase())+'</div>';
   return '<div class="urow" data-name="'+esc((x.name||'').toLowerCase())+'">'+av+
     '<div class="flex1" style="min-width:0"><div class="urow-nm">'+esc(x.name)+(online?'<span class="udot"></span>':'')+
@@ -2221,7 +2229,18 @@ function bottomNav(){
 // ============================================================
 //  RENDER
 // ============================================================
+// какой-либо инпут в фокусе (чтобы фоновые опросы не пересобирали DOM и не роняли клавиатуру)
+function inputFocused(){ var a=document.activeElement; return !!(a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA')); }
+// Публичный render() — планировщик: несколько вызовов за один тик схлопываются в одну
+// перерисовку на кадре анимации (rAF). Это снимает лишние пересборки DOM и синхронные
+// блокировки UI-потока; сам тяжёлый ре-рендер выполняется в _renderNow ровно один раз за кадр.
+var _rafScheduled=false;
 function render(){
+  if(_rafScheduled) return;
+  _rafScheduled=true;
+  (window.requestAnimationFrame||function(f){setTimeout(f,16);})(function(){ _rafScheduled=false; _renderNow(); });
+}
+function _renderNow(){
   var root=document.getElementById('root'), html;
   // сохранить набранный текст ДО построения разметки (чтобы не потерять при ре-рендере)
   if(S.wmodal){ var _wt0=document.getElementById('wtitle'); if(_wt0) S.wmodal.text=_wt0.value; }
@@ -2481,18 +2500,19 @@ function celebrateLink(){
 function startLinkPoll(){
   stopLinkPoll(); if(!ONLINE) return;
   LINK_POLL=setInterval(function(){
+    if(inputFocused()) return;                       // не мешаем набору текста / клавиатуре
     if(S.couple && !S.couple.linked) refreshState(); else stopLinkPoll();
   }, 6000);
 }
 function stopLinkPoll(){ if(LINK_POLL){ clearInterval(LINK_POLL); LINK_POLL=null; } }
 // синхронизация общего списка желаний пары
-async function refreshWishes(){ if(!ONLINE||!S.couple||S.wmodal) return; /* не дёргаем ре-рендер, пока открыто окно ввода */
+async function refreshWishes(){ if(!ONLINE||!S.couple||S.wmodal||inputFocused()) return; /* не дёргаем ре-рендер, пока открыто окно ввода / фокус в поле */
   try{ var r=await api('wishes'); if(r&&r.ok&&r.wishes){ if(S.wmodal) return;
     var mapped=mapServerWishes(r.wishes), sig=JSON.stringify(mapped);
     if(sig===S._wishSig) return;                 // ничего не изменилось — не перерисовываем (иначе экран «дёргается»)
     S.wishes=mapped; S._wishSig=sig; render();
   } }catch(e){} }
-function startWishPoll(){ stopWishPoll(); if(!ONLINE||!S.couple) return; WISH_POLL=setInterval(function(){ if(S.tab==='wishes') refreshWishes(); else stopWishPoll(); }, 12000); }
+function startWishPoll(){ stopWishPoll(); if(!ONLINE||!S.couple) return; WISH_POLL=setInterval(function(){ if(inputFocused()) return; if(S.tab==='wishes') refreshWishes(); else stopWishPoll(); }, 12000); }
 function stopWishPoll(){ if(WISH_POLL){ clearInterval(WISH_POLL); WISH_POLL=null; } }
 function showToast(icon,label,hint){ S.toast={icon:icon,label:label,hint:hint}; render(); setTimeout(function(){ S.toast=null; render(); },3000); }
 // после начисления очков — подтянуть прогресс с сервера (немного погодя, чтобы событие успело записаться)
