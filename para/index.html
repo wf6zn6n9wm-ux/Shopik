@@ -556,7 +556,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v36 · полировка (анимации)';
+var APP_VERSION = 'v37 · синхронизация профиля и дат';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1499,12 +1499,25 @@ function pad2(n){ n=+n||0; return (n<10?'0':'')+n; }
 function dateMD(v){ if(!v) return null; var a=String(v).split('-'); return {month:+a[1], day:+a[2]}; }
 function md2date(md){ return md&&md.month?('2000-'+pad2(md.month)+'-'+pad2(md.day)):''; }
 // применить правки профиля к объекту пары (в памяти) — чтобы верхняя карточка и даты были едины
+// профиль → тело запроса profile_set (сервер сам разложит на me/partner по tg_id)
+function pfPayload(p){ p=p||{}; return { meName:p.meName||'', meEmoji:p.meEmoji||'', meBd:p.meBd||null,
+  partnerName:p.partnerName||'', partnerEmoji:p.partnerEmoji||'', partnerBd:p.partnerBd||null, since:p.since||'', extra:p.extra||[] }; }
+function pfIsEmpty(p){ return !p || (!p.meName && !p.meBd && !p.partnerBd && !p.since && (!p.extra||!p.extra.length)); }
+// применить профиль с сервера; если сервер пуст, а локально что-то есть — один раз засеять сервер
+function applyServerProfile(sp){
+  if(!sp) return; // таблицы нет — остаёмся на локальном профиле
+  if(pfIsEmpty(sp) && !pfIsEmpty(S.profile) && ONLINE && S.couple){
+    api('profile_set', pfPayload(S.profile)).then(function(r){ if(r&&r.ok&&r.profile){ S.profile=r.profile; save('profile'); render(); } }).catch(function(){});
+    return;
+  }
+  if(!S.profileOpen){ S.profile=sp; save('profile'); }
+}
 function applyProfile(){
   var c=S.couple, p=S.profile; if(!c||!p) return;
   if(p.meEmoji) c.me.emoji=p.meEmoji;
   if(p.partnerEmoji) c.partner.emoji=p.partnerEmoji;
   if(p.meName) c.me.name=p.meName;
-  if(p.partnerName && !c.linked) c.partner.name=p.partnerName; // у связанной пары имя берём с сервера
+  if(p.partnerName) c.partner.name=p.partnerName; // синхронизируется с сервера (общий профиль)
   if(p.meBd) c.me.birthday=p.meBd;
   if(p.partnerBd) c.partner.birthday=p.partnerBd;
   if(p.since) c.since=p.since;
@@ -2279,8 +2292,8 @@ function finishPairing(partnerName){
 // по умолчанию, редактирование добавим в следующей фиче)
 function coupleFromServer(c){
   return {
-    me:{ name:(c.me&&c.me.name)||'Ты', emoji:'🧔', birthday:{month:3,day:14} },
-    partner:{ name:(c.partner&&c.partner.name)||'Партнёр', emoji:'👩', birthday:{month:7,day:21} },
+    me:{ name:(c.me&&c.me.name)||'Ты', emoji:'🧔', birthday:null },       // дни рождения — из синхронного профиля, без фейковых дефолтов
+    partner:{ name:(c.partner&&c.partner.name)||'Партнёр', emoji:'👩', birthday:null },
     since:new Date().toISOString().slice(0,10),
     inviteCode:c.inviteCode, linked:!!c.linked, online:true
   };
@@ -2368,7 +2381,8 @@ var ACTS={
   'profile-close':function(){ S.profileOpen=false; S.profileDraft=null; render(); },
   'pf-add':function(){ pfCollect(); S.profileDraft.extra.push({id:'e'+(S.profileDraft.extra.length+1)+'_'+(S.dates?S.dates.length:0),title:'',icon:'🎉',month:1,day:1}); haptic('light'); render(); },
   'pf-del':function(el){ pfCollect(); S.profileDraft.extra.splice(+el.dataset.idx,1); haptic('light'); render(); },
-  'profile-save':function(){ pfCollect(); S.profile=S.profileDraft; save('profile'); applyProfile(); buildDates(); S.profileOpen=false; S.profileDraft=null; haptic('success'); render(); },
+  'profile-save':function(){ pfCollect(); var draft=S.profileDraft; S.profile=draft; save('profile'); applyProfile(); buildDates(); S.profileOpen=false; S.profileDraft=null; haptic('success'); render();
+    if(ONLINE&&S.couple){ api('profile_set', pfPayload(draft)).then(function(r){ if(r&&r.ok&&r.profile){ S.profile=r.profile; save('profile'); refreshDates(); render(); } else if(r&&r.reason==='db_error'){ showToast('⚠️','Сохранено локально','синхронизация недоступна'); } }).catch(function(){ showToast('⚠️','Нет связи','сохранено локально'); }); } },
   'wish-open-add':function(){ S.wmodal={cat:'❤️',points:20}; haptic('light'); render(); },
   'wish-cancel':function(){ S.wmodal=null; render(); },
   'wish-cat':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.cat=el.dataset.e; haptic('light'); render(); } },
@@ -2447,6 +2461,7 @@ async function refreshState(){
       if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config;
       if(r.wishes) applyServerWishes(r.wishes);                 // общий список желаний пары
       if(r.moods) applyMoods(r.moods);                          // настроение дня обоих
+      if('profile' in r) applyServerProfile(r.profile);         // общий профиль/даты пары
       if(nowLinked && prevLinked===false){ celebrateLink(); }   // партнёр только что присоединился!
       prevLinked=nowLinked;
       render(); checkLevelUp();
@@ -2533,6 +2548,7 @@ async function boot(){
         if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config;
         if(r.wishes) applyServerWishes(r.wishes);
         if(r.moods) applyMoods(r.moods);
+        if('profile' in r) applyServerProfile(r.profile);
         prevLinked=!!r.couple.linked;
         if(!S.couple.linked) startLinkPoll(); } // вернувшийся создатель всё ещё ждёт партнёра
       else { S.couple=null; } // сервер — источник правды: онбординг с настоящим бэкендом
