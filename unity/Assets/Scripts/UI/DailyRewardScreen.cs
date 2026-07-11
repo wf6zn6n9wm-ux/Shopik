@@ -95,7 +95,7 @@ namespace Findoria.UI
                 RewardKind.Gems => $"{reward.Amount} кристаллов",
                 RewardKind.Xp => $"{reward.Amount} XP",
                 RewardKind.Life => $"{reward.Amount} жизнь",
-                RewardKind.Booster => $"{reward.Booster} ×{reward.Amount}",
+                RewardKind.Booster => $"{reward.BoosterType} ×{reward.Amount}",
                 RewardKind.RemoveAds => "Без рекламы",
                 _ => reward.ToString()
             };

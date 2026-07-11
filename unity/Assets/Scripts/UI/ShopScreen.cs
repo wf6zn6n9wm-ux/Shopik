@@ -147,7 +147,7 @@ namespace Findoria.UI
                     if (App.Services.TryResolve<IExperienceService>(out var xp)) xp.AddXp(reward.Amount);
                     break;
                 case RewardKind.Booster:
-                    if (App.Services.TryResolve<IBoosterService>(out var b)) b.Add(reward.Booster, reward.Amount);
+                    if (App.Services.TryResolve<IBoosterService>(out var b)) b.Add(reward.BoosterType, reward.Amount);
                     break;
                 case RewardKind.Life:
                     if (App.Services.TryResolve<ILivesService>(out var l)) l.Add(reward.Amount);

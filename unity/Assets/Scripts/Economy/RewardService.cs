@@ -38,7 +38,7 @@ namespace Findoria.Economy
                 case RewardKind.Gems:    _wallet.Add(CurrencyType.Gems, reward.Amount); break;
                 case RewardKind.Xp:      _xp.AddXp(reward.Amount); break;
                 case RewardKind.Life:    _lives.Add(reward.Amount); break;
-                case RewardKind.Booster: _boosters.Add(reward.Booster, reward.Amount); break;
+                case RewardKind.Booster: _boosters.Add(reward.BoosterType, reward.Amount); break;
                 case RewardKind.RemoveAds: /* обрабатывается в PurchaseService */ break;
             }
         }

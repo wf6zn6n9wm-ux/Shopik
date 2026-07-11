@@ -55,13 +55,13 @@ namespace Findoria.Core
     {
         public RewardKind Kind;
         public int Amount;
-        public BoosterType Booster; // применимо только при Kind == Booster
+        public BoosterType BoosterType; // применимо только при Kind == Booster
 
-        public Reward(RewardKind kind, int amount, BoosterType booster = BoosterType.Hint)
+        public Reward(RewardKind kind, int amount, BoosterType booster = Core.BoosterType.Hint)
         {
             Kind = kind;
             Amount = amount;
-            Booster = booster;
+            BoosterType = booster;
         }
 
         public static Reward Coins(int amount) => new(RewardKind.Coins, amount);
@@ -71,6 +71,6 @@ namespace Findoria.Core
         public static Reward Life(int amount = 1) => new(RewardKind.Life, amount);
 
         public override string ToString() =>
-            Kind == RewardKind.Booster ? $"{Booster} ×{Amount}" : $"{Kind} ×{Amount}";
+            Kind == RewardKind.Booster ? $"{BoosterType} ×{Amount}" : $"{Kind} ×{Amount}";
     }
 }
