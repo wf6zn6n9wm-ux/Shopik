@@ -1,0 +1,91 @@
+{
+  "levels": [
+    {
+      "id": "meadow_01",
+      "title": "Пикник на поляне",
+      "worldId": "world_meadow",
+      "description": "Найдите вещи, забытые после весёлого пикника.",
+      "background": "Backgrounds/meadow_01",
+      "thumbnail": "Thumbs/meadow_01",
+      "difficulty": "Easy",
+      "timeLimit": 120,
+      "mistakesAllowed": 4,
+      "rewardCoins": 120,
+      "rewardXp": 60,
+      "threeStarTime": 45,
+      "twoStarTime": 90,
+      "items": [
+        { "itemId": "apple",    "x": 0.18, "y": 0.62, "radius": 0.05, "rotation": 0,   "count": 1 },
+        { "itemId": "apple",    "x": 0.74, "y": 0.55, "radius": 0.05, "rotation": 12,  "count": 1 },
+        { "itemId": "kite",     "x": 0.55, "y": 0.20, "radius": 0.07, "rotation": -8,  "count": 1 },
+        { "itemId": "teapot",   "x": 0.31, "y": 0.78, "radius": 0.06, "rotation": 0,   "count": 1 },
+        { "itemId": "hat",      "x": 0.83, "y": 0.30, "radius": 0.06, "rotation": 5,   "count": 1 },
+        { "itemId": "book",     "x": 0.12, "y": 0.41, "radius": 0.05, "rotation": -15, "count": 1 },
+        { "itemId": "ball",     "x": 0.62, "y": 0.72, "radius": 0.05, "rotation": 0,   "count": 1 },
+        { "itemId": "umbrella", "x": 0.45, "y": 0.50, "radius": 0.07, "rotation": 20,  "count": 1 },
+        { "itemId": "basket",   "x": 0.27, "y": 0.34, "radius": 0.06, "rotation": 0,   "count": 1 },
+        { "itemId": "flower",   "x": 0.90, "y": 0.68, "radius": 0.04, "rotation": 0,   "count": 1 }
+      ]
+    },
+    {
+      "id": "attic_01",
+      "title": "Бабушкин чердак",
+      "worldId": "world_attic",
+      "description": "Среди старых сокровищ спрятаны нужные предметы.",
+      "background": "Backgrounds/attic_01",
+      "thumbnail": "Thumbs/attic_01",
+      "difficulty": "Normal",
+      "timeLimit": 100,
+      "mistakesAllowed": 3,
+      "rewardCoins": 160,
+      "rewardXp": 80,
+      "threeStarTime": 40,
+      "twoStarTime": 80,
+      "items": [
+        { "itemId": "clock",     "x": 0.22, "y": 0.28, "radius": 0.06, "rotation": 0,   "count": 1 },
+        { "itemId": "key",       "x": 0.67, "y": 0.44, "radius": 0.04, "rotation": 30,  "count": 1 },
+        { "itemId": "lantern",   "x": 0.48, "y": 0.63, "radius": 0.06, "rotation": 0,   "count": 1 },
+        { "itemId": "teddy",     "x": 0.80, "y": 0.71, "radius": 0.06, "rotation": -6,  "count": 1 },
+        { "itemId": "gramophone","x": 0.15, "y": 0.66, "radius": 0.08, "rotation": 0,   "count": 1 },
+        { "itemId": "glasses",   "x": 0.58, "y": 0.22, "radius": 0.04, "rotation": 10,  "count": 1 },
+        { "itemId": "candle",    "x": 0.36, "y": 0.40, "radius": 0.04, "rotation": 0,   "count": 1 },
+        { "itemId": "letter",    "x": 0.72, "y": 0.60, "radius": 0.05, "rotation": -20, "count": 1 },
+        { "itemId": "key",       "x": 0.31, "y": 0.82, "radius": 0.04, "rotation": 0,   "count": 1 },
+        { "itemId": "compass",   "x": 0.88, "y": 0.36, "radius": 0.05, "rotation": 0,   "count": 1 },
+        { "itemId": "photo",     "x": 0.44, "y": 0.86, "radius": 0.05, "rotation": 8,   "count": 1 },
+        { "itemId": "hourglass", "x": 0.60, "y": 0.80, "radius": 0.05, "rotation": 0,   "count": 1 }
+      ]
+    },
+    {
+      "id": "harbor_01",
+      "title": "Тихая гавань",
+      "worldId": "world_harbor",
+      "description": "Прилив вынес на берег множество вещиц.",
+      "background": "Backgrounds/harbor_01",
+      "thumbnail": "Thumbs/harbor_01",
+      "difficulty": "Hard",
+      "timeLimit": 90,
+      "mistakesAllowed": 3,
+      "rewardCoins": 220,
+      "rewardXp": 110,
+      "threeStarTime": 38,
+      "twoStarTime": 70,
+      "items": [
+        { "itemId": "anchor",   "x": 0.20, "y": 0.55, "radius": 0.06, "rotation": 0,   "count": 1 },
+        { "itemId": "shell",    "x": 0.70, "y": 0.78, "radius": 0.04, "rotation": 0,   "count": 1 },
+        { "itemId": "bottle",   "x": 0.42, "y": 0.30, "radius": 0.05, "rotation": 25,  "count": 1 },
+        { "itemId": "starfish", "x": 0.85, "y": 0.52, "radius": 0.05, "rotation": 0,   "count": 1 },
+        { "itemId": "compass",  "x": 0.33, "y": 0.66, "radius": 0.05, "rotation": 0,   "count": 1 },
+        { "itemId": "rope",     "x": 0.57, "y": 0.60, "radius": 0.06, "rotation": -10, "count": 1 },
+        { "itemId": "fish",     "x": 0.12, "y": 0.74, "radius": 0.05, "rotation": 0,   "count": 1 },
+        { "itemId": "crab",     "x": 0.63, "y": 0.44, "radius": 0.05, "rotation": 0,   "count": 1 },
+        { "itemId": "shell",    "x": 0.48, "y": 0.84, "radius": 0.04, "rotation": 0,   "count": 1 },
+        { "itemId": "lighthouse","x":0.90, "y": 0.24, "radius": 0.06, "rotation": 0,   "count": 1 },
+        { "itemId": "oar",      "x": 0.26, "y": 0.38, "radius": 0.06, "rotation": 40,  "count": 1 },
+        { "itemId": "seagull",  "x": 0.52, "y": 0.16, "radius": 0.05, "rotation": 0,   "count": 1 },
+        { "itemId": "bucket",   "x": 0.77, "y": 0.66, "radius": 0.05, "rotation": 0,   "count": 1 },
+        { "itemId": "map",      "x": 0.38, "y": 0.50, "radius": 0.05, "rotation": -5,  "count": 1 }
+      ]
+    }
+  ]
+}
