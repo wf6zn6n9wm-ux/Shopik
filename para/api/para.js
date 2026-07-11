@@ -352,6 +352,25 @@ module.exports = async (req, res) => {
       });
       return out;
     }
+    // профиль пары (имена, дни рождения, годовщина, свои события) — общий для обоих.
+    // Хранится как jsonb, ключи по tg_id. Возвращает данные или null, если таблицы ещё нет.
+    async function coupleProfile(coupleId) {
+      try { const rows = await sb('para_profiles?couple_id=eq.' + coupleId + '&select=data'); return (rows && rows[0] && rows[0].data) || {}; }
+      catch (e) { return null; }
+    }
+    // привести профиль пары к виду «me/partner» для конкретного пользователя (как ждёт клиент)
+    function resolveProfile(data, myId, members) {
+      const names = data.names || {}, emojis = data.emojis || {}, bd = data.bd || {}, pend = data.pendingPartner || {};
+      const other = (members || []).filter((m) => String(m.tg_id) !== String(myId))[0] || null;
+      const pt = other ? String(other.tg_id) : null;
+      const me = String(myId);
+      return {
+        meName: names[me] || '', partnerName: pt ? (names[pt] || other.name || '') : (pend.name || ''),
+        meEmoji: emojis[me] || '', partnerEmoji: pt ? (emojis[pt] || '') : (pend.emoji || ''),
+        meBd: bd[me] || null, partnerBd: pt ? (bd[pt] || null) : (pend.bd || null),
+        since: data.since || '', extra: Array.isArray(data.extra) ? data.extra : []
+      };
+    }
     // прогресс пары: общие очки (из событий), уровень, серия, достижения
     async function coupleProgress(coupleId, config) {
       config = config || DEFAULT_CONFIG;
@@ -600,7 +619,51 @@ module.exports = async (req, res) => {
       const progress = await coupleProgress(mem.couple_id, config);
       const wishes = await coupleWishes(mem.couple_id, me.id);
       const moods = await coupleMoods(mem.couple_id, me.id);
-      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: config, wishes: wishes, moods: moods });
+      const profData = await coupleProfile(mem.couple_id);
+      const profile = profData ? resolveProfile(profData, me.id, members) : null;
+      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: config, wishes: wishes, moods: moods, profile: profile });
+      return;
+    }
+
+    // -------- ПРОФИЛЬ ПАРЫ (имена, дни рождения, годовщина, свои даты) --------
+    if (action === 'profile_set') {
+      const mem = await myMembership();
+      if (!mem) { res.status(200).json({ ok: false, reason: 'no_couple' }); return; }
+      const members = await coupleMembers(mem.couple_id);
+      const other = (members || []).filter((m) => String(m.tg_id) !== String(me.id))[0] || null;
+      const pt = other ? String(other.tg_id) : null;
+      const meK = String(me.id);
+      const b = body || {};
+      const clampMD = (v) => (v && v.month) ? { month: Math.max(1, Math.min(12, +v.month || 1)), day: Math.max(1, Math.min(31, +v.day || 1)) } : null;
+      let data = await coupleProfile(mem.couple_id);
+      if (data === null) { res.status(200).json({ ok: false, reason: 'db_error', error: 'no para_profiles table' }); return; }
+      data = data || {};
+      data.names = data.names || {}; data.emojis = data.emojis || {}; data.bd = data.bd || {};
+      // каждый правит своё имя; дни рождения и эмодзи — общие (можно заполнить оба)
+      data.names[meK] = String(b.meName || '').slice(0, 40);
+      data.emojis[meK] = String(b.meEmoji || '').slice(0, 8);
+      data.bd[meK] = clampMD(b.meBd);
+      if (pt) {
+        data.bd[pt] = clampMD(b.partnerBd);
+        if (b.partnerEmoji) data.emojis[pt] = String(b.partnerEmoji).slice(0, 8);
+      } else {
+        data.pendingPartner = { name: String(b.partnerName || '').slice(0, 40), emoji: String(b.partnerEmoji || '').slice(0, 8), bd: clampMD(b.partnerBd) };
+      }
+      data.since = /^\d{4}-\d{2}-\d{2}$/.test(b.since || '') ? b.since : '';
+      const extra = Array.isArray(b.extra) ? b.extra.slice(0, 30).map((e) => ({
+        id: String((e && e.id) || '').slice(0, 24) || ('e' + Math.round((+e.month || 0) * 100 + (+e.day || 0))),
+        title: String((e && e.title) || '').slice(0, 60), icon: String((e && e.icon) || '📅').slice(0, 8),
+        month: Math.max(1, Math.min(12, +(e && e.month) || 1)), day: Math.max(1, Math.min(31, +(e && e.day) || 1))
+      })).filter((e) => e.title) : [];
+      data.extra = extra;
+      try {
+        await sb('para_profiles?on_conflict=couple_id', {
+          method: 'POST',
+          headers: Object.assign({}, H, { Prefer: 'resolution=merge-duplicates,return=minimal' }),
+          body: JSON.stringify({ couple_id: mem.couple_id, data: data, updated_at: new Date().toISOString() })
+        });
+      } catch (e) { res.status(200).json({ ok: false, reason: 'db_error', error: String(e && e.message).slice(0, 200) }); return; }
+      res.status(200).json({ ok: true, profile: resolveProfile(data, me.id, members) });
       return;
     }
 
