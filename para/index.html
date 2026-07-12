@@ -564,7 +564,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v38 · производительность (плавность)';
+var APP_VERSION = 'v39 · выше rate-limit + мягкие ошибки';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -2339,7 +2339,7 @@ var ACTS={
   'ob-mode':function(el){ var m=el.dataset.mode; if(m==='create'&&CAN_ONLINE){ haptic('light'); onlineCreate(); return; } S.ob.mode=m; S.ob.err=''; haptic('light'); render(); },
   'ob-mode-back':function(){ S.ob.mode=null; render(); },
   'share-code':function(){ shareInvite(S.couple && S.couple.inviteCode); },
-  'open-admin':function(){ if(!ONLINE)return; api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; S.showAdmin=true; render(); } else if(r&&r.reason==='forbidden'){ alert('Нет доступа. Твой ID: '+r.yourId); } else { alert('Ошибка: '+((r&&r.reason)||'')); } }).catch(function(){}); },
+  'open-admin':function(){ if(!ONLINE)return; api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; S.showAdmin=true; render(); } else if(r&&r.reason==='forbidden'){ showToast('🔒','Нет доступа','ваш ID: '+r.yourId); } else if(r&&r.reason==='rate_limited'){ showToast('⏳','Слишком часто','подождите пару секунд'); } else { showToast('⚠️','Не удалось открыть',((r&&r.reason)||'ошибка')); } }).catch(function(){ showToast('⚠️','Нет связи','попробуйте ещё раз'); }); },
   'close-admin':function(){ S.showAdmin=false; render(); },
   'adm-users-open':function(){ S.admUsers=true; S.admUsersData=null; haptic('light'); render(); api('admin_users').then(function(r){ S.admUsersData=(r&&r.ok)?r:{users:[],sources:{direct:0,invite:0},count:0}; render(); }).catch(function(){ S.admUsersData={users:[],sources:{direct:0,invite:0},count:0}; render(); }); },
   'adm-users-close':function(){ S.admUsers=false; render(); },

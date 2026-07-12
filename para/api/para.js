@@ -288,12 +288,14 @@ module.exports = async (req, res) => {
     if (!me && body.auth) me = verifyLoginWidget(body.auth, BOT); // вход в браузерную админку
     if (!me) { res.status(401).json({ ok: false, reason: 'bad_auth' }); return; }
 
-    if (rateLimited(me.id)) { res.status(429).json({ ok: false, reason: 'rate_limited' }); return; }
-
     // Админы: список из ADMIN_TG_IDS + владелец по умолчанию (чтобы не настраивать env).
     const DEFAULT_ADMINS = ['6029995640'];
     const ADMINS = env('ADMIN_TG_IDS').split(',').map((s) => s.trim()).filter(Boolean).concat(DEFAULT_ADMINS);
     const isAdmin = ADMINS.indexOf(String(me.id)) !== -1;
+
+    // Rate-limit: у обычных пользователей — щедрый лимит на активное пользование,
+    // у админов (много переходов по разделам панели) — заметно выше.
+    if (rateLimited(me.id, isAdmin ? 300 : 100)) { res.status(429).json({ ok: false, reason: 'rate_limited' }); return; }
 
     // ---- helpers к Supabase REST ----
     const H = { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' };
