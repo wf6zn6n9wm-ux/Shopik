@@ -13,6 +13,7 @@ class NovaButton extends StatefulWidget {
     this.kind = NovaButtonKind.primary,
     this.small = false,
     this.icon,
+    this.expand = false,
   });
 
   final String label;
@@ -20,6 +21,7 @@ class NovaButton extends StatefulWidget {
   final NovaButtonKind kind;
   final bool small;
   final IconData? icon;
+  final bool expand;
 
   @override
   State<NovaButton> createState() => _NovaButtonState();
@@ -67,7 +69,8 @@ class _NovaButtonState extends State<NovaButton> {
                   : null,
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (widget.icon != null) ...[
                   Icon(widget.icon, size: widget.small ? 16 : 18, color: fg),
