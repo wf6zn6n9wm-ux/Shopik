@@ -32,7 +32,8 @@ class ScaffoldWithNav extends StatelessWidget {
     final items = <Widget>[];
     for (var i = 0; i < destinations.length; i++) {
       if (i == mid) {
-        items.add(_CreateButton(onTap: () => showCreateAppointmentSheet(context)));
+        items.add(
+            _CreateButton(onTap: () => showCreateAppointmentSheet(context)));
       }
       items.add(_NavItem(
         destination: destinations[i],
@@ -58,7 +59,8 @@ class ScaffoldWithNav extends StatelessWidget {
 }
 
 class _NavItem extends StatelessWidget {
-  const _NavItem({required this.destination, required this.active, required this.onTap});
+  const _NavItem(
+      {required this.destination, required this.active, required this.onTap});
   final NavDestination destination;
   final bool active;
   final VoidCallback onTap;

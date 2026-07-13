@@ -3,7 +3,15 @@ import 'package:flutter/foundation.dart';
 /// Доменные модели Nova. Иммутабельные, с copyWith.
 /// Appointment — центральный узел (клиент + мастер + услуга + время + статус).
 
-enum AppointmentStatus { online, confirmed, pending, inProgress, completed, noShow, cancelled }
+enum AppointmentStatus {
+  online,
+  confirmed,
+  pending,
+  inProgress,
+  completed,
+  noShow,
+  cancelled
+}
 
 extension AppointmentStatusX on AppointmentStatus {
   String get label => switch (this) {
@@ -44,7 +52,12 @@ class Client {
     return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
   }
 
-  Client copyWith({int? visitsCount, int? totalSpent, String? note, List<String>? tags}) => Client(
+  Client copyWith(
+          {int? visitsCount,
+          int? totalSpent,
+          String? note,
+          List<String>? tags}) =>
+      Client(
         id: id,
         name: name,
         phone: phone,
@@ -100,7 +113,8 @@ class Appointment {
 
   DateTime get end => start.add(Duration(minutes: service.durationMinutes));
 
-  Appointment copyWith({AppointmentStatus? status, DateTime? start}) => Appointment(
+  Appointment copyWith({AppointmentStatus? status, DateTime? start}) =>
+      Appointment(
         id: id,
         client: client,
         service: service,

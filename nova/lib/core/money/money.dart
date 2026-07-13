@@ -17,11 +17,16 @@ class Currency {
   final int decimalDigits;
   final String locale;
 
-  static const Currency kzt = Currency(code: 'KZT', symbol: '₸', decimalDigits: 0, locale: 'ru');
-  static const Currency usd = Currency(code: 'USD', symbol: r'$', decimalDigits: 2, locale: 'en');
-  static const Currency eur = Currency(code: 'EUR', symbol: '€', decimalDigits: 2, locale: 'de');
-  static const Currency rub = Currency(code: 'RUB', symbol: '₽', decimalDigits: 2, locale: 'ru');
-  static const Currency uah = Currency(code: 'UAH', symbol: '₴', decimalDigits: 2, locale: 'uk');
+  static const Currency kzt =
+      Currency(code: 'KZT', symbol: '₸', decimalDigits: 0, locale: 'ru');
+  static const Currency usd =
+      Currency(code: 'USD', symbol: r'$', decimalDigits: 2, locale: 'en');
+  static const Currency eur =
+      Currency(code: 'EUR', symbol: '€', decimalDigits: 2, locale: 'de');
+  static const Currency rub =
+      Currency(code: 'RUB', symbol: '₽', decimalDigits: 2, locale: 'ru');
+  static const Currency uah =
+      Currency(code: 'UAH', symbol: '₴', decimalDigits: 2, locale: 'uk');
 
   static const List<Currency> all = [kzt, usd, eur, rub, uah];
 

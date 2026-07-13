@@ -59,9 +59,12 @@ class _NovaButtonState extends State<NovaButton> {
             padding: pad,
             decoration: BoxDecoration(
               color: bg,
-              borderRadius: BorderRadius.circular(widget.small ? Radii.xs : Radii.sm),
+              borderRadius:
+                  BorderRadius.circular(widget.small ? Radii.xs : Radii.sm),
               border: border == null ? null : Border.all(color: border),
-              boxShadow: widget.kind == NovaButtonKind.primary ? context.shadows.e1 : null,
+              boxShadow: widget.kind == NovaButtonKind.primary
+                  ? context.shadows.e1
+                  : null,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

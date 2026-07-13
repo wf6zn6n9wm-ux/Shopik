@@ -14,19 +14,34 @@ class StatusPill extends StatelessWidget {
     final nova = context.nova;
     final (fg, bg) = switch (status) {
       AppointmentStatus.online => (nova.accent, nova.accentTint),
-      AppointmentStatus.confirmed || AppointmentStatus.completed => (nova.success, nova.successTint),
-      AppointmentStatus.pending || AppointmentStatus.inProgress => (nova.warning, nova.warningTint),
-      AppointmentStatus.noShow || AppointmentStatus.cancelled => (nova.danger, nova.dangerTint),
+      AppointmentStatus.confirmed || AppointmentStatus.completed => (
+          nova.success,
+          nova.successTint
+        ),
+      AppointmentStatus.pending || AppointmentStatus.inProgress => (
+          nova.warning,
+          nova.warningTint
+        ),
+      AppointmentStatus.noShow || AppointmentStatus.cancelled => (
+          nova.danger,
+          nova.dangerTint
+        ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(Radii.full)),
+      decoration: BoxDecoration(
+          color: bg, borderRadius: BorderRadius.circular(Radii.full)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 6, height: 6, decoration: BoxDecoration(color: fg, shape: BoxShape.circle)),
+          Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: fg, shape: BoxShape.circle)),
           const SizedBox(width: 5),
-          Text(status.label, style: AppTypography.caption(fg).copyWith(letterSpacing: 0.2, fontSize: 11)),
+          Text(status.label,
+              style: AppTypography.caption(fg)
+                  .copyWith(letterSpacing: 0.2, fontSize: 11)),
         ],
       ),
     );

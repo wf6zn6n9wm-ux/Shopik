@@ -15,7 +15,8 @@ class AiSuggestion {
 abstract interface class AiAssistant {
   bool get available;
   Future<String> complete(String prompt, {Map<String, Object?>? context});
-  Future<List<AiSuggestion>> suggest(String intent, {Map<String, Object?>? context});
+  Future<List<AiSuggestion>> suggest(String intent,
+      {Map<String, Object?>? context});
 }
 
 /// DEFAULT: выключен. Замена: BackendAiAssistant (адаптер к API/модели).
@@ -24,10 +25,13 @@ class NoopAiAssistant implements AiAssistant {
   bool get available => false;
 
   @override
-  Future<String> complete(String prompt, {Map<String, Object?>? context}) async => '';
+  Future<String> complete(String prompt,
+          {Map<String, Object?>? context}) async =>
+      '';
 
   @override
-  Future<List<AiSuggestion>> suggest(String intent, {Map<String, Object?>? context}) async =>
+  Future<List<AiSuggestion>> suggest(String intent,
+          {Map<String, Object?>? context}) async =>
       const [];
 }
 

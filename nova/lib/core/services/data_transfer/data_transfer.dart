@@ -18,7 +18,8 @@ abstract interface class ExportService {
 /// DEFAULT: пустой JSON. Замена: DriftExportService (читает БД → JSON/CSV, файл).
 class EmptyExportService implements ExportService {
   @override
-  Future<ExportBundle> exportAll() async => const ExportBundle(format: 'json', data: '{}');
+  Future<ExportBundle> exportAll() async =>
+      const ExportBundle(format: 'json', data: '{}');
 }
 
 /// --- Импорт данных из конкурентов ---
@@ -27,7 +28,8 @@ enum ImportSource { fresha, booksy, easyweek, visit, csv }
 
 @immutable
 class ImportResult {
-  const ImportResult({this.clients = 0, this.services = 0, this.appointments = 0});
+  const ImportResult(
+      {this.clients = 0, this.services = 0, this.appointments = 0});
   final int clients;
   final int services;
   final int appointments;
@@ -47,8 +49,11 @@ class RegistryImportService implements ImportService {
 
   @override
   Future<ImportResult> import(ImportSource source, String rawData) async =>
-      throw UnimplementedError('Импорт из $source — адаптер подключается отдельно');
+      throw UnimplementedError(
+          'Импорт из $source — адаптер подключается отдельно');
 }
 
-final exportServiceProvider = Provider<ExportService>((ref) => EmptyExportService());
-final importServiceProvider = Provider<ImportService>((ref) => RegistryImportService());
+final exportServiceProvider =
+    Provider<ExportService>((ref) => EmptyExportService());
+final importServiceProvider =
+    Provider<ImportService>((ref) => RegistryImportService());

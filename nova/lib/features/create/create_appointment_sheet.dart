@@ -96,7 +96,8 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
 
   Future<void> _create(BuildContext context) async {
     final day = ref.read(selectedDayProvider);
-    final existing = ref.read(dayAppointmentsProvider).value ?? const <Appointment>[];
+    final existing =
+        ref.read(dayAppointmentsProvider).value ?? const <Appointment>[];
     final start = existing.isEmpty
         ? DateTime(day.year, day.month, day.day, 10, 0)
         : existing.last.end.add(const Duration(minutes: 15));
@@ -122,7 +123,8 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
 }
 
 class _Selectable extends StatelessWidget {
-  const _Selectable({required this.child, required this.selected, required this.onTap});
+  const _Selectable(
+      {required this.child, required this.selected, required this.onTap});
   final Widget child;
   final bool selected;
   final VoidCallback onTap;
@@ -135,7 +137,8 @@ class _Selectable extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(Radii.md),
-          border: Border.all(color: selected ? nova.accent : Colors.transparent, width: 1.5),
+          border: Border.all(
+              color: selected ? nova.accent : Colors.transparent, width: 1.5),
         ),
         child: child,
       ),
@@ -144,7 +147,8 @@ class _Selectable extends StatelessWidget {
 }
 
 class _ServiceChip extends StatelessWidget {
-  const _ServiceChip({required this.service, required this.selected, required this.onTap});
+  const _ServiceChip(
+      {required this.service, required this.selected, required this.onTap});
   final Service service;
   final bool selected;
   final VoidCallback onTap;
@@ -162,7 +166,8 @@ class _ServiceChip extends StatelessWidget {
         ),
         child: Text(
           '${service.name} · ${service.durationMinutes}′',
-          style: AppTypography.label(selected ? nova.onAccent : nova.ink2).copyWith(fontWeight: FontWeight.w500),
+          style: AppTypography.label(selected ? nova.onAccent : nova.ink2)
+              .copyWith(fontWeight: FontWeight.w500),
         ),
       ),
     );

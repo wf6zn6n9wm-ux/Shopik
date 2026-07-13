@@ -29,7 +29,8 @@ class EmptyState extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 360),
         child: Container(
           margin: const EdgeInsets.all(Spacing.s5),
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.s6, vertical: Spacing.s8),
+          padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.s6, vertical: Spacing.s8),
           decoration: BoxDecoration(
             color: nova.surface,
             borderRadius: BorderRadius.circular(Radii.lg),
@@ -42,13 +43,19 @@ class EmptyState extends StatelessWidget {
                 width: 44,
                 height: 44,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(color: nova.accentTint, borderRadius: BorderRadius.circular(Radii.md)),
+                decoration: BoxDecoration(
+                    color: nova.accentTint,
+                    borderRadius: BorderRadius.circular(Radii.md)),
                 child: Icon(icon, color: nova.accent, size: 22),
               ),
               const SizedBox(height: Spacing.s3),
-              Text(title, textAlign: TextAlign.center, style: AppTypography.title3(nova.ink)),
+              Text(title,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.title3(nova.ink)),
               const SizedBox(height: Spacing.s1),
-              Text(message, textAlign: TextAlign.center, style: AppTypography.label(nova.ink2)),
+              Text(message,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.label(nova.ink2)),
               if (actionLabel != null) ...[
                 const SizedBox(height: Spacing.s4),
                 NovaButton(actionLabel!, onPressed: onAction, small: true),

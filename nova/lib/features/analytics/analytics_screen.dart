@@ -18,11 +18,15 @@ class AnalyticsScreen extends ConsumerWidget {
     return SafeArea(
       bottom: false,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
+        padding: const EdgeInsets.fromLTRB(
+            Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
         children: [
           Text('Обзор', style: AppTypography.title1(nova.ink)),
           const SizedBox(height: Spacing.s5),
-          StatTile(label: 'Выручка сегодня', value: Fmt.money(s.revenue), delta: '▲ 12% к среде'),
+          StatTile(
+              label: 'Выручка сегодня',
+              value: Fmt.money(s.revenue),
+              delta: '▲ 12% к среде'),
           const SizedBox(height: Spacing.s3),
           Row(
             children: [
@@ -42,7 +46,8 @@ class AnalyticsScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(Radii.lg),
               border: Border.all(color: nova.line),
             ),
-            child: Text('Период-дашборд — следующий шаг', style: AppTypography.label(nova.ink3)),
+            child: Text('Период-дашборд — следующий шаг',
+                style: AppTypography.label(nova.ink3)),
           ),
         ],
       ),

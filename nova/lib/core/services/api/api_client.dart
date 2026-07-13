@@ -14,10 +14,13 @@ abstract interface class ApiClient {
 class UnconfiguredApiClient implements ApiClient {
   const UnconfiguredApiClient();
 
-  Never _fail() => throw StateError('API not configured (set AppConfig.apiBaseUrl)');
+  Never _fail() =>
+      throw StateError('API not configured (set AppConfig.apiBaseUrl)');
 
   @override
-  Future<Map<String, dynamic>> get(String path, {Map<String, String>? query}) async => _fail();
+  Future<Map<String, dynamic>> get(String path,
+          {Map<String, String>? query}) async =>
+      _fail();
 
   @override
   Future<Map<String, dynamic>> post(String path, Object body) async => _fail();

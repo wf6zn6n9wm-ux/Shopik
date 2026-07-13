@@ -14,8 +14,12 @@ class AppointmentCard extends StatelessWidget {
 
   Color _railColor(NovaColors nova) => switch (appointment.status) {
         AppointmentStatus.online => nova.accent,
-        AppointmentStatus.confirmed || AppointmentStatus.completed => nova.success,
-        AppointmentStatus.pending || AppointmentStatus.inProgress => nova.warning,
+        AppointmentStatus.confirmed ||
+        AppointmentStatus.completed =>
+          nova.success,
+        AppointmentStatus.pending ||
+        AppointmentStatus.inProgress =>
+          nova.warning,
         AppointmentStatus.noShow || AppointmentStatus.cancelled => nova.danger,
       };
 
@@ -41,15 +45,22 @@ class AppointmentCard extends StatelessWidget {
               width: 3,
               height: 40,
               margin: const EdgeInsets.only(right: 12, top: 1),
-              decoration: BoxDecoration(color: _railColor(nova), borderRadius: BorderRadius.circular(3)),
+              decoration: BoxDecoration(
+                  color: _railColor(nova),
+                  borderRadius: BorderRadius.circular(3)),
             ),
             SizedBox(
               width: 44,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(Fmt.time(a.start), style: AppTypography.tabular(AppTypography.label(nova.ink2)).copyWith(fontWeight: FontWeight.w600)),
-                  Text("${a.service.durationMinutes}′", style: AppTypography.caption(nova.ink3).copyWith(letterSpacing: 0)),
+                  Text(Fmt.time(a.start),
+                      style:
+                          AppTypography.tabular(AppTypography.label(nova.ink2))
+                              .copyWith(fontWeight: FontWeight.w600)),
+                  Text("${a.service.durationMinutes}′",
+                      style: AppTypography.caption(nova.ink3)
+                          .copyWith(letterSpacing: 0)),
                 ],
               ),
             ),
@@ -58,10 +69,14 @@ class AppointmentCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(a.client.name, style: AppTypography.title3(nova.ink).copyWith(fontSize: 15)),
+                  Text(a.client.name,
+                      style: AppTypography.title3(nova.ink)
+                          .copyWith(fontSize: 15)),
                   const SizedBox(height: 2),
                   Text(
-                    a.staff == null ? a.service.name : '${a.service.name} · ${a.staff!.name}',
+                    a.staff == null
+                        ? a.service.name
+                        : '${a.service.name} · ${a.staff!.name}',
                     style: AppTypography.label(nova.ink2),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

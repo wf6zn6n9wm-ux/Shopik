@@ -10,7 +10,8 @@ class SkeletonList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(Spacing.s5, Spacing.s2, Spacing.s5, Spacing.s16),
+      padding: const EdgeInsets.fromLTRB(
+          Spacing.s5, Spacing.s2, Spacing.s5, Spacing.s16),
       itemCount: count,
       separatorBuilder: (_, __) => const SizedBox(height: Spacing.s2),
       itemBuilder: (_, __) => const _SkeletonRow(),
@@ -52,16 +53,19 @@ class _SkeletonRow extends StatelessWidget {
 }
 
 class _Shimmer extends StatefulWidget {
-  const _Shimmer({required this.width, required this.height, required this.radius});
+  const _Shimmer(
+      {required this.width, required this.height, required this.radius});
   final double width, height, radius;
 
   @override
   State<_Shimmer> createState() => _ShimmerState();
 }
 
-class _ShimmerState extends State<_Shimmer> with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 1300))..repeat();
+class _ShimmerState extends State<_Shimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1300))
+    ..repeat();
 
   @override
   void dispose() {

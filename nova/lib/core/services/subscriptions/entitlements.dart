@@ -55,7 +55,8 @@ abstract interface class SubscriptionService {
 /// DEFAULT: выводит план из купленных product id. Замена/расширение: сверка с
 /// сервером (source of truth), гейс-периоды, командные seat'ы.
 class DefaultSubscriptionService implements SubscriptionService {
-  DefaultSubscriptionService(this._billing, {required Entitlement fallback}) : _fallback = fallback;
+  DefaultSubscriptionService(this._billing, {required Entitlement fallback})
+      : _fallback = fallback;
 
   final BillingService _billing;
   final Entitlement _fallback;
@@ -83,8 +84,8 @@ final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
   );
 });
 
-final entitlementProvider =
-    StreamProvider<Entitlement>((ref) => ref.watch(subscriptionServiceProvider).watch());
+final entitlementProvider = StreamProvider<Entitlement>(
+    (ref) => ref.watch(subscriptionServiceProvider).watch());
 
 /// Хелпер гейтинга: `ref.watch(hasFeatureProvider(Feature.marketplace))`.
 final hasFeatureProvider = Provider.family<bool, Feature>((ref, feature) {

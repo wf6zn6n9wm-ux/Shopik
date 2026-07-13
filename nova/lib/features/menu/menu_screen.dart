@@ -24,7 +24,8 @@ class MenuScreen extends StatelessWidget {
     return SafeArea(
       bottom: false,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
+        padding: const EdgeInsets.fromLTRB(
+            Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
         children: [
           Text('Меню', style: AppTypography.title1(nova.ink)),
           const SizedBox(height: Spacing.s5),
@@ -37,7 +38,9 @@ class MenuScreen extends StatelessWidget {
             child: Column(
               children: [
                 for (var i = 0; i < _items.length; i++) ...[
-                  if (i > 0) Divider(height: 1, thickness: 1, color: nova.line, indent: 52),
+                  if (i > 0)
+                    Divider(
+                        height: 1, thickness: 1, color: nova.line, indent: 52),
                   _MenuRow(icon: _items[i].$1, label: _items[i].$2),
                 ],
               ],
@@ -61,7 +64,8 @@ class _MenuRow extends StatelessWidget {
       onTap: () {},
       borderRadius: BorderRadius.circular(Radii.lg),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.s4, vertical: 14),
+        padding:
+            const EdgeInsets.symmetric(horizontal: Spacing.s4, vertical: 14),
         child: Row(
           children: [
             Icon(icon, size: 20, color: nova.ink2),

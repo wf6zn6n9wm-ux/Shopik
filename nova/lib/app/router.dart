@@ -14,12 +14,14 @@ GoRouter _buildRouter() {
     initialLocation: destinations.first.path,
     routes: [
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) =>
-            ScaffoldWithNav(navigationShell: navigationShell, destinations: destinations),
+        builder: (context, state, navigationShell) => ScaffoldWithNav(
+            navigationShell: navigationShell, destinations: destinations),
         branches: [
           for (final d in destinations)
             StatefulShellBranch(
-              routes: [GoRoute(path: d.path, builder: (context, state) => d.builder())],
+              routes: [
+                GoRoute(path: d.path, builder: (context, state) => d.builder())
+              ],
             ),
         ],
       ),

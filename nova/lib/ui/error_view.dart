@@ -21,13 +21,17 @@ class ErrorView extends StatelessWidget {
             Icon(Icons.cloud_off_outlined, color: nova.ink3, size: 32),
             const SizedBox(height: Spacing.s3),
             Text(
-              message ?? 'Не удалось загрузить. Данные сохранены — попробуйте ещё раз.',
+              message ??
+                  'Не удалось загрузить. Данные сохранены — попробуйте ещё раз.',
               textAlign: TextAlign.center,
               style: AppTypography.label(nova.ink2),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: Spacing.s4),
-              NovaButton('Повторить', kind: NovaButtonKind.secondary, small: true, onPressed: onRetry),
+              NovaButton('Повторить',
+                  kind: NovaButtonKind.secondary,
+                  small: true,
+                  onPressed: onRetry),
             ],
           ],
         ),

@@ -165,20 +165,32 @@ class NovaShadows extends ThemeExtension<NovaShadows> {
       BoxShadow(color: Color(0x0D14142D), blurRadius: 2, offset: Offset(0, 1)),
       BoxShadow(color: Color(0x0F14142D), blurRadius: 3, offset: Offset(0, 1)),
     ],
-    e2: [BoxShadow(color: Color(0x1714142D), blurRadius: 14, offset: Offset(0, 4))],
-    e3: [BoxShadow(color: Color(0x2414142D), blurRadius: 34, offset: Offset(0, 12))],
+    e2: [
+      BoxShadow(color: Color(0x1714142D), blurRadius: 14, offset: Offset(0, 4))
+    ],
+    e3: [
+      BoxShadow(color: Color(0x2414142D), blurRadius: 34, offset: Offset(0, 12))
+    ],
   );
 
   static const NovaShadows dark = NovaShadows(
-    e1: [BoxShadow(color: Color(0x66000000), blurRadius: 2, offset: Offset(0, 1))],
-    e2: [BoxShadow(color: Color(0x80000000), blurRadius: 18, offset: Offset(0, 6))],
-    e3: [BoxShadow(color: Color(0x99000000), blurRadius: 40, offset: Offset(0, 16))],
+    e1: [
+      BoxShadow(color: Color(0x66000000), blurRadius: 2, offset: Offset(0, 1))
+    ],
+    e2: [
+      BoxShadow(color: Color(0x80000000), blurRadius: 18, offset: Offset(0, 6))
+    ],
+    e3: [
+      BoxShadow(color: Color(0x99000000), blurRadius: 40, offset: Offset(0, 16))
+    ],
   );
 
   @override
-  NovaShadows copyWith({List<BoxShadow>? e1, List<BoxShadow>? e2, List<BoxShadow>? e3}) =>
+  NovaShadows copyWith(
+          {List<BoxShadow>? e1, List<BoxShadow>? e2, List<BoxShadow>? e3}) =>
       NovaShadows(e1: e1 ?? this.e1, e2: e2 ?? this.e2, e3: e3 ?? this.e3);
 
   @override
-  NovaShadows lerp(covariant NovaShadows? other, double t) => t < 0.5 ? this : (other ?? this);
+  NovaShadows lerp(covariant NovaShadows? other, double t) =>
+      t < 0.5 ? this : (other ?? this);
 }

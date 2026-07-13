@@ -23,7 +23,9 @@ class LocalOnlySyncService implements SyncService {
   Future<void> sync() async {}
 
   @override
-  Future<void> enqueue(String entity, String id, Map<String, Object?> payload) async {}
+  Future<void> enqueue(
+      String entity, String id, Map<String, Object?> payload) async {}
 }
 
-final syncServiceProvider = Provider<SyncService>((ref) => LocalOnlySyncService());
+final syncServiceProvider =
+    Provider<SyncService>((ref) => LocalOnlySyncService());

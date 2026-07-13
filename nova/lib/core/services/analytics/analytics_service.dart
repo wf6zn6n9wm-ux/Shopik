@@ -37,8 +37,10 @@ class ConsoleAnalytics implements AnalyticsService {
 
 class ConsoleCrashReporter implements CrashReporter {
   @override
-  Future<void> recordError(Object error, StackTrace? stack, {bool? fatal}) async {
-    if (kDebugMode) debugPrint('crash${(fatal ?? false) ? '(fatal)' : ''}: $error');
+  Future<void> recordError(Object error, StackTrace? stack,
+      {bool? fatal}) async {
+    if (kDebugMode)
+      debugPrint('crash${(fatal ?? false) ? '(fatal)' : ''}: $error');
   }
 
   @override
@@ -50,5 +52,7 @@ class ConsoleCrashReporter implements CrashReporter {
   Future<void> setUser(String? id) async {}
 }
 
-final analyticsServiceProvider = Provider<AnalyticsService>((ref) => ConsoleAnalytics());
-final crashReporterProvider = Provider<CrashReporter>((ref) => ConsoleCrashReporter());
+final analyticsServiceProvider =
+    Provider<AnalyticsService>((ref) => ConsoleAnalytics());
+final crashReporterProvider =
+    Provider<CrashReporter>((ref) => ConsoleCrashReporter());

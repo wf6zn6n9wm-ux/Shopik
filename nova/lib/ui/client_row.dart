@@ -17,7 +17,9 @@ class Avatar extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(color: nova.accentTint, shape: BoxShape.circle),
-      child: Text(initials, style: AppTypography.label(nova.accent).copyWith(fontWeight: FontWeight.w600, fontSize: size * 0.35)),
+      child: Text(initials,
+          style: AppTypography.label(nova.accent)
+              .copyWith(fontWeight: FontWeight.w600, fontSize: size * 0.35)),
     );
   }
 }
@@ -50,11 +52,14 @@ class ClientRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(client.name, style: AppTypography.title3(nova.ink).copyWith(fontSize: 14)),
+                  Text(client.name,
+                      style: AppTypography.title3(nova.ink)
+                          .copyWith(fontSize: 14)),
                   const SizedBox(height: 1),
                   Text(
                     '${client.visitsCount} визитов · ${client.phone}',
-                    style: AppTypography.label(nova.ink2).copyWith(fontSize: 12),
+                    style:
+                        AppTypography.label(nova.ink2).copyWith(fontSize: 12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -65,8 +70,12 @@ class ClientRow extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(Fmt.money(client.totalSpent), style: AppTypography.tabular(AppTypography.label(nova.ink)).copyWith(fontWeight: FontWeight.w600, fontSize: 14)),
-                Text('всего', style: AppTypography.caption(nova.ink3).copyWith(letterSpacing: 0, fontSize: 11)),
+                Text(Fmt.money(client.totalSpent),
+                    style: AppTypography.tabular(AppTypography.label(nova.ink))
+                        .copyWith(fontWeight: FontWeight.w600, fontSize: 14)),
+                Text('всего',
+                    style: AppTypography.caption(nova.ink3)
+                        .copyWith(letterSpacing: 0, fontSize: 11)),
               ],
             ),
           ],

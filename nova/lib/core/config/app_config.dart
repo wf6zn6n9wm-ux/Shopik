@@ -56,8 +56,10 @@ class AppConfig {
       stripePublishableKey: const bool.hasEnvironment('STRIPE_PUBLISHABLE_KEY')
           ? const String.fromEnvironment('STRIPE_PUBLISHABLE_KEY')
           : null,
-      defaultCurrencyCode: const String.fromEnvironment('DEFAULT_CURRENCY', defaultValue: 'KZT'),
-      defaultTimeZone: const String.fromEnvironment('DEFAULT_TZ', defaultValue: 'Asia/Almaty'),
+      defaultCurrencyCode:
+          const String.fromEnvironment('DEFAULT_CURRENCY', defaultValue: 'KZT'),
+      defaultTimeZone: const String.fromEnvironment('DEFAULT_TZ',
+          defaultValue: 'Asia/Almaty'),
     );
   }
 }

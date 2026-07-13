@@ -12,7 +12,8 @@ abstract final class Fmt {
 
   static String time(DateTime dt) => _time.format(dt);
 
-  static String range(DateTime start, DateTime end) => '${_time.format(start)} – ${_time.format(end)}';
+  static String range(DateTime start, DateTime end) =>
+      '${_time.format(start)} – ${_time.format(end)}';
 
   static String duration(int minutes) => "$minutes мин";
 }

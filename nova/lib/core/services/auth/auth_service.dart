@@ -6,7 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Пользователь сессии. Нейтрален к провайдеру (Supabase / собственный / OTP).
 @immutable
 class AuthUser {
-  const AuthUser({required this.id, this.email, this.phone, this.isAnonymous = false});
+  const AuthUser(
+      {required this.id, this.email, this.phone, this.isAnonymous = false});
   final String id;
   final String? email;
   final String? phone;
@@ -56,5 +57,5 @@ class LocalAuthService implements AuthService {
 
 final authServiceProvider = Provider<AuthService>((ref) => LocalAuthService());
 
-final authStateProvider =
-    StreamProvider<AuthUser?>((ref) => ref.watch(authServiceProvider).authStateChanges());
+final authStateProvider = StreamProvider<AuthUser?>(
+    (ref) => ref.watch(authServiceProvider).authStateChanges());

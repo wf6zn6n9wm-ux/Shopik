@@ -18,20 +18,20 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-final clientsRepositoryProvider =
-    Provider<ClientsRepository>((ref) => DriftClientsRepository(ref.watch(databaseProvider)));
-final servicesRepositoryProvider =
-    Provider<ServicesRepository>((ref) => DriftServicesRepository(ref.watch(databaseProvider)));
-final appointmentsRepositoryProvider =
-    Provider<AppointmentsRepository>((ref) => DriftAppointmentsRepository(ref.watch(databaseProvider)));
+final clientsRepositoryProvider = Provider<ClientsRepository>(
+    (ref) => DriftClientsRepository(ref.watch(databaseProvider)));
+final servicesRepositoryProvider = Provider<ServicesRepository>(
+    (ref) => DriftServicesRepository(ref.watch(databaseProvider)));
+final appointmentsRepositoryProvider = Provider<AppointmentsRepository>(
+    (ref) => DriftAppointmentsRepository(ref.watch(databaseProvider)));
 
 /// Все клиенты (реактивно из БД).
-final clientsProvider =
-    StreamProvider<List<Client>>((ref) => ref.watch(clientsRepositoryProvider).watchAll());
+final clientsProvider = StreamProvider<List<Client>>(
+    (ref) => ref.watch(clientsRepositoryProvider).watchAll());
 
 /// Каталог услуг.
-final servicesProvider =
-    FutureProvider<List<Service>>((ref) => ref.watch(servicesRepositoryProvider).all());
+final servicesProvider = FutureProvider<List<Service>>(
+    (ref) => ref.watch(servicesRepositoryProvider).all());
 
 /// Выбранный день календаря.
 final selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
@@ -45,17 +45,22 @@ final dayAppointmentsProvider = StreamProvider<List<Appointment>>((ref) {
 /// Дневная сводка для экранов «Сегодня»/«Обзор».
 @immutable
 class DaySummary {
-  const DaySummary({required this.revenue, required this.visits, required this.load});
+  const DaySummary(
+      {required this.revenue, required this.visits, required this.load});
   final int revenue;
   final int visits;
   final int load;
 }
 
 final daySummaryProvider = Provider<DaySummary>((ref) {
-  final appts = ref.watch(dayAppointmentsProvider).value ?? const <Appointment>[];
+  final appts =
+      ref.watch(dayAppointmentsProvider).value ?? const <Appointment>[];
   final revenue = appts
-      .where((a) => a.status == AppointmentStatus.completed || a.status == AppointmentStatus.confirmed)
+      .where((a) =>
+          a.status == AppointmentStatus.completed ||
+          a.status == AppointmentStatus.confirmed)
       .fold<int>(0, (sum, a) => sum + a.service.price);
-  final load = appts.isEmpty ? 0 : ((appts.length / 8) * 100).clamp(0, 100).round();
+  final load =
+      appts.isEmpty ? 0 : ((appts.length / 8) * 100).clamp(0, 100).round();
   return DaySummary(revenue: revenue, visits: appts.length, load: load);
 });

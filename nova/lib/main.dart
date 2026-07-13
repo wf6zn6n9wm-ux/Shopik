@@ -23,7 +23,8 @@ Future<void> main() async {
     );
     await bootstrap(container);
 
-    runApp(UncontrolledProviderScope(container: container, child: const NovaApp()));
+    runApp(UncontrolledProviderScope(
+        container: container, child: const NovaApp()));
   }, (error, stack) {
     if (kDebugMode) debugPrint('uncaught: $error');
   });

@@ -28,7 +28,8 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s3),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s3),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -41,26 +42,33 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
           Expanded(
             child: clientsAsync.when(
               loading: () => const SkeletonList(),
-              error: (e, _) => ErrorView(onRetry: () => ref.invalidate(clientsProvider)),
+              error: (e, _) =>
+                  ErrorView(onRetry: () => ref.invalidate(clientsProvider)),
               data: (all) {
                 final clients = _query.isEmpty
                     ? all
                     : all
                         .where((c) =>
-                            c.name.toLowerCase().contains(_query.toLowerCase()) || c.phone.contains(_query))
+                            c.name
+                                .toLowerCase()
+                                .contains(_query.toLowerCase()) ||
+                            c.phone.contains(_query))
                         .toList();
                 if (clients.isEmpty) {
                   return const EmptyState(
                     icon: Icons.person_add_alt,
                     title: 'Здесь появятся ваши клиенты',
-                    message: 'Они добавляются сами при первой записи. Можно начать с импорта контактов.',
+                    message:
+                        'Они добавляются сами при первой записи. Можно начать с импорта контактов.',
                     actionLabel: 'Импортировать контакты',
                   );
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(Spacing.s5, 0, Spacing.s5, Spacing.s16),
+                  padding: const EdgeInsets.fromLTRB(
+                      Spacing.s5, 0, Spacing.s5, Spacing.s16),
                   itemCount: clients.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: Spacing.s2),
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: Spacing.s2),
                   itemBuilder: (context, i) => ClientRow(clients[i]),
                 );
               },
@@ -80,7 +88,9 @@ class _SearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     final nova = context.nova;
     return Container(
-      decoration: BoxDecoration(color: nova.surface3, borderRadius: BorderRadius.circular(Radii.full)),
+      decoration: BoxDecoration(
+          color: nova.surface3,
+          borderRadius: BorderRadius.circular(Radii.full)),
       padding: const EdgeInsets.symmetric(horizontal: Spacing.s4),
       child: Row(
         children: [

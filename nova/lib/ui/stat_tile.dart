@@ -4,7 +4,12 @@ import '../design/theme.dart';
 
 /// Плитка показателя: метка → большое число → дельта.
 class StatTile extends StatelessWidget {
-  const StatTile({super.key, required this.label, required this.value, this.delta, this.compact = false});
+  const StatTile(
+      {super.key,
+      required this.label,
+      required this.value,
+      this.delta,
+      this.compact = false});
 
   final String label;
   final String value;
@@ -25,17 +30,23 @@ class StatTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTypography.label(nova.ink2).copyWith(fontSize: compact ? 10 : 12)),
+          Text(label,
+              style: AppTypography.label(nova.ink2)
+                  .copyWith(fontSize: compact ? 10 : 12)),
           SizedBox(height: compact ? 2 : 3),
           Text(
             value,
             style: AppTypography.tabular(
-              compact ? AppTypography.title3(nova.ink) : AppTypography.title1(nova.ink).copyWith(fontSize: 26),
+              compact
+                  ? AppTypography.title3(nova.ink)
+                  : AppTypography.title1(nova.ink).copyWith(fontSize: 26),
             ),
           ),
           if (delta != null) ...[
             const SizedBox(height: 2),
-            Text(delta!, style: AppTypography.label(nova.success).copyWith(fontWeight: FontWeight.w600, fontSize: 12)),
+            Text(delta!,
+                style: AppTypography.label(nova.success)
+                    .copyWith(fontWeight: FontWeight.w600, fontSize: 12)),
           ],
         ],
       ),
