@@ -268,7 +268,8 @@ class AppDatabase extends _$AppDatabase {
         if (!categoryIds.containsKey(categoryName)) {
           final id = '${businessId}_cat_$catIndex';
           categoryIds[categoryName] = id;
-          await into(serviceCategories).insert(ServiceCategoriesCompanion.insert(
+          await into(serviceCategories)
+              .insert(ServiceCategoriesCompanion.insert(
             id: id,
             businessId: businessId,
             name: categoryName,

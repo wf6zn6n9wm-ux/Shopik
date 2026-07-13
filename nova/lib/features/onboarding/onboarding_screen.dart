@@ -32,7 +32,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final template = IndustryCatalog.byId(id);
     final seeds = <(String, String, int, int)>[
       for (final e in template.flatServices)
-        (e.category, e.service.name, e.service.durationMinutes, e.service.price),
+        (
+          e.category,
+          e.service.name,
+          e.service.durationMinutes,
+          e.service.price
+        ),
     ];
     await ref.read(workspaceRepositoryProvider).applyIndustry(id, seeds);
     await ref
