@@ -130,8 +130,8 @@ class _DayView extends ConsumerWidget {
           );
         }
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(
-              Spacing.s5, 0, Spacing.s5, Spacing.s16),
+          padding:
+              const EdgeInsets.fromLTRB(Spacing.s5, 0, Spacing.s5, Spacing.s16),
           itemCount: list.length,
           separatorBuilder: (_, __) => const SizedBox(height: Spacing.s2),
           itemBuilder: (context, i) => AppointmentCard(
@@ -154,7 +154,8 @@ class _WeekView extends ConsumerWidget {
     final day = ref.watch(selectedDayProvider);
     final start = _weekStart(day);
     final end = start.add(const Duration(days: 7));
-    final appts = ref.watch(rangeAppointmentsProvider((start: start, end: end)));
+    final appts =
+        ref.watch(rangeAppointmentsProvider((start: start, end: end)));
 
     return appts.when(
       loading: () => const SkeletonList(),
@@ -168,8 +169,8 @@ class _WeekView extends ConsumerWidget {
           byDay.putIfAbsent(k, () => []).add(a);
         }
         return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(
-              Spacing.s5, 0, Spacing.s5, Spacing.s16),
+          padding:
+              const EdgeInsets.fromLTRB(Spacing.s5, 0, Spacing.s5, Spacing.s16),
           itemCount: 7,
           itemBuilder: (context, i) =>
               _DaySection(date: start.add(Duration(days: i)), items: byDay[i]),
@@ -259,8 +260,7 @@ class _MonthView extends ConsumerWidget {
               const SizedBox(height: Spacing.s2),
               Expanded(
                 child: GridView.builder(
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 7,
                     mainAxisSpacing: 4,
                     crossAxisSpacing: 4,
