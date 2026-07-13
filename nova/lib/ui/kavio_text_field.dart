@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 
 import '../design/theme.dart';
 
-/// Поле ввода Nova: опциональная подпись, фокус-кольцо акцентом, из токенов.
-class NovaTextField extends StatelessWidget {
-  const NovaTextField({
+/// Поле ввода Kavio: опциональная подпись, фокус-кольцо акцентом, из токенов.
+class KavioTextField extends StatelessWidget {
+  const KavioTextField({
     super.key,
     this.label,
     this.hint,
@@ -38,12 +38,12 @@ class NovaTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (label != null) ...[
-          Text(label!, style: AppTypography.label(nova.ink2)),
+          Text(label!, style: AppTypography.label(kavio.ink2)),
           const SizedBox(height: Spacing.s2),
         ],
         TextField(
@@ -54,21 +54,21 @@ class NovaTextField extends StatelessWidget {
           onChanged: onChanged,
           textInputAction: textInputAction,
           inputFormatters: inputFormatters,
-          style: AppTypography.body(nova.ink),
-          cursorColor: nova.accent,
+          style: AppTypography.body(kavio.ink),
+          cursorColor: kavio.accent,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: AppTypography.body(nova.ink3),
+            hintStyle: AppTypography.body(kavio.ink3),
             prefixIcon: prefixIcon == null
                 ? null
-                : Icon(prefixIcon, size: 20, color: nova.ink3),
+                : Icon(prefixIcon, size: 20, color: kavio.ink3),
             filled: true,
-            fillColor: nova.surface,
+            fillColor: kavio.surface,
             contentPadding: const EdgeInsets.symmetric(
                 horizontal: Spacing.s4, vertical: 14),
-            enabledBorder: _border(nova.line2),
-            border: _border(nova.line2),
-            focusedBorder: _border(nova.accent, width: 1.5),
+            enabledBorder: _border(kavio.line2),
+            border: _border(kavio.line2),
+            focusedBorder: _border(kavio.accent, width: 1.5),
           ),
         ),
       ],

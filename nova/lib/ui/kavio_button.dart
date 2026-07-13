@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../design/theme.dart';
 
-enum NovaButtonKind { primary, secondary, ghost, danger }
+enum KavioButtonKind { primary, secondary, ghost, danger }
 
-/// Кнопка Nova. Press — scale 0.97. Состояния и размеры — из токенов.
-class NovaButton extends StatefulWidget {
-  const NovaButton(
+/// Кнопка Kavio. Press — scale 0.97. Состояния и размеры — из токенов.
+class KavioButton extends StatefulWidget {
+  const KavioButton(
     this.label, {
     super.key,
     this.onPressed,
-    this.kind = NovaButtonKind.primary,
+    this.kind = KavioButtonKind.primary,
     this.small = false,
     this.icon,
     this.expand = false,
@@ -18,28 +18,28 @@ class NovaButton extends StatefulWidget {
 
   final String label;
   final VoidCallback? onPressed;
-  final NovaButtonKind kind;
+  final KavioButtonKind kind;
   final bool small;
   final IconData? icon;
   final bool expand;
 
   @override
-  State<NovaButton> createState() => _NovaButtonState();
+  State<KavioButton> createState() => _KavioButtonState();
 }
 
-class _NovaButtonState extends State<NovaButton> {
+class _KavioButtonState extends State<KavioButton> {
   bool _down = false;
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final enabled = widget.onPressed != null;
 
     final (bg, fg, border) = switch (widget.kind) {
-      NovaButtonKind.primary => (nova.accent, nova.onAccent, null),
-      NovaButtonKind.secondary => (nova.surface, nova.ink, nova.line2),
-      NovaButtonKind.ghost => (Colors.transparent, nova.accent, null),
-      NovaButtonKind.danger => (nova.dangerTint, nova.danger, null),
+      KavioButtonKind.primary => (kavio.accent, kavio.onAccent, null),
+      KavioButtonKind.secondary => (kavio.surface, kavio.ink, kavio.line2),
+      KavioButtonKind.ghost => (Colors.transparent, kavio.accent, null),
+      KavioButtonKind.danger => (kavio.dangerTint, kavio.danger, null),
     };
 
     final pad = widget.small
@@ -64,7 +64,7 @@ class _NovaButtonState extends State<NovaButton> {
               borderRadius:
                   BorderRadius.circular(widget.small ? Radii.xs : Radii.sm),
               border: border == null ? null : Border.all(color: border),
-              boxShadow: widget.kind == NovaButtonKind.primary
+              boxShadow: widget.kind == KavioButtonKind.primary
                   ? context.shadows.e1
                   : null,
             ),

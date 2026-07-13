@@ -11,7 +11,7 @@ import '../../domain/models.dart';
 import '../../ui/appointment_card.dart';
 import '../../ui/empty_state.dart';
 import '../../ui/error_view.dart';
-import '../../ui/nova_segmented.dart';
+import '../../ui/kavio_segmented.dart';
 import '../../ui/skeleton.dart';
 import '../create/create_appointment_sheet.dart';
 import 'appointment_sheet.dart';
@@ -68,7 +68,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final view = ref.watch(calendarViewProvider);
     final day = ref.watch(selectedDayProvider);
 
@@ -83,11 +83,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Календарь', style: AppTypography.title1(nova.ink)),
+                Text('Календарь', style: AppTypography.title1(kavio.ink)),
                 const SizedBox(height: 2),
-                Text(_title(view, day), style: AppTypography.label(nova.ink2)),
+                Text(_title(view, day), style: AppTypography.label(kavio.ink2)),
                 const SizedBox(height: Spacing.s3),
-                NovaSegmented(
+                KavioSegmented(
                   segments: const ['День', 'Неделя', 'Месяц'],
                   selected: view.index,
                   onChanged: (i) => _setView(CalendarView.values[i]),
@@ -217,7 +217,7 @@ class _DaySection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final list = items ?? const <Appointment>[];
 
     Widget content(bool hovered) => Container(
@@ -225,7 +225,7 @@ class _DaySection extends ConsumerWidget {
           padding: dnd ? const EdgeInsets.all(Spacing.s2) : EdgeInsets.zero,
           decoration: dnd
               ? BoxDecoration(
-                  color: hovered ? nova.accentTint : Colors.transparent,
+                  color: hovered ? kavio.accentTint : Colors.transparent,
                   borderRadius: BorderRadius.circular(Radii.md),
                 )
               : null,
@@ -233,10 +233,10 @@ class _DaySection extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(_cap(DateFormat('EEEE, d MMM', 'ru').format(date)),
-                  style: AppTypography.label(nova.ink2)),
+                  style: AppTypography.label(kavio.ink2)),
               const SizedBox(height: Spacing.s2),
               if (list.isEmpty)
-                Text('Нет записей', style: AppTypography.label(nova.ink3))
+                Text('Нет записей', style: AppTypography.label(kavio.ink3))
               else
                 for (final a in list)
                   Padding(
@@ -262,7 +262,7 @@ class _MonthView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final day = ref.watch(selectedDayProvider);
     final monthStart = DateTime(day.year, day.month, 1);
     final nextMonth = DateTime(day.year, day.month + 1, 1);
@@ -292,7 +292,7 @@ class _MonthView extends ConsumerWidget {
                   for (final l in labels)
                     Expanded(
                       child: Center(
-                        child: Text(l, style: AppTypography.caption(nova.ink3)),
+                        child: Text(l, style: AppTypography.caption(kavio.ink3)),
                       ),
                     ),
                 ],
@@ -346,27 +346,27 @@ class _MonthCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: selected ? nova.accentTint : nova.surface,
+          color: selected ? kavio.accentTint : kavio.surface,
           borderRadius: BorderRadius.circular(Radii.sm),
-          border: Border.all(color: selected ? nova.accent : nova.line),
+          border: Border.all(color: selected ? kavio.accent : kavio.line),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text('$day',
-                style: AppTypography.label(selected ? nova.accent : nova.ink)),
+                style: AppTypography.label(selected ? kavio.accent : kavio.ink)),
             const SizedBox(height: 4),
             if (count > 0)
               Container(
                 width: 5,
                 height: 5,
                 decoration:
-                    BoxDecoration(color: nova.accent, shape: BoxShape.circle),
+                    BoxDecoration(color: kavio.accent, shape: BoxShape.circle),
               )
             else
               const SizedBox(height: 5),

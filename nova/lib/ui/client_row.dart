@@ -11,14 +11,14 @@ class Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Container(
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: nova.accentTint, shape: BoxShape.circle),
+      decoration: BoxDecoration(color: kavio.accentTint, shape: BoxShape.circle),
       child: Text(initials,
-          style: AppTypography.label(nova.accent)
+          style: AppTypography.label(kavio.accent)
               .copyWith(fontWeight: FontWeight.w600, fontSize: size * 0.35)),
     );
   }
@@ -33,16 +33,16 @@ class ClientRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: nova.surface,
+          color: kavio.surface,
           borderRadius: BorderRadius.circular(Radii.md),
-          border: Border.all(color: nova.line),
+          border: Border.all(color: kavio.line),
         ),
         child: Row(
           children: [
@@ -53,13 +53,13 @@ class ClientRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(client.name,
-                      style: AppTypography.title3(nova.ink)
+                      style: AppTypography.title3(kavio.ink)
                           .copyWith(fontSize: 14)),
                   const SizedBox(height: 1),
                   Text(
                     '${client.visitsCount} визитов · ${client.phone}',
                     style:
-                        AppTypography.label(nova.ink2).copyWith(fontSize: 12),
+                        AppTypography.label(kavio.ink2).copyWith(fontSize: 12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -71,10 +71,10 @@ class ClientRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(Fmt.money(client.totalSpent),
-                    style: AppTypography.tabular(AppTypography.label(nova.ink))
+                    style: AppTypography.tabular(AppTypography.label(kavio.ink))
                         .copyWith(fontWeight: FontWeight.w600, fontSize: 14)),
                 Text('всего',
-                    style: AppTypography.caption(nova.ink3)
+                    style: AppTypography.caption(kavio.ink3)
                         .copyWith(letterSpacing: 0, fontSize: 11)),
               ],
             ),

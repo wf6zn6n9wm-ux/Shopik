@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "Nova",
+  "appTitle": "Kavio",
   "@appTitle": { "description": "Application name" },
   "navCalendar": "Calendar",
   "navClients": "Clients",

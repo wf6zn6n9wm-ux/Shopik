@@ -23,7 +23,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final clientsAsync = ref.watch(clientsProvider);
 
     return SafeArea(
@@ -38,11 +38,11 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
               children: [
                 Row(
                   children: [
-                    Text('Клиенты', style: AppTypography.title1(nova.ink)),
+                    Text('Клиенты', style: AppTypography.title1(kavio.ink)),
                     const Spacer(),
                     IconButton(
                       onPressed: () => showCreateClientSheet(context),
-                      icon: Icon(Icons.add, color: nova.accent),
+                      icon: Icon(Icons.add, color: kavio.accent),
                       splashRadius: 22,
                     ),
                   ],
@@ -103,26 +103,26 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Container(
       decoration: BoxDecoration(
-          color: nova.surface3,
+          color: kavio.surface3,
           borderRadius: BorderRadius.circular(Radii.full)),
       padding: const EdgeInsets.symmetric(horizontal: Spacing.s4),
       child: Row(
         children: [
-          Icon(Icons.search, size: 18, color: nova.ink3),
+          Icon(Icons.search, size: 18, color: kavio.ink3),
           const SizedBox(width: 9),
           Expanded(
             child: TextField(
               onChanged: onChanged,
-              style: AppTypography.body(nova.ink),
-              cursorColor: nova.accent,
+              style: AppTypography.body(kavio.ink),
+              cursorColor: kavio.accent,
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
                 hintText: 'Поиск по клиентам',
-                hintStyle: AppTypography.body(nova.ink3),
+                hintStyle: AppTypography.body(kavio.ink3),
                 contentPadding:
                     const EdgeInsets.symmetric(vertical: Spacing.s3),
               ),

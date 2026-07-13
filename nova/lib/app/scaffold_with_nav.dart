@@ -25,7 +25,7 @@ class ScaffoldWithNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final current = navigationShell.currentIndex;
     final mid = destinations.length ~/ 2;
 
@@ -46,8 +46,8 @@ class ScaffoldWithNav extends StatelessWidget {
       body: navigationShell,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: nova.surface,
-          border: Border(top: BorderSide(color: nova.line)),
+          color: kavio.surface,
+          border: Border(top: BorderSide(color: kavio.line)),
         ),
         child: SafeArea(
           top: false,
@@ -67,7 +67,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Expanded(
       child: InkResponse(
         onTap: onTap,
@@ -76,11 +76,11 @@ class _NavItem extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(active ? destination.activeIcon : destination.icon,
-                size: 22, color: active ? nova.accent : nova.ink3),
+                size: 22, color: active ? kavio.accent : kavio.ink3),
             const SizedBox(height: 3),
             Text(
               destination.label,
-              style: AppTypography.caption(active ? nova.accent : nova.ink3)
+              style: AppTypography.caption(active ? kavio.accent : kavio.ink3)
                   .copyWith(letterSpacing: 0, fontSize: 10),
             ),
           ],
@@ -96,7 +96,7 @@ class _CreateButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return SizedBox(
       width: 76,
       child: Center(
@@ -106,11 +106,11 @@ class _CreateButton extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: nova.accent,
+              color: kavio.accent,
               borderRadius: BorderRadius.circular(Radii.full),
               boxShadow: context.shadows.e2,
             ),
-            child: Icon(Icons.add, color: nova.onAccent, size: 26),
+            child: Icon(Icons.add, color: kavio.onAccent, size: 26),
           ),
         ),
       ),

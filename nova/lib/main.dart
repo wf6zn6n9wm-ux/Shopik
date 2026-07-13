@@ -24,7 +24,7 @@ Future<void> main() async {
     await bootstrap(container);
 
     runApp(UncontrolledProviderScope(
-        container: container, child: const NovaApp()));
+        container: container, child: const KavioApp()));
   }, (error, stack) {
     if (kDebugMode) debugPrint('uncaught: $error');
   });

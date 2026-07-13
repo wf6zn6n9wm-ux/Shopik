@@ -7,14 +7,14 @@ import '../../core/services/analytics/analytics_service.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
-import '../../ui/nova_button.dart';
-import '../../ui/nova_sheet.dart';
-import '../../ui/nova_text_field.dart';
+import '../../ui/kavio_button.dart';
+import '../../ui/kavio_sheet.dart';
+import '../../ui/kavio_text_field.dart';
 
 /// Создание услуги. Цена вводится в основных единицах и хранится в минорных
 /// (×100). Сохраняется в Drift → каталог обновляется реактивно.
 Future<void> showCreateServiceSheet(BuildContext context) =>
-    showNovaSheet<void>(context, builder: (_) => const _CreateServiceSheet());
+    showKavioSheet<void>(context, builder: (_) => const _CreateServiceSheet());
 
 class _CreateServiceSheet extends ConsumerStatefulWidget {
   const _CreateServiceSheet();
@@ -65,12 +65,12 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return NovaSheet(
+    return KavioSheet(
       title: 'Новая услуга',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          NovaTextField(
+          KavioTextField(
             label: 'Название',
             hint: 'Напр. Стрижка + укладка',
             controller: _name,
@@ -81,7 +81,7 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
           Row(
             children: [
               Expanded(
-                child: NovaTextField(
+                child: KavioTextField(
                   label: 'Длительность, мин',
                   hint: '60',
                   controller: _duration,
@@ -91,7 +91,7 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
               ),
               const SizedBox(width: Spacing.s3),
               Expanded(
-                child: NovaTextField(
+                child: KavioTextField(
                   label: 'Цена',
                   hint: '0',
                   controller: _price,
@@ -102,7 +102,7 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
             ],
           ),
           const SizedBox(height: Spacing.s6),
-          NovaButton(
+          KavioButton(
             'Сохранить',
             expand: true,
             onPressed: _valid && !_saving ? _save : null,

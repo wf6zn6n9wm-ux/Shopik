@@ -6,14 +6,14 @@ import '../../core/services/analytics/analytics_service.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
-import '../../ui/nova_button.dart';
-import '../../ui/nova_sheet.dart';
-import '../../ui/nova_text_field.dart';
+import '../../ui/kavio_button.dart';
+import '../../ui/kavio_sheet.dart';
+import '../../ui/kavio_text_field.dart';
 
 /// Создание клиента. Сохраняется в Drift (offline-first) → список обновляется
 /// реактивно. Событие уходит в аналитику.
 Future<void> showCreateClientSheet(BuildContext context) =>
-    showNovaSheet<void>(context, builder: (_) => const _CreateClientSheet());
+    showKavioSheet<void>(context, builder: (_) => const _CreateClientSheet());
 
 class _CreateClientSheet extends ConsumerStatefulWidget {
   const _CreateClientSheet();
@@ -60,12 +60,12 @@ class _CreateClientSheetState extends ConsumerState<_CreateClientSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return NovaSheet(
+    return KavioSheet(
       title: 'Новый клиент',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          NovaTextField(
+          KavioTextField(
             label: 'Имя',
             hint: 'Как зовут клиента',
             controller: _name,
@@ -74,14 +74,14 @@ class _CreateClientSheetState extends ConsumerState<_CreateClientSheet> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: Spacing.s4),
-          NovaTextField(
+          KavioTextField(
             label: 'Телефон',
             hint: '+7 700 000 00 00',
             controller: _phone,
             keyboardType: TextInputType.phone,
           ),
           const SizedBox(height: Spacing.s6),
-          NovaButton(
+          KavioButton(
             'Сохранить',
             expand: true,
             onPressed: _valid && !_saving ? _save : null,

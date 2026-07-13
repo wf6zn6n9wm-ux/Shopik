@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/services/subscriptions/entitlements.dart';
 import '../../design/theme.dart';
-import '../../ui/nova_button.dart';
-import '../../ui/nova_page_scaffold.dart';
+import '../../ui/kavio_button.dart';
+import '../../ui/kavio_page_scaffold.dart';
 
 /// Подписка. Текущий план — из SubscriptionService; покупка идёт через
 /// BillingService (Apple IAP / Play / Stripe) на этапе функционала.
@@ -36,7 +36,7 @@ class SubscriptionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final current = ref.watch(entitlementProvider).value ?? Entitlement.free;
 
-    return NovaPageScaffold(
+    return KavioPageScaffold(
       title: 'Подписка',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
@@ -72,14 +72,14 @@ class _PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Container(
       padding: const EdgeInsets.all(Spacing.s5),
       decoration: BoxDecoration(
-        color: nova.surface,
+        color: kavio.surface,
         borderRadius: BorderRadius.circular(Radii.lg),
         border: Border.all(
-          color: current ? nova.accent : nova.line,
+          color: current ? kavio.accent : kavio.line,
           width: current ? 1.5 : 1,
         ),
         boxShadow: current ? context.shadows.e1 : null,
@@ -90,11 +90,11 @@ class _PlanCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(name, style: AppTypography.title2(nova.ink)),
+              Text(name, style: AppTypography.title2(kavio.ink)),
               const Spacer(),
               Text('₸ $price',
-                  style: AppTypography.tabular(AppTypography.title3(nova.ink))),
-              Text(' / мес', style: AppTypography.label(nova.ink3)),
+                  style: AppTypography.tabular(AppTypography.title3(kavio.ink))),
+              Text(' / мес', style: AppTypography.label(kavio.ink3)),
             ],
           ),
           const SizedBox(height: Spacing.s3),
@@ -103,18 +103,18 @@ class _PlanCard extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: Spacing.s2),
               child: Row(
                 children: [
-                  Icon(Icons.check, size: 16, color: nova.success),
+                  Icon(Icons.check, size: 16, color: kavio.success),
                   const SizedBox(width: Spacing.s2),
                   Expanded(
-                      child: Text(f, style: AppTypography.label(nova.ink2))),
+                      child: Text(f, style: AppTypography.label(kavio.ink2))),
                 ],
               ),
             ),
           const SizedBox(height: Spacing.s2),
-          NovaButton(
+          KavioButton(
             current ? 'Текущий план' : 'Выбрать $name',
             expand: true,
-            kind: current ? NovaButtonKind.secondary : NovaButtonKind.primary,
+            kind: current ? KavioButtonKind.secondary : KavioButtonKind.primary,
             onPressed: current ? null : () {},
           ),
         ],

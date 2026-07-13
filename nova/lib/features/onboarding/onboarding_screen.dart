@@ -8,7 +8,7 @@ import '../../core/services/analytics/analytics_events.dart';
 import '../../core/services/analytics/analytics_service.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
-import '../../ui/nova_button.dart';
+import '../../ui/kavio_button.dart';
 
 /// Онбординг: выбор сферы → готовое рабочее пространство за секунды.
 /// Универсально для любой отрасли: набор берётся из IndustryCatalog (данные),
@@ -50,7 +50,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -63,10 +63,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Чем вы занимаетесь?',
-                      style: AppTypography.title1(nova.ink)),
+                      style: AppTypography.title1(kavio.ink)),
                   const SizedBox(height: Spacing.s2),
                   Text('Подберём готовые услуги и настройки под вашу сферу',
-                      style: AppTypography.body(nova.ink2)),
+                      style: AppTypography.body(kavio.ink2)),
                 ],
               ),
             ),
@@ -90,7 +90,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(
                   Spacing.s5, 0, Spacing.s5, Spacing.s5),
-              child: NovaButton(
+              child: KavioButton(
                 'Создать рабочее пространство',
                 expand: true,
                 onPressed: _selected == null || _saving ? null : _create,
@@ -116,7 +116,7 @@ class _IndustryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final accent = template.color;
     return GestureDetector(
       onTap: onTap,
@@ -124,17 +124,17 @@ class _IndustryCard extends StatelessWidget {
         duration: Motion.fast,
         curve: Motion.standard,
         decoration: BoxDecoration(
-          color: selected ? accent.withValues(alpha: 0.12) : nova.surface,
+          color: selected ? accent.withValues(alpha: 0.12) : kavio.surface,
           borderRadius: BorderRadius.circular(Radii.md),
           border: Border.all(
-            color: selected ? accent : nova.line,
+            color: selected ? accent : kavio.line,
             width: selected ? 1.5 : 1,
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(template.icon, size: 26, color: selected ? accent : nova.ink2),
+            Icon(template.icon, size: 26, color: selected ? accent : kavio.ink2),
             const SizedBox(height: Spacing.s2),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -143,7 +143,7 @@ class _IndustryCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: AppTypography.label(selected ? accent : nova.ink),
+                style: AppTypography.label(selected ? accent : kavio.ink),
               ),
             ),
           ],

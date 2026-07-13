@@ -7,15 +7,15 @@ import '../../core/services/analytics/analytics_events.dart';
 import '../../core/services/analytics/analytics_service.dart';
 import '../../core/services/remote_config/remote_config_service.dart';
 import '../../design/theme.dart';
-import '../../ui/nova_button.dart';
-import '../../ui/nova_page_scaffold.dart';
+import '../../ui/kavio_button.dart';
+import '../../ui/kavio_page_scaffold.dart';
 
 /// Онлайн-запись (бизнес-сторона): ссылка/QR для клиентов + шаринг. Гостевая
 /// web-страница записи — отдельная поверхность (v1). Гейтинг FeatureFlag.
 class OnlineBookingScreen extends ConsumerWidget {
   const OnlineBookingScreen({super.key});
 
-  static const _link = 'https://nova.app/@my-studio';
+  static const _link = 'https://kavio.app/@my-studio';
 
   Future<void> _copy(BuildContext context, WidgetRef ref) async {
     await Clipboard.setData(const ClipboardData(text: _link));
@@ -41,10 +41,10 @@ class OnlineBookingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final enabled = ref.watch(featureFlagProvider(FeatureFlag.onlineBooking));
 
-    return NovaPageScaffold(
+    return KavioPageScaffold(
       title: 'Онлайн-запись',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
@@ -54,18 +54,18 @@ class OnlineBookingScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(Spacing.s4),
               decoration: BoxDecoration(
-                color: nova.warningTint,
+                color: kavio.warningTint,
                 borderRadius: BorderRadius.circular(Radii.md),
               ),
               child: Text('Онлайн-запись временно выключена',
-                  style: AppTypography.label(nova.warning)),
+                  style: AppTypography.label(kavio.warning)),
             ),
           if (!enabled) const SizedBox(height: Spacing.s5),
-          Text('Ссылка для клиентов', style: AppTypography.title3(nova.ink)),
+          Text('Ссылка для клиентов', style: AppTypography.title3(kavio.ink)),
           const SizedBox(height: Spacing.s2),
           Text(
             'Поделитесь ссылкой — клиенты запишутся сами, без установки приложения.',
-            style: AppTypography.body(nova.ink2),
+            style: AppTypography.body(kavio.ink2),
           ),
           const SizedBox(height: Spacing.s5),
           GestureDetector(
@@ -74,15 +74,15 @@ class OnlineBookingScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: Spacing.s4, vertical: 14),
               decoration: BoxDecoration(
-                color: nova.surface3,
+                color: kavio.surface3,
                 borderRadius: BorderRadius.circular(Radii.sm),
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(_link, style: AppTypography.label(nova.ink)),
+                    child: Text(_link, style: AppTypography.label(kavio.ink)),
                   ),
-                  Icon(Icons.copy_outlined, size: 18, color: nova.ink2),
+                  Icon(Icons.copy_outlined, size: 18, color: kavio.ink2),
                 ],
               ),
             ),
@@ -92,22 +92,22 @@ class OnlineBookingScreen extends ConsumerWidget {
             aspectRatio: 1,
             child: Container(
               decoration: BoxDecoration(
-                color: nova.surface,
+                color: kavio.surface,
                 borderRadius: BorderRadius.circular(Radii.lg),
-                border: Border.all(color: nova.line),
+                border: Border.all(color: kavio.line),
               ),
               child: Center(
-                child: Icon(Icons.qr_code_2, size: 96, color: nova.ink3),
+                child: Icon(Icons.qr_code_2, size: 96, color: kavio.ink3),
               ),
             ),
           ),
           const SizedBox(height: Spacing.s5),
-          NovaButton('Поделиться ссылкой',
+          KavioButton('Поделиться ссылкой',
               icon: Icons.ios_share,
               expand: true,
               onPressed: enabled ? () => _share(ref) : null),
           const SizedBox(height: Spacing.s6),
-          Text('ПРАВИЛА', style: AppTypography.caption(nova.ink3)),
+          Text('ПРАВИЛА', style: AppTypography.caption(kavio.ink3)),
           const SizedBox(height: Spacing.s2),
           const _RuleRow(
               icon: Icons.schedule_outlined,
@@ -134,15 +134,15 @@ class _RuleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Spacing.s2),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: nova.ink2),
+          Icon(icon, size: 20, color: kavio.ink2),
           const SizedBox(width: Spacing.s3),
-          Expanded(child: Text(label, style: AppTypography.body(nova.ink))),
-          Text(value, style: AppTypography.label(nova.ink2)),
+          Expanded(child: Text(label, style: AppTypography.body(kavio.ink))),
+          Text(value, style: AppTypography.label(kavio.ink2)),
         ],
       ),
     );

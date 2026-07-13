@@ -5,8 +5,8 @@ import '../design/theme.dart';
 
 /// Каркас pushed-страницы: назад-шеврон + заголовок + тело. Премиально и без
 /// тяжёлого AppBar. Используется всеми экранами вне нижней навигации.
-class NovaPageScaffold extends StatelessWidget {
-  const NovaPageScaffold({
+class KavioPageScaffold extends StatelessWidget {
+  const KavioPageScaffold({
     super.key,
     required this.title,
     required this.body,
@@ -19,7 +19,7 @@ class NovaPageScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -34,14 +34,14 @@ class NovaPageScaffold extends StatelessWidget {
                     IconButton(
                       onPressed: context.pop,
                       icon: Icon(Icons.arrow_back_ios_new,
-                          size: 18, color: nova.ink),
+                          size: 18, color: kavio.ink),
                       splashRadius: 22,
                     ),
                   Expanded(
                     child: Padding(
                       padding:
                           const EdgeInsets.symmetric(horizontal: Spacing.s2),
-                      child: Text(title, style: AppTypography.title3(nova.ink)),
+                      child: Text(title, style: AppTypography.title3(kavio.ink)),
                     ),
                   ),
                   if (actions != null) ...actions!,

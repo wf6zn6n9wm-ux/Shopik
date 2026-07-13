@@ -7,16 +7,16 @@ export 'colors.dart';
 export 'tokens.dart';
 export 'typography.dart';
 
-/// Доступ к токенам из контекста: `context.nova.accent`, `context.shadows.e1`.
-extension NovaContext on BuildContext {
-  NovaColors get nova => Theme.of(this).extension<NovaColors>()!;
-  NovaShadows get shadows => Theme.of(this).extension<NovaShadows>()!;
+/// Доступ к токенам из контекста: `context.kavio.accent`, `context.shadows.e1`.
+extension KavioContext on BuildContext {
+  KavioColors get kavio => Theme.of(this).extension<KavioColors>()!;
+  KavioShadows get shadows => Theme.of(this).extension<KavioShadows>()!;
 }
 
-ThemeData buildNovaTheme(Brightness brightness) {
+ThemeData buildKavioTheme(Brightness brightness) {
   final isDark = brightness == Brightness.dark;
-  final c = isDark ? NovaColors.dark : NovaColors.light;
-  final shadows = isDark ? NovaShadows.dark : NovaShadows.light;
+  final c = isDark ? KavioColors.dark : KavioColors.light;
+  final shadows = isDark ? KavioShadows.dark : KavioShadows.light;
 
   final textTheme = TextTheme(
     displaySmall: AppTypography.display(c.ink),

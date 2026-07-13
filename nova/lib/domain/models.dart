@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-/// Доменные модели Nova. Иммутабельные, с copyWith.
+/// Доменные модели Kavio. Иммутабельные, с copyWith.
 /// Appointment — центральный узел (клиент + мастер + услуга + время + статус).
 
 enum AppointmentStatus {

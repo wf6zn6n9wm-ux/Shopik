@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
 import '../../design/theme.dart';
-import '../../ui/nova_list_tile.dart';
+import '../../ui/kavio_list_tile.dart';
 import '../../ui/section_header.dart';
 
 /// «Меню» — вход в разделы вне ежедневной навигации. MVP-разделы навигируют;
@@ -13,7 +13,7 @@ class MenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return SafeArea(
       bottom: false,
       child: ListView(
@@ -22,34 +22,34 @@ class MenuScreen extends StatelessWidget {
         children: [
           const ScreenTitle('Меню'),
           const SizedBox(height: Spacing.s5),
-          _card(nova, [
-            NovaListTile(
+          _card(kavio, [
+            KavioListTile(
               icon: Icons.cut_outlined,
               title: 'Услуги и цены',
               onTap: () => context.push(Routes.services),
             ),
-            _div(nova),
-            NovaListTile(
+            _div(kavio),
+            KavioListTile(
               icon: Icons.link_outlined,
               title: 'Онлайн-запись',
               onTap: () => context.push(Routes.onlineBooking),
             ),
           ]),
           const SizedBox(height: Spacing.s4),
-          _card(nova, [
-            NovaListTile(
+          _card(kavio, [
+            KavioListTile(
               icon: Icons.workspace_premium_outlined,
               title: 'Подписка',
               onTap: () => context.push(Routes.subscription),
             ),
-            _div(nova),
-            NovaListTile(
+            _div(kavio),
+            KavioListTile(
               icon: Icons.person_outline,
               title: 'Профиль',
               onTap: () => context.push(Routes.profile),
             ),
-            _div(nova),
-            NovaListTile(
+            _div(kavio),
+            KavioListTile(
               icon: Icons.settings_outlined,
               title: 'Настройки',
               onTap: () => context.push(Routes.settings),
@@ -60,15 +60,15 @@ class MenuScreen extends StatelessWidget {
     );
   }
 
-  Widget _card(NovaColors nova, List<Widget> children) => Container(
+  Widget _card(KavioColors kavio, List<Widget> children) => Container(
         decoration: BoxDecoration(
-          color: nova.surface,
+          color: kavio.surface,
           borderRadius: BorderRadius.circular(Radii.lg),
-          border: Border.all(color: nova.line),
+          border: Border.all(color: kavio.line),
         ),
         child: Column(children: children),
       );
 
-  Widget _div(NovaColors nova) =>
-      Divider(height: 1, thickness: 1, color: nova.line, indent: 52);
+  Widget _div(KavioColors kavio) =>
+      Divider(height: 1, thickness: 1, color: kavio.line, indent: 52);
 }

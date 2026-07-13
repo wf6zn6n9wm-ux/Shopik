@@ -24,14 +24,14 @@ class _SkeletonRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Container(
       height: 66,
       padding: const EdgeInsets.all(Spacing.s3),
       decoration: BoxDecoration(
-        color: nova.surface,
+        color: kavio.surface,
         borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(color: nova.line),
+        border: Border.all(color: kavio.line),
       ),
       child: const Row(
         children: [
@@ -75,7 +75,7 @@ class _ShimmerState extends State<_Shimmer>
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final reduce = MediaQuery.of(context).disableAnimations;
     return SizedBox(
       width: widget.width,
@@ -90,7 +90,7 @@ class _ShimmerState extends State<_Shimmer>
               gradient: LinearGradient(
                 begin: Alignment(-1 + t * 2, 0),
                 end: Alignment(1 + t * 2, 0),
-                colors: [nova.surface2, nova.surface3, nova.surface2],
+                colors: [kavio.surface2, kavio.surface3, kavio.surface2],
               ),
             ),
           );

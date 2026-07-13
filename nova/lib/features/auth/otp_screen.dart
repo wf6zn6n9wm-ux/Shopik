@@ -8,9 +8,9 @@ import '../../core/services/analytics/analytics_events.dart';
 import '../../core/services/analytics/analytics_service.dart';
 import '../../core/services/auth/auth_service.dart';
 import '../../design/theme.dart';
-import '../../ui/nova_button.dart';
-import '../../ui/nova_page_scaffold.dart';
-import '../../ui/nova_text_field.dart';
+import '../../ui/kavio_button.dart';
+import '../../ui/kavio_page_scaffold.dart';
+import '../../ui/kavio_text_field.dart';
 
 /// Ввод OTP-кода. Проверка идёт через AuthService (в дефолте офлайн — любой код;
 /// реальная — в адаптере). Новый пользователь → онбординг.
@@ -52,19 +52,19 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
-    return NovaPageScaffold(
+    final kavio = context.kavio;
+    return KavioPageScaffold(
       title: 'Подтверждение',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
             Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
         children: [
-          Text('Введите код из SMS', style: AppTypography.title3(nova.ink)),
+          Text('Введите код из SMS', style: AppTypography.title3(kavio.ink)),
           const SizedBox(height: Spacing.s2),
           Text('Отправлен на ${widget.contact}',
-              style: AppTypography.body(nova.ink2)),
+              style: AppTypography.body(kavio.ink2)),
           const SizedBox(height: Spacing.s6),
-          NovaTextField(
+          KavioTextField(
             label: 'Код',
             hint: '••••',
             controller: _code,
@@ -77,14 +77,14 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: Spacing.s6),
-          NovaButton('Подтвердить',
+          KavioButton('Подтвердить',
               expand: true, onPressed: _valid && !_busy ? _verify : null),
           const SizedBox(height: Spacing.s3),
           Center(
             child: TextButton(
               onPressed: _resend,
               child: Text('Отправить код снова',
-                  style: AppTypography.label(nova.accent)),
+                  style: AppTypography.label(kavio.accent)),
             ),
           ),
         ],

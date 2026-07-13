@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../app/routes.dart';
 import '../../design/theme.dart';
 import '../../ui/client_row.dart';
-import '../../ui/nova_button.dart';
-import '../../ui/nova_page_scaffold.dart';
+import '../../ui/kavio_button.dart';
+import '../../ui/kavio_page_scaffold.dart';
 
 /// Профиль пользователя. Данные подтянутся из AuthService/бизнеса на этапе
 /// функционала; здесь — структура и выход.
@@ -14,8 +14,8 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
-    return NovaPageScaffold(
+    final kavio = context.kavio;
+    return KavioPageScaffold(
       title: 'Профиль',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
@@ -28,18 +28,18 @@ class ProfileScreen extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Ирина', style: AppTypography.title2(nova.ink)),
+                  Text('Ирина', style: AppTypography.title2(kavio.ink)),
                   const SizedBox(height: 2),
                   Text('Моя студия · Мастер',
-                      style: AppTypography.label(nova.ink2)),
+                      style: AppTypography.label(kavio.ink2)),
                 ],
               ),
             ],
           ),
           const SizedBox(height: Spacing.s8),
-          NovaButton(
+          KavioButton(
             'Выйти',
-            kind: NovaButtonKind.secondary,
+            kind: KavioButtonKind.secondary,
             expand: true,
             onPressed: () => context.go(Routes.auth),
           ),

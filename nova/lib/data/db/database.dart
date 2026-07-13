@@ -123,7 +123,7 @@ class Appointments extends Table {
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(driftDatabase(name: 'nova'));
+  AppDatabase() : super(driftDatabase(name: 'kavio'));
   AppDatabase.forTesting(super.e);
 
   @override

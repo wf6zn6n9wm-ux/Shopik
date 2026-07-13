@@ -8,8 +8,8 @@ import '../../core/services/analytics/analytics_service.dart';
 import '../../core/services/auth/auth_service.dart';
 import '../../design/theme.dart';
 import '../../ui/brand_mark.dart';
-import '../../ui/nova_button.dart';
-import '../../ui/nova_text_field.dart';
+import '../../ui/kavio_button.dart';
+import '../../ui/kavio_text_field.dart';
 
 /// Вход. Телефон + код (без пароля-барьера), либо Apple / Google Sign In.
 /// Спроектирован под мультиметодную авторизацию; реальные OTP/социальные
@@ -63,7 +63,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -74,15 +74,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               const Spacer(),
               const Center(child: BrandMark(size: 56)),
               const SizedBox(height: Spacing.s6),
-              Text('Вход в Nova',
+              Text('Вход в Kavio',
                   textAlign: TextAlign.center,
-                  style: AppTypography.title1(nova.ink)),
+                  style: AppTypography.title1(kavio.ink)),
               const SizedBox(height: Spacing.s2),
               Text('Записи, клиенты и расписание — в одном месте',
                   textAlign: TextAlign.center,
-                  style: AppTypography.body(nova.ink2)),
+                  style: AppTypography.body(kavio.ink2)),
               const SizedBox(height: Spacing.s8),
-              NovaTextField(
+              KavioTextField(
                 label: 'Телефон',
                 hint: '+7 700 000 00 00',
                 controller: _phone,
@@ -90,27 +90,27 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 prefixIcon: Icons.phone_outlined,
               ),
               const SizedBox(height: Spacing.s4),
-              NovaButton('Получить код',
+              KavioButton('Получить код',
                   expand: true, onPressed: _busy ? null : _requestCode),
               const SizedBox(height: Spacing.s5),
               const _Divider(),
               const SizedBox(height: Spacing.s5),
-              NovaButton('Продолжить с Apple',
+              KavioButton('Продолжить с Apple',
                   icon: Icons.apple,
-                  kind: NovaButtonKind.secondary,
+                  kind: KavioButtonKind.secondary,
                   expand: true,
                   onPressed: _busy ? null : () => _social(AuthMethod.apple)),
               const SizedBox(height: Spacing.s3),
-              NovaButton('Продолжить с Google',
+              KavioButton('Продолжить с Google',
                   icon: Icons.g_mobiledata,
-                  kind: NovaButtonKind.secondary,
+                  kind: KavioButtonKind.secondary,
                   expand: true,
                   onPressed: _busy ? null : () => _social(AuthMethod.google)),
               const Spacer(),
               Center(
                 child: Text('Продолжая, вы принимаете условия сервиса',
                     textAlign: TextAlign.center,
-                    style: AppTypography.caption(nova.ink3)),
+                    style: AppTypography.caption(kavio.ink3)),
               ),
             ],
           ),
@@ -125,15 +125,15 @@ class _Divider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Row(
       children: [
-        Expanded(child: Divider(color: nova.line)),
+        Expanded(child: Divider(color: kavio.line)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: Spacing.s3),
-          child: Text('или', style: AppTypography.caption(nova.ink3)),
+          child: Text('или', style: AppTypography.caption(kavio.ink3)),
         ),
-        Expanded(child: Divider(color: nova.line)),
+        Expanded(child: Divider(color: kavio.line)),
       ],
     );
   }

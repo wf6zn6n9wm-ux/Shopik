@@ -1,4 +1,4 @@
-# Nova — Flutter (финальная архитектура)
+# Kavio — Flutter (финальная архитектура)
 
 CRM нового поколения для сферы услуг. Offline-first SaaS, рассчитанный на
 масштаб (миллионы пользователей) и долгосрочное расширение. Этот пакет —
@@ -19,7 +19,7 @@ CRM нового поколения для сферы услуг. Offline-first 
 ## Запуск
 
 ```bash
-cd nova
+cd kavio
 flutter pub get
 # 1) Кодогенерация Drift (обязательно перед первым запуском):
 dart run build_runner build --delete-conflicting-outputs
@@ -58,7 +58,7 @@ lib/
 │  ├─ repositories/drift_repositories.dart  реализация контрактов поверх Drift
 │  └─ providers.dart                Riverpod: БД, репозитории, потоки, сводка
 ├─ ui/             переиспользуемые виджеты из токенов
-│  ├─ nova_button · status_pill · stat_tile · appointment_card · client_row
+│  ├─ kavio_button · status_pill · stat_tile · appointment_card · client_row
 │  ├─ empty_state · error_view · skeleton · format
 ├─ features/       экраны (Consumer, реактивные потоки: loading/error/empty)
 │  ├─ today/ · clients/ · create/ · analytics/ · menu/

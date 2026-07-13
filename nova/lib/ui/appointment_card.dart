@@ -12,20 +12,20 @@ class AppointmentCard extends StatelessWidget {
   final Appointment appointment;
   final VoidCallback? onTap;
 
-  Color _railColor(NovaColors nova) => switch (appointment.status) {
-        AppointmentStatus.online => nova.accent,
+  Color _railColor(KavioColors kavio) => switch (appointment.status) {
+        AppointmentStatus.online => kavio.accent,
         AppointmentStatus.confirmed ||
         AppointmentStatus.completed =>
-          nova.success,
+          kavio.success,
         AppointmentStatus.pending ||
         AppointmentStatus.inProgress =>
-          nova.warning,
-        AppointmentStatus.noShow || AppointmentStatus.cancelled => nova.danger,
+          kavio.warning,
+        AppointmentStatus.noShow || AppointmentStatus.cancelled => kavio.danger,
       };
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final a = appointment;
     return GestureDetector(
       onTap: onTap,
@@ -33,9 +33,9 @@ class AppointmentCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
         decoration: BoxDecoration(
-          color: nova.surface,
+          color: kavio.surface,
           borderRadius: BorderRadius.circular(Radii.md),
-          border: Border.all(color: nova.line),
+          border: Border.all(color: kavio.line),
           boxShadow: context.shadows.e1,
         ),
         child: Row(
@@ -46,7 +46,7 @@ class AppointmentCard extends StatelessWidget {
               height: 40,
               margin: const EdgeInsets.only(right: 12, top: 1),
               decoration: BoxDecoration(
-                  color: _railColor(nova),
+                  color: _railColor(kavio),
                   borderRadius: BorderRadius.circular(3)),
             ),
             SizedBox(
@@ -56,10 +56,10 @@ class AppointmentCard extends StatelessWidget {
                 children: [
                   Text(Fmt.time(a.start),
                       style:
-                          AppTypography.tabular(AppTypography.label(nova.ink2))
+                          AppTypography.tabular(AppTypography.label(kavio.ink2))
                               .copyWith(fontWeight: FontWeight.w600)),
                   Text("${a.service.durationMinutes}′",
-                      style: AppTypography.caption(nova.ink3)
+                      style: AppTypography.caption(kavio.ink3)
                           .copyWith(letterSpacing: 0)),
                 ],
               ),
@@ -70,14 +70,14 @@ class AppointmentCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(a.client.name,
-                      style: AppTypography.title3(nova.ink)
+                      style: AppTypography.title3(kavio.ink)
                           .copyWith(fontSize: 15)),
                   const SizedBox(height: 2),
                   Text(
                     a.staff == null
                         ? a.service.name
                         : '${a.service.name} · ${a.staff!.name}',
-                    style: AppTypography.label(nova.ink2),
+                    style: AppTypography.label(kavio.ink2),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

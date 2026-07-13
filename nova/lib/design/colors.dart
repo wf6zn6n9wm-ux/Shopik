@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// Цветовые токены Nova как ThemeExtension. Компоненты обращаются только к
-/// токенам (`context.nova.accent`), никогда к hex напрямую.
+/// Цветовые токены Kavio как ThemeExtension. Компоненты обращаются только к
+/// токенам (`context.kavio.accent`), никогда к hex напрямую.
 /// Обе темы — первого класса, не инверсия: в dark акцент ярче, поверхности
 /// расслаиваются осветлением.
 @immutable
-class NovaColors extends ThemeExtension<NovaColors> {
-  const NovaColors({
+class KavioColors extends ThemeExtension<KavioColors> {
+  const KavioColors({
     required this.canvas,
     required this.surface,
     required this.surface2,
@@ -36,7 +36,7 @@ class NovaColors extends ThemeExtension<NovaColors> {
   final Color warning, warningTint;
   final Color danger, dangerTint;
 
-  static const NovaColors light = NovaColors(
+  static const KavioColors light = KavioColors(
     canvas: Color(0xFFFBFBFC),
     surface: Color(0xFFFFFFFF),
     surface2: Color(0xFFF4F4F7),
@@ -58,7 +58,7 @@ class NovaColors extends ThemeExtension<NovaColors> {
     dangerTint: Color(0x1FDC2F35),
   );
 
-  static const NovaColors dark = NovaColors(
+  static const KavioColors dark = KavioColors(
     canvas: Color(0xFF0B0B0F),
     surface: Color(0xFF16161B),
     surface2: Color(0xFF1F1F26),
@@ -81,7 +81,7 @@ class NovaColors extends ThemeExtension<NovaColors> {
   );
 
   @override
-  NovaColors copyWith({
+  KavioColors copyWith({
     Color? canvas,
     Color? surface,
     Color? surface2,
@@ -102,7 +102,7 @@ class NovaColors extends ThemeExtension<NovaColors> {
     Color? danger,
     Color? dangerTint,
   }) {
-    return NovaColors(
+    return KavioColors(
       canvas: canvas ?? this.canvas,
       surface: surface ?? this.surface,
       surface2: surface2 ?? this.surface2,
@@ -126,10 +126,10 @@ class NovaColors extends ThemeExtension<NovaColors> {
   }
 
   @override
-  NovaColors lerp(covariant NovaColors? other, double t) {
+  KavioColors lerp(covariant KavioColors? other, double t) {
     if (other == null) return this;
     Color c(Color a, Color b) => Color.lerp(a, b, t)!;
-    return NovaColors(
+    return KavioColors(
       canvas: c(canvas, other.canvas),
       surface: c(surface, other.surface),
       surface2: c(surface2, other.surface2),
@@ -155,12 +155,12 @@ class NovaColors extends ThemeExtension<NovaColors> {
 
 /// Тени (elevation). Мягкие, низкоконтрастные — глубину даёт слой, а не драма.
 @immutable
-class NovaShadows extends ThemeExtension<NovaShadows> {
-  const NovaShadows({required this.e1, required this.e2, required this.e3});
+class KavioShadows extends ThemeExtension<KavioShadows> {
+  const KavioShadows({required this.e1, required this.e2, required this.e3});
 
   final List<BoxShadow> e1, e2, e3;
 
-  static const NovaShadows light = NovaShadows(
+  static const KavioShadows light = KavioShadows(
     e1: [
       BoxShadow(color: Color(0x0D14142D), blurRadius: 2, offset: Offset(0, 1)),
       BoxShadow(color: Color(0x0F14142D), blurRadius: 3, offset: Offset(0, 1)),
@@ -173,7 +173,7 @@ class NovaShadows extends ThemeExtension<NovaShadows> {
     ],
   );
 
-  static const NovaShadows dark = NovaShadows(
+  static const KavioShadows dark = KavioShadows(
     e1: [
       BoxShadow(color: Color(0x66000000), blurRadius: 2, offset: Offset(0, 1))
     ],
@@ -186,11 +186,11 @@ class NovaShadows extends ThemeExtension<NovaShadows> {
   );
 
   @override
-  NovaShadows copyWith(
+  KavioShadows copyWith(
           {List<BoxShadow>? e1, List<BoxShadow>? e2, List<BoxShadow>? e3}) =>
-      NovaShadows(e1: e1 ?? this.e1, e2: e2 ?? this.e2, e3: e3 ?? this.e3);
+      KavioShadows(e1: e1 ?? this.e1, e2: e2 ?? this.e2, e3: e3 ?? this.e3);
 
   @override
-  NovaShadows lerp(covariant NovaShadows? other, double t) =>
+  KavioShadows lerp(covariant KavioShadows? other, double t) =>
       t < 0.5 ? this : (other ?? this);
 }

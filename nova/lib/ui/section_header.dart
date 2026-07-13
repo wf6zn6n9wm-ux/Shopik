@@ -11,15 +11,15 @@ class ScreenTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (subtitle != null) ...[
-          Text(subtitle!, style: AppTypography.label(nova.ink2)),
+          Text(subtitle!, style: AppTypography.label(kavio.ink2)),
           const SizedBox(height: 2),
         ],
-        Text(title, style: AppTypography.title1(nova.ink)),
+        Text(title, style: AppTypography.title1(kavio.ink)),
       ],
     );
   }
@@ -33,6 +33,6 @@ class SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(label, style: AppTypography.caption(context.nova.ink3));
+    return Text(label, style: AppTypography.caption(context.kavio.ink3));
   }
 }

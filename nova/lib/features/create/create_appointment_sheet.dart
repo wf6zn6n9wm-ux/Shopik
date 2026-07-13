@@ -10,13 +10,13 @@ import '../../design/theme.dart';
 import '../../domain/models.dart';
 import '../../ui/client_row.dart';
 import '../../ui/format.dart';
-import '../../ui/nova_button.dart';
-import '../../ui/nova_sheet.dart';
+import '../../ui/kavio_button.dart';
+import '../../ui/kavio_sheet.dart';
 
 /// Быстрая запись — bottom sheet. Каркас: выбор клиента и услуги → «Записать».
 /// (Умные слоты/предсказание услуги — AI-слой следующего этапа.)
 Future<void> showCreateAppointmentSheet(BuildContext context) =>
-    showNovaSheet<void>(context, builder: (_) => const _CreateSheet());
+    showKavioSheet<void>(context, builder: (_) => const _CreateSheet());
 
 class _CreateSheet extends ConsumerStatefulWidget {
   const _CreateSheet();
@@ -31,18 +31,18 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final clients = ref.watch(clientsProvider).value ?? const <Client>[];
     final services = ref.watch(servicesProvider).value ?? const <Service>[];
     final ready = _client != null && _service != null;
 
-    return NovaSheet(
+    return KavioSheet(
       title: 'Новая запись',
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('КЛИЕНТ', style: AppTypography.caption(nova.ink3)),
+          Text('КЛИЕНТ', style: AppTypography.caption(kavio.ink3)),
           const SizedBox(height: Spacing.s2),
           ...clients.take(3).map((c) => Padding(
                 padding: const EdgeInsets.only(bottom: Spacing.s2),
@@ -53,7 +53,7 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
                 ),
               )),
           const SizedBox(height: Spacing.s4),
-          Text('УСЛУГА', style: AppTypography.caption(nova.ink3)),
+          Text('УСЛУГА', style: AppTypography.caption(kavio.ink3)),
           const SizedBox(height: Spacing.s2),
           Wrap(
             spacing: Spacing.s2,
@@ -69,7 +69,7 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
           const SizedBox(height: Spacing.s6),
           Align(
             alignment: Alignment.centerLeft,
-            child: NovaButton(
+            child: KavioButton(
               'Записать',
               icon: Icons.check,
               onPressed: ready ? () => _create(context) : null,
@@ -139,14 +139,14 @@ class _Selectable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(Radii.md),
           border: Border.all(
-              color: selected ? nova.accent : Colors.transparent, width: 1.5),
+              color: selected ? kavio.accent : Colors.transparent, width: 1.5),
         ),
         child: child,
       ),
@@ -163,18 +163,18 @@ class _ServiceChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
         decoration: BoxDecoration(
-          color: selected ? nova.accent : nova.surface3,
+          color: selected ? kavio.accent : kavio.surface3,
           borderRadius: BorderRadius.circular(Radii.full),
         ),
         child: Text(
           '${service.name} · ${service.durationMinutes}′',
-          style: AppTypography.label(selected ? nova.onAccent : nova.ink2)
+          style: AppTypography.label(selected ? kavio.onAccent : kavio.ink2)
               .copyWith(fontWeight: FontWeight.w500),
         ),
       ),

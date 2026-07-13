@@ -6,8 +6,8 @@ import '../../design/theme.dart';
 import '../../ui/empty_state.dart';
 import '../../ui/error_view.dart';
 import '../../ui/format.dart';
-import '../../ui/nova_list_tile.dart';
-import '../../ui/nova_page_scaffold.dart';
+import '../../ui/kavio_list_tile.dart';
+import '../../ui/kavio_page_scaffold.dart';
 import '../../ui/skeleton.dart';
 import 'create_service_sheet.dart';
 
@@ -17,15 +17,15 @@ class ServicesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final servicesAsync = ref.watch(servicesProvider);
 
-    return NovaPageScaffold(
+    return KavioPageScaffold(
       title: 'Услуги',
       actions: [
         IconButton(
           onPressed: () => showCreateServiceSheet(context),
-          icon: Icon(Icons.add, color: nova.accent),
+          icon: Icon(Icons.add, color: kavio.accent),
           splashRadius: 22,
         ),
       ],
@@ -50,17 +50,17 @@ class ServicesScreen extends ConsumerWidget {
                   final s = services[i];
                   return DecoratedBox(
                     decoration: BoxDecoration(
-                      color: nova.surface,
+                      color: kavio.surface,
                       borderRadius: BorderRadius.circular(Radii.md),
-                      border: Border.all(color: nova.line),
+                      border: Border.all(color: kavio.line),
                     ),
-                    child: NovaListTile(
+                    child: KavioListTile(
                       title: s.name,
                       subtitle: Fmt.duration(s.durationMinutes),
                       trailing: Text(
                         Fmt.money(s.price),
                         style:
-                            AppTypography.tabular(AppTypography.label(nova.ink))
+                            AppTypography.tabular(AppTypography.label(kavio.ink))
                                 .copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),

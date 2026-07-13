@@ -12,7 +12,7 @@ class AnalyticsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final s = ref.watch(daySummaryProvider);
 
     return SafeArea(
@@ -21,7 +21,7 @@ class AnalyticsScreen extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(
             Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
         children: [
-          Text('Обзор', style: AppTypography.title1(nova.ink)),
+          Text('Обзор', style: AppTypography.title1(kavio.ink)),
           const SizedBox(height: Spacing.s5),
           StatTile(
               label: 'Выручка сегодня',
@@ -36,18 +36,18 @@ class AnalyticsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: Spacing.s6),
-          Text('ЗА ПЕРИОД', style: AppTypography.caption(nova.ink3)),
+          Text('ЗА ПЕРИОД', style: AppTypography.caption(kavio.ink3)),
           const SizedBox(height: Spacing.s3),
           Container(
             height: 140,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: nova.surface,
+              color: kavio.surface,
               borderRadius: BorderRadius.circular(Radii.lg),
-              border: Border.all(color: nova.line),
+              border: Border.all(color: kavio.line),
             ),
             child: Text('Период-дашборд — следующий шаг',
-                style: AppTypography.label(nova.ink3)),
+                style: AppTypography.label(kavio.ink3)),
           ),
         ],
       ),

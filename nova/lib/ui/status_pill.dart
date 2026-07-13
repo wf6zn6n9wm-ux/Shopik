@@ -11,20 +11,20 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final (fg, bg) = switch (status) {
-      AppointmentStatus.online => (nova.accent, nova.accentTint),
+      AppointmentStatus.online => (kavio.accent, kavio.accentTint),
       AppointmentStatus.confirmed || AppointmentStatus.completed => (
-          nova.success,
-          nova.successTint
+          kavio.success,
+          kavio.successTint
         ),
       AppointmentStatus.pending || AppointmentStatus.inProgress => (
-          nova.warning,
-          nova.warningTint
+          kavio.warning,
+          kavio.warningTint
         ),
       AppointmentStatus.noShow || AppointmentStatus.cancelled => (
-          nova.danger,
-          nova.dangerTint
+          kavio.danger,
+          kavio.dangerTint
         ),
     };
     return Container(

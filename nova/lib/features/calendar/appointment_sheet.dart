@@ -7,13 +7,13 @@ import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
 import '../../ui/format.dart';
-import '../../ui/nova_button.dart';
-import '../../ui/nova_sheet.dart';
+import '../../ui/kavio_button.dart';
+import '../../ui/kavio_sheet.dart';
 import '../../ui/status_pill.dart';
 
 /// Карточка записи: детали + смена статуса + удаление (с аналитикой).
 Future<void> showAppointmentSheet(BuildContext context, Appointment a) =>
-    showNovaSheet<void>(context,
+    showKavioSheet<void>(context,
         builder: (_) => _AppointmentSheet(appointment: a));
 
 class _AppointmentSheet extends ConsumerWidget {
@@ -44,14 +44,14 @@ class _AppointmentSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final a = appointment;
     final meta = [
       if (a.staff != null) a.staff!.name,
       if (a.resource != null) a.resource!.name,
     ].join(' · ');
 
-    return NovaSheet(
+    return KavioSheet(
       title: a.client.name,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -59,23 +59,23 @@ class _AppointmentSheet extends ConsumerWidget {
           Row(
             children: [
               Text(Fmt.range(a.start, a.end),
-                  style: AppTypography.label(nova.ink2)),
+                  style: AppTypography.label(kavio.ink2)),
               const Spacer(),
               StatusPill(a.status),
             ],
           ),
           const SizedBox(height: Spacing.s2),
           Text('${a.service.name} · ${Fmt.money(a.service.price)}',
-              style: AppTypography.body(nova.ink)),
+              style: AppTypography.body(kavio.ink)),
           if (meta.isNotEmpty) ...[
             const SizedBox(height: 2),
-            Text(meta, style: AppTypography.label(nova.ink2)),
+            Text(meta, style: AppTypography.label(kavio.ink2)),
           ],
           const SizedBox(height: Spacing.s5),
           Row(
             children: [
               Expanded(
-                child: NovaButton('Подтвердить',
+                child: KavioButton('Подтвердить',
                     small: true,
                     expand: true,
                     onPressed: () =>
@@ -83,10 +83,10 @@ class _AppointmentSheet extends ConsumerWidget {
               ),
               const SizedBox(width: Spacing.s2),
               Expanded(
-                child: NovaButton('Завершить',
+                child: KavioButton('Завершить',
                     small: true,
                     expand: true,
-                    kind: NovaButtonKind.secondary,
+                    kind: KavioButtonKind.secondary,
                     onPressed: () =>
                         _setStatus(ref, context, AppointmentStatus.completed)),
               ),
@@ -96,19 +96,19 @@ class _AppointmentSheet extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: NovaButton('Неявка',
+                child: KavioButton('Неявка',
                     small: true,
                     expand: true,
-                    kind: NovaButtonKind.secondary,
+                    kind: KavioButtonKind.secondary,
                     onPressed: () =>
                         _setStatus(ref, context, AppointmentStatus.noShow)),
               ),
               const SizedBox(width: Spacing.s2),
               Expanded(
-                child: NovaButton('Удалить',
+                child: KavioButton('Удалить',
                     small: true,
                     expand: true,
-                    kind: NovaButtonKind.danger,
+                    kind: KavioButtonKind.danger,
                     onPressed: () => _delete(ref, context)),
               ),
             ],

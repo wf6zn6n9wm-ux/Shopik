@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// Типографика Nova — 8 ступеней на 4pt-ритме. Гарнитура Inter забандлена
+/// Типографика Kavio — 8 ступеней на 4pt-ритме. Гарнитура Inter забандлена
 /// локально (offline-first). Точные веса — через fontVariations вариативного
 /// шрифта. Размеры/веса не зависят от темы; цвет передаётся при использовании.
 abstract final class AppTypography {

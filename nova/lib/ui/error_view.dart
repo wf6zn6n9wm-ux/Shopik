@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../design/theme.dart';
-import 'nova_button.dart';
+import 'kavio_button.dart';
 
 /// Спокойный экран ошибки: человеческий язык + путь вперёд (повторить).
 class ErrorView extends StatelessWidget {
@@ -11,25 +11,25 @@ class ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(Spacing.s6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off_outlined, color: nova.ink3, size: 32),
+            Icon(Icons.cloud_off_outlined, color: kavio.ink3, size: 32),
             const SizedBox(height: Spacing.s3),
             Text(
               message ??
                   'Не удалось загрузить. Данные сохранены — попробуйте ещё раз.',
               textAlign: TextAlign.center,
-              style: AppTypography.label(nova.ink2),
+              style: AppTypography.label(kavio.ink2),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: Spacing.s4),
-              NovaButton('Повторить',
-                  kind: NovaButtonKind.secondary,
+              KavioButton('Повторить',
+                  kind: KavioButtonKind.secondary,
                   small: true,
                   onPressed: onRetry),
             ],

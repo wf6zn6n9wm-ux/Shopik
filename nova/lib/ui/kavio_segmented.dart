@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../design/theme.dart';
 
 /// Сегмент-контрол (напр. День / 3 дня / Неделя). Плавный переход выделения.
-class NovaSegmented extends StatelessWidget {
-  const NovaSegmented({
+class KavioSegmented extends StatelessWidget {
+  const KavioSegmented({
     super.key,
     required this.segments,
     required this.selected,
@@ -17,11 +17,11 @@ class NovaSegmented extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: nova.surface3,
+        color: kavio.surface3,
         borderRadius: BorderRadius.circular(Radii.sm),
       ),
       child: Row(
@@ -36,7 +36,7 @@ class NovaSegmented extends StatelessWidget {
                   curve: Motion.standard,
                   padding: const EdgeInsets.symmetric(vertical: Spacing.s2),
                   decoration: BoxDecoration(
-                    color: selected == i ? nova.surface : Colors.transparent,
+                    color: selected == i ? kavio.surface : Colors.transparent,
                     borderRadius: BorderRadius.circular(Radii.xs),
                     boxShadow: selected == i ? context.shadows.e1 : null,
                   ),
@@ -44,7 +44,7 @@ class NovaSegmented extends StatelessWidget {
                     segments[i],
                     textAlign: TextAlign.center,
                     style: AppTypography.label(
-                            selected == i ? nova.ink : nova.ink2)
+                            selected == i ? kavio.ink : kavio.ink2)
                         .copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),

@@ -18,34 +18,34 @@ class StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Container(
       padding: EdgeInsets.all(compact ? Spacing.s3 : Spacing.s4),
       decoration: BoxDecoration(
-        color: nova.surface,
+        color: kavio.surface,
         borderRadius: BorderRadius.circular(compact ? Radii.sm : Radii.md),
-        border: Border.all(color: nova.line),
+        border: Border.all(color: kavio.line),
         boxShadow: compact ? null : context.shadows.e1,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: AppTypography.label(nova.ink2)
+              style: AppTypography.label(kavio.ink2)
                   .copyWith(fontSize: compact ? 10 : 12)),
           SizedBox(height: compact ? 2 : 3),
           Text(
             value,
             style: AppTypography.tabular(
               compact
-                  ? AppTypography.title3(nova.ink)
-                  : AppTypography.title1(nova.ink).copyWith(fontSize: 26),
+                  ? AppTypography.title3(kavio.ink)
+                  : AppTypography.title1(kavio.ink).copyWith(fontSize: 26),
             ),
           ),
           if (delta != null) ...[
             const SizedBox(height: 2),
             Text(delta!,
-                style: AppTypography.label(nova.success)
+                style: AppTypography.label(kavio.success)
                     .copyWith(fontWeight: FontWeight.w600, fontSize: 12)),
           ],
         ],

@@ -4,16 +4,16 @@ import '../design/theme.dart';
 
 /// Единый премиальный bottom sheet: скруглённый верх, grabber, безопасные
 /// отступы, учёт клавиатуры. Все модалки создания идут через него.
-Future<T?> showNovaSheet<T>(
+Future<T?> showKavioSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
   bool isScrollControlled = true,
 }) {
-  final nova = context.nova;
+  final kavio = context.kavio;
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: isScrollControlled,
-    backgroundColor: nova.surface,
+    backgroundColor: kavio.surface,
     showDragHandle: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.xl)),
@@ -23,15 +23,15 @@ Future<T?> showNovaSheet<T>(
 }
 
 /// Каркас содержимого листа: заголовок + прокручиваемое тело с отступами.
-class NovaSheet extends StatelessWidget {
-  const NovaSheet({super.key, required this.title, required this.child});
+class KavioSheet extends StatelessWidget {
+  const KavioSheet({super.key, required this.title, required this.child});
 
   final String title;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Padding(
       padding: EdgeInsets.only(
         left: Spacing.s5,
@@ -42,7 +42,7 @@ class NovaSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTypography.title2(nova.ink)),
+          Text(title, style: AppTypography.title2(kavio.ink)),
           const SizedBox(height: Spacing.s4),
           Flexible(child: SingleChildScrollView(child: child)),
         ],

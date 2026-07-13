@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../design/theme.dart';
-import 'nova_button.dart';
+import 'kavio_button.dart';
 
 /// Пустое состояние = точка входа, а не пустота. Иконка + заголовок +
 /// спокойный текст + одно действие.
@@ -23,7 +23,7 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 360),
@@ -32,9 +32,9 @@ class EmptyState extends StatelessWidget {
           padding: const EdgeInsets.symmetric(
               horizontal: Spacing.s6, vertical: Spacing.s8),
           decoration: BoxDecoration(
-            color: nova.surface,
+            color: kavio.surface,
             borderRadius: BorderRadius.circular(Radii.lg),
-            border: Border.all(color: nova.line2, style: BorderStyle.solid),
+            border: Border.all(color: kavio.line2, style: BorderStyle.solid),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -44,21 +44,21 @@ class EmptyState extends StatelessWidget {
                 height: 44,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                    color: nova.accentTint,
+                    color: kavio.accentTint,
                     borderRadius: BorderRadius.circular(Radii.md)),
-                child: Icon(icon, color: nova.accent, size: 22),
+                child: Icon(icon, color: kavio.accent, size: 22),
               ),
               const SizedBox(height: Spacing.s3),
               Text(title,
                   textAlign: TextAlign.center,
-                  style: AppTypography.title3(nova.ink)),
+                  style: AppTypography.title3(kavio.ink)),
               const SizedBox(height: Spacing.s1),
               Text(message,
                   textAlign: TextAlign.center,
-                  style: AppTypography.label(nova.ink2)),
+                  style: AppTypography.label(kavio.ink2)),
               if (actionLabel != null) ...[
                 const SizedBox(height: Spacing.s4),
-                NovaButton(actionLabel!, onPressed: onAction, small: true),
+                KavioButton(actionLabel!, onPressed: onAction, small: true),
               ],
             ],
           ),

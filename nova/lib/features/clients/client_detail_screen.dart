@@ -11,7 +11,7 @@ import '../../domain/models.dart';
 import '../../ui/client_row.dart';
 import '../../ui/empty_state.dart';
 import '../../ui/format.dart';
-import '../../ui/nova_page_scaffold.dart';
+import '../../ui/kavio_page_scaffold.dart';
 import '../../ui/status_pill.dart';
 import '../calendar/appointment_sheet.dart';
 import '../create/create_appointment_sheet.dart';
@@ -43,7 +43,7 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
     final apptsAsync = ref.watch(clientAppointmentsProvider(widget.clientId));
 
     if (client == null) {
-      return NovaPageScaffold(
+      return KavioPageScaffold(
         title: 'Клиент',
         body: EmptyState(
           icon: Icons.person_off_outlined,
@@ -58,7 +58,7 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
     final appts = apptsAsync.value ?? const <Appointment>[];
     final m = _Metrics.from(client, appts);
 
-    return NovaPageScaffold(
+    return KavioPageScaffold(
       title: 'Клиент',
       body: ListView(
         padding:
@@ -202,7 +202,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -214,9 +214,9 @@ class _Header extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(client.name, style: AppTypography.title2(nova.ink)),
+                  Text(client.name, style: AppTypography.title2(kavio.ink)),
                   const SizedBox(height: 2),
-                  Text(client.phone, style: AppTypography.label(nova.ink2)),
+                  Text(client.phone, style: AppTypography.label(kavio.ink2)),
                 ],
               ),
             ),
@@ -243,15 +243,15 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
       decoration: BoxDecoration(
-        color: accent ? nova.accentTint : nova.surface3,
+        color: accent ? kavio.accentTint : kavio.surface3,
         borderRadius: BorderRadius.circular(Radii.full),
       ),
       child: Text(label,
-          style: AppTypography.label(accent ? nova.accent : nova.ink2)
+          style: AppTypography.label(accent ? kavio.accent : kavio.ink2)
               .copyWith(fontSize: 12)),
     );
   }
@@ -318,7 +318,7 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
@@ -329,17 +329,17 @@ class _ActionButton extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: nova.surface,
+                color: kavio.surface,
                 borderRadius: BorderRadius.circular(Radii.md),
-                border: Border.all(color: nova.line),
+                border: Border.all(color: kavio.line),
               ),
-              child: Icon(icon, size: 22, color: nova.accent),
+              child: Icon(icon, size: 22, color: kavio.accent),
             ),
             const SizedBox(height: 6),
             Text(label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTypography.caption(nova.ink2)
+                style: AppTypography.caption(kavio.ink2)
                     .copyWith(letterSpacing: 0)),
           ],
         ),
@@ -388,13 +388,13 @@ class _StatCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Container(
       padding: const EdgeInsets.all(Spacing.s3),
       decoration: BoxDecoration(
-        color: nova.surface,
+        color: kavio.surface,
         borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(color: nova.line),
+        border: Border.all(color: kavio.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,10 +402,10 @@ class _StatCell extends StatelessWidget {
         children: [
           Text(label,
               style:
-                  AppTypography.caption(nova.ink3).copyWith(letterSpacing: 0)),
+                  AppTypography.caption(kavio.ink3).copyWith(letterSpacing: 0)),
           const SizedBox(height: 2),
           Text(value,
-              style: AppTypography.tabular(AppTypography.title3(nova.ink))
+              style: AppTypography.tabular(AppTypography.title3(kavio.ink))
                   .copyWith(fontSize: 15)),
         ],
       ),
@@ -422,7 +422,7 @@ class _AiInsights extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final hints = <String>[
       if (status == 'Давно не был')
         'Клиент давно не посещал — предложите вернуться со скидкой',
@@ -435,7 +435,7 @@ class _AiInsights extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(Spacing.s4),
       decoration: BoxDecoration(
-        color: nova.accentTint,
+        color: kavio.accentTint,
         borderRadius: BorderRadius.circular(Radii.lg),
       ),
       child: Column(
@@ -443,16 +443,16 @@ class _AiInsights extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome_outlined, size: 16, color: nova.accent),
+              Icon(Icons.auto_awesome_outlined, size: 16, color: kavio.accent),
               const SizedBox(width: 6),
-              Text('AI · превью', style: AppTypography.caption(nova.accent)),
+              Text('AI · превью', style: AppTypography.caption(kavio.accent)),
             ],
           ),
           const SizedBox(height: Spacing.s2),
           for (final h in hints)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: Text(h, style: AppTypography.label(nova.ink)),
+              child: Text(h, style: AppTypography.label(kavio.ink)),
             ),
         ],
       ),
@@ -469,19 +469,19 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: AppTypography.caption(nova.ink3)),
+        Text(label.toUpperCase(), style: AppTypography.caption(kavio.ink3)),
         const SizedBox(height: Spacing.s2),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(Spacing.s4),
           decoration: BoxDecoration(
-            color: nova.surface,
+            color: kavio.surface,
             borderRadius: BorderRadius.circular(Radii.lg),
-            border: Border.all(color: nova.line),
+            border: Border.all(color: kavio.line),
           ),
           child: child,
         ),
@@ -491,14 +491,14 @@ class _Section extends StatelessWidget {
 }
 
 Widget _kv(BuildContext context, String k, String v) {
-  final nova = context.nova;
+  final kavio = context.kavio;
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 5),
     child: Row(
       children: [
-        Expanded(child: Text(k, style: AppTypography.label(nova.ink2))),
+        Expanded(child: Text(k, style: AppTypography.label(kavio.ink2))),
         Text(v,
-            style: AppTypography.tabular(AppTypography.label(nova.ink))
+            style: AppTypography.tabular(AppTypography.label(kavio.ink))
                 .copyWith(fontWeight: FontWeight.w600)),
       ],
     ),
@@ -506,7 +506,7 @@ Widget _kv(BuildContext context, String k, String v) {
 }
 
 Widget _muted(BuildContext context, String text) =>
-    Text(text, style: AppTypography.body(context.nova.ink2));
+    Text(text, style: AppTypography.body(context.kavio.ink2));
 
 class _TimelineTile extends StatelessWidget {
   const _TimelineTile(this.appointment);
@@ -514,7 +514,7 @@ class _TimelineTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
+    final kavio = context.kavio;
     final a = appointment;
     return InkWell(
       onTap: () => showAppointmentSheet(context, a),
@@ -526,17 +526,17 @@ class _TimelineTile extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Icon(Icons.circle, size: 8, color: nova.accent),
+              child: Icon(Icons.circle, size: 8, color: kavio.accent),
             ),
             const SizedBox(width: Spacing.s3),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(a.service.name, style: AppTypography.label(nova.ink)),
+                  Text(a.service.name, style: AppTypography.label(kavio.ink)),
                   const SizedBox(height: 1),
                   Text(DateFormat('d MMM yyyy, HH:mm', 'ru').format(a.start),
-                      style: AppTypography.caption(nova.ink3)
+                      style: AppTypography.caption(kavio.ink3)
                           .copyWith(letterSpacing: 0)),
                 ],
               ),

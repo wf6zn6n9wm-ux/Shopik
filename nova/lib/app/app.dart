@@ -8,8 +8,8 @@ import 'router.dart';
 
 /// AppLocalizations генерируется из lib/l10n/*.arb (flutter gen-l10n).
 /// Делегаты и supportedLocales берутся из него — i18n подключён с первого дня.
-class NovaApp extends ConsumerWidget {
-  const NovaApp({super.key});
+class KavioApp extends ConsumerWidget {
+  const KavioApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -17,8 +17,8 @@ class NovaApp extends ConsumerWidget {
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
-      theme: buildNovaTheme(Brightness.light),
-      darkTheme: buildNovaTheme(Brightness.dark),
+      theme: buildKavioTheme(Brightness.light),
+      darkTheme: buildKavioTheme(Brightness.dark),
       themeMode: ThemeMode.system, // обе темы первого класса
       locale: locale, // null → системная
       supportedLocales: AppLocalizations.supportedLocales,

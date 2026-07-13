@@ -62,8 +62,8 @@ class DefaultSubscriptionService implements SubscriptionService {
   final Entitlement _fallback;
 
   Entitlement _map(Set<String> ids) {
-    if (ids.contains('nova_team')) return Entitlement.team;
-    if (ids.contains('nova_pro')) return Entitlement.pro;
+    if (ids.contains('kavio_team')) return Entitlement.team;
+    if (ids.contains('kavio_pro')) return Entitlement.pro;
     return _fallback;
   }
 
