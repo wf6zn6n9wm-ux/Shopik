@@ -47,8 +47,8 @@ class OnlineBookingScreen extends ConsumerWidget {
     return NovaPageScaffold(
       title: 'Онлайн-запись',
       body: ListView(
-        padding:
-            const EdgeInsets.fromLTRB(Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
+        padding: const EdgeInsets.fromLTRB(
+            Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
         children: [
           if (!enabled)
             Container(
@@ -109,9 +109,16 @@ class OnlineBookingScreen extends ConsumerWidget {
           const SizedBox(height: Spacing.s6),
           Text('ПРАВИЛА', style: AppTypography.caption(nova.ink3)),
           const SizedBox(height: Spacing.s2),
-          _RuleRow(icon: Icons.schedule_outlined, label: 'Окна записи', value: 'Рабочие часы'),
-          _RuleRow(icon: Icons.payments_outlined, label: 'Предоплата', value: 'Выкл.'),
-          _RuleRow(icon: Icons.cancel_outlined, label: 'Отмена', value: 'За 2 часа'),
+          _RuleRow(
+              icon: Icons.schedule_outlined,
+              label: 'Окна записи',
+              value: 'Рабочие часы'),
+          _RuleRow(
+              icon: Icons.payments_outlined,
+              label: 'Предоплата',
+              value: 'Выкл.'),
+          _RuleRow(
+              icon: Icons.cancel_outlined, label: 'Отмена', value: 'За 2 часа'),
         ],
       ),
     );
