@@ -38,7 +38,6 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final nova = context.nova;
     final client = ref.watch(clientByIdProvider(widget.clientId));
     final apptsAsync = ref.watch(clientAppointmentsProvider(widget.clientId));
 
