@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../features/analytics/analytics_screen.dart';
+import '../../features/calendar/calendar_screen.dart';
 import '../../features/clients/clients_screen.dart';
 import '../../features/menu/menu_screen.dart';
-import '../../features/today/today_screen.dart';
 import '../app_module.dart';
 
 /// Базовый модуль CRM: календарь, клиенты, аналитика, меню. Задаёт четыре
@@ -20,7 +20,7 @@ class CrmModule extends AppModule {
           label: 'Календарь',
           icon: Icons.calendar_today_outlined,
           activeIcon: Icons.calendar_today,
-          builder: TodayScreen.new,
+          builder: CalendarScreen.new,
         ),
         NavDestination(
           path: '/clients',
