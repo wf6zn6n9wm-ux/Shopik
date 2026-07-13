@@ -1,0 +1,54 @@
+name: CI
+
+# Гейт качества: на каждый push и PR — формат, кодоген, анализ, тесты.
+# Чтобы PR нельзя было смержить с ошибкой, включите Branch protection в
+# Settings → Branches и сделайте job «Analyze, format & test» обязательной проверкой.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-test:
+    name: Analyze, format & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nova
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      # Проверка форматирования до кодогенерации — генерируемые файлы не мешают.
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate localizations (i18n)
+        run: flutter gen-l10n
+
+      - name: Code generation (Drift)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze (errors + lints)
+        run: flutter analyze
+
+      - name: Tests
+        run: flutter test

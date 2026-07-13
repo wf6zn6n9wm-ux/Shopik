@@ -69,6 +69,22 @@ UI (features) ──зависит от──▶ Порты (core/services, doma
 RemoteConfig → Analytics → Auth.restore → Push → bootstrap модулей → `runApp`.
 Всё на дефолтных реализациях безопасно и не требует бэкендов.
 
+## DevOps и платформенная готовность (с первого дня)
+
+| Возможность | Где |
+|---|---|
+| **CI (analyze/test/format/lint)** | `.github/workflows/ci.yml` — на каждый push/PR; блок мержа через Branch protection |
+| **Сборки Debug/Release** | `.github/workflows/build.yml` — Android (APK/AAB) + iOS; платформы материализуются `flutter create` в CI |
+| **Fastlane iOS/Android** | `nova/{android,ios}/fastlane/*` — лейны `debug`/`release`/`beta`; подписи через секреты |
+| **Флейворы окружения** | `AppConfig.fromEnvironment()` (FLAVOR/ключи через `--dart-define`), override `appConfigProvider` |
+| **Мультивалютность** | `core/money` (`Money`/`Currency`) + `Business.currency`; форматирование через intl |
+| **Мультизональность** | `core/time` (`Clock`, UTC-хранение) + `Business.timeZone` (IANA); конверсия — адаптер `timezone` |
+| **Firebase/Sentry** | адаптеры к портам — `docs/INTEGRATIONS.md`; deps опциональны, дефолтная сборка лёгкая |
+
+**Инвариант качества:** архитектура остаётся compile-clean — CI гоняет
+`dart format` + `flutter analyze` + `flutter test` на каждый push/PR и не даёт
+смержить красное.
+
 ## Что это даёт
 
 - **Ноль переписывания:** включение фичи = адаптер или модуль, а не рефактор.

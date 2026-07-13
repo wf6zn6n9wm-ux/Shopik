@@ -15,6 +15,8 @@ class AppConfig {
     this.supabaseAnonKey,
     this.stripePublishableKey,
     this.marketplaceBaseUrl,
+    this.defaultCurrencyCode = 'KZT',
+    this.defaultTimeZone = 'Asia/Almaty',
   });
 
   final AppFlavor flavor;
@@ -24,10 +26,40 @@ class AppConfig {
   final String? stripePublishableKey;
   final String? marketplaceBaseUrl;
 
+  /// Дефолты локали денег/времени (переопределяются на уровне бизнеса).
+  final String defaultCurrencyCode;
+  final String defaultTimeZone;
+
   bool get isProd => flavor == AppFlavor.prod;
   bool get isDev => flavor == AppFlavor.dev;
 
   static const AppConfig dev = AppConfig(flavor: AppFlavor.dev);
+
+  /// Читает конфигурацию из окружения сборки (--dart-define). Секреты в код не
+  /// попадают. Флейворы выбираются через FLAVOR=dev|staging|prod.
+  factory AppConfig.fromEnvironment() {
+    const flavorName = String.fromEnvironment('FLAVOR', defaultValue: 'dev');
+    final flavor = switch (flavorName) {
+      'prod' => AppFlavor.prod,
+      'staging' => AppFlavor.staging,
+      _ => AppFlavor.dev,
+    };
+    return AppConfig(
+      flavor: flavor,
+      apiBaseUrl: const String.fromEnvironment('API_BASE_URL'),
+      supabaseUrl: const bool.hasEnvironment('SUPABASE_URL')
+          ? const String.fromEnvironment('SUPABASE_URL')
+          : null,
+      supabaseAnonKey: const bool.hasEnvironment('SUPABASE_ANON_KEY')
+          ? const String.fromEnvironment('SUPABASE_ANON_KEY')
+          : null,
+      stripePublishableKey: const bool.hasEnvironment('STRIPE_PUBLISHABLE_KEY')
+          ? const String.fromEnvironment('STRIPE_PUBLISHABLE_KEY')
+          : null,
+      defaultCurrencyCode: const String.fromEnvironment('DEFAULT_CURRENCY', defaultValue: 'KZT'),
+      defaultTimeZone: const String.fromEnvironment('DEFAULT_TZ', defaultValue: 'Asia/Almaty'),
+    );
+  }
 }
 
 /// Переопределяется в точке входа под флейвор/окружение.

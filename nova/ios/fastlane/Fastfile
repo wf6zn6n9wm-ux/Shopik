@@ -1,0 +1,17 @@
+default_platform(:ios)
+
+# Сборки и публикация iOS. Сертификаты — через `match` (секреты CI).
+platform :ios do
+  desc "Release-сборка IPA"
+  lane :release do
+    sh("cd ../.. && flutter build ios --release --no-codesign")
+  end
+
+  desc "Публикация в TestFlight"
+  lane :beta do
+    setup_ci if ENV["CI"]
+    match(type: "appstore", readonly: true) if ENV["MATCH_GIT_URL"]
+    build_app(workspace: "Runner.xcworkspace", scheme: "Runner", export_method: "app-store")
+    upload_to_testflight(skip_waiting_for_build_processing: true)
+  end
+end

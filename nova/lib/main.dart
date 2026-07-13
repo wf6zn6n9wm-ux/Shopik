@@ -7,6 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'app/app.dart';
 import 'core/bootstrap.dart';
+import 'core/config/app_config.dart';
 
 Future<void> main() async {
   await runZonedGuarded(() async {
@@ -14,7 +15,12 @@ Future<void> main() async {
     await initializeDateFormatting('ru'); // локализованные даты
 
     // Единый корень зависимостей: платформенные сервисы + модули.
-    final container = ProviderContainer();
+    // Конфиг читается из окружения сборки (FLAVOR/ключи через --dart-define).
+    final container = ProviderContainer(
+      overrides: [
+        appConfigProvider.overrideWithValue(AppConfig.fromEnvironment()),
+      ],
+    );
     await bootstrap(container);
 
     runApp(UncontrolledProviderScope(container: container, child: const NovaApp()));
