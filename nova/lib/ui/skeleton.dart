@@ -33,14 +33,14 @@ class _SkeletonRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(color: nova.line),
       ),
-      child: Row(
+      child: const Row(
         children: [
           _Shimmer(width: 40, height: 40, radius: 20),
-          const SizedBox(width: Spacing.s3),
+          SizedBox(width: Spacing.s3),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
+            children: [
               _Shimmer(width: 140, height: 12, radius: 6),
               SizedBox(height: 8),
               _Shimmer(width: 90, height: 10, radius: 5),

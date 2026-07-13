@@ -39,8 +39,9 @@ class ConsoleCrashReporter implements CrashReporter {
   @override
   Future<void> recordError(Object error, StackTrace? stack,
       {bool? fatal}) async {
-    if (kDebugMode)
+    if (kDebugMode) {
       debugPrint('crash${(fatal ?? false) ? '(fatal)' : ''}: $error');
+    }
   }
 
   @override
