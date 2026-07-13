@@ -52,7 +52,7 @@ class NoopBillingService implements BillingService {
   Future<void> restore() async {}
 
   @override
-  Stream<Set<String>> purchasedProductIds() => Stream.value(const {});
+  Stream<Set<String>> purchasedProductIds() => Stream.value(const <String>{});
 }
 
 final billingServiceProvider = Provider<BillingService>((ref) {

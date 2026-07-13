@@ -1,8 +1,8 @@
+# Стандартный набор Flutter-линтов. Без строгих доп-правил, создающих шум —
+# цель: чистый `flutter analyze` без лишних info-замечаний.
 include: package:flutter_lints/flutter.yaml
 
-linter:
-  rules:
-    prefer_const_constructors: true
-    prefer_const_declarations: true
-    require_trailing_commas: true
-    avoid_print: true
+analyzer:
+  exclude:
+    - "**/*.g.dart"        # генерируется Drift (build_runner)
+    - "lib/l10n/app_localizations*.dart"  # генерируется gen-l10n

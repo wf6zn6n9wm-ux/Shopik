@@ -26,7 +26,7 @@ class NoopPushService implements PushService {
   Future<String?> token() async => null;
 
   @override
-  Stream<PushMessage> messages() => const Stream.empty();
+  Stream<PushMessage> messages() => Stream<PushMessage>.empty();
 }
 
 final pushServiceProvider = Provider<PushService>((ref) => NoopPushService());
