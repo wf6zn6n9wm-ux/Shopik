@@ -151,8 +151,11 @@ class AppDatabase extends _$AppDatabase {
         .map((rows) => rows.map(_toClient).toList());
   }
 
-  Future<List<domain.Service>> getServices() =>
-      select(services).get().then((rows) => rows.map(_toService).toList());
+  Stream<List<domain.Service>> watchServices() {
+    return (select(services)..orderBy([(t) => OrderingTerm.asc(t.name)]))
+        .watch()
+        .map((rows) => rows.map(_toService).toList());
+  }
 
   Stream<List<domain.Appointment>> watchDay(DateTime day) {
     final start = DateTime(day.year, day.month, day.day);
@@ -194,6 +197,28 @@ class AppDatabase extends _$AppDatabase {
       String id, domain.AppointmentStatus status) {
     return (update(appointments)..where((t) => t.id.equals(id)))
         .write(AppointmentsCompanion(status: Value(status.name)));
+  }
+
+  Future<void> addClient(domain.Client c, {String businessId = 'b1'}) {
+    return into(clients).insert(ClientsCompanion.insert(
+      id: c.id,
+      businessId: businessId,
+      name: c.name,
+      phone: c.phone,
+      visitsCount: Value(c.visitsCount),
+      totalSpent: Value(c.totalSpent),
+      note: Value(c.note),
+    ));
+  }
+
+  Future<void> addService(domain.Service s, {String businessId = 'b1'}) {
+    return into(services).insert(ServicesCompanion.insert(
+      id: s.id,
+      businessId: businessId,
+      name: s.name,
+      durationMinutes: s.durationMinutes,
+      price: s.price,
+    ));
   }
 
   /// Сид демо-данных при первом запуске (пустая БД). Заменяется реальной

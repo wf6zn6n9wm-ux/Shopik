@@ -6,10 +6,12 @@ import 'models.dart';
 
 abstract interface class ClientsRepository {
   Stream<List<Client>> watchAll();
+  Future<void> add(Client client);
 }
 
 abstract interface class ServicesRepository {
-  Future<List<Service>> all();
+  Stream<List<Service>> watchAll();
+  Future<void> add(Service service);
 }
 
 abstract interface class AppointmentsRepository {

@@ -8,6 +8,7 @@ import '../../ui/format.dart';
 import '../../ui/nova_list_tile.dart';
 import '../../ui/nova_page_scaffold.dart';
 import '../../ui/skeleton.dart';
+import 'create_service_sheet.dart';
 
 /// Услуги и цены. Читает каталог реактивно; редактирование — этап функционала.
 class ServicesScreen extends ConsumerWidget {
@@ -22,7 +23,7 @@ class ServicesScreen extends ConsumerWidget {
       title: 'Услуги',
       actions: [
         IconButton(
-          onPressed: () {},
+          onPressed: () => showCreateServiceSheet(context),
           icon: Icon(Icons.add, color: nova.accent),
           splashRadius: 22,
         ),

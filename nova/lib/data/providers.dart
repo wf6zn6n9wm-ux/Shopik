@@ -29,9 +29,9 @@ final appointmentsRepositoryProvider = Provider<AppointmentsRepository>(
 final clientsProvider = StreamProvider<List<Client>>(
     (ref) => ref.watch(clientsRepositoryProvider).watchAll());
 
-/// Каталог услуг.
-final servicesProvider = FutureProvider<List<Service>>(
-    (ref) => ref.watch(servicesRepositoryProvider).all());
+/// Каталог услуг (реактивно из БД).
+final servicesProvider = StreamProvider<List<Service>>(
+    (ref) => ref.watch(servicesRepositoryProvider).watchAll());
 
 /// Выбранный день календаря.
 final selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());

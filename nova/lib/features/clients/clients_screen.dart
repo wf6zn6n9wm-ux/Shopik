@@ -7,6 +7,7 @@ import '../../ui/client_row.dart';
 import '../../ui/empty_state.dart';
 import '../../ui/error_view.dart';
 import '../../ui/skeleton.dart';
+import 'create_client_sheet.dart';
 
 class ClientsScreen extends ConsumerStatefulWidget {
   const ClientsScreen({super.key});
@@ -33,7 +34,17 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Клиенты', style: AppTypography.title1(nova.ink)),
+                Row(
+                  children: [
+                    Text('Клиенты', style: AppTypography.title1(nova.ink)),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => showCreateClientSheet(context),
+                      icon: Icon(Icons.add, color: nova.accent),
+                      splashRadius: 22,
+                    ),
+                  ],
+                ),
                 const SizedBox(height: Spacing.s3),
                 _SearchField(onChanged: (v) => setState(() => _query = v)),
               ],

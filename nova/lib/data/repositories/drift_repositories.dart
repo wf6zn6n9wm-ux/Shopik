@@ -11,6 +11,9 @@ class DriftClientsRepository implements ClientsRepository {
 
   @override
   Stream<List<Client>> watchAll() => _db.watchClients();
+
+  @override
+  Future<void> add(Client client) => _db.addClient(client);
 }
 
 class DriftServicesRepository implements ServicesRepository {
@@ -18,7 +21,10 @@ class DriftServicesRepository implements ServicesRepository {
   final AppDatabase _db;
 
   @override
-  Future<List<Service>> all() => _db.getServices();
+  Stream<List<Service>> watchAll() => _db.watchServices();
+
+  @override
+  Future<void> add(Service service) => _db.addService(service);
 }
 
 class DriftAppointmentsRepository implements AppointmentsRepository {

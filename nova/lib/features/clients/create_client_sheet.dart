@@ -1,0 +1,90 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/services/analytics/analytics_service.dart';
+import '../../data/providers.dart';
+import '../../design/theme.dart';
+import '../../domain/models.dart';
+import '../../ui/nova_button.dart';
+import '../../ui/nova_sheet.dart';
+import '../../ui/nova_text_field.dart';
+
+/// Создание клиента. Сохраняется в Drift (offline-first) → список обновляется
+/// реактивно. Событие уходит в аналитику.
+Future<void> showCreateClientSheet(BuildContext context) =>
+    showNovaSheet<void>(context, builder: (_) => const _CreateClientSheet());
+
+class _CreateClientSheet extends ConsumerStatefulWidget {
+  const _CreateClientSheet();
+
+  @override
+  ConsumerState<_CreateClientSheet> createState() => _CreateClientSheetState();
+}
+
+class _CreateClientSheetState extends ConsumerState<_CreateClientSheet> {
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  bool get _valid => _name.text.trim().isNotEmpty;
+
+  Future<void> _save() async {
+    if (!_valid || _saving) return;
+    setState(() => _saving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    final client = Client(
+      id: 'c${DateTime.now().microsecondsSinceEpoch}',
+      name: _name.text.trim(),
+      phone: _phone.text.trim(),
+    );
+    await ref.read(clientsRepositoryProvider).add(client);
+    await ref.read(analyticsServiceProvider).logEvent('client_created');
+
+    navigator.pop();
+    messenger.showSnackBar(
+      SnackBar(content: Text('Клиент ${client.name} добавлен')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NovaSheet(
+      title: 'Новый клиент',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          NovaTextField(
+            label: 'Имя',
+            hint: 'Как зовут клиента',
+            controller: _name,
+            autofocus: true,
+            textInputAction: TextInputAction.next,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: Spacing.s4),
+          NovaTextField(
+            label: 'Телефон',
+            hint: '+7 700 000 00 00',
+            controller: _phone,
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: Spacing.s6),
+          NovaButton(
+            'Сохранить',
+            expand: true,
+            onPressed: _valid && !_saving ? _save : null,
+          ),
+        ],
+      ),
+    );
+  }
+}

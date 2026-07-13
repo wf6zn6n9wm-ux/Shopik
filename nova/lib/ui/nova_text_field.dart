@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../design/theme.dart';
 
@@ -15,6 +16,7 @@ class NovaTextField extends StatelessWidget {
     this.onChanged,
     this.autofocus = false,
     this.textInputAction,
+    this.inputFormatters,
   });
 
   final String? label;
@@ -26,6 +28,7 @@ class NovaTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final bool autofocus;
   final TextInputAction? textInputAction;
+  final List<TextInputFormatter>? inputFormatters;
 
   OutlineInputBorder _border(Color color, {double width = 1}) =>
       OutlineInputBorder(
@@ -50,6 +53,7 @@ class NovaTextField extends StatelessWidget {
           autofocus: autofocus,
           onChanged: onChanged,
           textInputAction: textInputAction,
+          inputFormatters: inputFormatters,
           style: AppTypography.body(nova.ink),
           cursorColor: nova.accent,
           decoration: InputDecoration(
