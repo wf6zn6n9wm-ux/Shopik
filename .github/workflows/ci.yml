@@ -1,6 +1,8 @@
 name: CI
 
-# Гейт качества: на каждый push и PR — формат, кодоген, анализ, тесты.
+# Гейт качества: на каждый push и PR — кодоген, формат, анализ, тесты.
+# На push формат применяется автоматически и коммитится обратно (self-healing),
+# на PR — строгая проверка (падает, если не отформатировано).
 # Чтобы PR нельзя было смержить с ошибкой, включите Branch protection в
 # Settings → Branches и сделайте job «Analyze, format & test» обязательной проверкой.
 
@@ -9,6 +11,10 @@ on:
     branches: ["**"]
   pull_request:
     branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -34,10 +40,6 @@ jobs:
       - name: Flutter version
         run: flutter --version
 
-      # Проверка форматирования до кодогенерации — генерируемые файлы не мешают.
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
-
       - name: Install dependencies
         run: flutter pub get
 
@@ -46,6 +48,24 @@ jobs:
 
       - name: Code generation (Drift)
         run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Format
+        run: dart format .
+
+      - name: Auto-commit formatting (push)
+        if: github.event_name == 'push'
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "style: dart format [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
+
+      - name: Verify formatting (pull request)
+        if: github.event_name == 'pull_request'
+        run: dart format --output=none --set-exit-if-changed .
 
       - name: Analyze (errors + lints)
         run: flutter analyze
