@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/services/analytics/analytics_events.dart';
 import '../../core/services/analytics/analytics_service.dart';
+import '../../core/services/remote_config/remote_config_service.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
@@ -168,49 +169,87 @@ class _WeekView extends ConsumerWidget {
           final k = _dateOnly(a.start).difference(start).inDays;
           byDay.putIfAbsent(k, () => []).add(a);
         }
+        final dnd = ref.watch(featureFlagProvider(FeatureFlag.dragAndDrop));
         return ListView.builder(
           padding:
               const EdgeInsets.fromLTRB(Spacing.s5, 0, Spacing.s5, Spacing.s16),
           itemCount: 7,
-          itemBuilder: (context, i) =>
-              _DaySection(date: start.add(Duration(days: i)), items: byDay[i]),
+          itemBuilder: (context, i) => _DaySection(
+              date: start.add(Duration(days: i)), items: byDay[i], dnd: dnd),
         );
       },
     );
   }
 }
 
-class _DaySection extends StatelessWidget {
-  const _DaySection({required this.date, required this.items});
+class _DaySection extends ConsumerWidget {
+  const _DaySection(
+      {required this.date, required this.items, required this.dnd});
 
   final DateTime date;
   final List<Appointment>? items;
+  final bool dnd;
+
+  Future<void> _move(WidgetRef ref, Appointment a) async {
+    if (_dateOnly(a.start) == _dateOnly(date)) return; // тот же день — пропуск
+    final newStart =
+        DateTime(date.year, date.month, date.day, a.start.hour, a.start.minute);
+    await ref.read(appointmentsRepositoryProvider).move(a.id, newStart);
+    await ref
+        .read(analyticsServiceProvider)
+        .track(AnalyticsEvent.appointmentMoved);
+  }
+
+  Widget _card(BuildContext context, Appointment a) {
+    final card = AppointmentCard(a, onTap: () => showAppointmentSheet(context, a));
+    if (!dnd) return card;
+    return LongPressDraggable<Appointment>(
+      data: a,
+      feedback: Material(
+        color: Colors.transparent,
+        child: Opacity(opacity: 0.9, child: SizedBox(width: 320, child: card)),
+      ),
+      childWhenDragging: Opacity(opacity: 0.4, child: card),
+      child: card,
+    );
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final nova = context.nova;
     final list = items ?? const <Appointment>[];
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Spacing.s4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(_cap(DateFormat('EEEE, d MMM', 'ru').format(date)),
-              style: AppTypography.label(nova.ink2)),
-          const SizedBox(height: Spacing.s2),
-          if (list.isEmpty)
-            Text('Нет записей', style: AppTypography.label(nova.ink3))
-          else
-            for (final a in list)
-              Padding(
-                padding: const EdgeInsets.only(bottom: Spacing.s2),
-                child: AppointmentCard(
-                  a,
-                  onTap: () => showAppointmentSheet(context, a),
-                ),
-              ),
-        ],
-      ),
+
+    Widget content(bool hovered) => Container(
+          margin: const EdgeInsets.only(bottom: Spacing.s4),
+          padding: dnd ? const EdgeInsets.all(Spacing.s2) : EdgeInsets.zero,
+          decoration: dnd
+              ? BoxDecoration(
+                  color: hovered ? nova.accentTint : Colors.transparent,
+                  borderRadius: BorderRadius.circular(Radii.md),
+                )
+              : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_cap(DateFormat('EEEE, d MMM', 'ru').format(date)),
+                  style: AppTypography.label(nova.ink2)),
+              const SizedBox(height: Spacing.s2),
+              if (list.isEmpty)
+                Text('Нет записей', style: AppTypography.label(nova.ink3))
+              else
+                for (final a in list)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: Spacing.s2),
+                    child: _card(context, a),
+                  ),
+            ],
+          ),
+        );
+
+    if (!dnd) return content(false);
+    return DragTarget<Appointment>(
+      onAcceptWithDetails: (d) => _move(ref, d.data),
+      builder: (context, candidate, rejected) => content(candidate.isNotEmpty),
     );
   }
 }

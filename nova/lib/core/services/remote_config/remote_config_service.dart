@@ -39,7 +39,7 @@ class LocalRemoteConfigService implements RemoteConfigService {
     FeatureFlag.analytics: true,
     FeatureFlag.marketplace: false,
     FeatureFlag.integrations: false,
-    FeatureFlag.dragAndDrop: false,
+    FeatureFlag.dragAndDrop: true,
     FeatureFlag.publicPages: false,
     FeatureFlag.dataImport: false,
   };
