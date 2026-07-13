@@ -65,7 +65,8 @@ class LocalAuthService implements AuthService {
   @override
   Future<bool> verifyOtp(String code) async {
     // DEFAULT (offline): любой код принимается. Реальная проверка — в адаптере.
-    _user = AuthUser(id: 'otp_local', email: _pendingEmail, phone: _pendingPhone);
+    _user =
+        AuthUser(id: 'otp_local', email: _pendingEmail, phone: _pendingPhone);
     _controller.add(_user);
     return true;
   }

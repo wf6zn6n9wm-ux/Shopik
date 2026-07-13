@@ -37,7 +37,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     setState(() => _busy = true);
     final router = GoRouter.of(context);
     await ref.read(authServiceProvider).requestOtp(phone: phone);
-    await ref.read(analyticsServiceProvider).track(AnalyticsEvent.login('phone'));
+    await ref
+        .read(analyticsServiceProvider)
+        .track(AnalyticsEvent.login('phone'));
     if (!mounted) return;
     setState(() => _busy = false);
     router.push(Routes.otp, extra: phone);
@@ -53,7 +55,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     } else {
       await auth.signInWithGoogle();
     }
-    await ref.read(analyticsServiceProvider).track(AnalyticsEvent.login(method.name));
+    await ref
+        .read(analyticsServiceProvider)
+        .track(AnalyticsEvent.login(method.name));
     router.go(Routes.onboarding);
   }
 
@@ -71,10 +75,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               const Center(child: BrandMark(size: 56)),
               const SizedBox(height: Spacing.s6),
               Text('Вход в Nova',
-                  textAlign: TextAlign.center, style: AppTypography.title1(nova.ink)),
+                  textAlign: TextAlign.center,
+                  style: AppTypography.title1(nova.ink)),
               const SizedBox(height: Spacing.s2),
               Text('Записи, клиенты и расписание — в одном месте',
-                  textAlign: TextAlign.center, style: AppTypography.body(nova.ink2)),
+                  textAlign: TextAlign.center,
+                  style: AppTypography.body(nova.ink2)),
               const SizedBox(height: Spacing.s8),
               NovaTextField(
                 label: 'Телефон',

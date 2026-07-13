@@ -41,8 +41,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     final router = GoRouter.of(context);
     final isNew =
         await ref.read(authServiceProvider).verifyOtp(_code.text.trim());
-    await ref.read(analyticsServiceProvider).track(
-        isNew ? AnalyticsEvent.signUp : AnalyticsEvent.login('otp'));
+    await ref
+        .read(analyticsServiceProvider)
+        .track(isNew ? AnalyticsEvent.signUp : AnalyticsEvent.login('otp'));
     router.go(Routes.onboarding);
   }
 
