@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/services/analytics/analytics_events.dart';
 import '../../core/services/analytics/analytics_service.dart';
+import '../../core/services/notifications/notification_scheduler.dart';
+import '../../core/services/remote_config/remote_config_service.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
@@ -107,23 +109,42 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
 
-    await ref.read(appointmentsRepositoryProvider).add(
-          Appointment(
-            id: 'a${DateTime.now().microsecondsSinceEpoch}',
-            client: _client!,
-            service: _service!,
-            start: start,
-            status: AppointmentStatus.confirmed,
-          ),
-        );
+    final appt = Appointment(
+      id: 'a${DateTime.now().microsecondsSinceEpoch}',
+      client: _client!,
+      service: _service!,
+      start: start,
+      status: AppointmentStatus.confirmed,
+    );
+    await ref.read(appointmentsRepositoryProvider).add(appt);
     await ref
         .read(analyticsServiceProvider)
         .track(AnalyticsEvent.appointmentCreated);
+    await _scheduleReminders(appt);
 
     navigator.pop();
     messenger.showSnackBar(
       SnackBar(content: Text('Записан ${_client!.name} · ${Fmt.time(start)}')),
     );
+  }
+
+  /// Напоминания клиенту (−24ч/−2ч). Гейтинг FeatureFlag.push; канал доставки —
+  /// адаптер NotificationScheduler (по умолчанию no-op).
+  Future<void> _scheduleReminders(Appointment a) async {
+    if (!ref.read(featureFlagProvider(FeatureFlag.push))) return;
+    final scheduler = ref.read(notificationSchedulerProvider);
+    final now = DateTime.now();
+    for (final off in ReminderPolicy.offsets) {
+      final at = a.start.subtract(off);
+      if (at.isAfter(now)) {
+        await scheduler.schedule(ScheduledReminder(
+          id: ReminderPolicy.reminderId(a.id, off),
+          at: at,
+          title: 'Напоминание о визите',
+          body: '${a.client.name} · ${a.service.name} в ${Fmt.time(a.start)}',
+        ));
+      }
+    }
   }
 }
 
