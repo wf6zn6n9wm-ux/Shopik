@@ -26,18 +26,21 @@ class NovaPageScaffold extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(Spacing.s3, Spacing.s2, Spacing.s3, 0),
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.s3, Spacing.s2, Spacing.s3, 0),
               child: Row(
                 children: [
                   if (context.canPop())
                     IconButton(
                       onPressed: context.pop,
-                      icon: Icon(Icons.arrow_back_ios_new, size: 18, color: nova.ink),
+                      icon: Icon(Icons.arrow_back_ios_new,
+                          size: 18, color: nova.ink),
                       splashRadius: 22,
                     ),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: Spacing.s2),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: Spacing.s2),
                       child: Text(title, style: AppTypography.title3(nova.ink)),
                     ),
                   ),

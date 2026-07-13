@@ -24,7 +24,8 @@ class BrandMark extends StatelessWidget {
         child: Container(
           width: size * 0.24,
           height: size * 0.24,
-          decoration: BoxDecoration(color: nova.onAccent, shape: BoxShape.circle),
+          decoration:
+              BoxDecoration(color: nova.onAccent, shape: BoxShape.circle),
         ),
       ),
     );

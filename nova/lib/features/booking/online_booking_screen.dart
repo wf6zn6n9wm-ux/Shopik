@@ -18,10 +18,10 @@ class OnlineBookingScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(
             Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
         children: [
-          Text('Ссылка для клиентов',
-              style: AppTypography.title3(nova.ink)),
+          Text('Ссылка для клиентов', style: AppTypography.title3(nova.ink)),
           const SizedBox(height: Spacing.s2),
-          Text('Поделитесь ссылкой — клиенты запишутся сами, без установки приложения.',
+          Text(
+              'Поделитесь ссылкой — клиенты запишутся сами, без установки приложения.',
               style: AppTypography.body(nova.ink2)),
           const SizedBox(height: Spacing.s5),
           Container(

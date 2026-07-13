@@ -45,11 +45,13 @@ class OnboardingScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(Spacing.s5, Spacing.s6, Spacing.s5, Spacing.s2),
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.s5, Spacing.s6, Spacing.s5, Spacing.s2),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Чем вы занимаетесь?', style: AppTypography.title1(nova.ink)),
+                  Text('Чем вы занимаетесь?',
+                      style: AppTypography.title1(nova.ink)),
                   const SizedBox(height: Spacing.s2),
                   Text('Подберём готовые услуги и настройки под вашу сферу',
                       style: AppTypography.body(nova.ink2)),
@@ -68,18 +70,21 @@ class OnboardingScreen extends ConsumerWidget {
                     _ProfessionCard(
                       profession: p,
                       selected: selected == p.id,
-                      onTap: () =>
-                          ref.read(selectedProfessionProvider.notifier).state = p.id,
+                      onTap: () => ref
+                          .read(selectedProfessionProvider.notifier)
+                          .state = p.id,
                     ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(Spacing.s5, 0, Spacing.s5, Spacing.s5),
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.s5, 0, Spacing.s5, Spacing.s5),
               child: NovaButton(
                 'Создать студию',
                 expand: true,
-                onPressed: selected == null ? null : () => context.go(Routes.calendar),
+                onPressed:
+                    selected == null ? null : () => context.go(Routes.calendar),
               ),
             ),
           ],
@@ -119,7 +124,8 @@ class _ProfessionCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(profession.icon, size: 26, color: selected ? nova.accent : nova.ink2),
+            Icon(profession.icon,
+                size: 26, color: selected ? nova.accent : nova.ink2),
             const SizedBox(height: Spacing.s2),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),

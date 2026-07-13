@@ -21,7 +21,8 @@ GoRouter _buildRouter() {
   return GoRouter(
     initialLocation: Routes.auth,
     routes: [
-      GoRoute(path: Routes.auth, builder: (context, state) => const AuthScreen()),
+      GoRoute(
+          path: Routes.auth, builder: (context, state) => const AuthScreen()),
       GoRoute(
           path: Routes.onboarding,
           builder: (context, state) => const OnboardingScreen()),

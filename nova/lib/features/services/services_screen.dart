@@ -29,7 +29,8 @@ class ServicesScreen extends ConsumerWidget {
       ],
       body: servicesAsync.when(
         loading: () => const SkeletonList(),
-        error: (e, _) => ErrorView(onRetry: () => ref.invalidate(servicesProvider)),
+        error: (e, _) =>
+            ErrorView(onRetry: () => ref.invalidate(servicesProvider)),
         data: (services) => ListView.separated(
           padding: const EdgeInsets.fromLTRB(
               Spacing.s5, Spacing.s2, Spacing.s5, Spacing.s16),
