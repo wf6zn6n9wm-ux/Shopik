@@ -109,15 +109,15 @@ class OnlineBookingScreen extends ConsumerWidget {
           const SizedBox(height: Spacing.s6),
           Text('ПРАВИЛА', style: AppTypography.caption(nova.ink3)),
           const SizedBox(height: Spacing.s2),
-          _RuleRow(
+          const _RuleRow(
               icon: Icons.schedule_outlined,
               label: 'Окна записи',
               value: 'Рабочие часы'),
-          _RuleRow(
+          const _RuleRow(
               icon: Icons.payments_outlined,
               label: 'Предоплата',
               value: 'Выкл.'),
-          _RuleRow(
+          const _RuleRow(
               icon: Icons.cancel_outlined, label: 'Отмена', value: 'За 2 часа'),
         ],
       ),
