@@ -1,0 +1,60 @@
+name: Web (GitHub Pages)
+
+# Веб-сборка Kavio и публикация на GitHub Pages — ссылка для теста в браузере.
+# Платформа web материализуется через `flutter create`. Для Drift на вебе
+# докладываем sqlite3.wasm + drift_worker.js в web/ (иначе БД не откроется).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["claude/services-crm-architecture-tka9ms"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nova
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter gen-l10n
+      - run: dart run build_runner build --delete-conflicting-outputs
+      - name: Materialize platform (web)
+        run: flutter create . --platforms=web --project-name nova --org com.nova.app
+      - name: Drift web assets (sqlite3.wasm + worker)
+        run: |
+          curl -fL -o web/sqlite3.wasm https://github.com/simolus3/sqlite3.dart/releases/latest/download/sqlite3.wasm
+          curl -fL -o web/drift_worker.js https://github.com/simolus3/drift/releases/latest/download/drift_worker.js
+          ls -la web/sqlite3.wasm web/drift_worker.js
+      - name: Build web (base-href для проектного Pages)
+        run: flutter build web --release --base-href /shopik/
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: nova/build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
