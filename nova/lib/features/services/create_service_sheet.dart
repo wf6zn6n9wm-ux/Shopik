@@ -53,7 +53,9 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
       price: ((double.tryParse(_price.text.trim()) ?? 0) * 100).round(),
     );
     await ref.read(servicesRepositoryProvider).add(service);
-    await ref.read(analyticsServiceProvider).track(AnalyticsEvent.serviceCreated);
+    await ref
+        .read(analyticsServiceProvider)
+        .track(AnalyticsEvent.serviceCreated);
 
     navigator.pop();
     messenger.showSnackBar(

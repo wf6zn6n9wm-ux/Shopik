@@ -48,7 +48,9 @@ class _CreateClientSheetState extends ConsumerState<_CreateClientSheet> {
       phone: _phone.text.trim(),
     );
     await ref.read(clientsRepositoryProvider).add(client);
-    await ref.read(analyticsServiceProvider).track(AnalyticsEvent.clientCreated);
+    await ref
+        .read(analyticsServiceProvider)
+        .track(AnalyticsEvent.clientCreated);
 
     navigator.pop();
     messenger.showSnackBar(
