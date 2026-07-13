@@ -76,7 +76,7 @@ class _CreateClientSheetState extends ConsumerState<_CreateClientSheet> {
           const SizedBox(height: Spacing.s4),
           KavioTextField(
             label: 'Телефон',
-            hint: '+7 700 000 00 00',
+            hint: '+1 555 123 4567',
             controller: _phone,
             keyboardType: TextInputType.phone,
           ),

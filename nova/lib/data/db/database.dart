@@ -18,10 +18,9 @@ class Businesses extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get industry => text().withDefault(const Constant('other'))();
-  // Мультивалютность и мультизональность на уровне арендатора.
-  TextColumn get currency => text().withDefault(const Constant('KZT'))();
-  TextColumn get timeZone =>
-      text().withDefault(const Constant('Asia/Almaty'))();
+  // Мультивалютность и мультизональность на уровне арендатора (мировые дефолты).
+  TextColumn get currency => text().withDefault(const Constant('USD'))();
+  TextColumn get timeZone => text().withDefault(const Constant('UTC'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   @override
   Set<Column> get primaryKey => {id};

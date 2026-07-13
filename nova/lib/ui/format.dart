@@ -1,14 +1,20 @@
 import 'package:intl/intl.dart';
 
+import '../core/money/money.dart';
+
 /// Форматирование денег и времени. Цена хранится в минимальных единицах.
+/// Мировой продукт: валюта не захардкожена — задаётся дефолтом бизнеса
+/// (устанавливается в bootstrap из AppConfig), суммы носят её символ.
 abstract final class Fmt {
   static final _time = DateFormat('HH:mm');
 
-  static String money(int minor) {
-    final major = minor ~/ 100;
-    final s = NumberFormat.decimalPattern('ru').format(major);
-    return '₸ $s';
-  }
+  /// Валюта по умолчанию для отображения (мировой дефолт — USD).
+  static Currency currency = Currency.usd;
+
+  /// Устанавливается в bootstrap из конфигурации бизнеса.
+  static void useCurrency(Currency c) => currency = c;
+
+  static String money(int minor) => Money(minor, currency).format();
 
   static String time(DateTime dt) => _time.format(dt);
 

@@ -49,3 +49,35 @@ flutter:
   #   - family: Inter
   #     fonts:
   #       - asset: assets/fonts/Inter-Variable.ttf
+
+# --- Бренд Kavio: генерация иконок и splash ---
+# Инструменты подключаются в CI (build.yml) через `dart pub global activate`,
+# а НЕ как зависимости проекта — чтобы не влиять на разрешение версий основного
+# графа и не рисковать зелёным CI. Исходники знака — assets/brand/*.png
+# (сгенерированы из docs/brand/kavio-icon.svg, концепция Confirm).
+flutter_launcher_icons:
+  image_path: "assets/brand/icon-1024.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  min_sdk_android: 21
+  adaptive_icon_background: "#5B5BD6"
+  adaptive_icon_foreground: "assets/brand/icon-foreground-1024.png"
+  web:
+    generate: true
+    image_path: "assets/brand/icon-1024.png"
+    background_color: "#5B5BD6"
+    theme_color: "#5B5BD6"
+
+flutter_native_splash:
+  color: "#FBFBFC"
+  color_dark: "#0B0B0F"
+  image: "assets/brand/splash-logo.png"
+  image_dark: "assets/brand/splash-logo.png"
+  android_12:
+    image: "assets/brand/splash-logo.png"
+    color: "#FBFBFC"
+    color_dark: "#0B0B0F"
+  android: true
+  ios: true
+  web: false

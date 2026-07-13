@@ -27,6 +27,12 @@ jobs:
       - run: dart run build_runner build --delete-conflicting-outputs
       - name: Materialize platform (android)
         run: flutter create . --platforms=android --project-name nova --org com.nova.app
+      - name: Brand — иконка и splash (Kavio)
+        run: |
+          flutter pub global activate flutter_native_splash
+          flutter pub global activate flutter_launcher_icons
+          flutter pub global run flutter_native_splash:create
+          flutter pub global run flutter_launcher_icons
       - name: Build APK (debug)
         run: flutter build apk --debug
       - name: Build AAB (release)
@@ -57,6 +63,12 @@ jobs:
       - run: dart run build_runner build --delete-conflicting-outputs
       - name: Materialize platform (ios)
         run: flutter create . --platforms=ios --project-name nova --org com.nova.app
+      - name: Brand — иконка и splash (Kavio)
+        run: |
+          flutter pub global activate flutter_native_splash
+          flutter pub global activate flutter_launcher_icons
+          flutter pub global run flutter_native_splash:create
+          flutter pub global run flutter_launcher_icons
       # Release-подпись подключается через Fastlane match + секреты (см. ios/fastlane).
       - name: Build iOS (release, no codesign)
         run: flutter build ios --release --no-codesign

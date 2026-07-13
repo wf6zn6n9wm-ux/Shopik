@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../modules/registry.dart';
+import '../ui/format.dart';
+import 'config/app_config.dart';
+import 'money/money.dart';
 import 'services/analytics/analytics_service.dart';
 import 'services/auth/auth_service.dart';
 import 'services/push/push_service.dart';
@@ -18,6 +21,10 @@ Future<void> bootstrap(ProviderContainer container) async {
     crash.recordError(details.exception, details.stack, fatal: false);
     FlutterError.presentError(details);
   };
+
+  // Валюта отображения по умолчанию — из конфигурации (мировой дефолт USD).
+  final config = container.read(appConfigProvider);
+  Fmt.useCurrency(Currency.byCode(config.defaultCurrencyCode));
 
   // Порядок важен: конфиг флагов → аналитика → авторизация → пуши.
   await container.read(remoteConfigServiceProvider).initialize();

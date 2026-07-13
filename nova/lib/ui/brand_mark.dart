@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../design/theme.dart';
 
-/// Знак бренда Kavio: squircle-плитка с монограммой «K», где верхний штрих
-/// уходит вверх-вправо — движение и рост (бизнес по записи, который набирает
-/// обороты). Плейсхолдер-логотип: единый источник для иконки, сплэша, шапок.
+/// Знак бренда Kavio (концепция Confirm): монограмма «K», нижний штрих которой
+/// переходит в галочку — «запись подтверждена». Ядро продукта — подтверждённая
+/// запись. Единый источник знака для иконки, сплэша и шапок; рендерится из
+/// токенов и адаптируется к теме.
 class BrandMark extends StatelessWidget {
   const BrandMark({super.key, this.size = 44, this.onColor});
 
@@ -20,11 +21,7 @@ class BrandMark extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [kavio.accent, kavio.accentPress],
-        ),
+        color: kavio.accent, // плоский акцент, без градиента (правило бренда)
         borderRadius: BorderRadius.circular(size * 0.28),
         boxShadow: context.shadows.e1,
       ),
@@ -45,22 +42,23 @@ class _KMarkPainter extends CustomPainter {
     final p = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = s * 0.115
+      ..strokeWidth = s * 0.09
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    final left = s * 0.34;
-    final top = s * 0.30;
-    final bottom = s * 0.70;
-    final right = s * 0.70;
-    final mid = s * 0.52; // точка встречи штрихов чуть ниже центра
+    // Геометрия совпадает с растровыми ассетами бренда (viewBox 0..1).
+    Offset o(double x, double y) => Offset(s * (x + 0.015), s * (y + 0.01));
 
-    // Вертикальный стержень.
-    canvas.drawLine(Offset(left, top), Offset(left, bottom), p);
-    // Нижний штрих.
-    canvas.drawLine(Offset(left, mid), Offset(right, bottom), p);
-    // Верхний штрих — уходит выше правого края (жест роста/движения).
-    canvas.drawLine(Offset(left, mid), Offset(s * 0.74, s * 0.24), p);
+    // Вертикальный стержень «K».
+    canvas.drawLine(o(0.36, 0.32), o(0.36, 0.68), p);
+    // Верхний штрих «K».
+    canvas.drawLine(o(0.36, 0.50), o(0.54, 0.33), p);
+    // Нижний штрих переходит в галочку (подтверждение).
+    final check = Path()
+      ..moveTo(o(0.36, 0.50).dx, o(0.36, 0.50).dy)
+      ..lineTo(o(0.50, 0.67).dx, o(0.50, 0.67).dy)
+      ..lineTo(o(0.76, 0.29).dx, o(0.76, 0.29).dy);
+    canvas.drawPath(check, p);
   }
 
   @override

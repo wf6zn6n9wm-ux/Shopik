@@ -16,7 +16,7 @@ class SubscriptionScreen extends ConsumerWidget {
     (
       Plan.pro,
       'Pro',
-      '4 900',
+      '19',
       [
         'Всё из Free',
         'Расширенная аналитика',
@@ -27,7 +27,7 @@ class SubscriptionScreen extends ConsumerWidget {
     (
       Plan.team,
       'Team',
-      '9 900',
+      '39',
       ['Всё из Pro', 'Команда и филиалы', 'Роли и права', 'API интеграций']
     ),
   ];
@@ -92,7 +92,7 @@ class _PlanCard extends StatelessWidget {
             children: [
               Text(name, style: AppTypography.title2(kavio.ink)),
               const Spacer(),
-              Text('₸ $price',
+              Text('\$$price',
                   style:
                       AppTypography.tabular(AppTypography.title3(kavio.ink))),
               Text(' / мес', style: AppTypography.label(kavio.ink3)),

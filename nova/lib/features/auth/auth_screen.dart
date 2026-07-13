@@ -84,7 +84,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               const SizedBox(height: Spacing.s8),
               KavioTextField(
                 label: 'Телефон',
-                hint: '+7 700 000 00 00',
+                hint: '+1 555 123 4567',
                 controller: _phone,
                 keyboardType: TextInputType.phone,
                 prefixIcon: Icons.phone_outlined,

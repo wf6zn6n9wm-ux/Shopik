@@ -15,8 +15,8 @@ class AppConfig {
     this.supabaseAnonKey,
     this.stripePublishableKey,
     this.marketplaceBaseUrl,
-    this.defaultCurrencyCode = 'KZT',
-    this.defaultTimeZone = 'Asia/Almaty',
+    this.defaultCurrencyCode = 'USD',
+    this.defaultTimeZone = 'UTC',
   });
 
   final AppFlavor flavor;
@@ -57,9 +57,9 @@ class AppConfig {
           ? const String.fromEnvironment('STRIPE_PUBLISHABLE_KEY')
           : null,
       defaultCurrencyCode:
-          const String.fromEnvironment('DEFAULT_CURRENCY', defaultValue: 'KZT'),
-      defaultTimeZone: const String.fromEnvironment('DEFAULT_TZ',
-          defaultValue: 'Asia/Almaty'),
+          const String.fromEnvironment('DEFAULT_CURRENCY', defaultValue: 'USD'),
+      defaultTimeZone:
+          const String.fromEnvironment('DEFAULT_TZ', defaultValue: 'UTC'),
     );
   }
 }
