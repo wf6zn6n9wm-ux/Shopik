@@ -123,7 +123,8 @@ class _SearchField extends StatelessWidget {
                 border: InputBorder.none,
                 hintText: 'Поиск по клиентам',
                 hintStyle: AppTypography.body(nova.ink3),
-                contentPadding: const EdgeInsets.symmetric(vertical: Spacing.s3),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: Spacing.s3),
               ),
             ),
           ),

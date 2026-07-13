@@ -42,30 +42,31 @@ class ServicesScreen extends ConsumerWidget {
                 onAction: () => showCreateServiceSheet(context),
               )
             : ListView.separated(
-          padding: const EdgeInsets.fromLTRB(
-              Spacing.s5, Spacing.s2, Spacing.s5, Spacing.s16),
-          itemCount: services.length,
-          separatorBuilder: (_, __) => const SizedBox(height: Spacing.s2),
-          itemBuilder: (context, i) {
-            final s = services[i];
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                color: nova.surface,
-                borderRadius: BorderRadius.circular(Radii.md),
-                border: Border.all(color: nova.line),
+                padding: const EdgeInsets.fromLTRB(
+                    Spacing.s5, Spacing.s2, Spacing.s5, Spacing.s16),
+                itemCount: services.length,
+                separatorBuilder: (_, __) => const SizedBox(height: Spacing.s2),
+                itemBuilder: (context, i) {
+                  final s = services[i];
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: nova.surface,
+                      borderRadius: BorderRadius.circular(Radii.md),
+                      border: Border.all(color: nova.line),
+                    ),
+                    child: NovaListTile(
+                      title: s.name,
+                      subtitle: Fmt.duration(s.durationMinutes),
+                      trailing: Text(
+                        Fmt.money(s.price),
+                        style:
+                            AppTypography.tabular(AppTypography.label(nova.ink))
+                                .copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  );
+                },
               ),
-              child: NovaListTile(
-                title: s.name,
-                subtitle: Fmt.duration(s.durationMinutes),
-                trailing: Text(
-                  Fmt.money(s.price),
-                  style: AppTypography.tabular(AppTypography.label(nova.ink))
-                      .copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-            );
-          },
-        ),
       ),
     );
   }
