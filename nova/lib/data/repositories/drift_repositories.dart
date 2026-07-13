@@ -35,11 +35,22 @@ class DriftAppointmentsRepository implements AppointmentsRepository {
   Stream<List<Appointment>> watchDay(DateTime day) => _db.watchDay(day);
 
   @override
+  Stream<List<Appointment>> watchRange(DateTime start, DateTime end) =>
+      _db.watchRange(start, end);
+
+  @override
   Future<void> add(Appointment appointment) => _db.addAppointment(appointment);
 
   @override
   Future<void> updateStatus(String id, AppointmentStatus status) =>
       _db.setAppointmentStatus(id, status);
+
+  @override
+  Future<void> move(String id, DateTime newStart) =>
+      _db.moveAppointment(id, newStart);
+
+  @override
+  Future<void> delete(String id) => _db.deleteAppointment(id);
 }
 
 class DriftWorkspaceRepository implements WorkspaceRepository {

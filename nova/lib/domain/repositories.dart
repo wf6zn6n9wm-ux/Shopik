@@ -16,8 +16,15 @@ abstract interface class ServicesRepository {
 
 abstract interface class AppointmentsRepository {
   Stream<List<Appointment>> watchDay(DateTime day);
+
+  /// Записи в полуоткрытом диапазоне [start, end) — для Недели/Месяца.
+  Stream<List<Appointment>> watchRange(DateTime start, DateTime end);
   Future<void> add(Appointment appointment);
   Future<void> updateStatus(String id, AppointmentStatus status);
+
+  /// Перенос (Drag & Drop): меняет время начала.
+  Future<void> move(String id, DateTime newStart);
+  Future<void> delete(String id);
 }
 
 /// Настройка рабочего пространства (онбординг): применение отраслевого шаблона.

@@ -93,6 +93,17 @@ class Staff {
   final String role;
 }
 
+/// Универсальный ресурс: кабинет, кресло, авто, студия, печь, оборудование,
+/// переговорная и т.д. Одна модель на все вертикали — запись может быть привязана
+/// не только к сотруднику, но и к ресурсу.
+@immutable
+class Resource {
+  const Resource({required this.id, required this.name, this.type = 'room'});
+  final String id;
+  final String name;
+  final String type;
+}
+
 @immutable
 class Appointment {
   const Appointment({
@@ -102,6 +113,7 @@ class Appointment {
     required this.start,
     required this.status,
     this.staff,
+    this.resource,
   });
 
   final String id;
@@ -110,6 +122,7 @@ class Appointment {
   final DateTime start;
   final AppointmentStatus status;
   final Staff? staff;
+  final Resource? resource;
 
   DateTime get end => start.add(Duration(minutes: service.durationMinutes));
 
@@ -121,5 +134,6 @@ class Appointment {
         start: start ?? this.start,
         status: status ?? this.status,
         staff: staff,
+        resource: resource,
       );
 }

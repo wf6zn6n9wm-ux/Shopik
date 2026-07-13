@@ -11,6 +11,7 @@ enum FeatureFlag {
   analytics,
   marketplace,
   integrations,
+  dragAndDrop,
   publicPages,
   dataImport,
 }
@@ -38,6 +39,7 @@ class LocalRemoteConfigService implements RemoteConfigService {
     FeatureFlag.analytics: true,
     FeatureFlag.marketplace: false,
     FeatureFlag.integrations: false,
+    FeatureFlag.dragAndDrop: false,
     FeatureFlag.publicPages: false,
     FeatureFlag.dataImport: false,
   };

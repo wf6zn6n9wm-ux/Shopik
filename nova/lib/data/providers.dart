@@ -44,6 +44,17 @@ final dayAppointmentsProvider = StreamProvider<List<Appointment>>((ref) {
   return ref.watch(appointmentsRepositoryProvider).watchDay(day);
 });
 
+/// Записи в диапазоне (Неделя/Месяц). Ключ-запись обеспечивает кэш по диапазону:
+/// одинаковый [start, end) переиспользует поток без повторного запроса.
+typedef DateRange = ({DateTime start, DateTime end});
+
+final rangeAppointmentsProvider =
+    StreamProvider.family<List<Appointment>, DateRange>((ref, range) {
+  return ref
+      .watch(appointmentsRepositoryProvider)
+      .watchRange(range.start, range.end);
+});
+
 /// Дневная сводка для экранов «Сегодня»/«Обзор».
 @immutable
 class DaySummary {

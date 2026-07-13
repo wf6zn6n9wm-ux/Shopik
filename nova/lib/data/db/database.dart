@@ -82,6 +82,18 @@ class Clients extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Универсальный ресурс: кабинет, кресло, авто, студия, печь, оборудование,
+/// переговорная — что угодно. Одна модель для любой вертикали.
+@DataClassName('ResourceRow')
+class Resources extends Table {
+  TextColumn get id => text()();
+  TextColumn get businessId => text()();
+  TextColumn get name => text()();
+  TextColumn get type => text().withDefault(const Constant('room'))();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DataClassName('AppointmentRow')
 class Appointments extends Table {
   TextColumn get id => text()();
@@ -89,6 +101,9 @@ class Appointments extends Table {
   TextColumn get clientId => text()();
   TextColumn get serviceId => text()();
   TextColumn get staffId => text().nullable()();
+  // Универсальные измерения календаря: филиал и ресурс (кабинет/кресло/авто…).
+  TextColumn get locationId => text().nullable()();
+  TextColumn get resourceId => text().nullable()();
   DateTimeColumn get startAt => dateTime()();
   TextColumn get status => text()(); // AppointmentStatus.name
   @override
@@ -103,6 +118,7 @@ class Appointments extends Table {
     ServiceCategories,
     Services,
     Clients,
+    Resources,
     Appointments
   ],
 )
@@ -133,13 +149,22 @@ class AppDatabase extends _$AppDatabase {
   domain.Staff _toStaff(StaffRow r) =>
       domain.Staff(id: r.id, name: r.name, role: r.role);
 
+  domain.Resource _toResource(ResourceRow r) =>
+      domain.Resource(id: r.id, name: r.name, type: r.type);
+
   domain.Appointment _toAppointment(
-          AppointmentRow a, ClientRow c, ServiceRow s, StaffRow? st) =>
+    AppointmentRow a,
+    ClientRow c,
+    ServiceRow s,
+    StaffRow? st,
+    ResourceRow? res,
+  ) =>
       domain.Appointment(
         id: a.id,
         client: _toClient(c),
         service: _toService(s),
         staff: st == null ? null : _toStaff(st),
+        resource: res == null ? null : _toResource(res),
         start: a.startAt,
         status: domain.AppointmentStatus.values.byName(a.status),
       );
@@ -157,14 +182,13 @@ class AppDatabase extends _$AppDatabase {
         .map((rows) => rows.map(_toService).toList());
   }
 
-  Stream<List<domain.Appointment>> watchDay(DateTime day) {
-    final start = DateTime(day.year, day.month, day.day);
-    final end = start.add(const Duration(days: 1));
+  Stream<List<domain.Appointment>> _watchBetween(DateTime start, DateTime end) {
     final query = select(appointments).join([
       innerJoin(clients, clients.id.equalsExp(appointments.clientId)),
       innerJoin(services, services.id.equalsExp(appointments.serviceId)),
       leftOuterJoin(
           staffMembers, staffMembers.id.equalsExp(appointments.staffId)),
+      leftOuterJoin(resources, resources.id.equalsExp(appointments.resourceId)),
     ])
       ..where(appointments.startAt.isBiggerOrEqualValue(start) &
           appointments.startAt.isSmallerThanValue(end))
@@ -176,9 +200,19 @@ class AppDatabase extends _$AppDatabase {
             row.readTable(clients),
             row.readTable(services),
             row.readTableOrNull(staffMembers),
+            row.readTableOrNull(resources),
           );
         }).toList());
   }
+
+  Stream<List<domain.Appointment>> watchDay(DateTime day) {
+    final start = DateTime(day.year, day.month, day.day);
+    return _watchBetween(start, start.add(const Duration(days: 1)));
+  }
+
+  /// Записи в полуоткрытом диапазоне [start, end) — для Недели/Месяца.
+  Stream<List<domain.Appointment>> watchRange(DateTime start, DateTime end) =>
+      _watchBetween(start, end);
 
   Future<void> addAppointment(domain.Appointment a,
       {String businessId = 'b1'}) {
@@ -188,6 +222,7 @@ class AppDatabase extends _$AppDatabase {
       clientId: a.client.id,
       serviceId: a.service.id,
       staffId: Value(a.staff?.id),
+      resourceId: Value(a.resource?.id),
       startAt: a.start,
       status: a.status.name,
     ));
@@ -197,6 +232,16 @@ class AppDatabase extends _$AppDatabase {
       String id, domain.AppointmentStatus status) {
     return (update(appointments)..where((t) => t.id.equals(id)))
         .write(AppointmentsCompanion(status: Value(status.name)));
+  }
+
+  /// Перенос записи (Drag & Drop): меняет только время начала.
+  Future<void> moveAppointment(String id, DateTime newStart) {
+    return (update(appointments)..where((t) => t.id.equals(id)))
+        .write(AppointmentsCompanion(startAt: Value(newStart)));
+  }
+
+  Future<void> deleteAppointment(String id) {
+    return (delete(appointments)..where((t) => t.id.equals(id))).go();
   }
 
   Future<void> addClient(domain.Client c, {String businessId = 'b1'}) {

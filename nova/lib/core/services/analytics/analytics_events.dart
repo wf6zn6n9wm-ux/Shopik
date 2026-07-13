@@ -28,9 +28,16 @@ class AnalyticsEvent {
       AnalyticsEvent('subscription_started', {'plan': plan});
   static const subscriptionCancelled = AnalyticsEvent('subscription_cancelled');
 
+  // — Календарь —
+  static const calendarOpened = AnalyticsEvent('calendar_opened');
+  static AnalyticsEvent calendarViewChanged(String view) =>
+      AnalyticsEvent('calendar_view_changed', {'view': view});
+  static const appointmentMoved = AnalyticsEvent('appointment_moved');
+  static const appointmentDeleted = AnalyticsEvent('appointment_deleted');
+  static AnalyticsEvent appointmentStatusChanged(String status) =>
+      AnalyticsEvent('appointment_status_changed', {'status': status});
+
   // — Вовлечённость —
-  static AnalyticsEvent calendarViewed(String view) =>
-      AnalyticsEvent('calendar_viewed', {'view': view});
   static const onlineBookingUsed = AnalyticsEvent('online_booking_used');
   static const staffInvited = AnalyticsEvent('staff_invited');
 }
