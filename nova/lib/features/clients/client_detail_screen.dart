@@ -24,8 +24,7 @@ class ClientDetailScreen extends ConsumerStatefulWidget {
   final String clientId;
 
   @override
-  ConsumerState<ClientDetailScreen> createState() =>
-      _ClientDetailScreenState();
+  ConsumerState<ClientDetailScreen> createState() => _ClientDetailScreenState();
 }
 
 class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
@@ -97,8 +96,11 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
           const SizedBox(height: Spacing.s5),
           _Section(
             label: 'Заметки',
-            child: _muted(context,
-                (client.note?.isNotEmpty ?? false) ? client.note! : 'Нет заметок'),
+            child: _muted(
+                context,
+                (client.note?.isNotEmpty ?? false)
+                    ? client.note!
+                    : 'Нет заметок'),
           ),
           const SizedBox(height: Spacing.s5),
           _Section(
@@ -136,8 +138,14 @@ class _Metrics {
 
   static _Metrics from(Client client, List<Appointment> appts) {
     final now = DateTime.now();
-    final past = [for (final a in appts) if (a.start.isBefore(now)) a];
-    final future = [for (final a in appts) if (!a.start.isBefore(now)) a];
+    final past = [
+      for (final a in appts)
+        if (a.start.isBefore(now)) a
+    ];
+    final future = [
+      for (final a in appts)
+        if (!a.start.isBefore(now)) a
+    ];
     final lastVisit = past.isNotEmpty ? past.first.start : null;
     final firstVisit = past.isNotEmpty ? past.last.start : null;
     final nextVisit = future.isNotEmpty ? future.last.start : null;
@@ -260,16 +268,22 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void soon() => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Скоро')));
+    void soon() => ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Скоро')));
 
     final actions = <(IconData, String, VoidCallback)>[
       (Icons.call_outlined, 'Позвонить', () => _launch('tel:$_digits')),
       (Icons.chat_bubble_outline, 'Написать', () => _launch('sms:$_digits')),
-      (Icons.forum_outlined, 'WhatsApp',
-          () => _launch('https://wa.me/$_digits')),
-      (Icons.event_outlined, 'Запись',
-          () => showCreateAppointmentSheet(context)),
+      (
+        Icons.forum_outlined,
+        'WhatsApp',
+        () => _launch('https://wa.me/$_digits')
+      ),
+      (
+        Icons.event_outlined,
+        'Запись',
+        () => showCreateAppointmentSheet(context)
+      ),
       (Icons.shopping_bag_outlined, 'Товар', soon),
       (Icons.card_giftcard_outlined, 'Сертификат', soon),
     ];
@@ -319,7 +333,8 @@ class _ActionButton extends StatelessWidget {
             Text(label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTypography.caption(nova.ink2).copyWith(letterSpacing: 0)),
+                style: AppTypography.caption(nova.ink2)
+                    .copyWith(letterSpacing: 0)),
           ],
         ),
       ),
@@ -379,7 +394,9 @@ class _StatCell extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(label, style: AppTypography.caption(nova.ink3).copyWith(letterSpacing: 0)),
+          Text(label,
+              style:
+                  AppTypography.caption(nova.ink3).copyWith(letterSpacing: 0)),
           const SizedBox(height: 2),
           Text(value,
               style: AppTypography.tabular(AppTypography.title3(nova.ink))
@@ -422,8 +439,7 @@ class _AiInsights extends StatelessWidget {
             children: [
               Icon(Icons.auto_awesome_outlined, size: 16, color: nova.accent),
               const SizedBox(width: 6),
-              Text('AI · превью',
-                  style: AppTypography.caption(nova.accent)),
+              Text('AI · превью', style: AppTypography.caption(nova.accent)),
             ],
           ),
           const SizedBox(height: Spacing.s2),
@@ -451,8 +467,7 @@ class _Section extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(),
-            style: AppTypography.caption(nova.ink3)),
+        Text(label.toUpperCase(), style: AppTypography.caption(nova.ink3)),
         const SizedBox(height: Spacing.s2),
         Container(
           width: double.infinity,
