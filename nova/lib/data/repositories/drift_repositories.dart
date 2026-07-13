@@ -1,0 +1,37 @@
+import '../../domain/models.dart';
+import '../../domain/repositories.dart';
+import '../db/database.dart';
+
+/// Реализация репозиториев поверх Drift. Тонкие обёртки: вся работа с БД —
+/// в AppDatabase, здесь только контракт для UI.
+
+class DriftClientsRepository implements ClientsRepository {
+  DriftClientsRepository(this._db);
+  final AppDatabase _db;
+
+  @override
+  Stream<List<Client>> watchAll() => _db.watchClients();
+}
+
+class DriftServicesRepository implements ServicesRepository {
+  DriftServicesRepository(this._db);
+  final AppDatabase _db;
+
+  @override
+  Future<List<Service>> all() => _db.getServices();
+}
+
+class DriftAppointmentsRepository implements AppointmentsRepository {
+  DriftAppointmentsRepository(this._db);
+  final AppDatabase _db;
+
+  @override
+  Stream<List<Appointment>> watchDay(DateTime day) => _db.watchDay(day);
+
+  @override
+  Future<void> add(Appointment appointment) => _db.addAppointment(appointment);
+
+  @override
+  Future<void> updateStatus(String id, AppointmentStatus status) =>
+      _db.setAppointmentStatus(id, status);
+}

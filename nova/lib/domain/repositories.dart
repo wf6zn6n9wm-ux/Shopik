@@ -1,26 +1,19 @@
 import 'models.dart';
 
-/// Абстракции доступа к данным. UI зависит только от них — конкретная
-/// реализация (in-memory сейчас, Drift/SQLite позже) подключается через
-/// провайдеры и не требует правок экранов.
+/// Абстракции доступа к данным. UI зависит только от них; реализация — Drift.
+/// Потоки (`watch*`) отражают offline-first реактивность: изменение в БД
+/// мгновенно обновляет все экраны.
 
 abstract interface class ClientsRepository {
-  List<Client> all();
-  Client? byId(String id);
-  void upsert(Client client);
+  Stream<List<Client>> watchAll();
 }
 
 abstract interface class ServicesRepository {
-  List<Service> all();
-}
-
-abstract interface class StaffRepository {
-  List<Staff> all();
+  Future<List<Service>> all();
 }
 
 abstract interface class AppointmentsRepository {
-  List<Appointment> all();
-  List<Appointment> forDay(DateTime day);
-  void add(Appointment appointment);
-  void updateStatus(String id, AppointmentStatus status);
+  Stream<List<Appointment>> watchDay(DateTime day);
+  Future<void> add(Appointment appointment);
+  Future<void> updateStatus(String id, AppointmentStatus status);
 }

@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers.dart';
 import '../../design/theme.dart';
-import '../../domain/models.dart';
 import '../../ui/client_row.dart';
 import '../../ui/empty_state.dart';
+import '../../ui/error_view.dart';
+import '../../ui/skeleton.dart';
 
 class ClientsScreen extends ConsumerStatefulWidget {
   const ClientsScreen({super.key});
@@ -20,10 +21,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
   @override
   Widget build(BuildContext context) {
     final nova = context.nova;
-    final all = ref.watch(clientsProvider);
-    final clients = _query.isEmpty
-        ? all
-        : all.where((c) => c.name.toLowerCase().contains(_query.toLowerCase()) || c.phone.contains(_query)).toList();
+    final clientsAsync = ref.watch(clientsProvider);
 
     return SafeArea(
       bottom: false,
@@ -41,20 +39,32 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
             ),
           ),
           Expanded(
-            child: clients.isEmpty
-                ? EmptyState(
+            child: clientsAsync.when(
+              loading: () => const SkeletonList(),
+              error: (e, _) => ErrorView(onRetry: () => ref.invalidate(clientsProvider)),
+              data: (all) {
+                final clients = _query.isEmpty
+                    ? all
+                    : all
+                        .where((c) =>
+                            c.name.toLowerCase().contains(_query.toLowerCase()) || c.phone.contains(_query))
+                        .toList();
+                if (clients.isEmpty) {
+                  return const EmptyState(
                     icon: Icons.person_add_alt,
                     title: 'Здесь появятся ваши клиенты',
                     message: 'Они добавляются сами при первой записи. Можно начать с импорта контактов.',
                     actionLabel: 'Импортировать контакты',
-                    onAction: () {},
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(Spacing.s5, 0, Spacing.s5, Spacing.s16),
-                    itemCount: clients.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: Spacing.s2),
-                    itemBuilder: (context, i) => ClientRow(clients[i]),
-                  ),
+                  );
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(Spacing.s5, 0, Spacing.s5, Spacing.s16),
+                  itemCount: clients.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: Spacing.s2),
+                  itemBuilder: (context, i) => ClientRow(clients[i]),
+                );
+              },
+            ),
           ),
         ],
       ),

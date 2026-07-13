@@ -9,3 +9,7 @@ pubspec.lock
 .idea/
 ios/Pods/
 android/.gradle/
+
+# Кодогенерация (Drift и др.) — регенерируется build_runner'ом
+*.g.dart
+*.freezed.dart

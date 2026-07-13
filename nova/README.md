@@ -1,70 +1,86 @@
-# Nova — Flutter (Этап 3, каркас)
+# Nova — Flutter (финальная архитектура)
 
-CRM нового поколения для сферы услуг. Этот пакет — **технический каркас**:
-дизайн-система в коде + слои данных + навигация + два живых экрана. Экраны
-рендерятся на демо-данных и кликабельны; реальная БД и остальные экраны
-навешиваются поверх без правок UI.
+CRM нового поколения для сферы услуг. Offline-first SaaS, рассчитанный на
+масштаб (миллионы пользователей) и долгосрочное расширение. Этот пакет —
+рабочий каркас: дизайн-система в коде + полноценная БД + официальная навигация
++ живые экраны на реальном хранилище.
 
-> Документы продукта: `../docs/ARCHITECTURE.md`, `../docs/DESIGN_SYSTEM.md`.
+> Продуктовые документы: `../docs/ARCHITECTURE.md`, `../docs/DESIGN_SYSTEM.md`.
+
+## Стек (зафиксирован)
+
+| Слой | Технология | Почему |
+|---|---|---|
+| State | **Riverpod 2.x** | Реактивно, компиляторно безопасно, ложится на потоки БД |
+| БД | **Drift (SQLite)** + `drift_flutter` | Полноценная local-first БД с первого дня, кроссплатформенно (вкл. web) |
+| Навигация | **go_router** | Официальный стандарт: deep links, web-URL, масштабирование |
+| Типографика | **Inter (локальный бандл)** | Полностью офлайн, без сети; веса через `fontVariations` |
 
 ## Запуск
 
 ```bash
 cd nova
 flutter pub get
-flutter run          # iOS / Android / desktop
+# 1) Кодогенерация Drift (обязательно перед первым запуском):
+dart run build_runner build --delete-conflicting-outputs
+# 2) Шрифт: положить assets/fonts/Inter-Variable.ttf (см. assets/fonts/README.md)
+flutter run   # iOS / Android / web / desktop
 ```
 
-Требуется Flutter ≥ 3.22 (Dart ≥ 3.4). Шрифт Inter пока тянется через
-`google_fonts` (сеть при первом запуске); для офлайна и премиума — забандлить
-Inter локально (раскомментировать секцию `fonts` в `pubspec.yaml`).
+Требуется Flutter ≥ 3.22 (Dart ≥ 3.4). `database.g.dart` генерируется build_runner'ом
+и не коммитится (см. `.gitignore`). Без файла Inter приложение работает на системном
+шрифте (офлайн, без ошибок); с ним — типографика пиксель-в-пиксель.
 
 ## Архитектура (слои)
 
 ```
 lib/
 ├─ design/         дизайн-система в коде (источник — DESIGN_SYSTEM.md)
-│  ├─ tokens.dart      Spacing (4pt), Radii, Motion — не зависят от темы
-│  ├─ colors.dart      NovaColors + NovaShadows как ThemeExtension (light/dark)
-│  ├─ typography.dart  AppTypography — 8 ступеней (Inter), tabular-цифры
-│  └─ theme.dart       buildNovaTheme() + context.nova / context.shadows
+│  ├─ tokens.dart · colors.dart (ThemeExtension) · typography.dart · theme.dart
 ├─ domain/         бизнес-модель, без Flutter/БД
-│  ├─ models.dart      Client, Service, Staff, Appointment (+ статусы)
-│  └─ repositories.dart  абстрактные контракты доступа к данным
-├─ data/           источник данных (заменяем без правок UI)
-│  ├─ seed.dart        демо-данные каркаса
-│  ├─ in_memory_repositories.dart  in-memory реализация
-│  └─ providers.dart   Riverpod-проводка (репозитории, день, сводка)
+│  ├─ models.dart        Client, Service, Staff, Appointment (+ статусы)
+│  └─ repositories.dart  контракты (Stream/Future) — UI зависит только от них
+├─ data/           источник данных
+│  ├─ db/database.dart              Drift-схема (мультиарендная) + запросы + сид
+│  ├─ repositories/drift_repositories.dart  реализация контрактов поверх Drift
+│  └─ providers.dart                Riverpod: БД, репозитории, потоки, сводка
 ├─ ui/             переиспользуемые виджеты из токенов
-│  ├─ nova_button.dart · status_pill.dart · stat_tile.dart
-│  ├─ appointment_card.dart · client_row.dart · empty_state.dart · format.dart
-├─ features/       экраны
-│  ├─ today/       «Сегодня» (сводка + лента записей) — живой
-│  ├─ clients/     «Клиенты» (поиск + список) — живой
-│  ├─ create/      быстрая запись (bottom sheet) — живой
-│  ├─ analytics/   «Обзор» — сводка (период-дашборд далее)
-│  └─ menu/        «Меню» — разделы
-├─ app/            app.dart (MaterialApp + темы) · shell.dart (нав + ➕)
+│  ├─ nova_button · status_pill · stat_tile · appointment_card · client_row
+│  ├─ empty_state · error_view · skeleton · format
+├─ features/       экраны (Consumer, реактивные потоки: loading/error/empty)
+│  ├─ today/ · clients/ · create/ · analytics/ · menu/
+├─ app/            app.dart (MaterialApp.router) · router.dart (go_router)
+│  └─ scaffold_with_nav.dart (нижний бар + ➕)
 └─ main.dart       ProviderScope + локали
 ```
 
-## Принятые инженерные решения
+## Мультиарендность с первого дня
 
-- **State — Riverpod 2.x.** Реактивно, компиляторно безопасно, ложится на
-  local-first и кэш. Экраны — `ConsumerWidget`, читают провайдеры.
-- **Данные — Repository + in-memory сейчас, Drift/SQLite потом.** UI зависит от
-  абстракций (`domain/repositories.dart`); замена источника не трогает экраны —
-  меняется только `data/providers.dart`.
-- **Дизайн-система — `ThemeExtension`.** Все токены доступны как
-  `context.nova.accent`, `context.shadows.e1`. Ноль хардкод-значений в виджетах.
-  Обе темы — первого класса (`ThemeMode.system`).
-- **Навигация — кастомный shell** (4 таба + центральная ➕ → bottom sheet), точно
-  под дизайн-систему. Deep-links через go_router — следующий слой.
+Схема БД несёт `businessId` на каждой сущности + таблицы `Businesses`,
+`Locations`, `StaffMembers`. Это фундамент под **команды, филиалы, роли и
+подписки** — они добавляются как данные/права, без переделки архитектуры.
 
-## Что дальше (Этап 3.1+)
+## Рассчитано на масштаб и расширение
 
-- Drift/SQLite + слой синхронизации (local-first, офлайн-очередь).
-- go_router и deep-links (онлайн-запись, карточки).
-- Остальные экраны из карты (`docs/ARCHITECTURE.md §6`).
-- AI-слой (умные слоты, предсказание услуги, инсайты).
-- Бандл Inter, иконочный набор, haptics, тесты.
+| Ось роста | Как заложено |
+|---|---|
+| **Команды** | `StaffMembers` + `businessId`; роли/права — слой поверх |
+| **Филиалы** | `Locations` per business; фильтрация запросов по локации |
+| **Роли и права** | таблица ролей + policy-слой над репозиториями (следующий шаг) |
+| **Подписки** | биллинг-сущности per business; фичефлаги в data-слое |
+| **Синхронизация** | Drift local-first + слой синка (outbox/CRDT) — репозитории не меняются |
+| **Аналитика** | всё выводимо из Appointments/Sales; SQL-агрегации в Drift |
+| **Marketplace услуг** | публичный каталог `Services`/`Businesses` + discovery поверх той же схемы |
+| **API** | доменные модели + репозитории = готовый контракт для REST/GraphQL-гейта |
+| **Web-версия** | go_router (URL-маршруты) + drift_flutter (web-БД) — та же кодовая база |
+
+**Принцип масштабируемости:** UI зависит от абстракций (`domain/repositories.dart`);
+источник данных, синхронизация, права и транспорт меняются под капотом, не трогая
+экраны. Схема нейтральна к сфере услуг (`Business.industry` — конфигурация).
+
+## Что дальше
+
+- Слой синхронизации (outbox + сервер), auth, подписки/биллинг.
+- Роли и права (policy над репозиториями).
+- Остальные экраны из карты (`docs/ARCHITECTURE.md §6`), AI-слой.
+- Тесты (unit по репозиториям, widget по экранам), CI.

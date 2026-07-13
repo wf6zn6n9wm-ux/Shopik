@@ -38,8 +38,8 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
   @override
   Widget build(BuildContext context) {
     final nova = context.nova;
-    final clients = ref.watch(clientsProvider);
-    final services = ref.watch(servicesProvider);
+    final clients = ref.watch(clientsProvider).value ?? const <Client>[];
+    final services = ref.watch(servicesProvider).value ?? const <Service>[];
     final ready = _client != null && _service != null;
 
     return Padding(
@@ -61,8 +61,8 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
                   padding: const EdgeInsets.only(bottom: Spacing.s2),
                   child: _Selectable(
                     selected: _client?.id == c.id,
-                    child: ClientRow(c),
                     onTap: () => setState(() => _client = c),
+                    child: ClientRow(c),
                   ),
                 )),
             const SizedBox(height: Spacing.s4),
@@ -80,15 +80,12 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
                   .toList(),
             ),
             const SizedBox(height: Spacing.s6),
-            SizedBox(
-              width: double.infinity,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: NovaButton(
-                  'Записать',
-                  icon: Icons.check,
-                  onPressed: ready ? () => _create(context) : null,
-                ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: NovaButton(
+                'Записать',
+                icon: Icons.check,
+                onPressed: ready ? () => _create(context) : null,
               ),
             ),
           ],
@@ -97,13 +94,17 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
     );
   }
 
-  void _create(BuildContext context) {
+  Future<void> _create(BuildContext context) async {
     final day = ref.read(selectedDayProvider);
-    final existing = ref.read(dayAppointmentsProvider);
+    final existing = ref.read(dayAppointmentsProvider).value ?? const <Appointment>[];
     final start = existing.isEmpty
         ? DateTime(day.year, day.month, day.day, 10, 0)
         : existing.last.end.add(const Duration(minutes: 15));
-    ref.read(dayAppointmentsProvider.notifier).add(
+
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    await ref.read(appointmentsRepositoryProvider).add(
           Appointment(
             id: 'a${DateTime.now().microsecondsSinceEpoch}',
             client: _client!,
@@ -112,8 +113,9 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
             status: AppointmentStatus.confirmed,
           ),
         );
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
+
+    navigator.pop();
+    messenger.showSnackBar(
       SnackBar(content: Text('Записан ${_client!.name} · ${Fmt.time(start)}')),
     );
   }

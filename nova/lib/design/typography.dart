@@ -1,10 +1,11 @@
 import 'package:flutter/widgets.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-/// Типографика Nova — 8 ступеней на 4pt-ритме. Одна гарнитура (Inter).
-/// Размеры/веса не зависят от темы; цвет передаётся при использовании.
-/// letterSpacing в логических пикселях (пересчитан из em).
+/// Типографика Nova — 8 ступеней на 4pt-ритме. Гарнитура Inter забандлена
+/// локально (offline-first). Точные веса — через fontVariations вариативного
+/// шрифта. Размеры/веса не зависят от темы; цвет передаётся при использовании.
 abstract final class AppTypography {
+  static const String _family = 'Inter';
+
   static TextStyle _base({
     required double size,
     required double height,
@@ -12,10 +13,12 @@ abstract final class AppTypography {
     required double tracking,
     Color? color,
   }) {
-    return GoogleFonts.inter(
+    return TextStyle(
+      fontFamily: _family,
       fontSize: size,
       height: height / size,
       fontWeight: weight,
+      fontVariations: [FontVariation('wght', weight.value.toDouble())],
       letterSpacing: tracking,
       color: color,
     );

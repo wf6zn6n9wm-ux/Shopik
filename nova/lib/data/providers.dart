@@ -3,48 +3,46 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/models.dart';
 import '../domain/repositories.dart';
-import 'in_memory_repositories.dart';
+import 'db/database.dart';
+import 'repositories/drift_repositories.dart';
 
-/// Riverpod-проводка. Экраны читают провайдеры, а не репозитории напрямую —
-/// это точка замены источника данных (in-memory → Drift) без правок UI.
+/// Riverpod-проводка. Экраны читают провайдеры, а не БД напрямую.
+/// Drift-потоки делают всё реактивным и offline-first.
 
-final clientsRepositoryProvider = Provider<ClientsRepository>((ref) => InMemoryClientsRepository());
-final servicesRepositoryProvider = Provider<ServicesRepository>((ref) => InMemoryServicesRepository());
-final staffRepositoryProvider = Provider<StaffRepository>((ref) => InMemoryStaffRepository());
+final databaseProvider = Provider<AppDatabase>((ref) {
+  final db = AppDatabase();
+  // Сид демо-данных при первом запуске (fire-and-forget; потоки обновятся).
+  // ignore: discarded_futures
+  db.ensureSeeded();
+  ref.onDispose(db.close);
+  return db;
+});
+
+final clientsRepositoryProvider =
+    Provider<ClientsRepository>((ref) => DriftClientsRepository(ref.watch(databaseProvider)));
+final servicesRepositoryProvider =
+    Provider<ServicesRepository>((ref) => DriftServicesRepository(ref.watch(databaseProvider)));
 final appointmentsRepositoryProvider =
-    Provider<AppointmentsRepository>((ref) => InMemoryAppointmentsRepository());
+    Provider<AppointmentsRepository>((ref) => DriftAppointmentsRepository(ref.watch(databaseProvider)));
 
-final clientsProvider = Provider<List<Client>>((ref) => ref.watch(clientsRepositoryProvider).all());
-final servicesProvider = Provider<List<Service>>((ref) => ref.watch(servicesRepositoryProvider).all());
+/// Все клиенты (реактивно из БД).
+final clientsProvider =
+    StreamProvider<List<Client>>((ref) => ref.watch(clientsRepositoryProvider).watchAll());
 
-/// Записи выбранного дня. Реактивны: создание записи обновляет ленту.
+/// Каталог услуг.
+final servicesProvider =
+    FutureProvider<List<Service>>((ref) => ref.watch(servicesRepositoryProvider).all());
+
+/// Выбранный день календаря.
 final selectedDayProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
-final dayAppointmentsProvider = NotifierProvider<DayAppointmentsNotifier, List<Appointment>>(
-  DayAppointmentsNotifier.new,
-);
+/// Записи выбранного дня (реактивно из БД).
+final dayAppointmentsProvider = StreamProvider<List<Appointment>>((ref) {
+  final day = ref.watch(selectedDayProvider);
+  return ref.watch(appointmentsRepositoryProvider).watchDay(day);
+});
 
-class DayAppointmentsNotifier extends Notifier<List<Appointment>> {
-  AppointmentsRepository get _repo => ref.read(appointmentsRepositoryProvider);
-
-  @override
-  List<Appointment> build() {
-    final day = ref.watch(selectedDayProvider);
-    return _repo.forDay(day);
-  }
-
-  void add(Appointment a) {
-    _repo.add(a);
-    state = _repo.forDay(ref.read(selectedDayProvider));
-  }
-
-  void setStatus(String id, AppointmentStatus status) {
-    _repo.updateStatus(id, status);
-    state = _repo.forDay(ref.read(selectedDayProvider));
-  }
-}
-
-/// Простая дневная сводка для экрана «Сегодня».
+/// Дневная сводка для экранов «Сегодня»/«Обзор».
 @immutable
 class DaySummary {
   const DaySummary({required this.revenue, required this.visits, required this.load});
@@ -54,7 +52,7 @@ class DaySummary {
 }
 
 final daySummaryProvider = Provider<DaySummary>((ref) {
-  final appts = ref.watch(dayAppointmentsProvider);
+  final appts = ref.watch(dayAppointmentsProvider).value ?? const <Appointment>[];
   final revenue = appts
       .where((a) => a.status == AppointmentStatus.completed || a.status == AppointmentStatus.confirmed)
       .fold<int>(0, (sum, a) => sum + a.service.price);
