@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/services/analytics/analytics_events.dart';
+import '../../core/services/analytics/analytics_service.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
@@ -114,6 +116,9 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
             status: AppointmentStatus.confirmed,
           ),
         );
+    await ref
+        .read(analyticsServiceProvider)
+        .track(AnalyticsEvent.appointmentCreated);
 
     navigator.pop();
     messenger.showSnackBar(

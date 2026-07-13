@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Флаги фич — включают/выключают функциональность удалённо и постепенно
 /// (staged rollout, kill switch). Значения приходят из Remote Config.
 enum FeatureFlag {
-  newCalendar,
-  marketplace,
-  publicPages,
   onlineBooking,
+  push,
   aiAssistant,
-  stripeWeb,
+  teams,
+  finances,
+  analytics,
+  marketplace,
+  integrations,
+  publicPages,
   dataImport,
 }
 
@@ -24,13 +27,18 @@ abstract interface class RemoteConfigService {
 
 /// DEFAULT: компайл-тайм значения. Замена: FirebaseRemoteConfigService и т.п.
 class LocalRemoteConfigService implements RemoteConfigService {
+  // Дефолты для постепенного раскатывания. Реальные значения приходят из
+  // Remote Config (адаптер), позволяя включать фичи без релиза.
   static const Map<FeatureFlag, bool> _defaults = {
-    FeatureFlag.newCalendar: true,
     FeatureFlag.onlineBooking: true,
-    FeatureFlag.marketplace: false,
-    FeatureFlag.publicPages: false,
+    FeatureFlag.push: false,
     FeatureFlag.aiAssistant: false,
-    FeatureFlag.stripeWeb: false,
+    FeatureFlag.teams: false,
+    FeatureFlag.finances: false,
+    FeatureFlag.analytics: true,
+    FeatureFlag.marketplace: false,
+    FeatureFlag.integrations: false,
+    FeatureFlag.publicPages: false,
     FeatureFlag.dataImport: false,
   };
 

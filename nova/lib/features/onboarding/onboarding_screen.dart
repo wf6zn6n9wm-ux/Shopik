@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
 import '../../core/industry/industry_templates.dart';
+import '../../core/services/analytics/analytics_events.dart';
 import '../../core/services/analytics/analytics_service.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
@@ -40,9 +41,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ),
     ];
     await ref.read(workspaceRepositoryProvider).applyIndustry(id, seeds);
-    await ref
-        .read(analyticsServiceProvider)
-        .logEvent('business_created', params: {'industry': id});
+    final analytics = ref.read(analyticsServiceProvider);
+    await analytics.track(AnalyticsEvent.workspaceCreated);
+    await analytics.track(AnalyticsEvent.industrySelected(id));
 
     router.go(Routes.calendar);
   }

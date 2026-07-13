@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/services/analytics/analytics_events.dart';
 import '../../core/services/analytics/analytics_service.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
@@ -47,7 +48,7 @@ class _CreateClientSheetState extends ConsumerState<_CreateClientSheet> {
       phone: _phone.text.trim(),
     );
     await ref.read(clientsRepositoryProvider).add(client);
-    await ref.read(analyticsServiceProvider).logEvent('client_created');
+    await ref.read(analyticsServiceProvider).track(AnalyticsEvent.clientCreated);
 
     navigator.pop();
     messenger.showSnackBar(

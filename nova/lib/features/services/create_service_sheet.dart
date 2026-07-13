@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/services/analytics/analytics_events.dart';
 import '../../core/services/analytics/analytics_service.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
@@ -52,7 +53,7 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
       price: ((double.tryParse(_price.text.trim()) ?? 0) * 100).round(),
     );
     await ref.read(servicesRepositoryProvider).add(service);
-    await ref.read(analyticsServiceProvider).logEvent('service_created');
+    await ref.read(analyticsServiceProvider).track(AnalyticsEvent.serviceCreated);
 
     navigator.pop();
     messenger.showSnackBar(
