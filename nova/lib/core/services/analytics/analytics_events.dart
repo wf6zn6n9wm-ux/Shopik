@@ -40,6 +40,8 @@ class AnalyticsEvent {
   // — Вовлечённость —
   static const clientOpened = AnalyticsEvent('client_opened');
   static const onlineBookingUsed = AnalyticsEvent('online_booking_used');
+  static AnalyticsEvent bookingLinkShared(String channel) =>
+      AnalyticsEvent('booking_link_shared', {'channel': channel});
   static const staffInvited = AnalyticsEvent('staff_invited');
 }
 
