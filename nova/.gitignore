@@ -13,3 +13,6 @@ android/.gradle/
 # Кодогенерация (Drift и др.) — регенерируется build_runner'ом
 *.g.dart
 *.freezed.dart
+
+# Сгенерированные локализации (flutter gen-l10n)
+lib/l10n/app_localizations*.dart

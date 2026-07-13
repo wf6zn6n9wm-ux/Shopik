@@ -33,8 +33,21 @@ flutter run   # iOS / Android / web / desktop
 
 ## Архитектура (слои)
 
+> Платформенный фундамент и карта расширяемости: `../docs/PLATFORM_ARCHITECTURE.md`.
+
 ```
 lib/
+├─ core/           платформенное ядро (ports & adapters) — не зависит от фич
+│  ├─ config/          AppConfig + флейворы (dev/staging/prod)
+│  ├─ platform/        PlatformCapabilities (web/desktop/mobile)
+│  ├─ localization/    localeProvider (i18n)
+│  ├─ bootstrap.dart   последовательность старта
+│  └─ services/        ПОРТЫ + дефолтные (no-op/local) реализации:
+│     auth · billing · subscriptions · push · remote_config(flags) ·
+│     analytics(+crash) · ai · sync · api · data_transfer(export/import)
+├─ modules/        модульная навигация: фича = модуль (маршруты + вкладки)
+│  ├─ app_module.dart · registry.dart · crm/crm_module.dart
+├─ l10n/           app_en.arb · app_ru.arb (генерация → app_localizations.dart)
 ├─ design/         дизайн-система в коде (источник — DESIGN_SYSTEM.md)
 │  ├─ tokens.dart · colors.dart (ThemeExtension) · typography.dart · theme.dart
 ├─ domain/         бизнес-модель, без Flutter/БД

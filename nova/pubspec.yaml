@@ -28,6 +28,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true   # генерация локализаций (i18n) из lib/l10n/*.arb
   # Inter бандлится локально (offline-first). Положите файл
   # assets/fonts/Inter-Variable.ttf (см. assets/fonts/README.md) и раскомментируйте
   # блок ниже — после этого типографика становится пиксель-в-пиксель.

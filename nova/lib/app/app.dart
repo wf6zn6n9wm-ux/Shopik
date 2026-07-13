@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/localization/locale_controller.dart';
 import '../design/theme.dart';
+import '../l10n/app_localizations.dart';
 import 'router.dart';
 
-class NovaApp extends StatelessWidget {
+/// AppLocalizations генерируется из lib/l10n/*.arb (flutter gen-l10n).
+/// Делегаты и supportedLocales берутся из него — i18n подключён с первого дня.
+class NovaApp extends ConsumerWidget {
   const NovaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
     return MaterialApp.router(
-      title: 'Nova',
+      onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
       theme: buildNovaTheme(Brightness.light),
       darkTheme: buildNovaTheme(Brightness.dark),
       themeMode: ThemeMode.system, // обе темы первого класса
+      locale: locale, // null → системная
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: appRouter,
-      supportedLocales: const [Locale('ru'), Locale('en')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
     );
   }
 }

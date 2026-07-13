@@ -1,0 +1,9 @@
+# Локализация (i18n) с первого дня. Файлы генерируются командой
+#   flutter gen-l10n   (или автоматически при flutter run, т.к. generate: true).
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/l10n
+synthetic-package: false
+nullable-getter: false

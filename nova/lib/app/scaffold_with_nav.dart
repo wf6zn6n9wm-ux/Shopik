@@ -3,21 +3,20 @@ import 'package:go_router/go_router.dart';
 
 import '../design/theme.dart';
 import '../features/create/create_appointment_sheet.dart';
+import '../modules/app_module.dart';
 
-/// Навигационный каркас: нижний бар (4 таба + центральная ➕), привязанный к
-/// StatefulNavigationShell go_router. ➕ открывает модальный лист создания
-/// (не маршрут — это действие, а не место назначения).
+/// Навигационный каркас: нижний бар строится из destinations модулей
+/// (+ центральная ➕ по центру). ➕ открывает лист создания — это действие, а не
+/// маршрут. Добавление/перестановка вкладок — через реестр модулей.
 class ScaffoldWithNav extends StatelessWidget {
-  const ScaffoldWithNav({super.key, required this.navigationShell});
+  const ScaffoldWithNav({
+    super.key,
+    required this.navigationShell,
+    required this.destinations,
+  });
 
   final StatefulNavigationShell navigationShell;
-
-  static const _tabs = [
-    _Tab(Icons.calendar_today_outlined, Icons.calendar_today, 'Календарь'),
-    _Tab(Icons.people_alt_outlined, Icons.people_alt, 'Клиенты'),
-    _Tab(Icons.bar_chart_outlined, Icons.bar_chart, 'Аналитика'),
-    _Tab(Icons.menu, Icons.menu, 'Меню'),
-  ];
+  final List<NavDestination> destinations;
 
   void _goBranch(int index) => navigationShell.goBranch(
         index,
@@ -28,6 +27,19 @@ class ScaffoldWithNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final nova = context.nova;
     final current = navigationShell.currentIndex;
+    final mid = destinations.length ~/ 2;
+
+    final items = <Widget>[];
+    for (var i = 0; i < destinations.length; i++) {
+      if (i == mid) {
+        items.add(_CreateButton(onTap: () => showCreateAppointmentSheet(context)));
+      }
+      items.add(_NavItem(
+        destination: destinations[i],
+        active: current == i,
+        onTap: () => _goBranch(i),
+      ));
+    }
 
     return Scaffold(
       body: navigationShell,
@@ -38,34 +50,16 @@ class ScaffoldWithNav extends StatelessWidget {
         ),
         child: SafeArea(
           top: false,
-          child: SizedBox(
-            height: 62,
-            child: Row(
-              children: [
-                _NavItem(tab: _tabs[0], active: current == 0, onTap: () => _goBranch(0)),
-                _NavItem(tab: _tabs[1], active: current == 1, onTap: () => _goBranch(1)),
-                _CreateButton(onTap: () => showCreateAppointmentSheet(context)),
-                _NavItem(tab: _tabs[2], active: current == 2, onTap: () => _goBranch(2)),
-                _NavItem(tab: _tabs[3], active: current == 3, onTap: () => _goBranch(3)),
-              ],
-            ),
-          ),
+          child: SizedBox(height: 62, child: Row(children: items)),
         ),
       ),
     );
   }
 }
 
-class _Tab {
-  const _Tab(this.icon, this.activeIcon, this.label);
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-}
-
 class _NavItem extends StatelessWidget {
-  const _NavItem({required this.tab, required this.active, required this.onTap});
-  final _Tab tab;
+  const _NavItem({required this.destination, required this.active, required this.onTap});
+  final NavDestination destination;
   final bool active;
   final VoidCallback onTap;
 
@@ -79,10 +73,11 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(active ? tab.activeIcon : tab.icon, size: 22, color: active ? nova.accent : nova.ink3),
+            Icon(active ? destination.activeIcon : destination.icon,
+                size: 22, color: active ? nova.accent : nova.ink3),
             const SizedBox(height: 3),
             Text(
-              tab.label,
+              destination.label,
               style: AppTypography.caption(active ? nova.accent : nova.ink3)
                   .copyWith(letterSpacing: 0, fontSize: 10),
             ),
