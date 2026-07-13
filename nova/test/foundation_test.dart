@@ -26,7 +26,8 @@ void main() {
 
     test('поиск валюты по коду с фолбэком', () {
       expect(Currency.byCode('EUR').symbol, '€');
-      expect(Currency.byCode('???').code, Currency.kzt.code);
+      // Мировой дефолт — USD (RUB исключён, продукт без России).
+      expect(Currency.byCode('???').code, Currency.usd.code);
     });
   });
 }
