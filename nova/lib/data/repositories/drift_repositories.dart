@@ -41,3 +41,15 @@ class DriftAppointmentsRepository implements AppointmentsRepository {
   Future<void> updateStatus(String id, AppointmentStatus status) =>
       _db.setAppointmentStatus(id, status);
 }
+
+class DriftWorkspaceRepository implements WorkspaceRepository {
+  DriftWorkspaceRepository(this._db);
+  final AppDatabase _db;
+
+  @override
+  Future<void> applyIndustry(
+    String industryId,
+    List<(String, String, int, int)> services,
+  ) =>
+      _db.applyIndustryTemplate(industryId, services);
+}

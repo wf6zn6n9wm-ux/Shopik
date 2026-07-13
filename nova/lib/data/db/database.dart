@@ -17,7 +17,7 @@ part 'database.g.dart';
 class Businesses extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
-  TextColumn get industry => text().withDefault(const Constant('beauty'))();
+  TextColumn get industry => text().withDefault(const Constant('other'))();
   // Мультивалютность и мультизональность на уровне арендатора.
   TextColumn get currency => text().withDefault(const Constant('KZT'))();
   TextColumn get timeZone =>
@@ -221,131 +221,76 @@ class AppDatabase extends _$AppDatabase {
     ));
   }
 
-  /// Сид демо-данных при первом запуске (пустая БД). Заменяется реальной
-  /// регистрацией бизнеса / синхронизацией.
+  /// Базовое рабочее пространство при первом запуске: бизнес + филиал + один
+  /// специалист. Нейтрально к сфере — услуги приходят из отраслевого шаблона на
+  /// онбординге. Идемпотентно (по наличию бизнеса).
   Future<void> ensureSeeded() async {
-    final has = await (select(clients)..limit(1)).get();
+    final has = await (select(businesses)..limit(1)).get();
     if (has.isNotEmpty) return;
 
     await transaction(() async {
-      await into(businesses).insert(
-        BusinessesCompanion.insert(
-            id: 'b1', name: 'Моя студия', industry: const Value('beauty')),
-      );
+      await into(businesses)
+          .insert(BusinessesCompanion.insert(id: 'b1', name: 'Мой бизнес'));
       await into(locations).insert(
-        LocationsCompanion.insert(
-            id: 'l1', businessId: 'b1', name: 'Основной филиал'),
+        LocationsCompanion.insert(id: 'l1', businessId: 'b1', name: 'Основной'),
       );
+      await into(staffMembers).insert(
+        StaffMembersCompanion.insert(
+            id: 'st1',
+            businessId: 'b1',
+            name: 'Я',
+            role: const Value('Специалист')),
+      );
+    });
+  }
 
-      await batch((b) {
-        b.insertAll(staffMembers, [
-          StaffMembersCompanion.insert(
-              id: 'st1',
-              businessId: 'b1',
-              name: 'Ирина',
-              role: const Value('Мастер')),
-          StaffMembersCompanion.insert(
-              id: 'st2',
-              businessId: 'b1',
-              name: 'Олег',
-              role: const Value('Барбер')),
-        ]);
-        b.insertAll(services, [
-          ServicesCompanion.insert(
-              id: 'sv1',
-              businessId: 'b1',
-              name: 'Стрижка + укладка',
-              durationMinutes: 60,
-              price: 1200000),
-          ServicesCompanion.insert(
-              id: 'sv2',
-              businessId: 'b1',
-              name: 'Окрашивание',
-              durationMinutes: 90,
-              price: 2400000),
-          ServicesCompanion.insert(
-              id: 'sv3',
-              businessId: 'b1',
-              name: 'Мужская стрижка',
-              durationMinutes: 45,
-              price: 700000),
-          ServicesCompanion.insert(
-              id: 'sv4',
-              businessId: 'b1',
-              name: 'Маникюр',
-              durationMinutes: 75,
-              price: 900000),
-        ]);
-        b.insertAll(clients, [
-          ClientsCompanion.insert(
-              id: 'c1',
-              businessId: 'b1',
-              name: 'Анна Ковач',
-              phone: '+7 700 111 22 33',
-              visitsCount: const Value(12),
-              totalSpent: const Value(21000000)),
-          ClientsCompanion.insert(
-              id: 'c2',
-              businessId: 'b1',
-              name: 'Мария Лунь',
-              phone: '+7 700 222 33 44',
-              visitsCount: const Value(4),
-              totalSpent: const Value(6800000)),
-          ClientsCompanion.insert(
-              id: 'c3',
-              businessId: 'b1',
-              name: 'Игорь Дан',
-              phone: '+7 700 333 44 55',
-              visitsCount: const Value(1),
-              totalSpent: const Value(700000)),
-          ClientsCompanion.insert(
-              id: 'c4',
-              businessId: 'b1',
-              name: 'Елена Мороз',
-              phone: '+7 700 444 55 66',
-              visitsCount: const Value(8),
-              totalSpent: const Value(14200000)),
-        ]);
-      });
+  /// Применяет отраслевой шаблон: задаёт индустрию бизнеса и наполняет каталог
+  /// категориями и услугами. Идемпотентно — заменяет прежний каталог, поэтому
+  /// смена сферы не плодит дубли. `seeds`: (категория, название, минуты, цена).
+  Future<void> applyIndustryTemplate(
+    String industryId,
+    List<(String, String, int, int)> seeds, {
+    String businessId = 'b1',
+  }) async {
+    await transaction(() async {
+      await (update(businesses)..where((t) => t.id.equals(businessId)))
+          .write(BusinessesCompanion(industry: Value(industryId)));
+      await (delete(services)..where((t) => t.businessId.equals(businessId)))
+          .go();
+      await (delete(serviceCategories)
+            ..where((t) => t.businessId.equals(businessId)))
+          .go();
 
-      final now = DateTime.now();
-      DateTime at(int h, int m) => DateTime(now.year, now.month, now.day, h, m);
-      await batch((b) {
-        b.insertAll(appointments, [
-          AppointmentsCompanion.insert(
-              id: 'a1',
-              businessId: 'b1',
-              clientId: 'c1',
-              serviceId: 'sv1',
-              staffId: const Value('st1'),
-              startAt: at(10, 0),
-              status: 'confirmed'),
-          AppointmentsCompanion.insert(
-              id: 'a2',
-              businessId: 'b1',
-              clientId: 'c2',
-              serviceId: 'sv2',
-              staffId: const Value('st1'),
-              startAt: at(11, 30),
-              status: 'online'),
-          AppointmentsCompanion.insert(
-              id: 'a3',
-              businessId: 'b1',
-              clientId: 'c3',
-              serviceId: 'sv3',
-              staffId: const Value('st2'),
-              startAt: at(13, 15),
-              status: 'pending'),
-          AppointmentsCompanion.insert(
-              id: 'a4',
-              businessId: 'b1',
-              clientId: 'c4',
-              serviceId: 'sv4',
-              staffId: const Value('st1'),
-              startAt: at(15, 0),
-              status: 'confirmed'),
-        ]);
-      });
+      final categoryIds = <String, String>{};
+      var catIndex = 0;
+      for (final seed in seeds) {
+        final categoryName = seed.$1;
+        if (!categoryIds.containsKey(categoryName)) {
+          final id = '${businessId}_cat_$catIndex';
+          categoryIds[categoryName] = id;
+          await into(serviceCategories).insert(ServiceCategoriesCompanion.insert(
+            id: id,
+            businessId: businessId,
+            name: categoryName,
+            sortOrder: Value(catIndex),
+          ));
+          catIndex++;
+        }
+      }
+
+      var serviceIndex = 0;
+      final rows = <ServicesCompanion>[
+        for (final seed in seeds)
+          ServicesCompanion.insert(
+            id: '${businessId}_sv_${serviceIndex++}',
+            businessId: businessId,
+            categoryId: Value(categoryIds[seed.$1]),
+            name: seed.$2,
+            durationMinutes: seed.$3,
+            price: seed.$4,
+          ),
+      ];
+      await batch((b) => b.insertAll(services, rows));
     });
   }
 }

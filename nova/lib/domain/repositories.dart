@@ -19,3 +19,12 @@ abstract interface class AppointmentsRepository {
   Future<void> add(Appointment appointment);
   Future<void> updateStatus(String id, AppointmentStatus status);
 }
+
+/// Настройка рабочего пространства (онбординг): применение отраслевого шаблона.
+abstract interface class WorkspaceRepository {
+  /// [services]: (категория, название, длительность_мин, цена_минор).
+  Future<void> applyIndustry(
+    String industryId,
+    List<(String, String, int, int)> services,
+  );
+}

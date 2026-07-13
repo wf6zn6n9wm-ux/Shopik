@@ -3,42 +3,48 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
+import '../../core/industry/industry_templates.dart';
+import '../../core/services/analytics/analytics_service.dart';
+import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../ui/nova_button.dart';
 
-/// Профессия/сфера бизнеса. Выбор задаёт `Business.industry` — из него позже
-/// подставляются шаблоны услуг и терминология (мультиарендно). Здесь —
-/// структура и навигация в приложение.
-class Profession {
-  const Profession(this.id, this.title, this.icon);
-  final String id;
-  final String title;
-  final IconData icon;
-}
-
-const _professions = <Profession>[
-  Profession('hair', 'Парикмахер', Icons.content_cut),
-  Profession('barber', 'Барбер', Icons.face_retouching_natural),
-  Profession('nails', 'Ногтевой сервис', Icons.back_hand_outlined),
-  Profession('brows', 'Брови и ресницы', Icons.remove_red_eye_outlined),
-  Profession('makeup', 'Визажист', Icons.brush_outlined),
-  Profession('cosmet', 'Косметолог', Icons.spa_outlined),
-  Profession('massage', 'Массаж', Icons.self_improvement_outlined),
-  Profession('tattoo', 'Тату и пирсинг', Icons.gesture_outlined),
-  Profession('other', 'Другое', Icons.more_horiz),
-];
-
-/// Выбранная сфера (позже → Business.industry при регистрации).
-final selectedProfessionProvider = StateProvider<String?>((ref) => null);
-
-class OnboardingScreen extends ConsumerWidget {
+/// Онбординг: выбор сферы → готовое рабочее пространство за секунды.
+/// Универсально для любой отрасли: набор берётся из IndustryCatalog (данные),
+/// применяется к Business через WorkspaceRepository (Drift, offline-first).
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final nova = context.nova;
-    final selected = ref.watch(selectedProfessionProvider);
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
+}
 
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  String? _selected;
+  bool _saving = false;
+
+  Future<void> _create() async {
+    final id = _selected;
+    if (id == null || _saving) return;
+    setState(() => _saving = true);
+    final router = GoRouter.of(context);
+
+    final template = IndustryCatalog.byId(id);
+    final seeds = <(String, String, int, int)>[
+      for (final e in template.flatServices)
+        (e.category, e.service.name, e.service.durationMinutes, e.service.price),
+    ];
+    await ref.read(workspaceRepositoryProvider).applyIndustry(id, seeds);
+    await ref
+        .read(analyticsServiceProvider)
+        .logEvent('business_created', params: {'industry': id});
+
+    router.go(Routes.calendar);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nova = context.nova;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -64,15 +70,13 @@ class OnboardingScreen extends ConsumerWidget {
                 crossAxisCount: 3,
                 mainAxisSpacing: Spacing.s3,
                 crossAxisSpacing: Spacing.s3,
-                childAspectRatio: 0.92,
+                childAspectRatio: 0.9,
                 children: [
-                  for (final p in _professions)
-                    _ProfessionCard(
-                      profession: p,
-                      selected: selected == p.id,
-                      onTap: () => ref
-                          .read(selectedProfessionProvider.notifier)
-                          .state = p.id,
+                  for (final t in IndustryCatalog.all)
+                    _IndustryCard(
+                      template: t,
+                      selected: _selected == t.id,
+                      onTap: () => setState(() => _selected = t.id),
                     ),
                 ],
               ),
@@ -81,10 +85,9 @@ class OnboardingScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(
                   Spacing.s5, 0, Spacing.s5, Spacing.s5),
               child: NovaButton(
-                'Создать студию',
+                'Создать рабочее пространство',
                 expand: true,
-                onPressed:
-                    selected == null ? null : () => context.go(Routes.calendar),
+                onPressed: _selected == null || _saving ? null : _create,
               ),
             ),
           ],
@@ -94,45 +97,47 @@ class OnboardingScreen extends ConsumerWidget {
   }
 }
 
-class _ProfessionCard extends StatelessWidget {
-  const _ProfessionCard({
-    required this.profession,
+class _IndustryCard extends StatelessWidget {
+  const _IndustryCard({
+    required this.template,
     required this.selected,
     required this.onTap,
   });
 
-  final Profession profession;
+  final IndustryTemplate template;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final nova = context.nova;
+    final accent = template.color;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: Motion.fast,
         curve: Motion.standard,
         decoration: BoxDecoration(
-          color: selected ? nova.accentTint : nova.surface,
+          color: selected ? accent.withValues(alpha: 0.12) : nova.surface,
           borderRadius: BorderRadius.circular(Radii.md),
           border: Border.all(
-            color: selected ? nova.accent : nova.line,
+            color: selected ? accent : nova.line,
             width: selected ? 1.5 : 1,
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(profession.icon,
-                size: 26, color: selected ? nova.accent : nova.ink2),
+            Icon(template.icon, size: 26, color: selected ? accent : nova.ink2),
             const SizedBox(height: Spacing.s2),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
               child: Text(
-                profession.title,
+                template.title,
                 textAlign: TextAlign.center,
-                style: AppTypography.label(selected ? nova.accent : nova.ink),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.label(selected ? accent : nova.ink),
               ),
             ),
           ],

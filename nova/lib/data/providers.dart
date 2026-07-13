@@ -24,6 +24,8 @@ final servicesRepositoryProvider = Provider<ServicesRepository>(
     (ref) => DriftServicesRepository(ref.watch(databaseProvider)));
 final appointmentsRepositoryProvider = Provider<AppointmentsRepository>(
     (ref) => DriftAppointmentsRepository(ref.watch(databaseProvider)));
+final workspaceRepositoryProvider = Provider<WorkspaceRepository>(
+    (ref) => DriftWorkspaceRepository(ref.watch(databaseProvider)));
 
 /// Все клиенты (реактивно из БД).
 final clientsProvider = StreamProvider<List<Client>>(
