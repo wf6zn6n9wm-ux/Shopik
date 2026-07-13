@@ -1,0 +1,33 @@
+name: nova
+description: "Nova — CRM нового поколения для сферы услуг."
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1   # state management (Этап 3)
+  google_fonts: ^6.2.1       # Inter (в проде — бандл шрифта для офлайна)
+  intl: ^0.19.0              # форматирование дат/времени/валюты
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  # Для офлайна и премиум-типографики бандлим Inter локально (Этап 3.1):
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter-Regular.ttf
+  #       - asset: assets/fonts/Inter-Medium.ttf   weight: 500
+  #       - asset: assets/fonts/Inter-SemiBold.ttf weight: 600
+  #       - asset: assets/fonts/Inter-Bold.ttf     weight: 700
