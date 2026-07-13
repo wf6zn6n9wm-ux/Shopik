@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/auth_screen.dart';
 import '../features/auth/otp_screen.dart';
 import '../features/booking/online_booking_screen.dart';
+import '../features/clients/client_detail_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/services/services_screen.dart';
@@ -48,6 +49,11 @@ GoRouter _buildRouter() {
       ),
 
       // Pushed-экраны MVP.
+      GoRoute(
+        path: Routes.clientDetail,
+        builder: (context, state) =>
+            ClientDetailScreen(clientId: state.pathParameters['id']!),
+      ),
       GoRoute(
           path: Routes.services,
           builder: (context, state) => const ServicesScreen()),

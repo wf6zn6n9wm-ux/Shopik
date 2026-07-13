@@ -2,6 +2,8 @@
 abstract final class Routes {
   static const calendar = '/';
   static const clients = '/clients';
+  static const clientDetail = '/clients/:id';
+  static String clientDetailPath(String id) => '/clients/$id';
   static const analytics = '/analytics';
   static const menu = '/menu';
 

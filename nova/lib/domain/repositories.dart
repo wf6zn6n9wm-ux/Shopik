@@ -19,6 +19,9 @@ abstract interface class AppointmentsRepository {
 
   /// Записи в полуоткрытом диапазоне [start, end) — для Недели/Месяца.
   Stream<List<Appointment>> watchRange(DateTime start, DateTime end);
+
+  /// Все записи клиента (история карточки).
+  Stream<List<Appointment>> watchForClient(String clientId);
   Future<void> add(Appointment appointment);
   Future<void> updateStatus(String id, AppointmentStatus status);
 

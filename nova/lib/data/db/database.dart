@@ -182,27 +182,38 @@ class AppDatabase extends _$AppDatabase {
         .map((rows) => rows.map(_toService).toList());
   }
 
+  /// Полный join записи (клиент+услуга+мастер+ресурс) для одного ряда.
+  List<Join> _appointmentJoins() => [
+        innerJoin(clients, clients.id.equalsExp(appointments.clientId)),
+        innerJoin(services, services.id.equalsExp(appointments.serviceId)),
+        leftOuterJoin(
+            staffMembers, staffMembers.id.equalsExp(appointments.staffId)),
+        leftOuterJoin(
+            resources, resources.id.equalsExp(appointments.resourceId)),
+      ];
+
+  domain.Appointment _rowToAppointment(TypedResult row) => _toAppointment(
+        row.readTable(appointments),
+        row.readTable(clients),
+        row.readTable(services),
+        row.readTableOrNull(staffMembers),
+        row.readTableOrNull(resources),
+      );
+
   Stream<List<domain.Appointment>> _watchBetween(DateTime start, DateTime end) {
-    final query = select(appointments).join([
-      innerJoin(clients, clients.id.equalsExp(appointments.clientId)),
-      innerJoin(services, services.id.equalsExp(appointments.serviceId)),
-      leftOuterJoin(
-          staffMembers, staffMembers.id.equalsExp(appointments.staffId)),
-      leftOuterJoin(resources, resources.id.equalsExp(appointments.resourceId)),
-    ])
+    final query = select(appointments).join(_appointmentJoins())
       ..where(appointments.startAt.isBiggerOrEqualValue(start) &
           appointments.startAt.isSmallerThanValue(end))
       ..orderBy([OrderingTerm.asc(appointments.startAt)]);
+    return query.watch().map((rows) => rows.map(_rowToAppointment).toList());
+  }
 
-    return query.watch().map((rows) => rows.map((row) {
-          return _toAppointment(
-            row.readTable(appointments),
-            row.readTable(clients),
-            row.readTable(services),
-            row.readTableOrNull(staffMembers),
-            row.readTableOrNull(resources),
-          );
-        }).toList());
+  /// Все записи клиента (история/метрики карточки), новые сверху.
+  Stream<List<domain.Appointment>> watchClientAppointments(String clientId) {
+    final query = select(appointments).join(_appointmentJoins())
+      ..where(appointments.clientId.equals(clientId))
+      ..orderBy([OrderingTerm.desc(appointments.startAt)]);
+    return query.watch().map((rows) => rows.map(_rowToAppointment).toList());
   }
 
   Stream<List<domain.Appointment>> watchDay(DateTime day) {

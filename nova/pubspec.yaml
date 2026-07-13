@@ -17,6 +17,7 @@ dependencies:
   drift: ^2.18.0             # local-first БД (SQLite), offline-first
   drift_flutter: ^0.2.0      # кроссплатформенное открытие БД (вкл. web)
   path_provider: ^2.1.3
+  url_launcher: ^6.3.0       # звонок/сообщение/WhatsApp из карточки клиента
   intl: ^0.20.2              # форматирование дат/времени/валюты (пиннится flutter_localizations)
 
   # --- Опциональные интеграции (адаптеры к портам, см. docs/INTEGRATIONS.md) ---

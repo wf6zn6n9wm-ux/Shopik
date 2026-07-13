@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/routes.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../ui/client_row.dart';
@@ -80,7 +82,11 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                   itemCount: clients.length,
                   separatorBuilder: (_, __) =>
                       const SizedBox(height: Spacing.s2),
-                  itemBuilder: (context, i) => ClientRow(clients[i]),
+                  itemBuilder: (context, i) => ClientRow(
+                    clients[i],
+                    onTap: () =>
+                        context.push(Routes.clientDetailPath(clients[i].id)),
+                  ),
                 );
               },
             ),

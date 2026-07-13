@@ -31,6 +31,20 @@ final workspaceRepositoryProvider = Provider<WorkspaceRepository>(
 final clientsProvider = StreamProvider<List<Client>>(
     (ref) => ref.watch(clientsRepositoryProvider).watchAll());
 
+/// Один клиент по id (из общего потока — мгновенно, без отдельного запроса).
+final clientByIdProvider = Provider.family<Client?, String>((ref, id) {
+  final list = ref.watch(clientsProvider).value ?? const <Client>[];
+  for (final c in list) {
+    if (c.id == id) return c;
+  }
+  return null;
+});
+
+/// Все записи клиента (история/метрики карточки).
+final clientAppointmentsProvider =
+    StreamProvider.family<List<Appointment>, String>((ref, id) =>
+        ref.watch(appointmentsRepositoryProvider).watchForClient(id));
+
 /// Каталог услуг (реактивно из БД).
 final servicesProvider = StreamProvider<List<Service>>(
     (ref) => ref.watch(servicesRepositoryProvider).watchAll());

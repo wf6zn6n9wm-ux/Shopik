@@ -39,6 +39,10 @@ class DriftAppointmentsRepository implements AppointmentsRepository {
       _db.watchRange(start, end);
 
   @override
+  Stream<List<Appointment>> watchForClient(String clientId) =>
+      _db.watchClientAppointments(clientId);
+
+  @override
   Future<void> add(Appointment appointment) => _db.addAppointment(appointment);
 
   @override

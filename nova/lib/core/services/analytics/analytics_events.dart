@@ -38,6 +38,7 @@ class AnalyticsEvent {
       AnalyticsEvent('appointment_status_changed', {'status': status});
 
   // — Вовлечённость —
+  static const clientOpened = AnalyticsEvent('client_opened');
   static const onlineBookingUsed = AnalyticsEvent('online_booking_used');
   static const staffInvited = AnalyticsEvent('staff_invited');
 }
