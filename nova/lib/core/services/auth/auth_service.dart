@@ -14,13 +14,24 @@ class AuthUser {
   final bool isAnonymous;
 }
 
-/// Порт авторизации. Реализации: Supabase Auth, собственный OTP-бэкенд и т.д.
+/// Метод входа (для аналитики и выбора адаптера).
+enum AuthMethod { phone, email, apple, google }
+
+/// Порт авторизации. Реализации: Supabase Auth, собственный OTP-бэкенд, Apple/
+/// Google Sign In. Спроектирован сразу под мультиметодный вход — без рефакторинга.
 abstract interface class AuthService {
   Stream<AuthUser?> authStateChanges();
   AuthUser? get currentUser;
   Future<void> restore();
-  Future<void> signInWithOtp({String? email, String? phone});
-  Future<void> verifyOtp(String code);
+
+  /// Запрос OTP-кода на телефон или email.
+  Future<void> requestOtp({String? email, String? phone});
+
+  /// Подтверждение кода. Возвращает true, если это новый пользователь.
+  Future<bool> verifyOtp(String code);
+
+  Future<void> signInWithApple();
+  Future<void> signInWithGoogle();
   Future<void> signOut();
 }
 
@@ -42,11 +53,34 @@ class LocalAuthService implements AuthService {
   @override
   Future<void> restore() async {}
 
-  @override
-  Future<void> signInWithOtp({String? email, String? phone}) async {}
+  String? _pendingPhone;
+  String? _pendingEmail;
 
   @override
-  Future<void> verifyOtp(String code) async {}
+  Future<void> requestOtp({String? email, String? phone}) async {
+    _pendingEmail = email;
+    _pendingPhone = phone;
+  }
+
+  @override
+  Future<bool> verifyOtp(String code) async {
+    // DEFAULT (offline): любой код принимается. Реальная проверка — в адаптере.
+    _user = AuthUser(id: 'otp_local', email: _pendingEmail, phone: _pendingPhone);
+    _controller.add(_user);
+    return true;
+  }
+
+  @override
+  Future<void> signInWithApple() async {
+    _user = const AuthUser(id: 'apple_local');
+    _controller.add(_user);
+  }
+
+  @override
+  Future<void> signInWithGoogle() async {
+    _user = const AuthUser(id: 'google_local');
+    _controller.add(_user);
+  }
 
   @override
   Future<void> signOut() async {

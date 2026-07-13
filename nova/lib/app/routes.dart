@@ -6,6 +6,7 @@ abstract final class Routes {
   static const menu = '/menu';
 
   static const auth = '/auth';
+  static const otp = '/auth/otp';
   static const onboarding = '/onboarding';
   static const services = '/services';
   static const profile = '/profile';
