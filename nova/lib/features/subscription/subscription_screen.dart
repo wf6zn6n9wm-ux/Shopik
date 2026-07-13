@@ -93,7 +93,8 @@ class _PlanCard extends StatelessWidget {
               Text(name, style: AppTypography.title2(kavio.ink)),
               const Spacer(),
               Text('₸ $price',
-                  style: AppTypography.tabular(AppTypography.title3(kavio.ink))),
+                  style:
+                      AppTypography.tabular(AppTypography.title3(kavio.ink))),
               Text(' / мес', style: AppTypography.label(kavio.ink3)),
             ],
           ),

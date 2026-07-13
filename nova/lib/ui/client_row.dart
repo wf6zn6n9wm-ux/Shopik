@@ -16,7 +16,8 @@ class Avatar extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: kavio.accentTint, shape: BoxShape.circle),
+      decoration:
+          BoxDecoration(color: kavio.accentTint, shape: BoxShape.circle),
       child: Text(initials,
           style: AppTypography.label(kavio.accent)
               .copyWith(fontWeight: FontWeight.w600, fontSize: size * 0.35)),

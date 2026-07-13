@@ -292,7 +292,8 @@ class _MonthView extends ConsumerWidget {
                   for (final l in labels)
                     Expanded(
                       child: Center(
-                        child: Text(l, style: AppTypography.caption(kavio.ink3)),
+                        child:
+                            Text(l, style: AppTypography.caption(kavio.ink3)),
                       ),
                     ),
                 ],
@@ -359,7 +360,8 @@ class _MonthCell extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text('$day',
-                style: AppTypography.label(selected ? kavio.accent : kavio.ink)),
+                style:
+                    AppTypography.label(selected ? kavio.accent : kavio.ink)),
             const SizedBox(height: 4),
             if (count > 0)
               Container(

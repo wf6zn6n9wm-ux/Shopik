@@ -41,7 +41,8 @@ class KavioPageScaffold extends StatelessWidget {
                     child: Padding(
                       padding:
                           const EdgeInsets.symmetric(horizontal: Spacing.s2),
-                      child: Text(title, style: AppTypography.title3(kavio.ink)),
+                      child:
+                          Text(title, style: AppTypography.title3(kavio.ink)),
                     ),
                   ),
                   if (actions != null) ...actions!,

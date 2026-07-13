@@ -59,9 +59,9 @@ class ServicesScreen extends ConsumerWidget {
                       subtitle: Fmt.duration(s.durationMinutes),
                       trailing: Text(
                         Fmt.money(s.price),
-                        style:
-                            AppTypography.tabular(AppTypography.label(kavio.ink))
-                                .copyWith(fontWeight: FontWeight.w600),
+                        style: AppTypography.tabular(
+                                AppTypography.label(kavio.ink))
+                            .copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
                   );

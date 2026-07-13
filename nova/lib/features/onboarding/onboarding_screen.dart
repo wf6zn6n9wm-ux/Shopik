@@ -134,7 +134,8 @@ class _IndustryCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(template.icon, size: 26, color: selected ? accent : kavio.ink2),
+            Icon(template.icon,
+                size: 26, color: selected ? accent : kavio.ink2),
             const SizedBox(height: Spacing.s2),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
