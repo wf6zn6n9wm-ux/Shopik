@@ -201,7 +201,8 @@ class _DaySection extends ConsumerWidget {
   }
 
   Widget _card(BuildContext context, Appointment a) {
-    final card = AppointmentCard(a, onTap: () => showAppointmentSheet(context, a));
+    final card =
+        AppointmentCard(a, onTap: () => showAppointmentSheet(context, a));
     if (!dnd) return card;
     return LongPressDraggable<Appointment>(
       data: a,
