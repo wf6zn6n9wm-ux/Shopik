@@ -27,7 +27,8 @@ class NovaTextField extends StatelessWidget {
   final bool autofocus;
   final TextInputAction? textInputAction;
 
-  OutlineInputBorder _border(Color color, {double width = 1}) => OutlineInputBorder(
+  OutlineInputBorder _border(Color color, {double width = 1}) =>
+      OutlineInputBorder(
         borderRadius: BorderRadius.circular(Radii.sm),
         borderSide: BorderSide(color: color, width: width),
       );
@@ -54,12 +55,13 @@ class NovaTextField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: AppTypography.body(nova.ink3),
-            prefixIcon:
-                prefixIcon == null ? null : Icon(prefixIcon, size: 20, color: nova.ink3),
+            prefixIcon: prefixIcon == null
+                ? null
+                : Icon(prefixIcon, size: 20, color: nova.ink3),
             filled: true,
             fillColor: nova.surface,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: Spacing.s4, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: Spacing.s4, vertical: 14),
             enabledBorder: _border(nova.line2),
             border: _border(nova.line2),
             focusedBorder: _border(nova.accent, width: 1.5),

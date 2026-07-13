@@ -43,7 +43,8 @@ class NovaSegmented extends StatelessWidget {
                   child: Text(
                     segments[i],
                     textAlign: TextAlign.center,
-                    style: AppTypography.label(selected == i ? nova.ink : nova.ink2)
+                    style: AppTypography.label(
+                            selected == i ? nova.ink : nova.ink2)
                         .copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),

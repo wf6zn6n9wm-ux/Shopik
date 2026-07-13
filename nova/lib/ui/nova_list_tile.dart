@@ -26,7 +26,8 @@ class NovaListTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(Radii.md),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.s4, vertical: 14),
+        padding:
+            const EdgeInsets.symmetric(horizontal: Spacing.s4, vertical: 14),
         child: Row(
           children: [
             if (icon != null) ...[
