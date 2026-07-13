@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers.dart';
 import '../../design/theme.dart';
+import '../../ui/empty_state.dart';
 import '../../ui/error_view.dart';
 import '../../ui/format.dart';
 import '../../ui/nova_list_tile.dart';
@@ -32,7 +33,15 @@ class ServicesScreen extends ConsumerWidget {
         loading: () => const SkeletonList(),
         error: (e, _) =>
             ErrorView(onRetry: () => ref.invalidate(servicesProvider)),
-        data: (services) => ListView.separated(
+        data: (services) => services.isEmpty
+            ? EmptyState(
+                icon: Icons.design_services_outlined,
+                title: 'Пока нет услуг',
+                message: 'Добавьте первую услугу — она появится при записи.',
+                actionLabel: 'Новая услуга',
+                onAction: () => showCreateServiceSheet(context),
+              )
+            : ListView.separated(
           padding: const EdgeInsets.fromLTRB(
               Spacing.s5, Spacing.s2, Spacing.s5, Spacing.s16),
           itemCount: services.length,

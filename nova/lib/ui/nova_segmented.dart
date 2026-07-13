@@ -34,7 +34,7 @@ class NovaSegmented extends StatelessWidget {
                 child: AnimatedContainer(
                   duration: Motion.fast,
                   curve: Motion.standard,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: Spacing.s2),
                   decoration: BoxDecoration(
                     color: selected == i ? nova.surface : Colors.transparent,
                     borderRadius: BorderRadius.circular(Radii.xs),

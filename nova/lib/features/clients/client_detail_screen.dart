@@ -9,6 +9,7 @@ import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
 import '../../ui/client_row.dart';
+import '../../ui/empty_state.dart';
 import '../../ui/format.dart';
 import '../../ui/nova_page_scaffold.dart';
 import '../../ui/status_pill.dart';
@@ -42,9 +43,15 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
     final apptsAsync = ref.watch(clientAppointmentsProvider(widget.clientId));
 
     if (client == null) {
-      return const NovaPageScaffold(
+      return NovaPageScaffold(
         title: 'Клиент',
-        body: Center(child: Text('Клиент не найден')),
+        body: EmptyState(
+          icon: Icons.person_off_outlined,
+          title: 'Клиент не найден',
+          message: 'Возможно, запись была удалена.',
+          actionLabel: 'Назад',
+          onAction: () => Navigator.of(context).maybePop(),
+        ),
       );
     }
 

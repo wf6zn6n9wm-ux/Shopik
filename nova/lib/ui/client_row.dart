@@ -47,7 +47,7 @@ class ClientRow extends StatelessWidget {
         child: Row(
           children: [
             Avatar(client.initials),
-            const SizedBox(width: 12),
+            const SizedBox(width: Spacing.s3),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,7 +66,7 @@ class ClientRow extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: Spacing.s2),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [

@@ -11,22 +11,12 @@ import '../../domain/models.dart';
 import '../../ui/client_row.dart';
 import '../../ui/format.dart';
 import '../../ui/nova_button.dart';
+import '../../ui/nova_sheet.dart';
 
 /// Быстрая запись — bottom sheet. Каркас: выбор клиента и услуги → «Записать».
 /// (Умные слоты/предсказание услуги — AI-слой следующего этапа.)
-Future<void> showCreateAppointmentSheet(BuildContext context) {
-  final nova = context.nova;
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: nova.surface,
-    showDragHandle: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.xl)),
-    ),
-    builder: (_) => const _CreateSheet(),
-  );
-}
+Future<void> showCreateAppointmentSheet(BuildContext context) =>
+    showNovaSheet<void>(context, builder: (_) => const _CreateSheet());
 
 class _CreateSheet extends ConsumerStatefulWidget {
   const _CreateSheet();
@@ -46,54 +36,46 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
     final services = ref.watch(servicesProvider).value ?? const <Service>[];
     final ready = _client != null && _service != null;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: Spacing.s5,
-        right: Spacing.s5,
-        bottom: MediaQuery.of(context).viewInsets.bottom + Spacing.s6,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Новая запись', style: AppTypography.title2(nova.ink)),
-            const SizedBox(height: Spacing.s4),
-            Text('КЛИЕНТ', style: AppTypography.caption(nova.ink3)),
-            const SizedBox(height: Spacing.s2),
-            ...clients.take(3).map((c) => Padding(
-                  padding: const EdgeInsets.only(bottom: Spacing.s2),
-                  child: _Selectable(
-                    selected: _client?.id == c.id,
-                    onTap: () => setState(() => _client = c),
-                    child: ClientRow(c),
-                  ),
-                )),
-            const SizedBox(height: Spacing.s4),
-            Text('УСЛУГА', style: AppTypography.caption(nova.ink3)),
-            const SizedBox(height: Spacing.s2),
-            Wrap(
-              spacing: Spacing.s2,
-              runSpacing: Spacing.s2,
-              children: services
-                  .map((s) => _ServiceChip(
-                        service: s,
-                        selected: _service?.id == s.id,
-                        onTap: () => setState(() => _service = s),
-                      ))
-                  .toList(),
+    return NovaSheet(
+      title: 'Новая запись',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('КЛИЕНТ', style: AppTypography.caption(nova.ink3)),
+          const SizedBox(height: Spacing.s2),
+          ...clients.take(3).map((c) => Padding(
+                padding: const EdgeInsets.only(bottom: Spacing.s2),
+                child: _Selectable(
+                  selected: _client?.id == c.id,
+                  onTap: () => setState(() => _client = c),
+                  child: ClientRow(c),
+                ),
+              )),
+          const SizedBox(height: Spacing.s4),
+          Text('УСЛУГА', style: AppTypography.caption(nova.ink3)),
+          const SizedBox(height: Spacing.s2),
+          Wrap(
+            spacing: Spacing.s2,
+            runSpacing: Spacing.s2,
+            children: services
+                .map((s) => _ServiceChip(
+                      service: s,
+                      selected: _service?.id == s.id,
+                      onTap: () => setState(() => _service = s),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: Spacing.s6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: NovaButton(
+              'Записать',
+              icon: Icons.check,
+              onPressed: ready ? () => _create(context) : null,
             ),
-            const SizedBox(height: Spacing.s6),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: NovaButton(
-                'Записать',
-                icon: Icons.check,
-                onPressed: ready ? () => _create(context) : null,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

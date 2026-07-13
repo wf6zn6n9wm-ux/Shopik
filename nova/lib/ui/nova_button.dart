@@ -74,7 +74,7 @@ class _NovaButtonState extends State<NovaButton> {
               children: [
                 if (widget.icon != null) ...[
                   Icon(widget.icon, size: widget.small ? 16 : 18, color: fg),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: Spacing.s2),
                 ],
                 Text(
                   widget.label,

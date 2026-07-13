@@ -302,8 +302,8 @@ class _MonthView extends ConsumerWidget {
                 child: GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 7,
-                    mainAxisSpacing: 4,
-                    crossAxisSpacing: 4,
+                    mainAxisSpacing: Spacing.s1,
+                    crossAxisSpacing: Spacing.s1,
                   ),
                   itemCount: leading + daysInMonth,
                   itemBuilder: (context, idx) {
