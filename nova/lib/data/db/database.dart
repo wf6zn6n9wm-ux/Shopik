@@ -122,7 +122,17 @@ class Appointments extends Table {
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(driftDatabase(name: 'kavio'));
+  AppDatabase()
+      : super(driftDatabase(
+          name: 'kavio',
+          // Веб: движок SQLite (wasm) и worker кладутся в web/ и отдаются
+          // относительно base href. Обязательно указывать явно, иначе drift
+          // падает: «When compiling to the web, the `web` parameter needs...».
+          web: DriftWebOptions(
+            sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+            driftWorker: Uri.parse('drift_worker.js'),
+          ),
+        ));
   AppDatabase.forTesting(super.e);
 
   @override
