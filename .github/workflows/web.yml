@@ -41,7 +41,7 @@ jobs:
           curl -fL -o web/drift_worker.js https://github.com/simolus3/drift/releases/latest/download/drift_worker.js
           ls -la web/sqlite3.wasm web/drift_worker.js
       - name: Build web (base-href для проектного Pages)
-        run: flutter build web --release --base-href /shopik/
+        run: flutter build web --release --base-href /Shopik/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: nova/build/web
