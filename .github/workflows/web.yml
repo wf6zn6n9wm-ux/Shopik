@@ -35,10 +35,14 @@ jobs:
       - run: dart run build_runner build --delete-conflicting-outputs
       - name: Materialize platform (web)
         run: flutter create . --platforms=web --project-name nova --org com.nova.app
-      - name: Drift web assets (sqlite3.wasm + worker)
+      - name: Drift web assets (версии строго из pubspec.lock)
         run: |
-          curl -fL -o web/sqlite3.wasm https://github.com/simolus3/sqlite3.dart/releases/latest/download/sqlite3.wasm
-          curl -fL -o web/drift_worker.js https://github.com/simolus3/drift/releases/latest/download/drift_worker.js
+          SQLITE_VER=$(awk '/^  sqlite3:/{f=1} f&&/version:/{gsub(/[",]/,"",$2);print $2;exit}' pubspec.lock)
+          DRIFT_VER=$(awk '/^  drift:/{f=1} f&&/version:/{gsub(/[",]/,"",$2);print $2;exit}' pubspec.lock)
+          echo "sqlite3=$SQLITE_VER  drift=$DRIFT_VER"
+          test -n "$SQLITE_VER" && test -n "$DRIFT_VER"
+          curl -fL -o web/sqlite3.wasm "https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-$SQLITE_VER/sqlite3.wasm"
+          curl -fL -o web/drift_worker.js "https://github.com/simolus3/drift/releases/download/drift-$DRIFT_VER/drift_worker.js"
           ls -la web/sqlite3.wasm web/drift_worker.js
       - name: Build web (base-href для проектного Pages)
         run: flutter build web --release --base-href /Shopik/

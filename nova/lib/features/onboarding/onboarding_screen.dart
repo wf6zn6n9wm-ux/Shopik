@@ -29,23 +29,35 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (id == null || _saving) return;
     setState(() => _saving = true);
     final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
 
-    final template = IndustryCatalog.byId(id);
-    final seeds = <(String, String, int, int)>[
-      for (final e in template.flatServices)
-        (
-          e.category,
-          e.service.name,
-          e.service.durationMinutes,
-          e.service.price
-        ),
-    ];
-    await ref.read(workspaceRepositoryProvider).applyIndustry(id, seeds);
-    final analytics = ref.read(analyticsServiceProvider);
-    await analytics.track(AnalyticsEvent.workspaceCreated);
-    await analytics.track(AnalyticsEvent.industrySelected(id));
+    try {
+      final template = IndustryCatalog.byId(id);
+      final seeds = <(String, String, int, int)>[
+        for (final e in template.flatServices)
+          (
+            e.category,
+            e.service.name,
+            e.service.durationMinutes,
+            e.service.price
+          ),
+      ];
+      await ref.read(workspaceRepositoryProvider).applyIndustry(id, seeds);
+      final analytics = ref.read(analyticsServiceProvider);
+      await analytics.track(AnalyticsEvent.workspaceCreated);
+      await analytics.track(AnalyticsEvent.industrySelected(id));
 
-    router.go(Routes.calendar);
+      router.go(Routes.calendar);
+    } catch (e) {
+      // Не оставляем пользователя с «мёртвой» кнопкой: показываем ошибку и
+      // снимаем блокировку, чтобы можно было повторить.
+      if (mounted) {
+        setState(() => _saving = false);
+        messenger.showSnackBar(
+          SnackBar(content: Text('Не удалось создать пространство: $e')),
+        );
+      }
+    }
   }
 
   @override
