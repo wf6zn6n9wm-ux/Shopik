@@ -1,0 +1,2608 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>PARA — для двоих</title>
+
+<!-- PWA / iOS home-screen -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="PARA" />
+<meta name="theme-color" content="#17121b" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23231627'/%3E%3Cpath d='M90 140C60 118 44 100 44 78c0-15 12-26 26-26 9 0 16 4 20 11 4-7 11-11 20-11 14 0 26 11 26 26 0 22-16 40-46 62z' fill='%23ff5e8a'/%3E%3C/svg%3E" />
+
+<!-- Telegram SDK (необязателен; если не загрузится — приложение всё равно работает) -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+  :root{
+    --bg:#17121b; --card:rgba(255,255,255,.05); --card2:rgba(255,255,255,.03);
+    --line:rgba(255,255,255,.10); --muted:rgba(255,255,255,.45); --muted2:rgba(255,255,255,.30);
+    --rose:#ff5e8a; --fuchsia:#c026d3; --amber:#fbbf24;
+    --grad:linear-gradient(135deg,#ff5e8a,#c026d3);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+  html,body{background:var(--bg);color:#fff;min-height:100%;}
+  body{overscroll-behavior-y:none;}
+  ::-webkit-scrollbar{display:none;}
+  button{cursor:pointer;border:none;background:none;color:inherit;font-size:inherit;}
+  input,textarea{font-size:16px;color:#fff;outline:none;}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;padding-top:env(safe-area-inset-top);}
+
+  /* utils */
+  .wrap{padding:12px 16px 110px;}
+  .row{display:flex;align-items:center;}
+  .between{justify-content:space-between;}
+  .center{justify-content:center;}
+  .gap2{gap:8px;} .gap3{gap:12px;} .gap4{gap:16px;}
+  .col{display:flex;flex-direction:column;}
+  .flex1{flex:1;}
+  .mt2{margin-top:8px;} .mt3{margin-top:12px;} .mt4{margin-top:16px;} .mt6{margin-top:24px;}
+  .mb2{margin-top:0;margin-bottom:8px;} .mb3{margin-bottom:12px;} .mb4{margin-bottom:16px;}
+  .muted{color:var(--muted);} .muted2{color:var(--muted2);}
+  .small{font-size:12px;} .xs{font-size:11px;} .tiny{font-size:10px;}
+  .b{font-weight:700;} .sb{font-weight:600;}
+  .center-t{text-align:center;}
+  .amber{color:var(--amber);} .rose{color:var(--rose);}
+
+  /* фон приложения почти сплошной тёмный — backdrop-filter давал frosted-эффект,
+     который почти не виден, но заставлял браузер пересчитывать размытие фона под
+     КАЖДОЙ карточкой на каждом кадре прокрутки. Убрано ради плавного скролла. */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:24px;}
+  .p4{padding:16px;} .p5{padding:20px;} .p6{padding:24px;}
+
+  .btn{border-radius:18px;padding:14px;font-weight:600;width:100%;transition:transform .1s,opacity .2s;
+    display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn:active{transform:scale(.99);}
+  .btn-primary{background:var(--grad);color:#fff;box-shadow:0 8px 24px rgba(192,38,211,.25);}
+  .btn-ghost{background:var(--card2);border:1px solid var(--line);}
+  .btn[disabled]{opacity:.4;pointer-events:none;}
+  .btn-sm{width:auto;padding:8px 16px;font-size:13px;border-radius:14px;}
+
+  .input{width:100%;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:18px;
+    padding:14px 16px;transition:border-color .2s;}
+  .input:focus{border-color:rgba(255,94,138,.6);}
+  .input::placeholder{color:var(--muted2);}
+  textarea.input{resize:none;}
+
+  .pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.08em;padding:5px 10px;border-radius:999px;}
+
+  /* countdown */
+  .count{position:relative;overflow:hidden;border-radius:24px;padding:20px;
+    background:linear-gradient(135deg,#3a1c3f 0%,#57223f 55%,#7a2a3a 100%);}
+  .count .cake{position:absolute;right:-16px;top:-24px;font-size:120px;opacity:.15;}
+  /* динамическая карточка события */
+  .evc{position:relative;overflow:hidden;border-radius:24px;padding:22px 20px;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid var(--line);box-shadow:0 14px 34px rgba(0,0,0,.30);animation:win .4s ease both;}
+  .evc::before{content:'';position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(135% 100% at 112% -12%,rgba(192,38,211,.22),transparent 50%),
+              radial-gradient(90% 90% at -12% 118%,rgba(255,94,138,.10),transparent 52%);}
+  .evc>*{position:relative;}
+  .evc-illu{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:56px;
+    filter:drop-shadow(0 6px 22px rgba(255,94,138,.5));pointer-events:none;}
+  .evc.glow .evc-illu{animation:evpulse 2.4s ease-in-out infinite;}
+  .evc-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+    padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.06);margin-bottom:12px;}
+  .evc-title{font-size:20px;font-weight:800;line-height:1.2;max-width:68%;}
+  .evc-when{font-size:14px;color:var(--muted);margin-top:9px;}
+  .evc-when b{font-weight:800;font-size:16px;color:#fff;}
+  .evc-tip{font-size:12.5px;color:var(--muted);margin-top:8px;max-width:74%;line-height:1.35;}
+  .evc-cta{margin-top:16px;display:inline-flex;align-items:center;gap:7px;background:var(--grad);color:#fff;
+    font-weight:700;font-size:13.5px;border-radius:16px;padding:11px 17px;
+    box-shadow:0 8px 20px rgba(192,38,211,.30);transition:transform .12s;}
+  .evc-cta:active{transform:scale(.96);}
+  @keyframes evpulse{0%,100%{transform:translateY(-50%) scale(1);}50%{transform:translateY(-50%) scale(1.07);}}
+  /* ✨ Для вас сегодня */
+  .fy-head{font-size:15px;font-weight:800;margin:2px 0 12px;}
+  .fy{display:flex;gap:14px;align-items:center;border-radius:26px;padding:16px;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.018));
+    border:1px solid var(--line);box-shadow:0 14px 34px rgba(0,0,0,.24);}
+  .fy-illu{flex:0 0 92px;height:92px;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:46px;
+    background:radial-gradient(circle at 50% 35%,rgba(255,94,138,.20),rgba(192,38,211,.07));}
+  .fy-body{flex:1;min-width:0;}
+  .fy-title{font-size:16px;font-weight:800;line-height:1.22;}
+  .fy-desc{font-size:13px;color:var(--muted);margin-top:5px;line-height:1.4;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .fy-pts{font-size:12.5px;font-weight:800;color:#fcd34d;margin-top:9px;}
+  .fy-btn{margin-top:11px;display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:13.5px;color:#fff;
+    background:var(--grad);border-radius:13px;padding:10px 16px;box-shadow:0 8px 20px rgba(192,38,211,.35);transition:transform .12s;}
+  .fy-btn:active{transform:scale(.96);}
+  .fy-done{border-radius:26px;padding:30px 20px;text-align:center;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.018));
+    border:1px solid var(--line);box-shadow:0 14px 34px rgba(0,0,0,.20);}
+  .rec-illu{width:150px;height:150px;margin:22px auto 0;border-radius:42px;display:flex;align-items:center;justify-content:center;font-size:74px;
+    background:radial-gradient(circle at 50% 34%,rgba(255,94,138,.26),rgba(192,38,211,.08));
+    box-shadow:inset 0 0 52px rgba(255,94,138,.16),0 16px 42px rgba(192,38,211,.22);animation:eIll .5s cubic-bezier(.2,.8,.2,1) both;}
+  /* Экран «Даты» */
+  .dt-hero{position:relative;overflow:hidden;border-radius:24px;padding:22px 20px;margin-bottom:16px;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid var(--line);box-shadow:0 14px 34px rgba(0,0,0,.30);animation:win .4s ease both;}
+  .dt-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(135% 100% at 112% -12%,rgba(192,38,211,.22),transparent 50%),
+              radial-gradient(90% 90% at -12% 118%,rgba(255,94,138,.10),transparent 52%);}
+  .dt-hero>*{position:relative;}
+  .dt-hero-emoji{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:56px;
+    filter:drop-shadow(0 6px 22px rgba(255,94,138,.5));pointer-events:none;}
+  .dt-hero-tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+    padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.06);margin-bottom:12px;}
+  .dt-hero-title{font-size:20px;font-weight:800;line-height:1.2;max-width:68%;}
+  .dt-hero-days{font-size:14px;color:var(--muted);margin-top:9px;}
+  .dt-hero-days b{font-weight:800;font-size:16px;}
+  .dt-hero-tip{font-size:12.5px;color:var(--muted);margin-top:8px;max-width:74%;line-height:1.35;}
+  .dt-recs{margin-top:9px;display:flex;flex-direction:column;gap:5px;max-width:74%;}
+  .dt-rec{font-size:12.5px;color:var(--muted);}
+  .dt-hero-btn{margin-top:16px;display:inline-flex;align-items:center;gap:7px;background:var(--grad);color:#fff;
+    font-weight:700;font-size:13.5px;border-radius:16px;padding:11px 17px;
+    box-shadow:0 8px 20px rgba(192,38,211,.30);transition:transform .12s;}
+  .dt-hero-btn:active{transform:scale(.96);}
+  .dt-row{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;border-radius:20px;
+    padding:18px 16px;margin-bottom:10px;border:1px solid var(--line);cursor:pointer;transition:transform .1s,background .15s;
+    background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+    content-visibility:auto;contain-intrinsic-size:auto 84px;}
+  .dt-row:active{transform:scale(.985);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));}
+  .dt-row .acc{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 4px 4px 0;}
+  .dt-ic{flex:0 0 auto;font-size:30px;margin-left:4px;}
+  .dt-row .info{flex:1;min-width:0;}
+  .dt-row .nm{font-size:15px;font-weight:700;line-height:1.2;}
+  .dt-row .wh{font-size:13px;color:var(--muted);margin-top:3px;}
+  .dt-chev{color:var(--muted2);font-size:22px;font-weight:300;flex:0 0 auto;}
+  .dt-addcard{display:flex;align-items:center;gap:13px;border-radius:20px;padding:16px;margin-top:6px;
+    border:1px dashed var(--line);background:rgba(255,255,255,.02);}
+  .dt-addic{width:44px;height:44px;flex:0 0 auto;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:22px;background:rgba(192,38,211,.14);}
+  .dt-addbtn{flex:0 0 auto;font-size:13px;font-weight:700;color:#fff;background:var(--grad);
+    border-radius:12px;padding:9px 15px;box-shadow:0 6px 16px rgba(192,38,211,.28);}
+  /* редактор конфига во встроенной админке */
+  .admtab{flex:1;border:1px solid var(--line);background:var(--card2);color:var(--muted);
+    border-radius:12px;padding:11px;font-size:13px;font-weight:700;transition:all .18s;}
+  .admtab.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(255,94,138,.3);}
+  .cfgcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px;}
+  .cfggrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .cfgfld{display:flex;flex-direction:column;gap:3px;}
+  .cfglbl{font-size:10px;color:var(--muted);font-weight:600;}
+  .cfgin{background:rgba(0,0,0,.24);border:1px solid var(--line);color:#fff;border-radius:9px;
+    padding:8px 10px;font-size:13px;width:100%;font-family:inherit;}
+  .cfgin:focus{outline:none;border-color:var(--rose);}
+  textarea.cfgin{resize:vertical;min-height:46px;line-height:1.35;}
+  .cfgchk{display:flex;align-items:center;gap:7px;font-size:12px;color:#fff;}
+  .cfgchk input{width:17px;height:17px;accent-color:var(--rose);}
+  .cfgdel{border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.08);color:#fca5a5;
+    border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;}
+  .cfgadd{width:100%;border:1px dashed var(--line);background:transparent;color:var(--muted);
+    border-radius:12px;padding:10px;font-size:13px;font-weight:700;}
+  /* ===== премиальный дашборд админки ===== */
+  .adm-sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:20px 2px 10px;}
+  .adm-sec-h .t{font-size:15px;font-weight:800;letter-spacing:-.01em;}
+  .adm-sec-h .d{font-size:12.5px;color:var(--muted);font-weight:600;}
+  .adm-hero{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .adm-kpi{position:relative;overflow:hidden;border-radius:18px;padding:15px 15px 14px;
+    background:linear-gradient(160deg,rgba(255,94,138,.12),rgba(192,38,211,.05) 70%,rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 26px rgba(0,0,0,.22);transition:transform .12s;}
+  .adm-kpi[data-act]:active{transform:scale(.98);}
+  .adm-kpi .ic{font-size:15px;}
+  .adm-kpi .lbl{font-size:11.5px;color:var(--muted);margin-top:7px;}
+  .adm-kpi .val{font-size:28px;font-weight:800;line-height:1;margin-top:5px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .adm-delta{display:inline-block;font-size:11px;font-weight:800;margin-top:8px;}
+  .adm-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;}
+  .adm-toggle{display:inline-flex;background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px;}
+  .adm-toggle button{font-size:12px;font-weight:700;color:var(--muted);padding:6px 11px;border-radius:8px;transition:all .18s;}
+  .adm-toggle button.on{background:var(--grad);color:#fff;box-shadow:0 4px 12px rgba(255,94,138,.3);}
+  .adm-chart-wrap{position:relative;margin-top:8px;}
+  .adm-badge{position:absolute;top:0;right:0;background:rgba(0,0,0,.4);border:1px solid var(--line);
+    color:#fff;font-size:12px;font-weight:800;padding:5px 10px;border-radius:10px;z-index:2;}
+  .adm-x{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted2);margin-top:6px;padding:0 2px;}
+  .adm-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .adm-mini{border-radius:16px;padding:12px;background:var(--card);border:1px solid var(--line);transition:transform .12s;}
+  .adm-mini[data-act]:active{transform:scale(.97);}
+  .adm-mini .lbl{font-size:10.5px;color:var(--muted);}
+  .adm-mini .val{font-size:21px;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .adm-mini .adm-delta{margin-top:5px;font-size:10.5px;}
+  .adm-link-num{font-size:32px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .adm-bar{height:12px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:12px;}
+  .adm-bar>div{height:100%;border-radius:999px;background:var(--grad);
+    box-shadow:0 0 20px rgba(255,94,138,.55);transition:width .8s cubic-bezier(.2,.8,.2,1);}
+  .adm-cta{width:100%;margin-top:16px;border-radius:16px;padding:16px;font-weight:800;font-size:15px;color:#fff;
+    background:var(--grad);display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 14px 30px rgba(192,38,211,.42),inset 0 1px 0 rgba(255,255,255,.18);transition:transform .14s;}
+  .adm-cta:active{transform:scale(.98);}
+  .adm-pill{font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--muted);}
+  .adm-pill.on{background:rgba(52,211,153,.16);color:#34d399;}
+  .adm-foot{display:flex;align-items:center;justify-content:space-between;margin-top:22px;padding-top:14px;
+    border-top:1px solid var(--line);font-size:12px;color:var(--muted);}
+  .adm-refresh{font-size:12px;font-weight:700;color:#ff8fb0;padding:6px 10px;border-radius:9px;background:rgba(255,94,138,.08);}
+  /* раздел «Пользователи» */
+  .adm-kpi-lbl{font-size:12px;color:var(--muted);}
+  .adm-big{font-size:40px;font-weight:800;line-height:1;margin:6px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .src-row{margin-bottom:13px;}
+  .src-bar{height:8px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:7px;}
+  .src-bar>div{height:100%;border-radius:999px;transition:width .7s cubic-bezier(.2,.8,.2,1);}
+  .urow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);
+    content-visibility:auto;contain-intrinsic-size:auto 62px;} /* длинные админ-списки: виртуализация off-screen строк */
+  .urow:last-child{border-bottom:none;}
+  .uav{width:42px;height:42px;border-radius:50%;flex:0 0 auto;object-fit:cover;background:rgba(255,255,255,.06);}
+  .uav-l{display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;background:var(--grad);}
+  .urow-nm{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .udot{width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399;display:inline-block;}
+  .uchip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(52,211,153,.15);color:#34d399;}
+  .uchip.wait{background:rgba(255,255,255,.06);color:var(--muted);}
+  .urow-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .urow-seen{font-size:11px;color:var(--muted2);flex:0 0 auto;white-space:nowrap;}
+  .urow-seen.on{color:#34d399;font-weight:700;}
+  .pcode{color:var(--rose);font-weight:800;letter-spacing:.08em;font-size:14px;}
+  .uchip-f{font-size:12px;font-weight:700;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);cursor:pointer;}
+  .uchip-f.on{background:var(--grad);color:#fff;border-color:transparent;}
+  /* аналитика: кнопка календаря, кликабельные точки, показатели за период */
+  .adm-cal-btn{width:38px;height:32px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:16px;cursor:pointer;line-height:1;}
+  .adm-cal-btn.on{background:var(--grad);border-color:transparent;}
+  .adm-range-chip{display:inline-flex;align-items:center;gap:8px;margin:2px 0 8px;padding:5px 8px 5px 12px;border-radius:999px;background:rgba(255,94,138,.14);color:#ff8fb0;font-size:12.5px;font-weight:700;}
+  .adm-range-chip button{border:none;background:rgba(255,255,255,.12);color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;cursor:pointer;line-height:1;}
+  .adm-dot{position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#ff5e8a;box-shadow:0 0 0 2px rgba(11,7,16,.9);pointer-events:none;opacity:.55;transition:.15s;}
+  .adm-dot.on{opacity:1;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;box-shadow:0 0 0 3px rgba(11,7,16,.95),0 0 14px #ff5e8a;}
+  .adm-hit{position:absolute;top:0;height:150px;background:transparent;border:none;padding:0;cursor:pointer;}
+  .adm-guide{position:absolute;top:6px;bottom:22px;width:1.5px;margin-left:-.75px;background:linear-gradient(#ff5e8a,rgba(255,94,138,0));pointer-events:none;}
+  .adm-day-card{border:1px solid rgba(255,94,138,.25);}
+  .adm-day-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--muted);}
+  .adm-day-row:last-child{border-bottom:none;}
+  .adm-day-row .b{color:#fff;font-size:15px;}
+  .adm-day-x{width:26px;height:26px;border-radius:50%;border:none;background:rgba(255,255,255,.06);color:var(--muted);font-size:12px;cursor:pointer;}
+  .adm-pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .adm-pcell{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:11px 12px;}
+  .adm-pcell .pl{font-size:11.5px;color:var(--muted);margin-bottom:4px;}
+  .adm-pcell .pv{font-size:22px;font-weight:800;letter-spacing:-.02em;}
+  .adm-pcell .psub{font-size:10.5px;color:#34d399;font-weight:700;margin-top:2px;}
+  /* календарь */
+  .cal-ovl{align-items:flex-end;animation:fade .2s ease;}
+  .cal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);}
+  .cal-sheet{position:relative;width:100%;max-width:440px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(0,0,0,.5);animation:up .28s cubic-bezier(.2,.9,.3,1);}
+  .cal-sel{font-size:13px;color:#ff8fb0;font-weight:700;}
+  .cal-nav{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#fff;font-size:20px;cursor:pointer;line-height:1;}
+  .cal-nav:disabled{opacity:.3;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-dows{margin-bottom:4px;}
+  .cal-dow{text-align:center;font-size:11px;color:var(--muted2);padding:2px 0;}
+  .cal-cell{aspect-ratio:1;border:none;background:transparent;color:#fff;font-size:14px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .cal-cell.empty{visibility:hidden;}
+  .cal-cell.dis{color:var(--muted2);opacity:.35;cursor:default;}
+  .cal-cell.mid{background:rgba(255,94,138,.14);border-radius:0;}
+  .cal-cell.sel{background:var(--grad);color:#fff;font-weight:800;}
+
+  /* partner switch */
+  .switch{display:flex;gap:4px;padding:6px;position:relative;}
+  .switch .seg{flex:1;border-radius:16px;padding:10px 12px;display:flex;align-items:center;
+    justify-content:center;gap:8px;font-weight:600;font-size:14px;transition:all .3s;opacity:.5;}
+  .switch .seg.on{opacity:1;background:linear-gradient(90deg,rgba(255,94,138,.9),rgba(192,38,211,.8));
+    box-shadow:0 8px 20px rgba(255,94,138,.2);}
+  .switch .cap{position:absolute;left:50%;transform:translateX(-50%);top:-8px;font-size:9px;
+    text-transform:uppercase;letter-spacing:.2em;color:var(--muted2);}
+
+  /* wheel */
+  .wheel{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+  .wheel button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;
+    border-radius:16px;background:rgba(255,255,255,.04);transition:transform .1s,background .2s;}
+  .wheel button:active{transform:scale(.95);background:rgba(255,255,255,.1);}
+  .wheel .ic{font-size:20px;} .wheel .lb{font-size:10px;color:rgba(255,255,255,.7);text-align:center;line-height:1;}
+
+  /* checkbox */
+  .chk{width:24px;height:24px;border-radius:999px;border:2px solid rgba(255,255,255,.3);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;}
+  .chk.on{background:var(--rose);border-color:var(--rose);}
+  .strike{text-decoration:line-through;color:var(--muted);}
+
+  /* toast */
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:40;
+    background:rgba(0,0,0,.82);backdrop-filter:blur(8px);border:1px solid var(--line);
+    border-radius:16px;padding:12px 16px;font-size:14px;display:flex;align-items:center;gap:8px;
+    animation:pop .2s ease;}
+  @keyframes pop{from{opacity:0;transform:translate(-50%,8px);}to{opacity:1;transform:translate(-50%,0);}}
+
+  /* bottom nav: фиксированная панель поверх прокручиваемого контента. blur(20px)
+     заставлял браузер заново размывать всё, что проезжает под ней, на КАЖДОМ кадре
+     скролла — главная причина рывков при прокрутке. Панель почти непрозрачна, поэтому
+     размытие незаметно: убрано, фон сделан плотнее. */
+  .nav{position:fixed;bottom:0;left:0;right:0;z-index:30;border-top:1px solid var(--line);
+    background:#191320;padding-bottom:env(safe-area-inset-bottom);}
+  .nav .in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);}
+  .nav button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0;
+    color:var(--muted);transition:color .2s;}
+  .nav button.on{color:var(--rose);}
+  .nav .ic{font-size:18px;line-height:1;} .nav .lb{font-size:10px;font-weight:500;}
+
+  /* splash */
+  .splash{max-width:480px;margin:0 auto;min-height:100vh;padding:0 24px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
+  .logo{width:80px;height:80px;margin:0 auto;border-radius:24px;display:flex;align-items:center;
+    justify-content:center;font-size:40px;background:var(--grad);}
+  .code-big{font-size:34px;font-weight:700;letter-spacing:.3em;color:#ffa7c0;}
+  .fullw{width:100%;}
+  /* баннер приглашения партнёра */
+  .inv-banner{border-radius:22px;padding:18px;margin-bottom:16px;
+    background:linear-gradient(135deg,rgba(255,94,138,.16),rgba(192,38,211,.10));
+    border:1px solid rgba(255,255,255,.08);box-shadow:0 12px 30px rgba(192,38,211,.20);}
+  .inv-row{display:flex;align-items:center;gap:12px;}
+  .inv-emo{width:44px;height:44px;flex:0 0 auto;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:22px;background:rgba(255,255,255,.07);}
+  .inv-code{margin-top:12px;text-align:center;font-size:22px;font-weight:800;letter-spacing:.28em;color:#ff9ec0;}
+  .avatar{width:24px;height:24px;border-radius:999px;object-fit:cover;}
+
+  /* ===== Желания (redesign) ===== */
+  .add-wish{width:100%;border-radius:20px;padding:16px;font-weight:700;font-size:15px;color:#fff;
+    background:var(--grad);box-shadow:0 10px 26px rgba(192,38,211,.30);display:flex;align-items:center;
+    justify-content:center;gap:8px;transition:transform .12s;}
+  .add-wish:active{transform:scale(.98);}
+  .filters{display:flex;gap:8px;overflow-x:auto;padding:2px 0;margin:14px 0 4px;}
+  .filters .f{flex:0 0 auto;border:1px solid var(--line);background:var(--card2);color:var(--muted);
+    border-radius:999px;padding:10px 17px;font-size:13.5px;font-weight:600;transition:all .22s cubic-bezier(.2,.8,.2,1);white-space:nowrap;}
+  .filters .f.on{background:var(--grad);color:#fff;border-color:transparent;font-weight:700;
+    box-shadow:0 8px 22px rgba(255,94,138,.4),0 0 0 1px rgba(255,255,255,.12) inset;transform:translateY(-1px);}
+  .wcard{position:relative;display:flex;align-items:center;gap:13px;border-radius:22px;padding:14px;
+    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));
+    border:1px solid var(--line);box-shadow:0 8px 22px rgba(0,0,0,.28);margin-bottom:12px;
+    overflow:hidden;animation:win .32s ease both;
+    content-visibility:auto;contain-intrinsic-size:auto 92px;} /* строки списка вне экрана не считаются/не красятся */
+  .wcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--wc,#ff5e8a);opacity:.9;}
+  .wcard.done{opacity:.62;}
+  @keyframes win{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .wcat{width:52px;height:52px;flex:0 0 auto;border-radius:16px;display:flex;align-items:center;
+    justify-content:center;font-size:26px;background:var(--wcb,rgba(255,94,138,.16));}
+  .wbody{flex:1;min-width:0;}
+  .wttl{font-size:15px;font-weight:600;line-height:1.25;}
+  .wttl.done{text-decoration:line-through;color:var(--muted);}
+  .wmeta{display:flex;align-items:center;gap:7px;margin-top:6px;flex-wrap:wrap;}
+  .chipx{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
+    padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--muted);}
+  .chipx.gold{background:rgba(251,191,36,.13);color:#fcd34d;}
+  .chipx.new{background:rgba(96,165,250,.14);color:#93c5fd;}
+  .chipx.taken{background:rgba(251,191,36,.14);color:#fcd34d;}
+  .chipx.doneb{background:rgba(52,211,153,.14);color:#6ee7b7;}
+  .wact{flex:0 0 auto;border-radius:14px;padding:10px 13px;font-size:13px;font-weight:700;
+    display:flex;align-items:center;gap:5px;transition:transform .12s;}
+  .wact:active{transform:scale(.94);}
+  .wact.take{background:var(--grad);color:#fff;box-shadow:0 6px 16px rgba(255,94,138,.28);}
+  .wact.fin{background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+  .wact.del{width:40px;height:40px;justify-content:center;padding:0;font-size:17px;border-radius:999px;
+    background:rgba(248,113,113,.12);color:#fca5a5;border:1px solid rgba(248,113,113,.25);}
+  /* настроение дня */
+  .mood-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .mood-pick{font-size:23px;width:42px;height:42px;flex:0 0 auto;border-radius:12px;border:1px solid var(--line);
+    background:rgba(255,255,255,.03);cursor:pointer;transition:transform .1s;line-height:1;}
+  .mood-pick:active{transform:scale(.9);}
+  .mood-pick.on{background:var(--grad);border-color:transparent;transform:scale(1.06);box-shadow:0 4px 14px rgba(255,94,138,.3);}
+  .mood-me{display:flex;align-items:center;gap:12px;padding:2px 0;}
+  .mood-emo{font-size:30px;flex:0 0 auto;line-height:1;}
+  .mood-change{margin-left:auto;font-size:12px;color:var(--rose);background:none;border:none;font-weight:700;cursor:pointer;}
+  .mood-note-row{display:flex;gap:8px;margin-top:10px;}
+  .mood-note{flex:1;}
+  .mood-note-save{flex:0 0 auto;width:46px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:17px;cursor:pointer;}
+  .mood-div{height:1px;background:var(--line);margin:12px 0;}
+  /* «думаю о тебе» */
+  .think-btn{width:100%;border:none;border-radius:16px;padding:15px;font-size:16px;font-weight:800;color:#fff;cursor:pointer;
+    background:var(--grad);box-shadow:0 8px 22px rgba(255,94,138,.32);display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s;}
+  .think-btn:active{transform:scale(.97);}
+  .think-btn.cd{background:rgba(255,255,255,.06);color:var(--muted);box-shadow:none;cursor:default;}
+  .think-ic{font-size:20px;}
+  .think-wrap{position:relative;}
+  .think-heart{position:absolute;left:50%;top:2px;transform:translateX(-50%);font-size:30px;pointer-events:none;z-index:2;animation:heartUp 1.1s ease-out forwards;}
+  @keyframes heartUp{0%{opacity:0;transform:translate(-50%,0) scale(.5);}20%{opacity:1;}100%{opacity:0;transform:translate(-50%,-72px) scale(1.35);}}
+  /* серия дней */
+  .streak-strip{display:flex;align-items:center;gap:12px;border-radius:16px;padding:12px 14px;margin-bottom:12px;
+    background:linear-gradient(180deg,rgba(251,146,60,.10),rgba(255,94,138,.06));border:1px solid rgba(251,146,60,.22);}
+  .streak-strip.s0{background:rgba(255,255,255,.03);border-color:var(--line);}
+  .streak-fire{font-size:26px;flex:0 0 auto;filter:grayscale(.6);opacity:.7;}
+  .streak-fire.on{filter:none;opacity:1;animation:flamePulse 1.8s ease-in-out infinite;}
+  @keyframes flamePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.13)}}
+  .streak-bar{height:6px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px;}
+  .streak-bar>div{height:100%;border-radius:999px;background:linear-gradient(90deg,#fb923c,#ff5e8a);transition:width .6s cubic-bezier(.2,.8,.2,1);}
+  /* наша статистика */
+  .ustat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .ustat{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:12px 6px;text-align:center;}
+  .ustat-ic{font-size:19px;line-height:1;}
+  .ustat-v{font-size:20px;font-weight:800;margin-top:4px;letter-spacing:-.02em;}
+  .ustat-l{font-size:10.5px;color:var(--muted);margin-top:2px;}
+  /* архив вопросов */
+  .arch-answers{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
+  .arch-ans{display:flex;gap:8px;font-size:13.5px;line-height:1.45;align-items:flex-start;}
+  .arch-who{flex:0 0 auto;font-weight:700;color:var(--rose);font-size:11px;background:rgba(255,94,138,.12);border-radius:8px;padding:3px 9px;}
+  .wcheck{width:40px;height:40px;flex:0 0 auto;border-radius:999px;display:flex;align-items:center;
+    justify-content:center;font-size:18px;background:rgba(52,211,153,.16);color:#6ee7b7;}
+  .wcard.pop{animation:wpop .55s ease;}
+  @keyframes wpop{0%{transform:scale(1);}30%{transform:scale(1.035);}60%{transform:scale(.99);}100%{transform:scale(1);}}
+  .burst{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;
+    font-size:34px;animation:bst .7s ease forwards;}
+  @keyframes bst{0%{opacity:0;transform:scale(.4);}35%{opacity:1;transform:scale(1.1);}100%{opacity:0;transform:scale(1.4);}}
+  /* пустое состояние */
+  .wempty{text-align:center;padding:36px 20px;}
+  .wempty .ill{width:96px;height:96px;margin:0 auto 16px;border-radius:30px;display:flex;align-items:center;
+    justify-content:center;font-size:46px;background:radial-gradient(circle at 50% 35%,rgba(255,94,138,.28),rgba(192,38,211,.10));
+    box-shadow:inset 0 0 40px rgba(255,94,138,.15);}
+  /* премиальный пустой экран «Желаний» */
+  .wempty2{margin:10px 0 4px;padding:32px 22px 26px;border-radius:28px;text-align:center;
+    background:linear-gradient(160deg,rgba(255,94,138,.12),rgba(192,38,211,.05) 60%,rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.07);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    box-shadow:0 22px 54px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.06);}
+  .wempty2 .ill2{width:124px;height:124px;margin:0 auto 18px;border-radius:38px;display:flex;
+    align-items:center;justify-content:center;font-size:58px;
+    background:radial-gradient(circle at 50% 32%,rgba(255,94,138,.34),rgba(192,38,211,.08));
+    box-shadow:inset 0 0 48px rgba(255,94,138,.20),0 14px 36px rgba(192,38,211,.24);
+    animation:eIll .55s cubic-bezier(.2,.8,.2,1) both;}
+  .wempty2 .et{font-size:19px;font-weight:800;letter-spacing:-.01em;line-height:1.25;animation:eUp .5s .12s ease both;}
+  .wempty2 .es{font-size:14px;color:var(--muted);max-width:272px;margin:9px auto 0;line-height:1.5;animation:eUp .5s .22s ease both;}
+  .wempty2 .eb{animation:eUp .5s .32s ease both;}
+  .ebtn{width:100%;height:56px;border-radius:18px;margin-top:22px;font-weight:800;font-size:15.5px;color:#fff;
+    background:var(--grad);display:flex;align-items:center;justify-content:center;gap:9px;
+    box-shadow:0 14px 32px rgba(192,38,211,.42),inset 0 1px 0 rgba(255,255,255,.18);
+    transition:transform .14s,box-shadow .14s;}
+  .ebtn:active{transform:scale(.97);box-shadow:0 7px 18px rgba(192,38,211,.34);}
+  @keyframes eIll{from{opacity:0;transform:scale(.72) translateY(6px);}to{opacity:1;transform:none;}}
+  @keyframes eUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){.wempty2 .ill2,.wempty2 .et,.wempty2 .es,.wempty2 .eb{animation:none;}}
+  /* модалка добавления */
+  .ovl{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+    display:flex;align-items:flex-end;justify-content:center;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0;}to{opacity:1;}}
+  .sheet{width:100%;max-width:480px;background:#1c1622;border:1px solid var(--line);
+    border-radius:26px 26px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+    animation:up .28s cubic-bezier(.2,.8,.2,1);}
+  @keyframes up{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  .grabber{width:38px;height:4px;border-radius:999px;background:rgba(255,255,255,.2);margin:0 auto 14px;}
+  .catgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:6px;}
+  .catopt{aspect-ratio:1;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:22px;background:rgba(255,255,255,.05);border:2px solid transparent;transition:all .15s;}
+  .catopt.on{border-color:var(--rose);background:rgba(255,94,138,.14);transform:scale(1.04);}
+  .ptrow{display:flex;gap:8px;margin-top:6px;}
+  .ptchip{flex:1;text-align:center;border-radius:12px;padding:10px 0;font-weight:700;font-size:14px;
+    background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);}
+  .ptchip.on{background:rgba(251,191,36,.15);color:#fcd34d;border-color:rgba(251,191,36,.4);}
+  @media (prefers-reduced-motion:reduce){.wcard,.sheet,.ovl,.burst,.wcard.pop{animation:none;}}
+
+  /* ===== Уровни / достижения / повышение ===== */
+  .lvl-road{display:flex;gap:6px;margin-top:14px;overflow-x:auto;padding-bottom:2px;}
+  .lvl-node{flex:0 0 auto;width:66px;text-align:center;opacity:.9;}
+  .lvl-node .lvl-emo{width:46px;height:46px;margin:0 auto;border-radius:14px;display:flex;align-items:center;
+    justify-content:center;font-size:22px;background:rgba(255,255,255,.05);border:1px solid var(--line);}
+  .lvl-node.cur .lvl-emo{background:var(--grad);border-color:transparent;box-shadow:0 6px 16px rgba(255,94,138,.35);}
+  .lvl-node.lk{opacity:.42;}
+  .lvl-node .lvl-nm{font-size:9px;color:var(--muted);margin-top:5px;line-height:1.1;}
+  .lvl-node.cur .lvl-nm{color:#fff;font-weight:600;}
+  .achv-earned{color:#6ee7b7;}
+  /* повышение уровня */
+  .lvup{width:100%;max-width:420px;margin:0 16px;background:#1c1622;border:1px solid var(--line);
+    border-radius:28px;padding:28px 22px calc(24px + env(safe-area-inset-bottom));text-align:center;
+    position:relative;overflow:hidden;animation:up .35s cubic-bezier(.2,.8,.2,1);}
+  .conf-wrap{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+  .conf{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;opacity:.9;
+    animation:conffall 1.4s linear forwards;}
+  @keyframes conffall{0%{transform:translateY(-10px) rotate(0);opacity:1;}
+    100%{transform:translateY(460px) rotate(540deg);opacity:0;}}
+  @media (prefers-reduced-motion:reduce){.conf{display:none;}.lvup{animation:none;}}
+
+  /* ===== Кастомизация ===== */
+  .thm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
+  .thm{position:relative;height:74px;border-radius:18px;border:2px solid transparent;overflow:hidden;
+    display:flex;align-items:flex-end;padding:9px;transition:transform .12s;}
+  .thm:active{transform:scale(.97);}
+  .thm.sel{border-color:#fff;}
+  .thm.lk{filter:grayscale(.7) brightness(.6);}
+  .thm-nm{font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);}
+  .thm-check{position:absolute;top:8px;right:9px;font-size:14px;color:#fff;}
+  .thm-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .frm{width:100%;display:flex;align-items:center;justify-content:space-between;border-radius:16px;
+    padding:14px 16px;margin-top:8px;background:var(--card2);border:1px solid var(--line);font-size:14px;font-weight:600;}
+  .frm.sel{border-color:var(--rose);background:rgba(255,94,138,.08);}
+  .frm.lk{opacity:.5;}
+
+  /* ===== Квесты (redesign) ===== */
+  .q-head{padding:16px;margin-bottom:12px;}
+  .q-lvl-emo{width:48px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;background:var(--grad);box-shadow:0 6px 18px rgba(255,94,138,.3);}
+  .qbar{height:8px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden;}
+  .qbar>div{height:100%;background:var(--grad);border-radius:999px;transition:width .6s cubic-bezier(.2,.8,.2,1);}
+  .q-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .q-stat{padding:14px;}
+  .qod{position:relative;overflow:hidden;border-radius:26px;padding:20px;margin-bottom:18px;
+    background:linear-gradient(135deg,var(--qc,#ff5e8a),#7a1fa2);box-shadow:0 16px 40px rgba(122,31,162,.35);
+    animation:win .4s ease both;}
+  .qod-illu{position:absolute;right:-4px;top:14px;font-size:110px;filter:drop-shadow(0 8px 20px rgba(0,0,0,.35));opacity:.96;}
+  .qod-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(0,0,0,.28);color:#fff;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;position:relative;}
+  .qod-title{font-size:23px;font-weight:800;line-height:1.15;margin-top:12px;max-width:64%;text-shadow:0 2px 8px rgba(0,0,0,.3);position:relative;}
+  .qod-desc{font-size:13px;color:rgba(255,255,255,.85);margin-top:8px;max-width:62%;line-height:1.4;position:relative;}
+  .qod-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px;position:relative;}
+  .qod .chipx{background:rgba(0,0,0,.24);color:#fff;}
+  .qod-social{font-size:12px;color:rgba(255,255,255,.85);margin-top:14px;position:relative;}
+  .qod-ava{display:inline-flex;width:22px;height:22px;border-radius:999px;background:rgba(255,255,255,.22);align-items:center;justify-content:center;font-size:12px;margin-right:-6px;border:1.5px solid rgba(122,31,162,.7);vertical-align:middle;}
+  .qod-btn{width:100%;margin-top:16px;border-radius:16px;padding:15px;font-weight:800;font-size:15px;color:#c026d3;background:#fff;box-shadow:0 8px 22px rgba(0,0,0,.28);transition:transform .12s;position:relative;}
+  .qod-btn:active{transform:scale(.98);}
+  .q-sec-title{font-size:15px;font-weight:700;margin:2px 0 10px;}
+  .q-cats{display:flex;gap:12px;overflow-x:auto;padding:2px 0 6px;}
+  .q-cat{flex:0 0 auto;width:66px;text-align:center;}
+  .q-cat-ic{width:56px;height:56px;margin:0 auto;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:26px;
+    background:rgba(255,255,255,.05);border:1px solid var(--line);transition:all .2s;}
+  .q-cat-nm{font-size:10px;color:var(--muted);margin-top:6px;}
+  .q-cat.on .q-cat-nm{color:#fff;font-weight:600;}
+  .q-recs{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 8px;}
+  .q-rec{flex:0 0 168px;position:relative;border-radius:20px;padding:10px;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 22px rgba(0,0,0,.25);}
+  .q-rec-illu{height:96px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:46px;}
+  .q-rec-title{font-size:13px;font-weight:700;line-height:1.2;margin-top:9px;min-height:32px;}
+  .q-diff{font-size:11px;font-weight:700;}
+  .q-rec-play{position:absolute;right:12px;bottom:12px;width:38px;height:38px;border-radius:999px;background:var(--grad);color:#fff;font-size:14px;box-shadow:0 6px 16px rgba(255,94,138,.4);display:flex;align-items:center;justify-content:center;}
+  .q-rec-play:active{transform:scale(.92);}
+  .q-burst-wrap{position:fixed;inset:0;z-index:55;pointer-events:none;display:flex;align-items:center;justify-content:center;}
+  .q-burst-badge{background:rgba(0,0,0,.82);color:#fcd34d;font-weight:800;font-size:22px;padding:14px 22px;border-radius:18px;border:1px solid var(--line);animation:wpop .5s ease;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* ============================================================
+   PARA — приложение для пары. Чистый JS + CSS, без внешних
+   зависимостей (открывается где угодно, даже офлайн).
+   • Внутри Telegram — работает как Mini App (авторизация по
+     TG-аккаунту, кнопка «на экран Домой» через addToHomeScreen).
+   • В браузере — как PWA (Safari → «На экран Домой»).
+   Внутри Telegram (при настроенном api/para.js + Supabase + бот)
+   пара связывается по-настоящему: код-приглашение соединяет два
+   аккаунта, вопрос дня с async-разблокировкой, пуши партнёру.
+   Вне Telegram или без ключей — локальный демо-режим (localStorage).
+   ============================================================ */
+(function(){
+'use strict';
+
+// ---------- Telegram ----------
+var TG = (window.Telegram && window.Telegram.WebApp) || null;
+if (TG) { try {
+  TG.ready(); TG.expand();
+  // не давать свайпу вниз сворачивать приложение при прокрутке (Bot API 7.7+)
+  TG.disableVerticalSwipes && TG.disableVerticalSwipes();
+  TG.setHeaderColor && TG.setHeaderColor('#17121b');
+} catch(e){} }
+var TG_BOT = 'para_couple_bot';
+var APP_VERSION = 'v39 · выше rate-limit + мягкие ошибки';
+var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
+var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
+  || new URLSearchParams(location.search).get('startapp')
+  || new URLSearchParams(location.search).get('code') || '';
+
+function haptic(type){
+  type = type || 'light';
+  try{
+    if (TG && TG.HapticFeedback){
+      if (type==='success'||type==='error'||type==='warning') TG.HapticFeedback.notificationOccurred(type);
+      else TG.HapticFeedback.impactOccurred(type);
+    } else if (navigator.vibrate) navigator.vibrate(10);
+  }catch(e){}
+}
+
+// ---------- backend (Supabase через serverless /api/para) ----------
+// Настоящая связь пары работает только внутри Telegram: подпись initData
+// подтверждает личность на сервере. Вне Telegram (браузер/Artifact) — ONLINE=false,
+// приложение работает локально в демо-режиме.
+var INIT_DATA = (TG && TG.initData) || '';
+var CAN_ONLINE = !!INIT_DATA;           // есть подписанные данные Telegram
+var ONLINE = false;                     // подтверждено, что бэкенд отвечает
+var LINK_POLL = null;                   // опрос сервера в ожидании партнёра
+var WISH_POLL = null;                   // опрос общих желаний, пока открыт экран «Желания»
+var prevLinked = null;                  // предыдущее состояние «в паре» (для детекта присоединения)
+var NET_NOTE = '';                      // мягкая подсказка, если бэкенд не настроен
+async function api(action, payload){
+  var body = Object.assign({ action: action, initData: INIT_DATA }, payload || {});
+  var r = await fetch('/api/para', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  var j = await r.json().catch(function(){ return { ok:false, reason:'parse' }; });
+  return j;
+}
+// событие для аналитики (квесты, очки) — только онлайн, «выстрелил и забыл»
+function track(type, amount){ if(!ONLINE) return; try{ api('track',{type:type,amount:amount||0}); }catch(e){} }
+
+// ---------- storage ----------
+function lsGet(k,d){ try{var v=localStorage.getItem('para_'+k);return v==null?d:JSON.parse(v);}catch(e){return d;} }
+function lsSet(k,v){ try{localStorage.setItem('para_'+k,JSON.stringify(v));}catch(e){} }
+
+// ---------- dates ----------
+var DAY=86400000;
+function sod(d){var x=new Date(d);x.setHours(0,0,0,0);return x;}
+function daysAnnual(m,day){
+  var now=sod(new Date()),y=now.getFullYear();
+  var next=sod(new Date(y,m-1,day));
+  if(next<now) next=sod(new Date(y+1,m-1,day));
+  return Math.round((next-now)/DAY);
+}
+function plural(n,f){var a=Math.abs(n)%100,b=a%10;
+  if(a>10&&a<20)return f[2]; if(b>1&&b<5)return f[1]; if(b===1)return f[0]; return f[2];}
+function daysWord(n){return plural(n,['день','дня','дней']);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+// ---------- questions / wheel ----------
+var QUESTIONS=[
+  'Какой момент этой недели вдвоём был лучшим?',
+  'За что ты благодарен/благодарна мне сегодня?',
+  'О чём ты мечтаешь, но ещё не сказал(а) вслух?',
+  'Что бы ты хотел(а) сделать вместе в эти выходные?',
+  'Какая мелочь во мне тебя радует?',
+  'Когда ты в последний раз чувствовал(а) себя по-настоящему счастливым(ой) со мной?',
+  'Что я делаю, отчего ты улыбаешься?',
+  'Какое наше общее воспоминание ты бы хотел(а) пережить снова?',
+  'О каком совместном путешествии ты мечтаешь?',
+  'Что тебя сегодня порадовало?',
+  'Чему ты научился(ась) у меня?',
+  'Какой была твоя первая мысль обо мне при знакомстве?',
+  'Что для тебя значит идеальный вечер вдвоём?',
+  'Какую свою мечту ты хочешь исполнить со мной?',
+  'За что ты любишь себя?',
+  'Что бы ты изменил(а) в наших выходных?',
+  'Какая песня напоминает тебе о нас?',
+  'Что ты чувствуешь, когда я рядом?',
+  'Какой подарок от меня запомнился больше всего?',
+  'Что помогает тебе успокоиться в трудный день?',
+  'Каким ты видишь нас через пять лет?',
+  'Что тебе во мне нравится, но ты редко говоришь об этом?',
+  'Какая привычка друг друга тебя умиляет?',
+  'Что бы ты хотел(а), чтобы мы делали чаще?',
+  'Какой комплимент ты давно хотел(а) мне сказать?',
+  'Что для тебя значит слово «дом»?',
+  'Какое свидание ты бы придумал(а) для нас на завтра?',
+  'Что тебя вдохновляет прямо сейчас?',
+  'О чём мы давно не разговаривали, но стоило бы?',
+  'Какая твоя любимая наша традиция?',
+  'Что бы ты хотел(а) попробовать вместе впервые?',
+  'Когда ты гордился(ась) мной?',
+  'Что помогает тебе чувствовать себя любимым(ой)?',
+  'Какое место ты бы хотел(а) показать мне?',
+  'Что ты ценишь в наших отношениях больше всего?',
+  'Какой была бы наша идеальная суббота?',
+  'Что ты хотел(а) бы слышать от меня чаще?',
+  'Какое твоё самое тёплое воспоминание из детства?',
+  'Чем бы ты занялся(лась), если бы у нас был свободный день без забот?',
+  'Чем я могу поддержать тебя на этой неделе?',
+  'Какая мечта была у тебя в детстве?',
+  'За что ты благодарен/благодарна сегодняшнему дню?',
+  'Что тебя рассмешило за последнее время?',
+  'Какой наш совместный план вдохновляет тебя больше всего?',
+  'Что для тебя настоящая забота?',
+  'Какое качество во мне ты хотел(а) бы перенять?',
+  'Что бы ты хотел(а), чтобы мы никогда не переставали делать?',
+  'Какой момент сегодня был самым приятным?',
+  'О чём ты думаешь, засыпая рядом со мной?',
+  'Что делает тебя тобой?',
+  'Какое общее увлечение мы могли бы завести?',
+  'Что бы ты хотел(а) отпраздновать вместе?',
+  'Какой твой любимый способ провести время вдвоём?',
+  'Что ты чувствуешь, когда мы обнимаемся?',
+  'Какую маленькую цель мы могли бы поставить на неделю?',
+  'Что удивило тебя во мне за последнее время?',
+  'Какое слово описывает нас сегодня?',
+  'Что бы ты хотел(а), чтобы я знал(а) о тебе?',
+  'За что ты хочешь сказать мне спасибо прямо сейчас?',
+  'Что для тебя самое ценное в обычном дне вместе?'
+];
+function questionOfDay(){
+  var idx=Math.floor(sod(new Date()).getTime()/DAY)%QUESTIONS.length;
+  return {idx:idx,text:QUESTIONS[idx]};
+}
+var WHEEL=[
+  {icon:'⚡',label:'Быстро',hint:'мини-свидание на 15 минут'},
+  {icon:'💬',label:'Твой ответ',hint:'предложи своё'},
+  {icon:'⭐',label:'Желание',hint:'из списка желаний'},
+  {icon:'🗺️',label:'Квест',hint:'задание для двоих'},
+  {icon:'🎟️',label:'Купон',hint:'обменять очки'}
+];
+
+function makeCode(){
+  var abc='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',s='';
+  for(var i=0;i<6;i++) s+=abc[Math.floor(Math.random()*abc.length)];
+  return s;
+}
+
+// ---------- Кастомизация (fallback, если конфиг с сервера не пришёл) ----------
+var BUILT_IN_THEMES=[
+  {key:'rose',name:'Розовый рассвет',level:0,grad:'linear-gradient(135deg,#ff5e8a,#c026d3)',rose:'#ff5e8a',fuchsia:'#c026d3'},
+  {key:'sunset',name:'Закат',level:1,grad:'linear-gradient(135deg,#fb7185,#f59e0b)',rose:'#fb7185',fuchsia:'#f59e0b'},
+  {key:'ocean',name:'Океан',level:1,grad:'linear-gradient(135deg,#22d3ee,#3b82f6)',rose:'#38bdf8',fuchsia:'#3b82f6'},
+  {key:'aurora',name:'Сияние',level:2,grad:'linear-gradient(135deg,#34d399,#22d3ee)',rose:'#34d399',fuchsia:'#22d3ee'},
+  {key:'grape',name:'Виноград',level:3,grad:'linear-gradient(135deg,#a78bfa,#ec4899)',rose:'#a78bfa',fuchsia:'#ec4899'},
+  {key:'gold',name:'Золото',level:4,grad:'linear-gradient(135deg,#fbbf24,#f97316)',rose:'#fbbf24',fuchsia:'#f97316'}
+];
+var BUILT_IN_FRAMES=[
+  {key:'none',name:'Без рамки',level:0,css:''},
+  {key:'glow',name:'Свечение 💫',level:1,css:'box-shadow:0 0 0 3px rgba(255,255,255,.12),0 0 34px var(--rose)'},
+  {key:'ring',name:'Кольцо 💍',level:2,css:'box-shadow:0 0 0 2px var(--rose),inset 0 0 0 1px rgba(255,255,255,.06)'},
+  {key:'gold',name:'Золотая 👑',level:3,css:'box-shadow:0 0 0 2px #fbbf24,0 0 30px rgba(251,191,36,.4)'},
+  {key:'legend',name:'Легендарная 🔮',level:4,css:'box-shadow:0 0 0 3px #a78bfa,0 0 44px rgba(167,139,250,.5)'}
+];
+function themesList(){ return (S.config&&S.config.themes)||BUILT_IN_THEMES; }
+function framesList(){ return (S.config&&S.config.frames)||BUILT_IN_FRAMES; }
+function curLevelIdx(){ return (S.progress&&S.progress.level&&S.progress.level.index)||0; }
+function applyTheme(key){
+  var list=themesList(), t=null; for(var i=0;i<list.length;i++) if(list[i].key===key) t=list[i];
+  if(!t) t=list[0];
+  var r=document.documentElement.style;
+  r.setProperty('--grad',t.grad); r.setProperty('--rose',t.rose); r.setProperty('--fuchsia',t.fuchsia);
+}
+function frameCss(){
+  var list=framesList(), key=S.frame||'none';
+  for(var i=0;i<list.length;i++) if(list[i].key===key) return list[i].css||'';
+  return '';
+}
+
+// уровни (fallback, если конфиг не пришёл)
+var BUILT_IN_LEVELS=[
+  {key:'rookie',name:'Новички',emoji:'🌱',min:0},{key:'lovers',name:'Влюблённые',emoji:'💞',min:200},
+  {key:'perfect',name:'Идеальная пара',emoji:'💍',min:600},{key:'soulmates',name:'Soulmates',emoji:'🔮',min:1500},
+  {key:'legend',name:'Легендарная пара',emoji:'👑',min:3500}
+];
+// категории квестов (fallback)
+var BUILT_IN_QCATS=[
+  {key:'romance',name:'Романтика',emoji:'❤️',color:'#ff5e8a'},{key:'date',name:'Свидание',emoji:'🍽',color:'#fb923c'},
+  {key:'home',name:'Дом',emoji:'🏠',color:'#fbbf24'},{key:'games',name:'Игры',emoji:'🎮',color:'#a78bfa'},
+  {key:'walk',name:'Прогулки',emoji:'🚶',color:'#38bdf8'},{key:'travel',name:'Путешествия',emoji:'✈️',color:'#34d399'},
+  {key:'surprise',name:'Сюрпризы',emoji:'🎁',color:'#f472b6'},{key:'movie',name:'Фильмы',emoji:'🎬',color:'#c026d3'}
+];
+// квесты (fallback; в проде приходят из конфига — редактируются в админке)
+var BUILT_IN_QUESTS=[
+  {id:1,title:'Приготовьте ужин вдвоём',desc:'Вечер без телефонов — приготовьте что-то вкусное вместе.',pts:30,cat:'romance',emoji:'🍝',time:'20–40 мин',diff:'easy',level:0,pairs:428,featured:true,enabled:true},
+  {id:2,title:'Напишите по 3 комплимента',desc:'Скажите друг другу три искренних комплимента.',pts:20,cat:'romance',emoji:'💌',time:'5–10 мин',diff:'easy',level:0,pairs:651,featured:true,enabled:true},
+  {id:3,title:'Вечер без соцсетей',desc:'Проведите вечер только вдвоём, без телефонов.',pts:40,cat:'home',emoji:'📵',time:'2–3 часа',diff:'easy',level:0,pairs:312,featured:true,enabled:true},
+  {id:4,title:'Совместное фото в новом месте',desc:'Сходите туда, где ещё не были, и сделайте фото.',pts:25,cat:'walk',emoji:'📸',time:'1–2 часа',diff:'easy',level:0,pairs:540,featured:true,enabled:true},
+  {id:5,title:'Ужин при свечах',desc:'Устройте романтический ужин при свечах дома.',pts:50,cat:'romance',emoji:'🕯️',time:'1–2 часа',diff:'med',level:1,pairs:208,featured:true,enabled:true},
+  {id:6,title:'Приготовьте пиццу вместе',desc:'Замесите тесто и соберите пиццу своей мечты.',pts:40,cat:'date',emoji:'🍕',time:'30–40 мин',diff:'easy',level:1,pairs:389,featured:false,enabled:true},
+  {id:7,title:'Вечер настольных игр',desc:'Достаньте настолки и устройте турнир на двоих.',pts:30,cat:'games',emoji:'🎲',time:'40–60 мин',diff:'med',level:1,pairs:274,featured:false,enabled:true},
+  {id:8,title:'Мини-путешествие на выходные',desc:'Спланируйте и съездите в соседний город.',pts:60,cat:'travel',emoji:'🧳',time:'1–2 дня',diff:'med',level:1,pairs:133,featured:true,enabled:true},
+  {id:9,title:'Фильм без телефонов',desc:'Выберите фильм и посмотрите, не отвлекаясь.',pts:20,cat:'movie',emoji:'🎬',time:'60–90 мин',diff:'easy',level:1,pairs:712,featured:false,enabled:true},
+  {id:10,title:'Челлендж доверия',desc:'Расскажите друг другу то, чего ещё не говорили.',pts:70,cat:'romance',emoji:'🤝',time:'30–40 мин',diff:'hard',level:2,pairs:96,featured:true,enabled:true},
+  {id:11,title:'Совместная цель на месяц',desc:'Поставьте общую цель и распишите шаги.',pts:80,cat:'home',emoji:'🎯',time:'30 мин',diff:'med',level:2,pairs:71,featured:false,enabled:true},
+  {id:12,title:'Свидание-сюрприз вслепую',desc:'Один придумывает свидание — другой не знает куда идёт.',pts:100,cat:'surprise',emoji:'🎁',time:'2–4 часа',diff:'hard',level:3,pairs:38,featured:true,enabled:true},
+  {id:13,title:'Завтрак в постель',desc:'Приготовьте и подайте завтрак партнёру в кровать.',pts:30,cat:'romance',emoji:'🥐',time:'20 мин',diff:'easy',level:1,pairs:220,featured:false,enabled:true},
+  {id:14,title:'Список 100 дел вместе',desc:'Составьте список того, что хотите сделать вдвоём.',pts:40,cat:'home',emoji:'📝',time:'30 мин',diff:'med',level:1,pairs:240,featured:false,enabled:true},
+  {id:15,title:'Вечер массажа',desc:'По 10 минут расслабляющего массажа каждому.',pts:30,cat:'romance',emoji:'💆',time:'20–30 мин',diff:'easy',level:1,pairs:180,featured:false,enabled:true},
+  {id:16,title:'Прогулка по новому району',desc:'Исследуйте улицы, где ещё не гуляли.',pts:25,cat:'walk',emoji:'🚶',time:'1 час',diff:'easy',level:0,pairs:300,featured:false,enabled:true},
+  {id:17,title:'Завтрак на ужин',desc:'Приготовьте на ужин любимые завтраки.',pts:30,cat:'date',emoji:'🍳',time:'30–40 мин',diff:'easy',level:1,pairs:150,featured:false,enabled:true},
+  {id:18,title:'Танцы дома под медляк',desc:'Включите медленную песню и потанцуйте.',pts:20,cat:'romance',emoji:'💃',time:'10 мин',diff:'easy',level:0,pairs:260,featured:true,enabled:true},
+  {id:19,title:'Плейлист вашей пары',desc:'Соберите общий список любимых песен.',pts:20,cat:'home',emoji:'🎵',time:'20 мин',diff:'easy',level:0,pairs:210,featured:false,enabled:true},
+  {id:20,title:'Пикник на природе',desc:'Соберите корзинку и устройте пикник.',pts:35,cat:'walk',emoji:'🧺',time:'2–3 часа',diff:'easy',level:1,pairs:190,featured:false,enabled:true},
+  {id:21,title:'Караоке-баттл',desc:'Устройте домашнее караоке на двоих.',pts:30,cat:'games',emoji:'🎤',time:'40 мин',diff:'med',level:1,pairs:140,featured:false,enabled:true},
+  {id:22,title:'Совместная тренировка',desc:'Разомнитесь вместе — хватит 20 минут.',pts:30,cat:'home',emoji:'🏃',time:'20 мин',diff:'med',level:1,pairs:120,featured:false,enabled:true},
+  {id:23,title:'Письмо в будущее',desc:'Напишите послание, которое откроете через год.',pts:40,cat:'romance',emoji:'💌',time:'30 мин',diff:'med',level:2,pairs:90,featured:true,enabled:true},
+  {id:24,title:'Готовим по видео-рецепту',desc:'Выберите ролик и повторите блюдо вдвоём.',pts:40,cat:'date',emoji:'👨‍🍳',time:'40–60 мин',diff:'med',level:1,pairs:160,featured:false,enabled:true},
+  {id:25,title:'Вечер старых фото',desc:'Пересмотрите снимки с начала отношений.',pts:25,cat:'home',emoji:'📷',time:'30 мин',diff:'easy',level:1,pairs:175,featured:false,enabled:true},
+  {id:26,title:'Новое место, чтобы поесть',desc:'Сходите туда, где ещё не были вдвоём.',pts:45,cat:'date',emoji:'🍽',time:'1–2 часа',diff:'med',level:2,pairs:130,featured:false,enabled:true},
+  {id:27,title:'Звёздная ночь',desc:'Найдите тёмное место и посмотрите на звёзды.',pts:30,cat:'walk',emoji:'🌌',time:'1 час',diff:'easy',level:1,pairs:145,featured:true,enabled:true},
+  {id:28,title:'Испеките десерт',desc:'Приготовьте что-нибудь сладкое вместе.',pts:35,cat:'date',emoji:'🍰',time:'40–60 мин',diff:'easy',level:1,pairs:205,featured:false,enabled:true},
+  {id:29,title:'Фотоохота по городу',desc:'Найдите 5 заданных кадров и сфотографируйте.',pts:50,cat:'walk',emoji:'📸',time:'2 часа',diff:'med',level:2,pairs:85,featured:false,enabled:true},
+  {id:30,title:'Уборка под музыку',desc:'Наведите порядок вдвоём под любимый плейлист.',pts:20,cat:'home',emoji:'🧹',time:'40 мин',diff:'easy',level:0,pairs:230,featured:false,enabled:true},
+  {id:31,title:'Спа-вечер дома',desc:'Ванна, свечи, музыка — вечер только для двоих.',pts:40,cat:'romance',emoji:'🛁',time:'1–2 часа',diff:'med',level:2,pairs:110,featured:true,enabled:true},
+  {id:32,title:'Настолка-марафон',desc:'Достаньте настолки и сыграйте несколько партий.',pts:40,cat:'games',emoji:'🎲',time:'1–2 часа',diff:'med',level:1,pairs:135,featured:false,enabled:true},
+  {id:33,title:'Сюрприз-свидание',desc:'Придумайте и устройте свидание для партнёра.',pts:80,cat:'surprise',emoji:'🎁',time:'полдня',diff:'hard',level:3,pairs:45,featured:true,enabled:true},
+  {id:34,title:'Дневник благодарности',desc:'Каждый вечер недели пишите, за что благодарны.',pts:30,cat:'home',emoji:'🙏',time:'10 мин',diff:'easy',level:1,pairs:150,featured:false,enabled:true},
+  {id:35,title:'Поход на природу',desc:'Выберитесь на день в лес, к воде или в горы.',pts:60,cat:'travel',emoji:'🏞️',time:'полдня',diff:'med',level:2,pairs:70,featured:true,enabled:true},
+  {id:36,title:'Мастер-класс вдвоём',desc:'Сходите или сделайте дома что-то новое руками.',pts:50,cat:'date',emoji:'🎨',time:'2 часа',diff:'med',level:2,pairs:65,featured:false,enabled:true},
+  {id:37,title:'Ретро-вечер',desc:'Игры и фильмы из вашего детства.',pts:35,cat:'movie',emoji:'📺',time:'2–3 часа',diff:'easy',level:2,pairs:100,featured:false,enabled:true},
+  {id:38,title:'Желания на год',desc:'Составьте общий список целей на год.',pts:40,cat:'home',emoji:'🎯',time:'40 мин',diff:'med',level:2,pairs:95,featured:false,enabled:true},
+  {id:39,title:'Ночёвка под небом',desc:'Спальники на балконе или в палатке во дворе.',pts:55,cat:'travel',emoji:'⛺',time:'ночь',diff:'hard',level:3,pairs:40,featured:false,enabled:true},
+  {id:40,title:'Свидание по конверту',desc:'Один пишет план в конверт, другой идёт вслепую.',pts:70,cat:'surprise',emoji:'✉️',time:'2–4 часа',diff:'hard',level:3,pairs:50,featured:true,enabled:true}
+];
+function questDefs(){ return ((S.config&&S.config.quests)||BUILT_IN_QUESTS).filter(function(q){return q.enabled!==false;}); }
+function qcatsList(){ return (S.config&&S.config.categories)||BUILT_IN_QCATS; }
+function qcatOf(key){ var l=qcatsList(); for(var i=0;i<l.length;i++) if(l[i].key===key) return l[i]; return {key:key,name:'',emoji:'✨',color:'#ff5e8a'}; }
+function levelsList(){ return (S.config&&S.config.levels)||BUILT_IN_LEVELS; }
+// прогресс для UI: серверный если есть, иначе локальный из S.points
+function effProgress(){
+  if(S.progress&&S.progress.level) return S.progress;
+  var lv=levelsList(), pts=S.points||0, idx=0;
+  for(var i=0;i<lv.length;i++) if(pts>=lv[i].min) idx=i;
+  return { points:pts, streak:0, levelIndex:idx,
+    level:{index:idx,name:lv[idx].name,emoji:lv[idx].emoji,min:lv[idx].min},
+    next: idx<lv.length-1?{name:lv[idx+1].name,emoji:lv[idx+1].emoji,min:lv[idx+1].min}:null };
+}
+var QDIFF={easy:{l:'Легко',c:'#34d399'},med:{l:'Средне',c:'#fb923c'},hard:{l:'Сложно',c:'#f87171'}};
+
+// ============================================================
+//  СОСТОЯНИЕ
+// ============================================================
+var S = {
+  theme: lsGet('theme','rose'),
+  frame: lsGet('frame','none'),
+  couple: lsGet('couple', null),
+  who:    lsGet('who','me'),
+  tab:    lsGet('tab','today'),
+  points: lsGet('points',120),
+  wishes: lsGet('wishes',[
+    {id:1,by:'partner',text:'Съездить к морю на выходные',category:'🏖️',points:50,status:'new'},
+    {id:2,by:'me',text:'Пицца и любимый сериал в пятницу',category:'🍕',points:20,status:'taken'},
+    {id:3,by:'partner',text:'Сходить на тот новый каток',category:'❤️',points:30,status:'done'}
+  ]),
+  quests: lsGet('quests', []),          // старый формат (для миграции done)
+  qdone: lsGet('qdone', {}),            // { questId: true } — выполненные квесты
+  qcat: 'all',                          // активная категория фильтра
+  recDoneDay: lsGet('recDoneDay', null),// дата (YYYY-MM-DD) выполнения дневной рекомендации
+  recOpen: false,                       // открыт полноэкранный экран рекомендации
+  profile: lsGet('profile', null),      // правки профиля/дат пары (имена, ДР, годовщина, свои даты)
+  profileOpen: false,                   // открыт редактор профиля
+  showInvite: false,                    // полноэкранный шаг «пригласи партнёра» после создания пары
+  dates: lsGet('dates',null),   // строим после онбординга
+  answers: lsGet('answers',{}), // { 'YYYY-MM-DD': {me,partner} }
+  // онбординг (в памяти)
+  ob: { step:'welcome', mode:null, name:(TG_USER?(TG_USER.first_name||'Ты'):''), myCode:makeCode(), code:'', waiting:false },
+  toast:null
+};
+function save(k){ lsSet(k, S[k]); }
+function todayKey(){ return sod(new Date()).toISOString().slice(0,10); }
+
+// демо: партнёр «уже ответил» на сегодняшний вопрос
+(function seedDemo(){
+  if(S.couple){
+    var k=todayKey();
+    if(!S.answers[k]) S.answers[k]={};
+    if(!S.answers[k].partner){ S.answers[k].partner='…'; save('answers'); }
+  }
+})();
+
+// миграция: перенести старые выполненные квесты (done) в карту qdone
+(function migrateQuestDone(){
+  var changed=false;
+  (S.quests||[]).forEach(function(q){ if(q&&q.done&&!S.qdone[q.id]){ S.qdone[q.id]=true; changed=true; } });
+  if(changed) save('qdone');
+})();
+
+// ============================================================
+//  ONBOARDING VIEW
+// ============================================================
+function welcomeView(){
+  var tgName=esc(S.ob.name||'');
+  var top='<div class="center-t"><div class="logo">💞</div>'+
+    '<h1 class="b" style="font-size:30px;margin-top:20px;">PARA</h1>'+
+    '<p class="muted small" style="margin-top:8px;line-height:1.5">Приложение для двоих —<br>вопросы, желания, квесты и важные даты</p></div>';
+  var body;
+  if(TG_USER){
+    body='<button class="btn btn-primary" data-act="ob-continue">Продолжить как '+esc(TG_USER.first_name||'ты')+
+      (TG_USER.photo_url?' <img class="avatar" src="'+esc(TG_USER.photo_url)+'" alt="">':'')+'</button>';
+  } else {
+    body='<input id="ob-name" class="input center-t" placeholder="Как тебя зовут?" value="'+tgName+'">'+
+      '<button class="btn btn-primary mt3" data-act="ob-continue">Продолжить</button>'+
+      '<a class="btn btn-ghost mt3" style="text-decoration:none" href="https://t.me/'+TG_BOT+'" target="_blank" rel="noreferrer">✈️ Войти через Telegram</a>';
+  }
+  return '<div class="splash">'+top+'<div class="fullw" style="margin-top:40px;display:flex;flex-direction:column">'+body+'</div>'+
+    '<div class="center-t xs muted2" style="margin-top:24px">'+APP_VERSION+'</div></div>';
+}
+
+function pairView(){
+  var head='<div class="center-t"><div style="font-size:48px;margin-bottom:12px">💞</div>'+
+    '<h2 class="b" style="font-size:24px">Ваша пара</h2>'+
+    '<p class="muted small mt2">Свяжите два телефона, чтобы всё было общим</p></div>';
+  var body='';
+  if(!S.ob.mode){
+    body='<button class="btn btn-primary" data-act="ob-mode" data-mode="create">Создать пару</button>'+
+      '<button class="btn btn-ghost mt3" data-act="ob-mode" data-mode="join">У меня есть код</button>';
+  } else if(S.ob.mode==='create'){
+    body='<div class="card p6 center-t">'+
+      '<div class="xs muted" style="text-transform:uppercase;letter-spacing:.2em;margin-bottom:8px">Твой код-приглашение</div>'+
+      '<div class="code-big">'+esc(S.ob.myCode)+'</div></div>'+
+      '<button class="btn btn-primary mt3" data-act="ob-share">Отправить партнёру</button>'+
+      '<button class="btn btn-ghost mt3" data-act="ob-create-confirm">'+(S.ob.waiting?'Связываем…':'Партнёр уже ввёл код →')+'</button>'+
+      '<p class="center-t xs muted2 mt4">Демо-режим: партнёр подставится автоматически. В Telegram связывание настоящее.</p>';
+  } else {
+    var invited=S.ob.invited && S.ob.code;
+    body=(invited?'<div class="center-t small" style="color:#ffa7c0;margin-bottom:10px">💌 Вас пригласили в пару</div>':'')+
+      '<input id="ob-code" class="input center-t" style="font-size:24px;font-weight:700;letter-spacing:.3em" '+
+      'placeholder="КОД" maxlength="6" value="'+esc(S.ob.code)+'" '+
+      'oninput="this.value=this.value.toUpperCase()">'+
+      '<button class="btn btn-primary mt3" data-act="ob-join-confirm">'+(S.ob.waiting?'Связываем…':(invited?'Присоединиться к паре 💞':'Присоединиться'))+'</button>'+
+      (S.ob.err?'<div class="center-t xs mt3" style="color:#fca5a5">'+esc(S.ob.err)+'</div>':'');
+  }
+  var back=(S.ob.mode&&!S.ob.waiting)?'<button class="mt6 muted small" data-act="ob-mode-back">← назад</button>':'';
+  return '<div class="splash">'+head+'<div class="fullw" style="margin-top:32px;display:flex;flex-direction:column">'+body+'</div>'+back+'</div>';
+}
+
+// полноэкранный шаг после создания пары: пригласить партнёра
+function inviteView(){
+  var code=(S.couple&&S.couple.inviteCode)||S.ob.myCode||'';
+  return '<div class="splash"><div class="center-t">'+
+    '<div style="font-size:52px">💌</div>'+
+    '<h2 class="b" style="font-size:24px;margin-top:14px">Остался один шаг</h2>'+
+    '<p class="muted small mt2" style="max-width:300px;margin:8px auto 0;line-height:1.5">Пригласите партнёра — и всё станет общим: вопрос дня, желания, квесты и очки на двоих.</p>'+
+    '</div>'+
+    '<div class="fullw" style="margin-top:24px;display:flex;flex-direction:column">'+
+      '<div class="card p6 center-t"><div class="xs muted" style="text-transform:uppercase;letter-spacing:.2em;margin-bottom:8px">Ваш код-приглашение</div>'+
+        '<div class="code-big">'+esc(code)+'</div></div>'+
+      '<button class="add-wish" style="margin-top:16px" data-act="invite-share">📤 Отправить приглашение</button>'+
+      '<button class="btn btn-ghost mt3" data-act="invite-skip">Продолжить без партнёра →</button>'+
+      '<div class="center-t xs muted2 mt4" style="line-height:1.5">⏳ Как только партнёр войдёт по ссылке, вы автоматически окажетесь в паре 💞</div>'+
+    '</div></div>';
+}
+// баннер-напоминание внутри приложения, пока партнёр не присоединился
+function inviteBanner(){
+  if(!ONLINE || !S.couple || S.couple.linked) return '';
+  var code=S.couple.inviteCode||'';
+  return '<div class="inv-banner">'+
+    '<div class="inv-row"><div class="inv-emo">⏳</div>'+
+    '<div class="flex1"><div class="sb" style="font-size:15px">Партнёр ещё не в паре</div>'+
+    '<div class="xs muted mt1">Пригласите — и всё станет общим 💞</div></div></div>'+
+    (code?'<div class="inv-code">'+esc(code)+'</div>':'')+
+    '<button class="add-wish" style="margin-top:12px" data-act="invite-share">📤 Пригласить партнёра</button></div>';
+}
+
+// ============================================================
+//  APP VIEWS
+// ============================================================
+function screenTitle(emoji,title,sub){
+  return '<div class="mb4"><div class="b row gap2" style="font-size:20px">'+emoji+' '+esc(title)+'</div>'+
+    (sub?'<div class="xs muted mt2">'+esc(sub)+'</div>':'')+'</div>';
+}
+
+function partnerSwitch(){
+  var c=S.couple, people=[['me',c.me],['partner',c.partner]];
+  var segs=people.map(function(p){
+    var on=S.who===p[0];
+    return '<button class="seg'+(on?' on':'')+'" data-act="who" data-who="'+p[0]+'">'+
+      '<span style="font-size:18px">'+p[1].emoji+'</span><span>'+esc(p[1].name)+'</span></button>';
+  }).join('');
+  return '<div class="card switch"><span class="cap">Для двоих</span>'+segs+'</div>';
+}
+
+function yearsWord(n){ return plural(n,['год','года','лет']); }
+// стиль карточки по числу оставшихся дней (день рождения → 3 → 7 → 14 → 30 → 50)
+function evGrad(days){
+  if(days===0) return 'linear-gradient(135deg,#f43f8e,#c026d3 55%,#7c3aed)';
+  if(days<=3)  return 'linear-gradient(135deg,#fb2e63,#c026d3)';
+  if(days<=7)  return 'linear-gradient(135deg,#d8447e,#a02fbf)';
+  if(days<=14) return 'linear-gradient(135deg,#8a2a6a,#5b2a8a)';
+  if(days<=30) return 'linear-gradient(135deg,#5a2350,#3a2a6a)';
+  return 'linear-gradient(135deg,#3a1c3f 0%,#57223f 55%,#7a2a3a 100%)';
+}
+// подсказка для дня рождения партнёра по «горизонту»
+function giftTip(days){
+  if(days===0) return '🎉 Сегодня! Подари внимание и заботу';
+  if(days<=3)  return '🎁 Подарок уже готов? Осталось совсем чуть-чуть';
+  if(days<=7)  return '🎁 Пора покупать подарок';
+  if(days<=14) return '💡 Самое время выбрать подарок';
+  if(days<=30) return '💡 Начни присматривать подарок';
+  return '💡 Ещё есть время подумать о подарке';
+}
+// собрать ближайшее актуальное событие (или полезный запасной вариант)
+function pickEvent(c){
+  var cands=[];
+  function pushBday(person, mine){
+    if(!person||!person.birthday) return;
+    var d=daysAnnual(person.birthday.month, person.birthday.day);
+    if(d>50) return;                          // показываем ДР только за ≤50 дней; после — исчезает
+    cands.push({
+      kind:'bday', days:d, emoji:'🎂', glow:(d<=3),
+      badge:(d===0?'🎉 СЕГОДНЯ':'🎂 ДЕНЬ РОЖДЕНИЯ'),
+      title:(mine?'Твой день рождения':'День рождения '+esc(person.name)),
+      when:(d===0?'Сегодня! 🥳':('Через <b>'+d+'</b> '+daysWord(d))),
+      tip:(mine?'💌 Добавь желание — партнёр узнает, что подарить':giftTip(d)),
+      cta:(mine?{label:'⭐ Мои желания',act:'ev-mywishes'}:{label:'🎁 Идеи подарков',act:'ev-gifts'})
+    });
+  }
+  pushBday(c.partner,false); pushBday(c.me,true);
+  // годовщина (по дате начала; не показываем для только что созданной пары)
+  if(c.since){
+    var sd=sod(new Date(c.since));
+    var together=Math.floor((sod(new Date())-sd)/DAY);
+    if(together>=60){
+      var d=daysAnnual(sd.getMonth()+1, sd.getDate());
+      var y=new Date().getFullYear(), nx=sod(new Date(y,sd.getMonth(),sd.getDate()));
+      if(nx<sod(new Date())) nx=sod(new Date(y+1,sd.getMonth(),sd.getDate()));
+      var yrs=nx.getFullYear()-sd.getFullYear();
+      if(d<=50 && yrs>=1){
+        cands.push({ kind:'anniv', days:d, emoji:'💞', glow:(d<=3),
+          badge:(d===0?'💞 СЕГОДНЯ':'💞 ГОДОВЩИНА'),
+          title:yrs+' '+yearsWord(yrs)+' вместе',
+          when:(d===0?'Сегодня ваш день! 💕':('Через <b>'+d+'</b> '+daysWord(d))),
+          tip:(d<=7?'✨ Спланируйте что-то особенное':'💫 Придумайте, как отметить'),
+          cta:{label:'📅 Наши даты',act:'ev-dates'} });
+      }
+    }
+  }
+  if(cands.length){ cands.sort(function(a,b){return a.days-b.days;}); return cands[0]; }
+  return fallbackEvent(c);
+}
+// когда нет ближайших дат — всегда показываем что-то полезное
+function fallbackEvent(c){
+  var together=c.since?Math.floor((sod(new Date())-sod(new Date(c.since)))/DAY):0;
+  // 1) приближается круглое число дней вместе
+  var MILE=[100,200,300,365,500,730,1000,1500,2000,3000,3650];
+  for(var i=0;i<MILE.length;i++){ var left=MILE[i]-together;
+    if(left>0 && left<=14){ return { kind:'milestone', days:left, emoji:'💞', glow:false,
+      badge:'💞 ВМЕСТЕ', title:'Скоро '+MILE[i]+' '+daysWord(MILE[i])+' вместе',
+      when:'Через <b>'+left+'</b> '+daysWord(left), tip:'✨ Отметьте этот день чем-то особенным',
+      cta:{label:'📅 Наши даты',act:'ev-dates'} }; } }
+  // 2) вопрос дня ещё не отвечен
+  var td=todayData();
+  if(td.linked && !td.mine){ return { kind:'q', days:0, emoji:'💬', glow:false,
+    badge:'💬 ВОПРОС ДНЯ', title:'Ответьте на вопрос дня', when:'',
+    tip:'👇 Ваш ответ ждёт партнёра — прямо ниже' }; }
+  // 3) незавершённый «квест дня»
+  var lvl=(effProgress().levelIndex)||0, qd=qToday(questDefs(),lvl);
+  if(qd && !S.qdone[qd.id]){ return { kind:'quest', days:0, emoji:qd.emoji, glow:false,
+    badge:'🗺️ КВЕСТ ДНЯ', title:esc(qd.title), when:'',
+    tip:'⭐ Выполните вместе и получите +'+qd.pts, cta:{label:'Открыть квесты',act:'ev-quests'} }; }
+  // 4) сколько вы уже вместе
+  return { kind:'together', days:0, emoji:'💞', glow:false, badge:'💞 МЫ ВМЕСТЕ',
+    title:'Вы вместе '+together+' '+daysWord(together), when:'',
+    tip:'❤️ Каждый день делает вас ближе' };
+}
+function countdownCard(){
+  var e=pickEvent(S.couple);
+  var ac=(e.days!=null && e.days<30)?'#ff5e8a':((e.days!=null && e.days<=90)?'#fbbf24':'#ff5e8a');
+  return '<div class="evc'+(e.glow?' glow':'')+'">'+
+    '<div class="evc-illu">'+e.emoji+'</div>'+
+    '<div class="evc-badge" style="color:'+ac+'">'+e.badge+'</div>'+
+    '<div class="evc-title">'+e.title+'</div>'+
+    (e.when?'<div class="evc-when">'+e.when+'</div>':'')+
+    (e.tip?'<div class="evc-tip">'+e.tip+'</div>':'')+
+    (e.cta?'<div><button class="evc-cta" data-act="'+e.cta.act+'">'+e.cta.label+'</button></div>':'')+
+    '</div>';
+}
+
+// ============================================================
+//  «✨ Для вас сегодня» — одна дневная рекомендация для пары
+// ============================================================
+var FORYOU=[
+  {id:'pizza',   emoji:'🍕',pts:20,title:'Приготовьте домашнюю пиццу', desc:'Замесите тесто и соберите пиццу вдвоём.',
+    long:'Ничего не сближает так, как готовка вместе. Замесите тесто, выберите начинку по вкусу каждого и приготовьте пиццу своей мечты. Ужин, который вы сделали сами, всегда вкуснее.'},
+  {id:'walk',    emoji:'🚶',pts:15,title:'Прогуляйтесь вечером 30 минут', desc:'Без телефонов — просто вы вдвоём и разговор.',
+    long:'Оставьте телефоны дома и выйдите на неспешную вечернюю прогулку. Полчаса вдвоём, свежий воздух и разговоры обо всём — маленький ритуал, который делает вечер особенным.'},
+  {id:'breakfast',emoji:'☕',pts:15,title:'Позавтракайте вместе', desc:'Начните день с общего завтрака за столом.',
+    long:'Проснитесь чуть раньше и приготовьте завтрак вдвоём. Кофе, тосты и несколько спокойных минут вместе — лучший способ начать общий день.'},
+  {id:'movie',   emoji:'🎬',pts:20,title:'Посмотрите новый фильм', desc:'Выберите фильм, который ещё не видели.',
+    long:'Устройте домашний киновечер. Выберите фильм, который никто из вас ещё не смотрел, приготовьте что-нибудь вкусное и наслаждайтесь вечером вдвоём.'},
+  {id:'compliment',emoji:'❤️',pts:10,title:'Сделайте партнёру комплимент', desc:'Скажите что-то тёплое и искреннее.',
+    long:'Иногда нужно совсем немного. Скажите партнёру искренний комплимент — о том, что цените, чем восхищаетесь, за что благодарны. Тёплые слова стоят дороже подарков.'},
+  {id:'photo',   emoji:'📸',pts:15,title:'Сделайте совместное фото', desc:'Запечатлейте этот день вдвоём.',
+    long:'Остановите мгновение. Сделайте общее фото — дома, на улице, где угодно. Через годы такие снимки станут самыми ценными.'},
+  {id:'quest',   emoji:'🎯',pts:25,title:'Выполните случайный квест', desc:'Откройте «Квесты» и выберите задание.',
+    long:'Добавьте немного игры. Откройте «Квесты» и выполните любое задание для двоих — от простого до сложного. Каждый квест приносит очки и новые впечатления.'},
+  {id:'wish',    emoji:'🎁',pts:20,title:'Исполните одно желание', desc:'Порадуйте партнёра — исполните его желание.',
+    long:'Загляните в «Желания» партнёра и исполните одно из них. Маленький сюрприз без повода — то, что помнят.'},
+  {id:'message', emoji:'💌',pts:10,title:'Напишите друг другу сообщение', desc:'Пара тёплых строк — просто так.',
+    long:'Напишите партнёру короткое сообщение без повода — просто чтобы сказать, что думаете о нём. Такие мелочи и создают близость.'},
+  {id:'wheel',   emoji:'🎲',pts:15,title:'Пусть колесо выберет занятие', desc:'Доверьтесь случаю и проведите вечер вместе.',
+    long:'Не можете выбрать, чем заняться? Доверьтесь случаю — покрутите колесо желаний и сделайте то, что выпадет. Спонтанность делает вечер живым.'},
+  {id:'cook',    emoji:'🍝',pts:25,title:'Приготовьте новое блюдо', desc:'Выберите рецепт, которого ещё не пробовали.',
+    long:'Найдите рецепт, который никто из вас ещё не готовил, и приготовьте его вдвоём. Немного хаоса на кухне, много смеха — и новое общее блюдо в копилке.'},
+  {id:'dance',   emoji:'💃',pts:15,title:'Потанцуйте на кухне', desc:'Включите любимую песню и потанцуйте.',
+    long:'Включите песню, под которую хочется двигаться, и потанцуйте прямо на кухне. Три минуты глупости и нежности — и настроение меняется на весь вечер.'},
+  {id:'stars',   emoji:'🌟',pts:20,title:'Посмотрите на звёзды', desc:'Выйдите вечером и найдите пару созвездий.',
+    long:'Выйдите на балкон или во двор, когда стемнеет, и просто посмотрите на небо вдвоём. Тишина, звёзды и мысли вслух — редкий и очень тёплый момент.'},
+  {id:'plan',    emoji:'🗺️',pts:20,title:'Спланируйте мини-путешествие', desc:'Помечтайте и набросайте план поездки.',
+    long:'Возьмите карту или откройте телефон и наметьте поездку мечты — пусть даже в соседний город. Совместные планы сближают не меньше, чем сами поездки.'},
+  {id:'massage', emoji:'💆',pts:20,title:'Сделайте друг другу массаж', desc:'По 10 минут заботы каждому.',
+    long:'Устройте вечер заботы: по десять минут лёгкого массажа плеч и спины каждому. Простое прикосновение снимает усталость и напоминает, как хорошо быть рядом.'},
+  {id:'picnic',  emoji:'🧺',pts:20,title:'Устройте пикник', desc:'На природе или прямо на полу дома.',
+    long:'Соберите корзинку с любимой едой и устройте пикник — в парке или прямо на пледе посреди комнаты. Смена обстановки превращает обычный ужин в маленькое событие.'},
+  {id:'letter',  emoji:'✍️',pts:20,title:'Напишите, за что любите друг друга', desc:'По списку из 5 пунктов — и обменяйтесь.',
+    long:'Каждый пишет пять причин, за что любит другого, и вы обмениваетесь записками. Простое упражнение, после которого хочется обняться.'},
+  {id:'playlist',emoji:'🎵',pts:15,title:'Соберите общий плейлист', desc:'Добавьте песни, которые о вас двоих.',
+    long:'Создайте плейлист вашей пары: пусть каждый добавит песни, которые напоминают о вас. Ваш личный саундтрек, который можно включать в дороге и дома.'},
+  {id:'photos_old',emoji:'📷',pts:15,title:'Пересмотрите старые фото', desc:'Полистайте вместе снимки из начала.',
+    long:'Откройте галерею и полистайте фотографии с начала ваших отношений. Вспомнить, с чего всё начиналось, — лучший способ почувствовать, как много вы прошли вместе.'},
+  {id:'dream',   emoji:'💭',pts:15,title:'Поделитесь мечтой', desc:'Расскажите о том, чего хотите через год.',
+    long:'Расскажите друг другу об одной мечте на ближайший год — большой или маленькой. Когда партнёр знает, к чему ты идёшь, идти становится легче.'},
+  {id:'cocktail',emoji:'🍹',pts:20,title:'Сделайте коктейли дома', desc:'Придумайте фирменный напиток вашей пары.',
+    long:'Достаньте, что есть под рукой, и смешайте пару коктейлей (можно и без алкоголя). Придумайте им название — пусть будет ваш фирменный напиток вечера.'},
+  {id:'sunset',  emoji:'🌅',pts:15,title:'Встретьте закат или рассвет', desc:'Несколько минут тишины вдвоём.',
+    long:'Поймайте момент, когда небо окрашивается: встретьте вместе закат или рассвет. Ничего не нужно делать — просто быть рядом и смотреть.'},
+  {id:'draw',    emoji:'🎨',pts:15,title:'Нарисуйте друг друга', desc:'Пусть выйдет смешно — это и есть весело.',
+    long:'Возьмите по листку и за пять минут нарисуйте портрет друг друга. Художественная ценность не важна — важен смех, когда покажете результат.'},
+  {id:'quiz',    emoji:'❓',pts:15,title:'Задайте по 5 вопросов', desc:'Узнайте что-то новое друг о друге.',
+    long:'По очереди задайте друг другу пять вопросов — о детстве, мечтах, страхах, желаниях. Даже спустя годы можно открыть в партнёре что-то новое.'},
+  {id:'dessert', emoji:'🍰',pts:20,title:'Приготовьте десерт', desc:'Что-нибудь сладкое — вдвоём.',
+    long:'Испеките или соберите простой десерт вместе. Сладкое, сделанное своими руками вдвоём, и на вкус приятнее, и повод провести время рядом.'},
+  {id:'workout', emoji:'🏃',pts:20,title:'Разомнитесь вместе', desc:'Короткая совместная тренировка.',
+    long:'Сделайте небольшую разминку или тренировку на двоих — 15 минут хватит. Общая активность бодрит и добавляет капельку соревновательного веселья.'},
+  {id:'candle',  emoji:'🕯️',pts:25,title:'Ужин при свечах', desc:'Устройте романтический вечер дома.',
+    long:'Погасите верхний свет, зажгите свечи и накройте стол на двоих. Даже обычный ужин при свечах превращается в свидание, ради которого не нужно никуда идти.'},
+  {id:'gratitude',emoji:'🙏',pts:10,title:'Скажите по 3 «спасибо»', desc:'За что вы благодарны друг другу сегодня.',
+    long:'Назовите друг другу по три вещи, за которые благодарны сегодня. Привычка замечать хорошее делает отношения теплее с каждым днём.'},
+  {id:'hug',     emoji:'🤗',pts:10,title:'Обнимитесь на 20 секунд', desc:'Долгие объятия без слов.',
+    long:'Обнимите партнёра и не отпускайте двадцать секунд. Долгие объятия снижают стресс и говорят больше любых слов.'},
+  {id:'series',  emoji:'📺',pts:15,title:'Начните сериал вдвоём', desc:'Выберите тот, что будете смотреть только вместе.',
+    long:'Выберите сериал, который будете смотреть только вдвоём, — и никаких серий тайком. Общий ритуал «одна серия вечером» держит вас на связи каждый день.'}
+];
+// одна рекомендация в сутки (детерминированно, без повторов несколько дней подряд)
+function todayRec(){ var day=Math.floor(sod(new Date()).getTime()/DAY); return FORYOU[(day*7)%FORYOU.length]; }
+function recDoneToday(){ return S.recDoneDay===todayKey(); }
+function forYouCard(){
+  var head='<div class="fy-head">✨ Для вас сегодня</div>';
+  if(recDoneToday()){
+    return head+'<div class="fy-done"><div style="font-size:42px">✅</div>'+
+      '<div class="sb mt3" style="font-size:15px">Сегодняшняя рекомендация выполнена</div>'+
+      '<div class="small muted mt2">Возвращайтесь завтра ❤️</div></div>';
+  }
+  var r=todayRec();
+  return head+'<div class="fy">'+
+    '<div class="fy-illu">'+r.emoji+'</div>'+
+    '<div class="fy-body">'+
+      '<div class="fy-title">'+esc(r.title)+'</div>'+
+      '<div class="fy-desc">'+esc(r.desc)+'</div>'+
+      '<div class="fy-pts">⭐ +'+r.pts+'</div>'+
+      '<button class="fy-btn" data-act="rec-open">Попробовать →</button>'+
+    '</div></div>';
+}
+// полноэкранная страница рекомендации (не модалка)
+function recView(){
+  var r=todayRec();
+  return '<div class="app"><div class="wrap">'+
+    '<div class="row between mb4"><button class="btn btn-ghost btn-sm" data-act="rec-close">← Назад</button>'+
+    '<div class="xs muted" style="text-transform:uppercase;letter-spacing:.18em">Для вас сегодня</div></div>'+
+    '<div class="rec-illu">'+r.emoji+'</div>'+
+    '<div class="b" style="font-size:25px;text-align:center;margin-top:22px;line-height:1.2">'+esc(r.title)+'</div>'+
+    '<div class="small muted" style="text-align:center;max-width:330px;margin:14px auto 0;line-height:1.6">'+esc(r.long)+'</div>'+
+    '<div class="center-t" style="margin-top:18px"><span class="chipx gold" style="font-size:14px;padding:7px 14px">⭐ +'+r.pts+'</span></div>'+
+    '<button class="add-wish" style="margin-top:28px" data-act="rec-start">Начать</button>'+
+    '<div style="height:20px"></div></div></div>';
+}
+
+// единые данные вопроса дня — для онлайна (реальный партнёр) и демо (локально)
+function todayData(){
+  var c=S.couple;
+  if(ONLINE && S.srvToday){
+    var t=S.srvToday, pn=(c.partner&&c.partner.name)||'партнёр';
+    return { q:t.question, mine:t.myAnswer, otherAns:t.partnerAnswer,
+      otherAnswered:t.partnerAnswered, both:t.bothAnswered, otherName:pn,
+      myEmoji:c.me.emoji, otherEmoji:c.partner.emoji, linked:!!c.linked };
+  }
+  var q=questionOfDay(), k=todayKey(), a=S.answers[k]||{};
+  var other=(S.who==='me')?'partner':'me';
+  return { q:q.text, mine:a[S.who], otherAns:(a[other]==='…'?'Секретный ответ 💌 (демо)':a[other]),
+    otherAnswered:!!a[other], both:!!(a.me&&a.partner), otherName:c[other].name,
+    myEmoji:c[S.who].emoji, otherEmoji:c[other].emoji, linked:true };
+}
+function questionCard(){
+  var d=todayData(), otherName=esc(d.otherName);
+  var head='<div class="row between mb3"><span class="pill" style="background:rgba(192,38,211,.15);color:#e879f9">💡 Вопрос дня</span>'+
+    (d.otherAnswered&&!d.mine?'<span class="xs muted">'+otherName+' уже ответил(а)</span>':'')+'</div>';
+  var qtext='<div class="sb mb4" style="font-size:18px;line-height:1.3">'+esc(d.q)+'</div>';
+  var body;
+  if(!d.linked){
+    // онлайн, но партнёр ещё не присоединился
+    body='<textarea id="qa" class="input" rows="2" placeholder="Твой ответ…"></textarea>'+
+      '<button class="btn btn-primary mt3" data-act="answer">Ответить <span style="opacity:.8">· +10 очков</span></button>'+
+      '<div class="center-t xs muted2 mt3">⏳ Партнёр ещё не в паре — отправь код из вкладки «Мы»</div>';
+  } else if(!d.mine){
+    body='<textarea id="qa" class="input" rows="2" placeholder="Твой ответ…"></textarea>'+
+      '<button class="btn btn-primary mt3" data-act="answer">Ответить <span style="opacity:.8">· +10 очков</span></button>'+
+      (d.otherAnswered?'<div class="center-t xs muted2 mt3">🔒 Ответ '+otherName+' откроется после твоего</div>':'');
+  } else {
+    var meRow=answerRow(ONLINE?S.couple.me.name:S.couple[S.who].name,d.myEmoji,d.mine,true);
+    var oRow= d.both ? answerRow(otherName,d.otherEmoji,d.otherAns,false)
+      : '<div style="background:rgba(0,0,0,.2);border-radius:16px;padding:12px 16px" class="center-t xs muted2">🔒 Ждём ответ '+otherName+'</div>';
+    body=meRow+oRow;
+  }
+  return '<div class="card p5 mb4">'+head+qtext+body+'</div>';
+}
+function answerRow(name,emoji,text,mine){
+  return '<div style="border-radius:16px;padding:12px 16px;margin-bottom:8px;'+
+    (mine?'background:rgba(255,94,138,.1);border:1px solid rgba(255,94,138,.2)':'background:rgba(255,255,255,.05)')+'">'+
+    '<div class="xs muted" style="margin-bottom:2px">'+emoji+' '+esc(name)+'</div>'+
+    '<div class="small">'+esc(text)+'</div></div>';
+}
+
+function wheelCard(){
+  var btns=WHEEL.map(function(w,i){
+    return '<button data-act="wheel" data-i="'+i+'"><span class="ic">'+w.icon+'</span><span class="lb">'+esc(w.label)+'</span></button>';
+  }).join('');
+  return '<div class="card p5 mb4"><div class="row between mb4"><div class="sb">🎡 Колесо желаний</div>'+
+    '<span class="xs muted">чем займёмся?</span></div><div class="wheel">'+btns+'</div></div>';
+}
+
+// ---------- Настроение дня + «Думаю о тебе» ----------
+var MOODS=['🥰','😄','😊','😌','😐','😴','😔','😢','😡','🤒'];
+function applyMoods(m){ S.moods=m||{me:{},partner:{}}; }
+function moodCard(){
+  var m=S.moods||{me:{},partner:{}};
+  var pn=(S.couple&&S.couple.partner&&S.couple.partner.name)||'Партнёр';
+  var mine=m.me&&m.me.emoji, editing=S.moodEdit||!mine;
+  var block;
+  if(editing){
+    block='<div class="xs muted mb2">Как ты сегодня?</div><div class="mood-row">'+
+      MOODS.map(function(e){ var on=(mine===e); return '<button class="mood-pick'+(on?' on':'')+'" data-act="mood-set" data-e="'+e+'">'+e+'</button>'; }).join('')+'</div>';
+  } else {
+    block='<div class="mood-me"><span class="mood-emo">'+esc(m.me.emoji)+'</span>'+
+      '<div class="flex1"><div class="xs muted">Ты сегодня</div>'+(m.me.note?'<div class="small">'+esc(m.me.note)+'</div>':'<div class="small muted2">без слов</div>')+'</div>'+
+      '<button class="mood-change" data-act="mood-edit">изменить</button></div>';
+  }
+  var noteInput = (mine && !editing) ? '<div class="mood-note-row"><input id="mood-note" class="input mood-note" maxlength="120" autocomplete="off" placeholder="пара слов о дне…" value="'+esc(m.me.note||'')+'"><button class="mood-note-save" data-act="mood-note" aria-label="Сохранить">💾</button></div>' : '';
+  var pm=m.partner&&m.partner.emoji;
+  var pBlock='<div class="mood-me"><span class="mood-emo">'+(pm?esc(m.partner.emoji):'🫥')+'</span>'+
+    '<div class="flex1"><div class="xs muted">'+esc(pn)+'</div>'+
+    (pm?(m.partner.note?'<div class="small">'+esc(m.partner.note)+'</div>':'<div class="small muted2">без слов</div>'):'<div class="small muted2">ещё не отметил(а) сегодня</div>')+'</div></div>';
+  return '<div class="card p4"><div class="sb mb3" style="font-size:15px">🌤️ Настроение дня</div>'+
+    block+noteInput+'<div class="mood-div"></div>'+pBlock+'</div>';
+}
+function thinkBtn(){
+  var cd=S._thinkCd && Date.now()<S._thinkCd;
+  return '<div class="think-wrap">'+(S._thinkBurst?'<span class="think-heart">❤️</span>':'')+
+    '<button class="think-btn'+(cd?' cd':'')+'" data-act="think-ping"'+(cd?' disabled':'')+'>'+
+    '<span class="think-ic">💭</span> '+(cd?'Отправлено ❤️':'Думаю о тебе')+'</button></div>';
+}
+// серия дней подряд (отвечали на вопрос дня) — мотивирует заходить каждый день
+function streakStrip(){
+  var s=(effProgress().streak)||0;
+  var MS=[3,7,14,30,60,100,180,365], next=null;
+  for(var i=0;i<MS.length;i++){ if(MS[i]>s){ next=MS[i]; break; } }
+  if(s<=0){
+    return '<div class="streak-strip s0"><span class="streak-fire">🔥</span>'+
+      '<div class="flex1"><div class="small sb">Начните серию дней</div>'+
+      '<div class="xs muted">Ответьте на вопрос дня вдвоём — и серия пойдёт</div></div></div>';
+  }
+  var pct=next?Math.max(6,Math.min(100,Math.round(s/next*100))):100;
+  var sub=next?('до '+next+' — ещё '+(next-s)+' '+daysWord(next-s)):'легендарная серия 👑';
+  return '<div class="streak-strip"><span class="streak-fire on">🔥</span>'+
+    '<div class="flex1"><div class="row between" style="align-items:baseline"><div class="small sb">'+s+' '+daysWord(s)+' подряд</div>'+
+    '<div class="xs muted">'+sub+'</div></div>'+
+    '<div class="streak-bar"><div style="width:'+pct+'%"></div></div></div></div>';
+}
+function todayScreen(){
+  var now=new Date();
+  var dstr=now.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+  return '<div class="wrap">'+
+    '<div class="row between mb4"><div><div class="xs muted">'+esc(dstr)+'</div>'+
+    '<div class="b" style="font-size:20px">Сегодня</div></div>'+
+    '<div class="row gap2 sb" style="background:rgba(251,191,36,.1);color:#fcd34d;border-radius:999px;padding:6px 12px;font-size:14px">⭐ '+S.points+'</div></div>'+
+    inviteBanner()+
+    // переключатель «глазами каждого» — только в демо; онлайн ты фиксированный человек
+    (ONLINE?'':partnerSwitch()+'<div style="height:16px"></div>')+
+    countdownCard()+'<div style="height:16px"></div>'+
+    moodCard()+'<div style="height:12px"></div>'+
+    thinkBtn()+'<div style="height:16px"></div>'+
+    streakStrip()+
+    questionCard()+forYouCard()+'</div>';
+}
+
+// категории желаний: эмодзи, подпись, акцентный цвет
+var WCATS=[
+  {e:'❤️',l:'Вместе',c:'#ff5e8a'},{e:'🍕',l:'Еда',c:'#fbbf24'},{e:'🏖️',l:'Отдых',c:'#38bdf8'},
+  {e:'🎬',l:'Кино',c:'#c026d3'},{e:'☕',l:'Свидание',c:'#fb923c'},{e:'🎁',l:'Подарок',c:'#34d399'}
+];
+function wcat(e){ for(var i=0;i<WCATS.length;i++) if(WCATS[i].e===e) return WCATS[i]; return {e:e||'❤️',l:'',c:'#ff5e8a'}; }
+function hex2rgba(h,a){ h=h.replace('#',''); var n=parseInt(h,16); return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')'; }
+function normWish(w){ return { id:w.id, by:w.by||'me', text:w.text, category:w.category||'❤️',
+  points:w.points||20, status:w.status||(w.done?'done':'new') }; }
+// желания с сервера → форма экрана (by: моё это желание или партнёра)
+function mapServerWishes(arr){ return (arr||[]).map(function(w){ return { id:w.id, by:(w.mine?'me':'partner'),
+  text:w.text, category:w.category||'❤️', points:w.points||20, status:w.status||'new' }; }); }
+// применить желания с сервера + запомнить «подпись», чтобы фоновый опрос не дёргал экран впустую
+function applyServerWishes(arr){ var mapped=mapServerWishes(arr); S.wishes=mapped; S._wishSig=JSON.stringify(mapped); return mapped; }
+
+function wishesScreen(){
+  var c=S.couple, filter=S.wfilter||'all', donef=S.wdonefilter||'all';
+  var meName=function(by){ return by==='me' ? ((c.me.emoji||'👨')+' Я') : ((c.partner.emoji||'👩')+' '+esc(c.partner.name||'Партнёр')); };
+  var all=S.wishes.map(normWish);
+  var isActive=function(w){ return w.status!=='done'; };
+  // фильтрация по СТАТУСУ (не только по автору): активные — в Все/Мои/Партнёра, выполненные — отдельно
+  var list=all.filter(function(w){
+    if(filter==='done'){
+      if(w.status!=='done') return false;
+      if(donef==='mine') return w.by==='me';
+      if(donef==='partner') return w.by==='partner';
+      return true;
+    }
+    if(!isActive(w)) return false;              // выполненные не показываем в остальных вкладках
+    if(filter==='mine') return w.by==='me';
+    if(filter==='partner') return w.by==='partner';
+    return true;                                // 'all' — только активные обоих
+  });
+
+  // счётчики для вкладок (обновляются мгновенно после выполнения — это просто пересчёт при render)
+  var act=all.filter(isActive);
+  var cnt={ all:act.length, mine:act.filter(function(w){return w.by==='me';}).length,
+    partner:act.filter(function(w){return w.by==='partner';}).length,
+    done:all.filter(function(w){return w.status==='done';}).length };
+  var FILTERS=[['all','Все'],['mine','Мои'],['partner','Партнёра'],['done','Выполненные']];
+  var filters='<div class="filters">'+FILTERS.map(function(f){
+    var n=cnt[f[0]];
+    return '<button class="f'+(filter===f[0]?' on':'')+'" data-act="wfilter" data-f="'+f[0]+'">'+f[1]+
+      (n?' <span style="opacity:.7">'+n+'</span>':'')+'</button>';
+  }).join('')+'</div>';
+  // под-фильтр внутри «Выполненные»
+  if(filter==='done'){
+    var SUB=[['all','Все'],['mine','Мои'],['partner','Партнёра']];
+    filters+='<div class="filters" style="margin-top:0">'+SUB.map(function(f){
+      return '<button class="f'+(donef===f[0]?' on':'')+'" data-act="wdonefilter" data-f="'+f[0]+'" style="padding:6px 12px;font-size:12px">'+f[1]+'</button>';
+    }).join('')+'</div>';
+  }
+
+  var body;
+  if(!list.length){
+    var eTitle = filter==='done' ? '✨ Пока нет выполненных желаний'
+      : filter==='all' ? '❤️ Здесь будут ваши общие мечты' : 'Здесь пока пусто';
+    var eSub = filter==='done' ? 'Выполните желание — и оно появится здесь.'
+      : filter==='all' ? 'Добавьте первое желание и начните создавать воспоминания вместе.'
+      : 'Смени фильтр или добавь новое желание.';
+    var eIll = filter==='done' ? '✅' : '❤️';
+    var eBtn = filter==='done' ? '' :
+      '<div class="eb"><button class="ebtn" data-act="wish-open-add">➕ Добавить '+(filter==='all'?'первое ':'')+'желание</button></div>';
+    body='<div class="wempty2"><div class="ill2">'+eIll+'</div>'+
+      '<div class="et">'+eTitle+'</div>'+
+      '<div class="es">'+eSub+'</div>'+
+      eBtn+'</div>';
+  } else {
+    body=list.map(function(w){
+      var ct=wcat(w.category), pop=(S.justDone===w.id?' pop':'');
+      var badge = w.status==='new' ? '<span class="chipx new">🆕 Новое</span>'
+        : w.status==='taken' ? '<span class="chipx taken">🤝 Взято</span>'
+        : '<span class="chipx doneb">✅ Выполнено</span>';
+      var action = w.status==='new'
+        ? '<button class="wact take" data-act="wish-take" data-id="'+w.id+'">❤️ Беру</button>'
+        : w.status==='taken'
+        ? '<button class="wact fin" data-act="wish-done" data-id="'+w.id+'">✅ Выполнить</button>'
+        : '<button class="wact del" data-act="wish-del" data-id="'+w.id+'" aria-label="Удалить">🗑</button>';
+      return '<div class="wcard'+(w.status==='done'?' done':'')+pop+'" style="--wc:'+ct.c+'">'+
+        (S.justDone===w.id?'<div class="burst">🎉</div>':'')+
+        '<div class="wcat" style="--wcb:'+hex2rgba(ct.c,0.16)+'">'+ct.e+'</div>'+
+        '<div class="wbody"><div class="wttl'+(w.status==='done'?' done':'')+'">'+esc(w.text)+'</div>'+
+        '<div class="wmeta"><span class="chipx">'+meName(w.by)+'</span>'+
+        '<span class="chipx gold">⭐ +'+w.points+'</span>'+badge+'</div></div>'+
+        action+'</div>';
+    }).join('');
+  }
+
+  return '<div class="wrap">'+screenTitle('⭐','Желания','мечты, которые исполняем вместе')+
+    (list.length?'<button class="add-wish" data-act="wish-open-add">➕ Добавить желание</button>':'')+
+    filters+'<div style="height:6px"></div>'+body+'</div>';
+}
+
+// модалка создания желания
+function wishModal(){
+  if(!S.wmodal) return '';
+  var cat=S.wmodal.cat||'❤️', pts=S.wmodal.points||20;
+  var cats=WCATS.map(function(x){ return '<button class="catopt'+(cat===x.e?' on':'')+'" data-act="wish-cat" data-e="'+x.e+'">'+x.e+'</button>'; }).join('');
+  var chips=[10,20,30,50].map(function(p){ return '<button class="ptchip'+(pts===p?' on':'')+'" data-act="wish-pts" data-p="'+p+'">⭐ '+p+'</button>'; }).join('');
+  return '<div class="ovl" onclick="if(event.target===this)__paraModalClose()"><div class="sheet">'+
+    '<div class="grabber"></div>'+
+    '<div class="b mb3" style="font-size:18px">Новое желание 💫</div>'+
+    '<input id="wtitle" class="input" placeholder="О чём мечтаете вместе?" autocomplete="off" value="'+esc(S.wmodal.text||'')+'">'+
+    '<div class="xs muted" style="margin:14px 0 4px">Категория</div><div class="catgrid">'+cats+'</div>'+
+    '<div class="xs muted" style="margin:14px 0 4px">Очки за исполнение</div><div class="ptrow">'+chips+'</div>'+
+    '<button class="add-wish" style="margin-top:18px" data-act="wish-save">Добавить желание</button>'+
+    '<button class="btn btn-ghost mt3" data-act="wish-cancel">Отмена</button>'+
+    '</div></div>';
+}
+
+function qUnlocked(q,lvl){ return (q.level||0)<=lvl; }
+function socialAvas(){ return '<span class="qod-ava">🧑</span><span class="qod-ava">👩</span><span class="qod-ava">🧔</span>'; }
+// «Квест дня» — детерминированный выбор из featured/разблокированных, ротация по дню
+function qToday(defs,lvl){
+  var pool=defs.filter(function(q){ return q.featured&&qUnlocked(q,lvl); });
+  if(!pool.length) pool=defs.filter(function(q){ return qUnlocked(q,lvl); });
+  if(!pool.length) pool=defs;
+  if(!pool.length) return null;
+  var day=Math.floor(sod(new Date()).getTime()/DAY);
+  return pool[day%pool.length];
+}
+function questsScreen(){
+  var prog=effProgress(), lvl=prog.levelIndex||0, defs=questDefs();
+  var unlocked=defs.filter(function(q){ return qUnlocked(q,lvl); });
+  var doneN=unlocked.filter(function(q){ return S.qdone[q.id]; }).length;
+  var totalN=unlocked.length, streak=prog.streak||0, pts=prog.points||0;
+
+  // ---- шапка: уровень, очки, прогресс до следующего ----
+  var pct, ntxt;
+  if(prog.next){ var span=prog.next.min-prog.level.min;
+    pct=Math.max(5,Math.min(100,Math.round(((pts-prog.level.min)/(span||1))*100)));
+    ntxt='до «'+esc(prog.next.name)+'» ещё '+Math.max(0,prog.next.min-pts)+' ⭐'; }
+  else { pct=100; ntxt='максимальный уровень 👑'; }
+  var head='<div class="card q-head"><div class="row gap3" style="align-items:center">'+
+    '<div class="q-lvl-emo">'+prog.level.emoji+'</div>'+
+    '<div class="flex1"><div class="b" style="font-size:16px">'+esc(prog.level.name)+'</div>'+
+      '<div class="xs muted mt1">'+ntxt+'</div></div>'+
+    '<div style="text-align:right"><div class="b amber" style="font-size:19px">⭐ '+pts+'</div>'+
+      '<div class="xs muted">'+(streak>0?('🔥 '+streak+' дн.'):'очков')+'</div></div>'+
+    '</div><div class="qbar mt3"><div style="width:'+pct+'%"></div></div></div>';
+
+  // ---- статистика ----
+  var stats='<div class="q-stats">'+
+    '<div class="card q-stat"><div class="b" style="font-size:22px">'+doneN+' / '+totalN+'</div>'+
+      '<div class="xs muted mt1">квестов выполнено</div></div>'+
+    '<div class="card q-stat"><div class="b" style="font-size:22px">🔥 '+streak+'</div>'+
+      '<div class="xs muted mt1">'+(streak===1?'день подряд':'дней подряд')+'</div></div>'+
+    '</div>';
+
+  // ---- квест дня ----
+  var qd=qToday(defs,lvl), qod='';
+  if(qd){
+    var c=qcatOf(qd.cat), dd=QDIFF[qd.diff]||QDIFF.easy, done=!!S.qdone[qd.id];
+    qod='<div class="qod" style="--qc:'+c.color+'">'+
+      '<div class="qod-illu">'+qd.emoji+'</div>'+
+      '<div class="qod-badge">⭐ КВЕСТ ДНЯ</div>'+
+      '<div class="qod-title">'+esc(qd.title)+'</div>'+
+      '<div class="qod-desc">'+esc(qd.desc)+'</div>'+
+      '<div class="qod-chips">'+
+        '<span class="chipx">⭐ +'+qd.pts+'</span>'+
+        '<span class="chipx">⏱ '+esc(qd.time)+'</span>'+
+        '<span class="chipx" style="color:'+dd.c+'">'+dd.l+'</span>'+
+        '<span class="chipx">'+c.emoji+' '+esc(c.name)+'</span>'+
+      '</div>'+
+      '<div class="qod-social">'+socialAvas()+' &nbsp;'+qd.pairs+' пар уже выполнили</div>'+
+      (done
+        ? '<button class="btn qod-btn" disabled style="opacity:.75">Выполнено ✓</button>'
+        : '<button class="btn qod-btn" data-act="quest-done" data-id="'+qd.id+'">Выполнить квест →</button>')+
+      '</div>';
+  }
+
+  // ---- категории ----
+  var cats=[{key:'all',name:'Все',emoji:'✨',color:'#ff5e8a'}].concat(qcatsList());
+  var catHtml=cats.map(function(cat){
+    var on=S.qcat===cat.key;
+    var icStyle=on?('background:'+hex2rgba(cat.color,.92)+';border-color:transparent;box-shadow:0 8px 20px '+hex2rgba(cat.color,.4)):'';
+    return '<div class="q-cat'+(on?' on':'')+'" data-act="qcat" data-k="'+cat.key+'">'+
+      '<div class="q-cat-ic" style="'+icStyle+'">'+cat.emoji+'</div>'+
+      '<div class="q-cat-nm">'+esc(cat.name)+'</div></div>';
+  }).join('');
+
+  // ---- рекомендации ----
+  var rec=defs.filter(function(q){ return (S.qcat==='all'||q.cat===S.qcat); });
+  var recHtml=rec.map(function(q){
+    var c=qcatOf(q.cat), dd=QDIFF[q.diff]||QDIFF.easy;
+    var locked=!qUnlocked(q,lvl), done=!!S.qdone[q.id];
+    var play=locked
+      ? '<div class="q-rec-play" style="background:rgba(255,255,255,.12);box-shadow:none">🔒</div>'
+      : (done
+        ? '<div class="q-rec-play" style="background:var(--green);box-shadow:none">✓</div>'
+        : '<button class="q-rec-play" data-act="quest-done" data-id="'+q.id+'">▶</button>');
+    return '<div class="q-rec"'+(locked?' style="opacity:.6"':'')+'>'+
+      '<div class="q-rec-illu" style="background:'+hex2rgba(c.color,.16)+';position:relative">'+q.emoji+
+        '<span style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.4);color:#fcd34d;font-size:10px;font-weight:700;padding:3px 7px;border-radius:999px">⭐+'+q.pts+'</span></div>'+
+      '<div class="q-rec-title">'+esc(q.title)+'</div>'+
+      '<div class="q-diff" style="color:'+dd.c+';margin-top:2px">'+(locked?('🔒 ур. '+((q.level||0)+1)):dd.l)+'</div>'+
+      play+
+      '</div>';
+  }).join('') || '<div class="muted small" style="padding:18px 4px">В этой категории пока нет квестов.</div>';
+
+  return '<div class="wrap">'+
+    screenTitle('🗺️','Квесты','задания для двоих — за очки')+
+    head+stats+qod+
+    '<div class="q-sec-title">Категории</div><div class="q-cats">'+catHtml+'</div>'+
+    '<div class="q-sec-title">Рекомендуем для вас</div><div class="q-recs">'+recHtml+'</div>'+
+    '</div>';
+}
+
+// цветовой приоритет: <30 дней — розовый, 30–90 — золотой, дальше — обычный
+function dateAccent(days){ if(days<30) return '#ff5e8a'; if(days<=90) return '#fbbf24'; return ''; }
+function dateHero(x){
+  var d=x.t, days=x.days, isB=(d.icon==='🎂'), emo=isB?'🎂':(d.icon==='💍'?'💞':(d.icon||'📅'));
+  var ac=dateAccent(days)||'#ff5e8a';
+  var tag=days===0?'Сегодня':(days<7?'Совсем скоро':'Скоро');
+  var when=days===0?'сегодня 🥳':('через <b style="color:'+ac+'">'+days+'</b> '+daysWord(days));
+  var body;
+  if(days>0 && days<7){
+    body='<div class="dt-recs">'+
+      '<div class="dt-rec">🎁 Купить подарок</div>'+
+      '<div class="dt-rec">💐 Заказать цветы</div>'+
+      '<div class="dt-rec">✍️ Написать поздравление</div></div>';
+  } else {
+    var tip=isB?giftTip(days):'✨ Придумайте, как отметить';
+    body='<div class="dt-hero-tip">'+tip+'</div>';
+  }
+  var cta=isB?'<button class="dt-hero-btn" data-act="ev-gifts">🎁 Идеи подарков <span style="opacity:.65">›</span></button>'
+             :'<button class="dt-hero-btn" data-act="ev-quests">💡 Идея свидания <span style="opacity:.65">›</span></button>';
+  return '<div class="dt-hero">'+
+    '<div class="dt-hero-emoji">'+emo+'</div>'+
+    '<div class="dt-hero-tag" style="color:'+ac+'">'+tag+'</div>'+
+    '<div class="dt-hero-title">'+esc(d.title)+'</div>'+
+    '<div class="dt-hero-days">'+when+'</div>'+
+    body+
+    '<div>'+cta+'</div></div>';
+}
+function dateRow(x){
+  var d=x.t, days=x.days, ac=dateAccent(days), num=ac||'#fff';
+  var when=days===0?'сегодня 🎉':('через <b style="color:'+num+'">'+days+'</b> '+daysWord(days));
+  return '<div class="dt-row" data-act="profile-open" role="button">'+(ac?'<div class="acc" style="background:'+ac+'"></div>':'')+
+    '<div class="dt-ic">'+(d.icon||'📅')+'</div>'+
+    '<div class="info"><div class="nm">'+esc(d.title)+'</div><div class="wh">'+when+'</div></div>'+
+    '<div class="dt-chev">›</div></div>';
+}
+// ---------- Профиль и даты: правки поверх данных пары ----------
+function pad2(n){ n=+n||0; return (n<10?'0':'')+n; }
+function dateMD(v){ if(!v) return null; var a=String(v).split('-'); return {month:+a[1], day:+a[2]}; }
+function md2date(md){ return md&&md.month?('2000-'+pad2(md.month)+'-'+pad2(md.day)):''; }
+// применить правки профиля к объекту пары (в памяти) — чтобы верхняя карточка и даты были едины
+// профиль → тело запроса profile_set (сервер сам разложит на me/partner по tg_id)
+function pfPayload(p){ p=p||{}; return { meName:p.meName||'', meEmoji:p.meEmoji||'', meBd:p.meBd||null,
+  partnerName:p.partnerName||'', partnerEmoji:p.partnerEmoji||'', partnerBd:p.partnerBd||null, since:p.since||'', extra:p.extra||[] }; }
+function pfIsEmpty(p){ return !p || (!p.meName && !p.meBd && !p.partnerBd && !p.since && (!p.extra||!p.extra.length)); }
+// применить профиль с сервера; если сервер пуст, а локально что-то есть — один раз засеять сервер
+function applyServerProfile(sp){
+  if(!sp) return; // таблицы нет — остаёмся на локальном профиле
+  if(pfIsEmpty(sp) && !pfIsEmpty(S.profile) && ONLINE && S.couple){
+    api('profile_set', pfPayload(S.profile)).then(function(r){ if(r&&r.ok&&r.profile){ S.profile=r.profile; save('profile'); render(); } }).catch(function(){});
+    return;
+  }
+  if(!S.profileOpen){ S.profile=sp; save('profile'); }
+}
+function applyProfile(){
+  var c=S.couple, p=S.profile; if(!c||!p) return;
+  if(p.meEmoji) c.me.emoji=p.meEmoji;
+  if(p.partnerEmoji) c.partner.emoji=p.partnerEmoji;
+  if(p.meName) c.me.name=p.meName;
+  if(p.partnerName) c.partner.name=p.partnerName; // синхронизируется с сервера (общий профиль)
+  if(p.meBd) c.me.birthday=p.meBd;
+  if(p.partnerBd) c.partner.birthday=p.partnerBd;
+  if(p.since) c.since=p.since;
+}
+// собрать список дат из (уже обновлённой) пары и своих событий
+function buildDates(){
+  var c=S.couple; if(!c){ S.dates=[]; return; }
+  var p=S.profile||{}, list=[];
+  var since=c.since;
+  if(since){ var sd=new Date(since); if(!isNaN(sd)) list.push({id:'anniv',title:'Годовщина',icon:'💍',annual:{month:sd.getMonth()+1,day:sd.getDate()}}); }
+  if(c.partner&&c.partner.birthday) list.push({id:'bd-partner',title:'День рождения '+(c.partner.name||'партнёра'),icon:'🎂',annual:c.partner.birthday});
+  if(c.me&&c.me.birthday) list.push({id:'bd-me',title:'День рождения '+(c.me.name||'вас'),icon:'🎂',annual:c.me.birthday});
+  (p.extra||[]).forEach(function(e){ if(e&&e.month) list.push({id:e.id,title:e.title||'Событие',icon:e.icon||'📅',annual:{month:e.month,day:e.day}}); });
+  S.dates=list; save('dates');
+}
+function refreshDates(){ if(S.profile) applyProfile(); buildDates(); }
+
+function datesScreen(){
+  refreshDates();
+  var list=(S.dates||[]).map(function(d){
+    var days=d.annual?daysAnnual(d.annual.month,d.annual.day):Math.round((sod(new Date(d.iso))-sod(new Date()))/DAY);
+    return {t:d, days:days};
+  }).filter(function(x){return x.days>=0;}).sort(function(a,b){return a.days-b.days;});
+  var head=screenTitle('📅','Даты','важные дни, чтобы не забыть');
+  var addCard='<div class="dt-addcard" data-act="profile-open"><div class="dt-addic">📅</div>'+
+    '<div class="flex1"><div class="small sb">Профиль и даты</div>'+
+    '<div class="xs muted">Имена, дни рождения, годовщина, свои события</div></div>'+
+    '<div class="dt-addbtn">Изменить</div></div>';
+  if(!list.length){
+    return '<div class="wrap">'+head+'<div class="wempty2"><div class="ill2">📅</div>'+
+      '<div class="et">Пока нет важных дат</div>'+
+      '<div class="es">Добавьте дни рождения и годовщину — и они появятся здесь.</div>'+
+      '<div class="eb"><button class="ebtn" data-act="profile-open">✏️ Заполнить профиль</button></div></div></div>';
+  }
+  var hero='', start=0;
+  if(list[0].days<=50){ hero=dateHero(list[0]); start=1; }
+  var rows=list.slice(start).map(dateRow).join('');
+  return '<div class="wrap">'+head+hero+rows+'<div style="height:6px"></div>'+addCard+'</div>';
+}
+
+// полноэкранный редактор профиля и дат
+function initProfileDraft(){
+  var c=S.couple||{me:{},partner:{}}, p=S.profile||{};
+  return {
+    meName:(p.meName||(c.me&&c.me.name)||''), partnerName:(p.partnerName||(c.partner&&c.partner.name)||''),
+    meEmoji:(p.meEmoji||(c.me&&c.me.emoji)||'🧔'), partnerEmoji:(p.partnerEmoji||(c.partner&&c.partner.emoji)||'👩'),
+    meBd:(p.meBd||(c.me&&c.me.birthday)||null), partnerBd:(p.partnerBd||(c.partner&&c.partner.birthday)||null),
+    since:(p.since||(c.since)||''), extra:((p.extra||[]).map(function(e){return Object.assign({},e);}))
+  };
+}
+function pfCollect(){
+  var d=S.profileDraft||initProfileDraft();
+  d.meName=(val('#pf-me-name')||'').trim(); d.meEmoji=(val('#pf-me-emoji')||'').trim()||'🧔';
+  d.meBd=dateMD(val('#pf-me-bd'));
+  if(!(S.couple&&S.couple.linked)) d.partnerName=(val('#pf-partner-name')||'').trim();
+  d.partnerEmoji=(val('#pf-partner-emoji')||'').trim()||'👩';
+  d.partnerBd=dateMD(val('#pf-partner-bd'));
+  d.since=val('#pf-since')||'';
+  var rows=document.querySelectorAll('.pf-extra'), arr=[];
+  Array.prototype.forEach.call(rows,function(r){
+    var t=(r.querySelector('[data-k="title"]').value||'').trim();
+    var dt=r.querySelector('[data-k="date"]').value;
+    var ic=(r.querySelector('[data-k="icon"]').value||'').trim()||'📅';
+    var md=dateMD(dt);
+    if(t&&md) arr.push({id:r.getAttribute('data-id')||('e'+arr.length), title:t, icon:ic, month:md.month, day:md.day});
+  });
+  d.extra=arr; S.profileDraft=d;
+}
+function profileView(){
+  var d=S.profileDraft||initProfileDraft();
+  var linked=!!(S.couple&&S.couple.linked);
+  var extra=(d.extra||[]).map(function(e,i){
+    return '<div class="pf-extra card p4 mb2" data-id="'+esc(e.id)+'" data-idx="'+i+'">'+
+      '<div class="row between mb2"><div class="xs muted2">Своё событие #'+(i+1)+'</div>'+
+      '<button class="cfgdel" data-act="pf-del" data-idx="'+i+'">Удалить</button></div>'+
+      '<div class="cfggrid">'+
+        '<div class="cfgfld" style="grid-column:1/-1"><div class="cfglbl">Название</div><input class="cfgin" data-k="title" value="'+esc(e.title||'')+'" placeholder="Например: первое свидание"></div>'+
+        '<div class="cfgfld"><div class="cfglbl">Иконка</div><input class="cfgin" data-k="icon" value="'+esc(e.icon||'🎉')+'"></div>'+
+        '<div class="cfgfld"><div class="cfglbl">Дата</div><input class="cfgin" type="date" data-k="date" value="'+md2date({month:e.month,day:e.day})+'"></div>'+
+      '</div></div>';
+  }).join('');
+  return '<div class="app"><div class="wrap">'+
+    '<div class="row between mb4"><div class="b" style="font-size:20px">✏️ Профиль и даты</div>'+
+    '<button class="btn btn-ghost btn-sm" data-act="profile-close">← Назад</button></div>'+
+    '<div class="small sb mb2">Вы</div>'+
+    '<div class="card p4 mb3"><div class="cfggrid">'+
+      '<div class="cfgfld"><div class="cfglbl">Ваше имя</div><input class="cfgin" id="pf-me-name" value="'+esc(d.meName||'')+'"></div>'+
+      '<div class="cfgfld"><div class="cfglbl">Эмодзи</div><input class="cfgin" id="pf-me-emoji" value="'+esc(d.meEmoji||'🧔')+'"></div>'+
+      '<div class="cfgfld" style="grid-column:1/-1"><div class="cfglbl">Ваш день рождения</div><input class="cfgin" type="date" id="pf-me-bd" value="'+md2date(d.meBd)+'"></div>'+
+    '</div></div>'+
+    '<div class="small sb mb2">Партнёр</div>'+
+    '<div class="card p4 mb3"><div class="cfggrid">'+
+      '<div class="cfgfld"><div class="cfglbl">Имя партнёра'+(linked?' · из его аккаунта':'')+'</div><input class="cfgin" id="pf-partner-name" value="'+esc(d.partnerName||'')+'"'+(linked?' disabled style="opacity:.6"':'')+'></div>'+
+      '<div class="cfgfld"><div class="cfglbl">Эмодзи</div><input class="cfgin" id="pf-partner-emoji" value="'+esc(d.partnerEmoji||'👩')+'"></div>'+
+      '<div class="cfgfld" style="grid-column:1/-1"><div class="cfglbl">День рождения партнёра</div><input class="cfgin" type="date" id="pf-partner-bd" value="'+md2date(d.partnerBd)+'"></div>'+
+    '</div></div>'+
+    '<div class="small sb mb2">Годовщина</div>'+
+    '<div class="card p4 mb3"><div class="cfgfld"><div class="cfglbl">Вы вместе с</div><input class="cfgin" type="date" id="pf-since" value="'+esc(d.since||'')+'"></div></div>'+
+    '<div class="small sb mb2">Свои даты</div>'+extra+
+    '<button class="cfgadd" data-act="pf-add">＋ Добавить свою дату</button>'+
+    '<div style="height:16px"></div>'+
+    '<button class="add-wish" data-act="profile-save">💾 Сохранить</button>'+
+    '<div style="height:24px"></div></div></div>';
+}
+
+// «Наша статистика» — совместные достижения пары (из существующего progress)
+function ourStatsCard(){
+  var p=S.progress; if(!p) return '';
+  var cell=function(ic,v,l){ return '<div class="ustat"><div class="ustat-ic">'+ic+'</div><div class="ustat-v">'+v+'</div><div class="ustat-l">'+l+'</div></div>'; };
+  return '<div class="card p4 mb3"><div class="sb mb3" style="font-size:15px">📊 Наша статистика</div>'+
+    '<div class="ustat-grid">'+
+      cell('🔥',(p.streak||0),'дней подряд')+
+      cell('💬',(p.answersCount||0),'ответов')+
+      cell('⭐',(p.wishesDone||0),'желаний')+
+      cell('🎯',(p.questsDone||0),'квестов')+
+      cell('✨',(p.points||0),'очков')+
+      cell('🏆',((p.levelIndex||0)+1),'уровень')+
+    '</div></div>';
+}
+// Архив «Вопрос дня» — дневник пары из прошлых вопросов и ответов
+function archiveView(){
+  var d=S.archiveData;
+  var head='<div class="row between mb4"><div class="b" style="font-size:20px">📖 Наши вопросы</div>'+
+    '<button class="btn btn-ghost btn-sm" data-act="archive-close">← Назад</button></div>';
+  if(!d){ return '<div class="app"><div class="wrap">'+head+'<div class="center-t muted small" style="padding:40px">Загрузка истории…</div></div></div>'; }
+  var pn=(S.couple&&S.couple.partner&&S.couple.partner.name)||'Партнёр';
+  var mn=(S.couple&&S.couple.me&&S.couple.me.name)||'Я';
+  var body;
+  if(!d.history||!d.history.length){
+    body='<div class="wempty2"><div class="ill2">📖</div><div class="et">Здесь будет ваша история</div>'+
+      '<div class="es">Отвечайте на вопрос дня — и все ваши вопросы и ответы сохранятся тут, как дневник пары.</div></div>';
+  } else {
+    body=d.history.map(function(h){
+      var ans=function(who,txt){ return txt?('<div class="arch-ans"><span class="arch-who">'+esc(who)+'</span><span>'+esc(txt)+'</span></div>'):''; };
+      return '<div class="card p4 mb3"><div class="xs muted2">'+esc(admFullDate(h.day))+'</div>'+
+        '<div class="small sb mt1" style="line-height:1.3">'+esc(h.question)+'</div>'+
+        '<div class="arch-answers">'+ans(mn,h.mine)+ans(pn,h.partner)+
+        (!h.mine&&!h.partner?'<div class="xs muted2">нет ответов</div>':'')+'</div></div>';
+    }).join('');
+  }
+  return '<div class="app"><div class="wrap">'+head+body+'<div style="height:24px"></div></div></div>';
+}
+function usScreen(){
+  var c=S.couple;
+  var together=Math.floor((sod(new Date())-sod(new Date(c.since)))/DAY);
+  var canHome=TG&&typeof TG.addToHomeScreen==='function';
+  var head='<div class="card p6 mb4 center-t" style="'+frameCss()+'">'+
+    '<div class="row center gap4" style="font-size:36px;margin-bottom:12px"><span>'+c.me.emoji+'</span>'+
+    '<span class="rose" style="font-size:24px">❤</span><span>'+c.partner.emoji+'</span></div>'+
+    '<div class="b" style="font-size:18px">'+esc(c.me.name)+' & '+esc(c.partner.name)+'</div>'+
+    '<div class="small muted mt2">вместе уже <b style="color:#fff">'+together+'</b> '+daysWord(together)+'</div>'+
+    // очки показываем тут только когда нет карточки уровня (офлайн/демо), иначе — в карточке уровня
+    (S.progress?'':'<div class="row gap2 sb mt4" style="display:inline-flex;background:rgba(251,191,36,.1);color:#fcd34d;border-radius:999px;padding:8px 16px;font-size:14px">⭐ '+S.points+' общих очков</div>')+'</div>';
+  var home=canHome?'<div class="card p4 row gap3 mb3"><div style="font-size:24px">📲</div>'+
+    '<div class="flex1"><div class="small sb">На экран «Домой»</div>'+
+    '<div class="xs muted">иконка PARA прямо на телефоне</div></div>'+
+    '<button class="btn btn-primary btn-sm" data-act="home-add">Добавить</button></div>':'';
+  var invite='';
+  if(c.inviteCode){
+    var shareBtn = c.linked ? '' :
+      '<button class="btn btn-primary mt3" data-act="share-code">📤 Пригласить партнёра</button>'+
+      '<div class="center-t xs muted2 mt2">Партнёр ещё не присоединился</div>';
+    invite='<div class="card p4 mb3">'+
+      '<div class="row gap3"><div style="font-size:24px">🔗</div>'+
+      '<div class="flex1"><div class="small sb">Код пары</div>'+
+      '<div class="xs muted">'+(c.linked?'вы в паре 💞':'для приглашения партнёра')+'</div></div>'+
+      '<div class="b rose" style="font-size:18px;letter-spacing:.2em">'+esc(c.inviteCode)+'</div></div>'+
+      shareBtn+'</div>';
+  }
+  var reset='<button class="btn btn-ghost muted small" data-act="reset" style="font-weight:500">Выйти / сменить пару</button>';
+  // статистика — видна только админам (ADMIN_TG_IDS)
+  var stats='';
+  if(ONLINE && S.stats){
+    var srow=function(k,v){ return '<div class="row between small mt2"><span class="muted">'+k+'</span><span class="b">'+v+'</span></div>'; };
+    stats='<div class="card p4 mb3"><div class="small sb mb2">📊 Статистика</div>'+
+      srow('Пар всего',S.stats.couples)+srow('Связанных пар',S.stats.linked)+
+      srow('Ответов сегодня',S.stats.answersToday)+srow('Ответов всего',S.stats.answersTotal)+
+      '<button class="btn btn-ghost mt3" data-act="open-admin">⚙️ Открыть админку</button></div>';
+  }
+  var foot='<div class="center-t xs muted2 mt6">PARA · '+(TG?'Telegram Mini App':'веб-версия (PWA)')+' · '+APP_VERSION+'</div>';
+  var profileBtn='<button class="btn btn-ghost mb3" style="width:100%;justify-content:center" data-act="profile-open">✏️ Профиль и даты</button>';
+  var archiveBtn='<button class="btn btn-ghost mb3" style="width:100%;justify-content:center" data-act="archive-open">📖 Наши прошлые вопросы</button>';
+  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+profileBtn+levelCard()+ourStatsCard()+archiveBtn+stats+home+invite+reset+foot+'</div>';
+}
+
+// ---------- Полная админка (overlay внутри приложения) ----------
+function admCumulative(series){ var t=0; return (series||[]).map(function(p){ t+=p.v; return {date:p.date,v:t}; }); }
+// дельты из дневных серий (честно, из реальных данных)
+function admPct(a,b){ if(b<=0) return a>0?{v:100,up:true}:null; var p=Math.round((a-b)/b*100); if(p===0) return null; return {v:p,up:p>0}; }
+function admSum(s,from,to){ var x=0; for(var i=from;i<to&&i>=0&&i<s.length;i++){ if(s[i]) x+=s[i].v; } return x; }
+function admDeltaDay(s){ if(!s||s.length<2) return null; return admPct(s[s.length-1].v, s[s.length-2].v); } // сегодня vs вчера
+function admDelta7Total(s){ if(!s||s.length<8) return null; return admPct(admSum(s,0,s.length), admSum(s,0,s.length-7)); } // накопленный рост за 7д
+function admDelta7v7(s){ if(!s||s.length<14) return null; var n=s.length; return admPct(admSum(s,n-7,n), admSum(s,n-14,n-7)); } // последние 7д vs предыдущие 7д
+function admChip(d){ if(!d) return ''; var up=d.up, c=up?'#34d399':'#f87171'; return '<span class="adm-delta" style="color:'+c+'">'+(up?'+':'−')+Math.abs(d.v)+'% '+(up?'↑':'↓')+'</span>'; }
+function admDayLabel(iso){ if(!iso) return ''; var p=String(iso).split('-'); var mm=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'][(+p[1]-1)||0]; return (+p[2])+' '+mm; }
+// премиальный график: накопительная кривая с заливкой-градиентом
+function admChart(cum, range){
+  var pts=(cum||[]).slice(-range); var n=pts.length;
+  if(n<2) return '<div class="muted small center-t" style="padding:34px">Пока мало данных для графика</div>';
+  var W=680,H=150,pad=10, vals=pts.map(function(p){return p.v;});
+  var max=Math.max.apply(null,vals), min=Math.min.apply(null,vals), rng=Math.max(1,max-min);
+  var X=function(i){ return pad+(W-2*pad)*(i/(n-1)); };
+  var Y=function(v){ return pad+(H-2*pad)-(H-2*pad)*((v-min)/rng); };
+  var line=pts.map(function(p,i){ return (i?'L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1); }).join(' ');
+  var area=line+' L'+X(n-1).toFixed(1)+' '+(H-pad)+' L'+X(0).toFixed(1)+' '+(H-pad)+' Z';
+  var last=pts[n-1];
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:150px">'+
+    '<defs><linearGradient id="agrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5e8a" stop-opacity="0.30"/><stop offset="1" stop-color="#ff5e8a" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+area+'" fill="url(#agrad)"/>'+
+    '<path d="'+line+'" fill="none" stroke="#ff5e8a" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  var badge='<div class="adm-badge">'+last.v+' · '+admDayLabel(last.date)+'</div>';
+  var xax='<div class="adm-x"><span>'+admDayLabel(pts[0].date)+'</span><span>'+admDayLabel(pts[Math.floor(n/2)].date)+'</span><span>'+admDayLabel(last.date)+'</span></div>';
+  return '<div class="adm-chart-wrap">'+badge+svg+'</div>'+xax;
+}
+// ----- аналитика по периоду: календарь, показатели за период, клик по точке -----
+function admFullDate(iso){ if(!iso) return ''; var p=String(iso).split('-'); var mm=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'][(+p[1]-1)||0]; return (+p[2])+' '+mm; }
+function admDates(){ var s=(S.adminData&&S.adminData.series&&S.adminData.series.users)||[]; return s.map(function(p){return p.date;}); }
+function admWindow(){
+  var dates=admDates(); if(!dates.length) return null;
+  var minD=dates[0], maxD=dates[dates.length-1];
+  if(S.admFrom&&S.admTo) return {from:S.admFrom,to:S.admTo,custom:true,min:minD,max:maxD};
+  var r=S.admRange||30, from=dates[Math.max(0,dates.length-r)];
+  return {from:from,to:maxD,custom:false,min:minD,max:maxD};
+}
+function admPeriod(w){
+  var S0=(S.adminData&&S.adminData.series)||{};
+  function inw(p){ return p.date>=w.from&&p.date<=w.to; }
+  function sum(name){ var x=0; (S0[name]||[]).forEach(function(p){ if(inw(p)) x+=p.v; }); return x; }
+  function peak(name){ var x=0; (S0[name]||[]).forEach(function(p){ if(inw(p)&&p.v>x) x=p.v; }); return x; }
+  var dc=0; (S0.users||[]).forEach(function(p){ if(inw(p)) dc++; }); dc=dc||1;
+  return { newUsers:sum('users'), newCouples:sum('couples'), newCouplesLinked:sum('couplesLinked'),
+    quests:sum('quests'), points:sum('points'),
+    answers:sum('answers'), dauPeak:peak('activity'), dauAvg:Math.round(sum('activity')/dc), days:dc };
+}
+function admPeriodCard(w){
+  if(!w) return ''; var per=admPeriod(w);
+  var lbl=(S.admFrom&&S.admTo)?(admDayLabel(w.from)+' — '+admDayLabel(w.to)):('за '+per.days+' дн.');
+  var cell=function(ic,l,v,sub){ return '<div class="adm-pcell"><div class="pl">'+ic+' '+l+'</div><div class="pv">'+v+'</div>'+(sub?'<div class="psub">'+sub+'</div>':'')+'</div>'; };
+  return '<div class="adm-card mt3"><div class="adm-sec-h" style="margin:0 0 10px"><div class="t">📊 Показатели за период</div><div class="d">'+lbl+'</div></div>'+
+    '<div class="adm-pgrid">'+
+      cell('👥','Новых',per.newUsers)+cell('💞','Создано пар',per.newCouples,'связались: '+(per.newCouplesLinked||0))+cell('🔥','Пик DAU',per.dauPeak)+
+      cell('🎯','Квесты',per.quests)+cell('⭐','Очки',per.points)+cell('💬','Ответы',per.answers)+
+    '</div></div>';
+}
+function admDayCard(){
+  var d=S.admDay; if(!d||!S.adminData) return '';
+  var S0=S.adminData.series||{};
+  function val(name){ var a=S0[name]||[]; for(var i=0;i<a.length;i++) if(a[i].date===d) return a[i].v; return 0; }
+  var row=function(ic,l,v){ return '<div class="adm-day-row"><span>'+ic+' '+l+'</span><span class="b">'+v+'</span></div>'; };
+  return '<div class="adm-card mt2 adm-day-card"><div class="row between" style="align-items:center;margin-bottom:8px">'+
+    '<div class="b">📅 '+admFullDate(d)+'</div><button class="adm-day-x" data-act="adm-day-close">✕</button></div>'+
+    row('👥','Новых пользователей',val('users'))+row('💞','Новых пар',val('couples'))+row('🔥','Активных (DAU)',val('activity'))+
+    row('🎯','Квесты',val('quests'))+row('⭐','Очки (начислено)',val('points'))+row('💬','Ответы',val('answers'))+'</div>';
+}
+// накопительная кривая, обрезанная под окно, с кликабельными точками
+function admGrowthChart(w){
+  var d=S.adminData||{}, t=d.totals||{}, s=d.series||{};
+  var cum=admCumulative(s.users);
+  var baseline=Math.max(0,(t.users||0)-(cum.length?cum[cum.length-1].v:0));
+  if(baseline>0) cum=cum.map(function(p){return {date:p.date,v:p.v+baseline};});
+  var pts=cum.filter(function(p){ return p.date>=w.from&&p.date<=w.to; }); var n=pts.length;
+  if(n<2) return '<div class="muted small center-t" style="padding:30px 20px">Выбран один день — подробности в «Показателях за период» ниже</div>';
+  var W=680,H=150,pad=10, vals=pts.map(function(p){return p.v;});
+  var max=Math.max.apply(null,vals), min=Math.min.apply(null,vals), rng=Math.max(1,max-min);
+  var X=function(i){ return pad+(W-2*pad)*(i/(n-1)); };
+  var Y=function(v){ return pad+(H-2*pad)-(H-2*pad)*((v-min)/rng); };
+  var line=pts.map(function(p,i){ return (i?'L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1); }).join(' ');
+  var area=line+' L'+X(n-1).toFixed(1)+' '+(H-pad)+' L'+X(0).toFixed(1)+' '+(H-pad)+' Z';
+  var last=pts[n-1], bpt=last;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:150px">'+
+    '<defs><linearGradient id="agrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5e8a" stop-opacity="0.30"/><stop offset="1" stop-color="#ff5e8a" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+area+'" fill="url(#agrad)"/>'+
+    '<path d="'+line+'" fill="none" stroke="#ff5e8a" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  var xp=[]; for(var k=0;k<n;k++) xp.push(X(k)/W*100);
+  var dots='', hits='', guide='';
+  for(var i=0;i<n;i++){
+    var lp=xp[i], tp=Y(pts[i].v), sel=(S.admDay===pts[i].date);
+    var le=(i===0)?0:(xp[i-1]+xp[i])/2, re=(i===n-1)?100:(xp[i]+xp[i+1])/2; // сегмент «ближайшей точки»
+    if(sel){ bpt=pts[i]; guide='<div class="adm-guide" style="left:'+lp.toFixed(2)+'%"></div>'; }
+    dots+='<span class="adm-dot'+(sel?' on':'')+'" style="left:'+lp.toFixed(2)+'%;top:'+tp.toFixed(1)+'px"></span>';
+    hits+='<button class="adm-hit" data-act="adm-day" data-d="'+pts[i].date+'" style="left:'+le.toFixed(2)+'%;width:'+(re-le).toFixed(2)+'%" aria-label="'+admDayLabel(pts[i].date)+'"></button>';
+  }
+  dots=hits+dots;
+  var badge='<div class="adm-badge">'+bpt.v+' · '+admDayLabel(bpt.date)+'</div>';
+  var xax='<div class="adm-x"><span>'+admDayLabel(pts[0].date)+'</span><span>'+admDayLabel(pts[Math.floor(n/2)].date)+'</span><span>'+admDayLabel(last.date)+'</span></div>';
+  return '<div class="adm-chart-wrap">'+badge+guide+svg+dots+'</div>'+
+    '<div class="xs muted2 center-t mt1">Нажмите на точку графика — покажем показатели за день</div>'+xax;
+}
+// календарь выбора периода
+function calShift(ym,delta){ var y=+ym.slice(0,4),m=+ym.slice(5,7)-1+delta; return new Date(Date.UTC(y,m,1)).toISOString().slice(0,7); }
+function calOverlay(){
+  if(!S.calOpen) return '';
+  var w=admWindow(); if(!w) return '';
+  var minD=w.min,maxD=w.max, ym=S.calMonth||maxD.slice(0,7);
+  var y=+ym.slice(0,4),mo=+ym.slice(5,7)-1;
+  var startDow=(new Date(Date.UTC(y,mo,1)).getUTCDay()+6)%7;
+  var dim=new Date(Date.UTC(y,mo+1,0)).getUTCDate();
+  var monthName=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'][mo];
+  var cells=''; for(var i=0;i<startDow;i++) cells+='<div class="cal-cell empty"></div>';
+  for(var dn=1;dn<=dim;dn++){
+    var ds=ym+'-'+(dn<10?'0':'')+dn, dis=ds<minD||ds>maxD;
+    var isF=S.calFrom&&ds===S.calFrom, isT=S.calTo&&ds===S.calTo, inR=S.calFrom&&S.calTo&&ds>S.calFrom&&ds<S.calTo;
+    var cls='cal-cell'+(dis?' dis':'')+(isF||isT?' sel':'')+(inR?' mid':'');
+    cells+='<button class="'+cls+'"'+(dis?' disabled':' data-act="cal-pick" data-d="'+ds+'"')+'>'+dn+'</button>';
+  }
+  var prevOk=ym>minD.slice(0,7), nextOk=ym<maxD.slice(0,7);
+  var dows=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(function(x){return '<div class="cal-dow">'+x+'</div>';}).join('');
+  var selLabel=S.calFrom?(admFullDate(S.calFrom)+(S.calTo&&S.calTo!==S.calFrom?' — '+admFullDate(S.calTo):'')):'Выберите дату или диапазон';
+  return '<div class="ovl cal-ovl"><div class="cal-backdrop" data-act="cal-close"></div><div class="cal-sheet">'+
+    '<div class="row between" style="align-items:center;margin-bottom:6px"><div class="b" style="font-size:16px">📅 Период аналитики</div>'+
+      '<button class="adm-day-x" data-act="cal-close">✕</button></div>'+
+    '<div class="cal-sel">'+selLabel+'</div>'+
+    '<div class="row between" style="align-items:center;margin:12px 0 6px"><button class="cal-nav"'+(prevOk?' data-act="cal-prev"':' disabled')+'>‹</button>'+
+      '<div class="b">'+monthName+' '+y+'</div>'+
+      '<button class="cal-nav"'+(nextOk?' data-act="cal-next"':' disabled')+'>›</button></div>'+
+    '<div class="cal-grid cal-dows">'+dows+'</div><div class="cal-grid">'+cells+'</div>'+
+    '<div class="row gap2" style="margin-top:10px"><button class="uchip-f" data-act="cal-preset" data-r="7">Последние 7 дней</button>'+
+      '<button class="uchip-f" data-act="cal-preset" data-r="30">30 дней</button></div>'+
+    '<div class="row gap2" style="margin-top:14px"><button class="btn btn-ghost flex1" data-act="cal-reset">Сбросить</button>'+
+      '<button class="add-wish flex1" style="margin:0"'+(S.calFrom?'':' disabled')+' data-act="cal-apply">Применить</button></div>'+
+  '</div></div>';
+}
+function adminDashView(){
+  var d=S.adminData, t=d.totals||{}, s=d.series||{}, list=d.couples||[];
+  var range=S.admRange||30;
+  var today=new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+  // hero-KPI с дельтами (визуальная иерархия — акцентные градиентные карточки)
+  var kpi=function(ic,l,v,delta,act){
+    return '<div class="adm-kpi"'+(act?' data-act="'+act+'"':'')+'><div class="ic">'+ic+'</div><div class="lbl">'+l+'</div>'+
+      '<div class="val">'+(v==null?0:v)+'</div>'+admChip(delta)+'</div>';
+  };
+  var hero='<div class="adm-hero">'+
+    kpi('👥','Пользователи',t.users, admDelta7Total(s.users),'adm-users-open')+
+    kpi('💞','Пар',t.couples, admDelta7Total(s.couples),'adm-pairs')+
+    kpi('🔗','Активных пар',t.active, null,'adm-pairs')+
+    kpi('🔥','DAU',t.dau, admDeltaDay(s.activity))+
+    '</div>';
+  // главный график — накопительный рост пользователей за выбранный период
+  var w=admWindow(), customOn=!!(S.admFrom&&S.admTo);
+  var rangeChip=customOn?('<div class="adm-range-chip">'+admDayLabel(w.from)+' — '+admDayLabel(w.to)+'<button data-act="adm-clear-range">✕</button></div>'):'';
+  var chart='<div class="adm-card mt3"><div class="adm-sec-h" style="margin:0 0 4px">'+
+    '<div class="t">📈 Рост пользователей</div>'+
+    '<div class="row gap2" style="align-items:center">'+
+      '<div class="adm-toggle"><button class="'+(!customOn&&range===7?'on':'')+'" data-act="adm-range" data-r="7">7д</button>'+
+      '<button class="'+(!customOn&&range===30?'on':'')+'" data-act="adm-range" data-r="30">30д</button></div>'+
+      '<button class="adm-cal-btn'+(customOn?' on':'')+'" data-act="adm-cal-open">📅</button>'+
+    '</div></div>'+rangeChip+
+    (w?admGrowthChart(w):'')+'</div>'+
+    admDayCard()+admPeriodCard(w);
+  // (вторичная фиксированная сетка убрана — все эти метрики теперь в «Показателях за период»,
+  //  которые следуют за выбранным днём/неделей/периодом, чтобы не было двух наборов чисел)
+  // связывание пар — наглядный progress bar + Primary CTA
+  var waiting=t.waiting||0, active=t.active||0, total=t.couples||0, conv=total?Math.round(active/total*100):0;
+  var linkCard='<div class="adm-card mt3">'+
+    '<div class="row between" style="align-items:center"><div class="t" style="font-size:15px;font-weight:800">🔗 Связывание пар</div>'+
+      '<div class="xs muted">цель — довести до пары</div></div>'+
+    '<div class="row between" style="align-items:flex-end;margin-top:12px"><div><span class="adm-link-num">'+active+'</span>'+
+      '<span class="muted" style="font-size:16px;font-weight:700"> / '+total+'</span></div>'+
+      '<div class="adm-link-num" style="color:#ff8fb0">'+conv+'%</div></div>'+
+    '<div class="adm-bar"><div style="width:'+Math.max(3,conv)+'%"></div></div>'+
+    '<div class="row between small mt3"><span class="muted">⏳ Ждут партнёра</span><span class="b" style="color:#fbbf24">'+waiting+'</span></div>'+
+    '<button class="adm-cta" data-act="admin-remind">✈️ Напомнить ожидающим ('+waiting+')</button>'+
+    '<div class="xs muted2 center-t mt2">Разошлём приглашение с ссылкой тем, у кого партнёр ещё не зашёл</div>'+
+    (S.remindMsg?'<div class="center-t small mt2" style="color:'+(/Ошибк/.test(S.remindMsg)?'#fca5a5':'#34d399')+'">'+esc(S.remindMsg)+'</div>':'')+
+    '</div>';
+  // список пар
+  var rows=list.map(function(c){
+    return '<div class="row between" style="padding:11px 0;border-bottom:1px solid var(--line)">'+
+      '<div><div class="rose b" style="letter-spacing:.1em">'+esc(c.code)+'</div>'+
+      '<div class="xs muted mt1">'+esc(c.members.join(' & ')||'—')+' · '+esc(c.created||'')+'</div></div>'+
+      '<span class="adm-pill '+(c.linked?'on':'')+'">'+(c.linked?'в паре':'ждёт')+'</span></div>';
+  }).join('')||'<div class="muted small center-t" style="padding:16px">Пока нет пар</div>';
+  var pairsCard='<div class="adm-sec-h" id="adm-pairs-anchor"><div class="t">💞 Пары</div><div class="d">'+list.length+'</div></div>'+
+    '<div class="adm-card">'+rows+'</div>';
+  var foot='<div class="adm-foot"><span>Обновлено: '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})+'</span>'+
+    '<button class="adm-refresh" data-act="adm-refresh">Обновить ↻</button></div>';
+  return '<div class="adm-sec-h" style="margin-top:4px"><div class="t">Главное за сегодня</div><div class="d">'+today+'</div></div>'+
+    hero+chart+linkCard+
+    '<div style="height:4px"></div>'+pairsCard+foot;
+}
+// --- редактор конфигурации (уровни/награды) прямо во встроенной админке ---
+var CFG_METRICS=[['points','Очки'],['questsDone','Квестов'],['wishesDone','Желаний'],['answersCount','Ответов'],['streak','Серия'],['levelIndex','Индекс уровня']];
+var CFG_DIFFS=[['easy','Легко'],['med','Средне'],['hard','Сложно']];
+function cfgSections(){
+  var cfg=S.adminConfig||{};
+  var catOpts=(cfg.categories||[]).map(function(c){return [c.key,(c.emoji||'')+' '+c.name];});
+  return [
+    { key:'levels', title:'🏆 Уровни', tpl:function(){return {key:'',name:'',emoji:'⭐',min:0,perks:[]};},
+      label:function(it){return (it.emoji||'')+' '+(it.name||'новый уровень');},
+      fields:[{k:'emoji',l:'Эмодзи',t:'text'},{k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'min',l:'Очков для уровня',t:'num'},{k:'perks',l:'Награды (по одной в строке)',t:'lines',wide:true}] },
+    { key:'achievements', title:'🥇 Достижения', tpl:function(){return {key:'',icon:'🏅',title:'',desc:'',metric:'questsDone',gte:1,enabled:true};},
+      label:function(it){return (it.icon||'')+' '+(it.title||'новое достижение');},
+      fields:[{k:'icon',l:'Иконка',t:'text'},{k:'title',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'metric',l:'Метрика',t:'select',opts:CFG_METRICS},{k:'gte',l:'Порог (≥)',t:'num'},{k:'enabled',l:'Включено',t:'bool'},{k:'desc',l:'Описание',t:'text',wide:true}] },
+    { key:'quests', title:'🗺️ Квесты', tpl:function(){var ids=((S.adminConfig&&S.adminConfig.quests)||[]).map(function(q){return +q.id||0;}); return {id:(ids.length?Math.max.apply(null,ids):0)+1,title:'',desc:'',pts:20,cat:(catOpts[0]&&catOpts[0][0])||'romance',emoji:'✨',time:'',diff:'easy',level:0,pairs:0,featured:false,enabled:true};},
+      label:function(it){return (it.emoji||'')+' '+(it.title||'новый квест');},
+      fields:[{k:'emoji',l:'Эмодзи',t:'text'},{k:'title',l:'Название',t:'text'},{k:'pts',l:'Очки',t:'num'},{k:'cat',l:'Категория',t:'select',opts:catOpts},{k:'time',l:'Время',t:'text'},{k:'diff',l:'Сложность',t:'select',opts:CFG_DIFFS},{k:'level',l:'С уровня (0..)',t:'num'},{k:'pairs',l:'Пар выполнили',t:'num'},{k:'featured',l:'В «Квест дня»',t:'bool'},{k:'enabled',l:'Включён',t:'bool'},{k:'desc',l:'Описание',t:'text',wide:true},{k:'id',l:'ID',t:'num'}] },
+    { key:'categories', title:'🎨 Категории квестов', tpl:function(){return {key:'',name:'',emoji:'✨',color:'#ff5e8a'};},
+      label:function(it){return (it.emoji||'')+' '+(it.name||'новая категория');},
+      fields:[{k:'emoji',l:'Эмодзи',t:'text'},{k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'color',l:'Цвет (#hex)',t:'text'}] },
+    { key:'themes', title:'🌈 Темы оформления', tpl:function(){return {key:'',name:'',level:0,grad:'linear-gradient(135deg,#ff5e8a,#c026d3)',rose:'#ff5e8a',fuchsia:'#c026d3'};},
+      label:function(it){return it.name||'новая тема';},
+      fields:[{k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'level',l:'С уровня',t:'num'},{k:'rose',l:'Основной цвет',t:'text'},{k:'fuchsia',l:'Второй цвет',t:'text'},{k:'grad',l:'CSS-градиент',t:'text',wide:true}] },
+    { key:'frames', title:'🖼️ Рамки профиля', tpl:function(){return {key:'',name:'',level:0,css:''};},
+      label:function(it){return it.name||'новая рамка';},
+      fields:[{k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'level',l:'С уровня',t:'num'},{k:'css',l:'CSS (box-shadow…)',t:'text',wide:true}] }
+  ];
+}
+function cfgFieldHtml(sec,f,it){
+  var v=it[f.k]; if(v==null)v='';
+  var da='data-sec="'+sec+'" data-k="'+f.k+'" data-t="'+f.t+'"', wide=f.wide?'grid-column:1/-1;':'';
+  if(f.t==='bool') return '<label class="cfgchk" style="'+wide+'"><input type="checkbox" '+da+(it[f.k]?' checked':'')+'><span>'+esc(f.l)+'</span></label>';
+  var inner;
+  if(f.t==='select') inner='<select class="cfgin" '+da+'>'+f.opts.map(function(o){return '<option value="'+esc(o[0])+'"'+(String(v)===String(o[0])?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select>';
+  else if(f.t==='lines') inner='<textarea class="cfgin" '+da+' rows="3">'+esc(Array.isArray(v)?v.join('\n'):v)+'</textarea>';
+  else inner='<input class="cfgin" type="'+(f.t==='num'?'number':'text')+'" '+da+' value="'+esc(v)+'">';
+  return '<div class="cfgfld" style="'+wide+'"><div class="cfglbl">'+esc(f.l)+'</div>'+inner+'</div>';
+}
+function adminConfigView(){
+  if(!S.adminConfig) return '<div class="center-t muted small" style="padding:40px">Загрузка конфигурации…</div>';
+  var html=cfgSections().map(function(sec){
+    var items=S.adminConfig[sec.key]||[];
+    var cards=items.map(function(it,idx){
+      return '<div class="cfgcard" data-sec="'+sec.key+'" data-idx="'+idx+'">'+
+        '<div class="row between mb2"><div class="xs muted2">#'+(idx+1)+' · '+esc(sec.label(it))+'</div>'+
+        '<button class="cfgdel" data-act="cfg-del" data-sec="'+sec.key+'" data-idx="'+idx+'">Удалить</button></div>'+
+        '<div class="cfggrid">'+sec.fields.map(function(f){return cfgFieldHtml(sec.key,f,it);}).join('')+'</div></div>';
+    }).join('');
+    return '<div class="small sb" style="margin:18px 0 8px">'+esc(sec.title)+' <span class="muted2">('+items.length+')</span></div>'+
+      cards+'<button class="cfgadd" data-act="cfg-add" data-sec="'+sec.key+'">＋ Добавить</button>';
+  }).join('');
+  return html+'<div style="height:16px"></div>'+
+    '<button class="add-wish" data-act="cfg-save">💾 Сохранить изменения</button>'+
+    '<div class="center-t sb mt3" style="min-height:18px;'+(/Ошибка/.test(S.cfgMsg||'')?'color:#fca5a5':'color:#34d399')+'">'+esc(S.cfgMsg||'')+'</div>';
+}
+// собрать значения полей редактора из DOM (переживают ре-рендер)
+function cfgCollect(){
+  if(!S.adminConfig) return;
+  cfgSections().forEach(function(sec){
+    var cards=document.querySelectorAll('.cfgcard[data-sec="'+sec.key+'"]'), arr=[];
+    Array.prototype.forEach.call(cards,function(card){
+      var idx=+card.getAttribute('data-idx'), orig=(S.adminConfig[sec.key]||[])[idx]||{}, obj={};
+      for(var kk in orig){ if(Object.prototype.hasOwnProperty.call(orig,kk)) obj[kk]=orig[kk]; }
+      Array.prototype.forEach.call(card.querySelectorAll('[data-k]'),function(inp){
+        var k=inp.getAttribute('data-k'), t=inp.getAttribute('data-t'), val;
+        if(t==='bool') val=inp.checked;
+        else if(t==='num') val=inp.value===''?0:Number(inp.value);
+        else if(t==='lines') val=inp.value.split('\n').map(function(s){return s.trim();}).filter(Boolean);
+        else val=inp.value;
+        obj[k]=val;
+      });
+      arr.push(obj);
+    });
+    S.adminConfig[sec.key]=arr;
+  });
+}
+function adminView(){
+  if(S.admUsers) return adminUsersView();
+  if(S.admPairs) return adminPairsView();
+  var tab=S.adminTab||'dash';
+  var nav='<div class="row gap2 mb4">'+
+    '<button class="admtab'+(tab==='dash'?' on':'')+'" data-act="adm-tab" data-t="dash">📊 Дашборд</button>'+
+    '<button class="admtab'+(tab==='wishes'?' on':'')+'" data-act="adm-tab" data-t="wishes">💫 Желания</button>'+
+    '<button class="admtab'+(tab==='config'?' on':'')+'" data-act="adm-tab" data-t="config">⚙️ Уровни</button></div>';
+  var content=tab==='config'?adminConfigView():(tab==='wishes'?adminWishesView():adminDashView());
+  return '<div class="app"><div class="wrap">'+
+    '<div class="row between mb4"><div class="b" style="font-size:20px">⚙️ Админка</div>'+
+    '<button class="btn btn-ghost btn-sm" data-act="close-admin">← Назад</button></div>'+
+    nav+content+
+    '<div style="height:24px"></div></div></div>';
+}
+
+// ---------- Раздел «Пользователи» (детально) ----------
+function admLastSeen(iso){
+  if(!iso) return '';
+  var t=Date.parse(iso); if(!t) return '';
+  if(Date.now()-t < 5*60*1000) return 'онлайн';
+  var d=new Date(t), now=new Date();
+  var hm=d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  if(d.toDateString()===now.toDateString()) return 'сегодня, '+hm;
+  if(new Date(now.getTime()-86400000).toDateString()===d.toDateString()) return 'вчера, '+hm;
+  return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'})+', '+hm;
+}
+function admUserRow(x){
+  var online=x.lastActive && (Date.now()-Date.parse(x.lastActive) < 5*60*1000);
+  var av=x.photo ? '<img class="uav" src="'+esc(x.photo)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">'
+    : '<div class="uav uav-l">'+esc(((x.name||'?').trim().charAt(0)||'?').toUpperCase())+'</div>';
+  return '<div class="urow" data-name="'+esc((x.name||'').toLowerCase())+'">'+av+
+    '<div class="flex1" style="min-width:0"><div class="urow-nm">'+esc(x.name)+(online?'<span class="udot"></span>':'')+
+    (x.linked?'<span class="uchip">в паре</span>':'<span class="uchip wait">ждёт</span>')+'</div>'+
+    '<div class="urow-sub">'+(x.source==='invite'?'💌 по приглашению':'🚀 прямой заход')+'</div></div>'+
+    '<div class="urow-seen'+(online?' on':'')+'">'+esc(admLastSeen(x.lastActive))+'</div></div>';
+}
+function admSrcRow(label,val,tot,color){
+  var pct=Math.round(val/Math.max(1,tot)*100);
+  return '<div class="src-row"><div class="row between small"><span>'+label+'</span><span class="b">'+val+' <span class="muted">('+pct+'%)</span></span></div>'+
+    '<div class="src-bar"><div style="width:'+Math.max(2,pct)+'%;background:'+color+'"></div></div></div>';
+}
+function adminUsersView(){
+  var d=S.adminData||{}, t=d.totals||{}, s=d.series||{}, u=S.admUsersData;
+  var head='<div class="row between mb4"><button class="btn btn-ghost btn-sm" data-act="adm-users-close">← Назад</button>'+
+    '<div class="b" style="font-size:18px">Пользователи</div><div style="width:64px"></div></div>';
+  var cumUsers=admCumulative(s.users), baseline=Math.max(0,(t.users||0)-(cumUsers.length?cumUsers[cumUsers.length-1].v:0));
+  if(baseline>0) cumUsers=cumUsers.map(function(p){return {date:p.date,v:p.v+baseline};});
+  var totalCard='<div class="adm-card"><div class="adm-kpi-lbl">Всего пользователей</div>'+
+    '<div class="adm-big">'+(t.users||0)+'</div>'+admChip(admDelta7Total(s.users))+
+    '<div style="height:6px"></div>'+admChart(cumUsers,30)+'</div>';
+  if(!u){
+    return '<div class="app"><div class="wrap">'+head+totalCard+
+      '<div class="center-t muted small" style="padding:34px">Загрузка списка…</div></div></div>';
+  }
+  var src=u.sources||{direct:0,invite:0}, tot=(src.direct||0)+(src.invite||0);
+  var srcCard='<div class="adm-card mt3"><div class="t" style="font-size:15px;font-weight:800;margin-bottom:12px">Источники пользователей</div>'+
+    admSrcRow('🚀 Прямой заход', src.direct||0, tot, '#ff5e8a')+
+    admSrcRow('💌 По приглашению', src.invite||0, tot, '#c026d3')+
+    '<div class="xs muted2 mt2">Прямой — открыли бота сами; по приглашению — вошли по ссылке партнёра.</div></div>';
+  var rows=(u.users||[]).map(admUserRow).join('')||'<div class="muted small center-t" style="padding:20px">Нет данных</div>';
+  var listCard='<div class="adm-sec-h"><div class="t">Список</div><div class="d">'+(u.count||0)+'</div></div>'+
+    '<input id="adm-search" class="input" placeholder="🔍 Поиск по имени" oninput="__admFilter(this.value)" autocomplete="off" style="margin-bottom:10px">'+
+    '<div class="adm-card" id="adm-user-list" style="padding:6px 14px">'+rows+'</div>';
+  return '<div class="app"><div class="wrap">'+head+totalCard+srcCard+listCard+'<div style="height:20px"></div></div></div>';
+}
+
+// ---------- Раздел «Пары» (детально) ----------
+function admPairRow(p){
+  var online=p.lastActive && (Date.now()-Date.parse(p.lastActive) < 5*60*1000);
+  var names=(p.members||[]).filter(Boolean).join(' & ')||'—';
+  var sub=p.linked
+    ? (p.points?('⭐ '+p.points+' очков'):'без активности')+' · '+esc(p.created||'')
+    : '⏳ ждёт партнёра · '+esc(p.created||'');
+  var seen=p.lastActive?admLastSeen(p.lastActive):'';
+  var search=((names+' '+(p.code||'')).toLowerCase());
+  return '<div class="urow" data-name="'+esc(search)+'">'+
+    '<div class="uav uav-l" style="letter-spacing:0;font-size:13px;font-weight:800">'+(p.linked?'💞':'⏳')+'</div>'+
+    '<div class="flex1" style="min-width:0"><div class="urow-nm"><span class="pcode">'+esc(p.code||'—')+'</span>'+
+      (online?'<span class="udot"></span>':'')+
+      (p.linked?'<span class="uchip">в паре</span>':'<span class="uchip wait">ждёт</span>')+'</div>'+
+    '<div class="urow-sub">'+esc(names)+'</div>'+
+    '<div class="urow-sub muted2">'+sub+'</div></div>'+
+    (seen?'<div class="urow-seen'+(online?' on':'')+'">'+esc(seen)+'</div>':'')+'</div>';
+}
+function adminPairsView(){
+  var d=S.adminData||{}, t=d.totals||{}, s=d.series||{}, p=S.admPairsData;
+  var head='<div class="row between mb4"><button class="btn btn-ghost btn-sm" data-act="adm-pairs-close">← Назад</button>'+
+    '<div class="b" style="font-size:18px">Пары</div><div style="width:64px"></div></div>';
+  var cum=admCumulative(s.couples), baseline=Math.max(0,(t.couples||0)-(cum.length?cum[cum.length-1].v:0));
+  if(baseline>0) cum=cum.map(function(x){return {date:x.date,v:x.v+baseline};});
+  var totalCard='<div class="adm-card"><div class="adm-kpi-lbl">Всего пар</div>'+
+    '<div class="adm-big">'+(t.couples||0)+'</div>'+admChip(admDelta7Total(s.couples))+
+    '<div style="height:6px"></div>'+admChart(cum,30)+'</div>';
+  if(!p){
+    return '<div class="app"><div class="wrap">'+head+totalCard+
+      '<div class="center-t muted small" style="padding:34px">Загрузка списка…</div></div></div>';
+  }
+  var st=p.stats||{linked:0,waiting:0}, tot=(st.linked||0)+(st.waiting||0);
+  var conv=tot?Math.round((st.linked||0)/tot*100):0;
+  var statCard='<div class="adm-card mt3"><div class="row between" style="align-items:center;margin-bottom:12px">'+
+    '<div class="t" style="font-size:15px;font-weight:800">Статус пар</div><div class="b" style="color:#ff8fb0">'+conv+'% связано</div></div>'+
+    admSrcRow('💞 В паре', st.linked||0, tot, '#34d399')+
+    admSrcRow('⏳ Ждут партнёра', st.waiting||0, tot, '#fbbf24')+
+    '<div class="xs muted2 mt2">В паре — присоединились оба; ждут — партнёр ещё не вошёл по ссылке.</div></div>';
+  var fil=window.__admPairFilter||'all';
+  var chip=function(k,l){ return '<button class="uchip-f'+(fil===k?' on':'')+'" data-act="adm-pair-filter" data-f="'+k+'">'+l+'</button>'; };
+  var filters='<div class="row gap2" style="margin-bottom:10px">'+chip('all','Все')+chip('linked','В паре')+chip('wait','Ждут')+'</div>';
+  var arr=(p.pairs||[]).filter(function(x){ return fil==='all'||(fil==='linked'&&x.linked)||(fil==='wait'&&!x.linked); });
+  var rows=arr.map(admPairRow).join('')||'<div class="muted small center-t" style="padding:20px">Нет пар</div>';
+  var listCard='<div class="adm-sec-h"><div class="t">Список</div><div class="d">'+(p.count||0)+'</div></div>'+
+    '<input id="adm-psearch" class="input" placeholder="🔍 Поиск по коду или имени" oninput="__admPairSearch(this.value)" autocomplete="off" style="margin-bottom:10px">'+
+    filters+
+    '<div class="adm-card" id="adm-pair-list" style="padding:6px 14px">'+rows+'</div>';
+  return '<div class="app"><div class="wrap">'+head+totalCard+statCard+listCard+'<div style="height:20px"></div></div></div>';
+}
+
+// ---------- Админ-вкладка «Желания» (все желания всех пар) ----------
+function admWishRow(w){
+  var st=w.status==='done'?{t:'✅ выполнено',c:''}:w.status==='taken'?{t:'🤝 взято',c:' wait'}:{t:'🆕 новое',c:' wait'};
+  var search=((w.text||'')+' '+(w.author||'')+' '+(w.code||'')).toLowerCase();
+  return '<div class="urow" data-name="'+esc(search)+'">'+
+    '<div class="uav uav-l" style="font-size:17px;background:rgba(255,255,255,.06)">'+esc(w.category||'❤️')+'</div>'+
+    '<div class="flex1" style="min-width:0"><div class="urow-nm" style="font-weight:600">'+esc(w.text||'—')+'</div>'+
+    '<div class="urow-sub">'+esc(w.author||'—')+' · <span class="pcode" style="font-size:11.5px">'+esc(w.code||'—')+'</span> · '+esc(w.created||'')+'</div></div>'+
+    '<span class="uchip'+st.c+'">'+st.t+'</span></div>';
+}
+function adminWishesView(){
+  var w=S.admWishesData;
+  if(!w){ return '<div class="center-t muted small" style="padding:34px">Загрузка желаний…</div>'; }
+  var st=w.stats||{total:0,active:0,done:0};
+  var k=function(ic,l,v){ return '<div class="adm-kpi" style="padding:14px 10px"><div class="ic">'+ic+'</div><div class="lbl">'+l+'</div><div class="val" style="font-size:26px">'+(v||0)+'</div></div>'; };
+  var statCard='<div class="adm-hero" style="grid-template-columns:repeat(3,1fr)">'+k('💫','Всего',st.total)+k('⏳','Активные',st.active)+k('✅','Выполнены',st.done)+'</div>';
+  var fil=window.__admWishFilter||'all';
+  var chip=function(kk,l){ return '<button class="uchip-f'+(fil===kk?' on':'')+'" data-act="adm-wish-filter" data-f="'+kk+'">'+l+'</button>'; };
+  var filters='<div class="row gap2" style="margin:0 0 10px">'+chip('all','Все')+chip('active','Активные')+chip('done','Выполненные')+'</div>';
+  var arr=(w.wishes||[]).filter(function(x){ return fil==='all'||(fil==='active'&&x.status!=='done')||(fil==='done'&&x.status==='done'); });
+  var rows=arr.map(admWishRow).join('')||'<div class="muted small center-t" style="padding:20px">Нет желаний</div>';
+  var listCard='<div class="adm-sec-h" style="margin-top:14px"><div class="t">Все желания</div><div class="d">'+(w.count||0)+'</div></div>'+
+    '<input id="adm-wsearch" class="input" placeholder="🔍 Поиск по тексту, имени или коду" oninput="__admWishSearch(this.value)" autocomplete="off" style="margin-bottom:10px">'+
+    filters+
+    '<div class="adm-card" id="adm-wish-list" style="padding:6px 14px">'+rows+'</div>';
+  return statCard+listCard;
+}
+
+// ---------- Уровни, достижения, повышение ----------
+function levelCard(){
+  if(!S.progress||!S.progress.level) return '';
+  var p=S.progress, lv=p.level, nx=p.next, pts=p.points;
+  var pct = nx ? Math.max(4,Math.min(100,Math.round((pts-lv.min)/((nx.min-lv.min)||1)*100))) : 100;
+  var bar='<div style="height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:12px">'+
+    '<div style="height:100%;width:'+pct+'%;background:var(--grad);border-radius:999px;transition:width .6s cubic-bezier(.2,.8,.2,1)"></div></div>';
+  var nextLine = nx
+    ? '<div class="xs muted mt2">До «'+esc(nx.name)+'» '+nx.emoji+' — ещё '+Math.max(0,nx.min-pts)+' очков</div>'
+    : '<div class="xs muted mt2">Максимальный уровень достигнут 👑</div>';
+  var levels=(S.config&&S.config.levels)||[];
+  var road=levels.map(function(l,i){
+    var locked=i>lv.index, cur=i===lv.index;
+    return '<button class="lvl-node'+(cur?' cur':'')+(locked?' lk':'')+'" data-act="lvl-info" data-i="'+i+'">'+
+      '<div class="lvl-emo">'+(locked?'🔒':l.emoji)+'</div><div class="lvl-nm">'+esc(l.name)+'</div></button>';
+  }).join('');
+  return '<div class="card p5 mb3">'+
+    '<div class="row between"><div class="sb" style="font-size:16px">'+lv.emoji+' '+esc(lv.name)+'</div>'+
+    '<div class="chipx gold" style="font-size:13px">⭐ '+pts+'</div></div>'+
+    bar+nextLine+
+    '<div class="lvl-road">'+road+'</div>'+
+    '<div class="row gap2 mt3"><button class="btn btn-ghost flex1" data-act="open-achv">🏆 Достижения</button>'+
+    '<button class="btn btn-ghost flex1" data-act="open-cust">🎨 Оформление</button></div>'+
+  '</div>';
+}
+function custView(){
+  var lvl=curLevelIdx();
+  var themes=themesList(), frames=framesList();
+  var tgrid=themes.map(function(t){ var lk=t.level>lvl, sel=(S.theme||'rose')===t.key;
+    return '<button class="thm'+(sel?' sel':'')+(lk?' lk':'')+'" data-act="set-theme" data-k="'+t.key+'" data-lv="'+t.level+'" style="background:'+t.grad+'">'+
+      (lk?'<span class="thm-lock">🔒</span>':(sel?'<span class="thm-check">✓</span>':''))+
+      '<span class="thm-nm">'+esc(t.name)+'</span></button>';
+  }).join('');
+  var frows=frames.map(function(f){ var lk=f.level>lvl, sel=(S.frame||'none')===f.key;
+    return '<button class="frm'+(sel?' sel':'')+(lk?' lk':'')+'" data-act="set-frame" data-k="'+f.key+'" data-lv="'+f.level+'">'+
+      '<span>'+esc(f.name)+'</span><span>'+(lk?'🔒':(sel?'<span class="rose">✓</span>':''))+'</span></button>';
+  }).join('');
+  return '<div class="app"><div class="wrap">'+
+    '<div class="row between mb4"><div class="b" style="font-size:20px">🎨 Оформление</div>'+
+    '<button class="btn btn-ghost btn-sm" data-act="close-cust">← Назад</button></div>'+
+    '<div class="small sb mb2">🌈 Темы</div><div class="thm-grid">'+tgrid+'</div>'+
+    '<div class="small sb" style="margin:20px 0 4px">🖼️ Рамка профиля</div>'+frows+
+    '<div class="xs muted2 mt4">Новое оформление открывается с каждым уровнем пары.</div>'+
+    '<div style="height:24px"></div></div></div>';
+}
+function achvView(){
+  var list=(S.progress&&S.progress.achievements)||[];
+  var earned=list.filter(function(a){return a.earned;}).length;
+  var items=list.map(function(a){
+    var d=a.earned&&a.date?new Date(a.date).toLocaleDateString('ru-RU'):null;
+    var status=a.earned?('<div class="xs achv-earned" style="margin-top:3px">✅ '+(d?('получено '+d):'получено')+'</div>')
+      :'<div class="xs muted2" style="margin-top:3px">🔒 ещё не получено</div>';
+    return '<div class="card p4 row gap3 mb3"'+(a.earned?'':' style="opacity:.55"')+'>'+
+      '<div class="wcat" style="--wcb:'+(a.earned?'rgba(255,94,138,.16)':'rgba(255,255,255,.05)')+'">'+(a.earned?a.icon:'🔒')+'</div>'+
+      '<div class="flex1"><div class="small sb">'+esc(a.title)+'</div>'+
+      '<div class="xs muted">'+esc(a.desc)+'</div>'+status+'</div></div>';
+  }).join('')||'<div class="muted small center-t">Пока нет достижений</div>';
+  return '<div class="app"><div class="wrap">'+
+    '<div class="row between mb4"><div class="b" style="font-size:20px">🏆 Достижения</div>'+
+    '<button class="btn btn-ghost btn-sm" data-act="close-achv">← Назад</button></div>'+
+    '<div class="small muted mb4">Получено '+earned+' из '+list.length+'</div>'+
+    items+'<div style="height:24px"></div></div></div>';
+}
+function levelupOverlay(){
+  var lv=S.levelup; if(!lv) return '';
+  var cols=['#ff5e8a','#c026d3','#fbbf24','#34d399','#60a5fa'];
+  var conf=''; for(var i=0;i<44;i++){ conf+='<span class="conf" style="left:'+(Math.random()*100).toFixed(1)+'%;background:'+cols[i%5]+';animation-delay:'+(Math.random()*0.5).toFixed(2)+'s"></span>'; }
+  var perks=(S.config&&S.config.levels[lv.index]&&S.config.levels[lv.index].perks)||[];
+  var perksHtml=perks.map(function(x){return '✨ '+esc(x);}).join('<br>');
+  return '<div class="ovl" style="align-items:center"><div class="lvup"><div class="conf-wrap">'+conf+'</div>'+
+    '<div class="xs muted" style="text-transform:uppercase;letter-spacing:.25em">🎉 Поздравляем</div>'+
+    '<div class="b mt2" style="font-size:20px">Вы достигли уровня</div>'+
+    '<div style="font-size:52px;margin:6px 0">'+lv.emoji+'</div>'+
+    '<div class="b rose" style="font-size:26px">'+esc(lv.name)+'</div>'+
+    '<div class="card p4 mt4" style="text-align:left"><div class="xs muted mb2">Разблокировано:</div>'+(perksHtml||'✨ Новый контент')+'</div>'+
+    '<button class="add-wish" style="margin-top:20px" data-act="level-continue">Продолжить</button>'+
+  '</div></div>';
+}
+
+function questBurst(){
+  var b=S.qburst; if(!b) return '';
+  var cols=['#ff5e8a','#c026d3','#fbbf24','#34d399','#60a5fa'];
+  var conf=''; for(var i=0;i<40;i++){ conf+='<span class="conf" style="left:'+(Math.random()*100).toFixed(1)+'%;background:'+cols[i%5]+';animation-delay:'+(Math.random()*0.4).toFixed(2)+'s"></span>'; }
+  var txt=(b.label?b.label:(b.emoji||'🎉'))+(b.pts?(' +'+b.pts+' ⭐'):'');
+  return '<div class="q-burst-wrap"><div class="conf-wrap" style="position:absolute;inset:0">'+conf+'</div>'+
+    '<div class="q-burst-badge">'+txt+'</div></div>';
+}
+
+var TABS=[
+  ['today','Сегодня','🏠'],['wishes','Желания','⭐'],['quests','Квесты','🗺️'],
+  ['dates','Даты','📅'],['us','Мы','💞']
+];
+function bottomNav(){
+  var btns=TABS.map(function(t){
+    return '<button class="'+(S.tab===t[0]?'on':'')+'" data-act="tab" data-tab="'+t[0]+'">'+
+      '<span class="ic">'+t[2]+'</span><span class="lb">'+t[1]+'</span></button>';
+  }).join('');
+  return '<div class="nav"><div class="in">'+btns+'</div></div>';
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+// какой-либо инпут в фокусе (чтобы фоновые опросы не пересобирали DOM и не роняли клавиатуру)
+function inputFocused(){ var a=document.activeElement; return !!(a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA')); }
+// Публичный render() — планировщик: несколько вызовов за один тик схлопываются в одну
+// перерисовку на кадре анимации (rAF). Это снимает лишние пересборки DOM и синхронные
+// блокировки UI-потока; сам тяжёлый ре-рендер выполняется в _renderNow ровно один раз за кадр.
+var _rafScheduled=false;
+function render(){
+  if(_rafScheduled) return;
+  _rafScheduled=true;
+  (window.requestAnimationFrame||function(f){setTimeout(f,16);})(function(){ _rafScheduled=false; _renderNow(); });
+}
+function _renderNow(){
+  var root=document.getElementById('root'), html;
+  // сохранить набранный текст ДО построения разметки (чтобы не потерять при ре-рендере)
+  if(S.wmodal){ var _wt0=document.getElementById('wtitle'); if(_wt0) S.wmodal.text=_wt0.value; }
+  var _mn0=document.getElementById('mood-note'); if(_mn0 && S.moods && S.moods.me) S.moods.me.note=_mn0.value;
+  // ответ на вопрос дня (#qa) не привязан к состоянию — запомним значение и фокус, восстановим после
+  var _qa0=document.getElementById('qa'), _qaVal=_qa0?_qa0.value:null, _qaFoc=_qa0&&document.activeElement===_qa0, _qaSel=_qa0?_qa0.selectionStart:null;
+  if(!S.couple){
+    html=(S.ob.step==='welcome')?welcomeView():pairView();
+  } else {
+    if(S.profile) applyProfile();
+    if(!S.dates) buildDates();
+    if(S.showInvite && !S.couple.linked){
+      html=inviteView();
+    } else if(S.showAdmin && S.adminData){
+      html=adminView();
+    } else if(S.showAchv){
+      html=achvView();
+    } else if(S.showCust){
+      html=custView();
+    } else if(S.recOpen){
+      html=recView();
+    } else if(S.archiveOpen){
+      html=archiveView();
+    } else if(S.profileOpen){
+      html=profileView();
+    } else {
+      var screen={today:todayScreen,wishes:wishesScreen,quests:questsScreen,dates:datesScreen,us:usScreen}[S.tab]();
+      html='<div class="app">'+screen+bottomNav()+'</div>';
+    }
+  }
+  if(S.toast){
+    html+='<div class="toast"><span style="font-size:18px">'+S.toast.icon+'</span>'+
+      '<span><b>'+esc(S.toast.label)+'</b> — '+esc(S.toast.hint)+'</span></div>';
+  }
+  if(S.wmodal){ html+=wishModal(); }
+  if(S.qburst){ html+=questBurst(); }
+  if(S.levelup){ html+=levelupOverlay(); }
+  if(S.calOpen){ html+=calOverlay(); }
+  // если разметка не изменилась — НЕ трогаем DOM (иначе фоновые опросы «дёргают» экран,
+  // сбрасывают фокус, скролл и анимации). Заодно сохраняются ввод и позиция страницы.
+  if(html===S._lastHtml) return;
+  S._lastHtml=html;
+  root.innerHTML=html;
+  var wt=document.getElementById('wtitle'); if(wt && S.wmodal && !S.wmodal._f){ wt.focus(); try{ var _p=wt.value.length; wt.setSelectionRange(_p,_p); }catch(e){} S.wmodal._f=true; }
+  // вернуть недописанный ответ на вопрос дня и фокус
+  if(_qaVal){ var _qa1=document.getElementById('qa'); if(_qa1){ _qa1.value=_qaVal; if(_qaFoc){ _qa1.focus(); try{ _qa1.setSelectionRange(_qaSel,_qaSel); }catch(e){} } } }
+}
+
+// ============================================================
+//  ACTIONS
+// ============================================================
+function val(sel){var el=document.querySelector(sel);return el?el.value:'';}
+
+// демо-пейринг (вне Telegram): партнёр подставляется локально
+function finishPairing(partnerName){
+  S.couple={
+    me:{name:(S.ob.name||(TG_USER&&TG_USER.first_name)||'Ты').trim(),emoji:'🧔',birthday:{month:3,day:14}},
+    partner:{name:partnerName||'Партнёр',emoji:'👩',birthday:{month:7,day:21}},
+    since:new Date().toISOString().slice(0,10), inviteCode:S.ob.myCode
+  };
+  save('couple');
+  var k=todayKey(); if(!S.answers[k])S.answers[k]={};
+  if(!S.answers[k].partner){S.answers[k].partner='…';save('answers');}
+  haptic('success'); render();
+}
+
+// онлайн-пара с сервера → форма, которую понимают экраны (даты рождения пока
+// по умолчанию, редактирование добавим в следующей фиче)
+function coupleFromServer(c){
+  return {
+    me:{ name:(c.me&&c.me.name)||'Ты', emoji:'🧔', birthday:null },       // дни рождения — из синхронного профиля, без фейковых дефолтов
+    partner:{ name:(c.partner&&c.partner.name)||'Партнёр', emoji:'👩', birthday:null },
+    since:new Date().toISOString().slice(0,10),
+    inviteCode:c.inviteCode, linked:!!c.linked, online:true
+  };
+}
+
+function shareInvite(code){
+  code = code || (S.couple && S.couple.inviteCode) || S.ob.myCode;
+  var link='https://t.me/'+TG_BOT+'?startapp='+code;
+  var text='Я завёл(а) нам PARA 💞 — приложение для нас двоих: вопрос дня, общие желания, квесты и важные даты. Нажми, чтобы войти в нашу пару (код подставится сам). Если что — код: '+code;
+  try{
+    if(TG&&TG.openTelegramLink){
+      TG.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(link)+'&text='+encodeURIComponent(text));
+    } else if(navigator.share){
+      navigator.share({title:'PARA',text:text,url:link});
+    } else if(navigator.clipboard){
+      navigator.clipboard.writeText(link); alert('Ссылка скопирована:\n'+link);
+    } else { alert(link); }
+  }catch(e){}
+  haptic('light');
+}
+
+var ACTS={
+  'ob-continue':function(){ S.ob.name=(val('#ob-name')||(TG_USER&&TG_USER.first_name)||'').trim(); S.ob.step='pair'; haptic('light'); render(); },
+  'ob-mode':function(el){ var m=el.dataset.mode; if(m==='create'&&CAN_ONLINE){ haptic('light'); onlineCreate(); return; } S.ob.mode=m; S.ob.err=''; haptic('light'); render(); },
+  'ob-mode-back':function(){ S.ob.mode=null; render(); },
+  'share-code':function(){ shareInvite(S.couple && S.couple.inviteCode); },
+  'open-admin':function(){ if(!ONLINE)return; api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; S.showAdmin=true; render(); } else if(r&&r.reason==='forbidden'){ showToast('🔒','Нет доступа','ваш ID: '+r.yourId); } else if(r&&r.reason==='rate_limited'){ showToast('⏳','Слишком часто','подождите пару секунд'); } else { showToast('⚠️','Не удалось открыть',((r&&r.reason)||'ошибка')); } }).catch(function(){ showToast('⚠️','Нет связи','попробуйте ещё раз'); }); },
+  'close-admin':function(){ S.showAdmin=false; render(); },
+  'adm-users-open':function(){ S.admUsers=true; S.admUsersData=null; haptic('light'); render(); api('admin_users').then(function(r){ S.admUsersData=(r&&r.ok)?r:{users:[],sources:{direct:0,invite:0},count:0}; render(); }).catch(function(){ S.admUsersData={users:[],sources:{direct:0,invite:0},count:0}; render(); }); },
+  'adm-users-close':function(){ S.admUsers=false; render(); },
+  'adm-range':function(el){ S.admRange=+el.dataset.r; S.admFrom=null; S.admTo=null; S.admDay=null; haptic('light'); render(); },
+  'adm-clear-range':function(){ S.admFrom=null; S.admTo=null; S.admDay=null; S.admRange=S.admRange||30; haptic('light'); render(); },
+  'adm-day':function(el){ S.admDay=(S.admDay===el.dataset.d)?null:el.dataset.d; haptic('light'); render(); },
+  'adm-day-close':function(){ S.admDay=null; render(); },
+  'adm-cal-open':function(){ var w=admWindow()||{}; S.calFrom=S.admFrom||w.from||null; S.calTo=S.admTo||w.to||null; S.calMonth=(S.calTo||w.to||'').slice(0,7); S.calOpen=true; haptic('light'); render(); },
+  'cal-close':function(){ S.calOpen=false; render(); },
+  'cal-prev':function(){ S.calMonth=calShift(S.calMonth||'',-1); render(); },
+  'cal-next':function(){ S.calMonth=calShift(S.calMonth||'',1); render(); },
+  'cal-pick':function(el){ var d=el.dataset.d; if(!S.calFrom||(S.calFrom&&S.calTo)){ S.calFrom=d; S.calTo=null; } else if(d<S.calFrom){ S.calTo=S.calFrom; S.calFrom=d; } else { S.calTo=d; } haptic('light'); render(); },
+  'cal-reset':function(){ S.calFrom=null; S.calTo=null; render(); },
+  'cal-preset':function(el){ S.admFrom=null; S.admTo=null; S.admRange=+el.dataset.r; S.admDay=null; S.calOpen=false; haptic('light'); render(); },
+  'cal-apply':function(){ if(!S.calFrom) return; S.admFrom=S.calFrom; S.admTo=S.calTo||S.calFrom; S.admRange=null; S.admDay=null; S.calOpen=false; haptic('success'); render(); },
+  'adm-refresh':function(){ haptic('light'); api('admin_dash').then(function(r){ if(r&&r.ok){ S.adminData=r; render(); } }); },
+  'adm-pairs':function(){ S.admPairs=true; S.admPairsData=null; window.__admPairFilter='all'; haptic('light'); render(); api('admin_pairs').then(function(r){ S.admPairsData=(r&&r.ok)?r:{pairs:[],stats:{linked:0,waiting:0},count:0}; render(); }).catch(function(){ S.admPairsData={pairs:[],stats:{linked:0,waiting:0},count:0}; render(); }); },
+  'adm-pairs-close':function(){ S.admPairs=false; render(); },
+  'adm-pair-filter':function(el){ window.__admPairFilter=el.dataset.f||'all'; render(); },
+  'admin-remind':function(){ S.remindMsg='Отправляем…'; render(); api('remind_waiting').then(function(r){ if(r&&r.ok){ S.remindMsg='✅ Отправлено: '+r.sent+(r.skipped?(' · пропущено (недавно напоминали): '+r.skipped):''); haptic('success'); } else { S.remindMsg='Ошибка: '+((r&&r.reason)||'?'); haptic('warning'); } render(); setTimeout(function(){ S.remindMsg=''; render(); },6000); }).catch(function(){ S.remindMsg='Ошибка сети'; render(); }); },
+  'adm-tab':function(el){ var t=el.dataset.t; S.adminTab=t; haptic('light');
+    if(t==='config'&&!S.adminConfig){ api('config_get').then(function(r){ S.adminConfig=(r&&r.ok&&r.config)?r.config:(S.config||{levels:[],achievements:[],themes:[],frames:[],categories:[],quests:[]}); render(); }); }
+    if(t==='wishes'&&!S.admWishesData){ window.__admWishFilter='all'; api('admin_wishes').then(function(r){ S.admWishesData=(r&&r.ok)?r:{wishes:[],stats:{total:0,active:0,done:0},count:0}; render(); }).catch(function(){ S.admWishesData={wishes:[],stats:{total:0,active:0,done:0},count:0}; render(); }); }
+    render(); },
+  'adm-wish-filter':function(el){ window.__admWishFilter=el.dataset.f||'all'; render(); },
+  'cfg-add':function(el){ var k=el.dataset.sec; cfgCollect(); var sec=cfgSections().filter(function(s){return s.key===k;})[0]; if(!S.adminConfig[k])S.adminConfig[k]=[]; S.adminConfig[k].push(sec.tpl()); haptic('light'); render(); },
+  'cfg-del':function(el){ var k=el.dataset.sec, i=+el.dataset.idx; cfgCollect(); if(S.adminConfig[k])S.adminConfig[k].splice(i,1); haptic('light'); render(); },
+  'cfg-save':function(){ cfgCollect(); S.cfgMsg='Сохранение…'; render(); api('config_save',{config:S.adminConfig}).then(function(r){ if(r&&r.ok){ if(r.config){S.adminConfig=r.config;S.config=r.config;} S.cfgMsg='✓ Сохранено'; haptic('success'); } else { S.cfgMsg='Ошибка: '+((r&&r.reason)||'?'); haptic('warning'); } render(); setTimeout(function(){ S.cfgMsg=''; render(); },3000); }).catch(function(){ S.cfgMsg='Ошибка сети'; render(); }); },
+  'open-achv':function(){ S.showAchv=true; haptic('light'); render(); if(ONLINE)refreshState(); },
+  'close-achv':function(){ S.showAchv=false; render(); },
+  'open-cust':function(){ S.showCust=true; haptic('light'); render(); },
+  'close-cust':function(){ S.showCust=false; render(); },
+  'set-theme':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx()){ alert('🔒 Тема откроется на уровне ниже. Доступно после '+lv+'-го уровня пары.'); return; } S.theme=el.dataset.k; lsSet('theme',S.theme); applyTheme(S.theme); haptic('success'); render(); },
+  'set-frame':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx()){ alert('🔒 Рамка откроется на уровне выше. Доступно после '+lv+'-го уровня пары.'); return; } S.frame=el.dataset.k; lsSet('frame',S.frame); haptic('success'); render(); },
+  'lvl-info':function(el){ var i=+el.dataset.i, lv=S.config&&S.config.levels[i], cur=S.progress&&S.progress.level.index; if(!lv)return; if(i>cur){ var perks=(lv.perks||[]).join(', '); alert('🔒 «'+lv.name+'» '+lv.emoji+'\nДоступно после '+lv.min+' очков.'+(perks?'\n\nОткроется: '+perks:'')); } haptic('light'); },
+  'level-continue':function(){ S.levelup=null; haptic('light'); render(); },
+  'ob-share':shareInvite,
+  'invite-share':function(){ shareInvite(S.couple && S.couple.inviteCode); },
+  'invite-skip':function(){ S.showInvite=false; haptic('light'); render(); },
+  'ob-create-confirm':function(){ if(CAN_ONLINE) onlineCreate(); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
+  'ob-join-confirm':function(){ var c=(val('#ob-code')||'').toUpperCase().trim(); if(c.length<4)return; if(CAN_ONLINE) onlineJoin(c); else { S.ob.waiting=true; render(); setTimeout(function(){finishPairing('Татьяна');},700); } },
+  'tab':function(el){ S.tab=el.dataset.tab; save('tab'); haptic('light'); render(); if(S.tab==='us') loadStats(); if(S.tab==='wishes'){ refreshWishes(); startWishPoll(); } else { stopWishPoll(); } },
+  'who':function(el){ S.who=el.dataset.who; save('who'); haptic('light'); render(); },
+  'answer':function(){ var t=(val('#qa')||'').trim(); if(!t)return; if(ONLINE) onlineAnswer(t); else { var k=todayKey(); if(!S.answers[k])S.answers[k]={}; S.answers[k][S.who]=t; save('answers'); S.points+=10; save('points'); haptic('success'); render(); } },
+  'wfilter':function(el){ S.wfilter=el.dataset.f; haptic('light'); render(); },
+  'wdonefilter':function(el){ S.wdonefilter=el.dataset.f; haptic('light'); render(); },
+  // переходы из карточки события
+  'ev-gifts':function(){ S.tab='wishes'; S.wfilter='partner'; save('tab'); haptic('light'); render(); },
+  'ev-mywishes':function(){ S.tab='wishes'; S.wfilter='mine'; save('tab'); haptic('light'); render(); },
+  'ev-dates':function(){ S.tab='dates'; save('tab'); haptic('light'); render(); },
+  'ev-quests':function(){ S.tab='quests'; save('tab'); haptic('light'); render(); },
+  // «Для вас сегодня»
+  'rec-open':function(){ S.recOpen=true; haptic('light'); render(); },
+  'rec-close':function(){ S.recOpen=false; render(); },
+  'rec-start':function(){ var r=todayRec(); if(recDoneToday()){ S.recOpen=false; render(); return; } S.recDoneDay=todayKey(); save('recDoneDay'); S.points+=r.pts; save('points'); track('points',r.pts); S.recOpen=false; S.qburst={pts:r.pts,label:'🎉 Отлично!'}; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.qburst=null; render(); },1600); },
+  // профиль и даты
+  'profile-open':function(){ S.profileDraft=initProfileDraft(); S.profileOpen=true; haptic('light'); render(); },
+  'profile-close':function(){ S.profileOpen=false; S.profileDraft=null; render(); },
+  'pf-add':function(){ pfCollect(); S.profileDraft.extra.push({id:'e'+(S.profileDraft.extra.length+1)+'_'+(S.dates?S.dates.length:0),title:'',icon:'🎉',month:1,day:1}); haptic('light'); render(); },
+  'pf-del':function(el){ pfCollect(); S.profileDraft.extra.splice(+el.dataset.idx,1); haptic('light'); render(); },
+  'profile-save':function(){ pfCollect(); var draft=S.profileDraft; S.profile=draft; save('profile'); applyProfile(); buildDates(); S.profileOpen=false; S.profileDraft=null; haptic('success'); render();
+    if(ONLINE&&S.couple){ api('profile_set', pfPayload(draft)).then(function(r){ if(r&&r.ok&&r.profile){ S.profile=r.profile; save('profile'); refreshDates(); render(); } else if(r&&r.reason==='db_error'){ showToast('⚠️','Сохранено локально','синхронизация недоступна'); } }).catch(function(){ showToast('⚠️','Нет связи','сохранено локально'); }); } },
+  'wish-open-add':function(){ S.wmodal={cat:'❤️',points:20}; haptic('light'); render(); },
+  'wish-cancel':function(){ S.wmodal=null; render(); },
+  'wish-cat':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.cat=el.dataset.e; haptic('light'); render(); } },
+  'wish-pts':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.points=+el.dataset.p; haptic('light'); render(); } },
+  'wish-save':function(){ var t=(val('#wtitle')||'').trim(); if(!t){ var el=document.getElementById('wtitle'); if(el)el.focus(); return; } var m=S.wmodal||{}; var cat=m.cat||'❤️', pts=m.points||20;
+    if(ONLINE&&S.couple){
+      S.wishes.unshift({id:'tmp'+Date.now(),by:'me',text:t,category:cat,points:pts,status:'new'}); // покажем сразу (оптимистично)
+      S.wmodal=null; haptic('success'); render();
+      api('wish_add',{text:t,category:cat,points:pts}).then(function(r){
+        if(r&&r.ok&&r.wishes){ applyServerWishes(r.wishes); render(); }
+        else { showToast('⚠️','Не сохранилось',(r&&(r.error||r.reason))||'ошибка сервера'); refreshWishes(); }
+      }).catch(function(){ showToast('⚠️','Нет связи','попробуйте ещё раз'); refreshWishes(); }); return; }
+    S.wishes.unshift({id:Date.now(),by:S.who,text:t,category:cat,points:pts,status:'new'}); save('wishes'); S.wmodal=null; haptic('success'); render(); },
+  'wish-take':function(el){ var id=+el.dataset.id;
+    if(ONLINE&&S.couple){ S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},normWish(w),{status:'taken'}):w;}); haptic('light'); render();
+      api('wish_take',{id:id}).then(function(r){ if(r&&r.ok&&r.wishes){ applyServerWishes(r.wishes); render(); } }); return; }
+    S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},normWish(w),{status:'taken'}):w;}); save('wishes'); haptic('light'); render(); },
+  'wish-done':function(el){ var id=+el.dataset.id;
+    if(ONLINE&&S.couple){ S.wishes=S.wishes.map(function(w){return w.id===id?Object.assign({},normWish(w),{status:'done'}):w;}); S.justDone=id; haptic('success'); render();
+      api('wish_done',{id:id}).then(function(r){ if(r&&r.ok){ if(r.wishes)applyServerWishes(r.wishes); render(); afterEarn(); } });
+      setTimeout(function(){ S.justDone=null; render(); },900); return; }
+    var pts=0; S.wishes=S.wishes.map(function(w){ if(w.id===id){ var n=normWish(w); pts=n.points; return Object.assign({},n,{status:'done'}); } return w; }); S.points+=pts; save('wishes'); save('points'); track('wish'); track('points',pts); S.justDone=id; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.justDone=null; render(); },900); },
+  'wish-del':function(el){ var id=+el.dataset.id;
+    var doDel=function(){
+      if(ONLINE&&S.couple){ S.wishes=S.wishes.filter(function(w){return w.id!==id;}); haptic('light'); render();
+        api('wish_del',{id:id}).then(function(r){ if(r&&r.ok&&r.wishes){ applyServerWishes(r.wishes); render(); } }); return; }
+      S.wishes=S.wishes.filter(function(w){return w.id!==id;}); save('wishes'); haptic('light'); render(); };
+    if(TG&&TG.showConfirm){ TG.showConfirm('Удалить это желание из списка?',function(ok){ if(ok) doDel(); }); }
+    else if(window.confirm('Удалить это желание из списка?')){ doDel(); } },
+  'mood-set':function(el){ var e=el.dataset.e; if(!S.moods)S.moods={me:{},partner:{}}; var note=(S.moods.me&&S.moods.me.note)||'';
+    S.moods.me={emoji:e,note:note}; S.moodEdit=false; haptic('success'); render();
+    if(ONLINE&&S.couple){ api('mood_set',{emoji:e,note:note}).then(function(r){ if(r&&r.ok&&r.moods){ applyMoods(r.moods); render(); } else { showToast('⚠️','Не сохранилось',(r&&(r.error||r.reason))||'ошибка'); } }); } },
+  'archive-open':function(){ S.archiveOpen=true; S.archiveData=null; haptic('light'); render();
+    if(ONLINE&&S.couple){ api('answers_history').then(function(r){ S.archiveData=(r&&r.ok)?r:{history:[],count:0}; render(); }).catch(function(){ S.archiveData={history:[],count:0}; render(); }); }
+    else { S.archiveData={history:[],count:0}; render(); } },
+  'archive-close':function(){ S.archiveOpen=false; render(); },
+  'mood-edit':function(){ S.moodEdit=true; render(); },
+  'mood-note':function(){ var note=(val('#mood-note')||'').trim(); if(!S.moods)S.moods={me:{},partner:{}}; var e=(S.moods.me&&S.moods.me.emoji)||'😊';
+    S.moods.me={emoji:e,note:note}; haptic('light');
+    if(ONLINE&&S.couple){ api('mood_set',{emoji:e,note:note}).then(function(r){ if(r&&r.ok&&r.moods){ applyMoods(r.moods); } showToast('✅','Сохранено','настроение обновлено'); render(); }); }
+    else { showToast('✅','Сохранено',''); render(); } },
+  'think-ping':function(){ if(S._thinkCd&&Date.now()<S._thinkCd) return; S._thinkCd=Date.now()+30000; S._thinkBurst=true; haptic('success');
+    setTimeout(function(){ S._thinkBurst=false; render(); }, 1100);
+    if(ONLINE&&S.couple){ api('ping').then(function(r){
+      if(r&&r.ok&&r.sent){ showToast('💌','Отправлено',((S.couple.partner&&S.couple.partner.name)||'Партнёр')+' получит пуш ❤️'); }
+      else if(r&&r.reason==='too_soon'){ S._thinkCd=Date.now()+8000; showToast('⏳','Чуть позже','подожди немного'); }
+      else if(r&&r.reason==='no_couple'){ showToast('💭','Пока некому','партнёр ещё не в паре'); }
+      else { showToast('💭','Готово','о тебе думают ❤️'); }
+      render(); }).catch(function(){ showToast('⚠️','Нет связи','попробуйте ещё раз'); render(); }); }
+    else { showToast('💌','Отправлено','партнёру ушёл бы пуш ❤️'); render(); }
+    setTimeout(function(){ render(); }, 30500); },
+  'qcat':function(el){ S.qcat=el.dataset.k; haptic('light'); render(); },
+  'quest-done':function(el){ var id=+el.dataset.id; if(S.qdone[id])return; var defs=questDefs(),q=null; for(var i=0;i<defs.length;i++) if(defs[i].id===id) q=defs[i]; if(!q)return; S.qdone[id]=true; save('qdone'); S.points+=q.pts; save('points'); track('quest'); track('points',q.pts); S.qburst={pts:q.pts,emoji:q.emoji}; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.qburst=null; render(); },1500); },
+  'wheel':function(el){ var w=WHEEL[+el.dataset.i]; S.toast=w; haptic('light'); render(); setTimeout(function(){S.toast=null;render();},2200); },
+  'home-add':function(){ try{TG.addToHomeScreen();haptic('light');}catch(e){} },
+  'reset':function(){ stopLinkPoll(); stopWishPoll(); prevLinked=null; S.showInvite=false; S.couple=null; S.tab='today'; S.who='me'; S.ob={step:'welcome',mode:null,name:(TG_USER?(TG_USER.first_name||'Ты'):''),myCode:makeCode(),code:'',waiting:false}; save('couple'); save('tab'); save('who'); haptic('warning'); render(); }
+};
+
+// ============================================================
+//  ОНЛАЙН (бэкенд): настоящая пара внутри Telegram
+// ============================================================
+function enterOnline(couple){
+  ONLINE=true; S.couple=coupleFromServer(couple); save('couple');
+  S.ob.waiting=false; S.ob.err='';
+  if(S.couple.linked){ prevLinked=true; celebrateLink(); }      // присоединился к паре — сразу связаны
+  else { prevLinked=false; S.showInvite=true; startLinkPoll(); } // создатель — ждём партнёра
+  haptic('success'); render();
+  refreshState(); // подтянуть вопрос дня и ответы
+}
+async function refreshState(){
+  try{
+    var r=await api('state');
+    if(r&&r.ok&&r.couple){
+      var nowLinked=!!r.couple.linked;
+      ONLINE=true; S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today;
+      if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config;
+      if(r.wishes) applyServerWishes(r.wishes);                 // общий список желаний пары
+      if(r.moods) applyMoods(r.moods);                          // настроение дня обоих
+      if('profile' in r) applyServerProfile(r.profile);         // общий профиль/даты пары
+      if(nowLinked && prevLinked===false){ celebrateLink(); }   // партнёр только что присоединился!
+      prevLinked=nowLinked;
+      render(); checkLevelUp();
+    }
+  }catch(e){}
+}
+// пара стала связанной — празднуем, останавливаем опрос
+function celebrateLink(){
+  S.showInvite=false; stopLinkPoll();
+  var nm=(S.couple&&S.couple.partner&&S.couple.partner.name)||'Партнёр';
+  S.qburst={label:'💞 '+nm+' в паре!', pts:100};
+  try{ if(navigator.vibrate) navigator.vibrate([40,60,40,60,140]); }catch(e){}
+  haptic('success'); render();
+  setTimeout(function(){ S.qburst=null; render(); }, 2600);
+}
+// опрос сервера, пока ждём присоединения партнёра
+function startLinkPoll(){
+  stopLinkPoll(); if(!ONLINE) return;
+  LINK_POLL=setInterval(function(){
+    if(inputFocused()) return;                       // не мешаем набору текста / клавиатуре
+    if(S.couple && !S.couple.linked) refreshState(); else stopLinkPoll();
+  }, 6000);
+}
+function stopLinkPoll(){ if(LINK_POLL){ clearInterval(LINK_POLL); LINK_POLL=null; } }
+// синхронизация общего списка желаний пары
+async function refreshWishes(){ if(!ONLINE||!S.couple||S.wmodal||inputFocused()) return; /* не дёргаем ре-рендер, пока открыто окно ввода / фокус в поле */
+  try{ var r=await api('wishes'); if(r&&r.ok&&r.wishes){ if(S.wmodal) return;
+    var mapped=mapServerWishes(r.wishes), sig=JSON.stringify(mapped);
+    if(sig===S._wishSig) return;                 // ничего не изменилось — не перерисовываем (иначе экран «дёргается»)
+    S.wishes=mapped; S._wishSig=sig; render();
+  } }catch(e){} }
+function startWishPoll(){ stopWishPoll(); if(!ONLINE||!S.couple) return; WISH_POLL=setInterval(function(){ if(inputFocused()) return; if(S.tab==='wishes') refreshWishes(); else stopWishPoll(); }, 12000); }
+function stopWishPoll(){ if(WISH_POLL){ clearInterval(WISH_POLL); WISH_POLL=null; } }
+function showToast(icon,label,hint){ S.toast={icon:icon,label:label,hint:hint}; render(); setTimeout(function(){ S.toast=null; render(); },3000); }
+// после начисления очков — подтянуть прогресс с сервера (немного погодя, чтобы событие успело записаться)
+function afterEarn(){ if(!ONLINE) return; setTimeout(refreshState, 700); }
+// показать экран повышения уровня, если пара поднялась выше запомненного
+function checkLevelUp(){
+  if(!S.progress||!S.progress.level) return;
+  var seen=lsGet('seenLevel',0), idx=S.progress.level.index;
+  if(idx>seen){
+    S.levelup=S.progress.level; lsSet('seenLevel',idx);
+    try{ if(navigator.vibrate) navigator.vibrate([40,60,40,60,140]); }catch(e){}
+    haptic('success'); render();
+  } else if(seen>idx){ lsSet('seenLevel',idx); } // сброс (например «сменить пару»)
+}
+async function onlineCreate(){
+  S.ob.waiting=true; render();
+  try{
+    var r=await api('pair_create');
+    if(r&&r.ok&&r.couple){ enterOnline(r.couple); return; }
+    if(r&&r.reason==='not_configured'){ finishPairing('Татьяна'); return; } // бэкенд не настроен → демо
+    S.ob.waiting=false; S.ob.mode='create'; S.ob.err='Не удалось создать пару'; render();
+  }catch(e){ S.ob.waiting=false; S.ob.mode='create'; S.ob.err='Сеть недоступна'; render(); }
+}
+async function onlineJoin(code){
+  S.ob.waiting=true; S.ob.err=''; render();
+  try{
+    var r=await api('pair_join',{code:code});
+    if(r&&r.ok&&r.couple){ enterOnline(r.couple); return; }
+    if(r&&r.reason==='not_configured'){ finishPairing('Татьяна'); return; }
+    var m={not_found:'Код не найден',couple_full:'В этой паре уже двое',already_paired:'Ты уже в паре',bad_code:'Неверный код'};
+    S.ob.waiting=false; S.ob.err=(r&&m[r.reason])||'Не удалось присоединиться'; render();
+  }catch(e){ S.ob.waiting=false; S.ob.err='Сеть недоступна'; render(); }
+}
+async function onlineAnswer(text){
+  try{
+    var r=await api('answer',{text:text});
+    if(r&&r.ok&&r.today){ S.srvToday=r.today; S.points+=10; save('points'); track('points',10); haptic('success'); afterEarn(); }
+    render();
+  }catch(e){ render(); }
+}
+async function loadStats(){
+  if(!ONLINE) return;
+  try{ var r=await api('stats'); if(r&&r.ok){ S.stats=r.stats; render(); } }catch(e){}
+}
+async function boot(){
+  render(); // мгновенно показываем интерфейс (демо/онбординг)
+  if(!CAN_ONLINE) return; // вне Telegram — локальный демо-режим
+  try{
+    var r=await api('state');
+    if(r&&r.ok){
+      ONLINE=true;
+      if(r.couple){ S.couple=coupleFromServer(r.couple); if(r.today)S.srvToday=r.today;
+        if(r.progress)S.progress=r.progress; if(r.config)S.config=r.config;
+        if(r.wishes) applyServerWishes(r.wishes);
+        if(r.moods) applyMoods(r.moods);
+        if('profile' in r) applyServerProfile(r.profile);
+        prevLinked=!!r.couple.linked;
+        if(!S.couple.linked) startLinkPoll(); } // вернувшийся создатель всё ещё ждёт партнёра
+      else { S.couple=null; } // сервер — источник правды: онбординг с настоящим бэкендом
+      render();
+      checkLevelUp();
+      if(S.couple && S.tab==='wishes') startWishPoll(); // держим общий список желаний свежим
+      loadStats(); // если ты админ (ADMIN_TG_IDS) — подтянется статистика
+    } // not_configured / ошибка → тихо остаёмся в демо
+  }catch(e){}
+}
+
+// закрытие модалки по тапу на фон (вызывается из inline onclick оверлея)
+window.__paraModalClose=function(){ S.wmodal=null; render(); };
+// фильтр списка пользователей по имени (без ре-рендера — чтобы не терять фокус)
+window.__admFilter=function(q){ q=(q||'').trim().toLowerCase(); var list=document.getElementById('adm-user-list'); if(!list)return;
+  var rows=list.querySelectorAll('.urow'); for(var i=0;i<rows.length;i++){ var nm=rows[i].getAttribute('data-name')||''; rows[i].style.display=(!q||nm.indexOf(q)>=0)?'':'none'; } };
+window.__admPairSearch=function(q){ q=(q||'').trim().toLowerCase(); var list=document.getElementById('adm-pair-list'); if(!list)return;
+  var rows=list.querySelectorAll('.urow'); for(var i=0;i<rows.length;i++){ var nm=rows[i].getAttribute('data-name')||''; rows[i].style.display=(!q||nm.indexOf(q)>=0)?'':'none'; } };
+window.__admWishSearch=function(q){ q=(q||'').trim().toLowerCase(); var list=document.getElementById('adm-wish-list'); if(!list)return;
+  var rows=list.querySelectorAll('.urow'); for(var i=0;i<rows.length;i++){ var nm=rows[i].getAttribute('data-name')||''; rows[i].style.display=(!q||nm.indexOf(q)>=0)?'':'none'; } };
+try{ applyTheme(S.theme); }catch(e){} // применить выбранную тему при запуске
+
+document.getElementById('root').addEventListener('click',function(e){
+  var el=e.target.closest('[data-act]'); if(!el)return;
+  var fn=ACTS[el.dataset.act]; if(fn){ e.preventDefault(); fn(el); }
+});
+
+// пришли по ссылке-приглашению → сразу к присоединению
+if(START_PARAM && !S.couple){
+  S.ob.step='pair'; S.ob.mode='join'; S.ob.invited=true; S.ob.code=START_PARAM.toUpperCase().slice(0,6);
+}
+
+boot();
+})();
+</script>
+</body>
+</html>

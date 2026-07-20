@@ -1,0 +1,24 @@
+{
+  "headers": [
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" }
+      ]
+    }
+  ],
+  "crons": [
+    { "path": "/api/cron", "schedule": "0 9 * * *" },
+    { "path": "/api/evening", "schedule": "0 18 * * *" }
+  ],
+  "functions": {
+    "api/cron.js": { "maxDuration": 60 },
+    "api/evening.js": { "maxDuration": 60 }
+  }
+}
