@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Shopik — магазин за 5 хвилин</title>
+<title>Shopik — магазин за 60 секунд</title>
 <style>html,body{margin:0;background:#0e0e0e;min-height:100%;}</style>
 <script src="https://cdn.tailwindcss.com"></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -1096,7 +1096,7 @@ export default function ShopPlatform() {
           )}
           <div className="text-5xl mb-5 text-center">◐</div>
           <h1 className="text-3xl font-semibold tracking-[0.3em] mb-4 text-center">ШОПИК</h1>
-          <h2 className="text-[26px] font-semibold leading-tight text-center mb-3">Магазин із твоїх фото за 5 хвилин</h2>
+          <h2 className="text-[26px] font-semibold leading-tight text-center mb-3">Створи магазин за 60 секунд</h2>
           <p className="text-neutral-400 text-sm text-center mb-7">Завантаж фото товарів — штучний інтелект сам напише назви, ціни й описи. Замовлення приходять у Telegram.</p>
 
           <button onClick={() => setPage('import')} className="w-full bg-white text-neutral-900 font-semibold py-4 rounded-full mb-3 flex items-center justify-center gap-2"><Sparkles className="w-5 h-5" /> Створити магазин із фото</button>
@@ -1125,7 +1125,7 @@ export default function ShopPlatform() {
 
           {/* Соц-доказ */}
           <div className="mt-10 grid grid-cols-3 gap-3 text-center">
-            {[['⭐', 'Early Access', 'Отримайте доступ першими'], ['🚀', 'Запуск за 5 хвилин', 'Магазин готовий за кілька хвилин'], ['🤖', 'AI Assistant', 'Сам створює картки товарів']].map(([e, n, l], i) => (
+            {[['⭐', 'Early Access', 'Отримайте доступ першими'], ['🚀', 'Запуск за 60 секунд', 'Магазин готовий за кілька хвилин'], ['🤖', 'AI Assistant', 'Сам створює картки товарів']].map(([e, n, l], i) => (
               <div key={n} className="group relative rounded-3xl p-4 transition-all duration-300 hover:-translate-y-1" style={{ background: 'linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 30px rgba(0,0,0,0.35)' }}>
                 <div className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" style={{ boxShadow: '0 0 0 1px rgba(255,255,255,0.12), 0 12px 40px rgba(255,255,255,0.06)' }} />
                 <div className="mx-auto mb-2.5 w-9 h-9 rounded-xl flex items-center justify-center text-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>{e}</div>
