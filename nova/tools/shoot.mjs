@@ -8,6 +8,8 @@ const base = 'http://localhost:8080';
 const routes = [
   ['home', '/'],
   ['calendar', '/calendar'],
+  ['calendar-week', '/calendar?view=week'],
+  ['calendar-month', '/calendar?view=month'],
   ['analytics', '/analytics'],
   ['menu', '/menu'],
 ];
