@@ -25,8 +25,6 @@ create table if not exists shark_users (
   lang           text    not null default 'ru',
   money_balance  numeric(14,2) not null default 0,   -- грн, доступно к выводу
   stars_balance  bigint  not null default 0,          -- ⭐, игровая валюта
-  is_pro         boolean not null default false,
-  pro_until      timestamptz,
   ref_code       text    unique,                       -- код этого юзера для приглашений
   ref_by         bigint  references shark_users(tg_id),-- кто пригласил
   banned         boolean not null default false,
@@ -44,49 +42,14 @@ create table if not exists shark_ledger (
   tg_id      bigint not null references shark_users(tg_id),
   currency   text   not null check (currency in ('uah','stars')),
   amount     numeric(14,2) not null,                   -- + начисление, − списание
-  kind       text   not null,                          -- task|referral|bet|win|withdraw|withdraw_refund|daily|wheel|pro|gift|adjust
-  ref        text,                                     -- ссылка на сущность (id задания/вывода/раунда)
+  kind       text   not null,                          -- referral|bet|win|withdraw|withdraw_refund|daily|wheel|gift|adjust
+  ref        text,                                     -- ссылка на сущность (id вывода/раунда)
   idem       text   unique,                            -- ключ идемпотентности (может быть null для «всегда уникальных»)
   meta       jsonb  not null default '{}',
   balance_after numeric(14,2),                         -- баланс соответствующей валюты после операции
   created_at timestamptz not null default now()
 );
 create index if not exists shark_ledger_tg_idx on shark_ledger(tg_id, created_at desc);
-
--- ---------- каталог заданий (награды хранятся ТУТ, не на клиенте) -------------
-create table if not exists shark_tasks (
-  id         integer primary key,
-  type       text not null check (type in ('daily','once','pro')),
-  title      text not null,
-  descr      text,
-  reward     numeric(14,2) not null,                   -- грн
-  verify     text not null default 'instant'           -- instant | auto_sub | manual
-             check (verify in ('instant','auto_sub','manual')),
-  target     text,                                     -- @channel для auto_sub, url для остального
-  time_note  text,
-  active     boolean not null default true,
-  sort       integer not null default 0
-);
-
--- ---------- заявки на выполнение заданий -------------------------------------
-create table if not exists shark_task_claims (
-  id         bigint generated always as identity primary key,
-  tg_id      bigint not null references shark_users(tg_id),
-  task_id    integer not null references shark_tasks(id),
-  day        date,                                     -- для daily: день выполнения (UTC); для once/pro = null
-  status     text not null default 'pending'           -- pending | approved | rejected
-             check (status in ('pending','approved','rejected')),
-  reward     numeric(14,2) not null default 0,          -- зафиксированная награда на момент заявки
-  proof      text,
-  created_at timestamptz not null default now(),
-  decided_at timestamptz,
-  decided_by bigint
-);
--- одно разовое/pro задание — один раз на юзера; daily — один раз в день
-create unique index if not exists shark_claim_once_uni
-  on shark_task_claims(tg_id, task_id) where day is null;
-create unique index if not exists shark_claim_daily_uni
-  on shark_task_claims(tg_id, task_id, day) where day is not null;
 
 -- ---------- заявки на вывод (ручное подтверждение) ---------------------------
 create table if not exists shark_withdrawals (
@@ -155,8 +118,6 @@ insert into shark_config(id, data) values (1, '{
   "min_withdraw": 100,
   "referral_bonus": 10,
   "referral_share": 0.10,
-  "pro_price": 99,
-  "pro_days": 30,
   "daily_case_stars": 10
 }') on conflict (id) do nothing;
 

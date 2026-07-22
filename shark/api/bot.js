@@ -3,10 +3,9 @@
 // Делает:
 //   • /start [ref_xxx] → регистрирует пользователя, привязывает реферала,
 //     показывает кнопку «🦈 Открыть Shark» (WebApp)
-//   • callback_query от АДМИНА → подтверждение/отклонение заявок:
-//       wd_ok / wd_no — вывод денег (выплату админ делает вручную; при отклонении
-//                        деньги возвращаются на баланс)
-//       tk_ok / tk_no — ручные задания (начисление только после подтверждения)
+//   • callback_query от АДМИНА → подтверждение/отклонение заявок на вывод:
+//       wd_ok / wd_no — выплату админ делает вручную; при отклонении деньги
+//                        возвращаются на баланс пользователя
 //   • successful_payment → задел под оплату Telegram Stars (пополнение)
 //
 // Разовая привязка вебхука: открыть GET https://<домен>/api/bot?setup=1
@@ -69,20 +68,6 @@ async function applyLedger(tg_id, currency, amount, kind, ref, idem, meta) {
   });
   return { ok: r.ok, status: r.status };
 }
-// начислить грн + 10% реферальной доли пригласившему
-async function creditMoney(tg_id, amount, kind, ref, idem, meta) {
-  const r = await applyLedger(tg_id, 'uah', amount, kind, ref, idem, meta);
-  if (!r.ok) return r;
-  const u = await sbGet('shark_users?tg_id=eq.' + tg_id + '&select=ref_by');
-  const refBy = u[0] && u[0].ref_by;
-  if (refBy) {
-    const cfg = await sbGet('shark_config?id=eq.1&select=data');
-    const share = (cfg[0] && cfg[0].data && cfg[0].data.referral_share) || 0.10;
-    const s = Math.round(amount * share * 100) / 100;
-    if (s > 0) await applyLedger(refBy, 'uah', s, 'referral', ref, (idem ? idem + ':share' : null), { from: tg_id });
-  }
-  return r;
-}
 
 async function ensureUser(from, startParam) {
   const rows = await sbGet('shark_users?tg_id=eq.' + from.id + '&select=tg_id');
@@ -122,7 +107,7 @@ function startKb() {
 async function handleCallback(cq) {
   const data = cq.data || '';
   const fromId = cq.from && cq.from.id;
-  const m = data.match(/^(wd_ok|wd_no|tk_ok|tk_no):(\d+)$/);
+  const m = data.match(/^(wd_ok|wd_no):(\d+)$/);
   if (!m) { await tg('answerCallbackQuery', { callback_query_id: cq.id }); return; }
   if (!isAdmin(fromId)) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Нет прав', show_alert: true }); return; }
   const kind = m[1], id = Number(m[2]);
@@ -148,28 +133,6 @@ async function handleCallback(cq) {
       await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n❌ ОТКЛОНЕНО, деньги возвращены (' + fromId + ')' });
       await tg('sendMessage', { chat_id: wd.tg_id, text: '❌ Заявка на вывод ' + Number(wd.amount_uah).toFixed(2) + ' грн отклонена. Деньги возвращены на баланс.' });
       await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отклонено, возврат сделан' });
-    }
-    return;
-  }
-
-  if (kind === 'tk_ok' || kind === 'tk_no') {
-    const rows = await sbGet('shark_task_claims?id=eq.' + id + '&select=*');
-    const claim = rows[0];
-    if (!claim) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Заявка не найдена', show_alert: true }); return; }
-    if (claim.status !== 'pending') { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Уже обработана: ' + claim.status, show_alert: true }); return; }
-
-    if (kind === 'tk_ok') {
-      await sbPatch('shark_task_claims?id=eq.' + id + '&status=eq.pending', { status: 'approved', decided_at: new Date().toISOString(), decided_by: fromId });
-      const idem = 'task:' + claim.task_id + ':' + claim.tg_id + (claim.day ? ':' + claim.day : '');
-      await creditMoney(claim.tg_id, Number(claim.reward), 'task', 'task:' + claim.task_id, idem, {});
-      await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n✅ ЗАСЧИТАНО (' + fromId + ')' });
-      await tg('sendMessage', { chat_id: claim.tg_id, text: '✅ Задание подтверждено! +' + Number(claim.reward).toFixed(2) + ' грн зачислено.' });
-      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Начислено' });
-    } else {
-      await sbPatch('shark_task_claims?id=eq.' + id + '&status=eq.pending', { status: 'rejected', decided_at: new Date().toISOString(), decided_by: fromId });
-      await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n❌ ОТКЛОНЕНО (' + fromId + ')' });
-      await tg('sendMessage', { chat_id: claim.tg_id, text: '❌ Задание отклонено. Если это ошибка — напишите в поддержку.' });
-      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отклонено' });
     }
     return;
   }

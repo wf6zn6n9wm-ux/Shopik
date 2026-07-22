@@ -9,9 +9,8 @@
 // на сервере. Звёзды НЕ конвертируются в деньги ни одним действием.
 //
 // Запрос: POST { action, initData, ...params }
-// Действия: state | task_claim | daily_case | wheel_spin | game_bet |
-//           crash_bet | crash_cashout | buy_gift | buy_pro | withdraw_create |
-//           history
+// Действия: state | daily_case | wheel_spin | game_bet | crash_bet |
+//           crash_cashout | buy_gift | withdraw_create | history
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
 //   SHARK_SUPABASE_URL / SUPABASE_URL
@@ -139,7 +138,7 @@ module.exports = async (req, res) => {
     const cfgRows = await sbGet('shark_config?id=eq.1&select=data');
     const CFG = Object.assign({
       usdt_rate: 45, min_withdraw: 100, referral_bonus: 10, referral_share: 0.10,
-      pro_price: 99, pro_days: 30, daily_case_stars: 10
+      daily_case_stars: 10
     }, (cfgRows[0] && cfgRows[0].data) || {});
 
     // --- убедиться что пользователь есть (upsert) ---
@@ -188,18 +187,6 @@ module.exports = async (req, res) => {
       return u;
     }
 
-    // начислить грн + реферальную долю пригласившему (10% от начисления, от «дома»)
-    async function creditMoney(user, amount, kind, ref, idem, meta) {
-      const r = await applyLedger(user.tg_id, 'uah', amount, kind, ref, idem, meta || {});
-      if (r.ok && user.ref_by) {
-        const share = Math.round(amount * CFG.referral_share * 100) / 100;
-        if (share > 0) {
-          await applyLedger(user.ref_by, 'uah', share, 'referral', ref, (idem ? idem + ':share' : null), { from: user.tg_id });
-        }
-      }
-      return r;
-    }
-
     const user = await ensureUser();
     if (!user) { json(res, 200, { ok: false, reason: 'user_error' }); return; }
     if (user.banned) { json(res, 200, { ok: false, reason: 'banned' }); return; }
@@ -210,15 +197,7 @@ module.exports = async (req, res) => {
     //  STATE — всё состояние для отрисовки
     // ---------------------------------------------------------
     if (action === 'state') {
-      const tasks = await sbGet('shark_tasks?active=eq.true&order=sort.asc,reward.desc&select=*');
-      const claims = await sbGet('shark_task_claims?tg_id=eq.' + me.id + '&select=task_id,status,day');
       const today = todayUTC();
-      const claimMap = {};
-      claims.forEach((c) => {
-        // для daily учитываем только сегодняшние; для once/pro — любые
-        if (c.day) { if (c.day === today) claimMap[c.task_id] = c.status; }
-        else claimMap[c.task_id] = c.status;
-      });
       const refs = await sbGet('shark_referrals?inviter_tg=eq.' + me.id + '&select=invited_tg,earned');
       const refEarned = refs.reduce((a, b) => a + Number(b.earned || 0), 0);
 
@@ -228,12 +207,8 @@ module.exports = async (req, res) => {
         config: {
           usdt_rate: CFG.usdt_rate, min_withdraw: CFG.min_withdraw,
           referral_bonus: CFG.referral_bonus, referral_share: CFG.referral_share,
-          pro_price: CFG.pro_price, daily_case_stars: CFG.daily_case_stars
+          daily_case_stars: CFG.daily_case_stars
         },
-        tasks: tasks.map((t) => ({
-          id: t.id, type: t.type, title: t.title, desc: t.descr, reward: Number(t.reward),
-          verify: t.verify, time: t.time_note || null, status: claimMap[t.id] || null
-        })),
         daily: {
           case_ready: user.daily_case_at !== today,
           wheel_ready: user.wheel_at !== today
@@ -242,63 +217,6 @@ module.exports = async (req, res) => {
         catalog: { roulette: ROUL_PRIZES, wheel: WHEEL, shop: SHOP, bets: BET_OPTIONS, methods: WITHDRAW_METHODS },
         refLink: botLink(BOT, user.ref_code)
       });
-      return;
-    }
-
-    // ---------------------------------------------------------
-    //  TASK_CLAIM — выполнить задание
-    // ---------------------------------------------------------
-    if (action === 'task_claim') {
-      const taskId = Number(body.taskId);
-      const trows = await sbGet('shark_tasks?id=eq.' + taskId + '&active=eq.true&select=*');
-      const task = trows[0];
-      if (!task) { json(res, 200, { ok: false, reason: 'no_task' }); return; }
-      if (task.type === 'pro' && !isProActive(user)) { json(res, 200, { ok: false, reason: 'pro_required' }); return; }
-
-      const day = task.type === 'daily' ? todayUTC() : null;
-      // уже есть заявка?
-      const q = 'shark_task_claims?tg_id=eq.' + me.id + '&task_id=eq.' + taskId +
-        (day ? '&day=eq.' + day : '&day=is.null') + '&select=id,status';
-      const exist = await sbGet(q);
-      if (exist[0]) { json(res, 200, { ok: false, reason: 'already', status: exist[0].status }); return; }
-
-      // авто-проверка подписки на канал
-      if (task.verify === 'auto_sub') {
-        const okSub = await checkSubscription(BOT, task.target, me.id);
-        if (!okSub) { json(res, 200, { ok: false, reason: 'not_subscribed', target: task.target }); return; }
-      }
-
-      const status = task.verify === 'manual' ? 'pending' : 'approved';
-      const claimIns = await sb('shark_task_claims', {
-        method: 'POST',
-        headers: Object.assign({}, H, { Prefer: 'return=representation' }),
-        body: JSON.stringify({
-          tg_id: me.id, task_id: taskId, day, status, reward: Number(task.reward),
-          proof: (body.proof || '').toString().slice(0, 500) || null,
-          decided_at: status === 'approved' ? new Date().toISOString() : null
-        })
-      });
-      if (!claimIns.ok) { json(res, 200, { ok: false, reason: 'claim_conflict' }); return; }
-      const claim = Array.isArray(claimIns.data) ? claimIns.data[0] : claimIns.data;
-
-      if (status === 'approved') {
-        const idem = 'task:' + taskId + ':' + me.id + (day ? ':' + day : '');
-        const r = await creditMoney(user, Number(task.reward), 'task', 'task:' + taskId, idem, { title: task.title });
-        if (!r.ok) { json(res, 200, { ok: false, reason: 'credit_failed' }); return; }
-        const fresh = await freshUser();
-        json(res, 200, { ok: true, status: 'approved', reward: Number(task.reward), user: publicUser(fresh) });
-      } else {
-        // ручная проверка — уведомить админов
-        notifyAdmins(BOT, adminIds(),
-          '🕵️ Заявка на задание\n\n' +
-          '👤 ' + userLabel(user) + '\n' +
-          '📋 ' + task.title + '\n' +
-          '💰 +' + Number(task.reward).toFixed(2) + ' грн\n' +
-          (body.proof ? '📎 ' + String(body.proof).slice(0, 300) + '\n' : '') +
-          '\nПодтвердить: /task_ok ' + claim.id + '   Отклонить: /task_no ' + claim.id,
-          taskDecisionKb(claim.id));
-        json(res, 200, { ok: true, status: 'pending' });
-      }
       return;
     }
 
@@ -468,25 +386,6 @@ module.exports = async (req, res) => {
     }
 
     // ---------------------------------------------------------
-    //  BUY_PRO — подписка PRO за грн с баланса
-    // ---------------------------------------------------------
-    if (action === 'buy_pro') {
-      if (isProActive(user)) { json(res, 200, { ok: false, reason: 'already_pro' }); return; }
-      const price = Number(CFG.pro_price);
-      if (Number(user.money_balance) < price) { json(res, 200, { ok: false, reason: 'no_money' }); return; }
-      const deb = await applyLedger(me.id, 'uah', -price, 'pro', 'pro', null, {});
-      if (!deb.ok) { json(res, 200, { ok: false, reason: 'no_money' }); return; }
-      const until = new Date(Date.now() + CFG.pro_days * 86400000).toISOString();
-      await sb('shark_users?tg_id=eq.' + me.id, {
-        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
-        body: JSON.stringify({ is_pro: true, pro_until: until })
-      });
-      const fresh = await freshUser();
-      json(res, 200, { ok: true, user: publicUser(fresh) });
-      return;
-    }
-
-    // ---------------------------------------------------------
     //  WITHDRAW_CREATE — заявка на вывод (ручное подтверждение админом)
     // ---------------------------------------------------------
     if (action === 'withdraw_create') {
@@ -566,12 +465,11 @@ module.exports = async (req, res) => {
 function adminIds() {
   return (env('ADMIN_IDS') || '').split(',').map((s) => s.trim()).filter(Boolean).map(Number);
 }
-function isProActive(u) { return !!u.is_pro && (!u.pro_until || new Date(u.pro_until).getTime() > Date.now()); }
 function publicUser(u) {
   return {
     tg_id: u.tg_id, username: u.username, first_name: u.first_name, lang: u.lang,
     money: Number(u.money_balance), stars: Number(u.stars_balance),
-    isPro: isProActive(u), played: Number(u.played || 0), wonStars: Number(u.won_stars || 0),
+    played: Number(u.played || 0), wonStars: Number(u.won_stars || 0),
     refCode: u.ref_code
   };
 }
@@ -588,9 +486,9 @@ function mapHistory(r) {
   const sign = amt >= 0 ? '+' : '−';
   const val = r.currency === 'stars' ? (sign + '⭐' + Math.abs(amt)) : (sign + Math.abs(amt).toFixed(2) + ' грн');
   const titles = {
-    task: '✅ Задание', referral: '👥 Реферал', bet: '🎮 Ставка', win: '🏆 Выигрыш',
+    referral: '👥 Реферал', bet: '🎮 Ставка', win: '🏆 Выигрыш',
     withdraw: '💸 Вывод', withdraw_refund: '↩️ Возврат вывода', daily: '🎁 Ежедневный кейс',
-    wheel: '🎡 Колесо', pro: '⭐ PRO', gift: '🎁 Подарок', adjust: '⚙️ Коррекция'
+    wheel: '🎡 Колесо', gift: '🎁 Подарок', adjust: '⚙️ Коррекция'
   };
   return {
     icon: (titles[r.kind] || '•').split(' ')[0],
@@ -635,20 +533,6 @@ function withdrawDecisionKb(id) {
     { text: '✅ Подтвердить', callback_data: 'wd_ok:' + id },
     { text: '❌ Отклонить', callback_data: 'wd_no:' + id }
   ]] };
-}
-function taskDecisionKb(id) {
-  return { inline_keyboard: [[
-    { text: '✅ Засчитать', callback_data: 'tk_ok:' + id },
-    { text: '❌ Отклонить', callback_data: 'tk_no:' + id }
-  ]] };
-}
-// проверка подписки на канал: бот должен быть админом канала target (@channel)
-async function checkSubscription(botToken, target, userId) {
-  if (!target) return true;
-  const r = await tg(botToken, 'getChatMember', { chat_id: target, user_id: userId });
-  if (!r || !r.ok || !r.result) return false;
-  const st = r.result.status;
-  return st === 'member' || st === 'administrator' || st === 'creator';
 }
 
 // экспорт для bot.js и тестов
