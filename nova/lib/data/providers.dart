@@ -136,7 +136,8 @@ final dashboardProvider = Provider<DashboardData>((ref) {
   // Вільні вікна: гепи ≥40 хв від «зараз» до кінця робочого дня (20:00).
   final dayEnd = DateTime(now.year, now.month, now.day, 20);
   final busy = appts
-      .where((a) => a.status != AppointmentStatus.cancelled && a.end.isAfter(now))
+      .where(
+          (a) => a.status != AppointmentStatus.cancelled && a.end.isAfter(now))
       .map((a) => (a.start, a.end))
       .toList()
     ..sort((x, y) => x.$1.compareTo(y.$1));
