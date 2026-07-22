@@ -283,9 +283,15 @@ class ZStatCard extends StatelessWidget {
         children: [
           ZLabel(label),
           const SizedBox(height: 4),
-          Text(value,
-              style: AppTypography.tabular(AppTypography.title1(k.ink))
-                  .copyWith(fontSize: 24)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value,
+                maxLines: 1,
+                softWrap: false,
+                style: AppTypography.tabular(AppTypography.title1(k.ink))
+                    .copyWith(fontSize: 24)),
+          ),
           if (sub != null) ...[
             const SizedBox(height: 2),
             Text(sub!,

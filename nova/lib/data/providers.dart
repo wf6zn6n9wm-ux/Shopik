@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/time/demo_clock.dart';
 import '../domain/models.dart';
 import '../domain/repositories.dart';
 import 'db/database.dart';
@@ -115,7 +116,7 @@ class DashboardData {
 final dashboardProvider = Provider<DashboardData>((ref) {
   final appts =
       ref.watch(dayAppointmentsProvider).value ?? const <Appointment>[];
-  final now = DateTime.now();
+  final now = demoNow();
 
   final revenue = appts
       .where((a) => a.status == AppointmentStatus.completed)
@@ -132,26 +133,23 @@ final dashboardProvider = Provider<DashboardData>((ref) {
   final minutesToNext =
       next == null ? 0 : next.start.difference(now).inMinutes.clamp(0, 999);
 
-  // Вільні вікна: гепи ≥30 хв у робочих годинах (10:00–19:00), майбутні.
-  final dayStart = DateTime(now.year, now.month, now.day, 10);
-  final dayEnd = DateTime(now.year, now.month, now.day, 19);
+  // Вільні вікна: гепи ≥40 хв від «зараз» до кінця робочого дня (20:00).
+  final dayEnd = DateTime(now.year, now.month, now.day, 20);
   final busy = appts
-      .where((a) => a.status != AppointmentStatus.cancelled)
+      .where((a) => a.status != AppointmentStatus.cancelled && a.end.isAfter(now))
       .map((a) => (a.start, a.end))
       .toList()
     ..sort((x, y) => x.$1.compareTo(y.$1));
   final windows = <DateTime>[];
-  var cursor = dayStart.isAfter(now) ? dayStart : _ceilTo15(now);
+  var cursor = now;
   for (final b in busy) {
-    if (b.$1.isAfter(cursor) && b.$1.difference(cursor).inMinutes >= 30) {
-      if (cursor.isAfter(now)) windows.add(cursor);
+    if (b.$1.isAfter(cursor) && b.$1.difference(cursor).inMinutes >= 40) {
+      windows.add(_ceilTo15(cursor));
     }
     if (b.$2.isAfter(cursor)) cursor = b.$2;
   }
-  if (cursor.isBefore(dayEnd) &&
-      dayEnd.difference(cursor).inMinutes >= 30 &&
-      cursor.isAfter(now)) {
-    windows.add(cursor);
+  if (cursor.isBefore(dayEnd) && dayEnd.difference(cursor).inMinutes >= 40) {
+    windows.add(_ceilTo15(cursor));
   }
 
   return DashboardData(

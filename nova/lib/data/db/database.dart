@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import '../../core/time/demo_clock.dart';
 import '../../domain/models.dart' as domain;
 
 part 'database.g.dart';
@@ -293,8 +294,8 @@ class AppDatabase extends _$AppDatabase {
     final has = await (select(businesses)..limit(1)).get();
     if (has.isNotEmpty) return;
 
-    final now = DateTime.now();
-    DateTime at(int minutes) => now.add(Duration(minutes: minutes));
+    final base = demoToday();
+    DateTime at(int h, int m) => base.add(Duration(hours: h, minutes: m));
 
     await transaction(() async {
       // Бізнес — Україна: ₴ (UAH), Europe/Kyiv.
@@ -414,9 +415,17 @@ class AppDatabase extends _$AppDatabase {
                 phone: '+380676667788',
                 visitsCount: const Value(7),
                 totalSpent: const Value(720000)),
+            ClientsCompanion.insert(
+                id: 'cl_yulia',
+                businessId: 'b1',
+                name: 'Юлія Савчук',
+                phone: '+380677778899',
+                visitsCount: const Value(3),
+                totalSpent: const Value(230000)),
           ]));
 
-      // Записи сьогодні: 4 завершені (виручка ₴2 400) + наступний за ~25 хв + ще один.
+      // Записи сьогодні (демо-«зараз» 14:20): 4 завершені = виручка ₴2 400,
+      // наступний о 14:45 (за 25 хв), далі ще два — між ними денні вільні вікна.
       String uid(String s) => 'ap_$s';
       await batch((b) => b.insertAll(appointments, [
             AppointmentsCompanion.insert(
@@ -425,7 +434,7 @@ class AppDatabase extends _$AppDatabase {
                 clientId: 'cl_iryna',
                 serviceId: 'sv_gel',
                 staffId: const Value('st1'),
-                startAt: at(-195),
+                startAt: at(9, 30),
                 status: 'completed'),
             AppointmentsCompanion.insert(
                 id: uid('2'),
@@ -433,7 +442,7 @@ class AppDatabase extends _$AppDatabase {
                 clientId: 'cl_natalia',
                 serviceId: 'sv_spa',
                 staffId: const Value('st1'),
-                startAt: at(-120),
+                startAt: at(11, 0),
                 status: 'completed'),
             AppointmentsCompanion.insert(
                 id: uid('3'),
@@ -441,7 +450,7 @@ class AppDatabase extends _$AppDatabase {
                 clientId: 'cl_tetiana',
                 serviceId: 'sv_art',
                 staffId: const Value('st1'),
-                startAt: at(-60),
+                startAt: at(12, 15),
                 status: 'completed'),
             AppointmentsCompanion.insert(
                 id: uid('4'),
@@ -449,7 +458,7 @@ class AppDatabase extends _$AppDatabase {
                 clientId: 'cl_maria',
                 serviceId: 'sv_gel',
                 staffId: const Value('st1'),
-                startAt: at(-25),
+                startAt: at(13, 30),
                 status: 'completed'),
             AppointmentsCompanion.insert(
                 id: uid('5'),
@@ -457,7 +466,7 @@ class AppDatabase extends _$AppDatabase {
                 clientId: 'cl_olena',
                 serviceId: 'sv_gel',
                 staffId: const Value('st1'),
-                startAt: at(25),
+                startAt: at(14, 45),
                 status: 'confirmed'),
             AppointmentsCompanion.insert(
                 id: uid('6'),
@@ -465,7 +474,15 @@ class AppDatabase extends _$AppDatabase {
                 clientId: 'cl_andriy',
                 serviceId: 'sv_exp',
                 staffId: const Value('st1'),
-                startAt: at(110),
+                startAt: at(16, 15),
+                status: 'confirmed'),
+            AppointmentsCompanion.insert(
+                id: uid('7'),
+                businessId: 'b1',
+                clientId: 'cl_yulia',
+                serviceId: 'sv_man',
+                staffId: const Value('st1'),
+                startAt: at(18, 0),
                 status: 'confirmed'),
           ]));
     });
