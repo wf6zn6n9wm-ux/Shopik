@@ -1,117 +1,133 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/services/analytics/analytics_events.dart';
-import '../../core/services/analytics/analytics_service.dart';
+import '../../core/time/demo_clock.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
-import '../../ui/client_row.dart';
-import '../../ui/empty_state.dart';
 import '../../ui/format.dart';
-import '../../ui/kavio_page_scaffold.dart';
-import '../../ui/status_pill.dart';
-import '../calendar/appointment_sheet.dart';
+import '../../ui/z.dart';
+import '../calendar/calendar_screen.dart' show apptColor;
 import '../create/create_appointment_sheet.dart';
 
-/// Карточка клиента: вся информация за 3 секунды, без переходов. Секции ленивы
-/// (ListView), метрики выводятся из записей. Финансы/лояльность/вложения —
-/// структурные секции под будущие данные; AI — место под подсказки (интерфейс).
-class ClientDetailScreen extends ConsumerStatefulWidget {
+/// Картка клієнта — «дороге» відчуття: аватар зі свіченням, теги, наступний
+/// запис, швидкі дії, LTV-hero, улюблені послуги, історія, нотатки.
+class ClientDetailScreen extends ConsumerWidget {
   const ClientDetailScreen({super.key, required this.clientId});
-
   final String clientId;
 
   @override
-  ConsumerState<ClientDetailScreen> createState() => _ClientDetailScreenState();
-}
-
-class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(analyticsServiceProvider).track(AnalyticsEvent.clientOpened);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final client = ref.watch(clientByIdProvider(widget.clientId));
-    final apptsAsync = ref.watch(clientAppointmentsProvider(widget.clientId));
+  Widget build(BuildContext context, WidgetRef ref) {
+    final k = context.kavio;
+    final client = ref.watch(clientByIdProvider(clientId));
+    final appts = ref.watch(clientAppointmentsProvider(clientId)).value ??
+        const <Appointment>[];
 
     if (client == null) {
-      return KavioPageScaffold(
-        title: 'Клиент',
-        body: EmptyState(
-          icon: Icons.person_off_outlined,
-          title: 'Клиент не найден',
-          message: 'Возможно, запись была удалена.',
-          actionLabel: 'Назад',
-          onAction: () => Navigator.of(context).maybePop(),
-        ),
+      return Scaffold(
+        backgroundColor: k.canvas,
+        appBar: AppBar(backgroundColor: k.canvas, elevation: 0),
+        body: Center(
+            child: Text('Клієнта не знайдено',
+                style: AppTypography.body(k.ink2))),
       );
     }
 
-    final appts = apptsAsync.value ?? const <Appointment>[];
-    final m = _Metrics.from(client, appts);
+    final now = demoNow();
+    final past = appts.where((a) => a.start.isBefore(now)).toList()
+      ..sort((a, b) => b.start.compareTo(a.start));
+    Appointment? next;
+    for (final a in appts) {
+      if (!a.start.isBefore(now)) {
+        if (next == null || a.start.isBefore(next.start)) next = a;
+      }
+    }
+    final avg = client.visitsCount > 0
+        ? client.totalSpent ~/ client.visitsCount
+        : 0;
 
-    return KavioPageScaffold(
-      title: 'Клиент',
-      body: ListView(
-        padding:
-            const EdgeInsets.fromLTRB(Spacing.s5, 0, Spacing.s5, Spacing.s16),
+    // Улюблені послуги: топ-3 за кількістю.
+    final byService = <String, (String, int)>{};
+    for (final a in appts) {
+      final e = byService[a.service.id];
+      byService[a.service.id] = (a.service.name, (e?.$2 ?? 0) + 1);
+    }
+    final favs = byService.entries.toList()
+      ..sort((a, b) => b.value.$2.compareTo(a.value.$2));
+
+    var i = 0;
+    Widget reveal(Widget c) => StaggerReveal(index: i++, child: c);
+
+    return Container(
+      color: k.canvas,
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _TopBar(),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
+                children: [
+                  reveal(_Header(client: client)),
+                  const SizedBox(height: 14),
+                  if (next != null) ...[
+                    reveal(_NextChip(next: next, now: now)),
+                    const SizedBox(height: 14),
+                  ],
+                  reveal(_QuickActions(client: client)),
+                  const SizedBox(height: 14),
+                  reveal(_LtvHero(ltv: client.totalSpent, visits: client.visitsCount, avg: avg)),
+                  const SizedBox(height: 16),
+                  if (favs.isNotEmpty) ...[
+                    reveal(const ZLabel('Улюблені послуги')),
+                    const SizedBox(height: 8),
+                    reveal(_Favorites(favs: favs)),
+                    const SizedBox(height: 16),
+                  ],
+                  reveal(const ZLabel('Історія')),
+                  const SizedBox(height: 8),
+                  reveal(_History(past: past)),
+                  const SizedBox(height: 16),
+                  reveal(const ZLabel('Нотатки')),
+                  const SizedBox(height: 8),
+                  reveal(_Notes(note: client.note)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final k = context.kavio;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: Row(
         children: [
-          _Header(client: client, status: m.status),
-          const SizedBox(height: Spacing.s4),
-          _QuickActions(client: client),
-          const SizedBox(height: Spacing.s6),
-          _StatGrid(metrics: m),
-          const SizedBox(height: Spacing.s6),
-          _AiInsights(status: m.status, avgIntervalDays: m.avgIntervalDays),
-          const SizedBox(height: Spacing.s6),
-          _Section(
-            label: 'История',
-            child: appts.isEmpty
-                ? _muted(context, 'Пока нет визитов')
-                : Column(children: [for (final a in appts) _TimelineTile(a)]),
+          GestureDetector(
+            onTap: () => Navigator.of(context).maybePop(),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                  color: k.surface2, borderRadius: BorderRadius.circular(12)),
+              child: Icon(Icons.chevron_left, color: k.ink2),
+            ),
           ),
-          const SizedBox(height: Spacing.s5),
-          _Section(
-            label: 'Финансы',
-            child: Column(children: [
-              _kv(context, 'Потрачено всего', Fmt.money(client.totalSpent)),
-              _kv(context, 'Оплачено', Fmt.money(client.totalSpent)),
-              _kv(context, 'Долг', Fmt.money(0)),
-              _kv(context, 'Предоплаты', Fmt.money(0)),
-              _kv(context, 'Возвраты', Fmt.money(0)),
-            ]),
-          ),
-          const SizedBox(height: Spacing.s5),
-          _Section(
-            label: 'Лояльность',
-            child: Column(children: [
-              _kv(context, 'Бонусы', '0'),
-              _kv(context, 'Сертификаты', 'нет'),
-              _kv(context, 'Абонементы', 'нет'),
-              _kv(context, 'Персональная скидка', '—'),
-            ]),
-          ),
-          const SizedBox(height: Spacing.s5),
-          _Section(
-            label: 'Заметки',
-            child: _muted(
-                context,
-                (client.note?.isNotEmpty ?? false)
-                    ? client.note!
-                    : 'Нет заметок'),
-          ),
-          const SizedBox(height: Spacing.s5),
-          _Section(
-            label: 'Вложения',
-            child: _muted(context, 'Нет вложений'),
+          const Spacer(),
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+                color: k.surface2, borderRadius: BorderRadius.circular(12)),
+            child: Icon(Icons.more_horiz, color: k.ink2),
           ),
         ],
       ),
@@ -119,228 +135,146 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
   }
 }
 
-// ---------------- Метрики ----------------
-
-class _Metrics {
-  _Metrics({
-    required this.status,
-    required this.firstVisit,
-    required this.lastVisit,
-    required this.nextVisit,
-    required this.visits,
-    required this.avgCheck,
-    required this.ltv,
-    required this.avgIntervalDays,
-  });
-
-  final String status;
-  final DateTime? firstVisit;
-  final DateTime? lastVisit;
-  final DateTime? nextVisit;
-  final int visits;
-  final int avgCheck;
-  final int ltv;
-  final int? avgIntervalDays;
-
-  static _Metrics from(Client client, List<Appointment> appts) {
-    final now = DateTime.now();
-    final past = [
-      for (final a in appts)
-        if (a.start.isBefore(now)) a
-    ];
-    final future = [
-      for (final a in appts)
-        if (!a.start.isBefore(now)) a
-    ];
-    final lastVisit = past.isNotEmpty ? past.first.start : null;
-    final firstVisit = past.isNotEmpty ? past.last.start : null;
-    final nextVisit = future.isNotEmpty ? future.last.start : null;
-
-    final visits = client.visitsCount;
-    final ltv = client.totalSpent;
-    final avgCheck = visits > 0 ? ltv ~/ visits : 0;
-
-    final dates = [for (final a in past) a.start]..sort();
-    int? avgInterval;
-    if (dates.length >= 2) {
-      var total = 0;
-      for (var i = 1; i < dates.length; i++) {
-        total += dates[i].difference(dates[i - 1]).inDays;
-      }
-      avgInterval = (total / (dates.length - 1)).round();
-    }
-
-    String status;
-    if (visits <= 1) {
-      status = 'Новый';
-    } else if (lastVisit != null && now.difference(lastVisit).inDays > 60) {
-      status = 'Давно не был';
-    } else {
-      status = 'Постоянный';
-    }
-
-    return _Metrics(
-      status: status,
-      firstVisit: firstVisit,
-      lastVisit: lastVisit,
-      nextVisit: nextVisit,
-      visits: visits,
-      avgCheck: avgCheck,
-      ltv: ltv,
-      avgIntervalDays: avgInterval,
-    );
-  }
-}
-
-// ---------------- Верхняя часть ----------------
-
 class _Header extends StatelessWidget {
-  const _Header({required this.client, required this.status});
-
+  const _Header({required this.client});
   final Client client;
-  final String status;
-
   @override
   Widget build(BuildContext context) {
-    final kavio = context.kavio;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final k = context.kavio;
+    final vip = client.totalSpent >= 1000000;
+    final regular = client.visitsCount >= 5;
+    return Row(
       children: [
-        Row(
-          children: [
-            Avatar(client.initials, size: 64),
-            const SizedBox(width: Spacing.s4),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        ZAvatar(initials: client.initials, size: 62, ring: true),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(client.name,
+                  style: AppTypography.title2(k.ink).copyWith(fontSize: 20)),
+              const SizedBox(height: 6),
+              Row(
                 children: [
-                  Text(client.name, style: AppTypography.title2(kavio.ink)),
-                  const SizedBox(height: 2),
-                  Text(client.phone, style: AppTypography.label(kavio.ink2)),
+                  if (regular)
+                    ZPill('Постійна', color: k.success, bg: k.successTint),
+                  if (regular) const SizedBox(width: 6),
+                  if (vip) ZPill('VIP', color: k.accent, bg: k.accentTint),
                 ],
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: Spacing.s3),
-        Wrap(
-          spacing: Spacing.s2,
-          runSpacing: Spacing.s2,
-          children: [
-            _Chip(status, accent: true),
-            for (final t in client.tags) _Chip(t),
-          ],
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-class _Chip extends StatelessWidget {
-  const _Chip(this.label, {this.accent = false});
-  final String label;
-  final bool accent;
-
+class _NextChip extends StatelessWidget {
+  const _NextChip({required this.next, required this.now});
+  final Appointment next;
+  final DateTime now;
   @override
   Widget build(BuildContext context) {
-    final kavio = context.kavio;
+    final k = context.kavio;
+    final d = DateTime(next.start.year, next.start.month, next.start.day);
+    final today = DateTime(now.year, now.month, now.day);
+    final diff = d.difference(today).inDays;
+    final when = diff == 0
+        ? 'сьогодні'
+        : diff == 1
+            ? 'завтра'
+            : Fmt.dayMonth(next.start);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
       decoration: BoxDecoration(
-        color: accent ? kavio.accentTint : kavio.surface3,
-        borderRadius: BorderRadius.circular(Radii.full),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x248B8BF0), Color(0xFF151519)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: k.line),
       ),
-      child: Text(label,
-          style: AppTypography.label(accent ? kavio.accent : kavio.ink2)
-              .copyWith(fontSize: 12)),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+                color: k.accentTint, borderRadius: BorderRadius.circular(10)),
+            child: Icon(Icons.event, size: 17, color: k.accent),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Text.rich(TextSpan(
+              style: AppTypography.body(k.ink2).copyWith(fontSize: 13),
+              children: [
+                const TextSpan(text: 'Наступний запис · '),
+                TextSpan(
+                    text: '$when ${Fmt.time(next.start)}',
+                    style: TextStyle(color: k.ink, fontWeight: FontWeight.w700)),
+              ],
+            )),
+          ),
+          Text('Відкрити',
+              style: AppTypography.label(k.accent).copyWith(fontSize: 12)),
+        ],
+      ),
     );
   }
 }
-
-// ---------------- Быстрые действия ----------------
 
 class _QuickActions extends StatelessWidget {
   const _QuickActions({required this.client});
   final Client client;
-
+  String get _digits => client.phone.replaceAll(RegExp('[^0-9+]'), '');
   Future<void> _launch(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
-
-  String get _digits => client.phone.replaceAll(RegExp('[^0-9+]'), '');
 
   @override
   Widget build(BuildContext context) {
-    void soon() => ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Скоро')));
-
     final actions = <(IconData, String, VoidCallback)>[
-      (Icons.call_outlined, 'Позвонить', () => _launch('tel:$_digits')),
-      (Icons.chat_bubble_outline, 'Написать', () => _launch('sms:$_digits')),
-      (
-        Icons.forum_outlined,
-        'WhatsApp',
-        () => _launch('https://wa.me/$_digits')
-      ),
-      (
-        Icons.event_outlined,
-        'Запись',
-        () => showCreateAppointmentSheet(context)
-      ),
-      (Icons.shopping_bag_outlined, 'Товар', soon),
-      (Icons.card_giftcard_outlined, 'Сертификат', soon),
+      (Icons.call_outlined, 'Дзвінок', () => _launch('tel:$_digits')),
+      (Icons.chat_bubble_outline, 'Написати', () => _launch('sms:$_digits')),
+      (Icons.add, 'Запис', () => showCreateAppointmentSheet(context)),
     ];
-
-    return SizedBox(
-      height: 76,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: actions.length,
-        separatorBuilder: (_, __) => const SizedBox(width: Spacing.s3),
-        itemBuilder: (context, i) {
-          final (icon, label, onTap) = actions[i];
-          return _ActionButton(icon: icon, label: label, onTap: onTap);
-        },
-      ),
+    return Row(
+      children: [
+        for (var i = 0; i < actions.length; i++) ...[
+          if (i > 0) const SizedBox(width: 9),
+          Expanded(child: _ActionTile(actions[i])),
+        ],
+      ],
     );
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  const _ActionButton(
-      {required this.icon, required this.label, required this.onTap});
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
+class _ActionTile extends StatelessWidget {
+  const _ActionTile(this.a);
+  final (IconData, String, VoidCallback) a;
   @override
   Widget build(BuildContext context) {
-    final kavio = context.kavio;
+    final k = context.kavio;
     return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 68,
+      onTap: a.$3,
+      child: ZCard(
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: Column(
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
-                color: kavio.surface,
-                borderRadius: BorderRadius.circular(Radii.md),
-                border: Border.all(color: kavio.line),
-              ),
-              child: Icon(icon, size: 22, color: kavio.accent),
+                  color: k.accentTint, borderRadius: BorderRadius.circular(11)),
+              child: Icon(a.$1, size: 17, color: k.accent),
             ),
-            const SizedBox(height: 6),
-            Text(label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.caption(kavio.ink2)
-                    .copyWith(letterSpacing: 0)),
+            const SizedBox(height: 5),
+            Text(a.$2,
+                style: AppTypography.label(k.ink2)
+                    .copyWith(fontSize: 11, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
@@ -348,202 +282,153 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// ---------------- Ключевые показатели ----------------
-
-class _StatGrid extends StatelessWidget {
-  const _StatGrid({required this.metrics});
-  final _Metrics metrics;
-
-  static String _date(DateTime? d) =>
-      d == null ? '—' : DateFormat('d MMM yyyy', 'ru').format(d);
-
+class _LtvHero extends StatelessWidget {
+  const _LtvHero({required this.ltv, required this.visits, required this.avg});
+  final int ltv, visits, avg;
   @override
   Widget build(BuildContext context) {
-    final m = metrics;
-    final items = <(String, String)>[
-      ('Первый визит', _date(m.firstVisit)),
-      ('Последний визит', _date(m.lastVisit)),
-      ('Следующий визит', _date(m.nextVisit)),
-      ('Визитов', '${m.visits}'),
-      ('Средний чек', Fmt.money(m.avgCheck)),
-      ('LTV', Fmt.money(m.ltv)),
-      ('Интервал', m.avgIntervalDays == null ? '—' : '${m.avgIntervalDays} дн'),
-    ];
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: Spacing.s2,
-      crossAxisSpacing: Spacing.s2,
-      childAspectRatio: 2.6,
-      children: [for (final it in items) _StatCell(label: it.$1, value: it.$2)],
-    );
-  }
-}
-
-class _StatCell extends StatelessWidget {
-  const _StatCell({required this.label, required this.value});
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final kavio = context.kavio;
-    return Container(
-      padding: const EdgeInsets.all(Spacing.s3),
-      decoration: BoxDecoration(
-        color: kavio.surface,
-        borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(color: kavio.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(label,
-              style:
-                  AppTypography.caption(kavio.ink3).copyWith(letterSpacing: 0)),
-          const SizedBox(height: 2),
-          Text(value,
-              style: AppTypography.tabular(AppTypography.title3(kavio.ink))
-                  .copyWith(fontSize: 15)),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------- AI (место под подсказки) ----------------
-
-class _AiInsights extends StatelessWidget {
-  const _AiInsights({required this.status, required this.avgIntervalDays});
-  final String status;
-  final int? avgIntervalDays;
-
-  @override
-  Widget build(BuildContext context) {
-    final kavio = context.kavio;
-    final hints = <String>[
-      if (status == 'Давно не был')
-        'Клиент давно не посещал — предложите вернуться со скидкой',
-      if (avgIntervalDays != null)
-        'Обычно приходит раз в $avgIntervalDays дн — предложите записаться',
-      if (status == 'Постоянный') 'Вероятность повторной записи высокая',
-    ];
-    if (hints.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(Spacing.s4),
-      decoration: BoxDecoration(
-        color: kavio.accentTint,
-        borderRadius: BorderRadius.circular(Radii.lg),
-      ),
-      child: Column(
+    final k = context.kavio;
+    return ZHero(
+      padding: const EdgeInsets.all(16),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.auto_awesome_outlined, size: 16, color: kavio.accent),
-              const SizedBox(width: 6),
-              Text('AI · превью', style: AppTypography.caption(kavio.accent)),
-            ],
-          ),
-          const SizedBox(height: Spacing.s2),
-          for (final h in hints)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(h, style: AppTypography.label(kavio.ink)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ZLabel('Витрачено (LTV)', color: k.accent),
+                const SizedBox(height: 2),
+                Text(Fmt.money(ltv),
+                    style: AppTypography.tabular(AppTypography.title1(k.ink))),
+              ],
             ),
+          ),
+          _MiniStat(value: '$visits', label: 'візитів'),
+          const SizedBox(width: 16),
+          _MiniStat(value: Fmt.money(avg), label: 'сер. чек'),
         ],
       ),
     );
   }
 }
 
-// ---------------- Секции / строки ----------------
-
-class _Section extends StatelessWidget {
-  const _Section({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({required this.value, required this.label});
+  final String value, label;
   @override
   Widget build(BuildContext context) {
-    final kavio = context.kavio;
+    final k = context.kavio;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(label.toUpperCase(), style: AppTypography.caption(kavio.ink3)),
-        const SizedBox(height: Spacing.s2),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(Spacing.s4),
-          decoration: BoxDecoration(
-            color: kavio.surface,
-            borderRadius: BorderRadius.circular(Radii.lg),
-            border: Border.all(color: kavio.line),
-          ),
-          child: child,
-        ),
+        Text(value,
+            style: AppTypography.tabular(AppTypography.title3(k.ink))
+                .copyWith(fontSize: 15, fontWeight: FontWeight.w700)),
+        Text(label, style: AppTypography.label(k.ink3).copyWith(fontSize: 10)),
       ],
     );
   }
 }
 
-Widget _kv(BuildContext context, String k, String v) {
-  final kavio = context.kavio;
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
-    child: Row(
-      children: [
-        Expanded(child: Text(k, style: AppTypography.label(kavio.ink2))),
-        Text(v,
-            style: AppTypography.tabular(AppTypography.label(kavio.ink))
-                .copyWith(fontWeight: FontWeight.w600)),
-      ],
-    ),
-  );
-}
-
-Widget _muted(BuildContext context, String text) =>
-    Text(text, style: AppTypography.body(context.kavio.ink2));
-
-class _TimelineTile extends StatelessWidget {
-  const _TimelineTile(this.appointment);
-  final Appointment appointment;
-
+class _Favorites extends StatelessWidget {
+  const _Favorites({required this.favs});
+  final List<MapEntry<String, (String, int)>> favs;
   @override
   Widget build(BuildContext context) {
-    final kavio = context.kavio;
-    final a = appointment;
-    return InkWell(
-      onTap: () => showAppointmentSheet(context, a),
-      borderRadius: BorderRadius.circular(Radii.sm),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: Spacing.s2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Icon(Icons.circle, size: 8, color: kavio.accent),
+    final k = context.kavio;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final f in favs.take(3))
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+                color: k.surface2, borderRadius: BorderRadius.circular(999)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                      color: apptColor(f.key), shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 7),
+                Text(f.value.$1,
+                    style: AppTypography.label(k.ink).copyWith(fontSize: 12.5)),
+                const SizedBox(width: 5),
+                Text('×${f.value.$2}',
+                    style: AppTypography.tabular(AppTypography.label(k.ink))
+                        .copyWith(fontSize: 12.5, fontWeight: FontWeight.w800)),
+              ],
             ),
-            const SizedBox(width: Spacing.s3),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+      ],
+    );
+  }
+}
+
+class _History extends StatelessWidget {
+  const _History({required this.past});
+  final List<Appointment> past;
+  @override
+  Widget build(BuildContext context) {
+    final k = context.kavio;
+    if (past.isEmpty) {
+      return ZCard(
+        child: Text('Поки немає візитів',
+            style: AppTypography.body(k.ink2).copyWith(fontSize: 13)),
+      );
+    }
+    return ZCard(
+      padding: const EdgeInsets.all(4),
+      child: Column(
+        children: [
+          for (var i = 0; i < past.take(4).length; i++)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                border: i == 0
+                    ? null
+                    : Border(top: BorderSide(color: k.line)),
+              ),
+              child: Row(
                 children: [
-                  Text(a.service.name, style: AppTypography.label(kavio.ink)),
-                  const SizedBox(height: 1),
-                  Text(DateFormat('d MMM yyyy, HH:mm', 'ru').format(a.start),
-                      style: AppTypography.caption(kavio.ink3)
-                          .copyWith(letterSpacing: 0)),
+                  SizedBox(
+                    width: 54,
+                    child: Text(Fmt.dayMonth(past[i].start).split(' ').take(2).join(' '),
+                        style: AppTypography.tabular(AppTypography.label(k.ink3))
+                            .copyWith(fontSize: 12.5)),
+                  ),
+                  Expanded(
+                    child: Text(past[i].service.name,
+                        style: AppTypography.label(k.ink)
+                            .copyWith(fontSize: 14, fontWeight: FontWeight.w600)),
+                  ),
+                  Text(Fmt.money(past[i].service.price),
+                      style: AppTypography.tabular(AppTypography.label(k.ink))
+                          .copyWith(fontSize: 14, fontWeight: FontWeight.w700)),
                 ],
               ),
             ),
-            StatusPill(a.status),
-          ],
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Notes extends StatelessWidget {
+  const _Notes({required this.note});
+  final String? note;
+  @override
+  Widget build(BuildContext context) {
+    final k = context.kavio;
+    return ZCard(
+      child: Text(
+        (note?.isNotEmpty ?? false) ? note! : 'Нотаток поки немає',
+        style: AppTypography.body(k.ink2).copyWith(fontSize: 13, height: 1.5),
       ),
     );
   }

@@ -11,23 +11,27 @@ const routes = [
   ['calendar-week', '/calendar?view=week'],
   ['calendar-month', '/calendar?view=month'],
   ['analytics', '/analytics'],
+  ['client', '/clients/cl_olena'],
+  ['services', '/services'],
+  ['booking', '/online-booking'],
   ['menu', '/menu'],
 ];
 
 mkdirSync('shots', { recursive: true });
 
 const browser = await chromium.launch({ args: ['--no-sandbox'] });
-const ctx = await browser.newContext({
-  viewport: { width: 402, height: 874 },
-  deviceScaleFactor: 3,
-});
-const page = await ctx.newPage();
 
 for (const [name, route] of routes) {
   const url = `${base}/#${route}`;
+  // Свіжий контекст на кожен маршрут — гарантує повне завантаження документа
+  // (інакше зміна лише хеша/query не перезапускає main() і ?view= не діє).
+  const ctx = await browser.newContext({
+    viewport: { width: 402, height: 874 },
+    deviceScaleFactor: 3,
+  });
+  const page = await ctx.newPage();
   try {
     await page.goto(url, { waitUntil: 'load', timeout: 60000 });
-    // Чекаємо, поки Flutter змонтує сцену.
     await page
       .waitForFunction(
         () =>
@@ -44,6 +48,7 @@ for (const [name, route] of routes) {
   } catch (e) {
     console.log('shot', name, 'FAILED', e.message);
   }
+  await ctx.close();
 }
 
 await browser.close();

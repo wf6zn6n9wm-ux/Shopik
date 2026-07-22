@@ -485,6 +485,29 @@ class AppDatabase extends _$AppDatabase {
                 startAt: at(18, 0),
                 status: 'confirmed'),
           ]));
+
+      // Історія Олени: разом із сьогоднішнім гель-лаком — 14 візитів
+      // (9× Гель-лак, 3× Манікюр, 2× Нейл-арт) для «дорогої» картки клієнта.
+      final history = <(int, String)>[
+        (14, 'sv_gel'), (21, 'sv_man'), (28, 'sv_gel'), (35, 'sv_art'),
+        (42, 'sv_gel'), (49, 'sv_man'), (63, 'sv_gel'), (84, 'sv_gel'),
+        (91, 'sv_art'), (105, 'sv_gel'), (119, 'sv_man'), (133, 'sv_gel'),
+        (161, 'sv_gel'),
+      ];
+      await batch((b) => b.insertAll(appointments, [
+            for (var h = 0; h < history.length; h++)
+              AppointmentsCompanion.insert(
+                id: 'ap_ol_$h',
+                businessId: 'b1',
+                clientId: 'cl_olena',
+                serviceId: history[h].$2,
+                staffId: const Value('st1'),
+                startAt: base
+                    .subtract(Duration(days: history[h].$1))
+                    .add(const Duration(hours: 11)),
+                status: 'completed',
+              ),
+          ]));
     });
   }
 
