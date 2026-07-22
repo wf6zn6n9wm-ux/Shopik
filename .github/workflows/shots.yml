@@ -6,6 +6,8 @@ name: Screens (pixel-perfect check)
 
 on:
   workflow_dispatch:
+  push:
+    branches: ["claude/services-crm-architecture-tka9ms"]
 
 permissions:
   contents: write
