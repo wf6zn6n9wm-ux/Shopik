@@ -6,12 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app/app.dart';
+import 'core/boot_uri.dart';
 import 'core/bootstrap.dart';
 import 'core/config/app_config.dart';
 
 Future<void> main() async {
   await runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    bootFragment = Uri.base.fragment; // до старту роутера (для знімків ?view=)
     await initializeDateFormatting('uk'); // українські локалізовані дати
 
     // Единый корень зависимостей: платформенные сервисы + модули.

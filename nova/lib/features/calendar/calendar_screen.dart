@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/boot_uri.dart';
 import '../../core/time/demo_clock.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
@@ -15,7 +16,7 @@ enum CalendarView { day, week, month }
 /// Початковий режим можна задати через ?view=week|month у URL — це
 /// використовується для знімків екранів у CI (кожен режим — окремим маршрутом).
 CalendarView _initialView() {
-  final frag = Uri.base.fragment;
+  final frag = bootFragment;
   final qi = frag.indexOf('?');
   if (qi < 0) return CalendarView.day;
   final view = Uri.splitQueryString(frag.substring(qi + 1))['view'];
