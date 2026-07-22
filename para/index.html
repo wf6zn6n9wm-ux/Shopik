@@ -406,13 +406,36 @@
   .pp-sec-h{font-size:17px;font-weight:800;}
   .pp-sec-sub{font-size:12.5px;color:var(--muted);margin:2px 0 12px;}
   .pp-badge{flex:0 0 auto;font-size:11px;font-weight:800;color:#fff;background:var(--grad);border-radius:999px;padding:5px 11px;box-shadow:0 6px 16px rgba(255,94,138,.35);}
-  .pp-plan{display:flex;align-items:center;justify-content:space-between;width:100%;padding:14px 16px;border-radius:14px;margin-top:8px;
+  .pp-plan{display:flex;align-items:center;justify-content:space-between;width:100%;padding:14px 16px;border-radius:14px;margin-top:8px;gap:10px;
     background:rgba(255,255,255,.04);border:1px solid var(--line);cursor:pointer;transition:transform .1s,background .15s;}
   .pp-plan:active{transform:scale(.98);background:rgba(255,255,255,.07);}
-  .pp-plan-l{font-size:15px;font-weight:700;}
-  .pp-plan-p{font-size:15px;font-weight:800;color:#ffcf5c;white-space:nowrap;}
+  .pp-plan-l{display:flex;flex-direction:column;gap:4px;align-items:flex-start;min-width:0;}
+  .pp-plan-lt{font-size:15px;font-weight:700;}
+  .pp-plan-sub{display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+  .pp-save{font-size:10.5px;font-weight:800;color:#34d399;background:rgba(52,211,153,.14);border-radius:999px;padding:2px 8px;white-space:nowrap;}
+  .pp-save.best{color:#fcd34d;background:rgba(251,191,36,.15);}
+  .pp-plan-per{font-size:11px;color:var(--muted);white-space:nowrap;}
+  .pp-plan-p{font-size:15px;font-weight:800;color:#ffcf5c;white-space:nowrap;flex:0 0 auto;}
   .pp-inline{color:var(--rose);font-weight:800;background:none;border:none;padding:0;font-size:inherit;cursor:pointer;}
-  .pay-ok{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;}
+  /* Hero-блок и список преимуществ */
+  .pp-hero{text-align:center;padding:8px 16px 20px;}
+  .pp-hero-emo{font-size:54px;line-height:1;animation:wpop .6s ease;}
+  .pp-hero-t{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:8px;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .pp-hero-s{font-size:14.5px;color:var(--muted);margin-top:6px;}
+  .pp-benefits{border:1px solid var(--line);border-radius:20px;padding:8px 16px;margin-bottom:16px;background:rgba(255,255,255,.02);}
+  .pp-benefit{display:flex;align-items:center;gap:11px;font-size:14px;padding:9px 0;}
+  .pp-benefit:not(:last-child){border-bottom:1px solid rgba(255,255,255,.05);}
+  .pp-benefit-ic{font-size:18px;flex:0 0 auto;width:24px;text-align:center;}
+  /* Промо-оффер PARA+ */
+  .pp-promo{width:100%;max-width:400px;margin:0 18px;background:#1c1622;border:1px solid var(--line);
+    border-radius:26px;padding:26px 20px calc(22px + env(safe-area-inset-bottom));text-align:center;
+    animation:up .3s cubic-bezier(.2,.8,.2,1);max-height:90vh;overflow-y:auto;}
+  .pp-promo-emo{font-size:46px;line-height:1;animation:wpop .6s ease;}
+  .pp-promo-t{font-size:22px;font-weight:800;margin-top:8px;}
+  .pp-promo-s{font-size:14px;color:var(--muted);margin:8px auto 16px;max-width:300px;line-height:1.5;}
+  .pp-promo .pp-benefits{text-align:left;margin-bottom:18px;}
+  .pay-ok{position:relative;overflow:hidden;min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;}
   .pay-ok-emo{font-size:72px;animation:wpop .6s ease;}
   .pay-ok-t{font-size:28px;font-weight:800;margin-top:10px;}
   .pay-ok-s{font-size:15px;color:var(--muted);margin-top:8px;}
@@ -588,7 +611,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v40 · PARA+ (подписки Telegram Stars)';
+var APP_VERSION = 'v41 · PARA+ (конверсия: Hero, преимущества, экономия)';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1697,40 +1720,101 @@ function archiveView(){
 // Тарифы для отображения (цены дублируют серверный каталог PLANS; списывает и
 // проверяет всё сервер, клиент показывает и передаёт только ключ плана).
 var PARAPLUS={
-  duo:[ {key:'duo_1',label:'1 месяц',stars:499}, {key:'duo_3',label:'3 месяца',stars:1399}, {key:'duo_12',label:'12 месяцев',stars:4499} ],
-  solo:[ {key:'solo_1',label:'1 месяц',stars:299}, {key:'solo_3',label:'3 месяца',stars:799}, {key:'solo_12',label:'12 месяцев',stars:2499} ]
+  duo:[ {key:'duo_1',label:'1 месяц',stars:349}, {key:'duo_3',label:'3 месяца',stars:999}, {key:'duo_12',label:'12 месяцев',stars:2999} ],
+  solo:[ {key:'solo_1',label:'1 месяц',stars:199}, {key:'solo_3',label:'3 месяца',stars:499}, {key:'solo_12',label:'12 месяцев',stars:1499} ]
 };
+// Преимущества Premium — единый список для экрана PARA+ и промо-оффера (иконка, текст).
+var PP_BENEFITS=[
+  ['✨','Все темы оформления'],
+  ['❤️','Безлимитные желания'],
+  ['🤖','AI-вопросы и идеи свиданий'],
+  ['🎯','Эксклюзивные квесты'],
+  ['📊','Расширенная статистика отношений'],
+  ['🚀','Все будущие Premium-функции']
+];
+function ppBenefitsHtml(){
+  return '<div class="pp-benefits">'+PP_BENEFITS.map(function(b){
+    return '<div class="pp-benefit"><span class="pp-benefit-ic">'+b[0]+'</span><span>'+esc(b[1])+'</span></div>';
+  }).join('')+'</div>';
+}
 function isPremium(){ return !!(S.premium && S.premium.active); }
-function ppPlanRow(p){
+// число месяцев из ключа плана (solo_3 → 3) — для расчёта экономии относительно месячной цены
+function planMonths(key){ var m=/_(\d+)$/.exec(key||''); return m?+m[1]:1; }
+function ppPlanRow(p,monthly){
+  var months=planMonths(p.key), sub='';
+  if(months>1 && monthly){
+    var full=monthly*months, pct=Math.round((1-p.stars/full)*100);
+    if(pct>0){
+      sub+='<span class="pp-save'+(months>=12?' best':'')+'">'+(months>=12?'Выгоднее всего · −'+pct+'%':'−'+pct+'%')+'</span>';
+      sub+='<span class="pp-plan-per">'+Math.round(p.stars/months)+' ⭐/мес</span>';
+    }
+  }
   return '<button class="pp-plan" data-act="buy-plan" data-plan="'+p.key+'">'+
-    '<span class="pp-plan-l">'+esc(p.label)+'</span>'+
+    '<span class="pp-plan-l"><span class="pp-plan-lt">'+esc(p.label)+'</span>'+
+    (sub?'<span class="pp-plan-sub">'+sub+'</span>':'')+'</span>'+
     '<span class="pp-plan-p">'+p.stars+'&nbsp;⭐</span></button>';
 }
 function paraPlusView(){
   var pr=S.premium||{active:false};
   var head='<div class="row between mb4"><div class="b" style="font-size:20px">⭐ PARA+</div>'+
     '<button class="btn btn-ghost btn-sm" data-act="paraplus-close">← Назад</button></div>';
+  // Hero-блок — эмоциональная шапка экрана Premium
+  var hero='<div class="pp-hero"><div class="pp-hero-emo">❤️</div>'+
+    '<div class="pp-hero-t">PARA+</div>'+
+    '<div class="pp-hero-s">Сделайте ваши отношения ещё ближе.</div></div>';
   var status = pr.active
     ? '<div class="pp-active">✓ PARA+ '+(pr.type==='duo'?'DUO':'SOLO')+' активен'+(pr.until?(' до '+esc(String(pr.until).slice(0,10))):'')+'</div>'
-    : '<div class="pp-intro">Premium для пары: все темы и рамки оформления сразу, ранний доступ к новому и поддержка проекта. Оплата — звёздами Telegram.</div>';
+    : '';
+  var benefits=ppBenefitsHtml();
+  var duoMonthly=PARAPLUS.duo[0].stars, soloMonthly=PARAPLUS.solo[0].stars;
   var duo='<div class="pp-sec duo"><div class="row between" style="align-items:center"><div class="pp-sec-h">💞 DUO</div>'+
-    '<span class="pp-badge">Рекомендуем</span></div>'+
-    '<div class="pp-sec-sub">Один платёж — Premium для вас обоих.</div>'+
-    PARAPLUS.duo.map(ppPlanRow).join('')+'</div>';
+    '<span class="pp-badge">🔥 Лучший выбор</span></div>'+
+    '<div class="pp-sec-sub">Один платёж — Premium сразу для двух.</div>'+
+    PARAPLUS.duo.map(function(p){ return ppPlanRow(p,duoMonthly); }).join('')+'</div>';
   var solo='<div class="pp-sec"><div class="pp-sec-h">❤️ SOLO</div>'+
     '<div class="pp-sec-sub">Premium только для вас.</div>'+
-    PARAPLUS.solo.map(ppPlanRow).join('')+'</div>';
-  return '<div class="app"><div class="wrap">'+head+status+duo+solo+
+    PARAPLUS.solo.map(function(p){ return ppPlanRow(p,soloMonthly); }).join('')+'</div>';
+  return '<div class="app"><div class="wrap">'+head+hero+status+benefits+duo+solo+
     '<div class="xs muted2 center-t mt4">Оплата звёздами Telegram (XTR). Автопродления нет — подписку продлеваете сами.</div>'+
     '<div style="height:24px"></div></div></div>';
 }
 function paySuccessView(){
-  return '<div class="app"><div class="wrap"><div class="pay-ok">'+
+  // праздничное конфетти на экране успешной оплаты (переиспользуем стили из levelupOverlay)
+  var cols=['#ff5e8a','#c026d3','#fbbf24','#34d399','#60a5fa'];
+  var conf=''; for(var i=0;i<40;i++){ conf+='<span class="conf" style="left:'+(Math.random()*100).toFixed(1)+'%;background:'+cols[i%5]+';animation-delay:'+(Math.random()*0.6).toFixed(2)+'s"></span>'; }
+  return '<div class="app"><div class="wrap"><div class="pay-ok"><div class="conf-wrap">'+conf+'</div>'+
     '<div class="pay-ok-emo">❤️</div>'+
     '<div class="pay-ok-t">Спасибо!</div>'+
     '<div class="pay-ok-s">PARA+ успешно активирован.</div>'+
     '<button class="add-wish" style="max-width:280px;margin:26px auto 0" data-act="pay-continue">Продолжить</button>'+
     '</div></div></div>';
+}
+// Промо-оффер PARA+ — мягкий оверлей: после нескольких дней использования или при
+// попытке открыть Premium-функцию (см. maybeShowPromo и локи оформления).
+function premiumPromo(){
+  if(!S.promoOpen) return '';
+  return '<div class="ovl" style="align-items:center"><div class="pp-promo">'+
+    '<div class="pp-promo-emo">💞</div>'+
+    '<div class="pp-promo-t">Откройте PARA+</div>'+
+    '<div class="pp-promo-s">Все темы, безлимитные желания, AI-идеи для свиданий и эксклюзивные квесты — чтобы быть ещё ближе.</div>'+
+    ppBenefitsHtml()+
+    '<button class="add-wish" style="margin-top:4px" data-act="promo-buy">Смотреть тарифы</button>'+
+    '<button class="btn btn-ghost btn-sm" style="margin-top:10px" data-act="promo-close">Позже</button>'+
+    '</div></div>';
+}
+// Показ промо в естественный момент: только связанным парам без Premium, не раньше
+// 3-го дня использования и не чаще раза в неделю (чтобы не надоедать).
+function maybeShowPromo(){
+  try{
+    if(isPremium()) return;
+    if(S.promoOpen||S.paraPlusOpen||S.paySuccess||S.showAdmin) return;
+    if(!S.couple || !S.couple.linked) return;
+    var now=Date.now(), first=lsGet('firstSeen',0);
+    if(!first){ lsSet('firstSeen',now); return; } // первый заход — только запоминаем
+    if(now-first < 3*DAY) return;                  // «несколько дней»
+    if(now-lsGet('promoSeen',0) < 7*DAY) return;   // не чаще раза в неделю
+    S.promoOpen=true; lsSet('promoSeen',now); render();
+  }catch(e){}
 }
 // кнопка-вход на экране «Мы»
 function paraPlusEntry(){
@@ -2362,6 +2446,7 @@ function _renderNow(){
   if(S.qburst){ html+=questBurst(); }
   if(S.levelup){ html+=levelupOverlay(); }
   if(S.calOpen){ html+=calOverlay(); }
+  if(S.promoOpen){ html+=premiumPromo(); }
   // если разметка не изменилась — НЕ трогаем DOM (иначе фоновые опросы «дёргают» экран,
   // сбрасывают фокус, скролл и анимации). Заодно сохраняются ввод и позиция страницы.
   if(html===S._lastHtml) return;
@@ -2455,8 +2540,8 @@ var ACTS={
   'close-achv':function(){ S.showAchv=false; render(); },
   'open-cust':function(){ S.showCust=true; haptic('light'); render(); },
   'close-cust':function(){ S.showCust=false; render(); },
-  'set-theme':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx() && !isPremium()){ showToast('🔒','Откроется с уровнем','или сразу — с PARA+'); return; } S.theme=el.dataset.k; lsSet('theme',S.theme); applyTheme(S.theme); haptic('success'); render(); },
-  'set-frame':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx() && !isPremium()){ showToast('🔒','Откроется с уровнем','или сразу — с PARA+'); return; } S.frame=el.dataset.k; lsSet('frame',S.frame); haptic('success'); render(); },
+  'set-theme':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx() && !isPremium()){ S.promoOpen=true; haptic('light'); render(); return; } S.theme=el.dataset.k; lsSet('theme',S.theme); applyTheme(S.theme); haptic('success'); render(); },
+  'set-frame':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx() && !isPremium()){ S.promoOpen=true; haptic('light'); render(); return; } S.frame=el.dataset.k; lsSet('frame',S.frame); haptic('success'); render(); },
   'lvl-info':function(el){ var i=+el.dataset.i, lv=S.config&&S.config.levels[i], cur=S.progress&&S.progress.level.index; if(!lv)return; if(i>cur){ var perks=(lv.perks||[]).join(', '); alert('🔒 «'+lv.name+'» '+lv.emoji+'\nДоступно после '+lv.min+' очков.'+(perks?'\n\nОткроется: '+perks:'')); } haptic('light'); },
   'level-continue':function(){ S.levelup=null; haptic('light'); render(); },
   'ob-share':shareInvite,
@@ -2520,6 +2605,8 @@ var ACTS={
   'paraplus-open':function(){ S.paraPlusOpen=true; haptic('light'); render(); if(ONLINE) refreshState(); },
   'paraplus-close':function(){ S.paraPlusOpen=false; render(); },
   'pay-continue':function(){ S.paySuccess=false; S.paraPlusOpen=false; haptic('light'); render(); if(ONLINE) refreshState(); },
+  'promo-close':function(){ S.promoOpen=false; haptic('light'); render(); },
+  'promo-buy':function(){ S.promoOpen=false; S.paraPlusOpen=true; haptic('light'); render(); if(ONLINE) refreshState(); },
   'buy-plan':function(el){ var plan=el.dataset.plan;
     if(!(ONLINE&&TG&&TG.openInvoice)){ showToast('⚠️','Оплата в Telegram','откройте PARA в Telegram, чтобы купить'); return; }
     haptic('light'); showToast('⏳','Готовим оплату','секунду…');
@@ -2675,6 +2762,7 @@ async function boot(){
       else { S.couple=null; } // сервер — источник правды: онбординг с настоящим бэкендом
       render();
       checkLevelUp();
+      maybeShowPromo(); // мягкое предложение PARA+ после нескольких дней использования
       if(S.couple && S.tab==='wishes') startWishPoll(); // держим общий список желаний свежим
       loadStats(); // если ты админ (ADMIN_TG_IDS) — подтянется статистика
     } // not_configured / ошибка → тихо остаёмся в демо
