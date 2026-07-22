@@ -59,20 +59,20 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
 
     navigator.pop();
     messenger.showSnackBar(
-      SnackBar(content: Text('Услуга «${service.name}» добавлена')),
+      SnackBar(content: Text('Послугу «${service.name}» додано')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return KavioSheet(
-      title: 'Новая услуга',
+      title: 'Нова послуга',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           KavioTextField(
-            label: 'Название',
-            hint: 'Напр. Стрижка + укладка',
+            label: 'Назва',
+            hint: 'Напр. Гель-лак',
             controller: _name,
             autofocus: true,
             onChanged: (_) => setState(() {}),
@@ -82,7 +82,7 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
             children: [
               Expanded(
                 child: KavioTextField(
-                  label: 'Длительность, мин',
+                  label: 'Тривалість, хв',
                   hint: '60',
                   controller: _duration,
                   keyboardType: TextInputType.number,
@@ -92,7 +92,7 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
               const SizedBox(width: Spacing.s3),
               Expanded(
                 child: KavioTextField(
-                  label: 'Цена',
+                  label: 'Ціна',
                   hint: '0',
                   controller: _price,
                   keyboardType: TextInputType.number,
@@ -103,7 +103,7 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
           ),
           const SizedBox(height: Spacing.s6),
           KavioButton(
-            'Сохранить',
+            'Зберегти',
             expand: true,
             onPressed: _valid && !_saving ? _save : null,
           ),

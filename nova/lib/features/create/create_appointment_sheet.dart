@@ -37,12 +37,12 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
     final ready = _client != null && _service != null;
 
     return KavioSheet(
-      title: 'Новая запись',
+      title: 'Новий запис',
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('КЛИЕНТ', style: AppTypography.caption(kavio.ink3)),
+          Text('КЛІЄНТ', style: AppTypography.caption(kavio.ink3)),
           const SizedBox(height: Spacing.s2),
           ...clients.take(3).map((c) => Padding(
                 padding: const EdgeInsets.only(bottom: Spacing.s2),
@@ -53,7 +53,7 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
                 ),
               )),
           const SizedBox(height: Spacing.s4),
-          Text('УСЛУГА', style: AppTypography.caption(kavio.ink3)),
+          Text('ПОСЛУГА', style: AppTypography.caption(kavio.ink3)),
           const SizedBox(height: Spacing.s2),
           Wrap(
             spacing: Spacing.s2,
@@ -70,7 +70,7 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
           Align(
             alignment: Alignment.centerLeft,
             child: KavioButton(
-              'Записать',
+              'Записати',
               icon: Icons.check,
               onPressed: ready ? () => _create(context) : null,
             ),
@@ -106,7 +106,7 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
 
     navigator.pop();
     messenger.showSnackBar(
-      SnackBar(content: Text('Записан ${_client!.name} · ${Fmt.time(start)}')),
+      SnackBar(content: Text('Записано ${_client!.name} · ${Fmt.time(start)}')),
     );
   }
 
@@ -122,7 +122,7 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
         await scheduler.schedule(ScheduledReminder(
           id: ReminderPolicy.reminderId(a.id, off),
           at: at,
-          title: 'Напоминание о визите',
+          title: 'Нагадування про візит',
           body: '${a.client.name} · ${a.service.name} в ${Fmt.time(a.start)}',
         ));
       }

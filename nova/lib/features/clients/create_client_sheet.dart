@@ -54,20 +54,20 @@ class _CreateClientSheetState extends ConsumerState<_CreateClientSheet> {
 
     navigator.pop();
     messenger.showSnackBar(
-      SnackBar(content: Text('Клиент ${client.name} добавлен')),
+      SnackBar(content: Text('Клієнта ${client.name} додано')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return KavioSheet(
-      title: 'Новый клиент',
+      title: 'Новий клієнт',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           KavioTextField(
-            label: 'Имя',
-            hint: 'Как зовут клиента',
+            label: "Ім'я",
+            hint: 'Як звати клієнта',
             controller: _name,
             autofocus: true,
             textInputAction: TextInputAction.next,
@@ -82,7 +82,7 @@ class _CreateClientSheetState extends ConsumerState<_CreateClientSheet> {
           ),
           const SizedBox(height: Spacing.s6),
           KavioButton(
-            'Сохранить',
+            'Зберегти',
             expand: true,
             onPressed: _valid && !_saving ? _save : null,
           ),
