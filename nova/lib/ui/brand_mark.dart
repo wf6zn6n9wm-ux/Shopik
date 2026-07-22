@@ -2,89 +2,104 @@ import 'package:flutter/material.dart';
 
 import '../design/theme.dart';
 
-/// Знак бренда Kavio (концепция Confirm): монограмма «K», нижний штрих которой
-/// переходит в галочку — «запись подтверждена». Ядро продукта — подтверждённая
-/// запись. Единый источник знака для иконки, сплэша и шапок; рендерится из
-/// токенов и адаптируется к теме.
+/// Знак бренда Запис+ — «Галочка+»: галочка (запис підтверджено) з маленьким
+/// плюсом (запис додано / «+» у назві). Читається навіть у малому розмірі.
+/// Єдине джерело знаку для splash, входу, шапок; рендериться з токенів.
 class BrandMark extends StatelessWidget {
-  const BrandMark({super.key, this.size = 44, this.onColor});
+  const BrandMark({super.key, this.size = 44, this.glow = true});
 
   final double size;
-
-  /// Цвет монограммы; по умолчанию — onAccent (контраст к акцентной плитке).
-  final Color? onColor;
+  final bool glow;
 
   @override
   Widget build(BuildContext context) {
-    final kavio = context.kavio;
-    return Container(
+    return SizedBox(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: kavio.accent, // плоский акцент, без градиента (правило бренда)
-        borderRadius: BorderRadius.circular(size * 0.28),
-        boxShadow: context.shadows.e1,
-      ),
-      child: CustomPaint(
-        painter: _KMarkPainter(color: onColor ?? kavio.onAccent),
-      ),
+      child: CustomPaint(painter: _CheckPlusPainter(glow: glow)),
     );
   }
 }
 
-class _KMarkPainter extends CustomPainter {
-  const _KMarkPainter({required this.color});
-  final Color color;
+class _CheckPlusPainter extends CustomPainter {
+  const _CheckPlusPainter({required this.glow});
+  final bool glow;
 
   @override
   void paint(Canvas canvas, Size size) {
     final s = size.shortestSide;
-    final p = Paint()
-      ..color = color
+    // viewBox 0..100 → масштаб.
+    double x(double v) => s * v / 100;
+
+    final shader = const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFFB8B8FF), Color(0xFF7E7EEF)],
+    ).createShader(Rect.fromLTWH(0, 0, s, s));
+
+    final check = Path()
+      ..moveTo(x(24), x(54))
+      ..lineTo(x(43), x(72))
+      ..lineTo(x(74), x(32));
+    final plus = Path()
+      ..moveTo(x(78), x(24))
+      ..lineTo(x(78), x(40))
+      ..moveTo(x(70), x(32))
+      ..lineTo(x(86), x(32));
+
+    if (glow) {
+      final g = Paint()
+        ..color = const Color(0x998B8BF0)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = x(9)
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, x(6));
+      canvas.drawPath(check, g);
+    }
+
+    final pen = Paint()
+      ..shader = shader
       ..style = PaintingStyle.stroke
-      ..strokeWidth = s * 0.09
+      ..strokeWidth = x(9)
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(check, pen);
 
-    // Геометрия совпадает с растровыми ассетами бренда (viewBox 0..1).
-    Offset o(double x, double y) => Offset(s * (x + 0.015), s * (y + 0.01));
-
-    // Вертикальный стержень «K».
-    canvas.drawLine(o(0.36, 0.32), o(0.36, 0.68), p);
-    // Верхний штрих «K».
-    canvas.drawLine(o(0.36, 0.50), o(0.54, 0.33), p);
-    // Нижний штрих переходит в галочку (подтверждение).
-    final check = Path()
-      ..moveTo(o(0.36, 0.50).dx, o(0.36, 0.50).dy)
-      ..lineTo(o(0.50, 0.67).dx, o(0.50, 0.67).dy)
-      ..lineTo(o(0.76, 0.29).dx, o(0.76, 0.29).dy);
-    canvas.drawPath(check, p);
+    final plusPen = Paint()
+      ..color = const Color(0xFF9A9AF6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = x(6.5)
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(plus, plusPen);
   }
 
   @override
-  bool shouldRepaint(_KMarkPainter old) => old.color != color;
+  bool shouldRepaint(_CheckPlusPainter old) => old.glow != glow;
 }
 
-/// Лого: знак + словесная марка «Kavio». Для сплэша, экрана входа,
-/// брендовых пустых состояний.
+/// Лого: знак + словесна марка «Запис+». Для splash, входу, порожніх станів.
 class KavioWordmark extends StatelessWidget {
-  const KavioWordmark({super.key, this.markSize = 32});
+  const KavioWordmark({super.key, this.markSize = 32, this.fontSize = 28});
 
   final double markSize;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
-    final kavio = context.kavio;
+    final k = context.kavio;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         BrandMark(size: markSize),
         SizedBox(width: markSize * 0.34),
-        Text(
-          'Kavio',
-          style: AppTypography.title1(kavio.ink).copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
+        Text.rich(
+          TextSpan(
+            style: AppTypography.title1(k.ink).copyWith(fontSize: fontSize),
+            children: [
+              const TextSpan(text: 'Запис'),
+              TextSpan(text: '+', style: TextStyle(color: k.accent)),
+            ],
           ),
         ),
       ],

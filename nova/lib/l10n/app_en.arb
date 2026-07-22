@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "Kavio",
+  "appTitle": "Запис+",
   "@appTitle": { "description": "Application name" },
   "navCalendar": "Calendar",
   "navClients": "Clients",

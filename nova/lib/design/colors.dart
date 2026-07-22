@@ -58,26 +58,30 @@ class KavioColors extends ThemeExtension<KavioColors> {
     dangerTint: Color(0x1FDC2F35),
   );
 
+  // Запис+ · Flux-premium dark. Значения совпадают с макетами v3 (v2-kit.css):
+  // bg #0B0B11, surf #181820, surf2 #212129, surf3 #2A2A34, ink #F5F5F8,
+  // ink2 #B2B2C0, ink3 #7C7C8A, line rgba(255,255,255,.09),
+  // acc #9A9AF6, accSoft rgba(139,139,240,.18), ok #46D08A, warn #E6B24E, dng #F2686D.
   static const KavioColors dark = KavioColors(
-    canvas: Color(0xFF0B0B0F),
-    surface: Color(0xFF16161B),
-    surface2: Color(0xFF1F1F26),
-    surface3: Color(0xFF292930),
-    ink: Color(0xFFF4F4F6),
-    ink2: Color(0xFF9A9AA6),
-    ink3: Color(0xFF6A6A76),
+    canvas: Color(0xFF0B0B11),
+    surface: Color(0xFF181820),
+    surface2: Color(0xFF212129),
+    surface3: Color(0xFF2A2A34),
+    ink: Color(0xFFF5F5F8),
+    ink2: Color(0xFFB2B2C0),
+    ink3: Color(0xFF7C7C8A),
     line: Color(0x17FFFFFF),
-    line2: Color(0x29FFFFFF),
-    accent: Color(0xFF8B8BF0),
-    accentPress: Color(0xFF7A7AE8),
-    accentTint: Color(0x268B8BF0),
-    onAccent: Color(0xFF0B0B0F),
-    success: Color(0xFF3BD088),
-    successTint: Color(0x263BD088),
-    warning: Color(0xFFE0A93B),
-    warningTint: Color(0x29E0A93B),
-    danger: Color(0xFFF16A6F),
-    dangerTint: Color(0x26F16A6F),
+    line2: Color(0x24FFFFFF),
+    accent: Color(0xFF9A9AF6),
+    accentPress: Color(0xFF8585F1),
+    accentTint: Color(0x2E8B8BF0),
+    onAccent: Color(0xFFFFFFFF),
+    success: Color(0xFF46D08A),
+    successTint: Color(0x2646D08A),
+    warning: Color(0xFFE6B24E),
+    warningTint: Color(0x26E6B24E),
+    danger: Color(0xFFF2686D),
+    dangerTint: Color(0x24F2686D),
   );
 
   @override
@@ -173,15 +177,28 @@ class KavioShadows extends ThemeExtension<KavioShadows> {
     ],
   );
 
+  // Слои глубины из макета: мягкие, «-spread» как в CSS (0 18px 40px -24px …).
   static const KavioShadows dark = KavioShadows(
     e1: [
-      BoxShadow(color: Color(0x66000000), blurRadius: 2, offset: Offset(0, 1))
+      BoxShadow(
+          color: Color(0x99000000),
+          blurRadius: 18,
+          spreadRadius: -14,
+          offset: Offset(0, 6)),
     ],
     e2: [
-      BoxShadow(color: Color(0x80000000), blurRadius: 18, offset: Offset(0, 6))
+      BoxShadow(
+          color: Color(0xE6000000),
+          blurRadius: 40,
+          spreadRadius: -24,
+          offset: Offset(0, 18)),
     ],
     e3: [
-      BoxShadow(color: Color(0x99000000), blurRadius: 40, offset: Offset(0, 16))
+      BoxShadow(
+          color: Color(0xF2000000),
+          blurRadius: 60,
+          spreadRadius: -30,
+          offset: Offset(0, 28)),
     ],
   );
 

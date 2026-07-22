@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'colors.dart';
+import 'effects.dart';
 import 'typography.dart';
 
 export 'colors.dart';
+export 'effects.dart';
 export 'tokens.dart';
 export 'typography.dart';
 

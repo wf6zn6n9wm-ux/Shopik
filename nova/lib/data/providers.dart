@@ -91,3 +91,79 @@ final daySummaryProvider = Provider<DaySummary>((ref) {
       appts.isEmpty ? 0 : ((appts.length / 8) * 100).clamp(0, 100).round();
   return DaySummary(revenue: revenue, visits: appts.length, load: load);
 });
+
+/// Дані головного екрана «Сьогодні»: зароблено, кількість, наступний клієнт,
+/// вільні вікна, інсайт повернення.
+@immutable
+class DashboardData {
+  const DashboardData({
+    required this.revenue,
+    required this.visits,
+    required this.freeWindows,
+    required this.next,
+    required this.minutesToNext,
+    required this.lapsedCount,
+  });
+  final int revenue; // зароблено (завершені), у мін. одиницях
+  final int visits; // усього записів на день
+  final List<DateTime> freeWindows; // вільні початки в робочих годинах
+  final Appointment? next; // найближчий майбутній запис
+  final int minutesToNext; // хвилин до наступного
+  final int lapsedCount; // клієнти, що давно не були
+}
+
+final dashboardProvider = Provider<DashboardData>((ref) {
+  final appts = ref.watch(dayAppointmentsProvider).value ?? const <Appointment>[];
+  final now = DateTime.now();
+
+  final revenue = appts
+      .where((a) => a.status == AppointmentStatus.completed)
+      .fold<int>(0, (s, a) => s + a.service.price);
+
+  Appointment? next;
+  for (final a in appts) {
+    if (a.start.isAfter(now) &&
+        a.status != AppointmentStatus.cancelled &&
+        a.status != AppointmentStatus.noShow) {
+      if (next == null || a.start.isBefore(next.start)) next = a;
+    }
+  }
+  final minutesToNext =
+      next == null ? 0 : next.start.difference(now).inMinutes.clamp(0, 999);
+
+  // Вільні вікна: гепи ≥30 хв у робочих годинах (10:00–19:00), майбутні.
+  final dayStart = DateTime(now.year, now.month, now.day, 10);
+  final dayEnd = DateTime(now.year, now.month, now.day, 19);
+  final busy = appts
+      .where((a) => a.status != AppointmentStatus.cancelled)
+      .map((a) => (a.start, a.end))
+      .toList()
+    ..sort((x, y) => x.$1.compareTo(y.$1));
+  final windows = <DateTime>[];
+  var cursor = dayStart.isAfter(now) ? dayStart : _ceilTo15(now);
+  for (final b in busy) {
+    if (b.$1.isAfter(cursor) && b.$1.difference(cursor).inMinutes >= 30) {
+      if (cursor.isAfter(now)) windows.add(cursor);
+    }
+    if (b.$2.isAfter(cursor)) cursor = b.$2;
+  }
+  if (cursor.isBefore(dayEnd) && dayEnd.difference(cursor).inMinutes >= 30 && cursor.isAfter(now)) {
+    windows.add(cursor);
+  }
+
+  return DashboardData(
+    revenue: revenue,
+    visits: appts.length,
+    freeWindows: windows.take(3).toList(),
+    next: next,
+    minutesToNext: minutesToNext,
+    lapsedCount: 3,
+  );
+});
+
+DateTime _ceilTo15(DateTime t) {
+  final m = t.minute;
+  final add = (15 - (m % 15)) % 15;
+  final r = t.add(Duration(minutes: add == 0 ? 15 : add));
+  return DateTime(r.year, r.month, r.day, r.hour, r.minute);
+}

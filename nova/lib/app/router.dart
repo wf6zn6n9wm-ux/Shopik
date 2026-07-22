@@ -4,6 +4,7 @@ import '../features/auth/auth_screen.dart';
 import '../features/auth/otp_screen.dart';
 import '../features/booking/online_booking_screen.dart';
 import '../features/clients/client_detail_screen.dart';
+import '../features/clients/clients_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/services/services_screen.dart';
@@ -21,7 +22,7 @@ final GoRouter appRouter = _buildRouter();
 GoRouter _buildRouter() {
   final destinations = primaryDestinations;
   return GoRouter(
-    initialLocation: Routes.auth,
+    initialLocation: Routes.home,
     routes: [
       GoRoute(
           path: Routes.auth, builder: (context, state) => const AuthScreen()),
@@ -54,6 +55,9 @@ GoRouter _buildRouter() {
         builder: (context, state) =>
             ClientDetailScreen(clientId: state.pathParameters['id']!),
       ),
+      GoRoute(
+          path: Routes.clients,
+          builder: (context, state) => const ClientsScreen()),
       GoRoute(
           path: Routes.services,
           builder: (context, state) => const ServicesScreen()),

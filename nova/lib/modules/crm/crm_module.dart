@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../features/analytics/analytics_screen.dart';
 import '../../features/calendar/calendar_screen.dart';
-import '../../features/clients/clients_screen.dart';
+import '../../features/home/home_screen.dart';
 import '../../features/menu/menu_screen.dart';
 import '../app_module.dart';
 
@@ -17,21 +17,21 @@ class CrmModule extends AppModule {
   List<NavDestination> get destinations => const [
         NavDestination(
           path: '/',
-          label: 'Календарь',
+          label: 'Сьогодні',
+          icon: Icons.home_outlined,
+          activeIcon: Icons.home_rounded,
+          builder: HomeScreen.new,
+        ),
+        NavDestination(
+          path: '/calendar',
+          label: 'Календар',
           icon: Icons.calendar_today_outlined,
           activeIcon: Icons.calendar_today,
           builder: CalendarScreen.new,
         ),
         NavDestination(
-          path: '/clients',
-          label: 'Клиенты',
-          icon: Icons.people_alt_outlined,
-          activeIcon: Icons.people_alt,
-          builder: ClientsScreen.new,
-        ),
-        NavDestination(
           path: '/analytics',
-          label: 'Аналитика',
+          label: 'Аналітика',
           icon: Icons.bar_chart_outlined,
           activeIcon: Icons.bar_chart,
           builder: AnalyticsScreen.new,

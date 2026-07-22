@@ -1,6 +1,7 @@
 /// Пути маршрутов приложения (единый источник, без «магических строк»).
 abstract final class Routes {
-  static const calendar = '/';
+  static const home = '/';
+  static const calendar = '/calendar';
   static const clients = '/clients';
   static const clientDetail = '/clients/:id';
   static String clientDetailPath(String id) => '/clients/$id';

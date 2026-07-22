@@ -17,9 +17,9 @@ class KavioApp extends ConsumerWidget {
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
-      theme: buildKavioTheme(Brightness.light),
+      theme: buildKavioTheme(Brightness.dark),
       darkTheme: buildKavioTheme(Brightness.dark),
-      themeMode: ThemeMode.system, // обе темы первого класса
+      themeMode: ThemeMode.dark, // Запис+ — тёмная тема как основа дизайна
       locale: locale, // null → системная
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

@@ -12,7 +12,7 @@ import 'core/config/app_config.dart';
 Future<void> main() async {
   await runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    await initializeDateFormatting('ru'); // локализованные даты
+    await initializeDateFormatting('uk'); // українські локалізовані дати
 
     // Единый корень зависимостей: платформенные сервисы + модули.
     // Конфиг читается из окружения сборки (FLAVOR/ключи через --dart-define).
