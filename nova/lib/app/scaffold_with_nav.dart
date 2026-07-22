@@ -215,7 +215,9 @@ class _CreateMenu extends StatelessWidget {
     final k = context.kavio;
     final curved =
         CurvedAnimation(parent: anim, curve: const Cubic(0.16, 0.9, 0.3, 1));
-    return AnimatedBuilder(
+    return Material(
+      type: MaterialType.transparency,
+      child: AnimatedBuilder(
       animation: curved,
       builder: (context, _) {
         final t = curved.value;
@@ -279,6 +281,7 @@ class _CreateMenu extends StatelessWidget {
           ],
         );
       },
+      ),
     );
   }
 

@@ -18,9 +18,9 @@ class SmartGapsScreen extends ConsumerWidget {
     var idx = 0;
     Widget reveal(Widget c) => StaggerReveal(index: idx++, child: c);
 
-    return Container(
-      color: k.canvas,
-      child: SafeArea(
+    return Scaffold(
+      backgroundColor: k.canvas,
+      body: SafeArea(
         bottom: false,
         child: Column(
           children: [

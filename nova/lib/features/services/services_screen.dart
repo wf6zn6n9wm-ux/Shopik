@@ -36,9 +36,9 @@ class ServicesScreen extends ConsumerWidget {
     var idx = 0;
     Widget reveal(Widget c) => StaggerReveal(index: idx++, child: c);
 
-    return Container(
-      color: k.canvas,
-      child: SafeArea(
+    return Scaffold(
+      backgroundColor: k.canvas,
+      body: SafeArea(
         bottom: false,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),

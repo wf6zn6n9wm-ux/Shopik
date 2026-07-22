@@ -24,9 +24,9 @@ class SettingsScreen extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
     final current = locale?.languageCode ?? 'uk';
 
-    return Container(
-      color: k.canvas,
-      child: SafeArea(
+    return Scaffold(
+      backgroundColor: k.canvas,
+      body: SafeArea(
         bottom: false,
         child: Column(
           children: [
