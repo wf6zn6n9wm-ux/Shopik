@@ -218,69 +218,69 @@ class _CreateMenu extends StatelessWidget {
     return Material(
       type: MaterialType.transparency,
       child: AnimatedBuilder(
-      animation: curved,
-      builder: (context, _) {
-        final t = curved.value;
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 18 * t, sigmaY: 18 * t),
-                  child: Container(color: Colors.black.withOpacity(0.5 * t)),
+        animation: curved,
+        builder: (context, _) {
+          final t = curved.value;
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 18 * t, sigmaY: 18 * t),
+                    child: Container(color: Colors.black.withOpacity(0.5 * t)),
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              left: 20,
-              right: 20,
-              bottom: 108,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  for (var i = 0; i < actions.length; i++)
-                    _MenuRow(
-                        action: actions[i],
-                        t: _stagger(t, i, actions.length),
-                        color: k),
-                ],
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 108,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    for (var i = 0; i < actions.length; i++)
+                      _MenuRow(
+                          action: actions[i],
+                          t: _stagger(t, i, actions.length),
+                          color: k),
+                  ],
+                ),
               ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 32,
-              child: Center(
-                child: Transform.rotate(
-                  angle: t * 0.785398, // 45°
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        gradient: FX.brandButton,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [
-                          BoxShadow(
-                              color: Color(0xBF8B8BF0),
-                              blurRadius: 34,
-                              spreadRadius: -6,
-                              offset: Offset(0, 14))
-                        ],
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 32,
+                child: Center(
+                  child: Transform.rotate(
+                    angle: t * 0.785398, // 45°
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          gradient: FX.brandButton,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [
+                            BoxShadow(
+                                color: Color(0xBF8B8BF0),
+                                blurRadius: 34,
+                                spreadRadius: -6,
+                                offset: Offset(0, 14))
+                          ],
+                        ),
+                        child: const Icon(Icons.add,
+                            color: Colors.white, size: 28),
                       ),
-                      child:
-                          const Icon(Icons.add, color: Colors.white, size: 28),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
       ),
     );
   }
