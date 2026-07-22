@@ -3,72 +3,123 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
 import '../../design/theme.dart';
-import '../../ui/kavio_list_tile.dart';
-import '../../ui/section_header.dart';
+import '../../ui/z.dart';
 
-/// «Меню» — вход в разделы вне ежедневной навигации. MVP-разделы навигируют;
-/// расширенные (лояльность/финансы/склад/маркетинг) — после MVP.
+/// «Меню» — хаб розділів поза щоденною навігацією. Профіль + групи посилань.
 class MenuScreen extends StatelessWidget {
   const MenuScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final kavio = context.kavio;
-    return SafeArea(
-      bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(
-            Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
-        children: [
-          const ScreenTitle('Меню'),
-          const SizedBox(height: Spacing.s5),
-          _card(kavio, [
-            KavioListTile(
-              icon: Icons.cut_outlined,
-              title: 'Услуги и цены',
-              onTap: () => context.push(Routes.services),
-            ),
-            _div(kavio),
-            KavioListTile(
-              icon: Icons.link_outlined,
-              title: 'Онлайн-запись',
-              onTap: () => context.push(Routes.onlineBooking),
-            ),
-          ]),
-          const SizedBox(height: Spacing.s4),
-          _card(kavio, [
-            KavioListTile(
-              icon: Icons.workspace_premium_outlined,
-              title: 'Подписка',
-              onTap: () => context.push(Routes.subscription),
-            ),
-            _div(kavio),
-            KavioListTile(
-              icon: Icons.person_outline,
-              title: 'Профиль',
+    final k = context.kavio;
+    var i = 0;
+    Widget reveal(Widget c) => StaggerReveal(index: i++, child: c);
+
+    return Container(
+      color: k.canvas,
+      child: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+          children: [
+            reveal(Text('Меню', style: AppTypography.title1(k.ink))),
+            const SizedBox(height: 16),
+            reveal(GestureDetector(
               onTap: () => context.push(Routes.profile),
+              child: ZHero(
+                orb: false,
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const ZAvatar(initials: 'С', size: 52, ring: true),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Софія',
+                              style: AppTypography.title3(k.ink).copyWith(fontSize: 17)),
+                          const SizedBox(height: 2),
+                          Text('Манікюрна студія · Київ',
+                              style: AppTypography.label(k.ink2).copyWith(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: k.ink3),
+                  ],
+                ),
+              ),
+            )),
+            const SizedBox(height: 20),
+            reveal(const ZLabel('Робота')),
+            const SizedBox(height: 8),
+            reveal(_Group(items: [
+              _Item(Icons.people_alt_outlined, 'Клієнти', () => context.push(Routes.clients)),
+              _Item(Icons.design_services_outlined, 'Послуги та ціни', () => context.push(Routes.services)),
+              _Item(Icons.link_outlined, 'Онлайн-запис', () => context.push(Routes.onlineBooking)),
+            ])),
+            const SizedBox(height: 20),
+            reveal(const ZLabel('Бізнес')),
+            const SizedBox(height: 8),
+            reveal(_Group(items: [
+              _Item(Icons.workspace_premium_outlined, 'Підписка', () => context.push(Routes.subscription)),
+              _Item(Icons.settings_outlined, 'Налаштування', () => context.push(Routes.settings)),
+            ])),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Item {
+  const _Item(this.icon, this.title, this.onTap);
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+}
+
+class _Group extends StatelessWidget {
+  const _Group({required this.items});
+  final List<_Item> items;
+  @override
+  Widget build(BuildContext context) {
+    final k = context.kavio;
+    return ZCard(
+      padding: const EdgeInsets.all(4),
+      child: Column(
+        children: [
+          for (var i = 0; i < items.length; i++)
+            GestureDetector(
+              onTap: items[i].onTap,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                decoration: BoxDecoration(
+                  border: i == 0 ? null : Border(top: BorderSide(color: k.line)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                          color: k.accentTint, borderRadius: BorderRadius.circular(11)),
+                      child: Icon(items[i].icon, size: 18, color: k.accent),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(items[i].title,
+                          style: AppTypography.body(k.ink)
+                              .copyWith(fontSize: 15, fontWeight: FontWeight.w600)),
+                    ),
+                    Icon(Icons.chevron_right, size: 18, color: k.ink3),
+                  ],
+                ),
+              ),
             ),
-            _div(kavio),
-            KavioListTile(
-              icon: Icons.settings_outlined,
-              title: 'Настройки',
-              onTap: () => context.push(Routes.settings),
-            ),
-          ]),
         ],
       ),
     );
   }
-
-  Widget _card(KavioColors kavio, List<Widget> children) => Container(
-        decoration: BoxDecoration(
-          color: kavio.surface,
-          borderRadius: BorderRadius.circular(Radii.lg),
-          border: Border.all(color: kavio.line),
-        ),
-        child: Column(children: children),
-      );
-
-  Widget _div(KavioColors kavio) =>
-      Divider(height: 1, thickness: 1, color: kavio.line, indent: 52);
 }

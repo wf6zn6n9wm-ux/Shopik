@@ -15,6 +15,7 @@ const routes = [
   ['services', '/services'],
   ['booking', '/online-booking'],
   ['menu', '/menu'],
+  ['settings', '/settings'],
 ];
 
 mkdirSync('shots', { recursive: true });
