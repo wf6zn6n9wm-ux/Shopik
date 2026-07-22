@@ -98,12 +98,12 @@ function todayUTC() { return new Date().toISOString().slice(0, 10); }
 // плана; сумму в звёздах и длительность берём отсюда (клиенту цены не доверяем).
 // @typedef {{ type:'solo'|'duo', months:number, stars:number, title:string }} Plan
 const PLANS = {
-  solo_1:  { type: 'solo', months: 1,  stars: 299,  title: 'PARA+ SOLO · 1 месяц' },
-  solo_3:  { type: 'solo', months: 3,  stars: 799,  title: 'PARA+ SOLO · 3 месяца' },
-  solo_12: { type: 'solo', months: 12, stars: 2499, title: 'PARA+ SOLO · 12 месяцев' },
-  duo_1:   { type: 'duo',  months: 1,  stars: 499,  title: 'PARA+ DUO · 1 месяц' },
-  duo_3:   { type: 'duo',  months: 3,  stars: 1399, title: 'PARA+ DUO · 3 месяца' },
-  duo_12:  { type: 'duo',  months: 12, stars: 4499, title: 'PARA+ DUO · 12 месяцев' }
+  solo_1:  { type: 'solo', months: 1,  stars: 199,  title: 'PARA+ SOLO · 1 месяц' },
+  solo_3:  { type: 'solo', months: 3,  stars: 499,  title: 'PARA+ SOLO · 3 месяца' },
+  solo_12: { type: 'solo', months: 12, stars: 1499, title: 'PARA+ SOLO · 12 месяцев' },
+  duo_1:   { type: 'duo',  months: 1,  stars: 349,  title: 'PARA+ DUO · 1 месяц' },
+  duo_3:   { type: 'duo',  months: 3,  stars: 999,  title: 'PARA+ DUO · 3 месяца' },
+  duo_12:  { type: 'duo',  months: 12, stars: 2999, title: 'PARA+ DUO · 12 месяцев' }
 };
 // Прибавить N месяцев к дате (для расчёта end_date).
 function addMonths(date, months) {
