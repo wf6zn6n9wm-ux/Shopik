@@ -78,8 +78,8 @@ class _Seg extends ConsumerWidget {
     return ZSegmented(
       items: const ['День', 'Тиждень', 'Місяць'],
       index: view.index,
-      onChanged: (i) =>
-          ref.read(calendarViewProvider.notifier).state = CalendarView.values[i],
+      onChanged: (i) => ref.read(calendarViewProvider.notifier).state =
+          CalendarView.values[i],
     );
   }
 }
@@ -117,7 +117,8 @@ class _DayView extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(Fmt.weekday(day),
-                      style: AppTypography.label(k.ink3).copyWith(fontSize: 12)),
+                      style:
+                          AppTypography.label(k.ink3).copyWith(fontSize: 12)),
                   Text(Fmt.dayMonth(day), style: AppTypography.title1(k.ink)),
                 ],
               ),
@@ -136,7 +137,8 @@ class _DayView extends ConsumerWidget {
                 child: ZStatCard(label: 'Записів', value: '${list.length}')),
             const SizedBox(width: 8),
             Expanded(
-                child: ZStatCard(label: 'Виручка', value: Fmt.money(completed))),
+                child:
+                    ZStatCard(label: 'Виручка', value: Fmt.money(completed))),
             const SizedBox(width: 8),
             Expanded(
                 child: ZStatCard(
@@ -164,8 +166,8 @@ class _DayView extends ConsumerWidget {
     return (close.difference(open).inMinutes - busy).clamp(0, 600);
   }
 
-  List<Widget> _timeline(
-      BuildContext context, List<Appointment> list, DateTime now, bool isToday) {
+  List<Widget> _timeline(BuildContext context, List<Appointment> list,
+      DateTime now, bool isToday) {
     final items = [...list]..sort((a, b) => a.start.compareTo(b.start));
     final widgets = <Widget>[];
     var nowPlaced = !isToday;
@@ -173,7 +175,8 @@ class _DayView extends ConsumerWidget {
     var idx = 0;
 
     void maybeNow(DateTime before) {
-      if (!nowPlaced && now.isBefore(before) &&
+      if (!nowPlaced &&
+          now.isBefore(before) &&
           (prevEnd == null || !now.isBefore(prevEnd!))) {
         widgets.add(StaggerReveal(index: idx++, child: _NowLine(time: now)));
         nowPlaced = true;
@@ -293,7 +296,10 @@ class _ApptCard extends StatelessWidget {
               ),
             ),
             Positioned(
-                left: 0, top: 0, bottom: 0, child: Container(width: 3, color: c)),
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: Container(width: 3, color: c)),
           ],
         ),
       ),
@@ -327,7 +333,9 @@ class _NowLine extends StatelessWidget {
             decoration: BoxDecoration(
               color: k.accent,
               shape: BoxShape.circle,
-              boxShadow: const [BoxShadow(color: Color(0xBF8B8BF0), blurRadius: 10)],
+              boxShadow: const [
+                BoxShadow(color: Color(0xBF8B8BF0), blurRadius: 10)
+              ],
             ),
           ),
           Expanded(
@@ -335,8 +343,8 @@ class _NowLine extends StatelessWidget {
               height: 2,
               margin: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                    colors: [k.accent, k.accent.withOpacity(0)]),
+                gradient:
+                    LinearGradient(colors: [k.accent, k.accent.withOpacity(0)]),
               ),
             ),
           ),
@@ -385,7 +393,8 @@ class _EmptyDay extends StatelessWidget {
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: k.line),
             ),
-            child: Icon(Icons.event_available_outlined, size: 36, color: k.accent),
+            child:
+                Icon(Icons.event_available_outlined, size: 36, color: k.accent),
           ),
           const SizedBox(height: 16),
           Text('Вільний день', style: AppTypography.title2(k.ink)),
@@ -436,7 +445,9 @@ class _WeekView extends ConsumerWidget {
           children: [
             const SizedBox(width: 22),
             for (var i = 0; i < 7; i++)
-              Expanded(child: _WeekHeadCell(date: start.add(Duration(days: i)), today: today)),
+              Expanded(
+                  child: _WeekHeadCell(
+                      date: start.add(Duration(days: i)), today: today)),
           ],
         ),
         const SizedBox(height: 6),
@@ -453,8 +464,9 @@ class _WeekView extends ConsumerWidget {
                   children: [
                     for (final h in [10, 12, 14, 16, 18])
                       Text('$h',
-                          style: AppTypography.tabular(AppTypography.label(k.ink3))
-                              .copyWith(fontSize: 9)),
+                          style:
+                              AppTypography.tabular(AppTypography.label(k.ink3))
+                                  .copyWith(fontSize: 9)),
                   ],
                 ),
               ),
@@ -464,7 +476,8 @@ class _WeekView extends ConsumerWidget {
                     date: start.add(Duration(days: i)),
                     today: today,
                     items: list
-                        .where((a) => _dateOnly(a.start) == start.add(Duration(days: i)))
+                        .where((a) =>
+                            _dateOnly(a.start) == start.add(Duration(days: i)))
                         .toList(),
                   ),
                 ),
@@ -508,7 +521,8 @@ class _WeekHeadCell extends StatelessWidget {
 }
 
 class _WeekColumn extends StatelessWidget {
-  const _WeekColumn({required this.date, required this.today, required this.items});
+  const _WeekColumn(
+      {required this.date, required this.today, required this.items});
   final DateTime date;
   final DateTime today;
   final List<Appointment> items;
@@ -563,7 +577,8 @@ class _WeekColumn extends StatelessWidget {
                           left: 0,
                           top: 0,
                           bottom: 0,
-                          child: Container(width: 2.5, color: apptColor(a.service.id))),
+                          child: Container(
+                              width: 2.5, color: apptColor(a.service.id))),
                     ],
                   ),
                 ),
@@ -587,7 +602,8 @@ class _MonthView extends ConsumerWidget {
     final monthStart = DateTime(day.year, day.month, 1);
     final nextMonth = DateTime(day.year, day.month + 1, 1);
     final list = ref
-            .watch(rangeAppointmentsProvider((start: monthStart, end: nextMonth)))
+            .watch(
+                rangeAppointmentsProvider((start: monthStart, end: nextMonth)))
             .value ??
         const <Appointment>[];
     final counts = <int, int>{};
@@ -627,7 +643,8 @@ class _MonthView extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(_monthName(day.month), style: AppTypography.title1(k.ink)),
-            Text(Fmt.money(list
+            Text(
+                Fmt.money(list
                     .where((a) => a.status == AppointmentStatus.completed)
                     .fold<int>(0, (s, a) => s + a.service.price)),
                 style: AppTypography.label(k.ink2).copyWith(fontSize: 13)),
@@ -665,8 +682,18 @@ class _MonthView extends ConsumerWidget {
 
   String _monthName(int m) {
     const names = [
-      'Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень',
-      'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень'
+      'Січень',
+      'Лютий',
+      'Березень',
+      'Квітень',
+      'Травень',
+      'Червень',
+      'Липень',
+      'Серпень',
+      'Вересень',
+      'Жовтень',
+      'Листопад',
+      'Грудень'
     ];
     return names[m - 1];
   }
@@ -699,7 +726,13 @@ class _MonthCell extends StatelessWidget {
             borderRadius: BorderRadius.circular(11),
             border: Border.all(color: isToday ? k.accent : k.line),
             boxShadow: isToday
-                ? const [BoxShadow(color: Color(0xBF8B8BF0), blurRadius: 12, spreadRadius: -4, offset: Offset(0, 4))]
+                ? const [
+                    BoxShadow(
+                        color: Color(0xBF8B8BF0),
+                        blurRadius: 12,
+                        spreadRadius: -4,
+                        offset: Offset(0, 4))
+                  ]
                 : null,
           ),
           child: Stack(
@@ -712,7 +745,8 @@ class _MonthCell extends StatelessWidget {
                             intensity > 0.6 ? Colors.white : k.ink2))
                         .copyWith(
                             fontSize: 10,
-                            fontWeight: isToday ? FontWeight.w800 : FontWeight.w600)),
+                            fontWeight:
+                                isToday ? FontWeight.w800 : FontWeight.w600)),
               ),
               if (has)
                 Positioned(
@@ -752,7 +786,8 @@ class _MonthLegend extends StatelessWidget {
                 borderRadius: BorderRadius.circular(3)),
           ),
         const SizedBox(width: 4),
-        Text('щільно', style: AppTypography.label(k.ink3).copyWith(fontSize: 10)),
+        Text('щільно',
+            style: AppTypography.label(k.ink3).copyWith(fontSize: 10)),
       ],
     );
   }
