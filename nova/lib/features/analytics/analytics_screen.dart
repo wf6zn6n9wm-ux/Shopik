@@ -32,12 +32,15 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           children: [
             reveal(Row(
               children: [
-                Expanded(child: Text('Аналітика', style: AppTypography.title1(k.ink))),
+                Expanded(
+                    child:
+                        Text('Аналітика', style: AppTypography.title1(k.ink))),
                 Container(
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                      color: k.surface2, borderRadius: BorderRadius.circular(12)),
+                      color: k.surface2,
+                      borderRadius: BorderRadius.circular(12)),
                   child: Icon(Icons.tune, size: 18, color: k.ink2),
                 ),
               ],
@@ -91,7 +94,8 @@ class _RevenueHero extends StatelessWidget {
           const SizedBox(height: 10),
           SizedBox(
             height: 96,
-            child: CustomPaint(size: Size.infinite, painter: _AreaChartPainter()),
+            child:
+                CustomPaint(size: Size.infinite, painter: _AreaChartPainter()),
           ),
           const SizedBox(height: 6),
           Row(
@@ -231,23 +235,61 @@ class _KpiGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final k = context.kavio;
     final t = <Widget>[
-      _KpiTile(label: 'Прибуток', value: '₴121 000', delta: '12%', up: true, spark: const [0.3, 0.34, 0.32, 0.4, 0.44, 0.5, 0.58], color: k.success),
-      _KpiTile(label: 'Сер. чек', value: '₴1 300', delta: '6%', up: true, spark: const [0.2, 0.22, 0.21, 0.26, 0.25, 0.3, 0.33], color: k.accent),
-      _KpiTile(label: 'Записів', value: '140', delta: '9%', up: true, spark: const [0.1, 0.14, 0.12, 0.18, 0.2, 0.22, 0.26], color: k.accent),
-      _KpiTile(label: 'Скасувань', value: '4%', delta: '2%', up: false, spark: const [0.4, 0.32, 0.34, 0.28, 0.24, 0.22, 0.18], color: k.danger),
+      _KpiTile(
+          label: 'Прибуток',
+          value: '₴121 000',
+          delta: '12%',
+          up: true,
+          spark: const [0.3, 0.34, 0.32, 0.4, 0.44, 0.5, 0.58],
+          color: k.success),
+      _KpiTile(
+          label: 'Сер. чек',
+          value: '₴1 300',
+          delta: '6%',
+          up: true,
+          spark: const [0.2, 0.22, 0.21, 0.26, 0.25, 0.3, 0.33],
+          color: k.accent),
+      _KpiTile(
+          label: 'Записів',
+          value: '140',
+          delta: '9%',
+          up: true,
+          spark: const [0.1, 0.14, 0.12, 0.18, 0.2, 0.22, 0.26],
+          color: k.accent),
+      _KpiTile(
+          label: 'Скасувань',
+          value: '4%',
+          delta: '2%',
+          up: false,
+          spark: const [0.4, 0.32, 0.34, 0.28, 0.24, 0.22, 0.18],
+          color: k.danger),
     ];
     return Column(
       children: [
-        Row(children: [Expanded(child: t[0]), const SizedBox(width: 10), Expanded(child: t[1])]),
+        Row(children: [
+          Expanded(child: t[0]),
+          const SizedBox(width: 10),
+          Expanded(child: t[1])
+        ]),
         const SizedBox(height: 10),
-        Row(children: [Expanded(child: t[2]), const SizedBox(width: 10), Expanded(child: t[3])]),
+        Row(children: [
+          Expanded(child: t[2]),
+          const SizedBox(width: 10),
+          Expanded(child: t[3])
+        ]),
       ],
     );
   }
 }
 
 class _KpiTile extends StatelessWidget {
-  const _KpiTile({required this.label, required this.value, required this.delta, required this.up, required this.spark, required this.color});
+  const _KpiTile(
+      {required this.label,
+      required this.value,
+      required this.delta,
+      required this.up,
+      required this.spark,
+      required this.color});
   final String label, value, delta;
   final bool up;
   final List<double> spark;
@@ -270,11 +312,13 @@ class _KpiTile extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(value,
-              style: AppTypography.tabular(AppTypography.title1(k.ink)).copyWith(fontSize: 22)),
+              style: AppTypography.tabular(AppTypography.title1(k.ink))
+                  .copyWith(fontSize: 22)),
           const SizedBox(height: 6),
           SizedBox(
             height: 26,
-            child: CustomPaint(size: Size.infinite, painter: _SparkPainter(spark, color)),
+            child: CustomPaint(
+                size: Size.infinite, painter: _SparkPainter(spark, color)),
           ),
         ],
       ),
@@ -336,7 +380,8 @@ class _Heatmap extends StatelessWidget {
               const ZLabel('Завантаженість по днях'),
               Row(
                 children: [
-                  const ZRing(progress: 0.78, size: 30, stroke: 3.5, glow: false),
+                  const ZRing(
+                      progress: 0.78, size: 30, stroke: 3.5, glow: false),
                   const SizedBox(width: 8),
                   Text('78%',
                       style: AppTypography.tabular(AppTypography.title3(k.ink))
@@ -355,8 +400,9 @@ class _Heatmap extends StatelessWidget {
                     SizedBox(
                       height: 20,
                       child: Text(h,
-                          style: AppTypography.tabular(AppTypography.label(k.ink3))
-                              .copyWith(fontSize: 9)),
+                          style:
+                              AppTypography.tabular(AppTypography.label(k.ink3))
+                                  .copyWith(fontSize: 9)),
                     ),
                     const SizedBox(height: 4),
                   ],

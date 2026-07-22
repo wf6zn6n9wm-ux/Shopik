@@ -45,7 +45,8 @@ class ServicesScreen extends ConsumerWidget {
           children: [
             reveal(Row(
               children: [
-                Expanded(child: Text('Послуги', style: AppTypography.title1(k.ink))),
+                Expanded(
+                    child: Text('Послуги', style: AppTypography.title1(k.ink))),
                 GestureDetector(
                   onTap: () => showCreateServiceSheet(context),
                   child: Container(
@@ -70,7 +71,8 @@ class ServicesScreen extends ConsumerWidget {
                   children: [
                     ZLabel(cat),
                     Text('${groups[cat]!.length} послуги',
-                        style: AppTypography.label(k.ink3).copyWith(fontSize: 12)),
+                        style:
+                            AppTypography.label(k.ink3).copyWith(fontSize: 12)),
                   ],
                 ),
               )),
@@ -135,10 +137,11 @@ class _CategoryCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(items[i].name,
-                            style: AppTypography.label(k.ink)
-                                .copyWith(fontSize: 14, fontWeight: FontWeight.w600)),
+                            style: AppTypography.label(k.ink).copyWith(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
                         Text(Fmt.duration(items[i].durationMinutes),
-                            style: AppTypography.label(k.ink3).copyWith(fontSize: 12)),
+                            style: AppTypography.label(k.ink3)
+                                .copyWith(fontSize: 12)),
                       ],
                     ),
                   ),

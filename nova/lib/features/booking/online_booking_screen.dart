@@ -29,7 +29,8 @@ class OnlineBookingScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
                 children: [
-                  reveal(Text('Онлайн-запис', style: AppTypography.title1(k.ink))),
+                  reveal(
+                      Text('Онлайн-запис', style: AppTypography.title1(k.ink))),
                   const SizedBox(height: 14),
                   reveal(_HeroCard(link: _link)),
                   const SizedBox(height: 14),
@@ -106,7 +107,8 @@ class _HeroCard extends StatelessWidget {
                   icon: Icons.ios_share,
                   padding: const EdgeInsets.symmetric(vertical: 11),
                   onTap: () {
-                    Clipboard.setData(const ClipboardData(text: 'https://$link'));
+                    Clipboard.setData(
+                        const ClipboardData(text: 'https://$link'));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Посилання скопійовано')),
                     );
@@ -137,8 +139,9 @@ class _Stats extends StatelessWidget {
                         .copyWith(fontSize: 10, letterSpacing: 0.6)),
                 const SizedBox(height: 3),
                 Text(value,
-                    style: AppTypography.tabular(AppTypography.title1(c ?? k.ink))
-                        .copyWith(fontSize: 19)),
+                    style:
+                        AppTypography.tabular(AppTypography.title1(c ?? k.ink))
+                            .copyWith(fontSize: 19)),
               ],
             ),
           ),
@@ -176,9 +179,11 @@ class _Preview extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Манікюрна студія',
-                      style: AppTypography.title3(k.ink).copyWith(fontSize: 15)),
+                      style:
+                          AppTypography.title3(k.ink).copyWith(fontSize: 15)),
                   Text('Київ · 4.9 ★',
-                      style: AppTypography.label(k.ink3).copyWith(fontSize: 12)),
+                      style:
+                          AppTypography.label(k.ink3).copyWith(fontSize: 12)),
                 ],
               ),
             ],
@@ -194,8 +199,8 @@ class _Preview extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(s.$1,
-                        style: AppTypography.label(k.ink)
-                            .copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+                        style: AppTypography.label(k.ink).copyWith(
+                            fontSize: 13, fontWeight: FontWeight.w600)),
                   ),
                   Text(s.$2,
                       style: AppTypography.tabular(AppTypography.label(k.ink2))
@@ -227,7 +232,11 @@ class _QrPainter extends CustomPainter {
     final black = Paint()..color = const Color(0xFF0B0B11);
 
     bool finder(int r, int c) {
-      for (final o in const [[0, 0], [0, 14], [14, 0]]) {
+      for (final o in const [
+        [0, 0],
+        [0, 14],
+        [14, 0]
+      ]) {
         final dr = r - o[0], dc = c - o[1];
         if (dr >= 0 && dr < 7 && dc >= 0 && dc < 7) {
           final edge = dr == 0 || dr == 6 || dc == 0 || dc == 6;
@@ -240,14 +249,15 @@ class _QrPainter extends CustomPainter {
 
     for (var r = 0; r < n; r++) {
       for (var c = 0; c < n; c++) {
-        final inFinder = (r < 8 && c < 8) || (r < 8 && c > 12) || (r > 12 && c < 8);
-        final on = inFinder
-            ? finder(r, c)
-            : ((r * 7 + c * 13 + r * c) % 3 == 0);
+        final inFinder =
+            (r < 8 && c < 8) || (r < 8 && c > 12) || (r > 12 && c < 8);
+        final on =
+            inFinder ? finder(r, c) : ((r * 7 + c * 13 + r * c) % 3 == 0);
         if (on) {
           canvas.drawRRect(
             RRect.fromRectAndRadius(
-              Rect.fromLTWH(c * cell, r * cell, cell, cell).deflate(cell * 0.08),
+              Rect.fromLTWH(c * cell, r * cell, cell, cell)
+                  .deflate(cell * 0.08),
               Radius.circular(cell * 0.2),
             ),
             black,

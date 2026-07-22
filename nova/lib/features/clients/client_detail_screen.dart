@@ -29,8 +29,8 @@ class ClientDetailScreen extends ConsumerWidget {
         backgroundColor: k.canvas,
         appBar: AppBar(backgroundColor: k.canvas, elevation: 0),
         body: Center(
-            child: Text('Клієнта не знайдено',
-                style: AppTypography.body(k.ink2))),
+            child:
+                Text('Клієнта не знайдено', style: AppTypography.body(k.ink2))),
       );
     }
 
@@ -43,9 +43,8 @@ class ClientDetailScreen extends ConsumerWidget {
         if (next == null || a.start.isBefore(next.start)) next = a;
       }
     }
-    final avg = client.visitsCount > 0
-        ? client.totalSpent ~/ client.visitsCount
-        : 0;
+    final avg =
+        client.visitsCount > 0 ? client.totalSpent ~/ client.visitsCount : 0;
 
     // Улюблені послуги: топ-3 за кількістю.
     final byService = <String, (String, int)>{};
@@ -78,7 +77,10 @@ class ClientDetailScreen extends ConsumerWidget {
                   ],
                   reveal(_QuickActions(client: client)),
                   const SizedBox(height: 14),
-                  reveal(_LtvHero(ltv: client.totalSpent, visits: client.visitsCount, avg: avg)),
+                  reveal(_LtvHero(
+                      ltv: client.totalSpent,
+                      visits: client.visitsCount,
+                      avg: avg)),
                   const SizedBox(height: 16),
                   if (favs.isNotEmpty) ...[
                     reveal(const ZLabel('Улюблені послуги')),
@@ -213,7 +215,8 @@ class _NextChip extends StatelessWidget {
                 const TextSpan(text: 'Наступний запис · '),
                 TextSpan(
                     text: '$when ${Fmt.time(next.start)}',
-                    style: TextStyle(color: k.ink, fontWeight: FontWeight.w700)),
+                    style:
+                        TextStyle(color: k.ink, fontWeight: FontWeight.w700)),
               ],
             )),
           ),
@@ -390,22 +393,25 @@ class _History extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                border: i == 0
-                    ? null
-                    : Border(top: BorderSide(color: k.line)),
+                border: i == 0 ? null : Border(top: BorderSide(color: k.line)),
               ),
               child: Row(
                 children: [
                   SizedBox(
                     width: 54,
-                    child: Text(Fmt.dayMonth(past[i].start).split(' ').take(2).join(' '),
-                        style: AppTypography.tabular(AppTypography.label(k.ink3))
-                            .copyWith(fontSize: 12.5)),
+                    child: Text(
+                        Fmt.dayMonth(past[i].start)
+                            .split(' ')
+                            .take(2)
+                            .join(' '),
+                        style:
+                            AppTypography.tabular(AppTypography.label(k.ink3))
+                                .copyWith(fontSize: 12.5)),
                   ),
                   Expanded(
                     child: Text(past[i].service.name,
-                        style: AppTypography.label(k.ink)
-                            .copyWith(fontSize: 14, fontWeight: FontWeight.w600)),
+                        style: AppTypography.label(k.ink).copyWith(
+                            fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                   Text(Fmt.money(past[i].service.price),
                       style: AppTypography.tabular(AppTypography.label(k.ink))
