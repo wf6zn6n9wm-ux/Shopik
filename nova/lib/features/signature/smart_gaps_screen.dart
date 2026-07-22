@@ -37,7 +37,8 @@ class SmartGapsScreen extends ConsumerWidget {
                         decoration: BoxDecoration(
                             color: k.accentTint,
                             borderRadius: BorderRadius.circular(11)),
-                        child: Icon(Icons.auto_awesome, size: 17, color: k.accent),
+                        child:
+                            Icon(Icons.auto_awesome, size: 17, color: k.accent),
                       ),
                       const SizedBox(width: 10),
                       Text('Розумні вікна', style: AppTypography.title1(k.ink)),
@@ -47,10 +48,12 @@ class SmartGapsScreen extends ConsumerWidget {
                   reveal(Text.rich(TextSpan(
                     style: AppTypography.body(k.ink3).copyWith(fontSize: 13),
                     children: [
-                      TextSpan(text: 'Сьогодні ${windows.length} вільні вікна на '),
+                      TextSpan(
+                          text: 'Сьогодні ${windows.length} вільні вікна на '),
                       TextSpan(
                           text: '$freeMin хв',
-                          style: TextStyle(color: k.ink2, fontWeight: FontWeight.w700)),
+                          style: TextStyle(
+                              color: k.ink2, fontWeight: FontWeight.w700)),
                       const TextSpan(text: '. Ось хто найімовірніше прийде.'),
                     ],
                   ))),
@@ -112,18 +115,21 @@ class _TopCandidateHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Марія Ткаченко',
-                        style: AppTypography.title3(k.ink)
-                            .copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
+                        style: AppTypography.title3(k.ink).copyWith(
+                            fontSize: 15, fontWeight: FontWeight.w800)),
                     Text('Манікюр кожні 3 тижні · не була 24 дні',
-                        style: AppTypography.label(k.ink2).copyWith(fontSize: 12)),
+                        style:
+                            AppTypography.label(k.ink2).copyWith(fontSize: 12)),
                   ],
                 ),
               ),
               Column(
                 children: [
                   Text('92%',
-                      style: AppTypography.tabular(AppTypography.title3(k.success))
-                          .copyWith(fontSize: 16, fontWeight: FontWeight.w800)),
+                      style:
+                          AppTypography.tabular(AppTypography.title3(k.success))
+                              .copyWith(
+                                  fontSize: 16, fontWeight: FontWeight.w800)),
                   Text('прийде',
                       style: AppTypography.label(k.ink3).copyWith(fontSize: 9)),
                 ],
@@ -136,7 +142,8 @@ class _TopCandidateHero extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
             child: Text(
               '«Маріє, вітаю! 🌸 Є віконце сьогодні о 15:30 на манікюр. Записати?»',
-              style: AppTypography.body(k.ink2).copyWith(fontSize: 12.5, height: 1.45),
+              style: AppTypography.body(k.ink2)
+                  .copyWith(fontSize: 12.5, height: 1.45),
             ),
           ),
           const SizedBox(height: 12),
@@ -191,13 +198,16 @@ class _Candidates extends StatelessWidget {
                             style: AppTypography.label(k.ink).copyWith(
                                 fontSize: 13.5, fontWeight: FontWeight.w700)),
                         Text(rows[i].$3,
-                            style: AppTypography.label(k.ink3).copyWith(fontSize: 11)),
+                            style: AppTypography.label(k.ink3)
+                                .copyWith(fontSize: 11)),
                       ],
                     ),
                   ),
                   Text(rows[i].$4,
-                      style: AppTypography.tabular(AppTypography.label(k.success))
-                          .copyWith(fontSize: 13, fontWeight: FontWeight.w800)),
+                      style:
+                          AppTypography.tabular(AppTypography.label(k.success))
+                              .copyWith(
+                                  fontSize: 13, fontWeight: FontWeight.w800)),
                   const SizedBox(width: 10),
                   Container(
                     width: 30,
