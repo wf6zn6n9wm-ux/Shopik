@@ -58,8 +58,8 @@ class AppConfig {
           : null,
       defaultCurrencyCode:
           const String.fromEnvironment('DEFAULT_CURRENCY', defaultValue: 'UAH'),
-      defaultTimeZone:
-          const String.fromEnvironment('DEFAULT_TZ', defaultValue: 'Europe/Kyiv'),
+      defaultTimeZone: const String.fromEnvironment('DEFAULT_TZ',
+          defaultValue: 'Europe/Kyiv'),
     );
   }
 }

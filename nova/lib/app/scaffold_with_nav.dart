@@ -75,7 +75,11 @@ class _FloatingBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(28),
             border: Border.all(color: k.line, width: 1),
             boxShadow: const [
-              BoxShadow(color: Color(0xD9000000), blurRadius: 46, spreadRadius: -14, offset: Offset(0, 22)),
+              BoxShadow(
+                  color: Color(0xD9000000),
+                  blurRadius: 46,
+                  spreadRadius: -14,
+                  offset: Offset(0, 22)),
             ],
           ),
           child: Row(
@@ -89,7 +93,8 @@ class _FloatingBar extends StatelessWidget {
 }
 
 class _NavItem extends StatelessWidget {
-  const _NavItem({required this.destination, required this.active, required this.onTap});
+  const _NavItem(
+      {required this.destination, required this.active, required this.onTap});
   final NavDestination destination;
   final bool active;
   final VoidCallback onTap;
@@ -106,7 +111,8 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(active ? destination.activeIcon : destination.icon, size: 25, color: active ? k.accent : k.ink3),
+            Icon(active ? destination.activeIcon : destination.icon,
+                size: 25, color: active ? k.accent : k.ink3),
             const SizedBox(height: 5),
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -115,7 +121,9 @@ class _NavItem extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: active ? k.accent : Colors.transparent,
-                boxShadow: active ? const [BoxShadow(color: Color(0xBF8B8BF0), blurRadius: 8)] : null,
+                boxShadow: active
+                    ? const [BoxShadow(color: Color(0xBF8B8BF0), blurRadius: 8)]
+                    : null,
               ),
             ),
           ],
@@ -150,7 +158,13 @@ class _FabState extends State<_Fab> {
           decoration: BoxDecoration(
             gradient: FX.brandButton,
             borderRadius: BorderRadius.circular(18),
-            boxShadow: const [BoxShadow(color: Color(0xBF8B8BF0), blurRadius: 30, spreadRadius: -6, offset: Offset(0, 14))],
+            boxShadow: const [
+              BoxShadow(
+                  color: Color(0xBF8B8BF0),
+                  blurRadius: 30,
+                  spreadRadius: -6,
+                  offset: Offset(0, 14))
+            ],
           ),
           child: const Icon(Icons.add, color: Colors.white, size: 26),
         ),
@@ -170,10 +184,14 @@ class _MenuAction {
 
 Future<void> showCreateMenu(BuildContext context) {
   final actions = <_MenuAction>[
-    _MenuAction(Icons.event_available_outlined, 'Новий запис', (c) => showCreateAppointmentSheet(c)),
-    _MenuAction(Icons.person_add_alt_1_outlined, 'Новий клієнт', (c) => showCreateClientSheet(c)),
-    _MenuAction(Icons.design_services_outlined, 'Нова послуга', (c) => showCreateServiceSheet(c)),
-    _MenuAction(Icons.shopping_bag_outlined, 'Продаж товару', (c) => showCreateAppointmentSheet(c)),
+    _MenuAction(Icons.event_available_outlined, 'Новий запис',
+        (c) => showCreateAppointmentSheet(c)),
+    _MenuAction(Icons.person_add_alt_1_outlined, 'Новий клієнт',
+        (c) => showCreateClientSheet(c)),
+    _MenuAction(Icons.design_services_outlined, 'Нова послуга',
+        (c) => showCreateServiceSheet(c)),
+    _MenuAction(Icons.shopping_bag_outlined, 'Продаж товару',
+        (c) => showCreateAppointmentSheet(c)),
   ];
   return showGeneralDialog(
     context: context,
@@ -182,7 +200,8 @@ Future<void> showCreateMenu(BuildContext context) {
     barrierColor: Colors.transparent,
     transitionDuration: const Duration(milliseconds: 320),
     pageBuilder: (_, __, ___) => const SizedBox.shrink(),
-    transitionBuilder: (context, anim, _, __) => _CreateMenu(anim: anim, actions: actions),
+    transitionBuilder: (context, anim, _, __) =>
+        _CreateMenu(anim: anim, actions: actions),
   );
 }
 
@@ -194,7 +213,8 @@ class _CreateMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final k = context.kavio;
-    final curved = CurvedAnimation(parent: anim, curve: const Cubic(0.16, 0.9, 0.3, 1));
+    final curved =
+        CurvedAnimation(parent: anim, curve: const Cubic(0.16, 0.9, 0.3, 1));
     return AnimatedBuilder(
       animation: curved,
       builder: (context, _) {
@@ -219,7 +239,10 @@ class _CreateMenu extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   for (var i = 0; i < actions.length; i++)
-                    _MenuRow(action: actions[i], t: _stagger(t, i, actions.length), color: k),
+                    _MenuRow(
+                        action: actions[i],
+                        t: _stagger(t, i, actions.length),
+                        color: k),
                 ],
               ),
             ),
@@ -238,9 +261,16 @@ class _CreateMenu extends StatelessWidget {
                       decoration: BoxDecoration(
                         gradient: FX.brandButton,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [BoxShadow(color: Color(0xBF8B8BF0), blurRadius: 34, spreadRadius: -6, offset: Offset(0, 14))],
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Color(0xBF8B8BF0),
+                              blurRadius: 34,
+                              spreadRadius: -6,
+                              offset: Offset(0, 14))
+                        ],
                       ),
-                      child: const Icon(Icons.add, color: Colors.white, size: 28),
+                      child:
+                          const Icon(Icons.add, color: Colors.white, size: 28),
                     ),
                   ),
                 ),
@@ -284,12 +314,19 @@ class _MenuRow extends StatelessWidget {
                   child: BackdropFilter(
                     filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 13),
                       decoration: BoxDecoration(
                         color: FX.glassFill,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: color.line, width: 1),
-                        boxShadow: const [BoxShadow(color: Color(0x99000000), blurRadius: 24, spreadRadius: -12, offset: Offset(0, 10))],
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Color(0x99000000),
+                              blurRadius: 24,
+                              spreadRadius: -12,
+                              offset: Offset(0, 10))
+                        ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -297,11 +334,16 @@ class _MenuRow extends StatelessWidget {
                           Container(
                             width: 34,
                             height: 34,
-                            decoration: BoxDecoration(color: color.accentTint, borderRadius: BorderRadius.circular(11)),
-                            child: Icon(action.icon, size: 18, color: color.accent),
+                            decoration: BoxDecoration(
+                                color: color.accentTint,
+                                borderRadius: BorderRadius.circular(11)),
+                            child: Icon(action.icon,
+                                size: 18, color: color.accent),
                           ),
                           const SizedBox(width: 12),
-                          Text(action.label, style: AppTypography.title3(color.ink).copyWith(fontSize: 15, fontWeight: FontWeight.w600)),
+                          Text(action.label,
+                              style: AppTypography.title3(color.ink).copyWith(
+                                  fontSize: 15, fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),

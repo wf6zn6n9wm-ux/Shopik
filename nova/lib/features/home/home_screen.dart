@@ -38,9 +38,11 @@ class HomeScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('${Fmt.weekday(now)}, ${Fmt.dayMonth(now)}',
-                          style: AppTypography.label(k.ink3).copyWith(fontSize: 13)),
+                          style: AppTypography.label(k.ink3)
+                              .copyWith(fontSize: 13)),
                       const SizedBox(height: 2),
-                      Text('Привіт, Софіє 👋', style: AppTypography.title1(k.ink)),
+                      Text('Привіт, Софіє 👋',
+                          style: AppTypography.title1(k.ink)),
                     ],
                   ),
                 ),
@@ -52,11 +54,24 @@ class HomeScreen extends ConsumerWidget {
             // Три показники.
             reveal(Row(
               children: [
-                Expanded(child: ZStatCard(label: 'Записів', value: '${d.visits}', sub: 'до 19:00')),
+                Expanded(
+                    child: ZStatCard(
+                        label: 'Записів',
+                        value: '${d.visits}',
+                        sub: 'до 19:00')),
                 const SizedBox(width: 10),
-                Expanded(child: ZStatCard(label: 'Виручка', value: Fmt.money(d.revenue), sub: '▲ 12%', subColor: k.success)),
+                Expanded(
+                    child: ZStatCard(
+                        label: 'Виручка',
+                        value: Fmt.money(d.revenue),
+                        sub: '▲ 12%',
+                        subColor: k.success)),
                 const SizedBox(width: 10),
-                Expanded(child: ZStatCard(label: 'Вікна', value: '${d.freeWindows.length}', sub: 'вільні')),
+                Expanded(
+                    child: ZStatCard(
+                        label: 'Вікна',
+                        value: '${d.freeWindows.length}',
+                        sub: 'вільні')),
               ],
             )),
             const SizedBox(height: 12),
@@ -73,7 +88,9 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   for (var w = 0; w < d.freeWindows.length; w++) ...[
                     if (w > 0) const SizedBox(width: 8),
-                    Expanded(child: _FreeWindowChip(time: Fmt.time(d.freeWindows[w]))),
+                    Expanded(
+                        child:
+                            _FreeWindowChip(time: Fmt.time(d.freeWindows[w]))),
                   ],
                 ],
               )),
@@ -108,9 +125,12 @@ class _NextClientHero extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Записів більше немає', style: AppTypography.title3(k.ink)),
+                  Text('Записів більше немає',
+                      style: AppTypography.title3(k.ink)),
                   const SizedBox(height: 2),
-                  Text('Гарний день — можна видихнути', style: AppTypography.label(k.ink2).copyWith(fontSize: 13)),
+                  Text('Гарний день — можна видихнути',
+                      style:
+                          AppTypography.label(k.ink2).copyWith(fontSize: 13)),
                 ],
               ),
             ),
@@ -133,9 +153,12 @@ class _NextClientHero extends StatelessWidget {
               children: [
                 ZLabel('Наступний клієнт · за $minutes хв', color: k.accent),
                 const SizedBox(height: 2),
-                Text(a.client.name, style: AppTypography.title3(k.ink).copyWith(fontSize: 17, fontWeight: FontWeight.w800)),
+                Text(a.client.name,
+                    style: AppTypography.title3(k.ink)
+                        .copyWith(fontSize: 17, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 1),
-                Text('${a.service.name} · ${Fmt.time(a.start)} · ${Fmt.money(a.service.price)}',
+                Text(
+                    '${a.service.name} · ${Fmt.time(a.start)} · ${Fmt.money(a.service.price)}',
                     style: AppTypography.label(k.ink2).copyWith(fontSize: 13)),
               ],
             ),
@@ -146,7 +169,8 @@ class _NextClientHero extends StatelessWidget {
             size: 52,
             stroke: 4,
             center: Text('$minutes′',
-                style: AppTypography.tabular(AppTypography.label(k.ink)).copyWith(fontSize: 11, fontWeight: FontWeight.w800)),
+                style: AppTypography.tabular(AppTypography.label(k.ink))
+                    .copyWith(fontSize: 11, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -165,13 +189,18 @@ class _FreeWindowChip extends StatelessWidget {
       child: CustomPaint(
         painter: _DashChipPainter(),
         child: Container(
-          decoration: BoxDecoration(color: const Color(0x0F8B8BF0), borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(
+              color: const Color(0x0F8B8BF0),
+              borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.symmetric(vertical: 11),
           child: Column(
             children: [
-              Text(time, style: AppTypography.tabular(AppTypography.title3(k.ink)).copyWith(fontSize: 14, fontWeight: FontWeight.w800)),
+              Text(time,
+                  style: AppTypography.tabular(AppTypography.title3(k.ink))
+                      .copyWith(fontSize: 14, fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
-              Text('заповнити', style: AppTypography.label(k.accent).copyWith(fontSize: 10)),
+              Text('заповнити',
+                  style: AppTypography.label(k.accent).copyWith(fontSize: 10)),
             ],
           ),
         ),
@@ -183,7 +212,8 @@ class _FreeWindowChip extends StatelessWidget {
 class _DashChipPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(16));
+    final rrect =
+        RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(16));
     final path = Path()..addRRect(rrect);
     final paint = Paint()
       ..color = const Color(0x808B8BF0)
@@ -229,14 +259,18 @@ class _InsightCard extends StatelessWidget {
               TextSpan(
                 style: AppTypography.body(k.ink).copyWith(fontSize: 13),
                 children: [
-                  TextSpan(text: '$count клієнти ', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  TextSpan(
+                      text: '$count клієнти ',
+                      style: const TextStyle(fontWeight: FontWeight.w800)),
                   const TextSpan(text: 'давно не були — запросити?'),
                 ],
               ),
             ),
           ),
           const SizedBox(width: 8),
-          Text('Так', style: AppTypography.label(k.success).copyWith(fontSize: 13, fontWeight: FontWeight.w700)),
+          Text('Так',
+              style: AppTypography.label(k.success)
+                  .copyWith(fontSize: 13, fontWeight: FontWeight.w700)),
         ],
       ),
     );

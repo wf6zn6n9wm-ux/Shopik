@@ -306,45 +306,167 @@ class AppDatabase extends _$AppDatabase {
         timeZone: const Value('Europe/Kyiv'),
       ));
       await into(locations).insert(
-        LocationsCompanion.insert(id: 'l1', businessId: 'b1', name: 'Київ, центр'),
+        LocationsCompanion.insert(
+            id: 'l1', businessId: 'b1', name: 'Київ, центр'),
       );
       await into(staffMembers).insert(StaffMembersCompanion.insert(
-          id: 'st1', businessId: 'b1', name: 'Софія', role: const Value('Майстриня')));
+          id: 'st1',
+          businessId: 'b1',
+          name: 'Софія',
+          role: const Value('Майстриня')));
 
       // Категорії + послуги.
       await batch((b) {
         b.insertAll(serviceCategories, [
-          ServiceCategoriesCompanion.insert(id: 'cat_man', businessId: 'b1', name: 'Манікюр', sortOrder: const Value(0)),
-          ServiceCategoriesCompanion.insert(id: 'cat_ped', businessId: 'b1', name: 'Педикюр', sortOrder: const Value(1)),
+          ServiceCategoriesCompanion.insert(
+              id: 'cat_man',
+              businessId: 'b1',
+              name: 'Манікюр',
+              sortOrder: const Value(0)),
+          ServiceCategoriesCompanion.insert(
+              id: 'cat_ped',
+              businessId: 'b1',
+              name: 'Педикюр',
+              sortOrder: const Value(1)),
         ]);
         b.insertAll(services, [
-          ServicesCompanion.insert(id: 'sv_man', businessId: 'b1', categoryId: const Value('cat_man'), name: 'Класичний манікюр', durationMinutes: 30, price: 35000),
-          ServicesCompanion.insert(id: 'sv_gel', businessId: 'b1', categoryId: const Value('cat_man'), name: 'Гель-лак', durationMinutes: 45, price: 50000),
-          ServicesCompanion.insert(id: 'sv_art', businessId: 'b1', categoryId: const Value('cat_man'), name: 'Нейл-арт', durationMinutes: 60, price: 75000),
-          ServicesCompanion.insert(id: 'sv_spa', businessId: 'b1', categoryId: const Value('cat_ped'), name: 'Spa-педикюр', durationMinutes: 60, price: 65000),
-          ServicesCompanion.insert(id: 'sv_exp', businessId: 'b1', categoryId: const Value('cat_ped'), name: 'Експрес-педикюр', durationMinutes: 35, price: 45000),
+          ServicesCompanion.insert(
+              id: 'sv_man',
+              businessId: 'b1',
+              categoryId: const Value('cat_man'),
+              name: 'Класичний манікюр',
+              durationMinutes: 30,
+              price: 35000),
+          ServicesCompanion.insert(
+              id: 'sv_gel',
+              businessId: 'b1',
+              categoryId: const Value('cat_man'),
+              name: 'Гель-лак',
+              durationMinutes: 45,
+              price: 50000),
+          ServicesCompanion.insert(
+              id: 'sv_art',
+              businessId: 'b1',
+              categoryId: const Value('cat_man'),
+              name: 'Нейл-арт',
+              durationMinutes: 60,
+              price: 75000),
+          ServicesCompanion.insert(
+              id: 'sv_spa',
+              businessId: 'b1',
+              categoryId: const Value('cat_ped'),
+              name: 'Spa-педикюр',
+              durationMinutes: 60,
+              price: 65000),
+          ServicesCompanion.insert(
+              id: 'sv_exp',
+              businessId: 'b1',
+              categoryId: const Value('cat_ped'),
+              name: 'Експрес-педикюр',
+              durationMinutes: 35,
+              price: 45000),
         ]);
       });
 
       // Клієнти.
       await batch((b) => b.insertAll(clients, [
-            ClientsCompanion.insert(id: 'cl_olena', businessId: 'b1', name: 'Олена Ковальчук', phone: '+380671112233', visitsCount: const Value(14), totalSpent: const Value(1820000), note: const Value('Віддає перевагу ранковим слотам. Улюблений колір — бордо. День народження 3 березня 🎂')),
-            ClientsCompanion.insert(id: 'cl_maria', businessId: 'b1', name: 'Марія Ткаченко', phone: '+380672223344', visitsCount: const Value(9), totalSpent: const Value(890000)),
-            ClientsCompanion.insert(id: 'cl_andriy', businessId: 'b1', name: 'Андрій Бондаренко', phone: '+380673334455', visitsCount: const Value(6), totalSpent: const Value(540000)),
-            ClientsCompanion.insert(id: 'cl_iryna', businessId: 'b1', name: 'Ірина Шевченко', phone: '+380674445566', visitsCount: const Value(11), totalSpent: const Value(1240000)),
-            ClientsCompanion.insert(id: 'cl_natalia', businessId: 'b1', name: 'Наталія Мороз', phone: '+380675556677', visitsCount: const Value(4), totalSpent: const Value(310000)),
-            ClientsCompanion.insert(id: 'cl_tetiana', businessId: 'b1', name: 'Тетяна Кравець', phone: '+380676667788', visitsCount: const Value(7), totalSpent: const Value(720000)),
+            ClientsCompanion.insert(
+                id: 'cl_olena',
+                businessId: 'b1',
+                name: 'Олена Ковальчук',
+                phone: '+380671112233',
+                visitsCount: const Value(14),
+                totalSpent: const Value(1820000),
+                note: const Value(
+                    'Віддає перевагу ранковим слотам. Улюблений колір — бордо. День народження 3 березня 🎂')),
+            ClientsCompanion.insert(
+                id: 'cl_maria',
+                businessId: 'b1',
+                name: 'Марія Ткаченко',
+                phone: '+380672223344',
+                visitsCount: const Value(9),
+                totalSpent: const Value(890000)),
+            ClientsCompanion.insert(
+                id: 'cl_andriy',
+                businessId: 'b1',
+                name: 'Андрій Бондаренко',
+                phone: '+380673334455',
+                visitsCount: const Value(6),
+                totalSpent: const Value(540000)),
+            ClientsCompanion.insert(
+                id: 'cl_iryna',
+                businessId: 'b1',
+                name: 'Ірина Шевченко',
+                phone: '+380674445566',
+                visitsCount: const Value(11),
+                totalSpent: const Value(1240000)),
+            ClientsCompanion.insert(
+                id: 'cl_natalia',
+                businessId: 'b1',
+                name: 'Наталія Мороз',
+                phone: '+380675556677',
+                visitsCount: const Value(4),
+                totalSpent: const Value(310000)),
+            ClientsCompanion.insert(
+                id: 'cl_tetiana',
+                businessId: 'b1',
+                name: 'Тетяна Кравець',
+                phone: '+380676667788',
+                visitsCount: const Value(7),
+                totalSpent: const Value(720000)),
           ]));
 
       // Записи сьогодні: 4 завершені (виручка ₴2 400) + наступний за ~25 хв + ще один.
       String uid(String s) => 'ap_$s';
       await batch((b) => b.insertAll(appointments, [
-            AppointmentsCompanion.insert(id: uid('1'), businessId: 'b1', clientId: 'cl_iryna', serviceId: 'sv_gel', staffId: const Value('st1'), startAt: at(-195), status: 'completed'),
-            AppointmentsCompanion.insert(id: uid('2'), businessId: 'b1', clientId: 'cl_natalia', serviceId: 'sv_spa', staffId: const Value('st1'), startAt: at(-120), status: 'completed'),
-            AppointmentsCompanion.insert(id: uid('3'), businessId: 'b1', clientId: 'cl_tetiana', serviceId: 'sv_art', staffId: const Value('st1'), startAt: at(-60), status: 'completed'),
-            AppointmentsCompanion.insert(id: uid('4'), businessId: 'b1', clientId: 'cl_maria', serviceId: 'sv_gel', staffId: const Value('st1'), startAt: at(-25), status: 'completed'),
-            AppointmentsCompanion.insert(id: uid('5'), businessId: 'b1', clientId: 'cl_olena', serviceId: 'sv_gel', staffId: const Value('st1'), startAt: at(25), status: 'confirmed'),
-            AppointmentsCompanion.insert(id: uid('6'), businessId: 'b1', clientId: 'cl_andriy', serviceId: 'sv_exp', staffId: const Value('st1'), startAt: at(110), status: 'confirmed'),
+            AppointmentsCompanion.insert(
+                id: uid('1'),
+                businessId: 'b1',
+                clientId: 'cl_iryna',
+                serviceId: 'sv_gel',
+                staffId: const Value('st1'),
+                startAt: at(-195),
+                status: 'completed'),
+            AppointmentsCompanion.insert(
+                id: uid('2'),
+                businessId: 'b1',
+                clientId: 'cl_natalia',
+                serviceId: 'sv_spa',
+                staffId: const Value('st1'),
+                startAt: at(-120),
+                status: 'completed'),
+            AppointmentsCompanion.insert(
+                id: uid('3'),
+                businessId: 'b1',
+                clientId: 'cl_tetiana',
+                serviceId: 'sv_art',
+                staffId: const Value('st1'),
+                startAt: at(-60),
+                status: 'completed'),
+            AppointmentsCompanion.insert(
+                id: uid('4'),
+                businessId: 'b1',
+                clientId: 'cl_maria',
+                serviceId: 'sv_gel',
+                staffId: const Value('st1'),
+                startAt: at(-25),
+                status: 'completed'),
+            AppointmentsCompanion.insert(
+                id: uid('5'),
+                businessId: 'b1',
+                clientId: 'cl_olena',
+                serviceId: 'sv_gel',
+                staffId: const Value('st1'),
+                startAt: at(25),
+                status: 'confirmed'),
+            AppointmentsCompanion.insert(
+                id: uid('6'),
+                businessId: 'b1',
+                clientId: 'cl_andriy',
+                serviceId: 'sv_exp',
+                staffId: const Value('st1'),
+                startAt: at(110),
+                status: 'confirmed'),
           ]));
     });
   }

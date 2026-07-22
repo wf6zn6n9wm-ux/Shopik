@@ -113,7 +113,8 @@ class DashboardData {
 }
 
 final dashboardProvider = Provider<DashboardData>((ref) {
-  final appts = ref.watch(dayAppointmentsProvider).value ?? const <Appointment>[];
+  final appts =
+      ref.watch(dayAppointmentsProvider).value ?? const <Appointment>[];
   final now = DateTime.now();
 
   final revenue = appts
@@ -147,7 +148,9 @@ final dashboardProvider = Provider<DashboardData>((ref) {
     }
     if (b.$2.isAfter(cursor)) cursor = b.$2;
   }
-  if (cursor.isBefore(dayEnd) && dayEnd.difference(cursor).inMinutes >= 30 && cursor.isAfter(now)) {
+  if (cursor.isBefore(dayEnd) &&
+      dayEnd.difference(cursor).inMinutes >= 30 &&
+      cursor.isAfter(now)) {
     windows.add(cursor);
   }
 

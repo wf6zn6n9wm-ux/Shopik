@@ -18,12 +18,19 @@ abstract final class FX {
   static const Color accentSoft = Color(0x2E8B8BF0); // rgba(139,139,240,.18)
 
   // --- Свечение под акцентными элементами ---
-  static List<BoxShadow> glow({double y = 18, double blur = 38, double spread = -8}) => [
-        BoxShadow(color: accentGlow, blurRadius: blur, spreadRadius: spread, offset: Offset(0, y)),
+  static List<BoxShadow> glow(
+          {double y = 18, double blur = 38, double spread = -8}) =>
+      [
+        BoxShadow(
+            color: accentGlow,
+            blurRadius: blur,
+            spreadRadius: spread,
+            offset: Offset(0, y)),
       ];
 
   // --- Карточка: linear-gradient(180deg,#1A1A22,#151519), border line, r22 ---
-  static BoxDecoration card(KavioColors c, {double radius = 22}) => BoxDecoration(
+  static BoxDecoration card(KavioColors c, {double radius = 22}) =>
+      BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -32,7 +39,11 @@ abstract final class FX {
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: c.line, width: 1),
         boxShadow: const [
-          BoxShadow(color: Color(0xE6000000), blurRadius: 40, spreadRadius: -24, offset: Offset(0, 18)),
+          BoxShadow(
+              color: Color(0xE6000000),
+              blurRadius: 40,
+              spreadRadius: -24,
+              offset: Offset(0, 18)),
         ],
       );
 
@@ -47,7 +58,11 @@ abstract final class FX {
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: const Color(0x478B8BF0), width: 1), // .28
         boxShadow: const [
-          BoxShadow(color: Color(0x8C5A5AD8), blurRadius: 54, spreadRadius: -28, offset: Offset(0, 24)),
+          BoxShadow(
+              color: Color(0x8C5A5AD8),
+              blurRadius: 54,
+              spreadRadius: -28,
+              offset: Offset(0, 24)),
         ],
       );
 
@@ -57,11 +72,16 @@ abstract final class FX {
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: const Color(0x598B8BF0), width: 1),
         boxShadow: const [
-          BoxShadow(color: accentGlow, blurRadius: 38, spreadRadius: -8, offset: Offset(0, 18)),
+          BoxShadow(
+              color: accentGlow,
+              blurRadius: 38,
+              spreadRadius: -8,
+              offset: Offset(0, 18)),
         ],
       );
 
-  static BoxDecoration buttonSecondary(KavioColors c, {double radius = 16}) => BoxDecoration(
+  static BoxDecoration buttonSecondary(KavioColors c, {double radius = 16}) =>
+      BoxDecoration(
         color: c.surface2,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: c.line, width: 1),
@@ -100,7 +120,8 @@ class GlowOrb extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [color, color.withOpacity(0)], stops: const [0, 0.62]),
+          gradient: RadialGradient(
+              colors: [color, color.withOpacity(0)], stops: const [0, 0.62]),
         ),
       ),
     );
