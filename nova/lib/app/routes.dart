@@ -16,4 +16,5 @@ abstract final class Routes {
   static const settings = '/settings';
   static const subscription = '/subscription';
   static const onlineBooking = '/online-booking';
+  static const smartGaps = '/smart-gaps';
 }

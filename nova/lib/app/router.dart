@@ -7,6 +7,7 @@ import '../features/clients/client_detail_screen.dart';
 import '../features/clients/clients_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/signature/smart_gaps_screen.dart';
 import '../features/services/services_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/subscription/subscription_screen.dart';
@@ -73,6 +74,9 @@ GoRouter _buildRouter() {
       GoRoute(
           path: Routes.onlineBooking,
           builder: (context, state) => const OnlineBookingScreen()),
+      GoRoute(
+          path: Routes.smartGaps,
+          builder: (context, state) => const SmartGapsScreen()),
 
       ...moduleRoutes,
     ],

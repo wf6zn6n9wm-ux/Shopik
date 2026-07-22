@@ -60,6 +60,8 @@ class MenuScreen extends StatelessWidget {
                   () => context.push(Routes.clients)),
               _Item(Icons.design_services_outlined, 'Послуги та ціни',
                   () => context.push(Routes.services)),
+              _Item(Icons.auto_awesome_outlined, 'Розумні вікна',
+                  () => context.push(Routes.smartGaps)),
               _Item(Icons.link_outlined, 'Онлайн-запис',
                   () => context.push(Routes.onlineBooking)),
             ])),

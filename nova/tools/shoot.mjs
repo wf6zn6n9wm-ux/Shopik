@@ -14,6 +14,7 @@ const routes = [
   ['client', '/clients/cl_olena'],
   ['services', '/services'],
   ['booking', '/online-booking'],
+  ['smart-gaps', '/smart-gaps'],
   ['menu', '/menu'],
   ['settings', '/settings'],
 ];
