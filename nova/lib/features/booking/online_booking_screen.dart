@@ -107,8 +107,7 @@ class _HeroCard extends StatelessWidget {
                   icon: Icons.ios_share,
                   padding: const EdgeInsets.symmetric(vertical: 11),
                   onTap: () {
-                    Clipboard.setData(
-                        const ClipboardData(text: 'https://$link'));
+                    Clipboard.setData(ClipboardData(text: 'https://$link'));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Посилання скопійовано')),
                     );
