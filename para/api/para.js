@@ -92,6 +92,27 @@ function questionOfDay(day) {
 function todayUTC() { return new Date().toISOString().slice(0, 10); }
 
 // ============================================================
+//  PARA+ ПОДПИСКИ (Telegram Stars)
+// ============================================================
+// Каталог тарифов — единственный источник цен. Клиент присылает только ключ
+// плана; сумму в звёздах и длительность берём отсюда (клиенту цены не доверяем).
+// @typedef {{ type:'solo'|'duo', months:number, stars:number, title:string }} Plan
+const PLANS = {
+  solo_1:  { type: 'solo', months: 1,  stars: 299,  title: 'PARA+ SOLO · 1 месяц' },
+  solo_3:  { type: 'solo', months: 3,  stars: 799,  title: 'PARA+ SOLO · 3 месяца' },
+  solo_12: { type: 'solo', months: 12, stars: 2499, title: 'PARA+ SOLO · 12 месяцев' },
+  duo_1:   { type: 'duo',  months: 1,  stars: 499,  title: 'PARA+ DUO · 1 месяц' },
+  duo_3:   { type: 'duo',  months: 3,  stars: 1399, title: 'PARA+ DUO · 3 месяца' },
+  duo_12:  { type: 'duo',  months: 12, stars: 4499, title: 'PARA+ DUO · 12 месяцев' }
+};
+// Прибавить N месяцев к дате (для расчёта end_date).
+function addMonths(date, months) {
+  const d = new Date(date.getTime());
+  d.setUTCMonth(d.getUTCMonth() + months);
+  return d;
+}
+
+// ============================================================
 //  КОНФИГ УРОВНЕЙ И ДОСТИЖЕНИЙ (data-driven; в Phase 3 → таблица + админка)
 // ============================================================
 const DEFAULT_CONFIG = {
@@ -373,6 +394,45 @@ module.exports = async (req, res) => {
         since: data.since || '', extra: Array.isArray(data.extra) ? data.extra : []
       };
     }
+    // ---- PARA+: статус подписки (middleware-проверка Premium) ----
+    // Возвращает { active, type, plan, until } для пользователя. Premium активен, если:
+    //  • у него есть своя активная подписка (solo/duo, end_date в будущем); ИЛИ
+    //  • он в паре, где кто-то из двоих держит активную DUO-подписку.
+    // Автоотключение по истечении срока — просто по условию end_date > now (без крона).
+    async function premiumStatus(myId, coupleId) {
+      const nowIso = new Date().toISOString();
+      const off = { active: false, type: null, plan: null, until: null };
+      // tg_id всех, чья активная подписка может покрывать меня (я + партнёр по паре для DUO)
+      let coveredIds = [String(myId)];
+      let memberIds = [];
+      if (coupleId) {
+        try {
+          const mm = await sb('para_members?couple_id=eq.' + coupleId + '&select=tg_id');
+          memberIds = (mm || []).map((m) => String(m.tg_id));
+          coveredIds = coveredIds.concat(memberIds);
+        } catch (e) {}
+      }
+      let rows = [];
+      try {
+        const inList = '(' + coveredIds.filter((v, i, a) => a.indexOf(v) === i).join(',') + ')';
+        // активные подписки, где владелец — я/партнёр, ИЛИ где partner_user_id указывает на меня
+        rows = await sb('subscriptions?status=eq.active&end_date=gt.' + encodeURIComponent(nowIso) +
+          '&or=(telegram_user_id.in.' + inList + ',partner_user_id.in.' + inList + ')' +
+          '&select=telegram_user_id,partner_user_id,plan,type,end_date&order=end_date.desc');
+      } catch (e) { return off; } // таблицы ещё нет → Premium просто выключен
+      rows = Array.isArray(rows) ? rows : [];
+      // отбираем те, что реально покрывают меня: моя личная любая, либо DUO у меня/партнёра
+      const covers = rows.filter((r) => {
+        const owner = String(r.telegram_user_id), partner = r.partner_user_id ? String(r.partner_user_id) : null;
+        if (owner === String(myId)) return true;                 // моя собственная подписка
+        if (r.type === 'duo' && partner === String(myId)) return true; // DUO, где я вписан партнёром
+        if (r.type === 'duo' && memberIds.indexOf(owner) !== -1) return true; // DUO партнёра по паре
+        return false;
+      });
+      if (!covers.length) return off;
+      const best = covers[0]; // самая поздняя по end_date
+      return { active: true, type: best.type, plan: best.plan, until: best.end_date };
+    }
     // прогресс пары: общие очки (из событий), уровень, серия, достижения
     async function coupleProgress(coupleId, config) {
       config = config || DEFAULT_CONFIG;
@@ -623,7 +683,41 @@ module.exports = async (req, res) => {
       const moods = await coupleMoods(mem.couple_id, me.id);
       const profData = await coupleProfile(mem.couple_id);
       const profile = profData ? resolveProfile(profData, me.id, members) : null;
-      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: config, wishes: wishes, moods: moods, profile: profile });
+      const premium = await premiumStatus(me.id, mem.couple_id); // статус PARA+ (проверяется при каждом открытии)
+      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: config, wishes: wishes, moods: moods, profile: profile, premium: premium });
+      return;
+    }
+
+    // -------- PARA+: статус подписки (для пользователей без пары тоже) --------
+    if (action === 'sub_status') {
+      const mem = await myMembership();
+      const premium = await premiumStatus(me.id, mem && mem.couple_id);
+      res.status(200).json({ ok: true, premium: premium });
+      return;
+    }
+
+    // -------- PARA+: создать инвойс Telegram Stars --------
+    if (action === 'create_invoice') {
+      const plan = PLANS[String(body.plan || '')];
+      if (!plan) { res.status(200).json({ ok: false, reason: 'bad_plan' }); return; }
+      // payload попадёт обратно в successful_payment — по нему бот активирует подписку.
+      const payload = JSON.stringify({ v: 1, tg: me.id, plan: String(body.plan) });
+      try {
+        const r = await fetch('https://api.telegram.org/bot' + BOT + '/createInvoiceLink', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: plan.title,
+            description: plan.type === 'duo' ? 'PARA+ Premium для вас обоих' : 'PARA+ Premium',
+            payload: payload,
+            currency: 'XTR',                          // Telegram Stars
+            provider_token: '',                       // для XTR токен провайдера не нужен
+            prices: [{ label: plan.title, amount: plan.stars }] // amount = число звёзд
+          })
+        });
+        const j = await r.json().catch(() => ({}));
+        if (j && j.ok && j.result) { res.status(200).json({ ok: true, link: j.result }); return; }
+        res.status(200).json({ ok: false, reason: 'invoice_failed', error: (j && j.description) || '' });
+      } catch (e) { res.status(200).json({ ok: false, reason: 'invoice_failed', error: String(e && e.message).slice(0, 200) }); }
       return;
     }
 
