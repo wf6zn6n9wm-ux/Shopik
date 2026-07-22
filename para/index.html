@@ -392,6 +392,30 @@
   .think-wrap{position:relative;}
   .think-heart{position:absolute;left:50%;top:2px;transform:translateX(-50%);font-size:30px;pointer-events:none;z-index:2;animation:heartUp 1.1s ease-out forwards;}
   @keyframes heartUp{0%{opacity:0;transform:translate(-50%,0) scale(.5);}20%{opacity:1;}100%{opacity:0;transform:translate(-50%,-72px) scale(1.35);}}
+  /* PARA+ */
+  .pp-entry{display:flex;align-items:center;gap:12px;width:100%;padding:15px 16px;border-radius:18px;margin-bottom:12px;
+    background:linear-gradient(135deg,rgba(255,94,138,.18),rgba(192,38,211,.16));border:1px solid rgba(255,94,138,.3);cursor:pointer;}
+  .pp-entry.active{background:linear-gradient(135deg,rgba(251,191,36,.16),rgba(255,94,138,.14));border-color:rgba(251,191,36,.35);}
+  .pp-entry .sb{font-size:15px;} .pp-entry .xs{color:var(--muted);}
+  .pp-entry-cta{flex:0 0 auto;font-size:13px;font-weight:800;color:#fff;background:var(--grad);border-radius:999px;padding:8px 14px;}
+  .pp-entry.active .pp-entry-cta{background:linear-gradient(135deg,#fbbf24,#f97316);}
+  .pp-intro{font-size:13.5px;color:var(--muted);line-height:1.5;margin-bottom:16px;}
+  .pp-active{font-size:14px;font-weight:800;color:#ffcf5c;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:14px;padding:12px 14px;margin-bottom:16px;text-align:center;}
+  .pp-sec{border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px;background:rgba(255,255,255,.02);}
+  .pp-sec.duo{border-color:rgba(255,94,138,.4);background:linear-gradient(180deg,rgba(255,94,138,.08),rgba(255,255,255,.02));box-shadow:0 10px 30px rgba(192,38,211,.16);}
+  .pp-sec-h{font-size:17px;font-weight:800;}
+  .pp-sec-sub{font-size:12.5px;color:var(--muted);margin:2px 0 12px;}
+  .pp-badge{flex:0 0 auto;font-size:11px;font-weight:800;color:#fff;background:var(--grad);border-radius:999px;padding:5px 11px;box-shadow:0 6px 16px rgba(255,94,138,.35);}
+  .pp-plan{display:flex;align-items:center;justify-content:space-between;width:100%;padding:14px 16px;border-radius:14px;margin-top:8px;
+    background:rgba(255,255,255,.04);border:1px solid var(--line);cursor:pointer;transition:transform .1s,background .15s;}
+  .pp-plan:active{transform:scale(.98);background:rgba(255,255,255,.07);}
+  .pp-plan-l{font-size:15px;font-weight:700;}
+  .pp-plan-p{font-size:15px;font-weight:800;color:#ffcf5c;white-space:nowrap;}
+  .pp-inline{color:var(--rose);font-weight:800;background:none;border:none;padding:0;font-size:inherit;cursor:pointer;}
+  .pay-ok{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;}
+  .pay-ok-emo{font-size:72px;animation:wpop .6s ease;}
+  .pay-ok-t{font-size:28px;font-weight:800;margin-top:10px;}
+  .pay-ok-s{font-size:15px;color:var(--muted);margin-top:8px;}
   /* серия дней */
   .streak-strip{display:flex;align-items:center;gap:12px;border-radius:16px;padding:12px 14px;margin-bottom:12px;
     background:linear-gradient(180deg,rgba(251,146,60,.10),rgba(255,94,138,.06));border:1px solid rgba(251,146,60,.22);}
@@ -564,7 +588,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v39 · выше rate-limit + мягкие ошибки';
+var APP_VERSION = 'v40 · PARA+ (подписки Telegram Stars)';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1668,6 +1692,58 @@ function archiveView(){
   }
   return '<div class="app"><div class="wrap">'+head+body+'<div style="height:24px"></div></div></div>';
 }
+
+// ---------- PARA+ (подписки через Telegram Stars) ----------
+// Тарифы для отображения (цены дублируют серверный каталог PLANS; списывает и
+// проверяет всё сервер, клиент показывает и передаёт только ключ плана).
+var PARAPLUS={
+  duo:[ {key:'duo_1',label:'1 месяц',stars:499}, {key:'duo_3',label:'3 месяца',stars:1399}, {key:'duo_12',label:'12 месяцев',stars:4499} ],
+  solo:[ {key:'solo_1',label:'1 месяц',stars:299}, {key:'solo_3',label:'3 месяца',stars:799}, {key:'solo_12',label:'12 месяцев',stars:2499} ]
+};
+function isPremium(){ return !!(S.premium && S.premium.active); }
+function ppPlanRow(p){
+  return '<button class="pp-plan" data-act="buy-plan" data-plan="'+p.key+'">'+
+    '<span class="pp-plan-l">'+esc(p.label)+'</span>'+
+    '<span class="pp-plan-p">'+p.stars+'&nbsp;⭐</span></button>';
+}
+function paraPlusView(){
+  var pr=S.premium||{active:false};
+  var head='<div class="row between mb4"><div class="b" style="font-size:20px">⭐ PARA+</div>'+
+    '<button class="btn btn-ghost btn-sm" data-act="paraplus-close">← Назад</button></div>';
+  var status = pr.active
+    ? '<div class="pp-active">✓ PARA+ '+(pr.type==='duo'?'DUO':'SOLO')+' активен'+(pr.until?(' до '+esc(String(pr.until).slice(0,10))):'')+'</div>'
+    : '<div class="pp-intro">Premium для пары: все темы и рамки оформления сразу, ранний доступ к новому и поддержка проекта. Оплата — звёздами Telegram.</div>';
+  var duo='<div class="pp-sec duo"><div class="row between" style="align-items:center"><div class="pp-sec-h">💞 DUO</div>'+
+    '<span class="pp-badge">Рекомендуем</span></div>'+
+    '<div class="pp-sec-sub">Один платёж — Premium для вас обоих.</div>'+
+    PARAPLUS.duo.map(ppPlanRow).join('')+'</div>';
+  var solo='<div class="pp-sec"><div class="pp-sec-h">❤️ SOLO</div>'+
+    '<div class="pp-sec-sub">Premium только для вас.</div>'+
+    PARAPLUS.solo.map(ppPlanRow).join('')+'</div>';
+  return '<div class="app"><div class="wrap">'+head+status+duo+solo+
+    '<div class="xs muted2 center-t mt4">Оплата звёздами Telegram (XTR). Автопродления нет — подписку продлеваете сами.</div>'+
+    '<div style="height:24px"></div></div></div>';
+}
+function paySuccessView(){
+  return '<div class="app"><div class="wrap"><div class="pay-ok">'+
+    '<div class="pay-ok-emo">❤️</div>'+
+    '<div class="pay-ok-t">Спасибо!</div>'+
+    '<div class="pay-ok-s">PARA+ успешно активирован.</div>'+
+    '<button class="add-wish" style="max-width:280px;margin:26px auto 0" data-act="pay-continue">Продолжить</button>'+
+    '</div></div></div>';
+}
+// кнопка-вход на экране «Мы»
+function paraPlusEntry(){
+  var pr=S.premium||{active:false};
+  if(pr.active) return '<button class="pp-entry active" data-act="paraplus-open">'+
+    '<div class="flex1" style="text-align:left"><div class="sb">⭐ PARA+ '+(pr.type==='duo'?'DUO':'SOLO')+'</div>'+
+    '<div class="xs" style="opacity:.85">активен'+(pr.until?(' до '+esc(String(pr.until).slice(0,10))):'')+'</div></div>'+
+    '<span class="pp-entry-cta">Управлять</span></button>';
+  return '<button class="pp-entry" data-act="paraplus-open">'+
+    '<div class="flex1" style="text-align:left"><div class="sb">⭐ PARA+ Premium</div>'+
+    '<div class="xs" style="opacity:.85">больше близости — оформите звёздами</div></div>'+
+    '<span class="pp-entry-cta">Открыть</span></button>';
+}
 function usScreen(){
   var c=S.couple;
   var together=Math.floor((sod(new Date())-sod(new Date(c.since)))/DAY);
@@ -1708,7 +1784,7 @@ function usScreen(){
   var foot='<div class="center-t xs muted2 mt6">PARA · '+(TG?'Telegram Mini App':'веб-версия (PWA)')+' · '+APP_VERSION+'</div>';
   var profileBtn='<button class="btn btn-ghost mb3" style="width:100%;justify-content:center" data-act="profile-open">✏️ Профиль и даты</button>';
   var archiveBtn='<button class="btn btn-ghost mb3" style="width:100%;justify-content:center" data-act="archive-open">📖 Наши прошлые вопросы</button>';
-  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+profileBtn+levelCard()+ourStatsCard()+archiveBtn+stats+home+invite+reset+foot+'</div>';
+  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+paraPlusEntry()+profileBtn+levelCard()+ourStatsCard()+archiveBtn+stats+home+invite+reset+foot+'</div>';
 }
 
 // ---------- Полная админка (overlay внутри приложения) ----------
@@ -2152,23 +2228,26 @@ function levelCard(){
   '</div>';
 }
 function custView(){
-  var lvl=curLevelIdx();
+  var lvl=curLevelIdx(), prem=isPremium();  // PARA+ открывает всё оформление сразу
   var themes=themesList(), frames=framesList();
-  var tgrid=themes.map(function(t){ var lk=t.level>lvl, sel=(S.theme||'rose')===t.key;
+  var tgrid=themes.map(function(t){ var lk=t.level>lvl && !prem, sel=(S.theme||'rose')===t.key;
     return '<button class="thm'+(sel?' sel':'')+(lk?' lk':'')+'" data-act="set-theme" data-k="'+t.key+'" data-lv="'+t.level+'" style="background:'+t.grad+'">'+
       (lk?'<span class="thm-lock">🔒</span>':(sel?'<span class="thm-check">✓</span>':''))+
       '<span class="thm-nm">'+esc(t.name)+'</span></button>';
   }).join('');
-  var frows=frames.map(function(f){ var lk=f.level>lvl, sel=(S.frame||'none')===f.key;
+  var frows=frames.map(function(f){ var lk=f.level>lvl && !prem, sel=(S.frame||'none')===f.key;
     return '<button class="frm'+(sel?' sel':'')+(lk?' lk':'')+'" data-act="set-frame" data-k="'+f.key+'" data-lv="'+f.level+'">'+
       '<span>'+esc(f.name)+'</span><span>'+(lk?'🔒':(sel?'<span class="rose">✓</span>':''))+'</span></button>';
   }).join('');
+  var hint = prem
+    ? '<div class="xs mt4" style="color:#ffcf5c">⭐ PARA+ активен — всё оформление открыто.</div>'
+    : '<div class="xs muted2 mt4">Оформление открывается с уровнем пары — или сразу всё с <button class="pp-inline" data-act="paraplus-open">PARA+</button>.</div>';
   return '<div class="app"><div class="wrap">'+
     '<div class="row between mb4"><div class="b" style="font-size:20px">🎨 Оформление</div>'+
     '<button class="btn btn-ghost btn-sm" data-act="close-cust">← Назад</button></div>'+
     '<div class="small sb mb2">🌈 Темы</div><div class="thm-grid">'+tgrid+'</div>'+
     '<div class="small sb" style="margin:20px 0 4px">🖼️ Рамка профиля</div>'+frows+
-    '<div class="xs muted2 mt4">Новое оформление открывается с каждым уровнем пары.</div>'+
+    hint+
     '<div style="height:24px"></div></div></div>';
 }
 function achvView(){
@@ -2262,6 +2341,10 @@ function _renderNow(){
       html=custView();
     } else if(S.recOpen){
       html=recView();
+    } else if(S.paySuccess){
+      html=paySuccessView();
+    } else if(S.paraPlusOpen){
+      html=paraPlusView();
     } else if(S.archiveOpen){
       html=archiveView();
     } else if(S.profileOpen){
@@ -2372,8 +2455,8 @@ var ACTS={
   'close-achv':function(){ S.showAchv=false; render(); },
   'open-cust':function(){ S.showCust=true; haptic('light'); render(); },
   'close-cust':function(){ S.showCust=false; render(); },
-  'set-theme':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx()){ alert('🔒 Тема откроется на уровне ниже. Доступно после '+lv+'-го уровня пары.'); return; } S.theme=el.dataset.k; lsSet('theme',S.theme); applyTheme(S.theme); haptic('success'); render(); },
-  'set-frame':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx()){ alert('🔒 Рамка откроется на уровне выше. Доступно после '+lv+'-го уровня пары.'); return; } S.frame=el.dataset.k; lsSet('frame',S.frame); haptic('success'); render(); },
+  'set-theme':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx() && !isPremium()){ showToast('🔒','Откроется с уровнем','или сразу — с PARA+'); return; } S.theme=el.dataset.k; lsSet('theme',S.theme); applyTheme(S.theme); haptic('success'); render(); },
+  'set-frame':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx() && !isPremium()){ showToast('🔒','Откроется с уровнем','или сразу — с PARA+'); return; } S.frame=el.dataset.k; lsSet('frame',S.frame); haptic('success'); render(); },
   'lvl-info':function(el){ var i=+el.dataset.i, lv=S.config&&S.config.levels[i], cur=S.progress&&S.progress.level.index; if(!lv)return; if(i>cur){ var perks=(lv.perks||[]).join(', '); alert('🔒 «'+lv.name+'» '+lv.emoji+'\nДоступно после '+lv.min+' очков.'+(perks?'\n\nОткроется: '+perks:'')); } haptic('light'); },
   'level-continue':function(){ S.levelup=null; haptic('light'); render(); },
   'ob-share':shareInvite,
@@ -2434,6 +2517,22 @@ var ACTS={
   'mood-set':function(el){ var e=el.dataset.e; if(!S.moods)S.moods={me:{},partner:{}}; var note=(S.moods.me&&S.moods.me.note)||'';
     S.moods.me={emoji:e,note:note}; S.moodEdit=false; haptic('success'); render();
     if(ONLINE&&S.couple){ api('mood_set',{emoji:e,note:note}).then(function(r){ if(r&&r.ok&&r.moods){ applyMoods(r.moods); render(); } else { showToast('⚠️','Не сохранилось',(r&&(r.error||r.reason))||'ошибка'); } }); } },
+  'paraplus-open':function(){ S.paraPlusOpen=true; haptic('light'); render(); if(ONLINE) refreshState(); },
+  'paraplus-close':function(){ S.paraPlusOpen=false; render(); },
+  'pay-continue':function(){ S.paySuccess=false; S.paraPlusOpen=false; haptic('light'); render(); if(ONLINE) refreshState(); },
+  'buy-plan':function(el){ var plan=el.dataset.plan;
+    if(!(ONLINE&&TG&&TG.openInvoice)){ showToast('⚠️','Оплата в Telegram','откройте PARA в Telegram, чтобы купить'); return; }
+    haptic('light'); showToast('⏳','Готовим оплату','секунду…');
+    api('create_invoice',{plan:plan}).then(function(r){
+      if(r&&r.ok&&r.link){
+        TG.openInvoice(r.link, function(status){
+          if(status==='paid'){ S.paySuccess=true; haptic('success'); render(); setTimeout(function(){ if(ONLINE) refreshState(); }, 1500); }
+          else if(status==='failed'){ showToast('⚠️','Оплата не прошла','попробуйте ещё раз'); }
+          /* 'cancelled' / 'pending' — молча */
+        });
+      } else { showToast('⚠️','Не получилось',((r&&(r.error||r.reason))||'ошибка счёта')); }
+    }).catch(function(){ showToast('⚠️','Нет связи','попробуйте ещё раз'); });
+  },
   'archive-open':function(){ S.archiveOpen=true; S.archiveData=null; haptic('light'); render();
     if(ONLINE&&S.couple){ api('answers_history').then(function(r){ S.archiveData=(r&&r.ok)?r:{history:[],count:0}; render(); }).catch(function(){ S.archiveData={history:[],count:0}; render(); }); }
     else { S.archiveData={history:[],count:0}; render(); } },
@@ -2481,6 +2580,7 @@ async function refreshState(){
       if(r.wishes) applyServerWishes(r.wishes);                 // общий список желаний пары
       if(r.moods) applyMoods(r.moods);                          // настроение дня обоих
       if('profile' in r) applyServerProfile(r.profile);         // общий профиль/даты пары
+      if('premium' in r) S.premium=r.premium;                   // статус PARA+ (проверяется при каждом обновлении)
       if(nowLinked && prevLinked===false){ celebrateLink(); }   // партнёр только что присоединился!
       prevLinked=nowLinked;
       render(); checkLevelUp();
@@ -2569,6 +2669,7 @@ async function boot(){
         if(r.wishes) applyServerWishes(r.wishes);
         if(r.moods) applyMoods(r.moods);
         if('profile' in r) applyServerProfile(r.profile);
+        if('premium' in r) S.premium=r.premium;
         prevLinked=!!r.couple.linked;
         if(!S.couple.linked) startLinkPoll(); } // вернувшийся создатель всё ещё ждёт партнёра
       else { S.couple=null; } // сервер — источник правды: онбординг с настоящим бэкендом
