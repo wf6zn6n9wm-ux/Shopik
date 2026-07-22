@@ -49,8 +49,9 @@ class SettingsScreen extends ConsumerWidget {
                             label: _langs[i].$2,
                             selected: current == _langs[i].$1,
                             divider: i > 0,
-                            onTap: () => ref.read(localeProvider.notifier).state =
-                                Locale(_langs[i].$1),
+                            onTap: () => ref
+                                .read(localeProvider.notifier)
+                                .state = Locale(_langs[i].$1),
                           ),
                       ],
                     ),
@@ -62,8 +63,15 @@ class SettingsScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(4),
                     child: Column(
                       children: [
-                        _InfoRow(icon: Icons.payments_outlined, title: 'Валюта', value: '₴ UAH'),
-                        _InfoRow(icon: Icons.schedule_outlined, title: 'Часовий пояс', value: 'Europe/Kyiv', divider: true),
+                        _InfoRow(
+                            icon: Icons.payments_outlined,
+                            title: 'Валюта',
+                            value: '₴ UAH'),
+                        _InfoRow(
+                            icon: Icons.schedule_outlined,
+                            title: 'Часовий пояс',
+                            value: 'Europe/Kyiv',
+                            divider: true),
                       ],
                     ),
                   ),
@@ -74,9 +82,20 @@ class SettingsScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(4),
                     child: Column(
                       children: [
-                        _LinkRow(icon: Icons.workspace_premium_outlined, title: 'Підписка', onTap: () => context.push(Routes.subscription)),
-                        _LinkRow(icon: Icons.link_outlined, title: 'Онлайн-запис', divider: true, onTap: () => context.push(Routes.onlineBooking)),
-                        _LinkRow(icon: Icons.person_outline, title: 'Профіль', divider: true, onTap: () => context.push(Routes.profile)),
+                        _LinkRow(
+                            icon: Icons.workspace_premium_outlined,
+                            title: 'Підписка',
+                            onTap: () => context.push(Routes.subscription)),
+                        _LinkRow(
+                            icon: Icons.link_outlined,
+                            title: 'Онлайн-запис',
+                            divider: true,
+                            onTap: () => context.push(Routes.onlineBooking)),
+                        _LinkRow(
+                            icon: Icons.person_outline,
+                            title: 'Профіль',
+                            divider: true,
+                            onTap: () => context.push(Routes.profile)),
                       ],
                     ),
                   ),
@@ -115,7 +134,12 @@ class _TopBar extends StatelessWidget {
 }
 
 class _LangRow extends StatelessWidget {
-  const _LangRow({required this.emoji, required this.label, required this.selected, required this.onTap, this.divider = false});
+  const _LangRow(
+      {required this.emoji,
+      required this.label,
+      required this.selected,
+      required this.onTap,
+      this.divider = false});
   final String emoji, label;
   final bool selected, divider;
   final VoidCallback onTap;
@@ -143,7 +167,8 @@ class _LangRow extends StatelessWidget {
               Container(
                 width: 22,
                 height: 22,
-                decoration: BoxDecoration(gradient: FX.brandButton, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                    gradient: FX.brandButton, shape: BoxShape.circle),
                 child: const Icon(Icons.check, size: 14, color: Colors.white),
               )
             else
@@ -163,7 +188,11 @@ class _LangRow extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.title, required this.value, this.divider = false});
+  const _InfoRow(
+      {required this.icon,
+      required this.title,
+      required this.value,
+      this.divider = false});
   final IconData icon;
   final String title, value;
   final bool divider;
@@ -180,7 +209,8 @@ class _InfoRow extends StatelessWidget {
           Icon(icon, size: 19, color: k.ink2),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(title, style: AppTypography.body(k.ink).copyWith(fontSize: 15)),
+            child: Text(title,
+                style: AppTypography.body(k.ink).copyWith(fontSize: 15)),
           ),
           Text(value,
               style: AppTypography.tabular(AppTypography.label(k.ink2))
@@ -192,7 +222,11 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _LinkRow extends StatelessWidget {
-  const _LinkRow({required this.icon, required this.title, required this.onTap, this.divider = false});
+  const _LinkRow(
+      {required this.icon,
+      required this.title,
+      required this.onTap,
+      this.divider = false});
   final IconData icon;
   final String title;
   final VoidCallback onTap;
@@ -213,7 +247,8 @@ class _LinkRow extends StatelessWidget {
             Icon(icon, size: 19, color: k.accent),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(title, style: AppTypography.body(k.ink).copyWith(fontSize: 15)),
+              child: Text(title,
+                  style: AppTypography.body(k.ink).copyWith(fontSize: 15)),
             ),
             Icon(Icons.chevron_right, size: 18, color: k.ink3),
           ],

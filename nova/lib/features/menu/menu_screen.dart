@@ -38,10 +38,12 @@ class MenuScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Софія',
-                              style: AppTypography.title3(k.ink).copyWith(fontSize: 17)),
+                              style: AppTypography.title3(k.ink)
+                                  .copyWith(fontSize: 17)),
                           const SizedBox(height: 2),
                           Text('Манікюрна студія · Київ',
-                              style: AppTypography.label(k.ink2).copyWith(fontSize: 13)),
+                              style: AppTypography.label(k.ink2)
+                                  .copyWith(fontSize: 13)),
                         ],
                       ),
                     ),
@@ -54,16 +56,21 @@ class MenuScreen extends StatelessWidget {
             reveal(const ZLabel('Робота')),
             const SizedBox(height: 8),
             reveal(_Group(items: [
-              _Item(Icons.people_alt_outlined, 'Клієнти', () => context.push(Routes.clients)),
-              _Item(Icons.design_services_outlined, 'Послуги та ціни', () => context.push(Routes.services)),
-              _Item(Icons.link_outlined, 'Онлайн-запис', () => context.push(Routes.onlineBooking)),
+              _Item(Icons.people_alt_outlined, 'Клієнти',
+                  () => context.push(Routes.clients)),
+              _Item(Icons.design_services_outlined, 'Послуги та ціни',
+                  () => context.push(Routes.services)),
+              _Item(Icons.link_outlined, 'Онлайн-запис',
+                  () => context.push(Routes.onlineBooking)),
             ])),
             const SizedBox(height: 20),
             reveal(const ZLabel('Бізнес')),
             const SizedBox(height: 8),
             reveal(_Group(items: [
-              _Item(Icons.workspace_premium_outlined, 'Підписка', () => context.push(Routes.subscription)),
-              _Item(Icons.settings_outlined, 'Налаштування', () => context.push(Routes.settings)),
+              _Item(Icons.workspace_premium_outlined, 'Підписка',
+                  () => context.push(Routes.subscription)),
+              _Item(Icons.settings_outlined, 'Налаштування',
+                  () => context.push(Routes.settings)),
             ])),
           ],
         ),
@@ -94,9 +101,11 @@ class _Group extends StatelessWidget {
               onTap: items[i].onTap,
               behavior: HitTestBehavior.opaque,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 decoration: BoxDecoration(
-                  border: i == 0 ? null : Border(top: BorderSide(color: k.line)),
+                  border:
+                      i == 0 ? null : Border(top: BorderSide(color: k.line)),
                 ),
                 child: Row(
                   children: [
@@ -104,14 +113,15 @@ class _Group extends StatelessWidget {
                       width: 34,
                       height: 34,
                       decoration: BoxDecoration(
-                          color: k.accentTint, borderRadius: BorderRadius.circular(11)),
+                          color: k.accentTint,
+                          borderRadius: BorderRadius.circular(11)),
                       child: Icon(items[i].icon, size: 18, color: k.accent),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(items[i].title,
-                          style: AppTypography.body(k.ink)
-                              .copyWith(fontSize: 15, fontWeight: FontWeight.w600)),
+                          style: AppTypography.body(k.ink).copyWith(
+                              fontSize: 15, fontWeight: FontWeight.w600)),
                     ),
                     Icon(Icons.chevron_right, size: 18, color: k.ink3),
                   ],
