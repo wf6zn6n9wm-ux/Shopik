@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -35,9 +36,9 @@ class SettingsScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
                 children: [
-                  Text('Налаштування', style: AppTypography.title1(k.ink)),
+                  Text(t('Налаштування'), style: AppTypography.title1(k.ink)),
                   const SizedBox(height: 20),
-                  const ZLabel('Мова'),
+                  ZLabel(t('Мова')),
                   const SizedBox(height: 8),
                   ZCard(
                     padding: const EdgeInsets.all(4),
@@ -57,7 +58,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const ZLabel('Бізнес'),
+                  ZLabel(t('Бізнес')),
                   const SizedBox(height: 8),
                   ZCard(
                     padding: const EdgeInsets.all(4),
@@ -65,18 +66,18 @@ class SettingsScreen extends ConsumerWidget {
                       children: [
                         _InfoRow(
                             icon: Icons.payments_outlined,
-                            title: 'Валюта',
+                            title: t('Валюта'),
                             value: '₴ UAH'),
                         _InfoRow(
                             icon: Icons.schedule_outlined,
-                            title: 'Часовий пояс',
+                            title: t('Часовий пояс'),
                             value: 'Europe/Kyiv',
                             divider: true),
                       ],
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const ZLabel('Розділи'),
+                  ZLabel(t('Розділи')),
                   const SizedBox(height: 8),
                   ZCard(
                     padding: const EdgeInsets.all(4),
@@ -84,16 +85,16 @@ class SettingsScreen extends ConsumerWidget {
                       children: [
                         _LinkRow(
                             icon: Icons.workspace_premium_outlined,
-                            title: 'Підписка',
+                            title: t('Підписка'),
                             onTap: () => context.push(Routes.subscription)),
                         _LinkRow(
                             icon: Icons.link_outlined,
-                            title: 'Онлайн-запис',
+                            title: t('Онлайн-запис'),
                             divider: true,
                             onTap: () => context.push(Routes.onlineBooking)),
                         _LinkRow(
                             icon: Icons.person_outline,
-                            title: 'Профіль',
+                            title: t('Профіль'),
                             divider: true,
                             onTap: () => context.push(Routes.profile)),
                       ],

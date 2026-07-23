@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/app_text.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
@@ -41,7 +42,7 @@ class HomeScreen extends ConsumerWidget {
                           style: AppTypography.label(k.ink3)
                               .copyWith(fontSize: 13)),
                       const SizedBox(height: 2),
-                      Text('Привіт, Софіє 👋',
+                      Text('${t('Привіт')}, Софіє 👋',
                           style: AppTypography.title1(k.ink)),
                     ],
                   ),
@@ -56,22 +57,22 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 Expanded(
                     child: ZStatCard(
-                        label: 'Записів',
+                        label: t('Записів'),
                         value: '${d.visits}',
-                        sub: 'до 19:00')),
+                        sub: t('до 19:00'))),
                 const SizedBox(width: 10),
                 Expanded(
                     child: ZStatCard(
-                        label: 'Виручка',
+                        label: t('Виручка'),
                         value: Fmt.money(d.revenue),
                         sub: '▲ 12%',
                         subColor: k.success)),
                 const SizedBox(width: 10),
                 Expanded(
                     child: ZStatCard(
-                        label: 'Вікна',
+                        label: t('Вікна'),
                         value: '${d.freeWindows.length}',
-                        sub: 'вільні')),
+                        sub: t('вільні'))),
               ],
             )),
             const SizedBox(height: 12),
@@ -82,7 +83,7 @@ class HomeScreen extends ConsumerWidget {
 
             // Вільні вікна.
             if (d.freeWindows.isNotEmpty) ...[
-              reveal(const ZLabel('Вільні вікна')),
+              reveal(ZLabel(t('Вільні вікна'))),
               const SizedBox(height: 8),
               reveal(Row(
                 children: [
@@ -151,7 +152,8 @@ class _NextClientHero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                ZLabel('Наступний клієнт · за $minutes хв', color: k.accent),
+                ZLabel('${t('Наступний клієнт')} · ${tp('за {n} хв', {'n': minutes})}',
+                    color: k.accent),
                 const SizedBox(height: 2),
                 Text(a.client.name,
                     style: AppTypography.title3(k.ink)
@@ -199,7 +201,7 @@ class _FreeWindowChip extends StatelessWidget {
                   style: AppTypography.tabular(AppTypography.title3(k.ink))
                       .copyWith(fontSize: 14, fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
-              Text('заповнити',
+              Text(t('заповнити'),
                   style: AppTypography.label(k.accent).copyWith(fontSize: 10)),
             ],
           ),
@@ -255,20 +257,13 @@ class _InsightCard extends StatelessWidget {
           const Text('✨', style: TextStyle(fontSize: 18)),
           const SizedBox(width: 11),
           Expanded(
-            child: Text.rich(
-              TextSpan(
-                style: AppTypography.body(k.ink).copyWith(fontSize: 13),
-                children: [
-                  TextSpan(
-                      text: '$count клієнти ',
-                      style: const TextStyle(fontWeight: FontWeight.w800)),
-                  const TextSpan(text: 'давно не були — запросити?'),
-                ],
-              ),
+            child: Text(
+              tp('{n} клієнти давно не були — запросити?', {'n': count}),
+              style: AppTypography.body(k.ink).copyWith(fontSize: 13),
             ),
           ),
           const SizedBox(width: 8),
-          Text('Так',
+          Text(t('Так'),
               style: AppTypography.label(k.success)
                   .copyWith(fontSize: 13, fontWeight: FontWeight.w700)),
         ],

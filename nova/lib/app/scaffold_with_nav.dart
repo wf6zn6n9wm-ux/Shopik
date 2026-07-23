@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/localization/app_text.dart';
 import '../design/theme.dart';
 import '../features/clients/create_client_sheet.dart';
 import '../features/create/create_appointment_sheet.dart';
@@ -191,13 +192,13 @@ class _MenuAction {
 
 Future<void> showCreateMenu(BuildContext context) {
   final actions = <_MenuAction>[
-    _MenuAction(Icons.event_available_outlined, 'Новий запис',
+    _MenuAction(Icons.event_available_outlined, t('Новий запис'),
         (c) => showCreateAppointmentSheet(c)),
-    _MenuAction(Icons.person_add_alt_1_outlined, 'Новий клієнт',
+    _MenuAction(Icons.person_add_alt_1_outlined, t('Новий клієнт'),
         (c) => showCreateClientSheet(c)),
-    _MenuAction(Icons.design_services_outlined, 'Нова послуга',
+    _MenuAction(Icons.design_services_outlined, t('Нова послуга'),
         (c) => showCreateServiceSheet(c)),
-    _MenuAction(Icons.shopping_bag_outlined, 'Продаж товару',
+    _MenuAction(Icons.shopping_bag_outlined, t('Продаж товару'),
         (c) => showCreateAppointmentSheet(c)),
   ];
   return showGeneralDialog(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/boot_uri.dart';
+import '../core/localization/app_text.dart';
 import '../core/localization/locale_controller.dart';
 import '../design/theme.dart';
 import '../l10n/app_localizations.dart';
@@ -14,7 +16,13 @@ class KavioApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
+    // Мова: ?lang=en|ru|uk у URL (для знімків) має пріоритет, інакше — з локалі.
+    final boot = _bootLang();
+    final lang = boot ?? (locale?.languageCode ?? 'uk');
+    gLang = lang; // синхронізуємо шар перекладу
+
     return MaterialApp.router(
+      key: ValueKey('app-$lang'), // зміна мови перебудовує все дерево
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
       theme: buildKavioTheme(Brightness.dark),
@@ -22,7 +30,7 @@ class KavioApp extends ConsumerWidget {
       themeMode: ThemeMode.dark, // Запис+ — тёмная тема как основа дизайна
       // Українська — жорсткий дефолт: ігноруємо мову системи/браузера, поки
       // користувач сам не змінить у Налаштуваннях.
-      locale: locale ?? const Locale('uk'),
+      locale: Locale(lang),
       localeResolutionCallback: (deviceLocale, supported) {
         final chosen = locale ?? const Locale('uk');
         for (final l in supported) {
@@ -34,5 +42,14 @@ class KavioApp extends ConsumerWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: appRouter,
     );
+  }
+
+  /// Читає ?lang= з фрагмента, зафіксованого в main() до старту роутера.
+  String? _bootLang() {
+    final f = bootFragment;
+    final qi = f.indexOf('?');
+    if (qi < 0) return null;
+    final v = Uri.splitQueryString(f.substring(qi + 1))['lang'];
+    return (v == 'en' || v == 'ru' || v == 'uk') ? v : null;
   }
 }

@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -37,7 +38,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
               children: [
                 Expanded(
                     child:
-                        Text('Аналітика', style: AppTypography.title1(k.ink))),
+                        Text(t('Аналітика'), style: AppTypography.title1(k.ink))),
                 Container(
                   width: 36,
                   height: 36,
@@ -50,7 +51,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             )),
             const SizedBox(height: 14),
             reveal(ZSegmented(
-              items: const ['Сьогодні', 'Тиждень', 'Місяць', 'Рік'],
+              items: [t('Сьогодні'), t('Тиждень'), t('Місяць'), t('Рік')],
               index: _period,
               onChanged: (v) {
                 zTap();
@@ -95,7 +96,7 @@ class _RevenueHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ZLabel(today ? 'Виручка · сьогодні' : 'Виручка · липень',
+          ZLabel(today ? t('Виручка · сьогодні') : t('Виручка · липень'),
               color: k.ink2),
           Text(today ? Fmt.money(todayRevenue) : '₴182 400',
               style: AppTypography.tabular(AppTypography.display(k.ink))
@@ -109,8 +110,9 @@ class _RevenueHero extends StatelessWidget {
               Flexible(
                 child: Text(
                     today
-                        ? '$todayVisits записів · $freeWindows вільних вікон'
-                        : 'проти ₴154 600 у червні',
+                        ? tp('{v} записів · {w} вільних вікон',
+                            {'v': todayVisits, 'w': freeWindows})
+                        : t('проти ₴154 600 у червні'),
                     style: AppTypography.label(k.ink3).copyWith(fontSize: 12)),
               ),
             ],
@@ -124,9 +126,9 @@ class _RevenueHero extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              _Legend(dashed: false, label: today ? 'сьогодні' : 'липень'),
+              _Legend(dashed: false, label: today ? t('сьогодні') : t('липень')),
               const SizedBox(width: 14),
-              _Legend(dashed: true, label: today ? 'вчора' : 'червень'),
+              _Legend(dashed: true, label: today ? t('вчора') : t('червень')),
             ],
           ),
         ],
@@ -258,30 +260,30 @@ class _KpiGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final k = context.kavio;
-    final t = <Widget>[
+    final tiles = <Widget>[
       _KpiTile(
-          label: 'Прибуток',
+          label: t('Прибуток'),
           value: '₴121 000',
           delta: '12%',
           up: true,
           spark: const [0.3, 0.34, 0.32, 0.4, 0.44, 0.5, 0.58],
           color: k.success),
       _KpiTile(
-          label: 'Сер. чек',
+          label: t('Сер. чек'),
           value: '₴1 300',
           delta: '6%',
           up: true,
           spark: const [0.2, 0.22, 0.21, 0.26, 0.25, 0.3, 0.33],
           color: k.accent),
       _KpiTile(
-          label: 'Записів',
+          label: t('Записів'),
           value: '140',
           delta: '9%',
           up: true,
           spark: const [0.1, 0.14, 0.12, 0.18, 0.2, 0.22, 0.26],
           color: k.accent),
       _KpiTile(
-          label: 'Скасувань',
+          label: t('Скасувань'),
           value: '4%',
           delta: '2%',
           up: false,
@@ -291,15 +293,15 @@ class _KpiGrid extends StatelessWidget {
     return Column(
       children: [
         Row(children: [
-          Expanded(child: t[0]),
+          Expanded(child: tiles[0]),
           const SizedBox(width: 10),
-          Expanded(child: t[1])
+          Expanded(child: tiles[1])
         ]),
         const SizedBox(height: 10),
         Row(children: [
-          Expanded(child: t[2]),
+          Expanded(child: tiles[2]),
           const SizedBox(width: 10),
-          Expanded(child: t[3])
+          Expanded(child: tiles[3])
         ]),
       ],
     );
@@ -389,7 +391,9 @@ class _Heatmap extends StatelessWidget {
     [0.4, 0.3, 0.35, 0.5, 0.75, 0.7, 0.12],
   ];
   static const hours = ['10', '12', '14', '16', '18'];
-  static const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+  static List<String> get days => [
+        t('Пн'), t('Вт'), t('Ср'), t('Чт'), t('Пт'), t('Сб'), t('Нд')
+      ];
   @override
   Widget build(BuildContext context) {
     final k = context.kavio;
@@ -401,7 +405,7 @@ class _Heatmap extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const ZLabel('Завантаженість по днях'),
+              ZLabel(t('Завантаженість по днях')),
               Row(
                 children: [
                   const ZRing(
@@ -479,12 +483,12 @@ class _Heatmap extends StatelessWidget {
 
 class _TopServices extends StatelessWidget {
   const _TopServices();
-  static const items = [
-    ('Гель-лак', 0.72, '₴54 000'),
-    ('Манікюр', 0.48, '₴38 000'),
-    ('Педикюр', 0.30, '₴27 000'),
-    ('Нейл-арт', 0.20, '₴18 000'),
-  ];
+  static List<(String, double, String)> get items => [
+        (t('Гель-лак'), 0.72, '₴54 000'),
+        (t('Манікюр'), 0.48, '₴38 000'),
+        (t('Педикюр'), 0.30, '₴27 000'),
+        (t('Нейл-арт'), 0.20, '₴18 000'),
+      ];
   @override
   Widget build(BuildContext context) {
     final k = context.kavio;
@@ -493,7 +497,7 @@ class _TopServices extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ZLabel('Популярні послуги'),
+          ZLabel(t('Популярні послуги')),
           const SizedBox(height: 12),
           for (final it in items) ...[
             Row(

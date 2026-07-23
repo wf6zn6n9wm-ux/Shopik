@@ -27,6 +27,15 @@ const routes = [
   ['smart-gaps', '/smart-gaps'],
   ['menu', '/menu'],
   ['settings', '/settings'],
+  // Локалізація EN/RU — перевірка ключових екранів.
+  ['home-en', '/?s=1&lang=en'],
+  ['menu-en', '/menu?lang=en'],
+  ['analytics-en', '/analytics?lang=en'],
+  ['calendar-en', '/calendar?lang=en'],
+  ['settings-en', '/settings?lang=en'],
+  ['home-ru', '/?s=1&lang=ru'],
+  ['menu-ru', '/menu?lang=ru'],
+  ['analytics-ru', '/analytics?lang=ru'],
 ];
 
 mkdirSync('shots', { recursive: true });

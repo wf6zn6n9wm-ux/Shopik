@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 
+import '../core/localization/app_text.dart';
 import '../core/money/money.dart';
 
 /// Форматирование денег и времени. Цена хранится в минимальных единицах.
@@ -33,32 +34,45 @@ abstract final class Fmt {
   static String range(DateTime start, DateTime end) =>
       '${_time.format(start)} – ${_time.format(end)}';
 
-  static String duration(int minutes) => '$minutes хв';
+  static String duration(int minutes) =>
+      '$minutes ${gLang == 'en' ? 'min' : gLang == 'ru' ? 'мин' : 'хв'}';
 
-  static const _months = [
-    'січня',
-    'лютого',
-    'березня',
-    'квітня',
-    'травня',
-    'червня',
-    'липня',
-    'серпня',
-    'вересня',
-    'жовтня',
-    'листопада',
-    'грудня'
+  static const _monthsUk = [
+    'січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
+    'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'
   ];
-  static const _weekdays = [
-    'Понеділок',
-    'Вівторок',
-    'Середа',
-    'Четвер',
-    "П'ятниця",
-    'Субота',
-    'Неділя'
+  static const _monthsEn = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  static const _monthsRu = [
+    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+  ];
+  static const _weekdaysUk = [
+    'Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота', 'Неділя'
+  ];
+  static const _weekdaysEn = [
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+  ];
+  static const _weekdaysRu = [
+    'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота',
+    'Воскресенье'
   ];
 
-  static String dayMonth(DateTime d) => '${d.day} ${_months[d.month - 1]}';
+  static List<String> get _months => switch (gLang) {
+        'en' => _monthsEn,
+        'ru' => _monthsRu,
+        _ => _monthsUk,
+      };
+  static List<String> get _weekdays => switch (gLang) {
+        'en' => _weekdaysEn,
+        'ru' => _weekdaysRu,
+        _ => _weekdaysUk,
+      };
+
+  static String dayMonth(DateTime d) => gLang == 'en'
+      ? '${_months[d.month - 1]} ${d.day}'
+      : '${d.day} ${_months[d.month - 1]}';
   static String weekday(DateTime d) => _weekdays[d.weekday - 1];
 }

@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -77,7 +78,7 @@ class _Seg extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final view = ref.watch(calendarViewProvider);
     return ZSegmented(
-      items: const ['День', 'Тиждень', 'Місяць'],
+      items: [t('День'), t('Тиждень'), t('Місяць')],
       index: view.index,
       onChanged: (i) => ref.read(calendarViewProvider.notifier).state =
           CalendarView.values[i],
@@ -135,15 +136,16 @@ class _DayView extends ConsumerWidget {
         Row(
           children: [
             Expanded(
-                child: ZStatCard(label: 'Записів', value: '${list.length}')),
+                child: ZStatCard(label: t('Записів'), value: '${list.length}')),
             const SizedBox(width: 8),
             Expanded(
                 child:
-                    ZStatCard(label: 'Виручка', value: Fmt.money(completed))),
+                    ZStatCard(label: t('Виручка'), value: Fmt.money(completed))),
             const SizedBox(width: 8),
             Expanded(
                 child: ZStatCard(
-                    label: 'Вільно', value: '${(freeMin / 60).round()} год')),
+                    label: t('Вільно'),
+                    value: tp('{n} год', {'n': (freeMin / 60).round()}))),
           ],
         ),
         const SizedBox(height: 16),
@@ -192,7 +194,7 @@ class _DayView extends ConsumerWidget {
           child: _TimelineRow(
             time: Fmt.time(prevEnd!),
             child: ZFreeSlot(
-              duration: '${a.start.difference(prevEnd!).inMinutes} хв',
+              duration: Fmt.duration(a.start.difference(prevEnd!).inMinutes),
               onTap: () => showCreateAppointmentSheet(context),
             ),
           ),
@@ -349,7 +351,7 @@ class _NowLine extends StatelessWidget {
               ),
             ),
           ),
-          Text('зараз',
+          Text(t('зараз'),
               style: AppTypography.label(k.accent)
                   .copyWith(fontSize: 10, fontWeight: FontWeight.w700)),
         ],
@@ -398,19 +400,19 @@ class _EmptyDay extends StatelessWidget {
                 Icon(Icons.event_available_outlined, size: 36, color: k.accent),
           ),
           const SizedBox(height: 16),
-          Text('Вільний день', style: AppTypography.title2(k.ink)),
+          Text(t('Вільний день'), style: AppTypography.title2(k.ink)),
           const SizedBox(height: 8),
           SizedBox(
             width: 240,
             child: Text(
-              'Жодного запису. Ідеальний час додати перший або поділитися онлайн-записом.',
+              t('Жодного запису. Ідеальний час додати перший або поділитися онлайн-записом.'),
               textAlign: TextAlign.center,
               style: AppTypography.body(k.ink2).copyWith(fontSize: 14),
             ),
           ),
           const SizedBox(height: 20),
           ZButton(
-              label: '＋ Новий запис',
+              label: t('＋ Новий запис'),
               expand: false,
               onTap: () => showCreateAppointmentSheet(context)),
         ],
@@ -438,7 +440,7 @@ class _WeekView extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
       children: [
-        Text('Тиждень', style: AppTypography.title1(k.ink)),
+        Text(t('Тиждень'), style: AppTypography.title1(k.ink)),
         const SizedBox(height: 14),
         const _Seg(),
         const SizedBox(height: 16),
@@ -498,7 +500,7 @@ class _WeekHeadCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final k = context.kavio;
     final isToday = _dateOnly(date) == today;
-    const names = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+    final names = [t('Пн'), t('Вт'), t('Ср'), t('Чт'), t('Пт'), t('Сб'), t('Нд')];
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2),
       padding: const EdgeInsets.symmetric(vertical: 7),
@@ -615,7 +617,7 @@ class _MonthView extends ConsumerWidget {
     final daysInMonth = DateTime(day.year, day.month + 1, 0).day;
     final leading = monthStart.weekday - 1;
     final today = demoNow();
-    const labels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+    final labels = [t('Пн'), t('Вт'), t('Ср'), t('Чт'), t('Пт'), t('Сб'), t('Нд')];
 
     final cells = <Widget>[];
     for (var i = 0; i < leading; i++) {
@@ -696,7 +698,7 @@ class _MonthView extends ConsumerWidget {
       'Листопад',
       'Грудень'
     ];
-    return names[m - 1];
+    return t(names[m - 1]);
   }
 }
 
@@ -775,7 +777,7 @@ class _MonthLegend extends StatelessWidget {
     final k = context.kavio;
     return Row(
       children: [
-        Text('тихо', style: AppTypography.label(k.ink3).copyWith(fontSize: 10)),
+        Text(t('тихо'), style: AppTypography.label(k.ink3).copyWith(fontSize: 10)),
         const SizedBox(width: 8),
         for (final o in [0.16, 0.36, 0.58, 0.8, 1.0])
           Container(
@@ -787,7 +789,7 @@ class _MonthLegend extends StatelessWidget {
                 borderRadius: BorderRadius.circular(3)),
           ),
         const SizedBox(width: 4),
-        Text('щільно',
+        Text(t('щільно'),
             style: AppTypography.label(k.ink3).copyWith(fontSize: 10)),
       ],
     );

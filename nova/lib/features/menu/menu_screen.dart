@@ -1,3 +1,4 @@
+import '../../core/localization/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,7 +27,7 @@ class MenuScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
           children: [
-            reveal(Text('Меню', style: AppTypography.title1(k.ink))),
+            reveal(Text(t('Меню'), style: AppTypography.title1(k.ink))),
             const SizedBox(height: 16),
             reveal(GestureDetector(
               onTap: () => context.push(Routes.profile),
@@ -45,7 +46,7 @@ class MenuScreen extends ConsumerWidget {
                               style: AppTypography.title3(k.ink)
                                   .copyWith(fontSize: 17)),
                           const SizedBox(height: 2),
-                          Text('Манікюрна студія · Київ',
+                          Text(t('Манікюрна студія · Київ'),
                               style: AppTypography.label(k.ink2)
                                   .copyWith(fontSize: 13)),
                         ],
@@ -59,27 +60,27 @@ class MenuScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             reveal(_TariffCard(plan: plan)),
             const SizedBox(height: 20),
-            reveal(const ZLabel('Робота')),
+            reveal(ZLabel(t('Робота'))),
             const SizedBox(height: 8),
             reveal(_Group(items: [
-              _Item(Icons.people_alt_outlined, 'Клієнти',
+              _Item(Icons.people_alt_outlined, t('Клієнти'),
                   () => context.push(Routes.clients)),
-              _Item(Icons.design_services_outlined, 'Послуги та ціни',
+              _Item(Icons.design_services_outlined, t('Послуги та ціни'),
                   () => context.push(Routes.services)),
-              _Item(Icons.auto_awesome_outlined, 'Розумні вікна',
+              _Item(Icons.auto_awesome_outlined, t('Розумні вікна'),
                   () => context.push(Routes.smartGaps)),
-              _Item(Icons.link_outlined, 'Онлайн-запис',
+              _Item(Icons.link_outlined, t('Онлайн-запис'),
                   () => context.push(Routes.onlineBooking)),
             ])),
             const SizedBox(height: 20),
-            reveal(const ZLabel('Бізнес')),
+            reveal(ZLabel(t('Бізнес'))),
             const SizedBox(height: 8),
             reveal(_Group(items: [
-              _Item(Icons.nightlight_round_outlined, 'Підсумок дня',
+              _Item(Icons.nightlight_round_outlined, t('Підсумок дня'),
                   () => context.push(Routes.recap)),
-              _Item(Icons.workspace_premium_outlined, 'Підписка',
+              _Item(Icons.workspace_premium_outlined, t('Підписка'),
                   () => context.push(Routes.subscription)),
-              _Item(Icons.settings_outlined, 'Налаштування',
+              _Item(Icons.settings_outlined, t('Налаштування'),
                   () => context.push(Routes.settings)),
             ])),
           ],
@@ -126,11 +127,11 @@ class _TariffCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text('Тариф $name',
+                      Text(tp('Тариф {name}', {'name': name}),
                           style: AppTypography.title3(k.ink)
                               .copyWith(fontSize: 15)),
                       const SizedBox(width: 8),
-                      ZPill(paid ? 'Активний' : 'Безкоштовний',
+                      ZPill(paid ? t('Активний') : t('Безкоштовний'),
                           color: paid ? k.success : k.ink2,
                           bg: paid ? k.successTint : k.surface2),
                     ],
@@ -138,14 +139,14 @@ class _TariffCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                       paid
-                          ? 'Продовжується 12 серпня'
-                          : 'Оновіть до Pro — більше можливостей',
+                          ? t('Продовжується 12 серпня')
+                          : t('Оновіть до Pro — більше можливостей'),
                       style:
                           AppTypography.label(k.ink3).copyWith(fontSize: 12)),
                 ],
               ),
             ),
-            Text(paid ? 'Керувати' : 'Оновити',
+            Text(paid ? t('Керувати') : t('Оновити'),
                 style: AppTypography.label(k.accent)
                     .copyWith(fontSize: 12, fontWeight: FontWeight.w700)),
           ],
