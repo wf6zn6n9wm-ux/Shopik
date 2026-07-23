@@ -294,30 +294,202 @@
   .switch i{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:var(--foam);transition:.2s;}
   .switch.on i{left:22px;background:var(--aqua);}
   .inp-err{color:var(--danger);font-size:12px;margin:4px 2px 0;min-height:14px;}
+
+/* ============================================================
+   ✦ ABYSSAL GLASS — премиальный слой (Фаза 1)
+   Переопределяет базовые стили через каскад; механики не трогает.
+   ============================================================ */
+:root{
+  --abyss:#050f18; --deep:#0a1c2c; --deep2:#0d2337; --surface:#102b3f; --surface2:#143a52;
+  --line:#204257; --text:#eef7fa; --muted:#8aa9bb;
+  --aqua:#38e5d4; --aqua-2:#19b7ac; --aqua-dim:#12655d;
+  --gold:#ffcf5c; --gold-2:#ff9f2e; --foam:#daf2f5;
+  --danger:#ff6072; --green:#3ee0a3; --purple:#9a7cff;
+  --radius:22px; --radius-lg:26px;
+  --grad-aqua:linear-gradient(135deg,#43ecdb 0%,#16a99d 100%);
+  --grad-gold:linear-gradient(135deg,#ffd873 0%,#ff9f2e 100%);
+  --glass-bg:rgba(18,48,70,.55); --glass-brd:rgba(126,196,214,.16); --glass-hi:rgba(255,255,255,.06);
+  --sh-card:0 18px 40px -18px rgba(0,0,0,.7),0 2px 8px -2px rgba(0,0,0,.5);
+  --sh-soft:0 10px 30px -14px rgba(0,0,0,.6);
+  --glow-aqua:0 0 0 1px rgba(56,229,212,.25),0 10px 30px -8px rgba(56,229,212,.45);
+  --glow-gold:0 10px 30px -8px rgba(255,175,60,.4);
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+html,body{background:var(--abyss);}
+body{
+  background:
+    radial-gradient(130% 70% at 50% -12%, #114363 0%, rgba(5,15,24,0) 58%),
+    radial-gradient(90% 50% at 100% 0%, rgba(56,229,212,.10) 0%, rgba(5,15,24,0) 50%),
+    var(--abyss);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;}
+
+/* живой фон из пузырьков */
+#bubbles{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;}
+
+/* появление экрана + стаггер карточек */
+.screen{animation:scrIn .5s var(--ease);}
+@keyframes scrIn{from{opacity:0;transform:translateY(8px) scale(.995);}to{opacity:1;transform:none;}}
+.screen.active > *{animation:riseIn .52s var(--ease) both;}
+.screen.active > *:nth-child(1){animation-delay:.03s}
+.screen.active > *:nth-child(2){animation-delay:.08s}
+.screen.active > *:nth-child(3){animation-delay:.13s}
+.screen.active > *:nth-child(4){animation-delay:.18s}
+.screen.active > *:nth-child(5){animation-delay:.23s}
+.screen.active > *:nth-child(6){animation-delay:.28s}
+@keyframes riseIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+
+/* типографика */
+h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;margin:6px 2px 12px;}
+.sub{font-size:13.5px;line-height:1.5;color:var(--muted);}
+
+/* стеклянные панели */
+.panel,.glass{
+  background:var(--glass-bg);border:1px solid var(--glass-brd);border-radius:var(--radius);
+  -webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);
+  box-shadow:var(--sh-soft),inset 0 1px 0 var(--glass-hi);
+}
+
+/* объёмные карточки режимов */
+.card{
+  border-radius:var(--radius-lg);border:1px solid rgba(255,255,255,.08);
+  box-shadow:var(--sh-card),inset 0 1px 0 rgba(255,255,255,.10);
+  transition:transform .18s var(--ease),box-shadow .25s var(--ease),filter .25s;
+}
+.card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(120% 80% at 80% -10%,rgba(255,255,255,.14),rgba(255,255,255,0) 55%);}
+.card:active{transform:scale(.975) translateY(1px);filter:brightness(1.03);}
+.card h2{font-size:24px;letter-spacing:-.02em;font-weight:800;}
+.card .emoji{filter:drop-shadow(0 10px 18px rgba(0,0,0,.45));}
+
+/* кнопки */
+.btn-primary{
+  background:var(--grad-aqua);color:#04241f;border-radius:16px;font-weight:800;letter-spacing:.01em;
+  box-shadow:var(--glow-aqua),inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .12s var(--ease),box-shadow .25s,filter .2s;position:relative;overflow:hidden;
+}
+.btn-primary:active{transform:translateY(1px) scale(.985);filter:saturate(1.1);}
+.btn-primary:disabled{filter:grayscale(.4) brightness(.8);box-shadow:none;}
+.btn-glow{animation:glowPulse 3.4s ease-in-out infinite;}
+@keyframes glowPulse{0%,100%{box-shadow:var(--glow-aqua),inset 0 1px 0 rgba(255,255,255,.35);}50%{box-shadow:0 0 0 1px rgba(56,229,212,.35),0 16px 42px -8px rgba(56,229,212,.6),inset 0 1px 0 rgba(255,255,255,.35);}}
+.btn-ghost{background:var(--glass-bg);border:1px solid var(--glass-brd);border-radius:14px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);transition:transform .12s var(--ease),border-color .2s;}
+.btn-ghost:active{transform:scale(.98);}
+
+/* чипы / сегменты */
+.chip{border-radius:12px;transition:transform .12s var(--ease),border-color .2s,color .2s;}
+.chip:active{transform:scale(.94);}
+.chip.active{box-shadow:0 0 0 1px rgba(255,207,92,.5),0 6px 16px -8px rgba(255,175,60,.5);}
+.seg{background:var(--glass-bg);border:1px solid var(--glass-brd);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-radius:16px;}
+.seg button.active{background:var(--grad-aqua);color:#04241f;font-weight:800;box-shadow:0 6px 16px -8px rgba(56,229,212,.6);}
+
+/* кошельки-чипы */
+.wallet{border-radius:999px;border:1px solid var(--glass-brd);background:var(--glass-bg);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 0 1px 0 var(--glass-hi);}
+.wallet.money{background:linear-gradient(120deg,rgba(16,58,55,.6),rgba(16,48,72,.55));}
+.wallet .add{background:var(--grad-aqua);color:#04241f;}
+
+/* таб-бар: стекло + светящийся активный */
+.tabbar{background:rgba(6,17,26,.72);-webkit-backdrop-filter:blur(20px) saturate(1.3);backdrop-filter:blur(20px) saturate(1.3);border-top:1px solid var(--glass-brd);}
+.tab{transition:color .2s,transform .12s var(--ease);padding-top:6px;}
+.tab svg{transition:transform .2s var(--ease),filter .2s;}
+.tab.active svg{transform:translateY(-2px) scale(1.06);filter:drop-shadow(0 6px 12px rgba(56,229,212,.5));}
+.tab.active::before{content:"";position:absolute;top:-1px;left:50%;transform:translateX(-50%);width:34px;height:3px;border-radius:999px;background:var(--grad-aqua);box-shadow:0 0 10px rgba(56,229,212,.7);}
+.tab:active{transform:scale(.92);}
+
+/* LIVE */
+.live{background:rgba(255,96,114,.12);border:1px solid rgba(255,96,114,.25);}
+
+/* count-up вспышка */
+.bump{animation:bump .5s var(--ease);}
+@keyframes bump{0%{transform:scale(1);}30%{transform:scale(1.14);color:var(--gold);}100%{transform:scale(1);}}
+
+/* ripple */
+.rippling{position:relative;overflow:hidden;}
+.ripple{position:absolute;border-radius:50%;transform:translate(-50%,-50%) scale(0);background:radial-gradient(circle,rgba(255,255,255,.5),rgba(255,255,255,0) 70%);pointer-events:none;animation:ripple .55s var(--ease);z-index:5;}
+@keyframes ripple{to{transform:translate(-50%,-50%) scale(1);opacity:0;}}
+
+/* ---------- HERO ---------- */
+.hero-card{padding:18px 18px 20px;margin-bottom:16px;position:relative;overflow:hidden;}
+.hero-card::before{content:"";position:absolute;right:-40px;top:-50px;width:180px;height:180px;border-radius:50%;
+  background:radial-gradient(circle,rgba(56,229,212,.28),rgba(56,229,212,0) 70%);pointer-events:none;filter:blur(2px);}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;position:relative;z-index:1;}
+.hero-greet{display:flex;flex-direction:column;line-height:1.15;}
+.hero-hi{font-size:13px;color:var(--muted);font-weight:600;}
+.hero-name{font-size:22px;font-weight:800;letter-spacing:-.02em;}
+.hero-online{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--foam);background:rgba(62,224,163,.12);border:1px solid rgba(62,224,163,.28);padding:6px 11px;border-radius:999px;white-space:nowrap;}
+.dot-live{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(62,224,163,.6);animation:ping 1.6s infinite;}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(62,224,163,.5);}70%{box-shadow:0 0 0 7px rgba(62,224,163,0);}100%{box-shadow:0 0 0 0 rgba(62,224,163,0);}}
+.hero-bal{display:flex;align-items:baseline;gap:12px;margin:16px 0 16px;position:relative;z-index:1;}
+.hero-bal-main{display:inline-flex;align-items:center;gap:10px;font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;}
+.hero-bal-main small{font-size:15px;font-weight:700;color:var(--muted);letter-spacing:0;align-self:center;}
+.hero-bal-sub{font-size:15px;color:var(--foam);font-weight:700;opacity:.85;}
+.hero-actions{display:flex;flex-direction:column;gap:10px;position:relative;z-index:1;}
+.hero-actions .btn-primary{padding:16px;font-size:16.5px;}
+.hero-next{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);font-weight:600;justify-content:center;padding:6px;cursor:pointer;}
+.hero-next b{color:var(--foam);}
+
+/* иконка-звезда (градиентная) */
+.ic-star{width:42px;height:42px;display:inline-block;flex:none;
+  background:var(--grad-gold);-webkit-mask:var(--star-mask) center/contain no-repeat;mask:var(--star-mask) center/contain no-repeat;
+  filter:drop-shadow(0 6px 12px rgba(255,175,60,.5));}
+:root{--star-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77 5.82 21l1.18-6.88-5-4.87 7.1-1.01z'/%3E%3C/svg%3E");}
+
+/* ---------- PVP featured на главной ---------- */
+.pvp-feat{position:relative;overflow:hidden;border-radius:var(--radius-lg);padding:18px;margin-bottom:12px;cursor:pointer;
+  background:linear-gradient(135deg,#1a4a5e 0%,#123a52 45%,#3a2d16 100%);
+  border:1px solid rgba(255,207,92,.22);box-shadow:var(--sh-card),inset 0 1px 0 rgba(255,255,255,.12);
+  transition:transform .18s var(--ease);}
+.pvp-feat:active{transform:scale(.98);}
+.pvp-feat::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(120% 90% at 85% -10%,rgba(255,207,92,.18),transparent 55%);}
+.pvp-feat .pf-top{display:flex;align-items:center;gap:8px;position:relative;z-index:1;}
+.pvp-feat .pf-badge{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#3a2400;background:var(--grad-gold);padding:4px 10px;border-radius:999px;}
+.pvp-feat h2{margin:12px 0 4px;font-size:27px;font-weight:800;letter-spacing:-.02em;position:relative;z-index:1;}
+.pvp-feat p{margin:0 0 14px;font-size:13.5px;color:var(--foam);opacity:.85;position:relative;z-index:1;max-width:75%;}
+.pvp-feat .pf-cta{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--grad-gold);color:#2a1a00;font-weight:800;font-size:16px;padding:14px;border-radius:14px;box-shadow:var(--glow-gold),inset 0 1px 0 rgba(255,255,255,.4);position:relative;z-index:1;}
+.pvp-feat .pf-swords{position:absolute;right:-6px;bottom:-10px;width:120px;height:120px;opacity:.9;z-index:0;filter:drop-shadow(0 12px 20px rgba(0,0,0,.4));}
+
+.modes-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modes-grid .card{min-height:130px;margin-bottom:0;}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}
+  #bubbles{display:none;}
+}
 </style>
 </head>
 <body>
 
+<canvas id="bubbles"></canvas>
+
 <!-- ИГРЫ / ГЛАВНАЯ -->
 <div class="screen active" id="s-home">
-  <div class="appbar">Shark</div>
-  <div class="topbar">
-    <div class="live"><span class="pulse"></span>LIVE</div>
-    <div class="spacer"></div>
-    <div class="wallet money" onclick="go('profile')"><span>💸</span><span class="mono" data-money>0.00</span><span style="font-size:12px;opacity:.8">грн</span></div>
-    <div class="wallet stars" onclick="go('profile')"><span>⭐</span><span class="mono" data-stars>0</span><span class="add">+</span></div>
-  </div>
-  <div class="hero">
-    <div class="shark-wrap" id="hero-shark"></div>
-    <div><h1>Shark</h1><p>Играй на звёзды, выигрывай подарки</p></div>
+  <div class="hero-card glass">
+    <div class="hero-top">
+      <div class="hero-greet"><span class="hero-hi" id="greet">С возвращением</span><span class="hero-name" id="hero-name">Игрок</span></div>
+      <div class="hero-online"><span class="dot-live"></span><span id="online" class="mono">—</span>&nbsp;онлайн</div>
+    </div>
+    <div class="hero-bal">
+      <div class="hero-bal-main"><span class="ic-star"></span><span class="mono" data-stars>0</span><small>звёзд</small></div>
+      <div class="hero-bal-sub"><span class="mono" data-money>0.00</span> грн</div>
+    </div>
+    <div class="hero-actions">
+      <button class="btn-primary btn-glow" onclick="go('pvp')">Играть сейчас</button>
+      <div class="hero-next" onclick="go('contests')">🏆 Ближайший розыгрыш · <b>через 1 час</b> →</div>
+    </div>
   </div>
 
-  <!-- push-баннер -->
-  <div id="push-slot"></div>
+  <div class="pvp-feat" onclick="go('pvp')">
+    <div class="pf-top"><span class="pf-badge">PVP · LIVE</span><span class="hero-online" style="margin-left:auto"><span class="dot-live"></span><span id="pvp-online" class="mono">—</span>&nbsp;в игре</span></div>
+    <h2>Битва за банк</h2>
+    <p>Заходи в общий раунд — победитель забирает весь банк</p>
+    <div class="pf-cta">Войти в битву →</div>
+    <svg class="pf-swords" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="sw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe49a"/><stop offset="1" stop-color="#ff9f2e"/></linearGradient></defs><g stroke="url(#sw)" stroke-width="3.5" stroke-linecap="round"><path d="M13 51 L45 19"/><path d="M51 51 L19 19"/></g><g fill="url(#sw)"><circle cx="45" cy="19" r="3.4"/><circle cx="19" cy="19" r="3.4"/><path d="M11 49l4 4-3 1-2-2z"/><path d="M53 49l-4 4 3 1 2-2z"/></g></svg>
+  </div>
 
-  <div class="card c-roul" style="min-height:150px" onclick="go('games')"><h2 style="font-size:28px">Игры 🦈</h2><p>Рулетка и Краш — играй на звёзды, выигрывай подарки</p><span class="cur-tag" style="color:var(--gold)">⭐ только звёзды</span><span class="emoji">🎮</span></div>
-  <div class="card c-pvp" onclick="go('pvp')"><h2>PVP <span class="badge">Новое</span></h2><p>Битва за общий банк — победитель забирает всё</p><span class="cur-tag" style="color:#3a2400">⭐ только звёзды</span><span class="emoji">⚔️</span></div>
-  <div class="card c-upgrade" onclick="toast('Апгрейд скоро — улучшение подарков за звёзды')"><h2>Апгрейд <span class="badge">Новое</span></h2><p>Улучшай подарки или приумножай звёзды</p><span class="cur-tag" style="color:var(--gold)">⭐ только звёзды</span><span class="emoji">📈</span></div>
+  <div class="modes-grid">
+    <div class="card c-roul" onclick="go('games')"><h2 style="font-size:21px">Игры</h2><p style="max-width:none">Краш и рулетка</p><span class="emoji" style="font-size:48px;right:10px;bottom:2px">🎮</span></div>
+    <div class="card c-upgrade" onclick="toast('Апгрейд скоро — улучшение подарков за звёзды')"><h2 style="font-size:21px">Апгрейд <span class="badge">Скоро</span></h2><p style="max-width:none">Множь звёзды</p><span class="emoji" style="font-size:48px;right:10px;bottom:2px">📈</span></div>
+  </div>
 </div>
 
 <!-- ИГРЫ (Рулетка + Краш в одном разделе) -->
@@ -500,22 +672,22 @@
   <div class="onb-slide active" data-onb="0">
     <div class="onb-ic">🦈</div>
     <h2>Добро пожаловать в Shark</h2>
-    <p>Зарабатывай реальные деньги на заданиях и играй на звёзды. Два разных баланса — гривны и звёзды.</p>
+    <p>Играй на звёзды и выигрывай подарки. Два разных баланса — звёзды для игр и гривны для вывода.</p>
   </div>
   <div class="onb-slide" data-onb="1">
-    <div class="onb-ic">💰</div>
-    <h2>Друзья = деньги</h2>
-    <p>Приглашай друзей и получай гривны на баланс. Их можно вывести на карту или в USDT.</p>
+    <div class="onb-ic">⚔️</div>
+    <h2>PVP — битва за банк</h2>
+    <p>Главный режим: заходи в общий раунд, скидывайся в банк звёздами. Победитель забирает всё.</p>
   </div>
   <div class="onb-slide" data-onb="2">
     <div class="onb-ic">🎮</div>
-    <h2>Игры = звёзды</h2>
-    <p>Рулетка и Краш — на звёзды ради азарта и подарков. Звёзды не выводятся в деньги, тратятся внутри на NFT-подарки.</p>
+    <h2>Игры на звёзды</h2>
+    <p>Краш и рулетка — на звёзды ради азарта и подарков. Звёзды не выводятся в деньги, тратятся внутри.</p>
   </div>
   <div class="onb-slide" data-onb="3">
-    <div class="onb-ic">🚀</div>
-    <h2>Поехали!</h2>
-    <p>Открой ежедневный кейс, выполни первое задание и крути колесо фортуны. Удачи!</p>
+    <div class="onb-ic">💰</div>
+    <h2>Друзья = деньги</h2>
+    <p>Приглашай друзей и получай гривны на баланс — их можно вывести на карту или в USDT. Поехали!</p>
   </div>
   <div class="onb-dots" id="onb-dots"></div>
   <button class="btn-primary" id="onb-btn" onclick="onbNext()">Далее</button>
@@ -1068,7 +1240,7 @@ window.go=go;
 
 
 function init(){
-  document.getElementById('hero-shark').innerHTML=sharkSVG();
+  var hs=document.getElementById('hero-shark'); if(hs) hs.innerHTML=sharkSVG();
   buildStrip();renderShop();renderLeaders();setContestTab('active');
   renderStreak();renderPush();renderProfile();
   syncBalances();setBet(50);setCBet(50);setPBet(50);
@@ -1332,11 +1504,102 @@ async function boot(){
     SERVER=true; ME=st.user; CFG=st.config||CFG; REF=st.referrals||REF;
     USDT_RATE=CFG.usdt_rate||USDT_RATE;
     if(st.refLink) REFLINK='https://t.me/'+BOT_USERNAME+st.refLink;
-    if(ME.first_name){ var pn=document.getElementById('prof-name'); if(pn) pn.textContent=ME.first_name; }
+    if(ME.first_name){ var pn=document.getElementById('prof-name'); if(pn) pn.textContent=ME.first_name; var hn=document.getElementById('hero-name'); if(hn) hn.textContent=ME.first_name; }
     applyUser(st.user); renderPush(); setRefLink();
   }catch(e){}
 }
 boot();
+
+/* ============================================================
+   ✦ ABYSSAL GLASS — премиальные микро-взаимодействия (Фаза 1)
+   ============================================================ */
+function prefersReduced(){ try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } }
+
+/* плавный tween числа */
+function tweenNum(from,to,dur,step){
+  if(prefersReduced()||from===to){ step(to); return; }
+  var t0=null;
+  function fr(ts){ if(t0===null)t0=ts; var p=Math.min((ts-t0)/dur,1); var e=1-Math.pow(1-p,3); step(from+(to-from)*e); if(p<1) requestAnimationFrame(fr); }
+  requestAnimationFrame(fr);
+}
+function setNumEls(sel,val,isMoney){
+  $all(sel).forEach(function(el){
+    var cur=parseFloat(el.getAttribute('data-cur'));
+    if(isNaN(cur)) cur=0;
+    if(cur===val){ el.textContent=isMoney?money(val):val; return; }
+    el.setAttribute('data-cur',val);
+    tweenNum(cur,val,600,function(v){ el.textContent=isMoney?money(v):Math.round(v); });
+    if(Math.abs(val-cur)>=(isMoney?0.001:1)){ el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  });
+}
+/* переопределяем syncBalances на живые (count-up) числа */
+syncBalances=function(){
+  setNumEls('[data-money]', Number(S.money), true);
+  setNumEls('[data-stars]', Number(S.stars), false);
+  var mb=$('[data-money-big]'); if(mb) mb.innerHTML=money(S.money)+' <span style="font-size:20px;color:var(--aqua)">грн</span>';
+  var mu=$('[data-money-usdt]'); if(mu) mu.textContent='≈ '+usdt(S.money)+' USDT';
+  var sb=$('[data-stars-big]'); if(sb) sb.innerHTML=S.stars+' <span style="font-size:20px;color:var(--gold)">⭐</span>';
+};
+syncBalances();
+
+/* ripple при тапе на интерактивных элементах */
+(function(){
+  var SEL='.btn-primary,.btn-ghost,.card,.pvp-feat,.chip,.tab,.wallet,.pill,.method,.pf-cta,.btn-mini,.btn-act';
+  document.addEventListener('pointerdown',function(e){
+    if(prefersReduced()) return;
+    var t=e.target.closest(SEL); if(!t) return;
+    var r=t.getBoundingClientRect(); var d=Math.max(r.width,r.height)*1.6;
+    var s=document.createElement('span'); s.className='ripple';
+    s.style.width=s.style.height=d+'px'; s.style.left=(e.clientX-r.left)+'px'; s.style.top=(e.clientY-r.top)+'px';
+    var pos=getComputedStyle(t).position; if(pos==='static'){ t.style.position='relative'; }
+    t.classList.add('rippling'); t.appendChild(s);
+    setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); },560);
+  },{passive:true});
+})();
+
+/* живой счётчик «онлайн» (косметика, как live-лента ботов) */
+(function(){
+  var online=920+Math.floor(Math.random()*680), inGame=28+Math.floor(Math.random()*54);
+  function fmt(n){ return n.toLocaleString('ru'); }
+  function paint(){
+    var o=document.getElementById('online'); if(o){ var oc=parseInt(o.getAttribute('data-cur')||'0',10)||online; o.setAttribute('data-cur',online); tweenNum(oc,online,700,function(v){o.textContent=fmt(Math.round(v));}); }
+    var g=document.getElementById('pvp-online'); if(g){ g.textContent=fmt(inGame); }
+  }
+  paint();
+  setInterval(function(){
+    online=Math.max(650,online+(Math.floor(Math.random()*46)-22));
+    inGame=Math.max(6,Math.min(140,inGame+(Math.floor(Math.random()*9)-4)));
+    paint();
+  },2600);
+})();
+
+/* живой фон: поднимающиеся пузырьки (лёгкий canvas) */
+(function(){
+  var cv=document.getElementById('bubbles'); if(!cv||prefersReduced()) return;
+  var ctx=cv.getContext('2d'), dpr=Math.min(window.devicePixelRatio||1,2), W=0,H=0, bs=[], raf=null, vis=true;
+  function resize(){ W=cv.clientWidth=window.innerWidth; H=cv.clientHeight=window.innerHeight; cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
+  function mk(y){ var r=2+Math.random()*7; return {x:Math.random()*W, y:y===undefined?H+Math.random()*H:y, r:r, sp:6+Math.random()*16+r, drift:(Math.random()-.5)*10, ph:Math.random()*6.28, a:.05+Math.random()*.18}; }
+  function init(){ resize(); bs=[]; var n=Math.round(Math.min(34, W/16)); for(var i=0;i<n;i++) bs.push(mk(Math.random()*H)); }
+  var last=null;
+  function frame(ts){
+    if(!vis){ raf=null; return; }
+    if(last===null) last=ts; var dt=Math.min((ts-last)/1000,.05); last=ts;
+    ctx.clearRect(0,0,W,H);
+    for(var i=0;i<bs.length;i++){ var b=bs[i];
+      b.y-=b.sp*dt; b.ph+=dt*1.4; var x=b.x+Math.sin(b.ph)*b.drift;
+      if(b.y+b.r<0){ bs[i]=mk(H+10); continue; }
+      var g=ctx.createRadialGradient(x-b.r*0.3,b.y-b.r*0.3,b.r*0.2,x,b.y,b.r);
+      g.addColorStop(0,'rgba(180,245,240,'+(b.a*1.1)+')'); g.addColorStop(1,'rgba(56,229,212,0)');
+      ctx.beginPath(); ctx.fillStyle=g; ctx.arc(x,b.y,b.r,0,6.2832); ctx.fill();
+      ctx.beginPath(); ctx.strokeStyle='rgba(200,250,245,'+(b.a*0.5)+')'; ctx.lineWidth=1; ctx.arc(x,b.y,b.r,0,6.2832); ctx.stroke();
+    }
+    raf=requestAnimationFrame(frame);
+  }
+  function start(){ if(!raf){ last=null; raf=requestAnimationFrame(frame); } }
+  window.addEventListener('resize',function(){ resize(); },{passive:true});
+  document.addEventListener('visibilitychange',function(){ vis=!document.hidden; if(vis) start(); });
+  init(); start();
+})();
 </script>
 </body>
 </html>
