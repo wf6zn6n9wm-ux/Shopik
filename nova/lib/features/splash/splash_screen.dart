@@ -85,21 +85,22 @@ class _SplashScreenState extends State<SplashScreen>
                         style:
                             AppTypography.label(k.ink3).copyWith(fontSize: 13)),
                   ),
+                  const SizedBox(height: 40),
+                  Opacity(
+                    opacity: wordT,
+                    child: SizedBox(
+                      width: 26,
+                      height: 26,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        valueColor: AlwaysStoppedAnimation(k.accent),
+                        backgroundColor: k.surface3,
+                      ),
+                    ),
+                  ),
                 ],
               );
             },
-          ),
-          Positioned(
-            bottom: 46,
-            child: SizedBox(
-              width: 30,
-              height: 30,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.4,
-                valueColor: AlwaysStoppedAnimation(k.accent),
-                backgroundColor: k.surface3,
-              ),
-            ),
           ),
         ],
       ),
