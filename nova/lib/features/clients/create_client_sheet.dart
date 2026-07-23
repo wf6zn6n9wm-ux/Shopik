@@ -55,7 +55,8 @@ class _CreateClientSheetState extends ConsumerState<_CreateClientSheet> {
 
     navigator.pop();
     messenger.showSnackBar(
-      SnackBar(content: Text(tp('Клієнта {name} додано', {'name': client.name}))),
+      SnackBar(
+          content: Text(tp('Клієнта {name} додано', {'name': client.name}))),
     );
   }
 

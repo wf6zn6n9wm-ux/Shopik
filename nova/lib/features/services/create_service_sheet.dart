@@ -60,7 +60,8 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
 
     navigator.pop();
     messenger.showSnackBar(
-      SnackBar(content: Text(tp('Послугу «{name}» додано', {'name': service.name}))),
+      SnackBar(
+          content: Text(tp('Послугу «{name}» додано', {'name': service.name}))),
     );
   }
 

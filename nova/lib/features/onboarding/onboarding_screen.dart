@@ -48,8 +48,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         orb: const Color(0x478B8BF0),
         preview: _DashboardPreview(),
         title: t('Весь день —\nна одному екрані'),
-        subtitle:
-            t('Записи, виручка та наступний клієнт — щойно відкрив застосунок.'),
+        subtitle: t(
+            'Записи, виручка та наступний клієнт — щойно відкрив застосунок.'),
       ),
       _Page(
         orb: const Color(0x3846D08A),
