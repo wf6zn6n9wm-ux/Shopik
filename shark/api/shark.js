@@ -9,8 +9,8 @@
 // на сервере. Звёзды НЕ конвертируются в деньги ни одним действием.
 //
 // Запрос: POST { action, initData, ...params }
-// Действия: state | daily_case | wheel_spin | game_bet | crash_bet |
-//           crash_cashout | buy_gift | withdraw_create | history
+// Действия: state | daily_case | wheel_spin | game_bet | pvp_join |
+//           crash_bet | crash_cashout | buy_gift | withdraw_create | history
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
 //   SHARK_SUPABASE_URL / SUPABASE_URL
@@ -47,6 +47,13 @@ const SHOP = [
 ];
 const BET_OPTIONS = [50, 100, 250];
 const WITHDRAW_METHODS = ['card_ua', 'usdt_trc20', 'usdt_ton', 'usdt_bep20'];
+
+// PVP-джекпот: комиссия «дома» (house edge) с банка при выплате победителю.
+// Ожидание для игрока = ставка * (1 - PVP_RAKE) — как честная лотерея с рейком.
+const PVP_RAKE = 0.05;
+const PVP_BOT_NAMES = ['sea_wolf', 'krd_777', 'blue_fin', 'reef_king', 'aqua_max', 'tide_88',
+  'kraken_x', 'pearl', 'marlin', 'orca_pro', 'deep_one', 'ota_try', 'molodoywq', 'cakt0'];
+const PVP_BOT_AV = ['🐙', '🐡', '🐠', '🦑', '🦀', '🐬', '🐳', '🦈', '🐚', '🪼', '🦞', '🐟'];
 
 // множитель краша по времени полёта (в секундах) — совпадает с анимацией клиента
 function crashMultAt(dt) { return 1 + 0.6 * dt * dt; }
@@ -290,6 +297,67 @@ module.exports = async (req, res) => {
         // индекс приза (для остановки барабана в нужной ячейке на клиенте)
         prizeIndex: ROUL_PRIZES.findIndex((p) => p.name === base.name),
         user: publicUser(fresh)
+      });
+      return;
+    }
+
+    // ---------------------------------------------------------
+    //  PVP_JOIN — джекпот-битва: банк со ставками, победитель забирает всё.
+    //  v1: мгновенный раунд игрок vs боты. Честная лотерея с рейком дома:
+    //  шанс победы = ставка/банк, выплата победителю = банк*(1-PVP_RAKE).
+    //  Provably-fair: seed фиксируется, hash отдаётся, seed раскрывается в ответе.
+    // ---------------------------------------------------------
+    if (action === 'pvp_join') {
+      const bet = Number(body.bet);
+      if (!BET_OPTIONS.includes(bet)) { json(res, 200, { ok: false, reason: 'bad_bet' }); return; }
+      if (Number(user.stars_balance) < bet) { json(res, 200, { ok: false, reason: 'no_stars' }); return; }
+      const deb = await applyLedger(me.id, 'stars', -bet, 'bet', 'pvp', null, { bet });
+      if (!deb.ok) { json(res, 200, { ok: false, reason: 'no_stars' }); return; }
+
+      // соперники-боты (2..4) со случайными ставками
+      const nBots = 2 + Math.floor(Math.random() * 3);
+      const usedName = {};
+      const players = [{
+        name: user.first_name || 'Вы', av: '🙂', stake: bet, me: true
+      }];
+      for (let i = 0; i < nBots; i++) {
+        let nm; do { nm = PVP_BOT_NAMES[Math.floor(Math.random() * PVP_BOT_NAMES.length)]; } while (usedName[nm]);
+        usedName[nm] = 1;
+        players.push({
+          name: nm, av: PVP_BOT_AV[Math.floor(Math.random() * PVP_BOT_AV.length)],
+          stake: BET_OPTIONS[Math.floor(Math.random() * BET_OPTIONS.length)] * (Math.random() < 0.15 ? 4 : 1),
+          me: false
+        });
+      }
+      const pot = players.reduce((a, p) => a + p.stake, 0);
+
+      // provably-fair выбор победителя, взвешенно по ставке
+      const seed = crypto.randomBytes(16).toString('hex');
+      const seedHash = crypto.createHash('sha256').update(seed).digest('hex');
+      const roll = parseInt(crypto.createHash('sha256').update(seed).digest('hex').slice(0, 8), 16) / 0xffffffff;
+      let acc = 0, winnerIdx = players.length - 1;
+      for (let i = 0; i < players.length; i++) {
+        acc += players[i].stake / pot;
+        if (roll <= acc) { winnerIdx = i; break; }
+      }
+      players.forEach((p, i) => { p.pct = Math.round((p.stake / pot) * 1000) / 10; p.winner = (i === winnerIdx); });
+
+      const iWon = players[winnerIdx].me;
+      const payout = iWon ? Math.floor(pot * (1 - PVP_RAKE)) : 0;
+      if (payout > 0) await applyLedger(me.id, 'stars', payout, 'win', 'pvp', null, { pot });
+      await sb('shark_bets', {
+        method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
+        body: JSON.stringify({
+          tg_id: me.id, game: 'pvp', bet_stars: bet, payout,
+          seed_hash: seedHash, server_seed: seed,
+          detail: { pot, winner: players[winnerIdx].name, players: players.map((p) => ({ name: p.name, stake: p.stake, pct: p.pct, me: p.me })) }
+        })
+      });
+      await bumpStats(me.id, { played: 1, won: iWon ? Math.max(payout - bet, 0) : 0 });
+      const fresh = await freshUser();
+      json(res, 200, {
+        ok: true, pot, rake: PVP_RAKE, players, winnerIdx, iWon, payout,
+        seedHash, seed, user: publicUser(fresh)
       });
       return;
     }
