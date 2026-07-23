@@ -1087,8 +1087,9 @@ function setPBet(v){ pbet=v; $all('[data-pbet]').forEach(function(c){c.classList
 function updatePBtn(){ var b=document.getElementById('pvp-btn'); if(b) b.textContent='Присоединиться к битве · ⭐'+pbet; }
 function pickPvpWeighted(players){ var t=0,i; for(i=0;i<players.length;i++)t+=players[i].stake; var r=Math.random()*t; for(i=0;i<players.length;i++){r-=players[i].stake;if(r<=0)return players[i];} return players[0]; }
 function renderPvpBank(players,pot){
-  var pv=document.getElementById('pvp-pot'); if(pv) pv.textContent=pot;
+  var pv=document.getElementById('pvp-pot'); if(pv) pv.textContent=pot||0;
   var bar=document.getElementById('pvp-bar'); if(!bar) return; bar.innerHTML='';
+  if(!pot||!players.length) return;
   players.forEach(function(p,i){ var d=document.createElement('div'); d.style.width=(p.stake/pot*100)+'%'; d.style.background=pvpColor(i); d.textContent=p.pct>=9?(p.pct+'%'):''; bar.appendChild(d); });
 }
 function renderPvpPlayers(players,revealed){
@@ -1146,10 +1147,12 @@ function runPvp(round){
       beep(660,0.12,0.06,'triangle'); vibrate(30);
       logOp('🏆','PVP: победа','Банк ⭐'+round.pot,'+⭐'+round.payout,'star');
       showSheet('<div class="result-emoji">🏆</div><h3 style="text-align:center">Победа! +⭐'+round.payout+'</h3><p class="muted" style="text-align:center">Вы забрали банк ⭐'+round.pot+' (−'+Math.round((round.rake||0.05)*100)+'% комиссия). Ваш шанс был '+w.pct+'%.</p><button class="btn-primary" onclick="closeSheet()">Забрать</button>');
-    } else {
+    } else if(round.iJoined){
       beep(120,0.3,0.08,'sawtooth'); vibrate(60);
-      logOp('💀','PVP: проигрыш','Победил '+w.name,'−⭐'+pbet,'minus');
-      showSheet('<div class="result-emoji">💀</div><h3 style="text-align:center">Победил '+w.name+' '+w.av+'</h3><p class="muted" style="text-align:center">Банк ⭐'+round.pot+' ушёл сопернику. Ставка ⭐'+pbet+' сгорела. Повезёт в следующий раз!</p><button class="btn-primary" onclick="closeSheet()">Ещё раз</button>');
+      logOp('💀','PVP: проигрыш','Победил '+w.name,'−⭐'+(round.myStake||pbet),'minus');
+      showSheet('<div class="result-emoji">💀</div><h3 style="text-align:center">Победил '+w.name+' '+w.av+'</h3><p class="muted" style="text-align:center">Банк ⭐'+round.pot+' ушёл сопернику. Ваша ставка сгорела. Повезёт в следующий раз!</p><button class="btn-primary" onclick="closeSheet()">Ещё раз</button>');
+    } else {
+      toast('🏆 Победил '+w.name+' · банк ⭐'+round.pot);
     }
   },3700);
 }
@@ -1166,7 +1169,7 @@ function pvpJoin(){
   for(var j=0;j<players.length;j++){ acc+=players[j].stake/pot; if(roll<=acc){widx=j;break;} }
   players.forEach(function(p,k){ p.pct=Math.round(p.stake/pot*1000)/10; p.winner=(k===widx); });
   var iWon=players[widx].me, payout=iWon?Math.floor(pot*0.95):0;
-  runPvp({players:players,pot:pot,winnerIdx:widx,iWon:iWon,payout:payout,rake:0.05,seedHash:'demo-mode',seed:'demo',local:true});
+  runPvp({players:players,pot:pot,winnerIdx:widx,iWon:iWon,iJoined:true,myStake:pbet,payout:payout,rake:0.05,seedHash:'demo-mode',seed:'demo',local:true});
 }
 window.setPBet=setPBet; window.pvpJoin=pvpJoin;
 
@@ -1347,14 +1350,61 @@ crashAction=async function(){
   }
 };
 
+/* PVP: общий раунд с таймером. Клиент опрашивает pvp_state, показывает живой
+   банк/участников/отсчёт и анимирует розыгрыш, когда раунд завершается. */
+var pvpPollTimer=null, pvpAnimatedRound=0;
+function renderPvpLive(st){
+  if(pvpSpinning) return;
+  var players=st.players||[];
+  renderPvpBank(players, st.pot||0);
+  renderPvpPlayers(players, false);
+  var rd=document.getElementById('pvp-round'), btn=document.getElementById('pvp-btn');
+  if(st.status==='waiting'){
+    if(rd) rd.textContent=players.length?'Ждём игроков…':'Сделайте ставку, чтобы начать битву';
+    if(btn){ btn.disabled=false; btn.textContent='Присоединиться к битве · ⭐'+pbet; }
+  } else if(st.status==='countdown'){
+    if(rd) rd.textContent='До розыгрыша: '+st.secondsLeft+' с';
+    if(btn){ if(st.iJoined){ btn.disabled=true; btn.textContent='Вы в игре · ждём розыгрыша'; } else { btn.disabled=false; btn.textContent='Присоединиться к битве · ⭐'+pbet; } }
+  } else if(st.status==='resolving'){
+    if(rd) rd.textContent='Розыгрыш…'; if(btn) btn.disabled=true;
+  }
+  var fair=document.getElementById('pvp-fair'); if(fair&&st.seedHash) fair.textContent='🔒 provably-fair · hash: '+String(st.seedHash).slice(0,16)+'…';
+}
+async function pvpTick(){
+  if(!SERVER || pvpSpinning) return;
+  var resp; try{ resp=await api('pvp_state'); }catch(e){ return; }
+  if(!resp||!resp.ok||!resp.round) return;
+  var st=resp.round;
+  if(st.status==='done' && st.id!==pvpAnimatedRound){
+    pvpAnimatedRound=st.id;
+    var players=st.players||[];
+    if(players.length && st.winnerIdx>=0){
+      // баланс применит сама runPvp в конце анимации (без спойлера выигрыша)
+      runPvp({players:players,pot:st.pot,winnerIdx:st.winnerIdx,iWon:st.iWon,iJoined:st.iJoined,
+        payout:st.myPayout,rake:st.rake,seedHash:st.seedHash,seed:st.seed,user:resp.user});
+    } else if(resp.user){ applyUser(resp.user); }
+    return;
+  }
+  if(resp.user) applyUser(resp.user);
+  renderPvpLive(st);
+}
+function startPvpPoll(){ if(!SERVER) return; stopPvpPoll(); pvpTick(); pvpPollTimer=setInterval(pvpTick,1500); }
+function stopPvpPoll(){ if(pvpPollTimer){ clearInterval(pvpPollTimer); pvpPollTimer=null; } }
+
 pvpJoin=async function(){
   if(!SERVER) return _pvpJoin();
   if(pvpSpinning) return;
   if(S.stars<pbet){ toast('Недостаточно звёзд — пополните баланс'); return; }
   var btn=document.getElementById('pvp-btn'); if(btn) btn.disabled=true;
   var r=await api('pvp_join',{bet:pbet});
-  if(!r.ok){ if(btn) btn.disabled=false; toast(r.reason==='no_stars'?'Недостаточно звёзд':'Ошибка ставки'); return; }
-  runPvp({players:r.players,pot:r.pot,winnerIdx:r.winnerIdx,iWon:r.iWon,payout:r.payout,rake:r.rake,seedHash:r.seedHash,seed:r.seed,user:r.user});
+  if(!r.ok){
+    if(r.reason==='already_joined'){ toast('Вы уже в этом раунде'); if(r.round) renderPvpLive(r.round); }
+    else { toast(r.reason==='no_stars'?'Недостаточно звёзд':(r.reason==='round_closed'?'Раунд закрывается — подождите следующий':'Ошибка ставки')); if(btn) btn.disabled=false; }
+    return;
+  }
+  if(r.user) applyUser(r.user);
+  if(r.round) renderPvpLive(r.round);
+  toast('Ставка ⭐'+pbet+' в банке! Ждём розыгрыша.');
 };
 
 buyGift=function(it){
@@ -1419,6 +1469,7 @@ var __goServer=go;
 go=function(name){
   __goServer(name);
   if(!SERVER) return;
+  if(name==='pvp') startPvpPoll(); else stopPvpPoll();
   if(name==='history') loadHistory();
   else if(name==='refs') renderRefs();
   else if(name==='home'||name==='profile') refreshState();

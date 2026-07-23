@@ -9,8 +9,9 @@
 // на сервере. Звёзды НЕ конвертируются в деньги ни одним действием.
 //
 // Запрос: POST { action, initData, ...params }
-// Действия: state | daily_case | wheel_spin | game_bet | pvp_join |
-//           crash_bet | crash_cashout | buy_gift | withdraw_create | history
+// Действия: state | daily_case | wheel_spin | game_bet | pvp_state |
+//           pvp_join | crash_bet | crash_cashout | buy_gift | withdraw_create |
+//           history
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
 //   SHARK_SUPABASE_URL / SUPABASE_URL
@@ -51,9 +52,32 @@ const WITHDRAW_METHODS = ['card_ua', 'usdt_trc20', 'usdt_ton', 'usdt_bep20'];
 // PVP-джекпот: комиссия «дома» (house edge) с банка при выплате победителю.
 // Ожидание для игрока = ставка * (1 - PVP_RAKE) — как честная лотерея с рейком.
 const PVP_RAKE = 0.05;
+const PVP_DURATION_S = 15;       // длительность отсчёта раунда после первой ставки
 const PVP_BOT_NAMES = ['sea_wolf', 'krd_777', 'blue_fin', 'reef_king', 'aqua_max', 'tide_88',
   'kraken_x', 'pearl', 'marlin', 'orca_pro', 'deep_one', 'ota_try', 'molodoywq', 'cakt0'];
 const PVP_BOT_AV = ['🐙', '🐡', '🐠', '🦑', '🦀', '🐬', '🐳', '🦈', '🐚', '🪼', '🦞', '🐟'];
+function pvpMakeBots(n) {
+  const used = {}, bots = [];
+  for (let i = 0; i < n; i++) {
+    let nm; do { nm = PVP_BOT_NAMES[Math.floor(Math.random() * PVP_BOT_NAMES.length)]; } while (used[nm]);
+    used[nm] = 1;
+    bots.push({
+      name: nm, av: PVP_BOT_AV[Math.floor(Math.random() * PVP_BOT_AV.length)],
+      stake: BET_OPTIONS[Math.floor(Math.random() * BET_OPTIONS.length)] * (Math.random() < 0.15 ? 4 : 1)
+    });
+  }
+  return bots;
+}
+// победитель по seed, взвешенно по ставке (bets отсортированы по id)
+function pvpWinnerIndex(seed, bets, pot) {
+  const roll = parseInt(crypto.createHash('sha256').update(seed).digest('hex').slice(0, 8), 16) / 0xffffffff;
+  let acc = 0;
+  for (let i = 0; i < bets.length; i++) {
+    acc += Number(bets[i].stake) / pot;
+    if (roll <= acc) return i;
+  }
+  return bets.length - 1;
+}
 
 // множитель краша по времени полёта (в секундах) — совпадает с анимацией клиента
 function crashMultAt(dt) { return 1 + 0.6 * dt * dt; }
@@ -302,63 +326,62 @@ module.exports = async (req, res) => {
     }
 
     // ---------------------------------------------------------
-    //  PVP_JOIN — джекпот-битва: банк со ставками, победитель забирает всё.
-    //  v1: мгновенный раунд игрок vs боты. Честная лотерея с рейком дома:
-    //  шанс победы = ставка/банк, выплата победителю = банк*(1-PVP_RAKE).
-    //  Provably-fair: seed фиксируется, hash отдаётся, seed раскрывается в ответе.
+    //  PVP_STATE — состояние текущего общего раунда (для поллинга)
+    // ---------------------------------------------------------
+    if (action === 'pvp_state') {
+      const round = await ensurePvpRound(false);
+      const st = await pvpRoundState(round);
+      json(res, 200, { ok: true, round: st, user: publicUser(user), duration: PVP_DURATION_S });
+      return;
+    }
+
+    // ---------------------------------------------------------
+    //  PVP_JOIN — войти в текущий общий раунд (ставка в общий банк)
     // ---------------------------------------------------------
     if (action === 'pvp_join') {
       const bet = Number(body.bet);
       if (!BET_OPTIONS.includes(bet)) { json(res, 200, { ok: false, reason: 'bad_bet' }); return; }
       if (Number(user.stars_balance) < bet) { json(res, 200, { ok: false, reason: 'no_stars' }); return; }
-      const deb = await applyLedger(me.id, 'stars', -bet, 'bet', 'pvp', null, { bet });
-      if (!deb.ok) { json(res, 200, { ok: false, reason: 'no_stars' }); return; }
 
-      // соперники-боты (2..4) со случайными ставками
-      const nBots = 2 + Math.floor(Math.random() * 3);
-      const usedName = {};
-      const players = [{
-        name: user.first_name || 'Вы', av: '🙂', stake: bet, me: true
-      }];
-      for (let i = 0; i < nBots; i++) {
-        let nm; do { nm = PVP_BOT_NAMES[Math.floor(Math.random() * PVP_BOT_NAMES.length)]; } while (usedName[nm]);
-        usedName[nm] = 1;
-        players.push({
-          name: nm, av: PVP_BOT_AV[Math.floor(Math.random() * PVP_BOT_AV.length)],
-          stake: BET_OPTIONS[Math.floor(Math.random() * BET_OPTIONS.length)] * (Math.random() < 0.15 ? 4 : 1),
-          me: false
+      let round = await ensurePvpRound(true);
+      // принимаем ставки только пока идёт набор/отсчёт
+      if (round.status !== 'waiting' && round.status !== 'countdown') {
+        json(res, 200, { ok: false, reason: 'round_closed' }); return;
+      }
+      // вставляем ставку ПЕРВОЙ — уникальный индекс (round_id, tg_id) защищает
+      // от двойного входа при быстром двойном тапе; списываем только если строка
+      // реально создалась (не дубликат)
+      const betIns = await sb('shark_pvp_bets', {
+        method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=representation,resolution=ignore-duplicates' }),
+        body: JSON.stringify({ round_id: round.id, tg_id: me.id, name: user.first_name || 'Игрок', av: '🙂', stake: bet })
+      });
+      const betRow = Array.isArray(betIns.data) ? betIns.data[0] : null;
+      if (!betRow) { const st = await pvpRoundState(round); json(res, 200, { ok: false, reason: 'already_joined', round: st, user: publicUser(user) }); return; }
+      // списываем ставку; при нехватке средств откатываем вставленную ставку
+      const deb = await applyLedger(me.id, 'stars', -bet, 'bet', 'pvp:' + round.id, null, { bet });
+      if (!deb.ok) {
+        await sb('shark_pvp_bets?id=eq.' + betRow.id, { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) });
+        json(res, 200, { ok: false, reason: 'no_stars' }); return;
+      }
+      // если это первая ставка — запускаем отсчёт и подсаживаем ботов для оживления
+      if (round.status === 'waiting') {
+        const bots = pvpMakeBots(1 + Math.floor(Math.random() * 3));
+        if (bots.length) {
+          await sb('shark_pvp_bets', {
+            method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
+            body: JSON.stringify(bots.map((b) => ({ round_id: round.id, tg_id: null, name: b.name, av: b.av, stake: b.stake })))
+          });
+        }
+        const resolveAt = new Date(Date.now() + PVP_DURATION_S * 1000).toISOString();
+        const upd = await sb('shark_pvp_rounds?id=eq.' + round.id + '&status=eq.waiting', {
+          method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
+          body: JSON.stringify({ status: 'countdown', resolve_at: resolveAt })
         });
+        if (Array.isArray(upd.data) && upd.data[0]) round = upd.data[0];
       }
-      const pot = players.reduce((a, p) => a + p.stake, 0);
-
-      // provably-fair выбор победителя, взвешенно по ставке
-      const seed = crypto.randomBytes(16).toString('hex');
-      const seedHash = crypto.createHash('sha256').update(seed).digest('hex');
-      const roll = parseInt(crypto.createHash('sha256').update(seed).digest('hex').slice(0, 8), 16) / 0xffffffff;
-      let acc = 0, winnerIdx = players.length - 1;
-      for (let i = 0; i < players.length; i++) {
-        acc += players[i].stake / pot;
-        if (roll <= acc) { winnerIdx = i; break; }
-      }
-      players.forEach((p, i) => { p.pct = Math.round((p.stake / pot) * 1000) / 10; p.winner = (i === winnerIdx); });
-
-      const iWon = players[winnerIdx].me;
-      const payout = iWon ? Math.floor(pot * (1 - PVP_RAKE)) : 0;
-      if (payout > 0) await applyLedger(me.id, 'stars', payout, 'win', 'pvp', null, { pot });
-      await sb('shark_bets', {
-        method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
-        body: JSON.stringify({
-          tg_id: me.id, game: 'pvp', bet_stars: bet, payout,
-          seed_hash: seedHash, server_seed: seed,
-          detail: { pot, winner: players[winnerIdx].name, players: players.map((p) => ({ name: p.name, stake: p.stake, pct: p.pct, me: p.me })) }
-        })
-      });
-      await bumpStats(me.id, { played: 1, won: iWon ? Math.max(payout - bet, 0) : 0 });
       const fresh = await freshUser();
-      json(res, 200, {
-        ok: true, pot, rake: PVP_RAKE, players, winnerIdx, iWon, payout,
-        seedHash, seed, user: publicUser(fresh)
-      });
+      const st = await pvpRoundState(round);
+      json(res, 200, { ok: true, round: st, user: publicUser(fresh) });
       return;
     }
 
@@ -511,6 +534,101 @@ module.exports = async (req, res) => {
     json(res, 200, { ok: false, reason: 'unknown_action' });
 
     // ===== вложенные хелперы, которым нужен доступ к sb/me =====
+
+    // Вернуть «текущий» раунд PVP.
+    //  • forJoin=false (опрос состояния): истёкший countdown разыгрываем и
+    //    ВОЗВРАЩАЕМ завершённый раунд, чтобы клиенты успели проиграть анимацию
+    //    (в течение PVP_ANIM_GRACE_S). Только по истечении грейса создаём новый.
+    //  • forJoin=true (ставка): истёкший/завершённый раунд не годится — сразу
+    //    заводим свежий waiting и играем в нём.
+    const PVP_ANIM_GRACE_S = 6;
+    async function ensurePvpRound(forJoin) {
+      for (let attempt = 0; attempt < 4; attempt++) {
+        let rows = await sbGet('shark_pvp_rounds?order=id.desc&limit=1&select=*');
+        let r = rows[0];
+        // истёкший отсчёт — разыграть, затем перечитать (станет done)
+        if (r && r.status === 'countdown' && r.resolve_at && Date.now() >= new Date(r.resolve_at).getTime()) {
+          await resolvePvpRound(r);
+          rows = await sbGet('shark_pvp_rounds?order=id.desc&limit=1&select=*');
+          r = rows[0];
+        }
+        if (r && (r.status === 'waiting' || r.status === 'countdown' || r.status === 'resolving')) return r;
+        if (r && r.status === 'done') {
+          const age = (Date.now() - new Date(r.resolved_at || r.created_at).getTime()) / 1000;
+          if (!forJoin && age < PVP_ANIM_GRACE_S) return r;   // отдаём done — клиент анимирует
+          // иначе — заводим новый раунд ниже
+        }
+        const seed = crypto.randomBytes(16).toString('hex');
+        const seedHash = crypto.createHash('sha256').update(seed).digest('hex');
+        const ins = await sb('shark_pvp_rounds', {
+          method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
+          body: JSON.stringify({ status: 'waiting', seed, seed_hash: seedHash, rake: PVP_RAKE })
+        });
+        const nw = Array.isArray(ins.data) ? ins.data[0] : ins.data;
+        if (nw) return nw;
+      }
+      return null;
+    }
+
+    // атомарно разыграть истёкший раунд (защита от двойного резолва)
+    async function resolvePvpRound(round) {
+      // застолбить право резолвить: countdown -> resolving получает ровно один вызов
+      const claim = await sb('shark_pvp_rounds?id=eq.' + round.id + '&status=eq.countdown', {
+        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'resolving' })
+      });
+      if (!Array.isArray(claim.data) || !claim.data[0]) return; // уже кто-то разыгрывает/разыграл
+      const r = claim.data[0];
+      const bets = await sbGet('shark_pvp_bets?round_id=eq.' + r.id + '&order=id.asc&select=*');
+      const pot = bets.reduce((a, b) => a + Number(b.stake), 0);
+      let winner = null, payout = 0;
+      if (bets.length && pot > 0) {
+        const wi = pvpWinnerIndex(r.seed, bets, pot);
+        const w = bets[wi];
+        payout = Math.floor(pot * (1 - Number(r.rake)));
+        winner = { name: w.name, av: w.av, tg_id: w.tg_id, stake: Number(w.stake), pct: Math.round((w.stake / pot) * 1000) / 10, payout };
+        if (w.tg_id) {
+          await applyLedger(w.tg_id, 'stars', payout, 'win', 'pvp:' + r.id, 'pvp_win:' + r.id, { pot });
+          await bumpStats(w.tg_id, { won: Math.max(payout - Number(w.stake), 0) });
+        }
+      }
+      // всем реальным участникам +1 к «сыграно»
+      for (const b of bets) { if (b.tg_id) await bumpStats(b.tg_id, { played: 1 }); }
+      await sb('shark_pvp_rounds?id=eq.' + r.id, {
+        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
+        body: JSON.stringify({ status: 'done', pot, winner, resolved_at: new Date().toISOString() })
+      });
+    }
+
+    // собрать состояние раунда для клиента
+    async function pvpRoundState(round) {
+      const bets = await sbGet('shark_pvp_bets?round_id=eq.' + round.id + '&order=id.asc&select=*');
+      const pot = bets.reduce((a, b) => a + Number(b.stake), 0) || Number(round.pot) || 0;
+      const players = bets.map((b) => ({
+        name: b.tg_id && Number(b.tg_id) === me.id ? 'Вы' : b.name, av: b.av || '🙂',
+        stake: Number(b.stake), me: Number(b.tg_id) === me.id,
+        pct: pot ? Math.round((b.stake / pot) * 1000) / 10 : 0
+      }));
+      const done = round.status === 'done';
+      let secondsLeft = 0;
+      if (round.status === 'countdown' && round.resolve_at) {
+        secondsLeft = Math.max(0, Math.ceil((new Date(round.resolve_at).getTime() - Date.now()) / 1000));
+      }
+      let winnerIdx = -1;
+      if (done && round.winner) {
+        winnerIdx = bets.findIndex((b) => b.name === round.winner.name && Number(b.stake) === Number(round.winner.stake));
+        players.forEach((p, i) => { p.winner = (i === winnerIdx); });
+      }
+      const iJoined = bets.some((b) => Number(b.tg_id) === me.id);
+      const iWon = done && round.winner && Number(round.winner.tg_id) === me.id;
+      return {
+        id: round.id, status: round.status, secondsLeft, pot, rake: Number(round.rake),
+        seedHash: round.seed_hash, seed: done ? round.seed : null,
+        players, winnerIdx, winner: done ? round.winner : null, iJoined, iWon,
+        myPayout: iWon ? Number(round.winner.payout) : 0
+      };
+    }
+
     async function freshUser() { const r = await sbGet('shark_users?tg_id=eq.' + me.id + '&select=*'); return r[0] || user; }
     async function bumpStats(tg, d) {
       const u = await sbGet('shark_users?tg_id=eq.' + tg + '&select=played,won_stars');

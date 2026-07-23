@@ -107,6 +107,40 @@ create table if not exists shark_gifts (
   created_at timestamptz not null default now()
 );
 
+-- ---------- PVP: общие раунды-джекпот (несколько живых игроков) --------------
+-- Один активный раунд за раз: игроки скидываются в общий банк, по таймеру
+-- сервер честно (provably-fair) выбирает победителя взвешенно по ставке.
+-- Резолв ленивый: раунд разыгрывается, когда кто-то опрашивает состояние
+-- после resolve_at (плюс cron-бэкстоп api/cron).
+create table if not exists shark_pvp_rounds (
+  id          bigint generated always as identity primary key,
+  status      text not null default 'waiting'
+              check (status in ('waiting','countdown','resolving','done')),
+  resolve_at  timestamptz,                         -- дедлайн раунда (когда стартовал отсчёт)
+  seed        text not null,                       -- provably-fair seed (раскрывается после)
+  seed_hash   text not null,                       -- хэш seed (публикуется заранее)
+  rake        numeric(4,3) not null default 0.05,  -- комиссия дома
+  pot         bigint not null default 0,           -- фиксируется на резолве
+  winner      jsonb,                               -- {name, av, tg_id, stake, pct, payout}
+  created_at  timestamptz not null default now(),
+  resolved_at timestamptz
+);
+create index if not exists shark_pvp_rounds_status_idx on shark_pvp_rounds(status, id desc);
+
+-- ставки в раунде: по одной строке на участника (tg_id = null для ботов)
+create table if not exists shark_pvp_bets (
+  id         bigint generated always as identity primary key,
+  round_id   bigint not null references shark_pvp_rounds(id),
+  tg_id      bigint,                                -- null для бота
+  name       text not null,
+  av         text,
+  stake      bigint not null,
+  created_at timestamptz not null default now()
+);
+-- один реальный игрок — одна ставка в раунде
+create unique index if not exists shark_pvp_bets_real_uni on shark_pvp_bets(round_id, tg_id) where tg_id is not null;
+create index if not exists shark_pvp_bets_round_idx on shark_pvp_bets(round_id);
+
 -- ---------- конфиг (singleton) -----------------------------------------------
 create table if not exists shark_config (
   id     integer primary key default 1,
