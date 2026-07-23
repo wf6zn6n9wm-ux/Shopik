@@ -37,8 +37,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             reveal(Row(
               children: [
                 Expanded(
-                    child:
-                        Text(t('Аналітика'), style: AppTypography.title1(k.ink))),
+                    child: Text(t('Аналітика'),
+                        style: AppTypography.title1(k.ink))),
                 Container(
                   width: 36,
                   height: 36,
@@ -126,7 +126,8 @@ class _RevenueHero extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              _Legend(dashed: false, label: today ? t('сьогодні') : t('липень')),
+              _Legend(
+                  dashed: false, label: today ? t('сьогодні') : t('липень')),
               const SizedBox(width: 14),
               _Legend(dashed: true, label: today ? t('вчора') : t('червень')),
             ],
@@ -391,9 +392,8 @@ class _Heatmap extends StatelessWidget {
     [0.4, 0.3, 0.35, 0.5, 0.75, 0.7, 0.12],
   ];
   static const hours = ['10', '12', '14', '16', '18'];
-  static List<String> get days => [
-        t('Пн'), t('Вт'), t('Ср'), t('Чт'), t('Пт'), t('Сб'), t('Нд')
-      ];
+  static List<String> get days =>
+      [t('Пн'), t('Вт'), t('Ср'), t('Чт'), t('Пт'), t('Сб'), t('Нд')];
   @override
   Widget build(BuildContext context) {
     final k = context.kavio;

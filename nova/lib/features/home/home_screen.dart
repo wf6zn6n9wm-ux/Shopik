@@ -152,7 +152,10 @@ class _NextClientHero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                ZLabel('${t('Наступний клієнт')} · ${tp('за {n} хв', {'n': minutes})}',
+                ZLabel(
+                    '${t('Наступний клієнт')} · ${tp('за {n} хв', {
+                          'n': minutes
+                        })}',
                     color: k.accent),
                 const SizedBox(height: 2),
                 Text(a.client.name,

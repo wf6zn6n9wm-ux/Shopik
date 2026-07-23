@@ -139,8 +139,8 @@ class _DayView extends ConsumerWidget {
                 child: ZStatCard(label: t('Записів'), value: '${list.length}')),
             const SizedBox(width: 8),
             Expanded(
-                child:
-                    ZStatCard(label: t('Виручка'), value: Fmt.money(completed))),
+                child: ZStatCard(
+                    label: t('Виручка'), value: Fmt.money(completed))),
             const SizedBox(width: 8),
             Expanded(
                 child: ZStatCard(
@@ -500,7 +500,15 @@ class _WeekHeadCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final k = context.kavio;
     final isToday = _dateOnly(date) == today;
-    final names = [t('Пн'), t('Вт'), t('Ср'), t('Чт'), t('Пт'), t('Сб'), t('Нд')];
+    final names = [
+      t('Пн'),
+      t('Вт'),
+      t('Ср'),
+      t('Чт'),
+      t('Пт'),
+      t('Сб'),
+      t('Нд')
+    ];
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2),
       padding: const EdgeInsets.symmetric(vertical: 7),
@@ -617,7 +625,15 @@ class _MonthView extends ConsumerWidget {
     final daysInMonth = DateTime(day.year, day.month + 1, 0).day;
     final leading = monthStart.weekday - 1;
     final today = demoNow();
-    final labels = [t('Пн'), t('Вт'), t('Ср'), t('Чт'), t('Пт'), t('Сб'), t('Нд')];
+    final labels = [
+      t('Пн'),
+      t('Вт'),
+      t('Ср'),
+      t('Чт'),
+      t('Пт'),
+      t('Сб'),
+      t('Нд')
+    ];
 
     final cells = <Widget>[];
     for (var i = 0; i < leading; i++) {
@@ -777,7 +793,8 @@ class _MonthLegend extends StatelessWidget {
     final k = context.kavio;
     return Row(
       children: [
-        Text(t('тихо'), style: AppTypography.label(k.ink3).copyWith(fontSize: 10)),
+        Text(t('тихо'),
+            style: AppTypography.label(k.ink3).copyWith(fontSize: 10)),
         const SizedBox(width: 8),
         for (final o in [0.16, 0.36, 0.58, 0.8, 1.0])
           Container(
