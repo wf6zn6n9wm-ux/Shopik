@@ -20,7 +20,16 @@ class KavioApp extends ConsumerWidget {
       theme: buildKavioTheme(Brightness.dark),
       darkTheme: buildKavioTheme(Brightness.dark),
       themeMode: ThemeMode.dark, // Запис+ — тёмная тема как основа дизайна
-      locale: locale, // null → системная
+      // Українська — жорсткий дефолт: ігноруємо мову системи/браузера, поки
+      // користувач сам не змінить у Налаштуваннях.
+      locale: locale ?? const Locale('uk'),
+      localeResolutionCallback: (deviceLocale, supported) {
+        final chosen = locale ?? const Locale('uk');
+        for (final l in supported) {
+          if (l.languageCode == chosen.languageCode) return l;
+        }
+        return const Locale('uk');
+      },
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: appRouter,
