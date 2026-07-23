@@ -44,7 +44,8 @@ class MagicRebookScreen extends StatelessWidget {
                       style: AppTypography.title1(k.ink))),
                   const SizedBox(height: 6),
                   reveal(Text('Олена · Гель-лак · ₴500',
-                      style: AppTypography.label(k.ink3).copyWith(fontSize: 13))),
+                      style:
+                          AppTypography.label(k.ink3).copyWith(fontSize: 13))),
                   const SizedBox(height: 16),
                   reveal(_PaidCard()),
                   const SizedBox(height: 14),
@@ -155,8 +156,8 @@ class _RebookHero extends StatelessWidget {
               const SizedBox(width: 9),
               ZButtonSecondary(
                   label: 'Інший',
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 13)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 13)),
             ],
           ),
         ],

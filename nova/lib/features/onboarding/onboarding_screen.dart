@@ -47,13 +47,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         orb: const Color(0x478B8BF0),
         preview: _DashboardPreview(),
         title: 'Весь день —\nна одному екрані',
-        subtitle: 'Записи, виручка та наступний клієнт — щойно відкрив застосунок.',
+        subtitle:
+            'Записи, виручка та наступний клієнт — щойно відкрив застосунок.',
       ),
       _Page(
         orb: const Color(0x3846D08A),
         preview: _SmartPreview(),
         title: 'Вільний час\nсам себе заповнює',
-        subtitle: 'Запис+ помічає вікна й підказує, кого з клієнтів запросити саме зараз.',
+        subtitle:
+            'Запис+ помічає вікна й підказує, кого з клієнтів запросити саме зараз.',
       ),
       _Page(
         orb: const Color(0x478B8BF0),
@@ -75,7 +77,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: GestureDetector(
                   onTap: _finish,
                   child: Text('Пропустити',
-                      style: AppTypography.label(k.ink3).copyWith(fontSize: 14)),
+                      style:
+                          AppTypography.label(k.ink3).copyWith(fontSize: 14)),
                 ),
               ),
             ),
@@ -108,7 +111,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             boxShadow: i == _page
                                 ? const [
                                     BoxShadow(
-                                        color: Color(0xBF8B8BF0), blurRadius: 10)
+                                        color: Color(0xBF8B8BF0),
+                                        blurRadius: 10)
                                   ]
                                 : null,
                           ),
@@ -162,7 +166,8 @@ class _Page extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(subtitle,
                 textAlign: TextAlign.center,
-                style: AppTypography.body(k.ink2).copyWith(fontSize: 15, height: 1.5)),
+                style: AppTypography.body(k.ink2)
+                    .copyWith(fontSize: 15, height: 1.5)),
           ),
           const SizedBox(height: 30),
         ],
@@ -213,11 +218,11 @@ class _DashboardPreview extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Олена · Гель-лак',
-                          style: AppTypography.label(k.ink)
-                              .copyWith(fontSize: 12, fontWeight: FontWeight.w700)),
+                          style: AppTypography.label(k.ink).copyWith(
+                              fontSize: 12, fontWeight: FontWeight.w700)),
                       Text('за 25 хв',
-                          style:
-                              AppTypography.label(k.ink3).copyWith(fontSize: 10)),
+                          style: AppTypography.label(k.ink3)
+                              .copyWith(fontSize: 10)),
                     ],
                   ),
                   const Spacer(),

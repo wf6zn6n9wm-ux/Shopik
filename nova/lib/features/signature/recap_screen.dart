@@ -153,7 +153,8 @@ class RecapScreen extends ConsumerWidget {
                   style: AppTypography.tabular(AppTypography.title1(k.ink))
                       .copyWith(fontSize: 24)),
               const SizedBox(height: 2),
-              Text(l, style: AppTypography.label(k.ink3).copyWith(fontSize: 11)),
+              Text(l,
+                  style: AppTypography.label(k.ink3).copyWith(fontSize: 11)),
             ],
           ),
         ),

@@ -15,8 +15,8 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1400));
 
   @override
   void initState() {
@@ -50,7 +50,8 @@ class _SplashScreenState extends State<SplashScreen>
             animation: _c,
             builder: (context, _) {
               final t = _c.value;
-              final wordT = Curves.easeOut.transform((t - 0.45).clamp(0, 1) / 0.55);
+              final wordT =
+                  Curves.easeOut.transform((t - 0.45).clamp(0, 1) / 0.55);
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -66,10 +67,12 @@ class _SplashScreenState extends State<SplashScreen>
                       offset: Offset(0, (1 - wordT) * 10),
                       child: Text.rich(
                         TextSpan(
-                          style: AppTypography.title1(k.ink).copyWith(fontSize: 34),
+                          style: AppTypography.title1(k.ink)
+                              .copyWith(fontSize: 34),
                           children: [
                             const TextSpan(text: 'Запис'),
-                            TextSpan(text: '+', style: TextStyle(color: k.accent)),
+                            TextSpan(
+                                text: '+', style: TextStyle(color: k.accent)),
                           ],
                         ),
                       ),
@@ -79,7 +82,8 @@ class _SplashScreenState extends State<SplashScreen>
                   Opacity(
                     opacity: wordT,
                     child: Text('записуй. керуй. зростай.',
-                        style: AppTypography.label(k.ink3).copyWith(fontSize: 13)),
+                        style:
+                            AppTypography.label(k.ink3).copyWith(fontSize: 13)),
                   ),
                 ],
               );
