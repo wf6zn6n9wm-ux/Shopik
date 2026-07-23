@@ -658,6 +658,47 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // -------- ADMIN: статистика подписок PARA+ (кто купил, суммы, статусы) --------
+    if (action === 'admin_subs') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const d10 = (s) => String(s || '').slice(0, 10);
+      const nowMs = Date.now();
+      let subs = [];
+      try { subs = await sb('subscriptions?order=created_at.desc&limit=1000&select=telegram_user_id,partner_user_id,plan,type,start_date,end_date,status,created_at'); } catch (e) { subs = []; }
+      subs = Array.isArray(subs) ? subs : [];
+      // имена покупателей и партнёров из para_members
+      let members = [];
+      try { members = await sb('para_members?select=tg_id,name'); } catch (e) {}
+      const nameByTg = {}; (members || []).forEach((m) => { nameByTg[m.tg_id] = m.name; });
+      const list = subs.map((row) => {
+        const plan = PLANS[row.plan] || {};
+        const active = (row.status === 'active') && row.end_date && (Date.parse(row.end_date) > nowMs);
+        return {
+          user: row.telegram_user_id,
+          buyer: nameByTg[row.telegram_user_id] || null,
+          partner: row.partner_user_id || null,
+          partnerName: row.partner_user_id ? (nameByTg[row.partner_user_id] || null) : null,
+          plan: row.plan, type: row.type || plan.type || '', months: plan.months || null,
+          stars: plan.stars || 0,
+          start: d10(row.start_date), end: d10(row.end_date),
+          created: d10(row.created_at),
+          status: active ? 'active' : 'expired'
+        };
+      });
+      const activeList = list.filter((x) => x.status === 'active');
+      const stats = {
+        total: list.length,
+        active: activeList.length,
+        expired: list.length - activeList.length,
+        solo: list.filter((x) => x.type === 'solo').length,
+        duo: list.filter((x) => x.type === 'duo').length,
+        stars: list.reduce((a, x) => a + (x.stars || 0), 0),               // валовая выручка в звёздах
+        activeStars: activeList.reduce((a, x) => a + (x.stars || 0), 0)
+      };
+      res.status(200).json({ ok: true, subs: list, stats: stats, count: list.length });
+      return;
+    }
+
     // -------- TRACK (клиентские события для аналитики) --------
     if (action === 'track') {
       const type = String(body.type || '');

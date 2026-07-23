@@ -161,8 +161,10 @@
   .dt-addbtn{flex:0 0 auto;font-size:13px;font-weight:700;color:#fff;background:var(--grad);
     border-radius:12px;padding:9px 15px;box-shadow:0 6px 16px rgba(192,38,211,.28);}
   /* редактор конфига во встроенной админке */
-  .admtab{flex:1;border:1px solid var(--line);background:var(--card2);color:var(--muted);
-    border-radius:12px;padding:11px;font-size:13px;font-weight:700;transition:all .18s;}
+  .admtabs{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+  .admtabs::-webkit-scrollbar{display:none;}
+  .admtab{flex:1;white-space:nowrap;border:1px solid var(--line);background:var(--card2);color:var(--muted);
+    border-radius:12px;padding:11px 10px;font-size:13px;font-weight:700;transition:all .18s;}
   .admtab.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(255,94,138,.3);}
   .cfgcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px;}
   .cfggrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
@@ -625,7 +627,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v43 · PARA+ соц.доверие (число пар из БД)';
+var APP_VERSION = 'v44 · Админ: вкладка PARA+ (подписки)';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -2176,11 +2178,12 @@ function adminView(){
   if(S.admUsers) return adminUsersView();
   if(S.admPairs) return adminPairsView();
   var tab=S.adminTab||'dash';
-  var nav='<div class="row gap2 mb4">'+
+  var nav='<div class="admtabs mb4">'+
     '<button class="admtab'+(tab==='dash'?' on':'')+'" data-act="adm-tab" data-t="dash">📊 Дашборд</button>'+
+    '<button class="admtab'+(tab==='subs'?' on':'')+'" data-act="adm-tab" data-t="subs">💎 PARA+</button>'+
     '<button class="admtab'+(tab==='wishes'?' on':'')+'" data-act="adm-tab" data-t="wishes">💫 Желания</button>'+
     '<button class="admtab'+(tab==='config'?' on':'')+'" data-act="adm-tab" data-t="config">⚙️ Уровни</button></div>';
-  var content=tab==='config'?adminConfigView():(tab==='wishes'?adminWishesView():adminDashView());
+  var content=tab==='config'?adminConfigView():(tab==='subs'?adminSubsView():(tab==='wishes'?adminWishesView():adminDashView()));
   return '<div class="app"><div class="wrap">'+
     '<div class="row between mb4"><div class="b" style="font-size:20px">⚙️ Админка</div>'+
     '<button class="btn btn-ghost btn-sm" data-act="close-admin">← Назад</button></div>'+
@@ -2315,6 +2318,46 @@ function adminWishesView(){
     filters+
     '<div class="adm-card" id="adm-wish-list" style="padding:6px 14px">'+rows+'</div>';
   return statCard+listCard;
+}
+
+// ---------- Админ-вкладка «PARA+» (кто купил подписку, суммы, статусы) ----------
+function admSubRow(x){
+  var badge=x.status==='active'?{t:'✅ активна',c:''}:{t:'⌛ истекла',c:' wait'};
+  var who=x.buyer?esc(x.buyer):('ID '+esc(String(x.user||'—')));
+  var typeLabel=x.type==='duo'?'💞 DUO':'❤️ SOLO';
+  var months=x.months?(' · '+x.months+' мес'):'';
+  var partner=(x.type==='duo'&&(x.partnerName||x.partner))?(' → '+(x.partnerName?esc(x.partnerName):('ID '+esc(String(x.partner))))):'';
+  var search=((x.buyer||'')+' '+(x.user||'')+' '+(x.plan||'')).toLowerCase();
+  return '<div class="urow" data-name="'+esc(search)+'">'+
+    '<div class="uav uav-l" style="font-size:15px;background:rgba(255,255,255,.06)">'+(x.type==='duo'?'💞':'❤️')+'</div>'+
+    '<div class="flex1" style="min-width:0"><div class="urow-nm">'+who+'<span class="uchip">'+typeLabel+'</span></div>'+
+    '<div class="urow-sub">'+x.stars+' ⭐'+months+partner+'</div>'+
+    '<div class="urow-sub muted2">'+esc(x.start||'')+' → '+esc(x.end||'')+'</div></div>'+
+    '<span class="uchip'+badge.c+'">'+badge.t+'</span></div>';
+}
+function adminSubsView(){
+  var d=S.admSubsData;
+  if(!d){ return '<div class="center-t muted small" style="padding:34px">Загрузка подписок…</div>'; }
+  var st=d.stats||{total:0,active:0,expired:0,solo:0,duo:0,stars:0,activeStars:0};
+  var k=function(ic,l,v){ return '<div class="adm-kpi" style="padding:14px 10px"><div class="ic">'+ic+'</div><div class="lbl">'+l+'</div><div class="val" style="font-size:26px">'+(v||0)+'</div></div>'; };
+  var hero='<div class="adm-hero" style="grid-template-columns:repeat(3,1fr)">'+
+    k('💎','Всего',st.total)+k('✅','Активные',st.active)+k('⌛','Истекли',st.expired)+'</div>';
+  var rev='<div class="adm-card mt3"><div class="row between" style="align-items:center;margin-bottom:12px">'+
+    '<div class="t" style="font-size:15px;font-weight:800">Выручка · Telegram Stars</div>'+
+    '<div class="b" style="color:#ffcf5c">'+fmtNum(st.stars)+' ⭐</div></div>'+
+    admSrcRow('❤️ SOLO', st.solo, st.total, '#ff5e8a')+
+    admSrcRow('💞 DUO', st.duo, st.total, '#c026d3')+
+    '<div class="xs muted2 mt2">Активные подписки — на '+fmtNum(st.activeStars)+' ⭐. Оплата в Telegram Stars.</div></div>';
+  var fil=window.__admSubFilter||'all';
+  var chip=function(kk,l){ return '<button class="uchip-f'+(fil===kk?' on':'')+'" data-act="adm-sub-filter" data-f="'+kk+'">'+l+'</button>'; };
+  var filters='<div class="row gap2" style="margin:0 0 10px">'+chip('all','Все')+chip('active','Активные')+chip('expired','Истёкшие')+'</div>';
+  var arr=(d.subs||[]).filter(function(x){ return fil==='all'||(fil==='active'&&x.status==='active')||(fil==='expired'&&x.status!=='active'); });
+  var rows=arr.map(admSubRow).join('')||'<div class="muted small center-t" style="padding:20px">Пока никто не оформил PARA+</div>';
+  var listCard='<div class="adm-sec-h" style="margin-top:14px"><div class="t">Покупки</div><div class="d">'+(d.count||0)+'</div></div>'+
+    '<input id="adm-ssearch" class="input" placeholder="🔍 Поиск по имени, ID или тарифу" oninput="__admSubSearch(this.value)" autocomplete="off" style="margin-bottom:10px">'+
+    filters+
+    '<div class="adm-card" id="adm-sub-list" style="padding:6px 14px">'+rows+'</div>';
+  return hero+rev+listCard;
 }
 
 // ---------- Уровни, достижения, повышение ----------
@@ -2562,8 +2605,10 @@ var ACTS={
   'adm-tab':function(el){ var t=el.dataset.t; S.adminTab=t; haptic('light');
     if(t==='config'&&!S.adminConfig){ api('config_get').then(function(r){ S.adminConfig=(r&&r.ok&&r.config)?r.config:(S.config||{levels:[],achievements:[],themes:[],frames:[],categories:[],quests:[]}); render(); }); }
     if(t==='wishes'&&!S.admWishesData){ window.__admWishFilter='all'; api('admin_wishes').then(function(r){ S.admWishesData=(r&&r.ok)?r:{wishes:[],stats:{total:0,active:0,done:0},count:0}; render(); }).catch(function(){ S.admWishesData={wishes:[],stats:{total:0,active:0,done:0},count:0}; render(); }); }
+    if(t==='subs'&&!S.admSubsData){ window.__admSubFilter='all'; api('admin_subs').then(function(r){ S.admSubsData=(r&&r.ok)?r:{subs:[],stats:{total:0,active:0,expired:0,solo:0,duo:0,stars:0,activeStars:0},count:0}; render(); }).catch(function(){ S.admSubsData={subs:[],stats:{total:0,active:0,expired:0,solo:0,duo:0,stars:0,activeStars:0},count:0}; render(); }); }
     render(); },
   'adm-wish-filter':function(el){ window.__admWishFilter=el.dataset.f||'all'; render(); },
+  'adm-sub-filter':function(el){ window.__admSubFilter=el.dataset.f||'all'; render(); },
   'cfg-add':function(el){ var k=el.dataset.sec; cfgCollect(); var sec=cfgSections().filter(function(s){return s.key===k;})[0]; if(!S.adminConfig[k])S.adminConfig[k]=[]; S.adminConfig[k].push(sec.tpl()); haptic('light'); render(); },
   'cfg-del':function(el){ var k=el.dataset.sec, i=+el.dataset.idx; cfgCollect(); if(S.adminConfig[k])S.adminConfig[k].splice(i,1); haptic('light'); render(); },
   'cfg-save':function(){ cfgCollect(); S.cfgMsg='Сохранение…'; render(); api('config_save',{config:S.adminConfig}).then(function(r){ if(r&&r.ok){ if(r.config){S.adminConfig=r.config;S.config=r.config;} S.cfgMsg='✓ Сохранено'; haptic('success'); } else { S.cfgMsg='Ошибка: '+((r&&r.reason)||'?'); haptic('warning'); } render(); setTimeout(function(){ S.cfgMsg=''; render(); },3000); }).catch(function(){ S.cfgMsg='Ошибка сети'; render(); }); },
@@ -2810,6 +2855,8 @@ window.__admFilter=function(q){ q=(q||'').trim().toLowerCase(); var list=documen
 window.__admPairSearch=function(q){ q=(q||'').trim().toLowerCase(); var list=document.getElementById('adm-pair-list'); if(!list)return;
   var rows=list.querySelectorAll('.urow'); for(var i=0;i<rows.length;i++){ var nm=rows[i].getAttribute('data-name')||''; rows[i].style.display=(!q||nm.indexOf(q)>=0)?'':'none'; } };
 window.__admWishSearch=function(q){ q=(q||'').trim().toLowerCase(); var list=document.getElementById('adm-wish-list'); if(!list)return;
+  var rows=list.querySelectorAll('.urow'); for(var i=0;i<rows.length;i++){ var nm=rows[i].getAttribute('data-name')||''; rows[i].style.display=(!q||nm.indexOf(q)>=0)?'':'none'; } };
+window.__admSubSearch=function(q){ q=(q||'').trim().toLowerCase(); var list=document.getElementById('adm-sub-list'); if(!list)return;
   var rows=list.querySelectorAll('.urow'); for(var i=0;i<rows.length;i++){ var nm=rows[i].getAttribute('data-name')||''; rows[i].style.display=(!q||nm.indexOf(q)>=0)?'':'none'; } };
 try{ applyTheme(S.theme); }catch(e){} // применить выбранную тему при запуске
 
