@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
+import '../../core/localization/app_text.dart';
 import '../../design/theme.dart';
 import '../../ui/client_row.dart';
 import '../../ui/kavio_button.dart';
@@ -16,7 +17,7 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final kavio = context.kavio;
     return KavioPageScaffold(
-      title: 'Профіль',
+      title: t('Профіль'),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
             Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
@@ -30,7 +31,7 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   Text('Софія', style: AppTypography.title2(kavio.ink)),
                   const SizedBox(height: 2),
-                  Text('Манікюрна студія · Майстриня',
+                  Text(t('Манікюрна студія · Майстриня'),
                       style: AppTypography.label(kavio.ink2)),
                 ],
               ),
@@ -38,7 +39,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: Spacing.s8),
           KavioButton(
-            'Вийти',
+            t('Вийти'),
             kind: KavioButtonKind.secondary,
             expand: true,
             onPressed: () => context.go(Routes.auth),

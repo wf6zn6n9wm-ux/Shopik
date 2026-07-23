@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/app_text.dart';
 import '../../core/services/analytics/analytics_events.dart';
 import '../../core/services/analytics/analytics_service.dart';
 import '../../core/services/notifications/notification_scheduler.dart';
@@ -40,12 +41,12 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
     final ready = _client != null && _service != null && _slot != null;
 
     return KavioSheet(
-      title: 'Новий запис',
+      title: t('Новий запис'),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ZLabel('Клієнт'),
+          ZLabel(t('Клієнт')),
           const SizedBox(height: 8),
           SizedBox(
             height: 40,
@@ -74,7 +75,7 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
             ),
           ),
           const SizedBox(height: 18),
-          const ZLabel('Послуга'),
+          ZLabel(t('Послуга')),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -108,7 +109,7 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
             ],
           ),
           const SizedBox(height: 18),
-          const ZLabel('Коли'),
+          ZLabel(t('Коли')),
           const SizedBox(height: 8),
           SizedBox(
             height: 62,
@@ -159,8 +160,8 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
           const SizedBox(height: 20),
           ZButton(
             label: ready
-                ? 'Записати на ${Fmt.time(_slot!)}'
-                : 'Оберіть клієнта, послугу і час',
+                ? tp('Записати на {time}', {'time': Fmt.time(_slot!)})
+                : t('Оберіть клієнта, послугу і час'),
             onTap: ready ? () => _create(context) : null,
           ),
           const SizedBox(height: 4),
@@ -188,7 +189,7 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
       }
     }
     if (slots.isEmpty) {
-      return Text('На цей день вільних вікон немає',
+      return Text(t('На цей день вільних вікон немає'),
           style: AppTypography.label(k.ink3).copyWith(fontSize: 13));
     }
     return Wrap(
@@ -243,7 +244,8 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
     navigator.pop();
     messenger.showSnackBar(
       SnackBar(
-          content: Text('Записано ${_client!.name} · ${Fmt.time(_slot!)}')),
+          content: Text(tp('Записано {name} · {time}',
+              {'name': _client!.name, 'time': Fmt.time(_slot!)}))),
     );
   }
 
@@ -257,8 +259,9 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
         await scheduler.schedule(ScheduledReminder(
           id: ReminderPolicy.reminderId(a.id, off),
           at: at,
-          title: 'Нагадування про візит',
-          body: '${a.client.name} · ${a.service.name} о ${Fmt.time(a.start)}',
+          title: t('Нагадування про візит'),
+          body:
+              '${a.client.name} · ${a.service.name} ${t('о')} ${Fmt.time(a.start)}',
         ));
       }
     }

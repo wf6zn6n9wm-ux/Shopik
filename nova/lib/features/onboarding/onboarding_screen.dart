@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart' show markBooted;
 import '../../app/routes.dart';
+import '../../core/localization/app_text.dart';
 import '../../design/theme.dart';
 import '../../ui/z.dart';
 
@@ -46,22 +47,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _Page(
         orb: const Color(0x478B8BF0),
         preview: _DashboardPreview(),
-        title: 'Весь день —\nна одному екрані',
+        title: t('Весь день —\nна одному екрані'),
         subtitle:
-            'Записи, виручка та наступний клієнт — щойно відкрив застосунок.',
+            t('Записи, виручка та наступний клієнт — щойно відкрив застосунок.'),
       ),
       _Page(
         orb: const Color(0x3846D08A),
         preview: _SmartPreview(),
-        title: 'Вільний час\nсам себе заповнює',
-        subtitle:
-            'Запис+ помічає вікна й підказує, кого з клієнтів запросити саме зараз.',
+        title: t('Вільний час\nсам себе заповнює'),
+        subtitle: t(
+            'Запис+ помічає вікна й підказує, кого з клієнтів запросити саме зараз.'),
       ),
       _Page(
         orb: const Color(0x478B8BF0),
         preview: _WinbackPreview(),
-        title: 'Клієнти\nповертаються',
-        subtitle: 'Один тап — і застосунок нагадає тим, хто давно не заходив.',
+        title: t('Клієнти\nповертаються'),
+        subtitle:
+            t('Один тап — і застосунок нагадає тим, хто давно не заходив.'),
       ),
     ];
 
@@ -76,7 +78,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 padding: const EdgeInsets.fromLTRB(0, 8, 16, 0),
                 child: GestureDetector(
                   onTap: _finish,
-                  child: Text('Пропустити',
+                  child: Text(t('Пропустити'),
                       style:
                           AppTypography.label(k.ink3).copyWith(fontSize: 14)),
                 ),
@@ -121,7 +123,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   const SizedBox(height: 18),
                   ZButton(
-                      label: _page == 2 ? 'Почати →' : 'Далі', onTap: _next),
+                      label: _page == 2 ? t('Почати →') : t('Далі'),
+                      onTap: _next),
                 ],
               ),
             ),
@@ -192,7 +195,7 @@ class _DashboardPreview extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text('Сьогодні',
+                Text(t('Сьогодні'),
                     style: AppTypography.title3(k.ink).copyWith(fontSize: 15)),
                 const Spacer(),
                 const ZAvatar(initials: 'С', size: 26),
@@ -201,9 +204,9 @@ class _DashboardPreview extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _mini(k, 'Записів', '6')),
+                Expanded(child: _mini(k, t('Записів'), '6')),
                 const SizedBox(width: 8),
-                Expanded(child: _mini(k, 'Виручка', '₴2 400')),
+                Expanded(child: _mini(k, t('Виручка'), '₴2 400')),
               ],
             ),
             const SizedBox(height: 8),
@@ -217,10 +220,10 @@ class _DashboardPreview extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Олена · Гель-лак',
+                      Text('Олена · ${t('Гель-лак')}',
                           style: AppTypography.label(k.ink).copyWith(
                               fontSize: 12, fontWeight: FontWeight.w700)),
-                      Text('за 25 хв',
+                      Text(tp('за {n} хв', {'n': 25}),
                           style: AppTypography.label(k.ink3)
                               .copyWith(fontSize: 10)),
                     ],
@@ -268,7 +271,7 @@ class _SmartPreview extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            ZLabel('Розумне вікно · 15:30', color: k.accent),
+            ZLabel('${t('Розумне вікно')} · 15:30', color: k.accent),
             const SizedBox(height: 10),
             Container(
               decoration: BoxDecoration(
@@ -292,10 +295,10 @@ class _SmartPreview extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Вільно 45 хв',
+                        Text(t('Вільно 45 хв'),
                             style: AppTypography.label(k.ink).copyWith(
                                 fontSize: 12, fontWeight: FontWeight.w700)),
-                        Text('Марія давно не була',
+                        Text(t('Марія давно не була'),
                             style: AppTypography.label(k.ink3)
                                 .copyWith(fontSize: 10)),
                       ],
@@ -305,9 +308,9 @@ class _SmartPreview extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            const ZButton(
-                label: 'Надіслати запрошення',
-                padding: EdgeInsets.symmetric(vertical: 10)),
+            ZButton(
+                label: t('Надіслати запрошення'),
+                padding: const EdgeInsets.symmetric(vertical: 10)),
           ],
         ),
       ),
@@ -353,10 +356,10 @@ class _WinbackPreview extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          ZLabel('Повернення клієнтів'),
+          ZLabel(t('Повернення клієнтів')),
           const SizedBox(height: 10),
-          row('АБ', 'Андрій Б.', 'останній візит 62 дні тому'),
-          row('МТ', 'Марія Т.', 'останній візит 48 днів тому'),
+          row('АБ', 'Андрій Б.', tp('останній візит {n} дні тому', {'n': 62})),
+          row('МТ', 'Марія Т.', tp('останній візит {n} днів тому', {'n': 48})),
         ],
       ),
     );

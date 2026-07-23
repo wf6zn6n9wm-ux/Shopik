@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/app_text.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../ui/format.dart';
@@ -56,10 +57,10 @@ class RecapScreen extends ConsumerWidget {
                         children: [
                           const Text('🌙', style: TextStyle(fontSize: 34)),
                           const SizedBox(height: 8),
-                          Text('Гарний день, Софіє!',
+                          Text(t('Гарний день, Софіє!'),
                               style: AppTypography.title1(k.ink)),
                           const SizedBox(height: 6),
-                          Text('Ось як він пройшов',
+                          Text(t('Ось як він пройшов'),
                               style: AppTypography.label(k.ink2)
                                   .copyWith(fontSize: 13)),
                         ],
@@ -69,7 +70,7 @@ class RecapScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(20),
                         child: Column(
                           children: [
-                            ZLabel('Зароблено сьогодні', color: k.ink2),
+                            ZLabel(t('Зароблено сьогодні'), color: k.ink2),
                             const SizedBox(height: 2),
                             Text(Fmt.money(d.revenue),
                                 style: AppTypography.tabular(
@@ -82,7 +83,7 @@ class RecapScreen extends ConsumerWidget {
                                 ZPill('▲ 12%',
                                     color: k.success, bg: k.successTint),
                                 const SizedBox(width: 8),
-                                Text('кращий вівторок місяця',
+                                Text(t('кращий вівторок місяця'),
                                     style: AppTypography.label(k.ink3)
                                         .copyWith(fontSize: 12)),
                               ],
@@ -93,11 +94,11 @@ class RecapScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
                       reveal(Row(
                         children: [
-                          _tile(k, '${d.visits}', 'клієнтів'),
+                          _tile(k, '${d.visits}', t('клієнтів')),
                           const SizedBox(width: 10),
-                          _tile(k, '4.9★', 'сер. оцінка'),
+                          _tile(k, '4.9★', t('сер. оцінка')),
                           const SizedBox(width: 10),
-                          _tile(k, '2', 'нові'),
+                          _tile(k, '2', t('нові')),
                         ],
                       )),
                       const SizedBox(height: 12),
@@ -113,14 +114,14 @@ class RecapScreen extends ConsumerWidget {
                                 style: AppTypography.body(k.ink)
                                     .copyWith(fontSize: 13, height: 1.4),
                                 children: [
-                                  const TextSpan(
-                                      text: 'Завтра: ',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w800)),
-                                  const TextSpan(
-                                      text: '5 записів, перший о 09:00. '),
                                   TextSpan(
-                                      text: '1 вікно вільне.',
+                                      text: '${t('Завтра')}: ',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w800)),
+                                  TextSpan(
+                                      text: t('5 записів, перший о 09:00. ')),
+                                  TextSpan(
+                                      text: t('1 вікно вільне.'),
                                       style: TextStyle(color: k.accent)),
                                 ],
                               )),
@@ -130,7 +131,7 @@ class RecapScreen extends ConsumerWidget {
                       )),
                       const SizedBox(height: 18),
                       reveal(ZButtonSecondary(
-                          label: 'Поділитися підсумком',
+                          label: t('Поділитися підсумком'),
                           expand: true,
                           padding: const EdgeInsets.symmetric(vertical: 14))),
                     ],

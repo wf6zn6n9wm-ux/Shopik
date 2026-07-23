@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/app_text.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../ui/z.dart';
@@ -41,7 +42,8 @@ class SmartGapsScreen extends ConsumerWidget {
                             Icon(Icons.auto_awesome, size: 17, color: k.accent),
                       ),
                       const SizedBox(width: 10),
-                      Text('Розумні вікна', style: AppTypography.title1(k.ink)),
+                      Text(t('Розумні вікна'),
+                          style: AppTypography.title1(k.ink)),
                     ],
                   )),
                   const SizedBox(height: 10),
@@ -49,18 +51,19 @@ class SmartGapsScreen extends ConsumerWidget {
                     style: AppTypography.body(k.ink3).copyWith(fontSize: 13),
                     children: [
                       TextSpan(
-                          text: 'Сьогодні ${windows.length} вільні вікна на '),
+                          text: tp('Сьогодні {n} вільні вікна на ',
+                              {'n': windows.length})),
                       TextSpan(
-                          text: '$freeMin хв',
+                          text: tp('{n} хв', {'n': freeMin}),
                           style: TextStyle(
                               color: k.ink2, fontWeight: FontWeight.w700)),
-                      const TextSpan(text: '. Ось хто найімовірніше прийде.'),
+                      TextSpan(text: t('. Ось хто найімовірніше прийде.')),
                     ],
                   ))),
                   const SizedBox(height: 16),
                   reveal(_TopCandidateHero()),
                   const SizedBox(height: 16),
-                  reveal(const ZLabel('Ще кандидати')),
+                  reveal(ZLabel(t('Ще кандидати'))),
                   const SizedBox(height: 8),
                   reveal(_Candidates()),
                 ],
@@ -104,7 +107,7 @@ class _TopCandidateHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ZLabel('Вікно · 15:30–16:15', color: k.accent),
+          ZLabel('${t('Вікно')} · 15:30–16:15', color: k.accent),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -117,7 +120,7 @@ class _TopCandidateHero extends StatelessWidget {
                     Text('Марія Ткаченко',
                         style: AppTypography.title3(k.ink).copyWith(
                             fontSize: 15, fontWeight: FontWeight.w800)),
-                    Text('Манікюр кожні 3 тижні · не була 24 дні',
+                    Text(t('Манікюр кожні 3 тижні · не була 24 дні'),
                         style:
                             AppTypography.label(k.ink2).copyWith(fontSize: 12)),
                   ],
@@ -130,7 +133,7 @@ class _TopCandidateHero extends StatelessWidget {
                           AppTypography.tabular(AppTypography.title3(k.success))
                               .copyWith(
                                   fontSize: 16, fontWeight: FontWeight.w800)),
-                  Text('прийде',
+                  Text(t('прийде'),
                       style: AppTypography.label(k.ink3).copyWith(fontSize: 9)),
                 ],
               ),
@@ -141,7 +144,7 @@ class _TopCandidateHero extends StatelessWidget {
             radius: 14,
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
             child: Text(
-              '«Маріє, вітаю! 🌸 Є віконце сьогодні о 15:30 на манікюр. Записати?»',
+              t('«Маріє, вітаю! 🌸 Є віконце сьогодні о 15:30 на манікюр. Записати?»'),
               style: AppTypography.body(k.ink2)
                   .copyWith(fontSize: 12.5, height: 1.45),
             ),
@@ -149,10 +152,10 @@ class _TopCandidateHero extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                   child: ZButton(
-                      label: 'Надіслати',
-                      padding: EdgeInsets.symmetric(vertical: 12))),
+                      label: t('Надіслати'),
+                      padding: const EdgeInsets.symmetric(vertical: 12))),
               const SizedBox(width: 9),
               Container(
                 width: 50,
@@ -172,9 +175,9 @@ class _Candidates extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final k = context.kavio;
-    const rows = [
-      ('АБ', 'Андрій Б.', 'Стрижка · 31 день', '88%'),
-      ('ОК', 'Олена К.', 'Гель-лак · 19 днів', '74%'),
+    final rows = [
+      ('АБ', 'Андрій Б.', t('Стрижка · 31 день'), '88%'),
+      ('ОК', 'Олена К.', t('Гель-лак · 19 днів'), '74%'),
     ];
     return ZCard(
       padding: const EdgeInsets.all(4),

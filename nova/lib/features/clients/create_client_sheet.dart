@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/app_text.dart';
 import '../../core/services/analytics/analytics_events.dart';
 import '../../core/services/analytics/analytics_service.dart';
 import '../../data/providers.dart';
@@ -54,20 +55,20 @@ class _CreateClientSheetState extends ConsumerState<_CreateClientSheet> {
 
     navigator.pop();
     messenger.showSnackBar(
-      SnackBar(content: Text('Клієнта ${client.name} додано')),
+      SnackBar(content: Text(tp('Клієнта {name} додано', {'name': client.name}))),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return KavioSheet(
-      title: 'Новий клієнт',
+      title: t('Новий клієнт'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           KavioTextField(
-            label: "Ім'я",
-            hint: 'Як звати клієнта',
+            label: t("Ім'я"),
+            hint: t('Як звати клієнта'),
             controller: _name,
             autofocus: true,
             textInputAction: TextInputAction.next,
@@ -75,14 +76,14 @@ class _CreateClientSheetState extends ConsumerState<_CreateClientSheet> {
           ),
           const SizedBox(height: Spacing.s4),
           KavioTextField(
-            label: 'Телефон',
+            label: t('Телефон'),
             hint: '+1 555 123 4567',
             controller: _phone,
             keyboardType: TextInputType.phone,
           ),
           const SizedBox(height: Spacing.s6),
           KavioButton(
-            'Зберегти',
+            t('Зберегти'),
             expand: true,
             onPressed: _valid && !_saving ? _save : null,
           ),

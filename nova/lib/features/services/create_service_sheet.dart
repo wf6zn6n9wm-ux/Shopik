@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/app_text.dart';
 import '../../core/services/analytics/analytics_events.dart';
 import '../../core/services/analytics/analytics_service.dart';
 import '../../data/providers.dart';
@@ -59,20 +60,20 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
 
     navigator.pop();
     messenger.showSnackBar(
-      SnackBar(content: Text('Послугу «${service.name}» додано')),
+      SnackBar(content: Text(tp('Послугу «{name}» додано', {'name': service.name}))),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return KavioSheet(
-      title: 'Нова послуга',
+      title: t('Нова послуга'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           KavioTextField(
-            label: 'Назва',
-            hint: 'Напр. Гель-лак',
+            label: t('Назва'),
+            hint: t('Напр. Гель-лак'),
             controller: _name,
             autofocus: true,
             onChanged: (_) => setState(() {}),
@@ -82,7 +83,7 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
             children: [
               Expanded(
                 child: KavioTextField(
-                  label: 'Тривалість, хв',
+                  label: t('Тривалість, хв'),
                   hint: '60',
                   controller: _duration,
                   keyboardType: TextInputType.number,
@@ -92,7 +93,7 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
               const SizedBox(width: Spacing.s3),
               Expanded(
                 child: KavioTextField(
-                  label: 'Ціна',
+                  label: t('Ціна'),
                   hint: '0',
                   controller: _price,
                   keyboardType: TextInputType.number,
@@ -103,7 +104,7 @@ class _CreateServiceSheetState extends ConsumerState<_CreateServiceSheet> {
           ),
           const SizedBox(height: Spacing.s6),
           KavioButton(
-            'Зберегти',
+            t('Зберегти'),
             expand: true,
             onPressed: _valid && !_saving ? _save : null,
           ),

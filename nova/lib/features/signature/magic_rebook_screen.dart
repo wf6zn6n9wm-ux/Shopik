@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/localization/app_text.dart';
 import '../../design/theme.dart';
 import '../../ui/z.dart';
 
@@ -40,10 +41,10 @@ class MagicRebookScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
                 children: [
-                  reveal(Text('Візит завершено',
+                  reveal(Text(t('Візит завершено'),
                       style: AppTypography.title1(k.ink))),
                   const SizedBox(height: 6),
-                  reveal(Text('Олена · Гель-лак · ₴500',
+                  reveal(Text('Олена · ${t('Гель-лак')} · ₴500',
                       style:
                           AppTypography.label(k.ink3).copyWith(fontSize: 13))),
                   const SizedBox(height: 16),
@@ -85,7 +86,7 @@ class _PaidCard extends StatelessWidget {
             child: Icon(Icons.check, color: k.success, size: 26),
           ),
           const SizedBox(height: 12),
-          Text('Оплату отримано',
+          Text(t('Оплату отримано'),
               style: AppTypography.title3(k.ink).copyWith(fontSize: 17)),
           const SizedBox(height: 2),
           Text('+₴500',
@@ -106,9 +107,9 @@ class _RebookHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ZLabel('✦ Магічний перезапис', color: k.accent),
+          ZLabel('✦ ${t('Магічний перезапис')}', color: k.accent),
           const SizedBox(height: 8),
-          Text('Олена ходить кожні\n3 тижні. Записати наперед?',
+          Text(t('Олена ходить кожні\n3 тижні. Записати наперед?'),
               style: AppTypography.title3(k.ink)
                   .copyWith(fontSize: 16, height: 1.35)),
           const SizedBox(height: 14),
@@ -131,10 +132,10 @@ class _RebookHero extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Вівторок, 12 серпня',
+                      Text(t('Вівторок, 12 серпня'),
                           style: AppTypography.label(k.ink).copyWith(
                               fontSize: 13.5, fontWeight: FontWeight.w700)),
-                      Text('10:30 · вільно',
+                      Text('10:30 · ${t('вільно')}',
                           style: AppTypography.label(k.ink3)
                               .copyWith(fontSize: 11)),
                     ],
@@ -149,13 +150,13 @@ class _RebookHero extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                   child: ZButton(
-                      label: 'Записати на 12 серп',
-                      padding: EdgeInsets.symmetric(vertical: 12))),
+                      label: t('Записати на 12 серп'),
+                      padding: const EdgeInsets.symmetric(vertical: 12))),
               const SizedBox(width: 9),
               ZButtonSecondary(
-                  label: 'Інший',
+                  label: t('Інший'),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 13)),
             ],
