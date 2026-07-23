@@ -13,7 +13,7 @@
 
 function env(name) { return process.env['PARA_' + name] || process.env[name] || ''; }
 const DEFAULT_APP_URL = 'https://para-psi.vercel.app/';
-const APP_VERSION = '7';   // бамп при каждом релизе — заставляет Telegram открыть свежий URL (обход кэша)
+const APP_VERSION = '8';   // бамп при каждом релизе — заставляет Telegram открыть свежий URL (обход кэша)
 function appUrl() {
   const base = env('APP_URL') || DEFAULT_APP_URL;
   return base + (base.indexOf('?') >= 0 ? '&' : '?') + 'v=' + APP_VERSION;
