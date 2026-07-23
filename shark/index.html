@@ -328,17 +328,10 @@ body{
 /* живой фон из пузырьков */
 #bubbles{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;}
 
-/* появление экрана + стаггер карточек */
-.screen{animation:scrIn .5s var(--ease);}
-@keyframes scrIn{from{opacity:0;transform:translateY(8px) scale(.995);}to{opacity:1;transform:none;}}
-.screen.active > *{animation:riseIn .52s var(--ease) both;}
-.screen.active > *:nth-child(1){animation-delay:.03s}
-.screen.active > *:nth-child(2){animation-delay:.08s}
-.screen.active > *:nth-child(3){animation-delay:.13s}
-.screen.active > *:nth-child(4){animation-delay:.18s}
-.screen.active > *:nth-child(5){animation-delay:.23s}
-.screen.active > *:nth-child(6){animation-delay:.28s}
-@keyframes riseIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+/* появление экрана целиком — безопасно (fill:none, финал = обычное состояние,
+   контент не может «залипнуть» невидимым); перезапускается при каждой навигации */
+.screen.active{animation:scrIn .46s var(--ease);}
+@keyframes scrIn{from{opacity:0;transform:translateY(10px) scale(.994);}to{opacity:1;transform:none;}}
 
 /* типографика */
 h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;margin:6px 2px 12px;}
@@ -450,6 +443,33 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 
 .modes-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .modes-grid .card{min-height:130px;margin-bottom:0;}
+
+/* ---------- полишинг списков/профиля/магазина (Фаза 2) ---------- */
+.stat,.leader,.histrow,.pill,.ach{
+  background:var(--glass-bg);border:1px solid var(--glass-brd);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  box-shadow:var(--sh-soft),inset 0 1px 0 var(--glass-hi);
+}
+.stat{border-radius:16px;}
+.stat .sv{font-weight:800;letter-spacing:-.02em;}
+.pill{border-radius:18px;transition:transform .15s var(--ease),box-shadow .22s;}
+.pill:active{transform:scale(.96) translateY(1px);}
+.pill .ic{filter:drop-shadow(0 8px 14px rgba(0,0,0,.45));}
+.pill .px{background:rgba(6,17,26,.5);border:1px solid var(--glass-brd);}
+.leader{border-radius:16px;transition:transform .15s var(--ease);}
+.leader:active{transform:scale(.99);}
+.leader.you{box-shadow:0 0 0 1px rgba(56,229,212,.45),var(--sh-soft);}
+.leader .av,.prow .av{box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
+.histrow{border-radius:14px;}
+.prof-av{box-shadow:0 0 0 2px rgba(56,229,212,.9),0 0 26px -6px rgba(56,229,212,.55);animation:avGlow 3.6s ease-in-out infinite;}
+@keyframes avGlow{0%,100%{box-shadow:0 0 0 2px rgba(56,229,212,.85),0 0 22px -8px rgba(56,229,212,.5);}50%{box-shadow:0 0 0 2px rgba(56,229,212,1),0 0 36px -2px rgba(56,229,212,.8);}}
+.balance-big .v{font-weight:800;letter-spacing:-.02em;}
+.lvlbar,.qbar{box-shadow:inset 0 1px 2px rgba(0,0,0,.4);}
+.lvlbar i{box-shadow:0 0 10px rgba(56,229,212,.5);}
+.sheet{background:var(--glass-bg);-webkit-backdrop-filter:blur(24px) saturate(1.3);backdrop-filter:blur(24px) saturate(1.3);border:1px solid var(--glass-brd);box-shadow:0 -20px 60px -20px rgba(0,0,0,.8),inset 0 1px 0 var(--glass-hi);}
+.result-emoji{filter:drop-shadow(0 12px 24px rgba(0,0,0,.5));animation:pop .5s var(--ease);}
+@keyframes pop{0%{transform:scale(.4);opacity:0;}60%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
+.confetti-cv{position:fixed;inset:0;width:100%;height:100%;z-index:65;pointer-events:none;}
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}
@@ -660,11 +680,11 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 
 <!-- TABBAR -->
 <div class="tabbar">
-  <div class="tab active" data-tab="home" onclick="go('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="3"/><circle cx="8" cy="12" r="1.5" fill="currentColor"/><circle cx="16" cy="11" r="1" fill="currentColor"/><circle cx="18" cy="13" r="1" fill="currentColor"/></svg>Игры</div>
-  <div class="tab" data-tab="contests" onclick="go('contests')"><span class="dot">2</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c4 0 6 1 6 1s0 6-6 9c-6-3-6-9-6-9s2-1 6-1z"/><path d="M12 13v5M8 21h8"/></svg>Конкурсы</div>
-  <div class="tab" data-tab="leaders" onclick="go('leaders')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h12v4a6 6 0 01-12 0z"/><path d="M12 14v4M8 21h8M4 5H2a3 3 0 003 4M20 5h2a3 3 0 01-3 4"/></svg>Лидеры</div>
-  <div class="tab" data-tab="shop" onclick="go('shop')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16l-1 12H5z"/><path d="M9 8a3 3 0 016 0"/></svg>Магазин</div>
-  <div class="tab" data-tab="profile" onclick="go('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg>Профиль</div>
+  <div class="tab active" data-tab="home" onclick="go('home')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 6H7a5 5 0 00-5 5v2.5A3.5 3.5 0 008.4 15l.5-1h6.2l.5 1a3.5 3.5 0 006.4-1.5V11a5 5 0 00-5-5zM8.5 9.5V11H10v1.4H8.5V14H7.1v-1.6H5.6V11h1.5V9.5zm7.4.4a1 1 0 110 2 1 1 0 010-2zm1.6 2a1 1 0 110 2 1 1 0 010-2z"/></svg>Игры</div>
+  <div class="tab" data-tab="contests" onclick="go('contests')"><span class="dot">2</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9V6.8A2.4 2.4 0 108.6 6H4v3h7zm2 0h7V6h-4.6A2.4 2.4 0 1013 6.8V9zM5 11v8a1 1 0 001 1h5v-9H5zm8 0v9h5a1 1 0 001-1v-8h-6z"/></svg>Конкурсы</div>
+  <div class="tab" data-tab="leaders" onclick="go('leaders')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v2a4 4 0 01-4.4 4A5 5 0 0113 13.6V16h2a3 3 0 013 3v2H6v-2a3 3 0 013-3h2v-2.4A5 5 0 018.4 11 4 4 0 014 7V5h3V3zm-1 4v-.5H6V7a2 2 0 001 1.7A6 6 0 016 7zm12 0a6 6 0 01-1 1.7A2 2 0 0018 7v-.5h.01z"/></svg>Лидеры</div>
+  <div class="tab" data-tab="shop" onclick="go('shop')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 7a3.5 3.5 0 017 0h2.2l1 12.8a1 1 0 01-1 1.1H6.3a1 1 0 01-1-1.1L6.3 7h2.2zm2 0h3a1.5 1.5 0 00-3 0z"/></svg>Магазин</div>
+  <div class="tab" data-tab="profile" onclick="go('profile')"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7.5" r="4.2"/><path d="M4 20.2a8 8 0 0116 0 .9.9 0 01-.9.8H4.9a.9.9 0 01-.9-.8z"/></svg>Профиль</div>
 </div>
 
 <!-- ОНБОРДИНГ -->
@@ -874,6 +894,7 @@ function spin(){
     logOp('🎰','Рулетка: '+prize.name,'Ставка ⭐'+S.bet,'+⭐'+winVal,'star');
     pushMyRoulRow(prize);
     checkAchievements();
+    if(winVal>S.bet) celebrate({n:40});
     showSheet('<div class="result-emoji">'+prize.emoji+'</div><h3 style="text-align:center">Вы выиграли ⭐'+winVal+'!</h3><p class="muted" style="text-align:center">«'+prize.name+'» (ставка ⭐'+S.bet+', множитель x'+betMult+'). Добавлено на игровой баланс.</p><button class="btn-primary" onclick="closeSheet()">Забрать</button>');
   },3300);
 }
@@ -1017,7 +1038,7 @@ function crashAction(){
     var chk=document.getElementById('auto-chk'); autoCash=chk?chk.checked:false;
     var am=parseFloat((document.getElementById('auto-mult')||{}).value||'2'); autoMult=(am&&am>1)?am:2;
     S.stars-=S.cbet;S.played++;syncBalances();iJoined=true;beep(520,0.06,0.05,'triangle');crashBots.unshift({id:'me',bot:{n:'Вы',a:'🙂'},bet:S.cbet,cashAt:autoCash?autoMult:999,status:'live',taken:0,me:true});renderCrashPlayers();updateCrashBtn();toast(autoCash?('Ставка ⭐'+S.cbet+', авто-вывод на '+autoMult.toFixed(2)+'x'):('Ставка ⭐'+S.cbet+' принята на следующий раунд'));checkAchievements();}
-  else if(crashPhase==='flying'&&iJoined&&!S.cashedThisRound){var win=Math.floor(S.cbet*crashMult);S.stars+=win;S.wonStars+=Math.max(win-S.cbet,0);S.cashedThisRound=true;syncBalances();beep(780,0.12,0.06,'triangle');vibrate(30);var me=crashBots.filter(function(p){return p.me;})[0];if(me){me.status='win';me.taken=win;me.cashAt=crashMult;}renderCrashPlayers();updateCrashBtn();logOp('🚀','Краш: забрал','Множитель '+crashMult.toFixed(2)+'x','+⭐'+win,'star');toast('Забрали ⭐'+win+' на '+crashMult.toFixed(2)+'x!');}}
+  else if(crashPhase==='flying'&&iJoined&&!S.cashedThisRound){var win=Math.floor(S.cbet*crashMult);S.stars+=win;S.wonStars+=Math.max(win-S.cbet,0);S.cashedThisRound=true;syncBalances();beep(780,0.12,0.06,'triangle');vibrate(30);var me=crashBots.filter(function(p){return p.me;})[0];if(me){me.status='win';me.taken=win;me.cashAt=crashMult;}renderCrashPlayers();updateCrashBtn();logOp('🚀','Краш: забрал','Множитель '+crashMult.toFixed(2)+'x','+⭐'+win,'star');celebrate({n:44});toast('Забрали ⭐'+win+' на '+crashMult.toFixed(2)+'x!');}}
 function renderCrashPlayers(){var box=document.getElementById('crash-players');if(!box)return;var html='<div class="ph"><span>Игроки в раунде</span><span>Множитель / итог</span></div>';crashBots.forEach(function(p){var st,cls;if(p.status==='live'){st=crashPhase==='waiting'?'ждёт':'в игре';cls='live';}else if(p.status==='win'){st='✓ '+p.cashAt.toFixed(2)+'x · +⭐'+p.taken;cls='win';}else{st='💥 проигрыш';cls='lose';}html+='<div class="prow"><div class="av">'+p.bot.a+'</div><div class="nm">'+(p.me?'<b style="color:var(--aqua)">Вы</b>':p.bot.n)+'</div><div class="bet">⭐'+p.bet+'</div><div class="st '+cls+'">'+st+'</div></div>';});box.innerHTML=html;}
 function resetSharkPos(){var sh=document.getElementById('cshark');if(sh){sh.innerHTML=sharkSVG();sh.style.transition='';sh.style.left='18px';sh.style.top='auto';sh.style.bottom='14px';sh.style.transform='scaleX(-1) rotate(-12deg)';}var cv=document.getElementById('crash-canvas');if(cv){var ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);}}
 
@@ -1200,7 +1221,7 @@ function runPvp(round){
     if(round.user){ applyUser(round.user); }                 // серверный баланс (уже с выплатой)
     else if(round.local && round.iWon){ S.stars+=round.payout; syncBalances(); }  // демо-начисление
     if(round.iWon){
-      beep(660,0.12,0.06,'triangle'); vibrate(30);
+      beep(660,0.12,0.06,'triangle'); vibrate([20,40,30]); celebrate({n:70});
       logOp('🏆','PVP: победа','Банк ⭐'+round.pot,'+⭐'+round.payout,'star');
       showSheet('<div class="result-emoji">🏆</div><h3 style="text-align:center">Победа! +⭐'+round.payout+'</h3><p class="muted" style="text-align:center">Вы забрали банк ⭐'+round.pot+' (−'+Math.round((round.rake||0.05)*100)+'% комиссия). Ваш шанс был '+w.pct+'%.</p><button class="btn-primary" onclick="closeSheet()">Забрать</button>');
     } else if(round.iJoined){
@@ -1327,6 +1348,7 @@ spin=async function(){
     spinning=false; btn.disabled=false; var p=r.prize;
     beep(660,0.12,0.06,'triangle'); vibrate(25);
     pushMyRoulRow({emoji:p.emoji,name:p.name,value:p.value});
+    if(p.value>S.bet) celebrate({n:40});
     showSheet('<div class="result-emoji">'+p.emoji+'</div><h3 style="text-align:center">Вы выиграли ⭐'+p.value+'!</h3><p class="muted" style="text-align:center">«'+p.name+'» (ставка ⭐'+S.bet+', множитель x'+p.betMult+'). Добавлено на игровой баланс.</p><button class="btn-primary" onclick="closeSheet()">Забрать</button>');
   },3300);
 };
@@ -1360,7 +1382,7 @@ crashAction=async function(){
       beep(780,0.12,0.06,'triangle'); vibrate(30);
       if(me){ me.status='win'; me.taken=r.win; me.cashAt=r.mult; }
       renderCrashPlayers(); updateCrashBtn();
-      toast('Забрали ⭐'+r.win+' на '+Number(r.mult).toFixed(2)+'x!');
+      celebrate({n:44}); toast('Забрали ⭐'+r.win+' на '+Number(r.mult).toFixed(2)+'x!');
     }
   }
 };
@@ -1514,6 +1536,36 @@ boot();
    ✦ ABYSSAL GLASS — премиальные микро-взаимодействия (Фаза 1)
    ============================================================ */
 function prefersReduced(){ try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } }
+
+/* праздничный всплеск частиц при выигрыше (№19) */
+function celebrate(opts){
+  if(prefersReduced()) return;
+  opts=opts||{};
+  var cv=document.createElement('canvas'); cv.className='confetti-cv';
+  document.body.appendChild(cv);
+  var ctx=cv.getContext('2d'), dpr=Math.min(window.devicePixelRatio||1,2), w=window.innerWidth, h=window.innerHeight;
+  cv.width=w*dpr; cv.height=h*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  var cx=w/2, cy=opts.y||h*0.40, cols=['#38e5d4','#ffcf5c','#daf2f5','#3ee0a3','#9a7cff'];
+  var N=opts.n||48, ps=[];
+  for(var i=0;i<N;i++){ var a=Math.random()*6.2832, sp=2+Math.random()*7.5;
+    ps.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-4.5-Math.random()*3,
+      r:3+Math.random()*5,c:cols[i%cols.length],rot:Math.random()*6.28,vr:(Math.random()-.5)*.34,
+      bubble:Math.random()<.45,life:0,max:56+Math.random()*30}); }
+  var t0=null;
+  function fr(ts){ if(t0===null)t0=ts;
+    ctx.clearRect(0,0,w,h); var alive=false;
+    for(var i=0;i<ps.length;i++){ var p=ps[i]; if(p.life>p.max) continue; alive=true;
+      p.life++; p.vy+=0.17; p.vx*=0.99; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+      ctx.globalAlpha=Math.max(0,1-p.life/p.max); ctx.fillStyle=p.c;
+      if(p.bubble){ ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.2832); ctx.fill(); }
+      else { ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillRect(-p.r,-p.r*0.55,p.r*2,p.r*1.1); ctx.restore(); }
+    }
+    ctx.globalAlpha=1;
+    if(alive) requestAnimationFrame(fr); else if(cv.parentNode) cv.parentNode.removeChild(cv);
+  }
+  requestAnimationFrame(fr);
+}
+window.celebrate=celebrate;
 
 /* плавный tween числа */
 function tweenNum(from,to,dur,step){
