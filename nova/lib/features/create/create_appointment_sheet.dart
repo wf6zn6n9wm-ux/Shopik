@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/services/analytics/analytics_events.dart';
@@ -8,19 +9,18 @@ import '../../core/services/remote_config/remote_config_service.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
-import '../../ui/client_row.dart';
 import '../../ui/format.dart';
-import '../../ui/kavio_button.dart';
 import '../../ui/kavio_sheet.dart';
+import '../../ui/z.dart';
+import '../calendar/calendar_screen.dart' show apptColor;
 
-/// Быстрая запись — bottom sheet. Каркас: выбор клиента и услуги → «Записать».
-/// (Умные слоты/предсказание услуги — AI-слой следующего этапа.)
+/// Новий запис — v3 bottom sheet: клієнт → послуга → день і час → «Записати».
+/// Створює реальний запис (Drift) на обраний час і планує нагадування.
 Future<void> showCreateAppointmentSheet(BuildContext context) =>
     showKavioSheet<void>(context, builder: (_) => const _CreateSheet());
 
 class _CreateSheet extends ConsumerStatefulWidget {
   const _CreateSheet();
-
   @override
   ConsumerState<_CreateSheet> createState() => _CreateSheetState();
 }
@@ -28,13 +28,16 @@ class _CreateSheet extends ConsumerStatefulWidget {
 class _CreateSheetState extends ConsumerState<_CreateSheet> {
   Client? _client;
   Service? _service;
+  DateTime _day = DateTime(
+      DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  DateTime? _slot;
 
   @override
   Widget build(BuildContext context) {
-    final kavio = context.kavio;
+    final k = context.kavio;
     final clients = ref.watch(clientsProvider).value ?? const <Client>[];
     final services = ref.watch(servicesProvider).value ?? const <Service>[];
-    final ready = _client != null && _service != null;
+    final ready = _client != null && _service != null && _slot != null;
 
     return KavioSheet(
       title: 'Новий запис',
@@ -42,60 +45,189 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('КЛІЄНТ', style: AppTypography.caption(kavio.ink3)),
-          const SizedBox(height: Spacing.s2),
-          ...clients.take(3).map((c) => Padding(
-                padding: const EdgeInsets.only(bottom: Spacing.s2),
-                child: _Selectable(
-                  selected: _client?.id == c.id,
-                  onTap: () => setState(() => _client = c),
-                  child: ClientRow(c),
-                ),
-              )),
-          const SizedBox(height: Spacing.s4),
-          Text('ПОСЛУГА', style: AppTypography.caption(kavio.ink3)),
-          const SizedBox(height: Spacing.s2),
-          Wrap(
-            spacing: Spacing.s2,
-            runSpacing: Spacing.s2,
-            children: services
-                .map((s) => _ServiceChip(
-                      service: s,
-                      selected: _service?.id == s.id,
-                      onTap: () => setState(() => _service = s),
-                    ))
-                .toList(),
-          ),
-          const SizedBox(height: Spacing.s6),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: KavioButton(
-              'Записати',
-              icon: Icons.check,
-              onPressed: ready ? () => _create(context) : null,
+          const ZLabel('Клієнт'),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 40,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: clients.take(8).length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final c = clients[i];
+                final on = _client?.id == c.id;
+                return _chip(k, on, () => setState(() => _client = c),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ZAvatar(initials: c.initials, size: 24),
+                        const SizedBox(width: 7),
+                        Text(c.name.split(' ').first,
+                            style: AppTypography.label(on ? Colors.white : k.ink)
+                                .copyWith(
+                                    fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ));
+              },
             ),
           ),
+          const SizedBox(height: 18),
+          const ZLabel('Послуга'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final s in services)
+                _chip(k, _service?.id == s.id, () => setState(() {
+                      _service = s;
+                      _slot = null;
+                    }),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                                color: apptColor(s.id),
+                                borderRadius: BorderRadius.circular(3))),
+                        const SizedBox(width: 7),
+                        Text('${s.name} · ${Fmt.money(s.price)}',
+                            style: AppTypography.label(
+                                    _service?.id == s.id ? Colors.white : k.ink)
+                                .copyWith(
+                                    fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    )),
+            ],
+          ),
+          const SizedBox(height: 18),
+          const ZLabel('Коли'),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 62,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: 10,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final d = DateTime(DateTime.now().year, DateTime.now().month,
+                        DateTime.now().day)
+                    .add(Duration(days: i));
+                final on = d == _day;
+                return GestureDetector(
+                  onTap: () => setState(() {
+                    _day = d;
+                    _slot = null;
+                  }),
+                  child: Container(
+                    width: 50,
+                    decoration: BoxDecoration(
+                      color: on ? null : k.surface2,
+                      gradient: on ? FX.brandButton : null,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(Fmt.weekday(d).substring(0, 2),
+                            style: AppTypography.label(
+                                    on ? Colors.white70 : k.ink3)
+                                .copyWith(fontSize: 10)),
+                        Text('${d.day}',
+                            style: AppTypography.tabular(AppTypography.title3(
+                                    on ? Colors.white : k.ink))
+                                .copyWith(
+                                    fontSize: 15, fontWeight: FontWeight.w800)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          if (_service != null) ...[
+            const SizedBox(height: 10),
+            _slots(k),
+          ],
+          const SizedBox(height: 20),
+          ZButton(
+            label: ready
+                ? 'Записати на ${Fmt.time(_slot!)}'
+                : 'Оберіть клієнта, послугу і час',
+            onTap: ready ? () => _create(context) : null,
+          ),
+          const SizedBox(height: 4),
         ],
       ),
     );
   }
 
-  Future<void> _create(BuildContext context) async {
-    final day = ref.read(selectedDayProvider);
-    final existing =
-        ref.read(dayAppointmentsProvider).value ?? const <Appointment>[];
-    final start = existing.isEmpty
-        ? DateTime(day.year, day.month, day.day, 10, 0)
-        : existing.last.end.add(const Duration(minutes: 15));
+  Widget _slots(KavioColors k) {
+    final dayAppts = ref
+            .watch(rangeAppointmentsProvider(
+                (start: _day, end: _day.add(const Duration(days: 1)))))
+            .value ??
+        const <Appointment>[];
+    final dur = _service!.durationMinutes;
+    final slots = <DateTime>[];
+    for (var h = 10; h <= 18; h++) {
+      for (final m in const [0, 30]) {
+        final start = DateTime(_day.year, _day.month, _day.day, h, m);
+        final end = start.add(Duration(minutes: dur));
+        if (end.hour > 19) continue;
+        final busy =
+            dayAppts.any((a) => start.isBefore(a.end) && end.isAfter(a.start));
+        if (!busy) slots.add(start);
+      }
+    }
+    if (slots.isEmpty) {
+      return Text('На цей день вільних вікон немає',
+          style: AppTypography.label(k.ink3).copyWith(fontSize: 13));
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final s in slots)
+          _chip(k, _slot == s, () => setState(() => _slot = s),
+              child: Text(Fmt.time(s),
+                  style: AppTypography.tabular(AppTypography.label(
+                          _slot == s ? Colors.white : k.ink))
+                      .copyWith(fontSize: 13, fontWeight: FontWeight.w700))),
+      ],
+    );
+  }
 
+  Widget _chip(KavioColors k, bool on, VoidCallback onTap,
+          {required Widget child}) =>
+      GestureDetector(
+        onTap: () {
+          zTap();
+          onTap();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: on ? null : k.surface2,
+            gradient: on ? FX.brandButton : null,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: on ? Colors.transparent : k.line),
+          ),
+          child: child,
+        ),
+      );
+
+  Future<void> _create(BuildContext context) async {
+    HapticFeedback.mediumImpact();
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-
     final appt = Appointment(
       id: 'a${DateTime.now().microsecondsSinceEpoch}',
       client: _client!,
       service: _service!,
-      start: start,
+      start: _slot!,
       status: AppointmentStatus.confirmed,
     );
     await ref.read(appointmentsRepositoryProvider).add(appt);
@@ -103,15 +235,13 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
         .read(analyticsServiceProvider)
         .track(AnalyticsEvent.appointmentCreated);
     await _scheduleReminders(appt);
-
     navigator.pop();
     messenger.showSnackBar(
-      SnackBar(content: Text('Записано ${_client!.name} · ${Fmt.time(start)}')),
+      SnackBar(
+          content: Text('Записано ${_client!.name} · ${Fmt.time(_slot!)}')),
     );
   }
 
-  /// Напоминания клиенту (−24ч/−2ч). Гейтинг FeatureFlag.push; канал доставки —
-  /// адаптер NotificationScheduler (по умолчанию no-op).
   Future<void> _scheduleReminders(Appointment a) async {
     if (!ref.read(featureFlagProvider(FeatureFlag.push))) return;
     final scheduler = ref.read(notificationSchedulerProvider);
@@ -123,61 +253,9 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
           id: ReminderPolicy.reminderId(a.id, off),
           at: at,
           title: 'Нагадування про візит',
-          body: '${a.client.name} · ${a.service.name} в ${Fmt.time(a.start)}',
+          body: '${a.client.name} · ${a.service.name} о ${Fmt.time(a.start)}',
         ));
       }
     }
-  }
-}
-
-class _Selectable extends StatelessWidget {
-  const _Selectable(
-      {required this.child, required this.selected, required this.onTap});
-  final Widget child;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final kavio = context.kavio;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(Radii.md),
-          border: Border.all(
-              color: selected ? kavio.accent : Colors.transparent, width: 1.5),
-        ),
-        child: child,
-      ),
-    );
-  }
-}
-
-class _ServiceChip extends StatelessWidget {
-  const _ServiceChip(
-      {required this.service, required this.selected, required this.onTap});
-  final Service service;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final kavio = context.kavio;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? kavio.accent : kavio.surface3,
-          borderRadius: BorderRadius.circular(Radii.full),
-        ),
-        child: Text(
-          '${service.name} · ${service.durationMinutes}′',
-          style: AppTypography.label(selected ? kavio.onAccent : kavio.ink2)
-              .copyWith(fontWeight: FontWeight.w500),
-        ),
-      ),
-    );
   }
 }
