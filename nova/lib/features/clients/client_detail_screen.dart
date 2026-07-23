@@ -147,7 +147,10 @@ class _Header extends StatelessWidget {
     final regular = client.visitsCount >= 5;
     return Row(
       children: [
-        ZAvatar(initials: client.initials, size: 62, ring: true),
+        Hero(
+          tag: 'client-${client.id}',
+          child: ZAvatar(initials: client.initials, size: 62, ring: true),
+        ),
         const SizedBox(width: 14),
         Expanded(
           child: Column(

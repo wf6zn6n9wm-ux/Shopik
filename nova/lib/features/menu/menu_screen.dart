@@ -75,6 +75,8 @@ class MenuScreen extends ConsumerWidget {
             reveal(const ZLabel('Бізнес')),
             const SizedBox(height: 8),
             reveal(_Group(items: [
+              _Item(Icons.nightlight_round_outlined, 'Підсумок дня',
+                  () => context.push(Routes.recap)),
               _Item(Icons.workspace_premium_outlined, 'Підписка',
                   () => context.push(Routes.subscription)),
               _Item(Icons.settings_outlined, 'Налаштування',

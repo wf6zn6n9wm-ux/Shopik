@@ -8,13 +8,21 @@ import '../features/clients/client_detail_screen.dart';
 import '../features/clients/clients_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/signature/magic_rebook_screen.dart';
+import '../features/signature/recap_screen.dart';
 import '../features/signature/smart_gaps_screen.dart';
 import '../features/services/services_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/splash/splash_screen.dart';
 import '../features/subscription/subscription_screen.dart';
 import '../modules/registry.dart';
 import 'routes.dart';
 import 'scaffold_with_nav.dart';
+
+/// Перший запуск сесії: показуємо splash → онбординг → головний. Прапорець
+/// у пам'яті (на вебі скидається при перезавантаженні — WOW видно щоразу).
+bool _booted = false;
+void markBooted() => _booted = true;
 
 /// Роутер собирается из реестра модулей (вкладки нижней навигации) + отдельные
 /// полноэкранные и pushed-маршруты MVP. Новый модуль добавляет свои маршруты,
@@ -53,8 +61,20 @@ CustomTransitionPage<void> _springPage(Widget child) {
 GoRouter _buildRouter() {
   final destinations = primaryDestinations;
   return GoRouter(
-    initialLocation: Routes.home,
+    initialLocation: Routes.splash,
+    redirect: (context, state) {
+      // Перший вхід у сесію: '/' → splash (крім знімків з ?s=1).
+      if (!_booted &&
+          state.uri.path == Routes.home &&
+          state.uri.queryParameters['s'] != '1') {
+        return Routes.splash;
+      }
+      return null;
+    },
     routes: [
+      GoRoute(
+          path: Routes.splash,
+          builder: (context, state) => const SplashScreen()),
       GoRoute(
           path: Routes.auth, builder: (context, state) => const AuthScreen()),
       GoRoute(
@@ -64,7 +84,8 @@ GoRouter _buildRouter() {
       ),
       GoRoute(
           path: Routes.onboarding,
-          builder: (context, state) => const OnboardingScreen()),
+          pageBuilder: (context, state) =>
+              _springPage(const OnboardingScreen())),
 
       // Основная навигация с сохранением состояния вкладок.
       StatefulShellRoute.indexedStack(
@@ -110,6 +131,13 @@ GoRouter _buildRouter() {
           path: Routes.smartGaps,
           pageBuilder: (context, state) =>
               _springPage(const SmartGapsScreen())),
+      GoRoute(
+          path: Routes.rebook,
+          pageBuilder: (context, state) =>
+              _springPage(const MagicRebookScreen())),
+      GoRoute(
+          path: Routes.recap,
+          pageBuilder: (context, state) => _springPage(const RecapScreen())),
 
       ...moduleRoutes,
     ],

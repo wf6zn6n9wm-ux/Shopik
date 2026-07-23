@@ -10,7 +10,10 @@ abstract final class Routes {
 
   static const auth = '/auth';
   static const otp = '/auth/otp';
+  static const splash = '/splash';
   static const onboarding = '/onboarding';
+  static const rebook = '/rebook';
+  static const recap = '/recap';
   static const services = '/services';
   static const profile = '/profile';
   static const settings = '/settings';

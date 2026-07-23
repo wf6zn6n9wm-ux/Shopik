@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/routes.dart';
 import '../../core/services/analytics/analytics_events.dart';
 import '../../core/services/analytics/analytics_service.dart';
 import '../../data/providers.dart';
@@ -31,6 +33,20 @@ class _AppointmentSheet extends ConsumerWidget {
         .read(analyticsServiceProvider)
         .track(AnalyticsEvent.appointmentStatusChanged(s.name));
     navigator.pop();
+  }
+
+  /// Завершення візиту → «Магічний перезапис» (фішка на касі).
+  Future<void> _complete(WidgetRef ref, BuildContext context) async {
+    final navigator = Navigator.of(context);
+    final router = GoRouter.of(context);
+    await ref
+        .read(appointmentsRepositoryProvider)
+        .updateStatus(appointment.id, AppointmentStatus.completed);
+    await ref
+        .read(analyticsServiceProvider)
+        .track(AnalyticsEvent.appointmentStatusChanged('completed'));
+    navigator.pop();
+    router.push(Routes.rebook);
   }
 
   Future<void> _delete(WidgetRef ref, BuildContext context) async {
@@ -87,8 +103,7 @@ class _AppointmentSheet extends ConsumerWidget {
                     small: true,
                     expand: true,
                     kind: KavioButtonKind.secondary,
-                    onPressed: () =>
-                        _setStatus(ref, context, AppointmentStatus.completed)),
+                    onPressed: () => _complete(ref, context)),
               ),
             ],
           ),

@@ -6,7 +6,11 @@ import { mkdirSync } from 'fs';
 
 const base = 'http://localhost:8080';
 const routes = [
-  ['home', '/'],
+  ['splash', '/splash?hold=1'],
+  ['onboarding', '/onboarding'],
+  ['home', '/?s=1'],
+  ['rebook', '/rebook'],
+  ['recap', '/recap'],
   ['calendar', '/calendar'],
   ['calendar-week', '/calendar?view=week'],
   ['calendar-month', '/calendar?view=month'],
