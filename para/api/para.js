@@ -695,7 +695,14 @@ module.exports = async (req, res) => {
         stars: list.reduce((a, x) => a + (x.stars || 0), 0),               // валовая выручка в звёздах
         activeStars: activeList.reduce((a, x) => a + (x.stars || 0), 0)
       };
-      res.status(200).json({ ok: true, subs: list, stats: stats, count: list.length });
+      // живой баланс звёзд бота (Bot API getMyStarBalance); при ошибке → null, карточка скрыта
+      let botStars = null;
+      try {
+        const rb = await fetch('https://api.telegram.org/bot' + BOT + '/getMyStarBalance');
+        const jb = await rb.json().catch(() => ({}));
+        if (jb && jb.ok && jb.result && typeof jb.result.amount === 'number') botStars = jb.result.amount;
+      } catch (e) {}
+      res.status(200).json({ ok: true, subs: list, stats: stats, count: list.length, botStars: botStars });
       return;
     }
 
