@@ -37,9 +37,9 @@ CustomTransitionPage<void> _springPage(Widget child) {
       return FadeTransition(
         opacity: curved,
         child: SlideTransition(
-          position: Tween<Offset>(
-                  begin: const Offset(0, 0.035), end: Offset.zero)
-              .animate(curved),
+          position:
+              Tween<Offset>(begin: const Offset(0, 0.035), end: Offset.zero)
+                  .animate(curved),
           child: Transform.scale(
             scale: 0.98 + 0.02 * curved.value,
             child: child,

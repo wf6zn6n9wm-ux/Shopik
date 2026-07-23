@@ -55,7 +55,8 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                      child: Text('Клієнти', style: AppTypography.title1(k.ink))),
+                      child:
+                          Text('Клієнти', style: AppTypography.title1(k.ink))),
                   GestureDetector(
                     onTap: () => showCreateClientSheet(context),
                     child: Container(
@@ -139,8 +140,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                   size: 34, color: k.success),
             ),
             const SizedBox(height: 16),
-            Text("Тут з'являться клієнти",
-                style: AppTypography.title2(k.ink)),
+            Text("Тут з'являться клієнти", style: AppTypography.title2(k.ink)),
             const SizedBox(height: 8),
             SizedBox(
               width: 250,
@@ -181,10 +181,12 @@ class _ClientTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(client.name,
-                      style: AppTypography.title3(k.ink).copyWith(fontSize: 15)),
+                      style:
+                          AppTypography.title3(k.ink).copyWith(fontSize: 15)),
                   const SizedBox(height: 1),
                   Text('${client.visitsCount} візитів · ${client.phone}',
-                      style: AppTypography.label(k.ink3).copyWith(fontSize: 12)),
+                      style:
+                          AppTypography.label(k.ink3).copyWith(fontSize: 12)),
                 ],
               ),
             ),

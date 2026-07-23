@@ -138,7 +138,8 @@ class _TariffCard extends StatelessWidget {
                       paid
                           ? 'Продовжується 12 серпня'
                           : 'Оновіть до Pro — більше можливостей',
-                      style: AppTypography.label(k.ink3).copyWith(fontSize: 12)),
+                      style:
+                          AppTypography.label(k.ink3).copyWith(fontSize: 12)),
                 ],
               ),
             ),

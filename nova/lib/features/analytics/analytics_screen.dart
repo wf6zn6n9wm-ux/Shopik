@@ -95,7 +95,8 @@ class _RevenueHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ZLabel(today ? 'Виручка · сьогодні' : 'Виручка · липень', color: k.ink2),
+          ZLabel(today ? 'Виручка · сьогодні' : 'Виручка · липень',
+              color: k.ink2),
           Text(today ? Fmt.money(todayRevenue) : '₴182 400',
               style: AppTypography.tabular(AppTypography.display(k.ink))
                   .copyWith(fontSize: 36, height: 1.05)),

@@ -660,8 +660,8 @@ class _LiveRingPainter extends CustomPainter {
     // Яскрава «голова» дуги + біжуча цятка вздовж треку.
     final headAngle = start + sweep;
     final head = c + Offset(math.cos(headAngle), math.sin(headAngle)) * r;
-    canvas.drawCircle(head, stroke * 0.9,
-        Paint()..color = Colors.white.withOpacity(0.9));
+    canvas.drawCircle(
+        head, stroke * 0.9, Paint()..color = Colors.white.withOpacity(0.9));
 
     final sparkAngle = start + 2 * math.pi * spin;
     if (2 * math.pi * spin <= sweep) {

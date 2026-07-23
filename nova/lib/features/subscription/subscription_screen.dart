@@ -17,7 +17,12 @@ class SubscriptionScreen extends ConsumerWidget {
       Plan.pro,
       'Pro',
       '299',
-      ['Все з Free', 'Розширена аналітика', 'Маркетинг і лояльність', 'AI-асистент']
+      [
+        'Все з Free',
+        'Розширена аналітика',
+        'Маркетинг і лояльність',
+        'AI-асистент'
+      ]
     ),
     (
       Plan.team,
