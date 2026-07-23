@@ -115,7 +115,7 @@ module.exports = async (req, res) => {
             const a = aC[c.id] || 0, q = qC[c.id] || 0, w = wC[c.id] || 0;
             const text = (a + q + w === 0)
               ? '🗓️ Итог недели в PARA\n\nНа этой неделе вы ещё не заходили вдвоём. Новая неделя — отличный повод ответить на вопрос дня и стать ближе ❤️'
-              : '🗓️ Ваша неделя в PARA:\n\n💬 ответов на вопрос дня: ' + a + '\n🎯 квестов выполнено: ' + q + '\n⭐ желаний исполнено: ' + w + '\n\nОтличная неделя вдвоём — так держать! ❤️';
+              : '🗓️ Ваша неделя в PARA:\n\n💬 ответов на вопрос дня: ' + a + '\n🎯 квестов выполнено: ' + q + '\n💖 желаний исполнено: ' + w + '\n\nОтличная неделя вдвоём — так держать! ❤️';
             const mm = c.para_members || [];
             for (let b = 0; b < mm.length; b++) { if (mm[b].tg_id) { try { await tgSend(mm[b].tg_id, text, kbOpen); } catch (e) {} } }
             await sb('para_events', { method: 'POST', body: JSON.stringify({ tg_id: (mm[0] && mm[0].tg_id) || null, couple_id: c.id, type: 'weekly', amount: 0 }) }).catch(() => {});
@@ -162,7 +162,7 @@ module.exports = async (req, res) => {
       ] };
       try {
         await tgSend(m.tg_id,
-          'Ваш партнёр ещё не присоединился к PARA 💞\n\nПерешлите ему эту ссылку — он войдёт в вашу пару одним касанием (код вводить не нужно):\n' + link + '\n\nЗа связывание пары дарим +100 очков 🎁',
+          'Ваш партнёр ещё не присоединился к PARA 💞\n\nПерешлите ему эту ссылку — он войдёт в вашу пару одним касанием (код вводить не нужно):\n' + link + '\n\nЗа связывание пары дарим +100 Love Points 🎁',
           kb);
         await sb('para_events', { method: 'POST', body: JSON.stringify({ tg_id: m.tg_id, couple_id: c.id, type: 'remind', amount: 0 }) }).catch(() => {});
         sent++;

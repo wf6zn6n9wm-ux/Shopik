@@ -944,7 +944,7 @@ module.exports = async (req, res) => {
         ] };
         try {
           await sendPush(BOT, m.tg_id,
-            'Ваш партнёр ещё не присоединился к PARA 💞\n\nПерешлите ему эту ссылку — он войдёт в вашу пару одним касанием (код вводить не нужно):\n' + inviteLink + '\n\nЗа связывание пары дарим +100 очков 🎁',
+            'Ваш партнёр ещё не присоединился к PARA 💞\n\nПерешлите ему эту ссылку — он войдёт в вашу пару одним касанием (код вводить не нужно):\n' + inviteLink + '\n\nЗа связывание пары дарим +100 Love Points 🎁',
             kb);
           await sb('para_events', { method: 'POST', body: JSON.stringify({ tg_id: m.tg_id, couple_id: c.id, type: 'remind', amount: 0 }) }).catch(() => {});
           sent++;
@@ -1005,7 +1005,7 @@ module.exports = async (req, res) => {
       await logEvent('paired', couple.id, 0).catch(() => {});
       // уведомим первого партнёра, что пара собралась (+ бонус)
       const first = members[0];
-      if (first) sendPush(BOT, first.tg_id, '💞 ' + me.name + ' присоединился(ась) к вашей паре в PARA!\n🎁 Вам начислено +100 очков за то, что вы вместе. Открывайте приложение и исполняйте желания вдвоём!').catch(() => {});
+      if (first) sendPush(BOT, first.tg_id, '💞 ' + me.name + ' присоединился(ась) к вашей паре в PARA!\n🎁 Вам начислено +100 Love Points за то, что вы вместе. Открывайте приложение и исполняйте желания вдвоём!').catch(() => {});
       const all = await coupleMembers(couple.id);
       res.status(200).json({ ok: true, couple: coupleView(couple.id, couple.invite_code, all), bonus: 100 });
       return;

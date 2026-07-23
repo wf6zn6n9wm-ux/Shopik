@@ -611,7 +611,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v41 · PARA+ (конверсия: Hero, преимущества, экономия)';
+var APP_VERSION = 'v42 · 💖 Love Points (⭐ только для Telegram Stars)';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -738,9 +738,9 @@ function questionOfDay(){
 var WHEEL=[
   {icon:'⚡',label:'Быстро',hint:'мини-свидание на 15 минут'},
   {icon:'💬',label:'Твой ответ',hint:'предложи своё'},
-  {icon:'⭐',label:'Желание',hint:'из списка желаний'},
+  {icon:'💖',label:'Желание',hint:'из списка желаний'},
   {icon:'🗺️',label:'Квест',hint:'задание для двоих'},
-  {icon:'🎟️',label:'Купон',hint:'обменять очки'}
+  {icon:'🎟️',label:'Купон',hint:'обменять Love Points'}
 ];
 
 function makeCode(){
@@ -954,7 +954,7 @@ function inviteView(){
   return '<div class="splash"><div class="center-t">'+
     '<div style="font-size:52px">💌</div>'+
     '<h2 class="b" style="font-size:24px;margin-top:14px">Остался один шаг</h2>'+
-    '<p class="muted small mt2" style="max-width:300px;margin:8px auto 0;line-height:1.5">Пригласите партнёра — и всё станет общим: вопрос дня, желания, квесты и очки на двоих.</p>'+
+    '<p class="muted small mt2" style="max-width:300px;margin:8px auto 0;line-height:1.5">Пригласите партнёра — и всё станет общим: вопрос дня, желания, квесты и Love Points на двоих.</p>'+
     '</div>'+
     '<div class="fullw" style="margin-top:24px;display:flex;flex-direction:column">'+
       '<div class="card p6 center-t"><div class="xs muted" style="text-transform:uppercase;letter-spacing:.2em;margin-bottom:8px">Ваш код-приглашение</div>'+
@@ -1026,7 +1026,7 @@ function pickEvent(c){
       title:(mine?'Твой день рождения':'День рождения '+esc(person.name)),
       when:(d===0?'Сегодня! 🥳':('Через <b>'+d+'</b> '+daysWord(d))),
       tip:(mine?'💌 Добавь желание — партнёр узнает, что подарить':giftTip(d)),
-      cta:(mine?{label:'⭐ Мои желания',act:'ev-mywishes'}:{label:'🎁 Идеи подарков',act:'ev-gifts'})
+      cta:(mine?{label:'💖 Мои желания',act:'ev-mywishes'}:{label:'🎁 Идеи подарков',act:'ev-gifts'})
     });
   }
   pushBday(c.partner,false); pushBday(c.me,true);
@@ -1071,7 +1071,7 @@ function fallbackEvent(c){
   var lvl=(effProgress().levelIndex)||0, qd=qToday(questDefs(),lvl);
   if(qd && !S.qdone[qd.id]){ return { kind:'quest', days:0, emoji:qd.emoji, glow:false,
     badge:'🗺️ КВЕСТ ДНЯ', title:esc(qd.title), when:'',
-    tip:'⭐ Выполните вместе и получите +'+qd.pts, cta:{label:'Открыть квесты',act:'ev-quests'} }; }
+    tip:'💖 Выполните вместе и получите +'+qd.pts, cta:{label:'Открыть квесты',act:'ev-quests'} }; }
   // 4) сколько вы уже вместе
   return { kind:'together', days:0, emoji:'💞', glow:false, badge:'💞 МЫ ВМЕСТЕ',
     title:'Вы вместе '+together+' '+daysWord(together), when:'',
@@ -1107,7 +1107,7 @@ var FORYOU=[
   {id:'photo',   emoji:'📸',pts:15,title:'Сделайте совместное фото', desc:'Запечатлейте этот день вдвоём.',
     long:'Остановите мгновение. Сделайте общее фото — дома, на улице, где угодно. Через годы такие снимки станут самыми ценными.'},
   {id:'quest',   emoji:'🎯',pts:25,title:'Выполните случайный квест', desc:'Откройте «Квесты» и выберите задание.',
-    long:'Добавьте немного игры. Откройте «Квесты» и выполните любое задание для двоих — от простого до сложного. Каждый квест приносит очки и новые впечатления.'},
+    long:'Добавьте немного игры. Откройте «Квесты» и выполните любое задание для двоих — от простого до сложного. Каждый квест приносит Love Points и новые впечатления.'},
   {id:'wish',    emoji:'🎁',pts:20,title:'Исполните одно желание', desc:'Порадуйте партнёра — исполните его желание.',
     long:'Загляните в «Желания» партнёра и исполните одно из них. Маленький сюрприз без повода — то, что помнят.'},
   {id:'message', emoji:'💌',pts:10,title:'Напишите друг другу сообщение', desc:'Пара тёплых строк — просто так.',
@@ -1171,7 +1171,7 @@ function forYouCard(){
     '<div class="fy-body">'+
       '<div class="fy-title">'+esc(r.title)+'</div>'+
       '<div class="fy-desc">'+esc(r.desc)+'</div>'+
-      '<div class="fy-pts">⭐ +'+r.pts+'</div>'+
+      '<div class="fy-pts">💖 +'+r.pts+'</div>'+
       '<button class="fy-btn" data-act="rec-open">Попробовать →</button>'+
     '</div></div>';
 }
@@ -1184,7 +1184,7 @@ function recView(){
     '<div class="rec-illu">'+r.emoji+'</div>'+
     '<div class="b" style="font-size:25px;text-align:center;margin-top:22px;line-height:1.2">'+esc(r.title)+'</div>'+
     '<div class="small muted" style="text-align:center;max-width:330px;margin:14px auto 0;line-height:1.6">'+esc(r.long)+'</div>'+
-    '<div class="center-t" style="margin-top:18px"><span class="chipx gold" style="font-size:14px;padding:7px 14px">⭐ +'+r.pts+'</span></div>'+
+    '<div class="center-t" style="margin-top:18px"><span class="chipx gold" style="font-size:14px;padding:7px 14px">💖 +'+r.pts+'</span></div>'+
     '<button class="add-wish" style="margin-top:28px" data-act="rec-start">Начать</button>'+
     '<div style="height:20px"></div></div></div>';
 }
@@ -1213,11 +1213,11 @@ function questionCard(){
   if(!d.linked){
     // онлайн, но партнёр ещё не присоединился
     body='<textarea id="qa" class="input" rows="2" placeholder="Твой ответ…"></textarea>'+
-      '<button class="btn btn-primary mt3" data-act="answer">Ответить <span style="opacity:.8">· +10 очков</span></button>'+
+      '<button class="btn btn-primary mt3" data-act="answer">Ответить <span style="opacity:.8">· +10 Love Points</span></button>'+
       '<div class="center-t xs muted2 mt3">⏳ Партнёр ещё не в паре — отправь код из вкладки «Мы»</div>';
   } else if(!d.mine){
     body='<textarea id="qa" class="input" rows="2" placeholder="Твой ответ…"></textarea>'+
-      '<button class="btn btn-primary mt3" data-act="answer">Ответить <span style="opacity:.8">· +10 очков</span></button>'+
+      '<button class="btn btn-primary mt3" data-act="answer">Ответить <span style="opacity:.8">· +10 Love Points</span></button>'+
       (d.otherAnswered?'<div class="center-t xs muted2 mt3">🔒 Ответ '+otherName+' откроется после твоего</div>':'');
   } else {
     var meRow=answerRow(ONLINE?S.couple.me.name:S.couple[S.who].name,d.myEmoji,d.mine,true);
@@ -1295,7 +1295,7 @@ function todayScreen(){
   return '<div class="wrap">'+
     '<div class="row between mb4"><div><div class="xs muted">'+esc(dstr)+'</div>'+
     '<div class="b" style="font-size:20px">Сегодня</div></div>'+
-    '<div class="row gap2 sb" style="background:rgba(251,191,36,.1);color:#fcd34d;border-radius:999px;padding:6px 12px;font-size:14px">⭐ '+S.points+'</div></div>'+
+    '<div class="row gap2 sb" style="background:rgba(251,191,36,.1);color:#fcd34d;border-radius:999px;padding:6px 12px;font-size:14px">💖 '+S.points+'</div></div>'+
     inviteBanner()+
     // переключатель «глазами каждого» — только в демо; онлайн ты фиксированный человек
     (ONLINE?'':partnerSwitch()+'<div style="height:16px"></div>')+
@@ -1389,12 +1389,12 @@ function wishesScreen(){
         '<div class="wcat" style="--wcb:'+hex2rgba(ct.c,0.16)+'">'+ct.e+'</div>'+
         '<div class="wbody"><div class="wttl'+(w.status==='done'?' done':'')+'">'+esc(w.text)+'</div>'+
         '<div class="wmeta"><span class="chipx">'+meName(w.by)+'</span>'+
-        '<span class="chipx gold">⭐ +'+w.points+'</span>'+badge+'</div></div>'+
+        '<span class="chipx gold">💖 +'+w.points+'</span>'+badge+'</div></div>'+
         action+'</div>';
     }).join('');
   }
 
-  return '<div class="wrap">'+screenTitle('⭐','Желания','мечты, которые исполняем вместе')+
+  return '<div class="wrap">'+screenTitle('💖','Желания','мечты, которые исполняем вместе')+
     (list.length?'<button class="add-wish" data-act="wish-open-add">➕ Добавить желание</button>':'')+
     filters+'<div style="height:6px"></div>'+body+'</div>';
 }
@@ -1404,13 +1404,13 @@ function wishModal(){
   if(!S.wmodal) return '';
   var cat=S.wmodal.cat||'❤️', pts=S.wmodal.points||20;
   var cats=WCATS.map(function(x){ return '<button class="catopt'+(cat===x.e?' on':'')+'" data-act="wish-cat" data-e="'+x.e+'">'+x.e+'</button>'; }).join('');
-  var chips=[10,20,30,50].map(function(p){ return '<button class="ptchip'+(pts===p?' on':'')+'" data-act="wish-pts" data-p="'+p+'">⭐ '+p+'</button>'; }).join('');
+  var chips=[10,20,30,50].map(function(p){ return '<button class="ptchip'+(pts===p?' on':'')+'" data-act="wish-pts" data-p="'+p+'">💖 '+p+'</button>'; }).join('');
   return '<div class="ovl" onclick="if(event.target===this)__paraModalClose()"><div class="sheet">'+
     '<div class="grabber"></div>'+
     '<div class="b mb3" style="font-size:18px">Новое желание 💫</div>'+
     '<input id="wtitle" class="input" placeholder="О чём мечтаете вместе?" autocomplete="off" value="'+esc(S.wmodal.text||'')+'">'+
     '<div class="xs muted" style="margin:14px 0 4px">Категория</div><div class="catgrid">'+cats+'</div>'+
-    '<div class="xs muted" style="margin:14px 0 4px">Очки за исполнение</div><div class="ptrow">'+chips+'</div>'+
+    '<div class="xs muted" style="margin:14px 0 4px">Love Points за исполнение</div><div class="ptrow">'+chips+'</div>'+
     '<button class="add-wish" style="margin-top:18px" data-act="wish-save">Добавить желание</button>'+
     '<button class="btn btn-ghost mt3" data-act="wish-cancel">Отмена</button>'+
     '</div></div>';
@@ -1437,14 +1437,14 @@ function questsScreen(){
   var pct, ntxt;
   if(prog.next){ var span=prog.next.min-prog.level.min;
     pct=Math.max(5,Math.min(100,Math.round(((pts-prog.level.min)/(span||1))*100)));
-    ntxt='до «'+esc(prog.next.name)+'» ещё '+Math.max(0,prog.next.min-pts)+' ⭐'; }
+    ntxt='до «'+esc(prog.next.name)+'» ещё '+Math.max(0,prog.next.min-pts)+' 💖'; }
   else { pct=100; ntxt='максимальный уровень 👑'; }
   var head='<div class="card q-head"><div class="row gap3" style="align-items:center">'+
     '<div class="q-lvl-emo">'+prog.level.emoji+'</div>'+
     '<div class="flex1"><div class="b" style="font-size:16px">'+esc(prog.level.name)+'</div>'+
       '<div class="xs muted mt1">'+ntxt+'</div></div>'+
-    '<div style="text-align:right"><div class="b amber" style="font-size:19px">⭐ '+pts+'</div>'+
-      '<div class="xs muted">'+(streak>0?('🔥 '+streak+' дн.'):'очков')+'</div></div>'+
+    '<div style="text-align:right"><div class="b amber" style="font-size:19px">💖 '+pts+'</div>'+
+      '<div class="xs muted">'+(streak>0?('🔥 '+streak+' дн.'):'Love Points')+'</div></div>'+
     '</div><div class="qbar mt3"><div style="width:'+pct+'%"></div></div></div>';
 
   // ---- статистика ----
@@ -1461,11 +1461,11 @@ function questsScreen(){
     var c=qcatOf(qd.cat), dd=QDIFF[qd.diff]||QDIFF.easy, done=!!S.qdone[qd.id];
     qod='<div class="qod" style="--qc:'+c.color+'">'+
       '<div class="qod-illu">'+qd.emoji+'</div>'+
-      '<div class="qod-badge">⭐ КВЕСТ ДНЯ</div>'+
+      '<div class="qod-badge">💖 КВЕСТ ДНЯ</div>'+
       '<div class="qod-title">'+esc(qd.title)+'</div>'+
       '<div class="qod-desc">'+esc(qd.desc)+'</div>'+
       '<div class="qod-chips">'+
-        '<span class="chipx">⭐ +'+qd.pts+'</span>'+
+        '<span class="chipx">💖 +'+qd.pts+'</span>'+
         '<span class="chipx">⏱ '+esc(qd.time)+'</span>'+
         '<span class="chipx" style="color:'+dd.c+'">'+dd.l+'</span>'+
         '<span class="chipx">'+c.emoji+' '+esc(c.name)+'</span>'+
@@ -1499,7 +1499,7 @@ function questsScreen(){
         : '<button class="q-rec-play" data-act="quest-done" data-id="'+q.id+'">▶</button>');
     return '<div class="q-rec"'+(locked?' style="opacity:.6"':'')+'>'+
       '<div class="q-rec-illu" style="background:'+hex2rgba(c.color,.16)+';position:relative">'+q.emoji+
-        '<span style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.4);color:#fcd34d;font-size:10px;font-weight:700;padding:3px 7px;border-radius:999px">⭐+'+q.pts+'</span></div>'+
+        '<span style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.4);color:#fcd34d;font-size:10px;font-weight:700;padding:3px 7px;border-radius:999px">💖+'+q.pts+'</span></div>'+
       '<div class="q-rec-title">'+esc(q.title)+'</div>'+
       '<div class="q-diff" style="color:'+dd.c+';margin-top:2px">'+(locked?('🔒 ур. '+((q.level||0)+1)):dd.l)+'</div>'+
       play+
@@ -1507,7 +1507,7 @@ function questsScreen(){
   }).join('') || '<div class="muted small" style="padding:18px 4px">В этой категории пока нет квестов.</div>';
 
   return '<div class="wrap">'+
-    screenTitle('🗺️','Квесты','задания для двоих — за очки')+
+    screenTitle('🗺️','Квесты','задания для двоих — за Love Points')+
     head+stats+qod+
     '<div class="q-sec-title">Категории</div><div class="q-cats">'+catHtml+'</div>'+
     '<div class="q-sec-title">Рекомендуем для вас</div><div class="q-recs">'+recHtml+'</div>'+
@@ -1686,9 +1686,9 @@ function ourStatsCard(){
     '<div class="ustat-grid">'+
       cell('🔥',(p.streak||0),'дней подряд')+
       cell('💬',(p.answersCount||0),'ответов')+
-      cell('⭐',(p.wishesDone||0),'желаний')+
+      cell('🎁',(p.wishesDone||0),'желаний')+
       cell('🎯',(p.questsDone||0),'квестов')+
-      cell('✨',(p.points||0),'очков')+
+      cell('💖',(p.points||0),'Love Points')+
       cell('🏆',((p.levelIndex||0)+1),'уровень')+
     '</div></div>';
 }
@@ -1838,7 +1838,7 @@ function usScreen(){
     '<div class="b" style="font-size:18px">'+esc(c.me.name)+' & '+esc(c.partner.name)+'</div>'+
     '<div class="small muted mt2">вместе уже <b style="color:#fff">'+together+'</b> '+daysWord(together)+'</div>'+
     // очки показываем тут только когда нет карточки уровня (офлайн/демо), иначе — в карточке уровня
-    (S.progress?'':'<div class="row gap2 sb mt4" style="display:inline-flex;background:rgba(251,191,36,.1);color:#fcd34d;border-radius:999px;padding:8px 16px;font-size:14px">⭐ '+S.points+' общих очков</div>')+'</div>';
+    (S.progress?'':'<div class="row gap2 sb mt4" style="display:inline-flex;background:rgba(251,191,36,.1);color:#fcd34d;border-radius:999px;padding:8px 16px;font-size:14px">💖 '+S.points+' общих Love Points</div>')+'</div>';
   var home=canHome?'<div class="card p4 row gap3 mb3"><div style="font-size:24px">📲</div>'+
     '<div class="flex1"><div class="small sb">На экран «Домой»</div>'+
     '<div class="xs muted">иконка PARA прямо на телефоне</div></div>'+
@@ -1927,7 +1927,7 @@ function admPeriodCard(w){
   return '<div class="adm-card mt3"><div class="adm-sec-h" style="margin:0 0 10px"><div class="t">📊 Показатели за период</div><div class="d">'+lbl+'</div></div>'+
     '<div class="adm-pgrid">'+
       cell('👥','Новых',per.newUsers)+cell('💞','Создано пар',per.newCouples,'связались: '+(per.newCouplesLinked||0))+cell('🔥','Пик DAU',per.dauPeak)+
-      cell('🎯','Квесты',per.quests)+cell('⭐','Очки',per.points)+cell('💬','Ответы',per.answers)+
+      cell('🎯','Квесты',per.quests)+cell('💖','Love Points',per.points)+cell('💬','Ответы',per.answers)+
     '</div></div>';
 }
 function admDayCard(){
@@ -1938,7 +1938,7 @@ function admDayCard(){
   return '<div class="adm-card mt2 adm-day-card"><div class="row between" style="align-items:center;margin-bottom:8px">'+
     '<div class="b">📅 '+admFullDate(d)+'</div><button class="adm-day-x" data-act="adm-day-close">✕</button></div>'+
     row('👥','Новых пользователей',val('users'))+row('💞','Новых пар',val('couples'))+row('🔥','Активных (DAU)',val('activity'))+
-    row('🎯','Квесты',val('quests'))+row('⭐','Очки (начислено)',val('points'))+row('💬','Ответы',val('answers'))+'</div>';
+    row('🎯','Квесты',val('quests'))+row('💖','Love Points (начислено)',val('points'))+row('💬','Ответы',val('answers'))+'</div>';
 }
 // накопительная кривая, обрезанная под окно, с кликабельными точками
 function admGrowthChart(w){
@@ -2067,21 +2067,21 @@ function adminDashView(){
     '<div style="height:4px"></div>'+pairsCard+foot;
 }
 // --- редактор конфигурации (уровни/награды) прямо во встроенной админке ---
-var CFG_METRICS=[['points','Очки'],['questsDone','Квестов'],['wishesDone','Желаний'],['answersCount','Ответов'],['streak','Серия'],['levelIndex','Индекс уровня']];
+var CFG_METRICS=[['points','Love Points'],['questsDone','Квестов'],['wishesDone','Желаний'],['answersCount','Ответов'],['streak','Серия'],['levelIndex','Индекс уровня']];
 var CFG_DIFFS=[['easy','Легко'],['med','Средне'],['hard','Сложно']];
 function cfgSections(){
   var cfg=S.adminConfig||{};
   var catOpts=(cfg.categories||[]).map(function(c){return [c.key,(c.emoji||'')+' '+c.name];});
   return [
-    { key:'levels', title:'🏆 Уровни', tpl:function(){return {key:'',name:'',emoji:'⭐',min:0,perks:[]};},
+    { key:'levels', title:'🏆 Уровни', tpl:function(){return {key:'',name:'',emoji:'💖',min:0,perks:[]};},
       label:function(it){return (it.emoji||'')+' '+(it.name||'новый уровень');},
-      fields:[{k:'emoji',l:'Эмодзи',t:'text'},{k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'min',l:'Очков для уровня',t:'num'},{k:'perks',l:'Награды (по одной в строке)',t:'lines',wide:true}] },
+      fields:[{k:'emoji',l:'Эмодзи',t:'text'},{k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'min',l:'Love Points для уровня',t:'num'},{k:'perks',l:'Награды (по одной в строке)',t:'lines',wide:true}] },
     { key:'achievements', title:'🥇 Достижения', tpl:function(){return {key:'',icon:'🏅',title:'',desc:'',metric:'questsDone',gte:1,enabled:true};},
       label:function(it){return (it.icon||'')+' '+(it.title||'новое достижение');},
       fields:[{k:'icon',l:'Иконка',t:'text'},{k:'title',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'metric',l:'Метрика',t:'select',opts:CFG_METRICS},{k:'gte',l:'Порог (≥)',t:'num'},{k:'enabled',l:'Включено',t:'bool'},{k:'desc',l:'Описание',t:'text',wide:true}] },
     { key:'quests', title:'🗺️ Квесты', tpl:function(){var ids=((S.adminConfig&&S.adminConfig.quests)||[]).map(function(q){return +q.id||0;}); return {id:(ids.length?Math.max.apply(null,ids):0)+1,title:'',desc:'',pts:20,cat:(catOpts[0]&&catOpts[0][0])||'romance',emoji:'✨',time:'',diff:'easy',level:0,pairs:0,featured:false,enabled:true};},
       label:function(it){return (it.emoji||'')+' '+(it.title||'новый квест');},
-      fields:[{k:'emoji',l:'Эмодзи',t:'text'},{k:'title',l:'Название',t:'text'},{k:'pts',l:'Очки',t:'num'},{k:'cat',l:'Категория',t:'select',opts:catOpts},{k:'time',l:'Время',t:'text'},{k:'diff',l:'Сложность',t:'select',opts:CFG_DIFFS},{k:'level',l:'С уровня (0..)',t:'num'},{k:'pairs',l:'Пар выполнили',t:'num'},{k:'featured',l:'В «Квест дня»',t:'bool'},{k:'enabled',l:'Включён',t:'bool'},{k:'desc',l:'Описание',t:'text',wide:true},{k:'id',l:'ID',t:'num'}] },
+      fields:[{k:'emoji',l:'Эмодзи',t:'text'},{k:'title',l:'Название',t:'text'},{k:'pts',l:'Love Points',t:'num'},{k:'cat',l:'Категория',t:'select',opts:catOpts},{k:'time',l:'Время',t:'text'},{k:'diff',l:'Сложность',t:'select',opts:CFG_DIFFS},{k:'level',l:'С уровня (0..)',t:'num'},{k:'pairs',l:'Пар выполнили',t:'num'},{k:'featured',l:'В «Квест дня»',t:'bool'},{k:'enabled',l:'Включён',t:'bool'},{k:'desc',l:'Описание',t:'text',wide:true},{k:'id',l:'ID',t:'num'}] },
     { key:'categories', title:'🎨 Категории квестов', tpl:function(){return {key:'',name:'',emoji:'✨',color:'#ff5e8a'};},
       label:function(it){return (it.emoji||'')+' '+(it.name||'новая категория');},
       fields:[{k:'emoji',l:'Эмодзи',t:'text'},{k:'name',l:'Название',t:'text'},{k:'key',l:'Ключ (лат.)',t:'text'},{k:'color',l:'Цвет (#hex)',t:'text'}] },
@@ -2213,7 +2213,7 @@ function admPairRow(p){
   var online=p.lastActive && (Date.now()-Date.parse(p.lastActive) < 5*60*1000);
   var names=(p.members||[]).filter(Boolean).join(' & ')||'—';
   var sub=p.linked
-    ? (p.points?('⭐ '+p.points+' очков'):'без активности')+' · '+esc(p.created||'')
+    ? (p.points?('💖 '+p.points+' Love Points'):'без активности')+' · '+esc(p.created||'')
     : '⏳ ждёт партнёра · '+esc(p.created||'');
   var seen=p.lastActive?admLastSeen(p.lastActive):'';
   var search=((names+' '+(p.code||'')).toLowerCase());
@@ -2294,7 +2294,7 @@ function levelCard(){
   var bar='<div style="height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:12px">'+
     '<div style="height:100%;width:'+pct+'%;background:var(--grad);border-radius:999px;transition:width .6s cubic-bezier(.2,.8,.2,1)"></div></div>';
   var nextLine = nx
-    ? '<div class="xs muted mt2">До «'+esc(nx.name)+'» '+nx.emoji+' — ещё '+Math.max(0,nx.min-pts)+' очков</div>'
+    ? '<div class="xs muted mt2">До «'+esc(nx.name)+'» '+nx.emoji+' — ещё '+Math.max(0,nx.min-pts)+' Love Points</div>'
     : '<div class="xs muted mt2">Максимальный уровень достигнут 👑</div>';
   var levels=(S.config&&S.config.levels)||[];
   var road=levels.map(function(l,i){
@@ -2304,7 +2304,7 @@ function levelCard(){
   }).join('');
   return '<div class="card p5 mb3">'+
     '<div class="row between"><div class="sb" style="font-size:16px">'+lv.emoji+' '+esc(lv.name)+'</div>'+
-    '<div class="chipx gold" style="font-size:13px">⭐ '+pts+'</div></div>'+
+    '<div class="chipx gold" style="font-size:13px">💖 '+pts+'</div></div>'+
     bar+nextLine+
     '<div class="lvl-road">'+road+'</div>'+
     '<div class="row gap2 mt3"><button class="btn btn-ghost flex1" data-act="open-achv">🏆 Достижения</button>'+
@@ -2372,13 +2372,13 @@ function questBurst(){
   var b=S.qburst; if(!b) return '';
   var cols=['#ff5e8a','#c026d3','#fbbf24','#34d399','#60a5fa'];
   var conf=''; for(var i=0;i<40;i++){ conf+='<span class="conf" style="left:'+(Math.random()*100).toFixed(1)+'%;background:'+cols[i%5]+';animation-delay:'+(Math.random()*0.4).toFixed(2)+'s"></span>'; }
-  var txt=(b.label?b.label:(b.emoji||'🎉'))+(b.pts?(' +'+b.pts+' ⭐'):'');
+  var txt=(b.label?b.label:(b.emoji||'🎉'))+(b.pts?(' +'+b.pts+' 💖'):'');
   return '<div class="q-burst-wrap"><div class="conf-wrap" style="position:absolute;inset:0">'+conf+'</div>'+
     '<div class="q-burst-badge">'+txt+'</div></div>';
 }
 
 var TABS=[
-  ['today','Сегодня','🏠'],['wishes','Желания','⭐'],['quests','Квесты','🗺️'],
+  ['today','Сегодня','🏠'],['wishes','Желания','💖'],['quests','Квесты','🗺️'],
   ['dates','Даты','📅'],['us','Мы','💞']
 ];
 function bottomNav(){
@@ -2542,7 +2542,7 @@ var ACTS={
   'close-cust':function(){ S.showCust=false; render(); },
   'set-theme':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx() && !isPremium()){ S.promoOpen=true; haptic('light'); render(); return; } S.theme=el.dataset.k; lsSet('theme',S.theme); applyTheme(S.theme); haptic('success'); render(); },
   'set-frame':function(el){ var lv=+el.dataset.lv||0; if(lv>curLevelIdx() && !isPremium()){ S.promoOpen=true; haptic('light'); render(); return; } S.frame=el.dataset.k; lsSet('frame',S.frame); haptic('success'); render(); },
-  'lvl-info':function(el){ var i=+el.dataset.i, lv=S.config&&S.config.levels[i], cur=S.progress&&S.progress.level.index; if(!lv)return; if(i>cur){ var perks=(lv.perks||[]).join(', '); alert('🔒 «'+lv.name+'» '+lv.emoji+'\nДоступно после '+lv.min+' очков.'+(perks?'\n\nОткроется: '+perks:'')); } haptic('light'); },
+  'lvl-info':function(el){ var i=+el.dataset.i, lv=S.config&&S.config.levels[i], cur=S.progress&&S.progress.level.index; if(!lv)return; if(i>cur){ var perks=(lv.perks||[]).join(', '); alert('🔒 «'+lv.name+'» '+lv.emoji+'\nДоступно после '+lv.min+' Love Points.'+(perks?'\n\nОткроется: '+perks:'')); } haptic('light'); },
   'level-continue':function(){ S.levelup=null; haptic('light'); render(); },
   'ob-share':shareInvite,
   'invite-share':function(){ shareInvite(S.couple && S.couple.inviteCode); },
