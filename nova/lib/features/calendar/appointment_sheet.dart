@@ -75,7 +75,7 @@ class _AppointmentSheet extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: KavioButton('Подтвердить',
+                child: KavioButton('Підтвердити',
                     small: true,
                     expand: true,
                     onPressed: () =>
@@ -83,7 +83,7 @@ class _AppointmentSheet extends ConsumerWidget {
               ),
               const SizedBox(width: Spacing.s2),
               Expanded(
-                child: KavioButton('Завершить',
+                child: KavioButton('Завершити',
                     small: true,
                     expand: true,
                     kind: KavioButtonKind.secondary,
@@ -96,7 +96,7 @@ class _AppointmentSheet extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: KavioButton('Неявка',
+                child: KavioButton('Не прийшов',
                     small: true,
                     expand: true,
                     kind: KavioButtonKind.secondary,
@@ -105,7 +105,7 @@ class _AppointmentSheet extends ConsumerWidget {
               ),
               const SizedBox(width: Spacing.s2),
               Expanded(
-                child: KavioButton('Удалить',
+                child: KavioButton('Видалити',
                     small: true,
                     expand: true,
                     kind: KavioButtonKind.danger,
