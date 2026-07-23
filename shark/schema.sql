@@ -30,8 +30,6 @@ create table if not exists shark_users (
   banned         boolean not null default false,
   played         integer not null default 0,           -- сыграно раундов (для профиля/уровня)
   won_stars      bigint  not null default 0,           -- суммарно выиграно ⭐
-  daily_case_at  date,                                 -- дата последнего кейса (UTC)
-  wheel_at       date,                                 -- дата последнего колеса (UTC)
   created_at     timestamptz not null default now(),
   last_seen      timestamptz not null default now()
 );
@@ -42,7 +40,7 @@ create table if not exists shark_ledger (
   tg_id      bigint not null references shark_users(tg_id),
   currency   text   not null check (currency in ('uah','stars')),
   amount     numeric(14,2) not null,                   -- + начисление, − списание
-  kind       text   not null,                          -- referral|bet|win|withdraw|withdraw_refund|daily|wheel|gift|adjust
+  kind       text   not null,                          -- referral|bet|win|withdraw|withdraw_refund|gift|adjust
   ref        text,                                     -- ссылка на сущность (id вывода/раунда)
   idem       text   unique,                            -- ключ идемпотентности (может быть null для «всегда уникальных»)
   meta       jsonb  not null default '{}',
@@ -82,7 +80,7 @@ create table if not exists shark_referrals (
 create table if not exists shark_bets (
   id          bigint generated always as identity primary key,
   tg_id       bigint not null references shark_users(tg_id),
-  game        text   not null,                          -- roulette | crash | wheel
+  game        text   not null,                          -- roulette | crash | pvp
   bet_stars   bigint not null default 0,
   payout      bigint not null default 0,                -- выплата в ⭐ (0 = проигрыш)
   detail      jsonb  not null default '{}',             -- {prize, mult, crash_point, ...}
@@ -151,8 +149,7 @@ insert into shark_config(id, data) values (1, '{
   "usdt_rate": 45,
   "min_withdraw": 100,
   "referral_bonus": 10,
-  "referral_share": 0.10,
-  "daily_case_stars": 10
+  "referral_share": 0.10
 }') on conflict (id) do nothing;
 
 -- ============================================================================

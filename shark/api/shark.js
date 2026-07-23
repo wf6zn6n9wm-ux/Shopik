@@ -9,9 +9,8 @@
 // на сервере. Звёзды НЕ конвертируются в деньги ни одним действием.
 //
 // Запрос: POST { action, initData, ...params }
-// Действия: state | daily_case | wheel_spin | game_bet | pvp_state |
-//           pvp_join | crash_bet | crash_cashout | buy_gift | withdraw_create |
-//           history
+// Действия: state | game_bet | pvp_state | pvp_join | crash_bet |
+//           crash_cashout | buy_gift | withdraw_create | history
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
 //   SHARK_SUPABASE_URL / SUPABASE_URL
@@ -39,7 +38,6 @@ const ROUL_PRIZES = [
   { emoji: '🦈', name: 'Акула',   value: 150, weight: 2.5 },
   { emoji: '💎', name: 'Жемчуг',  value: 300, weight: 0.5 }
 ];
-const WHEEL = [5, 50, 10, 100, 20, 250, 15, 500];
 const SHOP = [
   { emoji: '🦈', name: 'Shark NFT', value: 500 }, { emoji: '🐚', name: 'Ракушка', value: 331 },
   { emoji: '🪸', name: 'Коралл',   value: 344 }, { emoji: '🌊', name: 'Волна',   value: 360 },
@@ -168,8 +166,7 @@ module.exports = async (req, res) => {
     // --- конфиг ---
     const cfgRows = await sbGet('shark_config?id=eq.1&select=data');
     const CFG = Object.assign({
-      usdt_rate: 45, min_withdraw: 100, referral_bonus: 10, referral_share: 0.10,
-      daily_case_stars: 10
+      usdt_rate: 45, min_withdraw: 100, referral_bonus: 10, referral_share: 0.10
     }, (cfgRows[0] && cfgRows[0].data) || {});
 
     // --- убедиться что пользователь есть (upsert) ---
@@ -228,7 +225,6 @@ module.exports = async (req, res) => {
     //  STATE — всё состояние для отрисовки
     // ---------------------------------------------------------
     if (action === 'state') {
-      const today = todayUTC();
       const refs = await sbGet('shark_referrals?inviter_tg=eq.' + me.id + '&select=invited_tg,earned');
       const refEarned = refs.reduce((a, b) => a + Number(b.earned || 0), 0);
 
@@ -237,56 +233,12 @@ module.exports = async (req, res) => {
         user: publicUser(user),
         config: {
           usdt_rate: CFG.usdt_rate, min_withdraw: CFG.min_withdraw,
-          referral_bonus: CFG.referral_bonus, referral_share: CFG.referral_share,
-          daily_case_stars: CFG.daily_case_stars
-        },
-        daily: {
-          case_ready: user.daily_case_at !== today,
-          wheel_ready: user.wheel_at !== today
+          referral_bonus: CFG.referral_bonus, referral_share: CFG.referral_share
         },
         referrals: { count: refs.length, earned: refEarned },
-        catalog: { roulette: ROUL_PRIZES, wheel: WHEEL, shop: SHOP, bets: BET_OPTIONS, methods: WITHDRAW_METHODS },
+        catalog: { roulette: ROUL_PRIZES, shop: SHOP, bets: BET_OPTIONS, methods: WITHDRAW_METHODS },
         refLink: botLink(BOT, user.ref_code)
       });
-      return;
-    }
-
-    // ---------------------------------------------------------
-    //  DAILY_CASE — ежедневный кейс (раз в день)
-    // ---------------------------------------------------------
-    if (action === 'daily_case') {
-      const today = todayUTC();
-      if (user.daily_case_at === today) { json(res, 200, { ok: false, reason: 'already_today' }); return; }
-      const upd = await sb('shark_users?tg_id=eq.' + me.id + '&daily_case_at=is.null&or=(daily_case_at.neq.' + today + ')', {
-        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
-        body: JSON.stringify({ daily_case_at: today })
-      });
-      // если гонка — строк не вернётся
-      if (!Array.isArray(upd.data) || !upd.data.length) { json(res, 200, { ok: false, reason: 'already_today' }); return; }
-      const reward = Number(CFG.daily_case_stars);
-      await applyLedger(me.id, 'stars', reward, 'daily', 'case:' + today, 'daily_case:' + me.id + ':' + today, {});
-      const fresh = await freshUser();
-      json(res, 200, { ok: true, reward, user: publicUser(fresh) });
-      return;
-    }
-
-    // ---------------------------------------------------------
-    //  WHEEL_SPIN — колесо фортуны (раз в день, исход на сервере)
-    // ---------------------------------------------------------
-    if (action === 'wheel_spin') {
-      const today = todayUTC();
-      if (user.wheel_at === today) { json(res, 200, { ok: false, reason: 'already_today' }); return; }
-      const upd = await sb('shark_users?tg_id=eq.' + me.id + '&or=(wheel_at.is.null,wheel_at.neq.' + today + ')', {
-        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
-        body: JSON.stringify({ wheel_at: today })
-      });
-      if (!Array.isArray(upd.data) || !upd.data.length) { json(res, 200, { ok: false, reason: 'already_today' }); return; }
-      const idx = Math.floor(Math.random() * WHEEL.length);
-      const reward = WHEEL[idx];
-      await applyLedger(me.id, 'stars', reward, 'wheel', 'wheel:' + today, 'wheel:' + me.id + ':' + today, { idx });
-      await bumpStats(me.id, { won: reward });
-      const fresh = await freshUser();
-      json(res, 200, { ok: true, idx, reward, user: publicUser(fresh) });
       return;
     }
 
@@ -673,8 +625,8 @@ function mapHistory(r) {
   const val = r.currency === 'stars' ? (sign + '⭐' + Math.abs(amt)) : (sign + Math.abs(amt).toFixed(2) + ' грн');
   const titles = {
     referral: '👥 Реферал', bet: '🎮 Ставка', win: '🏆 Выигрыш',
-    withdraw: '💸 Вывод', withdraw_refund: '↩️ Возврат вывода', daily: '🎁 Ежедневный кейс',
-    wheel: '🎡 Колесо', gift: '🎁 Подарок', adjust: '⚙️ Коррекция'
+    withdraw: '💸 Вывод', withdraw_refund: '↩️ Возврат вывода',
+    gift: '🎁 Подарок', adjust: '⚙️ Коррекция'
   };
   return {
     icon: (titles[r.kind] || '•').split(' ')[0],

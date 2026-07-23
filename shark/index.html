@@ -312,21 +312,8 @@
     <div><h1>Shark</h1><p>Играй на звёзды, выигрывай подарки</p></div>
   </div>
 
-  <!-- push-баннер (показывается когда кейс готов) -->
+  <!-- push-баннер -->
   <div id="push-slot"></div>
-
-  <!-- ежедневный кейс -->
-  <div class="daily">
-    <div class="ic">🎁</div>
-    <div class="db"><b>Ежедневный кейс</b><p id="daily-sub">Открывай раз в день — +10 звёзд бесплатно</p></div>
-    <button class="btn-mini" id="daily-btn" onclick="openDailyCase()">Открыть</button>
-  </div>
-
-  <!-- колесо фортуны + квесты -->
-  <div class="row" style="gap:10px;margin-bottom:12px">
-    <div class="daily" style="flex:1;margin:0;cursor:pointer" onclick="go('wheel')"><div class="ic">🎡</div><div class="db"><b>Колесо</b><p>Крути бесплатно</p></div></div>
-    <div class="daily" style="flex:1;margin:0;cursor:pointer" onclick="go('quests')"><div class="ic">🗺️</div><div class="db"><b>Квесты</b><p>Бонусы за цепочки</p></div></div>
-  </div>
 
   <div class="card c-roul" style="min-height:150px" onclick="go('games')"><h2 style="font-size:28px">Игры 🦈</h2><p>Рулетка и Краш — играй на звёзды, выигрывай подарки</p><span class="cur-tag" style="color:var(--gold)">⭐ только звёзды</span><span class="emoji">🎮</span></div>
   <div class="card c-pvp" onclick="go('pvp')"><h2>PVP <span class="badge">Новое</span></h2><p>Битва за общий банк — победитель забирает всё</p><span class="cur-tag" style="color:#3a2400">⭐ только звёзды</span><span class="emoji">⚔️</span></div>
@@ -478,27 +465,6 @@
   <h1 class="title">История</h1>
   <p class="sub">Все начисления, выигрыши и выводы</p>
   <div id="history-list"></div>
-</div>
-
-<!-- КВЕСТЫ -->
-<div class="screen" id="s-quests">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="spacer"></div></div>
-  <h1 class="title">Квесты</h1>
-  <p class="sub">Выполняй цепочки заданий и получай бонусы</p>
-  <div id="quest-list"></div>
-</div>
-
-<!-- КОЛЕСО ФОРТУНЫ -->
-<div class="screen" id="s-wheel">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span></div></div>
-  <h1 class="title">Колесо фортуны</h1>
-  <p class="sub">Крути бесплатно раз в день и выигрывай звёзды</p>
-  <div class="wheel-wrap">
-    <div class="wheel-ptr"></div>
-    <div class="wheel" id="wheel"></div>
-    <div class="wheel-hub">🦈</div>
-  </div>
-  <button class="btn-primary" id="wheel-btn" onclick="spinWheel()">Крутить бесплатно</button>
 </div>
 
 <!-- ДОСТИЖЕНИЯ -->
@@ -686,33 +652,15 @@ function renderProfile(){
   var sr=document.getElementById('st-rank'); if(sr) sr.textContent='100+';
 }
 
-/* ============ ЕЖЕДНЕВНЫЙ КЕЙС ============ */
-function openDailyCase(){
-  if(S.dailyOpened){ toast('Кейс уже открыт сегодня. Возвращайтесь завтра!'); return; }
-  var reward=10;
-  S.dailyOpened=true; S.stars+=reward; syncBalances();
-  document.getElementById('daily-btn').disabled=true;
-  document.getElementById('daily-sub').textContent='Открыто! Возвращайтесь завтра';
-  logOp('🎁','Ежедневный кейс','Бесплатно','+⭐'+reward,'star');
-  renderPush();
-  showSheet('<div class="result-emoji case-anim">🎁</div><h3 style="text-align:center">Кейс открыт!</h3><p class="muted" style="text-align:center">Вам выпало ⭐'+reward+'. Завтра новый кейс.</p><button class="btn-primary" onclick="closeSheet()">Забрать ⭐'+reward+'</button>');
-}
-
 /* ============ СЕРИЯ ВХОДОВ ============ */
 function renderStreak(){ /* серия входов убрана */ }
 
 /* ============ PUSH-БАННЕР ============ */
 function renderPush(){
-  var slot=document.getElementById('push-slot'); slot.innerHTML='';
-  // показываем «новый розыгрыш», если кейс уже открыт — для демо
-  var pushes=[];
-  if(!S.dailyOpened) pushes.push({i:'🎁',t:'Ваш ежедневный кейс готов!',p:'Откройте бесплатно прямо сейчас',go:function(){openDailyCase();}});
-  pushes.push({i:'🏆',t:'Новый розыгрыш через 1 час',p:'6 призов · успейте присоединиться',go:function(){go('contests');}});
-  pushes.slice(0,1).forEach(function(p){
-    var el=document.createElement('div'); el.className='push';
-    el.innerHTML='<div class="pi">'+p.i+'</div><div class="pt"><b>'+p.t+'</b><p>'+p.p+'</p></div><div class="pgo">→</div>';
-    el.onclick=p.go; slot.appendChild(el);
-  });
+  var slot=document.getElementById('push-slot'); if(!slot) return; slot.innerHTML='';
+  var el=document.createElement('div'); el.className='push';
+  el.innerHTML='<div class="pi">🏆</div><div class="pt"><b>Новый розыгрыш через 1 час</b><p>6 призов · успейте присоединиться</p></div><div class="pgo">→</div>';
+  el.onclick=function(){go('contests');}; slot.appendChild(el);
 }
 
 /* ============ БЕГУЩАЯ СТРОКА ============ */
@@ -971,49 +919,6 @@ function onbNext(){
   onbIndex++; showOnbSlide();
 }
 
-/* ============ КОЛЕСО ФОРТУНЫ ============ */
-var WHEEL=[5,50,10,100,20,250,15,500]; // сектора
-function buildWheel(){
-  var w=document.getElementById('wheel'); if(!w) return;
-  var n=WHEEL.length, seg=360/n, parts=[];
-  var cols=['#16236b','#7a1f3a','#1d3a6b','#b5541f','#0a5f6b','#5a2f7a','#3a5f6b','#9b6b1e'];
-  for(var i=0;i<n;i++){ parts.push(cols[i%cols.length]+' '+(i*seg)+'deg '+((i+1)*seg)+'deg'); }
-  w.style.background='conic-gradient('+parts.join(',')+')';
-  // подписи звёзд поверх — простыми абсолютными метками
-  w.innerHTML='';
-  for(var j=0;j<n;j++){
-    var ang=(j+0.5)*seg-90; var rad=ang*Math.PI/180;
-    var lbl=document.createElement('div');
-    lbl.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) translate('+Math.cos(rad)*90+'px,'+Math.sin(rad)*90+'px);font-weight:800;font-size:13px;color:#fff;text-shadow:0 1px 3px #000;';
-    lbl.textContent='⭐'+WHEEL[j];
-    w.appendChild(lbl);
-  }
-}
-var wheelSpinning=false;
-function spinWheel(){
-  if(wheelSpinning) return;
-  if(S.wheelSpun){ toast('Колесо уже крутили сегодня. Возвращайтесь завтра!'); return; }
-  wheelSpinning=true; S.wheelSpun=true;
-  var n=WHEEL.length, seg=360/n;
-  var idx=Math.floor(Math.random()*n);
-  var spins=5; // полных оборотов
-  var finalDeg=spins*360 + (360 - (idx*seg + seg/2));
-  var w=document.getElementById('wheel');
-  w.style.transform='rotate('+finalDeg+'deg)';
-  beep(440,0.05,0.04,'square');
-  var clk=setInterval(function(){beep(800,0.012,0.012,'square');},120);
-  document.getElementById('wheel-btn').disabled=true;
-  setTimeout(function(){
-    clearInterval(clk);
-    var reward=WHEEL[idx]; S.stars+=reward; syncBalances(); wheelSpinning=false;
-    beep(660,0.12,0.06,'triangle'); vibrate(25);
-    logOp('🎡','Колесо фортуны','Бесплатный спин','+⭐'+reward,'star');
-    checkAchievements();
-    showSheet('<div class="result-emoji">🎡</div><h3 style="text-align:center">Выпало ⭐'+reward+'!</h3><p class="muted" style="text-align:center">Звёзды на балансе. Следующий бесплатный спин завтра.</p><button class="btn-primary" onclick="closeSheet()">Забрать</button>');
-    document.getElementById('wheel-btn').textContent='Уже крутили сегодня';
-  },4100);
-}
-
 /* ============ ДОСТИЖЕНИЯ ============ */
 var ACHIEVEMENTS=[
   {id:'first_task',ic:'✅',title:'Первое задание',desc:'Выполни любое задание',reward:20,check:function(){return Object.keys(S.doneTasks).length>=1;}},
@@ -1041,45 +946,6 @@ function renderAch(){
     el.innerHTML='<div class="ai">'+a.ic+'</div><div class="ab"><b>'+a.title+'</b><p>'+a.desc+'</p></div><div class="areward">'+(done?'✓ +⭐'+a.reward:'+⭐'+a.reward)+'</div>';
     box.appendChild(el);
   });
-}
-
-/* ============ КВЕСТЫ-ЦЕПОЧКИ ============ */
-var QUESTS=[
-  {id:'starter',title:'Новичок',reward:50,steps:[
-    {t:'Выполни 1 задание',done:function(){return Object.keys(S.doneTasks).length>=1;}},
-    {t:'Открой ежедневный кейс',done:function(){return S.dailyOpened;}},
-    {t:'Сыграй 1 раз',done:function(){return S.played>=1;}}
-  ]},
-  {id:'active',title:'Активный игрок',reward:120,steps:[
-    {t:'Сыграй 5 раз',done:function(){return S.played>=5;}},
-    {t:'Выиграй 200 звёзд',done:function(){return S.wonStars>=200;}},
-    {t:'Покрути колесо',done:function(){return S.wheelSpun;}}
-  ]},
-  {id:'social',title:'Душа компании',reward:100,steps:[
-    {t:'Пригласи друга',done:function(){return S.refCount>=1;}},
-    {t:'Выполни 3 задания',done:function(){return Object.keys(S.doneTasks).length>=3;}}
-  ]}
-];
-var claimedQuests={};
-function renderQuests(){
-  var box=document.getElementById('quest-list'); box.innerHTML='';
-  QUESTS.forEach(function(q){
-    var doneCount=q.steps.filter(function(s){return s.done();}).length;
-    var pct=Math.round(doneCount/q.steps.length*100);
-    var complete=doneCount===q.steps.length;
-    var el=document.createElement('div'); el.className='quest';
-    var stepsHtml=q.steps.map(function(s){return (s.done()?'✅ ':'⬜ ')+s.t;}).join(' · ');
-    var btn = complete && !claimedQuests[q.id] ? '<button class="btn-primary" style="margin-top:10px" onclick="claimQuest(\''+q.id+'\')">Забрать +⭐'+q.reward+'</button>' : (claimedQuests[q.id]?'<div style="margin-top:10px;color:var(--green);font-weight:700;text-align:center">Получено ✓</div>':'');
-    el.innerHTML='<div class="qh"><b>'+q.title+'</b><span class="qr">+⭐'+q.reward+'</span></div><div class="qbar"><i style="width:'+pct+'%"></i></div><div class="qsteps">'+stepsHtml+'</div>'+btn;
-    box.appendChild(el);
-  });
-}
-function claimQuest(id){
-  var q=QUESTS.filter(function(x){return x.id===id;})[0]; if(!q||claimedQuests[id])return;
-  claimedQuests[id]=true; S.stars+=q.reward; syncBalances();
-  logOp('🗺️','Квест: '+q.title,'Награда','+⭐'+q.reward,'star');
-  toast('Квест «'+q.title+'» выполнен! +⭐'+q.reward);
-  renderQuests();
 }
 
 /* ============ НАСТРОЙКИ ============ */
@@ -1196,8 +1062,6 @@ var _go=go;
 go=function(name){
   _go(name);
   if(name==='ach') renderAch();
-  if(name==='quests') renderQuests();
-  if(name==='wheel'){ buildWheel(); var wb=document.getElementById('wheel-btn'); if(wb){wb.disabled=S.wheelSpun; wb.textContent=S.wheelSpun?'Уже крутили сегодня':'Крутить бесплатно';} }
   if(name==='pvp'){ if(!pvpSpinning) initPvp(); }
 };
 window.go=go;
@@ -1214,9 +1078,9 @@ init();
 
 window.go=go;window.spin=spin;window.setBet=setBet;window.crashAction=crashAction;window.setCBet=setCBet;
 window.openWithdraw=openWithdraw;window.openBuyStars=openBuyStars;window.invite=invite;window.closeSheet=closeSheet;
-window.toast=toast;window.setContestTab=setContestTab;window.openDailyCase=openDailyCase;window.copyRef=copyRef;
+window.toast=toast;window.setContestTab=setContestTab;window.copyRef=copyRef;
 window.setGameTab=setGameTab;
-window.onbNext=onbNext;window.showOnboarding=showOnboarding;window.spinWheel=spinWheel;window.claimQuest=claimQuest;window.setLang=setLang;window.toggleSound=toggleSound;
+window.onbNext=onbNext;window.showOnboarding=showOnboarding;window.setLang=setLang;window.toggleSound=toggleSound;
 
 /* ============================================================
    СЕРВЕРНЫЙ СЛОЙ — связь с бэкендом (/api/shark).
@@ -1228,7 +1092,7 @@ var BOT_USERNAME='SharkBot';
 var API_URL='/api/shark';
 var TGAPP=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
 var INIT=TGAPP?(TGAPP.initData||''):'';
-var SERVER=false, ME={}, CFG={usdt_rate:USDT_RATE,min_withdraw:100,daily_case_stars:10}, REF={count:0,earned:0}, REFLINK='';
+var SERVER=false, ME={}, CFG={usdt_rate:USDT_RATE,min_withdraw:100}, REF={count:0,earned:0}, REFLINK='';
 
 async function api(action,params){
   var r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1240,13 +1104,6 @@ function applyUser(u){
   S.money=u.money; S.stars=u.stars; S.played=u.played; S.wonStars=u.wonStars;
   syncBalances(); renderProfile(); renderLeaders();
 }
-function updateDailyUI(){
-  var db=document.getElementById('daily-btn'), ds=document.getElementById('daily-sub');
-  if(db) db.disabled=S.dailyOpened;
-  if(ds && S.dailyOpened) ds.textContent='Открыто! Возвращайтесь завтра';
-  var wb=document.getElementById('wheel-btn'); if(wb){wb.disabled=S.wheelSpun; wb.textContent=S.wheelSpun?'Уже крутили сегодня':'Крутить бесплатно';}
-  renderPush();
-}
 function setRefLink(){ var i=document.getElementById('ref-link'); if(i&&REFLINK) i.value=REFLINK; }
 function wdErr(reason){
   var m={below_min:'Сумма меньше минимальной',no_money:'Недостаточно средств',bad_card:'Номер карты — 16 цифр',
@@ -1257,8 +1114,7 @@ async function refreshState(){
   if(!SERVER) return;
   try{
     var st=await api('state');
-    if(st&&st.ok){ ME=st.user; REF=st.referrals||REF; applyUser(st.user);
-      if(st.daily){ S.dailyOpened=!st.daily.case_ready; S.wheelSpun=!st.daily.wheel_ready; updateDailyUI(); } }
+    if(st&&st.ok){ ME=st.user; REF=st.referrals||REF; applyUser(st.user); }
   }catch(e){}
 }
 async function loadHistory(){
@@ -1270,41 +1126,10 @@ async function loadHistory(){
 }
 
 /* ---- сохраняем оригиналы (демо) и переопределяем на серверные версии ---- */
-var _openDailyCase=openDailyCase, _spinWheel=spinWheel, _spin=spin, _crashAction=crashAction,
+var _spin=spin, _crashAction=crashAction,
     _buyGift=buyGift, _doWithdraw=doWithdraw, _invite=invite, _renderRefs=renderRefs,
     _openBuyStars=openBuyStars, _openWithdraw=openWithdraw, _checkAchievements=checkAchievements,
-    _claimQuest=claimQuest, _pvpJoin=pvpJoin;
-
-openDailyCase=async function(){
-  if(!SERVER) return _openDailyCase();
-  if(S.dailyOpened){ toast('Кейс уже открыт сегодня. Возвращайтесь завтра!'); return; }
-  var r=await api('daily_case');
-  if(!r.ok){ if(r.reason==='already_today'){S.dailyOpened=true;updateDailyUI();toast('Кейс уже открыт сегодня');} else toast('Не удалось открыть кейс'); return; }
-  S.dailyOpened=true; applyUser(r.user); updateDailyUI();
-  showSheet('<div class="result-emoji case-anim">🎁</div><h3 style="text-align:center">Кейс открыт!</h3><p class="muted" style="text-align:center">Вам выпало ⭐'+r.reward+'. Завтра новый кейс.</p><button class="btn-primary" onclick="closeSheet()">Забрать ⭐'+r.reward+'</button>');
-};
-
-spinWheel=async function(){
-  if(!SERVER) return _spinWheel();
-  if(wheelSpinning) return;
-  if(S.wheelSpun){ toast('Колесо уже крутили сегодня. Возвращайтесь завтра!'); return; }
-  wheelSpinning=true; var wb=document.getElementById('wheel-btn'); if(wb) wb.disabled=true;
-  var r=await api('wheel_spin');
-  if(!r.ok){ wheelSpinning=false; if(wb) wb.disabled=false;
-    if(r.reason==='already_today'){S.wheelSpun=true;updateDailyUI();toast('Колесо уже крутили сегодня');} else toast('Ошибка'); return; }
-  S.wheelSpun=true;
-  var n=WHEEL.length, seg=360/n, idx=r.idx;
-  var finalDeg=5*360 + (360-(idx*seg+seg/2));
-  var w=document.getElementById('wheel'); w.style.transform='rotate('+finalDeg+'deg)';
-  beep(440,0.05,0.04,'square');
-  var clk=setInterval(function(){beep(800,0.012,0.012,'square');},120);
-  setTimeout(function(){
-    clearInterval(clk); wheelSpinning=false; applyUser(r.user);
-    beep(660,0.12,0.06,'triangle'); vibrate(25);
-    showSheet('<div class="result-emoji">🎡</div><h3 style="text-align:center">Выпало ⭐'+r.reward+'!</h3><p class="muted" style="text-align:center">Звёзды на балансе. Следующий бесплатный спин завтра.</p><button class="btn-primary" onclick="closeSheet()">Забрать</button>');
-    if(wb) wb.textContent='Уже крутили сегодня';
-  },4100);
-};
+    _pvpJoin=pvpJoin;
 
 spin=async function(){
   if(!SERVER) return _spin();
@@ -1480,7 +1305,6 @@ openBuyStars=function(){
 /* достижения и квесты пока не заведены на сервер — в серверном режиме не
    начисляем звёзды локально, чтобы не расходиться с балансом на бэкенде */
 checkAchievements=function(){ if(SERVER) return; return _checkAchievements(); };
-claimQuest=function(id){ if(SERVER){ toast('Награды за квесты скоро будут начисляться на сервере'); return; } return _claimQuest(id); };
 
 /* обёртка навигации: подгружаем серверные данные при открытии экранов */
 var __goServer=go;
@@ -1494,9 +1318,9 @@ go=function(name){
 };
 
 /* экспорт переопределённых функций (inline-onclick берут их из window) */
-window.openDailyCase=openDailyCase; window.spinWheel=spinWheel; window.spin=spin;
+window.spin=spin;
 window.crashAction=crashAction; window.openWithdraw=openWithdraw; window.invite=invite;
-window.openBuyStars=openBuyStars; window.claimQuest=claimQuest; window.pvpJoin=pvpJoin; window.go=go;
+window.openBuyStars=openBuyStars; window.pvpJoin=pvpJoin; window.go=go;
 
 /* ---- старт: аутентификация в Telegram и загрузка состояния ---- */
 async function boot(){
@@ -1508,9 +1332,8 @@ async function boot(){
     SERVER=true; ME=st.user; CFG=st.config||CFG; REF=st.referrals||REF;
     USDT_RATE=CFG.usdt_rate||USDT_RATE;
     if(st.refLink) REFLINK='https://t.me/'+BOT_USERNAME+st.refLink;
-    if(st.daily){ S.dailyOpened=!st.daily.case_ready; S.wheelSpun=!st.daily.wheel_ready; }
     if(ME.first_name){ var pn=document.getElementById('prof-name'); if(pn) pn.textContent=ME.first_name; }
-    applyUser(st.user); updateDailyUI(); setRefLink();
+    applyUser(st.user); renderPush(); setRefLink();
   }catch(e){}
 }
 boot();
