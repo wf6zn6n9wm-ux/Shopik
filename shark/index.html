@@ -497,6 +497,34 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 #bubbles{transform:translate(calc(var(--tiltx) * 2px),calc(var(--tilty) * 2px));}
 .hero-card{transform:perspective(820px) rotateY(calc(var(--tiltx) * 0.5deg)) rotateX(calc(var(--tilty) * -0.5deg));transition:transform .25s ease-out;transform-style:preserve-3d;}
 
+/* краш: список игроков в стиле Aviator (отдельные карточки, зелёные при выводе) */
+#crash-players{background:none;border:0;box-shadow:none;overflow:visible;-webkit-backdrop-filter:none;backdrop-filter:none;}
+#crash-players .ph{border:0;padding:4px 4px 8px;}
+.crow{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:8px;border-radius:16px;
+  background:var(--glass-bg);border:1.5px solid var(--glass-brd);box-shadow:var(--sh-soft),inset 0 1px 0 var(--glass-hi);
+  transition:border-color .25s,background .25s,opacity .25s;}
+.crow.win{border-color:rgba(62,224,163,.6);background:linear-gradient(90deg,rgba(62,224,163,.14),rgba(62,224,163,.04));}
+.crow.lose{opacity:.5;}
+.cav{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;font-size:23px;
+  background:radial-gradient(circle at 38% 28%,#1e5268,#0c2637 72%);border:1px solid var(--glass-brd);box-shadow:inset 0 1px 0 rgba(255,255,255,.1);}
+.cinfo{flex:1;min-width:0;}
+.cnm{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cnm b{color:var(--aqua);}
+.cbet{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:13px;font-weight:700;margin-top:2px;}
+.cbet .star-ic{width:.95em;height:.95em;}
+.cmul{color:var(--foam);}
+.crow.win .cmul{color:var(--green);}
+.cpaywrap{display:flex;align-items:center;gap:4px;font-weight:800;font-size:16px;}
+.cpaywrap .star-ic{width:1em;height:1em;}
+.cpay{color:var(--foam);} .cpay.win{color:var(--green);} .cpay.lose{color:var(--muted);font-weight:700;}
+
+/* история раундов — бордюрные пилюли по тиру */
+.ch-pill{background:rgba(6,17,26,.5);border:1.5px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:800;}
+.ch-pill.low{color:#5fe0b0;border-color:rgba(62,224,163,.5);}
+.ch-pill.mid{color:#7fb3ff;border-color:rgba(110,150,255,.5);}
+.ch-pill.high{color:#c7a3ff;border-color:rgba(154,124,255,.55);}
+.ch-pill.huge{color:var(--gold);border-color:rgba(255,207,92,.6);box-shadow:0 0 12px rgba(255,207,92,.22);}
+
 /* конкурсы под общий стиль */
 .contest{background:var(--glass-bg);border:1px solid var(--glass-brd);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:var(--sh-soft),inset 0 1px 0 var(--glass-hi);border-radius:20px;}
 .contest .timer{background:var(--grad-gold);color:#2a1a00;box-shadow:var(--glow-gold);}
@@ -979,6 +1007,11 @@ function beep(freq,dur,vol,type){
   }catch(e){}
 }
 function vibrate(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
+/* «живые» соперники для краша (боты ставят каждый раунд) */
+var CRASH_NAMES=['Никита','ARMIN','Джастон','Amir','XU','Данёк','sea_wolf','Влад','kraken_x','Максим','reef_king','Артём','SELL FIZ','tide_88','Оля','marlin','Санёк','deep_one','Женя','orca_pro','Дима','blue_fin','Илья','pearl','Тимур','aqua_max'];
+var CRASH_AV=['🦈','🐙','🐡','🐠','🦑','🦀','🐬','🐳','🐚','🪼','🦞','🐟','😎','🤖','👾','🧊','🔥','⚡','🌊','💎','🎯','🃏'];
+var CRASH_BETS=[50,100,150,200,250,300,500];
+function crashBot(){ return { n:CRASH_NAMES[rint(0,CRASH_NAMES.length-1)], a:CRASH_AV[rint(0,CRASH_AV.length-1)] }; }
 function renderCrashHistory(){
   var box=document.getElementById('crash-history'); if(!box) return;
   box.innerHTML='';
@@ -995,7 +1028,7 @@ function updateCrashBtn(){var btn=document.getElementById('crash-btn');if(!btn)r
   else{btn.textContent='Раунд окончен';btn.disabled=true;}}
 function startCrashLoop(){if(crashLoopActive)return;crashLoopActive=true;beginWaiting();}
 function stopCrashLoop(){crashLoopActive=false;if(crashRAF)cancelAnimationFrame(crashRAF);if(crashCdTimer)clearInterval(crashCdTimer);}
-function beginWaiting(){if(!crashLoopActive)return;crashPhase='waiting';crashMult=1;S.cashedThisRound=false;iJoined=false;crashCountdown=5;crashBots=[];var n=rint(4,8);for(var i=0;i<n;i++){crashBots.push({id:i,bot:randBot(),bet:[50,100,250][rint(0,2)],cashAt:+(1.2+Math.random()*Math.random()*9).toFixed(2),status:'live',taken:0});}renderCrashPlayers();var mEl=document.getElementById('mult');if(mEl){mEl.textContent='Ожидание';mEl.style.color='';}resetSharkPos();updateCrashBtn();if(crashCdTimer)clearInterval(crashCdTimer);crashCdTimer=setInterval(function(){crashCountdown--;var st=document.getElementById('crash-status');if(st)st.innerHTML='Следующий раунд через <b>'+Math.max(crashCountdown,0)+'</b>…';if(crashCountdown<=0){clearInterval(crashCdTimer);beginFlying();}},1000);var st=document.getElementById('crash-status');if(st)st.innerHTML='Следующий раунд через <b>5</b>…';}
+function beginWaiting(){if(!crashLoopActive)return;crashPhase='waiting';crashMult=1;S.cashedThisRound=false;iJoined=false;crashCountdown=5;crashBots=[];var n=rint(3,8);for(var i=0;i<n;i++){crashBots.push({id:i,bot:crashBot(),bet:CRASH_BETS[rint(0,CRASH_BETS.length-1)],cashAt:+(1.2+Math.random()*Math.random()*9).toFixed(2),status:'live',taken:0});}renderCrashPlayers();var mEl=document.getElementById('mult');if(mEl){mEl.textContent='Ожидание';mEl.style.color='';}resetSharkPos();updateCrashBtn();if(crashCdTimer)clearInterval(crashCdTimer);crashCdTimer=setInterval(function(){crashCountdown--;var st=document.getElementById('crash-status');if(st)st.innerHTML='Следующий раунд через <b>'+Math.max(crashCountdown,0)+'</b>…';if(crashCountdown<=0){clearInterval(crashCdTimer);beginFlying();}},1000);var st=document.getElementById('crash-status');if(st)st.innerHTML='Следующий раунд через <b>5</b>…';}
 function setupCanvas(){
   var cv=document.getElementById('crash-canvas'); if(!cv)return null;
   var st=document.getElementById('crash-stage');
@@ -1006,7 +1039,7 @@ function setupCanvas(){
   ctx.clearRect(0,0,w,h);
   return {ctx:ctx,w:w,h:h};
 }
-function beginFlying(){if(!crashLoopActive)return;if(!crashBots.length){var n=rint(4,8);for(var k=0;k<n;k++){crashBots.push({id:k,bot:randBot(),bet:[50,100,250][rint(0,2)],cashAt:+(1.2+Math.random()*Math.random()*9).toFixed(2),status:'live',taken:0});}}crashPhase='flying';crashT0=performance.now();crashTarget=+(1.2+Math.random()*Math.random()*12).toFixed(2);var st=document.getElementById('crash-status');if(st)st.innerHTML='Раунд идёт — забирайте вовремя!';renderCrashPlayers();updateCrashBtn();crashRAF=requestAnimationFrame(crashTick);}
+function beginFlying(){if(!crashLoopActive)return;if(!crashBots.length){var n=rint(3,8);for(var k=0;k<n;k++){crashBots.push({id:k,bot:crashBot(),bet:CRASH_BETS[rint(0,CRASH_BETS.length-1)],cashAt:+(1.2+Math.random()*Math.random()*9).toFixed(2),status:'live',taken:0});}}crashPhase='flying';crashT0=performance.now();crashTarget=+(1.2+Math.random()*Math.random()*12).toFixed(2);var st=document.getElementById('crash-status');if(st)st.innerHTML='Раунд идёт — забирайте вовремя!';renderCrashPlayers();updateCrashBtn();crashRAF=requestAnimationFrame(crashTick);}
 function crashTick(now){
   if(crashPhase!=='flying')return;
   var dt=(now-crashT0)/1000;
@@ -1087,7 +1120,21 @@ function crashAction(){
     var am=parseFloat((document.getElementById('auto-mult')||{}).value||'2'); autoMult=(am&&am>1)?am:2;
     S.stars-=S.cbet;S.played++;syncBalances();iJoined=true;beep(520,0.06,0.05,'triangle');crashBots.unshift({id:'me',bot:{n:'Вы',a:'🙂'},bet:S.cbet,cashAt:autoCash?autoMult:999,status:'live',taken:0,me:true});renderCrashPlayers();updateCrashBtn();toast(autoCash?('Ставка ⭐'+S.cbet+', авто-вывод на '+autoMult.toFixed(2)+'x'):('Ставка ⭐'+S.cbet+' принята на следующий раунд'));checkAchievements();}
   else if(crashPhase==='flying'&&iJoined&&!S.cashedThisRound){var win=Math.floor(S.cbet*crashMult);S.stars+=win;S.wonStars+=Math.max(win-S.cbet,0);S.cashedThisRound=true;syncBalances();beep(780,0.12,0.06,'triangle');vibrate(30);var me=crashBots.filter(function(p){return p.me;})[0];if(me){me.status='win';me.taken=win;me.cashAt=crashMult;}renderCrashPlayers();updateCrashBtn();logOp('🚀','Краш: забрал','Множитель '+crashMult.toFixed(2)+'x','+⭐'+win,'star');celebrate({n:44});toast('Забрали ⭐'+win+' на '+crashMult.toFixed(2)+'x!');}}
-function renderCrashPlayers(){var box=document.getElementById('crash-players');if(!box)return;var html='<div class="ph"><span>Игроки в раунде</span><span>Множитель / итог</span></div>';crashBots.forEach(function(p){var st,cls;if(p.status==='live'){st=crashPhase==='waiting'?'ждёт':'в игре';cls='live';}else if(p.status==='win'){st='✓ '+p.cashAt.toFixed(2)+'x · +⭐'+p.taken;cls='win';}else{st='💥 проигрыш';cls='lose';}html+='<div class="prow"><div class="av">'+p.bot.a+'</div><div class="nm">'+(p.me?'<b style="color:var(--aqua)">Вы</b>':p.bot.n)+'</div><div class="bet">⭐'+p.bet+'</div><div class="st '+cls+'">'+st+'</div></div>';});box.innerHTML=html;}
+function renderCrashPlayers(){
+  var box=document.getElementById('crash-players');if(!box)return;
+  var html='<div class="ph"><span>Игроки в раунде · '+crashBots.length+'</span><span>Ставка · выплата</span></div>';
+  crashBots.forEach(function(p){
+    var cls,mul,pay;
+    if(p.status==='win'){ cls='win'; mul='×'+p.cashAt.toFixed(2); pay='<span class="cpay win">+'+p.taken+'</span>'; }
+    else if(p.status==='lose'){ cls='lose'; mul='💥'; pay='<span class="cpay lose">—</span>'; }
+    else { cls='live'; var cm=(crashPhase==='flying')?crashMult:1; mul='×'+cm.toFixed(2); pay='<span class="cpay">'+Math.floor(p.bet*cm)+'</span>'; }
+    html+='<div class="crow '+cls+'"><div class="cav">'+p.bot.a+'</div>'
+      +'<div class="cinfo"><div class="cnm">'+(p.me?'<b>Вы</b>':p.bot.n)+'</div>'
+      +'<div class="cbet"><i class="star-ic"></i>'+p.bet+' <span class="cmul">'+mul+'</span></div></div>'
+      +'<div class="cpaywrap"><i class="star-ic"></i>'+pay+'</div></div>';
+  });
+  box.innerHTML=html;
+}
 function resetSharkPos(){var sh=document.getElementById('cshark');if(sh){sh.innerHTML=sharkSVG();sh.style.transition='';sh.style.left='18px';sh.style.top='auto';sh.style.bottom='14px';sh.style.transform='scaleX(-1) rotate(-12deg)';}var cv=document.getElementById('crash-canvas');if(cv){var ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);}}
 
 /* ============ МАГАЗИН ============ */
