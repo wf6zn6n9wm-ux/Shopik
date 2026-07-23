@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/boot_uri.dart';
+import '../../core/localization/app_text.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
@@ -133,12 +134,12 @@ class _State extends ConsumerState<PublicBookingScreen> {
       children: [
         _bizHeader(k),
         const SizedBox(height: 20),
-        const ZLabel('Оберіть послугу'),
+        ZLabel(t('Оберіть послугу')),
         const SizedBox(height: 10),
         for (final cat in groups.keys) ...[
           Padding(
             padding: const EdgeInsets.only(left: 2, top: 8, bottom: 8),
-            child: Text(cat,
+            child: Text(t(cat),
                 style: AppTypography.label(k.ink2)
                     .copyWith(fontSize: 13, fontWeight: FontWeight.w700)),
           ),
@@ -226,7 +227,7 @@ class _State extends ConsumerState<PublicBookingScreen> {
     }
     return Column(
       children: [
-        _topBar(k, 'Оберіть час', () => setState(() => _step = 0)),
+        _topBar(k, t('Оберіть час'), () => setState(() => _step = 0)),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
@@ -277,7 +278,7 @@ class _State extends ConsumerState<PublicBookingScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const ZLabel('Вільний час'),
+              ZLabel(t('Вільний час')),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 9,
@@ -314,7 +315,7 @@ class _State extends ConsumerState<PublicBookingScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 30),
                   child: Center(
-                    child: Text('На цей день вільних вікон немає',
+                    child: Text(t('На цей день вільних вікон немає'),
                         style:
                             AppTypography.body(k.ink3).copyWith(fontSize: 14)),
                   ),
@@ -331,7 +332,7 @@ class _State extends ConsumerState<PublicBookingScreen> {
     final svc = _service!, slot = _slot!;
     return Column(
       children: [
-        _topBar(k, 'Ваші дані', () => setState(() => _step = 1)),
+        _topBar(k, t('Ваші дані'), () => setState(() => _step = 1)),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
@@ -354,16 +355,16 @@ class _State extends ConsumerState<PublicBookingScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const ZLabel('Контакти'),
+              ZLabel(t('Контакти')),
               const SizedBox(height: 8),
-              _field(k, _name, "Ваше ім'я", Icons.person_outline),
+              _field(k, _name, t("Ваше ім'я"), Icons.person_outline),
               const SizedBox(height: 10),
-              _field(k, _phone, 'Телефон', Icons.phone_outlined, phone: true),
+              _field(k, _phone, t('Телефон'), Icons.phone_outlined, phone: true),
               const SizedBox(height: 22),
-              ZButton(label: 'Підтвердити запис', onTap: _confirm),
+              ZButton(label: t('Підтвердити запис'), onTap: _confirm),
               const SizedBox(height: 10),
               Center(
-                child: Text('Натискаючи, ви погоджуєтесь на нагадування',
+                child: Text(t('Натискаючи, ви погоджуєтесь на нагадування'),
                     style: AppTypography.label(k.ink3).copyWith(fontSize: 11)),
               ),
             ],
@@ -399,24 +400,24 @@ class _State extends ConsumerState<PublicBookingScreen> {
               child: const Icon(Icons.check, color: Colors.white, size: 42),
             ),
             const SizedBox(height: 20),
-            Text('Вас записано!',
+            Text(t('Вас записано!'),
                 style: AppTypography.title1(k.ink),
                 textAlign: TextAlign.center),
             const SizedBox(height: 10),
             if (svc != null && slot != null)
               Text(
-                  '${svc.name} · ${Fmt.weekday(slot)}, ${Fmt.dayMonth(slot)} о ${Fmt.time(slot)}',
+                  '${svc.name} · ${Fmt.weekday(slot)}, ${Fmt.dayMonth(slot)} ${t('о')} ${Fmt.time(slot)}',
                   textAlign: TextAlign.center,
                   style: AppTypography.body(k.ink2).copyWith(fontSize: 14)),
             const SizedBox(height: 8),
-            Text('Ми надішлемо нагадування перед візитом',
+            Text(t('Ми надішлемо нагадування перед візитом'),
                 textAlign: TextAlign.center,
                 style: AppTypography.label(k.ink3).copyWith(fontSize: 13)),
             const SizedBox(height: 26),
             SizedBox(
               width: 220,
               child: ZButtonSecondary(
-                  label: 'Готово',
+                  label: t('Готово'),
                   expand: true,
                   padding: const EdgeInsets.symmetric(vertical: 14)),
             ),
@@ -437,7 +438,7 @@ class _State extends ConsumerState<PublicBookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Манікюрна студія',
+                  Text(t('Манікюрна студія'),
                       style:
                           AppTypography.title2(k.ink).copyWith(fontSize: 19)),
                   const SizedBox(height: 3),
@@ -445,7 +446,7 @@ class _State extends ConsumerState<PublicBookingScreen> {
                     children: [
                       Icon(Icons.location_on_outlined, size: 14, color: k.ink3),
                       const SizedBox(width: 3),
-                      Text('Київ, центр · 4.9 ★',
+                      Text(t('Київ, центр · 4.9 ★'),
                           style: AppTypography.label(k.ink2)
                               .copyWith(fontSize: 12.5)),
                     ],

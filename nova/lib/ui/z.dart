@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/localization/app_text.dart';
 import '../design/theme.dart';
 
 /// Легкий haptic на дотик (на мобільному — вібрація, на вебі — no-op).
@@ -373,10 +374,10 @@ class ZSegmented extends StatelessWidget {
 /// Вільне вікно: пунктирна рамка iris + м'яка заливка + CTA «Заповнити».
 class ZFreeSlot extends StatelessWidget {
   const ZFreeSlot(
-      {super.key, required this.duration, this.onTap, this.cta = 'Заповнити'});
+      {super.key, required this.duration, this.onTap, this.cta});
   final String duration;
   final VoidCallback? onTap;
-  final String cta;
+  final String? cta;
   @override
   Widget build(BuildContext context) {
     final k = context.kavio;
@@ -406,10 +407,10 @@ class ZFreeSlot extends StatelessWidget {
               ),
               const SizedBox(width: 9),
               Expanded(
-                  child: Text('Вільно · $duration',
+                  child: Text('${t('Вільно')} · $duration',
                       style: AppTypography.label(k.ink2)
                           .copyWith(fontSize: 12.5))),
-              Text(cta,
+              Text(cta ?? t('Заповнити'),
                   style: AppTypography.label(k.accent)
                       .copyWith(fontSize: 12, fontWeight: FontWeight.w700)),
             ],

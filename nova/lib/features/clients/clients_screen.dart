@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
+import '../../core/localization/app_text.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
@@ -56,7 +57,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                       child:
-                          Text('Клієнти', style: AppTypography.title1(k.ink))),
+                          Text(t('Клієнти'), style: AppTypography.title1(k.ink))),
                   GestureDetector(
                     onTap: () => showCreateClientSheet(context),
                     child: Container(
@@ -89,7 +90,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                         decoration: InputDecoration(
                           isDense: true,
                           border: InputBorder.none,
-                          hintText: 'Пошук клієнта',
+                          hintText: t('Пошук клієнта'),
                           hintStyle:
                               AppTypography.body(k.ink3).copyWith(fontSize: 14),
                           contentPadding:
@@ -140,19 +141,19 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                   size: 34, color: k.success),
             ),
             const SizedBox(height: 16),
-            Text("Тут з'являться клієнти", style: AppTypography.title2(k.ink)),
+            Text(t("Тут з'являться клієнти"), style: AppTypography.title2(k.ink)),
             const SizedBox(height: 8),
             SizedBox(
               width: 250,
               child: Text(
-                'Вони додаються самі при першому записі. Або імпортуйте контакти — це швидко.',
+                t('Вони додаються самі при першому записі. Або імпортуйте контакти — це швидко.'),
                 textAlign: TextAlign.center,
                 style: AppTypography.body(k.ink2).copyWith(fontSize: 14),
               ),
             ),
             const SizedBox(height: 20),
             ZButton(
-                label: 'Додати вручну',
+                label: t('Додати вручну'),
                 expand: false,
                 onTap: () => showCreateClientSheet(context)),
           ],
@@ -187,7 +188,7 @@ class _ClientTile extends StatelessWidget {
                       style:
                           AppTypography.title3(k.ink).copyWith(fontSize: 15)),
                   const SizedBox(height: 1),
-                  Text('${client.visitsCount} візитів · ${client.phone}',
+                  Text('${client.visitsCount} ${t('візитів')} · ${client.phone}',
                       style:
                           AppTypography.label(k.ink3).copyWith(fontSize: 12)),
                 ],

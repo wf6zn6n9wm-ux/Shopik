@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/localization/app_text.dart';
 import '../../core/time/demo_clock.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
@@ -30,7 +31,7 @@ class ClientDetailScreen extends ConsumerWidget {
         appBar: AppBar(backgroundColor: k.canvas, elevation: 0),
         body: Center(
             child:
-                Text('Клієнта не знайдено', style: AppTypography.body(k.ink2))),
+                Text(t('Клієнта не знайдено'), style: AppTypography.body(k.ink2))),
       );
     }
 
@@ -83,16 +84,16 @@ class ClientDetailScreen extends ConsumerWidget {
                       avg: avg)),
                   const SizedBox(height: 16),
                   if (favs.isNotEmpty) ...[
-                    reveal(const ZLabel('Улюблені послуги')),
+                    reveal(ZLabel(t('Улюблені послуги'))),
                     const SizedBox(height: 8),
                     reveal(_Favorites(favs: favs)),
                     const SizedBox(height: 16),
                   ],
-                  reveal(const ZLabel('Історія')),
+                  reveal(ZLabel(t('Історія'))),
                   const SizedBox(height: 8),
                   reveal(_History(past: past)),
                   const SizedBox(height: 16),
-                  reveal(const ZLabel('Нотатки')),
+                  reveal(ZLabel(t('Нотатки'))),
                   const SizedBox(height: 8),
                   reveal(_Notes(note: client.note)),
                 ],
@@ -162,7 +163,7 @@ class _Header extends StatelessWidget {
               Row(
                 children: [
                   if (regular)
-                    ZPill('Постійна', color: k.success, bg: k.successTint),
+                    ZPill(t('Постійна'), color: k.success, bg: k.successTint),
                   if (regular) const SizedBox(width: 6),
                   if (vip) ZPill('VIP', color: k.accent, bg: k.accentTint),
                 ],
@@ -186,9 +187,9 @@ class _NextChip extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final diff = d.difference(today).inDays;
     final when = diff == 0
-        ? 'сьогодні'
+        ? t('сьогодні')
         : diff == 1
-            ? 'завтра'
+            ? t('завтра')
             : Fmt.dayMonth(next.start);
     return Container(
       decoration: BoxDecoration(
@@ -215,7 +216,7 @@ class _NextChip extends StatelessWidget {
             child: Text.rich(TextSpan(
               style: AppTypography.body(k.ink2).copyWith(fontSize: 13),
               children: [
-                const TextSpan(text: 'Наступний запис · '),
+                TextSpan(text: '${t('Наступний запис')} · '),
                 TextSpan(
                     text: '$when ${Fmt.time(next.start)}',
                     style:
@@ -223,7 +224,7 @@ class _NextChip extends StatelessWidget {
               ],
             )),
           ),
-          Text('Відкрити',
+          Text(t('Відкрити'),
               style: AppTypography.label(k.accent).copyWith(fontSize: 12)),
         ],
       ),
@@ -243,9 +244,9 @@ class _QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actions = <(IconData, String, VoidCallback)>[
-      (Icons.call_outlined, 'Дзвінок', () => _launch('tel:$_digits')),
-      (Icons.chat_bubble_outline, 'Написати', () => _launch('sms:$_digits')),
-      (Icons.add, 'Запис', () => showCreateAppointmentSheet(context)),
+      (Icons.call_outlined, t('Дзвінок'), () => _launch('tel:$_digits')),
+      (Icons.chat_bubble_outline, t('Написати'), () => _launch('sms:$_digits')),
+      (Icons.add, t('Запис'), () => showCreateAppointmentSheet(context)),
     ];
     return Row(
       children: [
@@ -303,16 +304,16 @@ class _LtvHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ZLabel('Витрачено (LTV)', color: k.accent),
+                ZLabel(t('Витрачено (LTV)'), color: k.accent),
                 const SizedBox(height: 2),
                 Text(Fmt.money(ltv),
                     style: AppTypography.tabular(AppTypography.title1(k.ink))),
               ],
             ),
           ),
-          _MiniStat(value: '$visits', label: 'візитів'),
+          _MiniStat(value: '$visits', label: t('візитів')),
           const SizedBox(width: 16),
-          _MiniStat(value: Fmt.money(avg), label: 'сер. чек'),
+          _MiniStat(value: Fmt.money(avg), label: t('сер. чек')),
         ],
       ),
     );
@@ -384,7 +385,7 @@ class _History extends StatelessWidget {
     final k = context.kavio;
     if (past.isEmpty) {
       return ZCard(
-        child: Text('Поки немає візитів',
+        child: Text(t('Поки немає візитів'),
             style: AppTypography.body(k.ink2).copyWith(fontSize: 13)),
       );
     }
@@ -436,7 +437,7 @@ class _Notes extends StatelessWidget {
     final k = context.kavio;
     return ZCard(
       child: Text(
-        (note?.isNotEmpty ?? false) ? note! : 'Нотаток поки немає',
+        (note?.isNotEmpty ?? false) ? note! : t('Нотаток поки немає'),
         style: AppTypography.body(k.ink2).copyWith(fontSize: 13, height: 1.5),
       ),
     );

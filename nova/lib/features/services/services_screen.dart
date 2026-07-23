@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/app_text.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../domain/models.dart';
@@ -46,7 +47,7 @@ class ServicesScreen extends ConsumerWidget {
             reveal(Row(
               children: [
                 Expanded(
-                    child: Text('Послуги', style: AppTypography.title1(k.ink))),
+                    child: Text(t('Послуги'), style: AppTypography.title1(k.ink))),
                 GestureDetector(
                   onTap: () => showCreateServiceSheet(context),
                   child: Container(
@@ -69,8 +70,8 @@ class ServicesScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ZLabel(cat),
-                    Text('${groups[cat]!.length} послуги',
+                    ZLabel(t(cat)),
+                    Text(tp('{n} послуги', {'n': groups[cat]!.length}),
                         style:
                             AppTypography.label(k.ink3).copyWith(fontSize: 12)),
                   ],
@@ -98,7 +99,7 @@ class _SearchBar extends StatelessWidget {
         children: [
           Icon(Icons.search, size: 18, color: k.ink3),
           const SizedBox(width: 10),
-          Text('Пошук послуги',
+          Text(t('Пошук послуги'),
               style: AppTypography.body(k.ink3).copyWith(fontSize: 14)),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/app_text.dart';
 import '../../core/services/subscriptions/entitlements.dart';
 import '../../data/providers.dart';
 import '../../design/theme.dart';
@@ -59,7 +60,7 @@ class SubscriptionScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Text('Тарифи', style: AppTypography.title1(k.ink)),
+                  Text(t('Тарифи'), style: AppTypography.title1(k.ink)),
                 ],
               ),
             ),
@@ -111,15 +112,15 @@ class _PlanCard extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(name, style: AppTypography.title2(k.ink)),
+            Text(t(name), style: AppTypography.title2(k.ink)),
             if (current) ...[
               const SizedBox(width: 8),
-              ZPill('Активний', color: k.success, bg: k.successTint),
+              ZPill(t('Активний'), color: k.success, bg: k.successTint),
             ],
             const Spacer(),
             Text('\$$price',
                 style: AppTypography.tabular(AppTypography.title2(k.ink))),
-            Text(' / міс',
+            Text(t(' / міс'),
                 style: AppTypography.label(k.ink3).copyWith(fontSize: 12)),
           ],
         ),
@@ -132,7 +133,7 @@ class _PlanCard extends StatelessWidget {
                 Icon(Icons.check_circle, size: 17, color: k.success),
                 const SizedBox(width: 9),
                 Expanded(
-                    child: Text(f,
+                    child: Text(t(f),
                         style:
                             AppTypography.body(k.ink2).copyWith(fontSize: 14))),
               ],
@@ -140,9 +141,9 @@ class _PlanCard extends StatelessWidget {
           ),
         const SizedBox(height: 8),
         if (current)
-          ZButtonSecondary(label: 'Поточний тариф', expand: true)
+          ZButtonSecondary(label: t('Поточний тариф'), expand: true)
         else
-          ZButton(label: 'Обрати $name'),
+          ZButton(label: tp('Обрати {name}', {'name': t(name)})),
       ],
     );
 
