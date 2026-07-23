@@ -47,7 +47,8 @@ class ServicesScreen extends ConsumerWidget {
             reveal(Row(
               children: [
                 Expanded(
-                    child: Text(t('Послуги'), style: AppTypography.title1(k.ink))),
+                    child:
+                        Text(t('Послуги'), style: AppTypography.title1(k.ink))),
                 GestureDetector(
                   onTap: () => showCreateServiceSheet(context),
                   child: Container(

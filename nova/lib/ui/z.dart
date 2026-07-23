@@ -373,8 +373,7 @@ class ZSegmented extends StatelessWidget {
 
 /// Вільне вікно: пунктирна рамка iris + м'яка заливка + CTA «Заповнити».
 class ZFreeSlot extends StatelessWidget {
-  const ZFreeSlot(
-      {super.key, required this.duration, this.onTap, this.cta});
+  const ZFreeSlot({super.key, required this.duration, this.onTap, this.cta});
   final String duration;
   final VoidCallback? onTap;
   final String? cta;

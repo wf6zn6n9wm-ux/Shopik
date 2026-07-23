@@ -30,8 +30,8 @@ class ClientDetailScreen extends ConsumerWidget {
         backgroundColor: k.canvas,
         appBar: AppBar(backgroundColor: k.canvas, elevation: 0),
         body: Center(
-            child:
-                Text(t('Клієнта не знайдено'), style: AppTypography.body(k.ink2))),
+            child: Text(t('Клієнта не знайдено'),
+                style: AppTypography.body(k.ink2))),
       );
     }
 
