@@ -41,8 +41,8 @@ class _State extends ConsumerState<PublicBookingScreen> {
   void _preset(String f) {
     final services = ref.read(servicesProvider).value ?? const <Service>[];
     if (services.isEmpty) {
-      Future.delayed(const Duration(milliseconds: 300),
-          () => mounted ? _preset(f) : null);
+      Future.delayed(
+          const Duration(milliseconds: 300), () => mounted ? _preset(f) : null);
       return;
     }
     setState(() {
@@ -218,8 +218,8 @@ class _State extends ConsumerState<PublicBookingScreen> {
         final start = DateTime(day.year, day.month, day.day, h, m);
         final end = start.add(Duration(minutes: dur));
         if (end.hour > 19) continue;
-        final busy = dayAppts.any((a) =>
-            start.isBefore(a.end) && end.isAfter(a.start));
+        final busy =
+            dayAppts.any((a) => start.isBefore(a.end) && end.isAfter(a.start));
         slots.add(start);
         if (busy) slots.removeLast();
       }
@@ -251,7 +251,8 @@ class _State extends ConsumerState<PublicBookingScreen> {
                           color: on ? null : k.surface,
                           gradient: on ? FX.brandButton : null,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: on ? Colors.transparent : k.line),
+                          border: Border.all(
+                              color: on ? Colors.transparent : k.line),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -265,7 +266,9 @@ class _State extends ConsumerState<PublicBookingScreen> {
                                 style: AppTypography.tabular(
                                         AppTypography.title3(
                                             on ? Colors.white : k.ink))
-                                    .copyWith(fontSize: 16, fontWeight: FontWeight.w800)),
+                                    .copyWith(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800)),
                           ],
                         ),
                       ),
@@ -312,7 +315,8 @@ class _State extends ConsumerState<PublicBookingScreen> {
                   padding: const EdgeInsets.only(top: 30),
                   child: Center(
                     child: Text('На цей день вільних вікон немає',
-                        style: AppTypography.body(k.ink3).copyWith(fontSize: 14)),
+                        style:
+                            AppTypography.body(k.ink3).copyWith(fontSize: 14)),
                   ),
                 ),
             ],
@@ -341,7 +345,9 @@ class _State extends ConsumerState<PublicBookingScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Divider(height: 1, color: k.line),
                     ),
-                    _summaryRow(k, Icons.calendar_today_outlined,
+                    _summaryRow(
+                        k,
+                        Icons.calendar_today_outlined,
                         '${Fmt.weekday(slot)}, ${Fmt.dayMonth(slot)}',
                         Fmt.time(slot)),
                   ],
@@ -352,8 +358,7 @@ class _State extends ConsumerState<PublicBookingScreen> {
               const SizedBox(height: 8),
               _field(k, _name, "Ваше ім'я", Icons.person_outline),
               const SizedBox(height: 10),
-              _field(k, _phone, 'Телефон', Icons.phone_outlined,
-                  phone: true),
+              _field(k, _phone, 'Телефон', Icons.phone_outlined, phone: true),
               const SizedBox(height: 22),
               ZButton(label: 'Підтвердити запис', onTap: _confirm),
               const SizedBox(height: 10),
@@ -395,7 +400,8 @@ class _State extends ConsumerState<PublicBookingScreen> {
             ),
             const SizedBox(height: 20),
             Text('Вас записано!',
-                style: AppTypography.title1(k.ink), textAlign: TextAlign.center),
+                style: AppTypography.title1(k.ink),
+                textAlign: TextAlign.center),
             const SizedBox(height: 10),
             if (svc != null && slot != null)
               Text(
@@ -432,7 +438,8 @@ class _State extends ConsumerState<PublicBookingScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Манікюрна студія',
-                      style: AppTypography.title2(k.ink).copyWith(fontSize: 19)),
+                      style:
+                          AppTypography.title2(k.ink).copyWith(fontSize: 19)),
                   const SizedBox(height: 3),
                   Row(
                     children: [
@@ -473,7 +480,8 @@ class _State extends ConsumerState<PublicBookingScreen> {
         ),
       );
 
-  Widget _summaryRow(KavioColors k, IconData icon, String title, String trail) =>
+  Widget _summaryRow(
+          KavioColors k, IconData icon, String title, String trail) =>
       Row(
         children: [
           Container(
@@ -495,8 +503,9 @@ class _State extends ConsumerState<PublicBookingScreen> {
         ],
       );
 
-  Widget _field(KavioColors k, TextEditingController c, String hint,
-          IconData icon, {bool phone = false}) =>
+  Widget _field(
+          KavioColors k, TextEditingController c, String hint, IconData icon,
+          {bool phone = false}) =>
       Container(
         decoration: BoxDecoration(
             color: k.surface,
