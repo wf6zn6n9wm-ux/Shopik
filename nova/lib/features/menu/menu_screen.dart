@@ -96,7 +96,7 @@ class _TariffCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final k = context.kavio;
     final name = switch (plan) {
-      Plan.free => 'Free',
+      Plan.free => 'Старт',
       Plan.pro => 'Pro',
       Plan.team => 'Team',
     };

@@ -12,13 +12,13 @@ class SubscriptionScreen extends ConsumerWidget {
   const SubscriptionScreen({super.key});
 
   static const _plans = <(Plan, String, String, List<String>)>[
-    (Plan.free, 'Free', '0', ['Онлайн-запис', 'Експорт даних']),
+    (Plan.free, 'Старт', '3.99', ['Онлайн-запис', 'Експорт даних']),
     (
       Plan.pro,
       'Pro',
-      '299',
+      '5.99',
       [
-        'Все з Free',
+        'Все зі Старту',
         'Розширена аналітика',
         'Маркетинг і лояльність',
         'AI-асистент'
@@ -27,7 +27,7 @@ class SubscriptionScreen extends ConsumerWidget {
     (
       Plan.team,
       'Team',
-      '599',
+      '7.99',
       ['Все з Pro', 'Команда й філії', 'Ролі та права', 'API інтеграцій']
     ),
   ];
@@ -117,7 +117,7 @@ class _PlanCard extends StatelessWidget {
               ZPill('Активний', color: k.success, bg: k.successTint),
             ],
             const Spacer(),
-            Text('₴$price',
+            Text('\$$price',
                 style: AppTypography.tabular(AppTypography.title2(k.ink))),
             Text(' / міс',
                 style: AppTypography.label(k.ink3).copyWith(fontSize: 12)),
