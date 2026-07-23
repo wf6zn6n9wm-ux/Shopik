@@ -627,7 +627,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v44 · Админ: вкладка PARA+ (подписки)';
+var APP_VERSION = 'v45 · Админ: живой баланс звёзд бота';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -2340,7 +2340,14 @@ function adminSubsView(){
   if(!d){ return '<div class="center-t muted small" style="padding:34px">Загрузка подписок…</div>'; }
   var st=d.stats||{total:0,active:0,expired:0,solo:0,duo:0,stars:0,activeStars:0};
   var k=function(ic,l,v){ return '<div class="adm-kpi" style="padding:14px 10px"><div class="ic">'+ic+'</div><div class="lbl">'+l+'</div><div class="val" style="font-size:26px">'+(v||0)+'</div></div>'; };
-  var hero='<div class="adm-hero" style="grid-template-columns:repeat(3,1fr)">'+
+  // живой баланс звёзд бота (getMyStarBalance) — показываем, только если Telegram отдал число
+  var bal=(typeof d.botStars==='number')
+    ? '<div class="adm-card" style="text-align:center;background:linear-gradient(135deg,rgba(251,191,36,.15),rgba(255,94,138,.10));border-color:rgba(251,191,36,.32)">'+
+        '<div class="adm-kpi-lbl">💫 Баланс бота (Telegram Stars)</div>'+
+        '<div class="adm-big" style="color:#ffcf5c">'+fmtNum(d.botStars)+' ⭐</div>'+
+        '<div class="xs muted2 mt2">Вывод в TON через fragment.com. Каждая звезда доступна к выводу примерно через 21 день после оплаты.</div></div>'
+    : '';
+  var hero='<div class="adm-hero'+(bal?' mt3':'')+'" style="grid-template-columns:repeat(3,1fr)">'+
     k('💎','Всего',st.total)+k('✅','Активные',st.active)+k('⌛','Истекли',st.expired)+'</div>';
   var rev='<div class="adm-card mt3"><div class="row between" style="align-items:center;margin-bottom:12px">'+
     '<div class="t" style="font-size:15px;font-weight:800">Выручка · Telegram Stars</div>'+
@@ -2357,7 +2364,8 @@ function adminSubsView(){
     '<input id="adm-ssearch" class="input" placeholder="🔍 Поиск по имени, ID или тарифу" oninput="__admSubSearch(this.value)" autocomplete="off" style="margin-bottom:10px">'+
     filters+
     '<div class="adm-card" id="adm-sub-list" style="padding:6px 14px">'+rows+'</div>';
-  return hero+rev+listCard;
+  var refresh='<div class="row" style="justify-content:flex-end;margin-bottom:10px"><button class="btn btn-ghost btn-sm" data-act="adm-subs-refresh">↻ Обновить</button></div>';
+  return refresh+bal+hero+rev+listCard;
 }
 
 // ---------- Уровни, достижения, повышение ----------
@@ -2609,6 +2617,7 @@ var ACTS={
     render(); },
   'adm-wish-filter':function(el){ window.__admWishFilter=el.dataset.f||'all'; render(); },
   'adm-sub-filter':function(el){ window.__admSubFilter=el.dataset.f||'all'; render(); },
+  'adm-subs-refresh':function(){ haptic('light'); var empty={subs:[],stats:{total:0,active:0,expired:0,solo:0,duo:0,stars:0,activeStars:0},count:0}; S.admSubsData=null; render(); api('admin_subs').then(function(r){ S.admSubsData=(r&&r.ok)?r:empty; render(); }).catch(function(){ S.admSubsData=empty; render(); }); },
   'cfg-add':function(el){ var k=el.dataset.sec; cfgCollect(); var sec=cfgSections().filter(function(s){return s.key===k;})[0]; if(!S.adminConfig[k])S.adminConfig[k]=[]; S.adminConfig[k].push(sec.tpl()); haptic('light'); render(); },
   'cfg-del':function(el){ var k=el.dataset.sec, i=+el.dataset.idx; cfgCollect(); if(S.adminConfig[k])S.adminConfig[k].splice(i,1); haptic('light'); render(); },
   'cfg-save':function(){ cfgCollect(); S.cfgMsg='Сохранение…'; render(); api('config_save',{config:S.adminConfig}).then(function(r){ if(r&&r.ok){ if(r.config){S.adminConfig=r.config;S.config=r.config;} S.cfgMsg='✓ Сохранено'; haptic('success'); } else { S.cfgMsg='Ошибка: '+((r&&r.reason)||'?'); haptic('warning'); } render(); setTimeout(function(){ S.cfgMsg=''; render(); },3000); }).catch(function(){ S.cfgMsg='Ошибка сети'; render(); }); },
