@@ -177,7 +177,8 @@ module.exports = async (req, res) => {
     // --- конфиг ---
     const cfgRows = await sbGet('shark_config?id=eq.1&select=data');
     const CFG = Object.assign({
-      usdt_rate: 45, min_withdraw: 100, referral_bonus: 10, referral_share: 0.10
+      usdt_rate: 45, min_withdraw: 100, referral_bonus: 10, referral_share: 0.10,
+      ref_stars_per_friend: 5, ref_stars_daily_cap: 50
     }, (cfgRows[0] && cfgRows[0].data) || {});
 
     // --- убедиться что пользователь есть (upsert) ---
@@ -215,13 +216,15 @@ module.exports = async (req, res) => {
           method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal,resolution=ignore-duplicates' }),
           body: JSON.stringify({ inviter_tg: refBy, invited_tg: me.id })
         });
-        // приветственный бонус пригласившему +referral_bonus грн (от «дома», не с юзера)
+        // приветственный бонус пригласившему: +referral_bonus грн (на вывод) и
+        // +ref_stars_per_friend ⭐ (с суточным лимитом ref_stars_daily_cap)
         await applyLedger(refBy, 'uah', CFG.referral_bonus, 'referral', 'signup:' + me.id, 'ref_signup:' + me.id, { invited: me.id });
         await sb('shark_referrals?inviter_tg=eq.' + refBy + '&invited_tg=eq.' + me.id, {
           method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
           body: JSON.stringify({ earned: CFG.referral_bonus })
         });
-        tgNotify(BOT, refBy, '👥 Новый друг присоединился по вашей ссылке! +' + CFG.referral_bonus.toFixed(2) + ' грн');
+        const gs = await awardRefStars(refBy, CFG.ref_stars_per_friend, 'refstars_signup:' + me.id);
+        tgNotify(BOT, refBy, '👥 Новый друг по вашей ссылке! +' + CFG.referral_bonus.toFixed(2) + ' грн' + (gs > 0 ? ' и +' + gs + ' ⭐' : ''));
       }
       return u;
     }
@@ -236,8 +239,21 @@ module.exports = async (req, res) => {
     //  STATE — всё состояние для отрисовки
     // ---------------------------------------------------------
     if (action === 'state') {
-      const refs = await sbGet('shark_referrals?inviter_tg=eq.' + me.id + '&select=invited_tg,earned');
-      const refEarned = refs.reduce((a, b) => a + Number(b.earned || 0), 0);
+      const refs = await sbGet('shark_referrals?inviter_tg=eq.' + me.id + '&order=created_at.desc&select=invited_tg,earned,created_at');
+      // заработок с рефералов из леджера (грн — вывод, звёзды — игра)
+      const led = await sbGet('shark_ledger?tg_id=eq.' + me.id + '&kind=eq.referral&select=currency,amount');
+      let earnedUah = 0, earnedStars = 0;
+      led.forEach((l) => { if (l.currency === 'uah') earnedUah += Number(l.amount); else earnedStars += Number(l.amount); });
+      const today = todayUTC();
+      const todayStars = (user.ref_day === today) ? Number(user.ref_stars_today || 0) : 0;
+      // имена приглашённых
+      let friends = [];
+      const ids = refs.map((r) => r.invited_tg).filter(Boolean);
+      if (ids.length) {
+        const us = await sbGet('shark_users?tg_id=in.(' + ids.join(',') + ')&select=tg_id,first_name,username,created_at');
+        const nameOf = {}; us.forEach((u) => { nameOf[u.tg_id] = u.first_name || (u.username ? '@' + u.username : 'id' + u.tg_id); });
+        friends = refs.slice(0, 50).map((r) => ({ name: nameOf[r.invited_tg] || ('id' + r.invited_tg), at: r.created_at }));
+      }
 
       json(res, 200, {
         ok: true,
@@ -246,7 +262,11 @@ module.exports = async (req, res) => {
           usdt_rate: CFG.usdt_rate, min_withdraw: CFG.min_withdraw,
           referral_bonus: CFG.referral_bonus, referral_share: CFG.referral_share
         },
-        referrals: { count: refs.length, earned: refEarned },
+        referrals: {
+          count: refs.length, earnedUah: Math.round(earnedUah * 100) / 100, earnedStars,
+          todayStars, capStars: CFG.ref_stars_daily_cap, perFriend: CFG.ref_stars_per_friend,
+          sharePct: Math.round(CFG.referral_share * 100), bonusUah: CFG.referral_bonus, friends
+        },
         catalog: { roulette: ROUL_PRIZES, shop: SHOP, bets: BET_OPTIONS, methods: WITHDRAW_METHODS, packs: STAR_PACKS },
         refLink: botLink(BOT, user.ref_code)
       });
@@ -520,6 +540,25 @@ module.exports = async (req, res) => {
     json(res, 200, { ok: false, reason: 'unknown_action' });
 
     // ===== вложенные хелперы, которым нужен доступ к sb/me =====
+
+    // начислить пригласившему звёзды за друга с суточным лимитом (idempotent)
+    async function awardRefStars(inviterTg, want, idemKey) {
+      const ex = await sbGet('shark_ledger?idem=eq.' + encodeURIComponent(idemKey) + '&select=id&limit=1');
+      if (ex[0]) return 0;                                    // уже начисляли
+      const inv = await sbGet('shark_users?tg_id=eq.' + inviterTg + '&select=ref_day,ref_stars_today');
+      if (!inv[0]) return 0;
+      const today = todayUTC();
+      const todayCount = (inv[0].ref_day === today) ? Number(inv[0].ref_stars_today || 0) : 0;
+      const give = Math.min(Number(want), Math.max(0, Number(CFG.ref_stars_daily_cap) - todayCount));
+      if (give <= 0) return 0;
+      const r = await applyLedger(inviterTg, 'stars', give, 'referral', 'friend', idemKey, {});
+      if (!r.ok) return 0;
+      await sb('shark_users?tg_id=eq.' + inviterTg, {
+        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
+        body: JSON.stringify({ ref_day: today, ref_stars_today: todayCount + give })
+      });
+      return give;
+    }
 
     // Вернуть «текущий» раунд PVP.
     //  • forJoin=false (опрос состояния): истёкший countdown разыгрываем и

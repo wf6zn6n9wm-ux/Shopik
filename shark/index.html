@@ -525,6 +525,27 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 .ch-pill.high{color:#c7a3ff;border-color:rgba(154,124,255,.55);}
 .ch-pill.huge{color:var(--gold);border-color:rgba(255,207,92,.6);box-shadow:0 0 12px rgba(255,207,92,.22);}
 
+/* экран «Друзья» (реф-система) */
+.ref-hero{display:flex;gap:14px;align-items:flex-start;padding:18px;margin-bottom:14px;}
+.ref-hero-ic{width:56px;height:56px;flex:none;border-radius:16px;display:grid;place-items:center;background:var(--grad-aqua);box-shadow:var(--glow-aqua),inset 0 1px 0 rgba(255,255,255,.35);}
+.ref-hero-ic svg{width:30px;height:30px;}
+.ref-hero-txt{min-width:0;}
+.ref-hero-txt h3{margin:0;font-size:21px;font-weight:800;letter-spacing:-.02em;line-height:1.22;text-wrap:balance;}
+.ref-accent{color:var(--aqua);}
+.ref-muted{margin:5px 0 12px;color:var(--muted);font-size:13px;}
+.ref-line{margin:0;font-size:15px;font-weight:600;color:var(--text);}
+.ref-line b{display:inline-flex;align-items:center;gap:2px;color:var(--gold);}
+.ref-line .star-ic{width:1em;height:1em;}
+.ref-cap{margin:6px 0 0;color:var(--muted);font-size:12.5px;line-height:1.4;}
+.ref-actions{padding:16px;position:relative;}
+.ref-stats{padding:2px 16px;}
+.ref-stat-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:15px 0;font-size:14px;color:var(--muted);}
+.ref-stat-row b{color:var(--text);font-weight:800;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.ref-stat-row .star-ic{width:1em;height:1em;}
+.ref-div{height:1px;background:var(--glass-brd);}
+.ref-friends-head{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800;margin:18px 2px 12px;}
+.ref-badge{background:var(--glass-bg);border:1px solid var(--glass-brd);border-radius:999px;padding:2px 13px;font-size:14px;font-weight:800;color:var(--muted);}
+
 /* конкурсы под общий стиль */
 .contest{background:var(--glass-bg);border:1px solid var(--glass-brd);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:var(--sh-soft),inset 0 1px 0 var(--glass-hi);border-radius:20px;}
 .contest .timer{background:var(--grad-gold);color:#2a1a00;box-shadow:var(--glow-gold);}
@@ -709,21 +730,30 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 <div class="screen" id="s-refs">
   <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ Назад</div><div class="spacer"></div></div>
   <h1 class="title">Друзья</h1>
-  <p class="sub">Приглашай друзей: +10 грн за каждого и 10% от их заработка навсегда</p>
-  <div class="panel">
-    <div style="text-align:center;font-size:40px">👾</div>
-    <h3 style="text-align:center;margin:6px 0 2px">Ваша ссылка-приглашение</h3>
-    <div class="copy-row">
-      <input id="ref-link" class="mono" readonly value="https://t.me/SharkBot?start=ref_482913">
-      <button onclick="copyRef()">Копировать</button>
+
+  <div class="ref-hero glass">
+    <div class="ref-hero-ic"><svg viewBox="0 0 24 24" fill="#04241f"><circle cx="9" cy="8" r="3.4"/><path d="M3.4 19a5.6 5.6 0 0111.2 0 .8.8 0 01-.8.8H4.2a.8.8 0 01-.8-.8z"/><circle cx="17" cy="8.6" r="2.5"/><path d="M15.6 13.5A4.6 4.6 0 0121 17.6a.8.8 0 01-.8.8h-3c.06-1.9-.6-3.6-1.6-4.9z"/></svg></div>
+    <div class="ref-hero-txt">
+      <h3>Получай <span class="ref-accent" id="ref-share">10%</span> приглашая друзей</h3>
+      <p class="ref-muted">с пополнений звёзд друзей</p>
+      <p class="ref-line">А также по <b><i class="star-ic"></i><span id="ref-per">5</span></b> за каждого друга</p>
+      <p class="ref-cap">но не более <span id="ref-cap">50</span> ⭐ в день · и +<span id="ref-bonus">10</span> грн на вывод</p>
     </div>
-    <button class="btn-primary" style="margin-top:12px" onclick="invite()">Пригласить друга &nbsp; +10.00 грн</button>
   </div>
-  <div class="stats">
-    <div class="stat"><div class="sv mono" id="rf-count">0</div><div class="sl">Приглашено</div></div>
-    <div class="stat"><div class="sv mono" id="rf-earned">0.00</div><div class="sl">Заработано грн</div></div>
-    <div class="stat"><div class="sv mono" id="rf-active">0</div><div class="sl">Активных</div></div>
+
+  <div class="panel ref-actions">
+    <button class="btn-primary btn-glow" onclick="invite()">🔗 Пригласить друзей</button>
+    <button class="btn-ghost" style="margin-top:10px" onclick="copyRef()">⧉ Скопировать ссылку</button>
+    <input id="ref-link" class="mono" readonly value="https://t.me/SharkBot?start=ref_482913" style="position:absolute;left:-9999px;top:0;">
   </div>
+
+  <div class="panel ref-stats">
+    <div class="ref-stat-row"><span>Всего заработано</span><b><span class="mono" id="rf-earned-uah">0.00</span> грн · <span class="mono" id="rf-earned-stars">0</span> <i class="star-ic"></i></b></div>
+    <div class="ref-div"></div>
+    <div class="ref-stat-row"><span>Сегодня начислено</span><b><span class="mono" id="rf-today">0</span> / <span class="mono" id="rf-today-cap">50</span> <i class="star-ic"></i></b></div>
+  </div>
+
+  <div class="ref-friends-head">Мои рефералы <span class="ref-badge" id="rf-count">0</span></div>
   <div id="ref-list"></div>
 </div>
 
@@ -1151,13 +1181,20 @@ function setContestTab(tab){$all('#contest-seg button').forEach(function(b){b.cl
 function contestCard(c,mode){var el=document.createElement('div');el.className='contest';var right=mode==='history'?('<div class="timer" style="background:'+(c.won?'#2fd4c4':'#2a3a4a')+';color:'+(c.won?'#03241f':'#cfeef0')+'">'+(c.won?'Выигрыш':'Завершён')+'</div>'):('<div class="timer">'+c.timer+'</div>');var sub=mode==='history'?(c.date+' · '+c.members.toLocaleString('ru')+' участников'):(c.members.toLocaleString('ru')+' участников');var prizes='<div class="prizes">'+c.prizes.map(function(p){return '<div class="prize"><div class="ic">'+p.e+'</div><div class="v">⭐'+p.v+'</div></div>';}).join('')+'</div>';var btn='';if(mode==='active'){var joined=!!S.joinedContests[c.id];btn='<button class="btn-ghost" style="margin-top:12px" '+(joined?'disabled':'')+' id="cbtn-'+c.id+'">'+(joined?'Вы участвуете ✓':'Участвовать')+'</button>';}else if(mode==='yours'){btn='<div style="margin-top:12px;color:var(--aqua);font-weight:700;text-align:center">Вы участвуете ✓</div>';}el.innerHTML='<div class="ch"><div><b style="font-size:17px">'+c.prizesN+' призов</b><div style="color:var(--muted);font-size:13px">'+sub+'</div></div>'+right+'</div>'+prizes+btn;if(mode==='active'){var b=el.querySelector('#cbtn-'+c.id);if(b&&!S.joinedContests[c.id])b.onclick=function(){S.joinedContests[c.id]=true;logOp('🏆','Участие в розыгрыше',c.prizesN+' призов','','');toast('Вы участвуете в розыгрыше!');setContestTab('active');};}return el;}
 
 /* ============ РЕФЕРАЛЫ ============ */
-function renderRefs(){
-  document.getElementById('rf-count').textContent=REF_FRIENDS.length+S.refCount;
+function refSet(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
+function renderRefFriends(list){
+  var box=document.getElementById('ref-list');if(!box)return;
+  if(!list||!list.length){box.innerHTML='<div class="empty">Пока никто не присоединился по вашей ссылке. Поделитесь ей с друзьями!</div>';return;}
+  box.innerHTML=list.map(function(f){
+    return '<div class="histrow"><div class="hi">'+(f.av||'🙂')+'</div><div class="hb"><b>'+f.name+'</b><p>присоединился</p></div></div>';
+  }).join('');
+}
+function renderRefs(){ // демо
+  refSet('rf-count',REF_FRIENDS.length+S.refCount);
   var earned=REF_FRIENDS.reduce(function(a,b){return a+b.earned;},0)+S.refEarned;
-  document.getElementById('rf-earned').textContent=money(earned);
-  document.getElementById('rf-active').textContent=REF_FRIENDS.filter(function(f){return f.active;}).length;
-  var box=document.getElementById('ref-list');box.innerHTML='';
-  REF_FRIENDS.forEach(function(f){var el=document.createElement('div');el.className='histrow';el.innerHTML='<div class="hi">'+f.a+'</div><div class="hb"><b>'+f.n+'</b><p>'+(f.active?'активен':'неактивен')+'</p></div><div class="hv plus">+'+money(f.earned)+' грн</div>';box.appendChild(el);});
+  refSet('rf-earned-uah',money(earned)); refSet('rf-earned-stars','0');
+  refSet('rf-today','0'); refSet('rf-today-cap','50');
+  renderRefFriends(REF_FRIENDS.map(function(f){return {name:f.n,av:f.a};}));
 }
 function copyRef(){var i=document.getElementById('ref-link');try{i.select();document.execCommand('copy');}catch(e){}toast('Ссылка скопирована');}
 function invite(){S.refCount++;S.refEarned+=10;S.money+=10;syncBalances();logOp('👥','Новый реферал','Приглашён друг','+10.00 грн','plus');checkAchievements();toast('Реферал засчитан · +10.00 грн');if(document.getElementById('s-refs').classList.contains('active'))renderRefs();}
@@ -1581,10 +1618,16 @@ invite=function(){
 };
 renderRefs=function(){
   if(!SERVER) return _renderRefs();
-  var c=document.getElementById('rf-count'); if(c) c.textContent=REF.count;
-  var e=document.getElementById('rf-earned'); if(e) e.textContent=money(REF.earned);
-  var a=document.getElementById('rf-active'); if(a) a.textContent=REF.count;
-  var box=document.getElementById('ref-list'); if(box) box.innerHTML=REF.count?'':'<div class="empty">Пока никто не присоединился по вашей ссылке. Поделитесь ей с друзьями!</div>';
+  refSet('rf-count',REF.count||0);
+  refSet('rf-earned-uah',money(REF.earnedUah||0));
+  refSet('rf-earned-stars',REF.earnedStars||0);
+  refSet('rf-today',REF.todayStars||0);
+  refSet('rf-today-cap',REF.capStars||50);
+  refSet('ref-share',(REF.sharePct||10)+'%');
+  refSet('ref-per',REF.perFriend||5);
+  refSet('ref-cap',REF.capStars||50);
+  refSet('ref-bonus',REF.bonusUah||10);
+  renderRefFriends(REF.friends||[]);
   setRefLink();
 };
 openBuyStars=function(){

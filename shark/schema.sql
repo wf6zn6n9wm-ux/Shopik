@@ -30,9 +30,14 @@ create table if not exists shark_users (
   banned         boolean not null default false,
   played         integer not null default 0,           -- сыграно раундов (для профиля/уровня)
   won_stars      bigint  not null default 0,           -- суммарно выиграно ⭐
+  ref_day        date,                                 -- день для суточного лимита реф-звёзд
+  ref_stars_today integer not null default 0,          -- начислено реф-звёзд за ref_day
   created_at     timestamptz not null default now(),
   last_seen      timestamptz not null default now()
 );
+-- для БД, созданных до реф-обновления: добавить недостающие столбцы
+alter table shark_users add column if not exists ref_day date;
+alter table shark_users add column if not exists ref_stars_today integer not null default 0;
 
 -- ---------- леджер (источник истины по движению средств) ---------------------
 create table if not exists shark_ledger (
@@ -149,7 +154,9 @@ insert into shark_config(id, data) values (1, '{
   "usdt_rate": 45,
   "min_withdraw": 100,
   "referral_bonus": 10,
-  "referral_share": 0.10
+  "referral_share": 0.10,
+  "ref_stars_per_friend": 5,
+  "ref_stars_daily_cap": 50
 }') on conflict (id) do nothing;
 
 -- ============================================================================

@@ -74,6 +74,23 @@ async function applyLedger(tg_id, currency, amount, kind, ref, idem, meta) {
   });
   return { ok: r.ok, status: r.status };
 }
+// начислить пригласившему звёзды за друга с суточным лимитом (idempotent)
+async function awardRefStars(inviterTg, want, idemKey) {
+  const ex = await sbGet('shark_ledger?idem=eq.' + encodeURIComponent(idemKey) + '&select=id&limit=1');
+  if (ex[0]) return 0;
+  const cfg = await sbGet('shark_config?id=eq.1&select=data');
+  const cap = (cfg[0] && cfg[0].data && cfg[0].data.ref_stars_daily_cap) || 50;
+  const inv = await sbGet('shark_users?tg_id=eq.' + inviterTg + '&select=ref_day,ref_stars_today');
+  if (!inv[0]) return 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const todayCount = (inv[0].ref_day === today) ? Number(inv[0].ref_stars_today || 0) : 0;
+  const give = Math.min(Number(want), Math.max(0, cap - todayCount));
+  if (give <= 0) return 0;
+  const r = await applyLedger(inviterTg, 'stars', give, 'referral', 'friend', idemKey, {});
+  if (!r.ok) return 0;
+  await sbPatch('shark_users?tg_id=eq.' + inviterTg, { ref_day: today, ref_stars_today: todayCount + give });
+  return give;
+}
 
 async function ensureUser(from, startParam) {
   const rows = await sbGet('shark_users?tg_id=eq.' + from.id + '&select=tg_id');
@@ -99,8 +116,10 @@ async function ensureUser(from, startParam) {
     });
     const cfg = await sbGet('shark_config?id=eq.1&select=data');
     const bonus = (cfg[0] && cfg[0].data && cfg[0].data.referral_bonus) || 10;
+    const perFriend = (cfg[0] && cfg[0].data && cfg[0].data.ref_stars_per_friend) || 5;
     await applyLedger(refBy, 'uah', bonus, 'referral', 'signup:' + from.id, 'ref_signup:' + from.id, { invited: from.id });
-    await tg('sendMessage', { chat_id: refBy, text: '👥 Новый друг присоединился по вашей ссылке! +' + bonus.toFixed(2) + ' грн' });
+    const gs = await awardRefStars(refBy, perFriend, 'refstars_signup:' + from.id);
+    await tg('sendMessage', { chat_id: refBy, text: '👥 Новый друг по вашей ссылке! +' + bonus.toFixed(2) + ' грн' + (gs > 0 ? ' и +' + gs + ' ⭐' : '') });
   }
   return true;
 }
@@ -182,7 +201,21 @@ module.exports = async (req, res) => {
       const uid = pl.tg || (msg.from && msg.from.id);
       if (pack && uid) {
         const r = await applyLedger(uid, 'stars', pack.stars, 'topup', 'stars', 'pay:' + sp.telegram_payment_charge_id, { price: sp.total_amount });
-        if (r.ok) await tg('sendMessage', { chat_id: uid, text: '✅ Зачислено ' + pack.stars + ' ⭐. Удачной игры!' });
+        if (r.ok) {
+          await tg('sendMessage', { chat_id: uid, text: '✅ Зачислено ' + pack.stars + ' ⭐. Удачной игры!' });
+          // 10% с пополнения — пригласившему (в звёздах), без суточного лимита
+          const u = await sbGet('shark_users?tg_id=eq.' + uid + '&select=ref_by');
+          const refBy = u[0] && u[0].ref_by;
+          if (refBy) {
+            const cfg = await sbGet('shark_config?id=eq.1&select=data');
+            const share = (cfg[0] && cfg[0].data && cfg[0].data.referral_share) || 0.10;
+            const s = Math.floor(pack.stars * share);
+            if (s > 0) {
+              const rr = await applyLedger(refBy, 'stars', s, 'referral', 'topup:' + uid, 'reftop:' + sp.telegram_payment_charge_id, { from: uid });
+              if (rr.ok) await tg('sendMessage', { chat_id: refBy, text: '💜 Ваш друг пополнил баланс — вам +' + s + ' ⭐ (' + Math.round(share * 100) + '%)' });
+            }
+          }
+        }
       }
       res.status(200).json({ ok: true }); return;
     }
