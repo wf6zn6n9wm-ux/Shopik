@@ -492,11 +492,30 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 .ic-star{animation:starPulse 3.2s ease-in-out infinite;}
 @keyframes starPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 6px 12px rgba(255,175,60,.5));}50%{transform:scale(1.06);filter:drop-shadow(0 8px 18px rgba(255,175,60,.75));}}
 
+/* tilt-параллакс (по наклону устройства) */
+:root{--tiltx:0;--tilty:0;}
+#bubbles{transform:translate(calc(var(--tiltx) * 2px),calc(var(--tilty) * 2px));}
+.hero-card{transform:perspective(820px) rotateY(calc(var(--tiltx) * 0.5deg)) rotateX(calc(var(--tilty) * -0.5deg));transition:transform .25s ease-out;transform-style:preserve-3d;}
+
 /* конкурсы под общий стиль */
 .contest{background:var(--glass-bg);border:1px solid var(--glass-brd);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:var(--sh-soft),inset 0 1px 0 var(--glass-hi);border-radius:20px;}
 .contest .timer{background:var(--grad-gold);color:#2a1a00;box-shadow:var(--glow-gold);}
 .prize{background:rgba(6,17,26,.45);border:1px solid var(--glass-brd);border-radius:14px;}
 .prize .ic{filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));}
+
+/* магазин: эмодзи-подарок → объёмный медальон-токен */
+.pill .ic{width:66px;height:66px;margin:0 auto 10px;display:grid;place-items:center;font-size:34px;border-radius:50%;
+  background:radial-gradient(circle at 38% 28%, #1e5268 0%, #0c2637 72%);
+  border:1px solid var(--glass-brd);
+  box-shadow:inset 0 2px 5px rgba(200,240,245,.18),inset 0 -7px 12px rgba(0,0,0,.45),0 12px 20px -10px rgba(0,0,0,.65);
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));transition:transform .25s var(--ease);}
+.pill:active .ic{transform:scale(.94);}
+
+/* маленькая градиентная звезда для чипов ставок */
+.star-ic{display:inline-block;width:1.05em;height:1.05em;vertical-align:-0.14em;margin-right:1px;
+  background:var(--grad-gold);-webkit-mask:var(--star-mask) center/contain no-repeat;mask:var(--star-mask) center/contain no-repeat;
+  filter:drop-shadow(0 2px 3px rgba(255,175,60,.4));}
+.chip.active .star-ic{filter:drop-shadow(0 2px 5px rgba(255,207,92,.7));}
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}
@@ -554,7 +573,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
   <div id="game-roul">
     <p class="sub">Крути за звёзды — выигрывай подарки. Вывести звёзды в деньги нельзя.</p>
     <div class="roul-stage"><div class="roul-pointer"></div><div class="roul-strip" id="strip"></div></div>
-    <div class="bet-row"><span style="font-weight:700">Ставка:</span><div class="chip" data-bet="50" onclick="setBet(50)">⭐50</div><div class="chip" data-bet="100" onclick="setBet(100)">⭐100</div><div class="chip" data-bet="250" onclick="setBet(250)">⭐250</div></div>
+    <div class="bet-row"><span style="font-weight:700">Ставка:</span><div class="chip" data-bet="50" onclick="setBet(50)"><i class="star-ic"></i>50</div><div class="chip" data-bet="100" onclick="setBet(100)"><i class="star-ic"></i>100</div><div class="chip" data-bet="250" onclick="setBet(250)"><i class="star-ic"></i>250</div></div>
     <button class="btn-primary" id="spin-btn" onclick="spin()">Крутить за ⭐50</button>
     <div class="players" id="roul-players" style="margin-top:14px"></div>
   </div>
@@ -564,7 +583,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
     <div class="crash-history" id="crash-history"></div>
     <div class="crash-status" id="crash-status">Следующий раунд через <b>5</b>…</div>
     <div class="crash-stage" id="crash-stage"><div class="crash-grid"></div><canvas class="crash-canvas" id="crash-canvas"></canvas><div class="crash-shark" id="cshark"></div><div class="crash-mult" id="mult">1.00x</div></div>
-    <div class="bet-row"><span style="font-weight:700">Ставка:</span><div class="chip" data-cbet="50" onclick="setCBet(50)">⭐50</div><div class="chip" data-cbet="100" onclick="setCBet(100)">⭐100</div><div class="chip" data-cbet="250" onclick="setCBet(250)">⭐250</div></div>
+    <div class="bet-row"><span style="font-weight:700">Ставка:</span><div class="chip" data-cbet="50" onclick="setCBet(50)"><i class="star-ic"></i>50</div><div class="chip" data-cbet="100" onclick="setCBet(100)"><i class="star-ic"></i>100</div><div class="chip" data-cbet="250" onclick="setCBet(250)"><i class="star-ic"></i>250</div></div>
     <div class="auto-row"><label class="auto-toggle"><input type="checkbox" id="auto-chk"> Авто-вывод на</label><input id="auto-mult" class="mono auto-inp" inputmode="decimal" placeholder="2.00" value="2.00"><span style="color:var(--muted);font-size:13px">x</span></div>
     <button class="btn-primary" id="crash-btn" onclick="crashAction()">Поставить ⭐50 на след. раунд</button>
     <div class="players" id="crash-players" style="margin-top:14px"></div>
@@ -587,7 +606,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
     </div>
   </div>
   <div class="roul-stage" id="pvp-stage"><div class="roul-pointer"></div><div class="roul-strip" id="pvp-strip"></div></div>
-  <div class="bet-row"><span style="font-weight:700">Ставка:</span><div class="chip" data-pbet="50" onclick="setPBet(50)">⭐50</div><div class="chip" data-pbet="100" onclick="setPBet(100)">⭐100</div><div class="chip" data-pbet="250" onclick="setPBet(250)">⭐250</div></div>
+  <div class="bet-row"><span style="font-weight:700">Ставка:</span><div class="chip" data-pbet="50" onclick="setPBet(50)"><i class="star-ic"></i>50</div><div class="chip" data-pbet="100" onclick="setPBet(100)"><i class="star-ic"></i>100</div><div class="chip" data-pbet="250" onclick="setPBet(250)"><i class="star-ic"></i>250</div></div>
   <button class="btn-primary" id="pvp-btn" onclick="pvpJoin()">Присоединиться к битве · ⭐50</button>
   <div class="players" id="pvp-players" style="margin-top:14px"></div>
   <div class="pvp-fair" id="pvp-fair"></div>
@@ -1314,7 +1333,7 @@ var BOT_USERNAME='SharkBot';
 var API_URL='/api/shark';
 var TGAPP=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
 var INIT=TGAPP?(TGAPP.initData||''):'';
-var SERVER=false, ME={}, CFG={usdt_rate:USDT_RATE,min_withdraw:100}, REF={count:0,earned:0}, REFLINK='';
+var SERVER=false, ME={}, CFG={usdt_rate:USDT_RATE,min_withdraw:100}, REF={count:0,earned:0}, REFLINK='', PACKS={};
 
 async function api(action,params){
   var r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1523,8 +1542,26 @@ renderRefs=function(){
 };
 openBuyStars=function(){
   if(!SERVER) return _openBuyStars();
-  showSheet('<h3>Пополнить звёзды</h3><p class="muted">Оплата звёздами Telegram скоро будет доступна. Пока звёзды зарабатываются в играх и бонусах.</p><button class="btn-primary" onclick="closeSheet()">Понятно</button>');
+  var keys=Object.keys(PACKS);
+  if(!keys.length){ showSheet('<h3>Пополнить звёзды</h3><p class="muted">Пополнение временно недоступно. Попробуйте позже.</p><button class="btn-primary" onclick="closeSheet()">Ок</button>'); return; }
+  var html='<h3>Пополнить звёзды</h3><p class="muted">Оплата звёздами Telegram — зачисление автоматически.</p><div class="grid2" style="margin-top:10px">';
+  keys.forEach(function(k){ var p=PACKS[k];
+    html+='<div class="pill" data-pack="'+k+'"><div class="ic">⭐</div><div class="nm">'+p.stars+'</div><div class="px">'+p.price+' ★ Telegram</div></div>'; });
+  html+='</div>';
+  showSheet(html);
+  $all('[data-pack]').forEach(function(el){ el.onclick=function(){ buyStars(el.getAttribute('data-pack')); }; });
 };
+async function buyStars(pack){
+  var r=await api('create_stars_invoice',{pack:pack});
+  if(!r||!r.ok){ toast('Не удалось создать счёт'); return; }
+  if(TGAPP && TGAPP.openInvoice){
+    TGAPP.openInvoice(r.link, function(status){
+      if(status==='paid'){ closeSheet(); toast('Оплата прошла! Зачисляем звёзды…'); setTimeout(refreshState,1600); }
+      else if(status==='failed'){ toast('Оплата не удалась'); }
+    });
+  } else { toast('Откройте приложение в Telegram для оплаты'); }
+}
+window.buyStars=buyStars;
 /* достижения и квесты пока не заведены на сервер — в серверном режиме не
    начисляем звёзды локально, чтобы не расходиться с балансом на бэкенде */
 checkAchievements=function(){ if(SERVER) return; return _checkAchievements(); };
@@ -1553,6 +1590,7 @@ async function boot(){
     var st=await api('state');
     if(!st||!st.ok){ return; }          // бэкенд не настроен/ошибка — демо-режим
     SERVER=true; ME=st.user; CFG=st.config||CFG; REF=st.referrals||REF;
+    if(st.catalog&&st.catalog.packs) PACKS=st.catalog.packs;
     USDT_RATE=CFG.usdt_rate||USDT_RATE;
     if(st.refLink) REFLINK='https://t.me/'+BOT_USERNAME+st.refLink;
     if(ME.first_name){ var pn=document.getElementById('prof-name'); if(pn) pn.textContent=ME.first_name; var hn=document.getElementById('hero-name'); if(hn) hn.textContent=ME.first_name; }
@@ -1684,6 +1722,30 @@ syncBalances();
   window.addEventListener('resize',function(){ resize(); },{passive:true});
   document.addEventListener('visibilitychange',function(){ vis=!document.hidden; if(vis) start(); });
   init(); start();
+})();
+
+/* tilt-параллакс по наклону устройства (iOS: доступ по первому тапу) */
+(function(){
+  if(prefersReduced()) return;
+  var root=document.documentElement, tx=0,ty=0,cx=0,cy=0,raf=null;
+  function loop(){
+    cx+=(tx-cx)*0.12; cy+=(ty-cy)*0.12;
+    root.style.setProperty('--tiltx',cx.toFixed(2)); root.style.setProperty('--tilty',cy.toFixed(2));
+    if(Math.abs(tx-cx)>0.04||Math.abs(ty-cy)>0.04) raf=requestAnimationFrame(loop); else raf=null;
+  }
+  function kick(){ if(!raf) raf=requestAnimationFrame(loop); }
+  function onOrient(e){
+    if(e.gamma==null&&e.beta==null) return;
+    var g=Math.max(-28,Math.min(28,e.gamma||0));           // лево-право
+    var b=Math.max(-28,Math.min(28,(e.beta||0)-42));        // наклон вперёд/назад (центр ~42°)
+    tx=g/28*6; ty=b/28*6; kick();
+  }
+  function attach(){ window.addEventListener('deviceorientation',onOrient,true); }
+  var DOE=window.DeviceOrientationEvent;
+  if(DOE && typeof DOE.requestPermission==='function'){
+    var ask=function(){ DOE.requestPermission().then(function(s){ if(s==='granted') attach(); }).catch(function(){}); };
+    document.addEventListener('pointerdown',ask,{once:true});
+  } else if(DOE){ attach(); }
 })();
 </script>
 </body>

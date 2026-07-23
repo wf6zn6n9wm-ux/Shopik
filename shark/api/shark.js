@@ -10,7 +10,8 @@
 //
 // Запрос: POST { action, initData, ...params }
 // Действия: state | game_bet | pvp_state | pvp_join | crash_bet |
-//           crash_cashout | buy_gift | withdraw_create | history
+//           crash_cashout | buy_gift | create_stars_invoice | withdraw_create |
+//           history
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
 //   SHARK_SUPABASE_URL / SUPABASE_URL
@@ -46,6 +47,16 @@ const SHOP = [
 ];
 const BET_OPTIONS = [50, 100, 250];
 const WITHDRAW_METHODS = ['card_ua', 'usdt_trc20', 'usdt_ton', 'usdt_bep20'];
+
+// Пакеты пополнения игровых звёзд через Telegram Stars (валюта XTR).
+// price — сколько Telegram Stars платит пользователь; stars — сколько игровых
+// звёзд зачисляем (в больших пакетах — бонус). Источник цен — сервер.
+const STAR_PACKS = {
+  s100:  { stars: 100,  price: 100,  title: '100 звёзд' },
+  s550:  { stars: 550,  price: 500,  title: '550 звёзд · +10%' },
+  s1150: { stars: 1150, price: 1000, title: '1150 звёзд · +15%' },
+  s6000: { stars: 6000, price: 5000, title: '6000 звёзд · +20%' }
+};
 
 // PVP-джекпот: комиссия «дома» (house edge) с банка при выплате победителю.
 // Ожидание для игрока = ставка * (1 - PVP_RAKE) — как честная лотерея с рейком.
@@ -236,7 +247,7 @@ module.exports = async (req, res) => {
           referral_bonus: CFG.referral_bonus, referral_share: CFG.referral_share
         },
         referrals: { count: refs.length, earned: refEarned },
-        catalog: { roulette: ROUL_PRIZES, shop: SHOP, bets: BET_OPTIONS, methods: WITHDRAW_METHODS },
+        catalog: { roulette: ROUL_PRIZES, shop: SHOP, bets: BET_OPTIONS, methods: WITHDRAW_METHODS, packs: STAR_PACKS },
         refLink: botLink(BOT, user.ref_code)
       });
       return;
@@ -425,6 +436,29 @@ module.exports = async (req, res) => {
       notifyAdmins(BOT, adminIds(), '🎁 Куплен подарок «' + item.name + '» ' + item.emoji + '\n👤 ' + userLabel(user) + '\n⭐' + item.value + '\n\nОтправьте подарок вручную.');
       const fresh = await freshUser();
       json(res, 200, { ok: true, user: publicUser(fresh) });
+      return;
+    }
+
+    // ---------------------------------------------------------
+    //  CREATE_STARS_INVOICE — счёт на пополнение звёзд через Telegram Stars
+    //  Зачисление делает бот в successful_payment (idempotent по charge_id).
+    // ---------------------------------------------------------
+    if (action === 'create_stars_invoice') {
+      const pack = STAR_PACKS[body.pack];
+      if (!pack) { json(res, 200, { ok: false, reason: 'bad_pack' }); return; }
+      const payload = JSON.stringify({ tg: me.id, pack: body.pack });
+      const r = await fetch('https://api.telegram.org/bot' + BOT + '/createInvoiceLink', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Shark · ' + pack.title,
+          description: 'Пополнение игрового баланса на ' + pack.stars + ' звёзд',
+          payload, currency: 'XTR',
+          prices: [{ label: pack.title, amount: pack.price }]
+        })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!d || !d.ok || !d.result) { json(res, 200, { ok: false, reason: 'invoice_failed' }); return; }
+      json(res, 200, { ok: true, link: d.result, stars: pack.stars, price: pack.price });
       return;
     }
 
@@ -626,7 +660,7 @@ function mapHistory(r) {
   const titles = {
     referral: '👥 Реферал', bet: '🎮 Ставка', win: '🏆 Выигрыш',
     withdraw: '💸 Вывод', withdraw_refund: '↩️ Возврат вывода',
-    gift: '🎁 Подарок', adjust: '⚙️ Коррекция'
+    gift: '🎁 Подарок', topup: '⭐ Пополнение', adjust: '⚙️ Коррекция'
   };
   return {
     icon: (titles[r.kind] || '•').split(' ')[0],

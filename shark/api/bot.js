@@ -27,6 +27,12 @@ function adminIds() {
 }
 function isAdmin(id) { return adminIds().includes(Number(id)); }
 
+// Пакеты звёзд — те же, что в api/shark.js (сколько игровых звёзд зачислять)
+const STAR_PACKS = {
+  s100:  { stars: 100 },  s550:  { stars: 550 },
+  s1150: { stars: 1150 }, s6000: { stars: 6000 }
+};
+
 const WELCOME =
   '🦈 Добро пожаловать в Shark!\n\n' +
   '💰 Задания — реальные деньги (грн / USDT)\n' +
@@ -167,6 +173,20 @@ module.exports = async (req, res) => {
     }
 
     const msg = update.message;
+
+    // Telegram Stars: успешная оплата → зачисляем игровые звёзды (idempotent)
+    if (msg && msg.successful_payment) {
+      const sp = msg.successful_payment;
+      let pl = {}; try { pl = JSON.parse(sp.invoice_payload || '{}'); } catch (e) {}
+      const pack = STAR_PACKS[pl.pack];
+      const uid = pl.tg || (msg.from && msg.from.id);
+      if (pack && uid) {
+        const r = await applyLedger(uid, 'stars', pack.stars, 'topup', 'stars', 'pay:' + sp.telegram_payment_charge_id, { price: sp.total_amount });
+        if (r.ok) await tg('sendMessage', { chat_id: uid, text: '✅ Зачислено ' + pack.stars + ' ⭐. Удачной игры!' });
+      }
+      res.status(200).json({ ok: true }); return;
+    }
+
     if (msg && msg.text) {
       const text = msg.text.trim();
       if (text === '/start' || text.indexOf('/start ') === 0) {

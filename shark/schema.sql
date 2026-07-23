@@ -40,7 +40,7 @@ create table if not exists shark_ledger (
   tg_id      bigint not null references shark_users(tg_id),
   currency   text   not null check (currency in ('uah','stars')),
   amount     numeric(14,2) not null,                   -- + начисление, − списание
-  kind       text   not null,                          -- referral|bet|win|withdraw|withdraw_refund|gift|adjust
+  kind       text   not null,                          -- referral|bet|win|withdraw|withdraw_refund|gift|topup|adjust
   ref        text,                                     -- ссылка на сущность (id вывода/раунда)
   idem       text   unique,                            -- ключ идемпотентности (может быть null для «всегда уникальных»)
   meta       jsonb  not null default '{}',
