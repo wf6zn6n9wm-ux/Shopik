@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/routes.dart';
 import '../../design/theme.dart';
 import '../../ui/z.dart';
 
@@ -212,9 +214,12 @@ class _Preview extends StatelessWidget {
           ],
           const SizedBox(height: 2),
           Center(
-            child: Text('Обрати час →',
-                style: AppTypography.label(k.accent)
-                    .copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
+            child: GestureDetector(
+              onTap: () => context.push(Routes.publicBooking),
+              child: Text('Відкрити сторінку запису →',
+                  style: AppTypography.label(k.accent)
+                      .copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
+            ),
           ),
         ],
       ),
