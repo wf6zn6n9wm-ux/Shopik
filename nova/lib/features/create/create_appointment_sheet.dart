@@ -28,8 +28,8 @@ class _CreateSheet extends ConsumerStatefulWidget {
 class _CreateSheetState extends ConsumerState<_CreateSheet> {
   Client? _client;
   Service? _service;
-  DateTime _day = DateTime(
-      DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  DateTime _day =
+      DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
   DateTime? _slot;
 
   @override
@@ -63,9 +63,11 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
                         ZAvatar(initials: c.initials, size: 24),
                         const SizedBox(width: 7),
                         Text(c.name.split(' ').first,
-                            style: AppTypography.label(on ? Colors.white : k.ink)
-                                .copyWith(
-                                    fontSize: 13, fontWeight: FontWeight.w600)),
+                            style:
+                                AppTypography.label(on ? Colors.white : k.ink)
+                                    .copyWith(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600)),
                       ],
                     ));
               },
@@ -79,10 +81,13 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
             runSpacing: 8,
             children: [
               for (final s in services)
-                _chip(k, _service?.id == s.id, () => setState(() {
-                      _service = s;
-                      _slot = null;
-                    }),
+                _chip(
+                    k,
+                    _service?.id == s.id,
+                    () => setState(() {
+                          _service = s;
+                          _slot = null;
+                        }),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
