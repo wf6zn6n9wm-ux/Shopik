@@ -176,7 +176,7 @@ function render(d){
     + kpi('📈 Новых сегодня', t.newToday, 'amber')
     + kpi('📅 Новых за 7д', t.new7d, '')
     + kpi('🎯 Квестов сегодня', t.questsToday, 'green')
-    + kpi('⭐ Очков сегодня', t.pointsToday, 'amber')
+    + kpi('💖 Love Points сегодня', t.pointsToday, 'amber')
     + kpi('💬 Ответов сегодня', t.answersToday, '')
     + kpi('🔥 DAU', t.dau, 'rose');
   var chart = function(title, svg){ return '<div class="card"><div class="sec-title">'+title+'</div>'+svg+'<div class="small muted" style="margin-top:6px">за 30 дней</div></div>'; };
@@ -223,16 +223,16 @@ window.__go = function(v){
 };
 
 // схема секций: какие поля и как их приводить к типу
-var METRICS=[['points','Очки'],['questsDone','Квестов'],['wishesDone','Желаний'],['answersCount','Ответов'],['streak','Серия'],['levelIndex','Индекс уровня']];
+var METRICS=[['points','Love Points'],['questsDone','Квестов'],['wishesDone','Желаний'],['answersCount','Ответов'],['streak','Серия'],['levelIndex','Индекс уровня']];
 var DIFFS=[['easy','Легко'],['med','Средне'],['hard','Сложно']];
 function SECTIONS(){
   var catOpts=((CONFIG&&CONFIG.categories)||[]).map(function(c){return [c.key,(c.emoji||'')+' '+c.name];});
   return [
-    { key:'levels', title:'🏆 Уровни', tpl:function(){return {key:'',name:'',emoji:'⭐',min:0,perks:[]};},
+    { key:'levels', title:'🏆 Уровни', tpl:function(){return {key:'',name:'',emoji:'💖',min:0,perks:[]};},
       label:function(it){return (it.emoji||'')+' '+(it.name||'новый уровень');},
       fields:[
         {k:'emoji',l:'Эмодзи',t:'text'},{k:'name',l:'Название',t:'text'},
-        {k:'key',l:'Ключ (лат.)',t:'text'},{k:'min',l:'Очков для уровня',t:'num'},
+        {k:'key',l:'Ключ (лат.)',t:'text'},{k:'min',l:'Love Points для уровня',t:'num'},
         {k:'perks',l:'Награды (по одной в строке)',t:'lines',wide:true}
       ] },
     { key:'achievements', title:'🥇 Достижения', tpl:function(){return {key:'',icon:'🏅',title:'',desc:'',metric:'questsDone',gte:1,enabled:true};},
@@ -247,7 +247,7 @@ function SECTIONS(){
       label:function(it){return (it.emoji||'')+' '+(it.title||'новый квест');},
       fields:[
         {k:'emoji',l:'Эмодзи',t:'text'},{k:'title',l:'Название',t:'text'},
-        {k:'pts',l:'Очки',t:'num'},{k:'cat',l:'Категория',t:'select',opts:catOpts},
+        {k:'pts',l:'Love Points',t:'num'},{k:'cat',l:'Категория',t:'select',opts:catOpts},
         {k:'time',l:'Время',t:'text'},{k:'diff',l:'Сложность',t:'select',opts:DIFFS},
         {k:'level',l:'С уровня (0..)',t:'num'},{k:'pairs',l:'Пар выполнили',t:'num'},
         {k:'featured',l:'Кандидат в «Квест дня»',t:'bool'},{k:'enabled',l:'Включён',t:'bool'},
