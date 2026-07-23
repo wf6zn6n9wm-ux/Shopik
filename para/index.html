@@ -427,6 +427,20 @@
   .pp-benefit{display:flex;align-items:center;gap:11px;font-size:14px;padding:9px 0;}
   .pp-benefit:not(:last-child){border-bottom:1px solid rgba(255,255,255,.05);}
   .pp-benefit-ic{font-size:18px;flex:0 0 auto;width:24px;text-align:center;}
+  /* Соц.доверие — карточка с числом пар (лёгкое свечение) */
+  .pp-social{display:flex;align-items:center;gap:13px;border-radius:18px;padding:13px 16px;margin-bottom:16px;
+    background:linear-gradient(135deg,rgba(255,94,138,.16),rgba(192,38,211,.12));
+    border:1px solid rgba(255,94,138,.3);
+    box-shadow:0 8px 30px rgba(255,94,138,.20),inset 0 1px 0 rgba(255,255,255,.06);
+    animation:ppSocGlow 3.2s ease-in-out infinite;}
+  @keyframes ppSocGlow{0%,100%{box-shadow:0 8px 26px rgba(255,94,138,.16),inset 0 1px 0 rgba(255,255,255,.06);}
+    50%{box-shadow:0 12px 40px rgba(255,94,138,.34),inset 0 1px 0 rgba(255,255,255,.09);}}
+  .pp-social-emo{font-size:26px;flex:0 0 auto;filter:drop-shadow(0 2px 8px rgba(255,94,138,.5));
+    animation:ppSocBeat 1.9s ease-in-out infinite;}
+  @keyframes ppSocBeat{0%,100%{transform:scale(1);}22%{transform:scale(1.18);}40%{transform:scale(1.03);}58%{transform:scale(1.12);}}
+  .pp-social-t{font-size:14px;line-height:1.4;color:#fff;}
+  .pp-social-t b{font-weight:800;color:#ff9ebb;font-variant-numeric:tabular-nums;}
+  @media (prefers-reduced-motion:reduce){.pp-social,.pp-social-emo{animation:none;}}
   /* Промо-оффер PARA+ */
   .pp-promo{width:100%;max-width:400px;margin:0 18px;background:#1c1622;border:1px solid var(--line);
     border-radius:26px;padding:26px 20px calc(22px + env(safe-area-inset-bottom));text-align:center;
@@ -611,7 +625,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v42 · 💖 Love Points (⭐ только для Telegram Stars)';
+var APP_VERSION = 'v43 · PARA+ соц.доверие (число пар из БД)';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1754,6 +1768,23 @@ function ppPlanRow(p,monthly){
     (sub?'<span class="pp-plan-sub">'+sub+'</span>':'')+'</span>'+
     '<span class="pp-plan-p">'+p.stars+'&nbsp;⭐</span></button>';
 }
+// разряды числа тонким пробосом: 1234 → «1 234» (премиальный вид)
+function fmtNum(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+// блок соц.доверия на экране PARA+ — данные из БД (S.pairsCount), текст меняется по порогам.
+// Мало данных (≤100) или недоступно (null) → возвращаем пустую строку, блок скрыт без ошибок.
+function socialProofCard(){
+  var n=S.pairsCount;
+  if(typeof n!=='number' || !isFinite(n) || n<=100) return '';
+  var emo, txt;
+  if(n>1000){
+    var rounded=Math.floor(n/100)*100; // округляем вниз до сотни — чтобы «более N» всегда было правдой
+    emo='💞'; txt='Уже более <b>'+fmtNum(rounded)+'</b> счастливых пар вместе с PARA.';
+  } else {
+    emo='❤️'; txt='Уже <b>'+fmtNum(n)+'</b> пар используют PARA.';
+  }
+  return '<div class="pp-social"><div class="pp-social-emo">'+emo+'</div>'+
+    '<div class="pp-social-t">'+txt+'</div></div>';
+}
 function paraPlusView(){
   var pr=S.premium||{active:false};
   var head='<div class="row between mb4"><div class="b" style="font-size:20px">⭐ PARA+</div>'+
@@ -1774,7 +1805,7 @@ function paraPlusView(){
   var solo='<div class="pp-sec"><div class="pp-sec-h">❤️ SOLO</div>'+
     '<div class="pp-sec-sub">Premium только для вас.</div>'+
     PARAPLUS.solo.map(function(p){ return ppPlanRow(p,soloMonthly); }).join('')+'</div>';
-  return '<div class="app"><div class="wrap">'+head+hero+status+benefits+duo+solo+
+  return '<div class="app"><div class="wrap">'+head+hero+socialProofCard()+status+benefits+duo+solo+
     '<div class="xs muted2 center-t mt4">Оплата звёздами Telegram (XTR). Автопродления нет — подписку продлеваете сами.</div>'+
     '<div style="height:24px"></div></div></div>';
 }
@@ -2668,6 +2699,7 @@ async function refreshState(){
       if(r.moods) applyMoods(r.moods);                          // настроение дня обоих
       if('profile' in r) applyServerProfile(r.profile);         // общий профиль/даты пары
       if('premium' in r) S.premium=r.premium;                   // статус PARA+ (проверяется при каждом обновлении)
+      if('pairsCount' in r) S.pairsCount=r.pairsCount;          // соц.доверие на экране PARA+ (обновляется автоматически)
       if(nowLinked && prevLinked===false){ celebrateLink(); }   // партнёр только что присоединился!
       prevLinked=nowLinked;
       render(); checkLevelUp();
@@ -2757,6 +2789,7 @@ async function boot(){
         if(r.moods) applyMoods(r.moods);
         if('profile' in r) applyServerProfile(r.profile);
         if('premium' in r) S.premium=r.premium;
+        if('pairsCount' in r) S.pairsCount=r.pairsCount;
         prevLinked=!!r.couple.linked;
         if(!S.couple.linked) startLinkPoll(); } // вернувшийся создатель всё ещё ждёт партнёра
       else { S.couple=null; } // сервер — источник правды: онбординг с настоящим бэкендом

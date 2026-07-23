@@ -326,6 +326,11 @@ module.exports = async (req, res) => {
       const m = cr.match(/\/(\d+)$/);
       return m ? Number(m[1]) : 0;
     }
+    // всего созданных пар — для блока соц.доверия на экране PARA+.
+    // При любой ошибке возвращаем null → клиент просто скрывает блок.
+    async function totalPairs() {
+      try { return await sbCount('para_couples?select=id'); } catch (e) { return null; }
+    }
     async function sb(path, opts) {
       const r = await fetch(URL + '/rest/v1/' + path, Object.assign({ headers: H }, opts || {}));
       const t = await r.text();
@@ -684,7 +689,8 @@ module.exports = async (req, res) => {
       const profData = await coupleProfile(mem.couple_id);
       const profile = profData ? resolveProfile(profData, me.id, members) : null;
       const premium = await premiumStatus(me.id, mem.couple_id); // статус PARA+ (проверяется при каждом открытии)
-      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: config, wishes: wishes, moods: moods, profile: profile, premium: premium });
+      const pairsCount = await totalPairs(); // соц.доверие на экране PARA+
+      res.status(200).json({ ok: true, couple: coupleView(mem.couple_id, code, members), today: today, progress: progress, config: config, wishes: wishes, moods: moods, profile: profile, premium: premium, pairsCount: pairsCount });
       return;
     }
 
@@ -692,7 +698,8 @@ module.exports = async (req, res) => {
     if (action === 'sub_status') {
       const mem = await myMembership();
       const premium = await premiumStatus(me.id, mem && mem.couple_id);
-      res.status(200).json({ ok: true, premium: premium });
+      const pairsCount = await totalPairs(); // соц.доверие на экране PARA+
+      res.status(200).json({ ok: true, premium: premium, pairsCount: pairsCount });
       return;
     }
 
