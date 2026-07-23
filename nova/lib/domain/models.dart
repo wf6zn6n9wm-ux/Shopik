@@ -16,12 +16,12 @@ enum AppointmentStatus {
 extension AppointmentStatusX on AppointmentStatus {
   String get label => switch (this) {
         AppointmentStatus.online => 'онлайн',
-        AppointmentStatus.confirmed => 'подтв.',
-        AppointmentStatus.pending => 'ждём',
-        AppointmentStatus.inProgress => 'идёт',
-        AppointmentStatus.completed => 'завершён',
-        AppointmentStatus.noShow => 'неявка',
-        AppointmentStatus.cancelled => 'отменён',
+        AppointmentStatus.confirmed => 'підтв.',
+        AppointmentStatus.pending => 'чекаємо',
+        AppointmentStatus.inProgress => 'триває',
+        AppointmentStatus.completed => 'завершено',
+        AppointmentStatus.noShow => 'не прийшов',
+        AppointmentStatus.cancelled => 'скасовано',
       };
 }
 

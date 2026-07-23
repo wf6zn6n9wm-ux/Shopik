@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../design/theme.dart';
@@ -104,7 +105,10 @@ class _NavItem extends StatelessWidget {
     final k = context.kavio;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       child: SizedBox(
         width: 44,
         height: 42,
@@ -148,7 +152,10 @@ class _FabState extends State<_Fab> {
       onTapDown: (_) => setState(() => _down = true),
       onTapUp: (_) => setState(() => _down = false),
       onTapCancel: () => setState(() => _down = false),
-      onTap: widget.onTap,
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        widget.onTap();
+      },
       child: AnimatedScale(
         scale: _down ? 0.92 : 1,
         duration: const Duration(milliseconds: 110),

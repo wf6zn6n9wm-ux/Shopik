@@ -164,7 +164,7 @@ class _NextClientHero extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          ZRing(
+          ZLiveRing(
             progress: progress,
             size: 52,
             stroke: 4,

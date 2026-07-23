@@ -1,11 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/services/subscriptions/entitlements.dart';
 import '../core/time/demo_clock.dart';
 import '../domain/models.dart';
 import '../domain/repositories.dart';
 import 'db/database.dart';
 import 'repositories/drift_repositories.dart';
+
+/// Поточний тариф користувача (демо: Pro). У проді — з SubscriptionService.
+final currentPlanProvider = Provider<Plan>((ref) => Plan.pro);
 
 /// Riverpod-проводка. Экраны читают провайдеры, а не БД напрямую.
 /// Drift-потоки делают всё реактивным и offline-first.

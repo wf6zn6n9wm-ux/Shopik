@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/auth_screen.dart';
@@ -19,6 +20,35 @@ import 'scaffold_with_nav.dart';
 /// полноэкранные и pushed-маршруты MVP. Новый модуль добавляет свои маршруты,
 /// ничего здесь не переписывая.
 final GoRouter appRouter = _buildRouter();
+
+/// Преміальний перехід pushed-екранів: fade + м'який рух знизу + легкий scale,
+/// пружинна крива (Arc/Linear-відчуття). Спільний для всіх pushed-маршрутів.
+CustomTransitionPage<void> _springPage(Widget child) {
+  return CustomTransitionPage<void>(
+    transitionDuration: const Duration(milliseconds: 380),
+    reverseTransitionDuration: const Duration(milliseconds: 300),
+    child: child,
+    transitionsBuilder: (context, animation, secondary, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: const Cubic(0.16, 0.9, 0.3, 1),
+        reverseCurve: const Cubic(0.3, 0, 0.8, 0.15),
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: Tween<Offset>(
+                  begin: const Offset(0, 0.035), end: Offset.zero)
+              .animate(curved),
+          child: Transform.scale(
+            scale: 0.98 + 0.02 * curved.value,
+            child: child,
+          ),
+        ),
+      );
+    },
+  );
+}
 
 GoRouter _buildRouter() {
   final destinations = primaryDestinations;
@@ -50,33 +80,36 @@ GoRouter _buildRouter() {
         ],
       ),
 
-      // Pushed-экраны MVP.
+      // Pushed-екрани — з пружинним переходом.
       GoRoute(
         path: Routes.clientDetail,
-        builder: (context, state) =>
-            ClientDetailScreen(clientId: state.pathParameters['id']!),
+        pageBuilder: (context, state) => _springPage(
+            ClientDetailScreen(clientId: state.pathParameters['id']!)),
       ),
       GoRoute(
           path: Routes.clients,
-          builder: (context, state) => const ClientsScreen()),
+          pageBuilder: (context, state) => _springPage(const ClientsScreen())),
       GoRoute(
           path: Routes.services,
-          builder: (context, state) => const ServicesScreen()),
+          pageBuilder: (context, state) => _springPage(const ServicesScreen())),
       GoRoute(
           path: Routes.profile,
-          builder: (context, state) => const ProfileScreen()),
+          pageBuilder: (context, state) => _springPage(const ProfileScreen())),
       GoRoute(
           path: Routes.settings,
-          builder: (context, state) => const SettingsScreen()),
+          pageBuilder: (context, state) => _springPage(const SettingsScreen())),
       GoRoute(
           path: Routes.subscription,
-          builder: (context, state) => const SubscriptionScreen()),
+          pageBuilder: (context, state) =>
+              _springPage(const SubscriptionScreen())),
       GoRoute(
           path: Routes.onlineBooking,
-          builder: (context, state) => const OnlineBookingScreen()),
+          pageBuilder: (context, state) =>
+              _springPage(const OnlineBookingScreen())),
       GoRoute(
           path: Routes.smartGaps,
-          builder: (context, state) => const SmartGapsScreen()),
+          pageBuilder: (context, state) =>
+              _springPage(const SmartGapsScreen())),
 
       ...moduleRoutes,
     ],

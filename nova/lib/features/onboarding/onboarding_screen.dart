@@ -54,7 +54,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       if (mounted) {
         setState(() => _saving = false);
         messenger.showSnackBar(
-          SnackBar(content: Text('Не удалось создать пространство: $e')),
+          SnackBar(content: Text('Не вдалося створити простір: $e')),
         );
       }
     }
@@ -74,10 +74,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Чем вы занимаетесь?',
+                  Text('Чим ви займаєтесь?',
                       style: AppTypography.title1(kavio.ink)),
                   const SizedBox(height: Spacing.s2),
-                  Text('Подберём готовые услуги и настройки под вашу сферу',
+                  Text('Підберемо готові послуги й налаштування під вашу сферу',
                       style: AppTypography.body(kavio.ink2)),
                 ],
               ),
@@ -103,7 +103,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               padding: const EdgeInsets.fromLTRB(
                   Spacing.s5, 0, Spacing.s5, Spacing.s5),
               child: KavioButton(
-                'Создать рабочее пространство',
+                'Створити робочий простір',
                 expand: true,
                 onPressed: _selected == null || _saving ? null : _create,
               ),

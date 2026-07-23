@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
+import '../../core/services/subscriptions/entitlements.dart';
+import '../../data/providers.dart';
 import '../../design/theme.dart';
 import '../../ui/z.dart';
 
-/// «Меню» — хаб розділів поза щоденною навігацією. Профіль + групи посилань.
-class MenuScreen extends StatelessWidget {
+/// «Меню» — хаб розділів поза щоденною навігацією. Профіль, тариф, групи посилань.
+class MenuScreen extends ConsumerWidget {
   const MenuScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final k = context.kavio;
+    final plan = ref.watch(currentPlanProvider);
     var i = 0;
     Widget reveal(Widget c) => StaggerReveal(index: i++, child: c);
 
@@ -52,6 +56,8 @@ class MenuScreen extends StatelessWidget {
                 ),
               ),
             )),
+            const SizedBox(height: 12),
+            reveal(_TariffCard(plan: plan)),
             const SizedBox(height: 20),
             reveal(const ZLabel('Робота')),
             const SizedBox(height: 8),
@@ -74,6 +80,71 @@ class MenuScreen extends StatelessWidget {
               _Item(Icons.settings_outlined, 'Налаштування',
                   () => context.push(Routes.settings)),
             ])),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TariffCard extends StatelessWidget {
+  const _TariffCard({required this.plan});
+  final Plan plan;
+  @override
+  Widget build(BuildContext context) {
+    final k = context.kavio;
+    final name = switch (plan) {
+      Plan.free => 'Free',
+      Plan.pro => 'Pro',
+      Plan.team => 'Team',
+    };
+    final paid = plan != Plan.free;
+    return GestureDetector(
+      onTap: () => context.push(Routes.subscription),
+      behavior: HitTestBehavior.opaque,
+      child: ZCard(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: paid ? FX.brandButton : null,
+                color: paid ? null : k.surface2,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.workspace_premium,
+                  size: 20, color: paid ? Colors.white : k.ink3),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text('Тариф $name',
+                          style: AppTypography.title3(k.ink)
+                              .copyWith(fontSize: 15)),
+                      const SizedBox(width: 8),
+                      ZPill(paid ? 'Активний' : 'Безкоштовний',
+                          color: paid ? k.success : k.ink2,
+                          bg: paid ? k.successTint : k.surface2),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                      paid
+                          ? 'Продовжується 12 серпня'
+                          : 'Оновіть до Pro — більше можливостей',
+                      style: AppTypography.label(k.ink3).copyWith(fontSize: 12)),
+                ],
+              ),
+            ),
+            Text(paid ? 'Керувати' : 'Оновити',
+                style: AppTypography.label(k.accent)
+                    .copyWith(fontSize: 12, fontWeight: FontWeight.w700)),
           ],
         ),
       ),

@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/providers.dart';
 import '../../design/theme.dart';
+import '../../ui/format.dart';
 import '../../ui/z.dart';
 
 /// Аналітика рівня Stripe/Linear: великі числа з дельтою, ghost-лінія
@@ -15,11 +17,12 @@ class AnalyticsScreen extends ConsumerStatefulWidget {
 }
 
 class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
-  int _period = 1;
+  int _period = 0; // Сьогодні за замовчуванням
 
   @override
   Widget build(BuildContext context) {
     final k = context.kavio;
+    final d = ref.watch(dashboardProvider);
     var i = 0;
     Widget reveal(Widget c) => StaggerReveal(index: i++, child: c);
 
@@ -47,12 +50,20 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             )),
             const SizedBox(height: 14),
             reveal(ZSegmented(
-              items: const ['Тиждень', 'Місяць', 'Квартал', 'Рік'],
+              items: const ['Сьогодні', 'Тиждень', 'Місяць', 'Рік'],
               index: _period,
-              onChanged: (v) => setState(() => _period = v),
+              onChanged: (v) {
+                zTap();
+                setState(() => _period = v);
+              },
             )),
             const SizedBox(height: 14),
-            reveal(const _RevenueHero()),
+            reveal(_RevenueHero(
+              today: _period == 0,
+              todayRevenue: d.revenue,
+              todayVisits: d.visits,
+              freeWindows: d.freeWindows.length,
+            )),
             const SizedBox(height: 12),
             reveal(const _KpiGrid()),
             const SizedBox(height: 12),
@@ -67,7 +78,15 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
 }
 
 class _RevenueHero extends StatelessWidget {
-  const _RevenueHero();
+  const _RevenueHero({
+    required this.today,
+    required this.todayRevenue,
+    required this.todayVisits,
+    required this.freeWindows,
+  });
+  final bool today;
+  final int todayRevenue, todayVisits, freeWindows;
+
   @override
   Widget build(BuildContext context) {
     final k = context.kavio;
@@ -76,17 +95,21 @@ class _RevenueHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ZLabel('Виручка · липень', color: k.ink2),
-          Text('₴182 400',
+          ZLabel(today ? 'Виручка · сьогодні' : 'Виручка · липень', color: k.ink2),
+          Text(today ? Fmt.money(todayRevenue) : '₴182 400',
               style: AppTypography.tabular(AppTypography.display(k.ink))
                   .copyWith(fontSize: 36, height: 1.05)),
           const SizedBox(height: 6),
           Row(
             children: [
-              ZPill('▲ 18%', color: k.success, bg: k.successTint),
+              ZPill(today ? '▲ 12%' : '▲ 18%',
+                  color: k.success, bg: k.successTint),
               const SizedBox(width: 8),
               Flexible(
-                child: Text('проти ₴154 600 у червні',
+                child: Text(
+                    today
+                        ? '$todayVisits записів · $freeWindows вільних вікон'
+                        : 'проти ₴154 600 у червні',
                     style: AppTypography.label(k.ink3).copyWith(fontSize: 12)),
               ),
             ],
@@ -100,9 +123,9 @@ class _RevenueHero extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const _Legend(dashed: false, label: 'липень'),
+              _Legend(dashed: false, label: today ? 'сьогодні' : 'липень'),
               const SizedBox(width: 14),
-              const _Legend(dashed: true, label: 'червень'),
+              _Legend(dashed: true, label: today ? 'вчора' : 'червень'),
             ],
           ),
         ],

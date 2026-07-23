@@ -16,21 +16,21 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final kavio = context.kavio;
     return KavioPageScaffold(
-      title: 'Профиль',
+      title: 'Профіль',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
             Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
         children: [
           Row(
             children: [
-              const Avatar('И', size: 56),
+              const Avatar('С', size: 56),
               const SizedBox(width: Spacing.s4),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Ирина', style: AppTypography.title2(kavio.ink)),
+                  Text('Софія', style: AppTypography.title2(kavio.ink)),
                   const SizedBox(height: 2),
-                  Text('Моя студия · Мастер',
+                  Text('Манікюрна студія · Майстриня',
                       style: AppTypography.label(kavio.ink2)),
                 ],
               ),
@@ -38,7 +38,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: Spacing.s8),
           KavioButton(
-            'Выйти',
+            'Вийти',
             kind: KavioButtonKind.secondary,
             expand: true,
             onPressed: () => context.go(Routes.auth),

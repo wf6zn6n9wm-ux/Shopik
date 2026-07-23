@@ -42,7 +42,7 @@ class StaffMembers extends Table {
   TextColumn get id => text()();
   TextColumn get businessId => text()();
   TextColumn get name => text()();
-  TextColumn get role => text().withDefault(const Constant('Мастер'))();
+  TextColumn get role => text().withDefault(const Constant('Майстер'))();
   @override
   Set<Column> get primaryKey => {id};
 }

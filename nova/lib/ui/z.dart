@@ -2,8 +2,12 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../design/theme.dart';
+
+/// Легкий haptic на дотик (на мобільному — вібрація, на вебі — no-op).
+void zTap() => HapticFeedback.selectionClick();
 
 /// Набір компонентів Запис+ v3. Єдина дизайн-система: усі екрани збираються з
 /// цих цеглин, щоб пиксель-в-пиксель збігатися з макетами (глибина, скло,
@@ -155,7 +159,12 @@ class _ZButtonState extends State<ZButton> {
       onTapDown: (_) => setState(() => _down = true),
       onTapUp: (_) => setState(() => _down = false),
       onTapCancel: () => setState(() => _down = false),
-      onTap: widget.onTap,
+      onTap: widget.onTap == null
+          ? null
+          : () {
+              HapticFeedback.lightImpact();
+              widget.onTap!();
+            },
       child: AnimatedScale(
         scale: _down ? 0.96 : 1,
         duration: const Duration(milliseconds: 110),
@@ -326,7 +335,10 @@ class ZSegmented extends StatelessWidget {
           for (var i = 0; i < items.length; i++)
             Expanded(
               child: GestureDetector(
-                onTap: () => onChanged(i),
+                onTap: () {
+                  zTap();
+                  onChanged(i);
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOut,
@@ -369,7 +381,12 @@ class ZFreeSlot extends StatelessWidget {
   Widget build(BuildContext context) {
     final k = context.kavio;
     return GestureDetector(
-      onTap: onTap,
+      onTap: onTap == null
+          ? null
+          : () {
+              HapticFeedback.lightImpact();
+              onTap!();
+            },
       child: CustomPaint(
         painter: _DashedRRectPainter(
             color: FX.freeSlotBorder, radius: 16, dash: 6, gap: 5, stroke: 1.5),
@@ -510,6 +527,157 @@ class _RingPainter extends CustomPainter {
   @override
   bool shouldRepaint(_RingPainter old) =>
       old.progress != progress || old.color != color;
+}
+
+/// «Живе» кільце: прокреслюється з пружиною при появі, потім тихо «дихає» —
+/// біжуча цятка-голова обертається, свічення пульсує. Для «Наступний клієнт».
+class ZLiveRing extends StatefulWidget {
+  const ZLiveRing({
+    super.key,
+    required this.progress,
+    this.size = 52,
+    this.stroke = 4,
+    this.color,
+    this.center,
+  });
+  final double progress;
+  final double size, stroke;
+  final Color? color;
+  final Widget? center;
+  @override
+  State<ZLiveRing> createState() => _ZLiveRingState();
+}
+
+class _ZLiveRingState extends State<ZLiveRing> with TickerProviderStateMixin {
+  late final AnimationController _draw = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1100));
+  late final Animation<double> _drawT =
+      CurvedAnimation(parent: _draw, curve: const Cubic(0.16, 0.9, 0.3, 1));
+  late final AnimationController _spin =
+      AnimationController(vsync: this, duration: const Duration(seconds: 3))
+        ..repeat();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _draw.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _draw.dispose();
+    _spin.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final k = context.kavio;
+    return SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          AnimatedBuilder(
+            animation: Listenable.merge([_drawT, _spin]),
+            builder: (context, _) => CustomPaint(
+              size: Size(widget.size, widget.size),
+              painter: _LiveRingPainter(
+                progress: widget.progress * _drawT.value,
+                spin: _spin.value,
+                breathe: _drawT.value,
+                stroke: widget.stroke,
+                track: k.surface3,
+                color: widget.color ?? k.accent,
+              ),
+            ),
+          ),
+          if (widget.center != null) widget.center!,
+        ],
+      ),
+    );
+  }
+}
+
+class _LiveRingPainter extends CustomPainter {
+  _LiveRingPainter({
+    required this.progress,
+    required this.spin,
+    required this.breathe,
+    required this.stroke,
+    required this.track,
+    required this.color,
+  });
+  final double progress, spin, breathe, stroke;
+  final Color track, color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = (size.shortestSide - stroke) / 2;
+    canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..color = track
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke);
+    if (progress <= 0) return;
+
+    final rect = Rect.fromCircle(center: c, radius: r);
+    final sweep = 2 * math.pi * progress.clamp(0, 1);
+    const start = -math.pi / 2;
+
+    // Пульсуюче свічення (дихання).
+    final glowA = 0.25 + 0.25 * (0.5 + 0.5 * math.sin(spin * 2 * math.pi));
+    canvas.drawArc(
+      rect,
+      start,
+      sweep,
+      false,
+      Paint()
+        ..color = color.withOpacity(glowA)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+    // Основна дуга.
+    canvas.drawArc(
+      rect,
+      start,
+      sweep,
+      false,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round,
+    );
+    // Яскрава «голова» дуги + біжуча цятка вздовж треку.
+    final headAngle = start + sweep;
+    final head = c + Offset(math.cos(headAngle), math.sin(headAngle)) * r;
+    canvas.drawCircle(head, stroke * 0.9,
+        Paint()..color = Colors.white.withOpacity(0.9));
+
+    final sparkAngle = start + 2 * math.pi * spin;
+    if (2 * math.pi * spin <= sweep) {
+      final spark = c + Offset(math.cos(sparkAngle), math.sin(sparkAngle)) * r;
+      canvas.drawCircle(
+          spark,
+          stroke * 0.6,
+          Paint()
+            ..color = Colors.white.withOpacity(0.7 * breathe)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_LiveRingPainter old) =>
+      old.progress != progress || old.spin != spin;
 }
 
 // ─────────────────────────────────────────── Анімація появи (stagger fade-up)

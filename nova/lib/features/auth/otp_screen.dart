@@ -54,14 +54,14 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   Widget build(BuildContext context) {
     final kavio = context.kavio;
     return KavioPageScaffold(
-      title: 'Подтверждение',
+      title: 'Підтвердження',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
             Spacing.s5, Spacing.s4, Spacing.s5, Spacing.s16),
         children: [
-          Text('Введите код из SMS', style: AppTypography.title3(kavio.ink)),
+          Text('Введіть код із SMS', style: AppTypography.title3(kavio.ink)),
           const SizedBox(height: Spacing.s2),
-          Text('Отправлен на ${widget.contact}',
+          Text('Надіслано на ${widget.contact}',
               style: AppTypography.body(kavio.ink2)),
           const SizedBox(height: Spacing.s6),
           KavioTextField(
@@ -77,13 +77,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: Spacing.s6),
-          KavioButton('Подтвердить',
+          KavioButton('Підтвердити',
               expand: true, onPressed: _valid && !_busy ? _verify : null),
           const SizedBox(height: Spacing.s3),
           Center(
             child: TextButton(
               onPressed: _resend,
-              child: Text('Отправить код снова',
+              child: Text('Надіслати код ще раз',
                   style: AppTypography.label(kavio.accent)),
             ),
           ),
