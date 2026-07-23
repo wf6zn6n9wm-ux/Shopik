@@ -36,6 +36,12 @@ const routes = [
   ['home-ru', '/?s=1&lang=ru'],
   ['menu-ru', '/menu?lang=ru'],
   ['analytics-ru', '/analytics?lang=ru'],
+  ['clients-en', '/clients?lang=en'],
+  ['client-en', '/clients/cl_olena?lang=en'],
+  ['services-en', '/services?lang=en'],
+  ['subscription-en', '/subscription?lang=en'],
+  ['book-en', '/book?step=confirm&lang=en'],
+  ['book-ru', '/book?step=confirm&lang=ru'],
 ];
 
 mkdirSync('shots', { recursive: true });
