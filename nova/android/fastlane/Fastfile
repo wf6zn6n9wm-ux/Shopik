@@ -1,0 +1,26 @@
+default_platform(:android)
+
+# Сборки и публикация Android. Подписи/ключи приходят из секретов CI.
+platform :android do
+  desc "Debug APK"
+  lane :debug do
+    sh("cd ../.. && flutter build apk --debug")
+  end
+
+  desc "Release AAB"
+  lane :release do
+    sh("cd ../.. && flutter build appbundle --release")
+  end
+
+  desc "Публикация в internal-трек Play Console"
+  lane :beta do
+    release
+    upload_to_play_store(
+      track: "internal",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end

@@ -1,0 +1,60 @@
+# Разное
+*.class
+*.log
+*.swp
+.DS_Store
+.history
+migrate_working_dir/
+
+# IDE
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+
+# Dart / Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+pubspec.lock
+coverage/
+
+# Кодогенерация — регенерируется build_runner'ом
+*.g.dart
+*.freezed.dart
+
+# Сгенерированные локализации (flutter gen-l10n)
+lib/l10n/app_localizations*.dart
+
+# Android (генерируемое; в репозитории держим только fastlane)
+android/.gradle/
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/key.properties
+android/**/GeneratedPluginRegistrant.java
+
+# iOS (генерируемое; в репозитории держим только fastlane)
+ios/**/Pods/
+ios/**/.symlinks/
+ios/**/xcuserdata/
+ios/**/DerivedData/
+ios/.generated/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Flutter/flutter_export_environment.sh
+ios/ServiceDefinitions.json
+ios/Runner/GeneratedPluginRegistrant.*
+
+# Desktop (генерируемые реестры плагинов)
+macos/Flutter/GeneratedPluginRegistrant.swift
+linux/flutter/generated_plugin_registrant.*
+windows/flutter/generated_plugin_registrant.*

@@ -1,0 +1,14 @@
+{
+  "@@locale": "en",
+  "appTitle": "Запис+",
+  "@appTitle": { "description": "Application name" },
+  "navCalendar": "Calendar",
+  "navClients": "Clients",
+  "navAnalytics": "Analytics",
+  "navMenu": "Menu",
+  "today": "Today",
+  "clients": "Clients",
+  "actionSave": "Save",
+  "actionCancel": "Cancel",
+  "actionBook": "Book"
+}

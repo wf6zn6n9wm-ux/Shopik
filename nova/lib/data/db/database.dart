@@ -1,0 +1,573 @@
+import 'package:drift/drift.dart';
+import 'package:drift_flutter/drift_flutter.dart';
+
+import '../../core/time/demo_clock.dart';
+import '../../domain/models.dart' as domain;
+
+part 'database.g.dart';
+
+// ⚠️ Кодогенерация Drift: перед запуском выполнить
+//    flutter pub run build_runner build --delete-conflicting-outputs
+// Файл database.g.dart создаётся генератором (в git не коммитим).
+
+/// Схема мультиарендная с первого дня: businessId на каждой сущности —
+/// фундамент под команды, филиалы, роли и подписки. Приложение — offline-first
+/// SaaS: Drift (SQLite) на устройстве, синхронизация — отдельный слой.
+
+@DataClassName('BusinessRow')
+class Businesses extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get industry => text().withDefault(const Constant('other'))();
+  // Мультивалютность и мультизональность на уровне арендатора (мировые дефолты).
+  TextColumn get currency => text().withDefault(const Constant('USD'))();
+  TextColumn get timeZone => text().withDefault(const Constant('UTC'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('LocationRow')
+class Locations extends Table {
+  TextColumn get id => text()();
+  TextColumn get businessId => text()();
+  TextColumn get name => text()();
+  TextColumn get address => text().nullable()();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('StaffRow')
+class StaffMembers extends Table {
+  TextColumn get id => text()();
+  TextColumn get businessId => text()();
+  TextColumn get name => text()();
+  TextColumn get role => text().withDefault(const Constant('Майстер'))();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('ServiceCategoryRow')
+class ServiceCategories extends Table {
+  TextColumn get id => text()();
+  TextColumn get businessId => text()();
+  TextColumn get name => text()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('ServiceRow')
+class Services extends Table {
+  TextColumn get id => text()();
+  TextColumn get businessId => text()();
+  TextColumn get categoryId => text().nullable()();
+  TextColumn get name => text()();
+  IntColumn get durationMinutes => integer()();
+  IntColumn get price => integer()(); // минимальные единицы валюты
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('ClientRow')
+class Clients extends Table {
+  TextColumn get id => text()();
+  TextColumn get businessId => text()();
+  TextColumn get name => text()();
+  TextColumn get phone => text()();
+  IntColumn get visitsCount => integer().withDefault(const Constant(0))();
+  IntColumn get totalSpent => integer().withDefault(const Constant(0))();
+  TextColumn get note => text().nullable()();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Универсальный ресурс: кабинет, кресло, авто, студия, печь, оборудование,
+/// переговорная — что угодно. Одна модель для любой вертикали.
+@DataClassName('ResourceRow')
+class Resources extends Table {
+  TextColumn get id => text()();
+  TextColumn get businessId => text()();
+  TextColumn get name => text()();
+  TextColumn get type => text().withDefault(const Constant('room'))();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('AppointmentRow')
+class Appointments extends Table {
+  TextColumn get id => text()();
+  TextColumn get businessId => text()();
+  TextColumn get clientId => text()();
+  TextColumn get serviceId => text()();
+  TextColumn get staffId => text().nullable()();
+  // Универсальные измерения календаря: филиал и ресурс (кабинет/кресло/авто…).
+  TextColumn get locationId => text().nullable()();
+  TextColumn get resourceId => text().nullable()();
+  DateTimeColumn get startAt => dateTime()();
+  TextColumn get status => text()(); // AppointmentStatus.name
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftDatabase(
+  tables: [
+    Businesses,
+    Locations,
+    StaffMembers,
+    ServiceCategories,
+    Services,
+    Clients,
+    Resources,
+    Appointments
+  ],
+)
+class AppDatabase extends _$AppDatabase {
+  AppDatabase()
+      : super(driftDatabase(
+          name: 'zapys',
+          // Веб: движок SQLite (wasm) и worker кладутся в web/ и отдаются
+          // относительно base href. Обязательно указывать явно, иначе drift
+          // падает: «When compiling to the web, the `web` parameter needs...».
+          web: DriftWebOptions(
+            sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+            driftWorker: Uri.parse('drift_worker.js'),
+          ),
+        ));
+  AppDatabase.forTesting(super.e);
+
+  @override
+  int get schemaVersion => 1;
+
+  // --- Маппинг строк БД → доменные модели ---
+  domain.Client _toClient(ClientRow r) => domain.Client(
+        id: r.id,
+        name: r.name,
+        phone: r.phone,
+        visitsCount: r.visitsCount,
+        totalSpent: r.totalSpent,
+        note: r.note,
+      );
+
+  domain.Service _toService(ServiceRow r) => domain.Service(
+        id: r.id,
+        name: r.name,
+        durationMinutes: r.durationMinutes,
+        price: r.price,
+      );
+
+  domain.Staff _toStaff(StaffRow r) =>
+      domain.Staff(id: r.id, name: r.name, role: r.role);
+
+  domain.Resource _toResource(ResourceRow r) =>
+      domain.Resource(id: r.id, name: r.name, type: r.type);
+
+  domain.Appointment _toAppointment(
+    AppointmentRow a,
+    ClientRow c,
+    ServiceRow s,
+    StaffRow? st,
+    ResourceRow? res,
+  ) =>
+      domain.Appointment(
+        id: a.id,
+        client: _toClient(c),
+        service: _toService(s),
+        staff: st == null ? null : _toStaff(st),
+        resource: res == null ? null : _toResource(res),
+        start: a.startAt,
+        status: domain.AppointmentStatus.values.byName(a.status),
+      );
+
+  // --- Запросы ---
+  Stream<List<domain.Client>> watchClients() {
+    return (select(clients)..orderBy([(t) => OrderingTerm.asc(t.name)]))
+        .watch()
+        .map((rows) => rows.map(_toClient).toList());
+  }
+
+  Stream<List<domain.Service>> watchServices() {
+    return (select(services)..orderBy([(t) => OrderingTerm.asc(t.name)]))
+        .watch()
+        .map((rows) => rows.map(_toService).toList());
+  }
+
+  /// Полный join записи (клиент+услуга+мастер+ресурс) для одного ряда.
+  List<Join> _appointmentJoins() => [
+        innerJoin(clients, clients.id.equalsExp(appointments.clientId)),
+        innerJoin(services, services.id.equalsExp(appointments.serviceId)),
+        leftOuterJoin(
+            staffMembers, staffMembers.id.equalsExp(appointments.staffId)),
+        leftOuterJoin(
+            resources, resources.id.equalsExp(appointments.resourceId)),
+      ];
+
+  domain.Appointment _rowToAppointment(TypedResult row) => _toAppointment(
+        row.readTable(appointments),
+        row.readTable(clients),
+        row.readTable(services),
+        row.readTableOrNull(staffMembers),
+        row.readTableOrNull(resources),
+      );
+
+  Stream<List<domain.Appointment>> _watchBetween(DateTime start, DateTime end) {
+    final query = select(appointments).join(_appointmentJoins())
+      ..where(appointments.startAt.isBiggerOrEqualValue(start) &
+          appointments.startAt.isSmallerThanValue(end))
+      ..orderBy([OrderingTerm.asc(appointments.startAt)]);
+    return query.watch().map((rows) => rows.map(_rowToAppointment).toList());
+  }
+
+  /// Все записи клиента (история/метрики карточки), новые сверху.
+  Stream<List<domain.Appointment>> watchClientAppointments(String clientId) {
+    final query = select(appointments).join(_appointmentJoins())
+      ..where(appointments.clientId.equals(clientId))
+      ..orderBy([OrderingTerm.desc(appointments.startAt)]);
+    return query.watch().map((rows) => rows.map(_rowToAppointment).toList());
+  }
+
+  Stream<List<domain.Appointment>> watchDay(DateTime day) {
+    final start = DateTime(day.year, day.month, day.day);
+    return _watchBetween(start, start.add(const Duration(days: 1)));
+  }
+
+  /// Записи в полуоткрытом диапазоне [start, end) — для Недели/Месяца.
+  Stream<List<domain.Appointment>> watchRange(DateTime start, DateTime end) =>
+      _watchBetween(start, end);
+
+  Future<void> addAppointment(domain.Appointment a,
+      {String businessId = 'b1'}) {
+    return into(appointments).insert(AppointmentsCompanion.insert(
+      id: a.id,
+      businessId: businessId,
+      clientId: a.client.id,
+      serviceId: a.service.id,
+      staffId: Value(a.staff?.id),
+      resourceId: Value(a.resource?.id),
+      startAt: a.start,
+      status: a.status.name,
+    ));
+  }
+
+  Future<void> setAppointmentStatus(
+      String id, domain.AppointmentStatus status) {
+    return (update(appointments)..where((t) => t.id.equals(id)))
+        .write(AppointmentsCompanion(status: Value(status.name)));
+  }
+
+  /// Перенос записи (Drag & Drop): меняет только время начала.
+  Future<void> moveAppointment(String id, DateTime newStart) {
+    return (update(appointments)..where((t) => t.id.equals(id)))
+        .write(AppointmentsCompanion(startAt: Value(newStart)));
+  }
+
+  Future<void> deleteAppointment(String id) {
+    return (delete(appointments)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<void> addClient(domain.Client c, {String businessId = 'b1'}) {
+    return into(clients).insert(ClientsCompanion.insert(
+      id: c.id,
+      businessId: businessId,
+      name: c.name,
+      phone: c.phone,
+      visitsCount: Value(c.visitsCount),
+      totalSpent: Value(c.totalSpent),
+      note: Value(c.note),
+    ));
+  }
+
+  Future<void> addService(domain.Service s, {String businessId = 'b1'}) {
+    return into(services).insert(ServicesCompanion.insert(
+      id: s.id,
+      businessId: businessId,
+      name: s.name,
+      durationMinutes: s.durationMinutes,
+      price: s.price,
+    ));
+  }
+
+  /// Базовое рабочее пространство при первом запуске: бизнес + филиал + один
+  /// специалист. Нейтрально к сфере — услуги приходят из отраслевого шаблона на
+  /// онбординге. Идемпотентно (по наличию бизнеса).
+  Future<void> ensureSeeded() async {
+    final has = await (select(businesses)..limit(1)).get();
+    if (has.isNotEmpty) return;
+
+    final base = demoToday();
+    DateTime at(int h, int m) => base.add(Duration(hours: h, minutes: m));
+
+    await transaction(() async {
+      // Бізнес — Україна: ₴ (UAH), Europe/Kyiv.
+      await into(businesses).insert(BusinessesCompanion.insert(
+        id: 'b1',
+        name: 'Манікюрна студія',
+        industry: const Value('beauty'),
+        currency: const Value('UAH'),
+        timeZone: const Value('Europe/Kyiv'),
+      ));
+      await into(locations).insert(
+        LocationsCompanion.insert(
+            id: 'l1', businessId: 'b1', name: 'Київ, центр'),
+      );
+      await into(staffMembers).insert(StaffMembersCompanion.insert(
+          id: 'st1',
+          businessId: 'b1',
+          name: 'Софія',
+          role: const Value('Майстриня')));
+
+      // Категорії + послуги.
+      await batch((b) {
+        b.insertAll(serviceCategories, [
+          ServiceCategoriesCompanion.insert(
+              id: 'cat_man',
+              businessId: 'b1',
+              name: 'Манікюр',
+              sortOrder: const Value(0)),
+          ServiceCategoriesCompanion.insert(
+              id: 'cat_ped',
+              businessId: 'b1',
+              name: 'Педикюр',
+              sortOrder: const Value(1)),
+        ]);
+        b.insertAll(services, [
+          ServicesCompanion.insert(
+              id: 'sv_man',
+              businessId: 'b1',
+              categoryId: const Value('cat_man'),
+              name: 'Класичний манікюр',
+              durationMinutes: 30,
+              price: 35000),
+          ServicesCompanion.insert(
+              id: 'sv_gel',
+              businessId: 'b1',
+              categoryId: const Value('cat_man'),
+              name: 'Гель-лак',
+              durationMinutes: 45,
+              price: 50000),
+          ServicesCompanion.insert(
+              id: 'sv_art',
+              businessId: 'b1',
+              categoryId: const Value('cat_man'),
+              name: 'Нейл-арт',
+              durationMinutes: 60,
+              price: 75000),
+          ServicesCompanion.insert(
+              id: 'sv_spa',
+              businessId: 'b1',
+              categoryId: const Value('cat_ped'),
+              name: 'Spa-педикюр',
+              durationMinutes: 60,
+              price: 65000),
+          ServicesCompanion.insert(
+              id: 'sv_exp',
+              businessId: 'b1',
+              categoryId: const Value('cat_ped'),
+              name: 'Експрес-педикюр',
+              durationMinutes: 35,
+              price: 45000),
+        ]);
+      });
+
+      // Клієнти.
+      await batch((b) => b.insertAll(clients, [
+            ClientsCompanion.insert(
+                id: 'cl_olena',
+                businessId: 'b1',
+                name: 'Олена Ковальчук',
+                phone: '+380671112233',
+                visitsCount: const Value(14),
+                totalSpent: const Value(1820000),
+                note: const Value(
+                    'Віддає перевагу ранковим слотам. Улюблений колір — бордо. День народження 3 березня 🎂')),
+            ClientsCompanion.insert(
+                id: 'cl_maria',
+                businessId: 'b1',
+                name: 'Марія Ткаченко',
+                phone: '+380672223344',
+                visitsCount: const Value(9),
+                totalSpent: const Value(890000)),
+            ClientsCompanion.insert(
+                id: 'cl_andriy',
+                businessId: 'b1',
+                name: 'Андрій Бондаренко',
+                phone: '+380673334455',
+                visitsCount: const Value(6),
+                totalSpent: const Value(540000)),
+            ClientsCompanion.insert(
+                id: 'cl_iryna',
+                businessId: 'b1',
+                name: 'Ірина Шевченко',
+                phone: '+380674445566',
+                visitsCount: const Value(11),
+                totalSpent: const Value(1240000)),
+            ClientsCompanion.insert(
+                id: 'cl_natalia',
+                businessId: 'b1',
+                name: 'Наталія Мороз',
+                phone: '+380675556677',
+                visitsCount: const Value(4),
+                totalSpent: const Value(310000)),
+            ClientsCompanion.insert(
+                id: 'cl_tetiana',
+                businessId: 'b1',
+                name: 'Тетяна Кравець',
+                phone: '+380676667788',
+                visitsCount: const Value(7),
+                totalSpent: const Value(720000)),
+            ClientsCompanion.insert(
+                id: 'cl_yulia',
+                businessId: 'b1',
+                name: 'Юлія Савчук',
+                phone: '+380677778899',
+                visitsCount: const Value(3),
+                totalSpent: const Value(230000)),
+          ]));
+
+      // Записи сьогодні (демо-«зараз» 14:20): 4 завершені = виручка ₴2 400,
+      // наступний о 14:45 (за 25 хв), далі ще два — між ними денні вільні вікна.
+      String uid(String s) => 'ap_$s';
+      await batch((b) => b.insertAll(appointments, [
+            AppointmentsCompanion.insert(
+                id: uid('1'),
+                businessId: 'b1',
+                clientId: 'cl_iryna',
+                serviceId: 'sv_gel',
+                staffId: const Value('st1'),
+                startAt: at(9, 30),
+                status: 'completed'),
+            AppointmentsCompanion.insert(
+                id: uid('2'),
+                businessId: 'b1',
+                clientId: 'cl_natalia',
+                serviceId: 'sv_spa',
+                staffId: const Value('st1'),
+                startAt: at(11, 0),
+                status: 'completed'),
+            AppointmentsCompanion.insert(
+                id: uid('3'),
+                businessId: 'b1',
+                clientId: 'cl_tetiana',
+                serviceId: 'sv_art',
+                staffId: const Value('st1'),
+                startAt: at(12, 15),
+                status: 'completed'),
+            AppointmentsCompanion.insert(
+                id: uid('4'),
+                businessId: 'b1',
+                clientId: 'cl_maria',
+                serviceId: 'sv_gel',
+                staffId: const Value('st1'),
+                startAt: at(13, 30),
+                status: 'completed'),
+            AppointmentsCompanion.insert(
+                id: uid('5'),
+                businessId: 'b1',
+                clientId: 'cl_olena',
+                serviceId: 'sv_gel',
+                staffId: const Value('st1'),
+                startAt: at(14, 45),
+                status: 'confirmed'),
+            AppointmentsCompanion.insert(
+                id: uid('6'),
+                businessId: 'b1',
+                clientId: 'cl_andriy',
+                serviceId: 'sv_exp',
+                staffId: const Value('st1'),
+                startAt: at(16, 15),
+                status: 'confirmed'),
+            AppointmentsCompanion.insert(
+                id: uid('7'),
+                businessId: 'b1',
+                clientId: 'cl_yulia',
+                serviceId: 'sv_man',
+                staffId: const Value('st1'),
+                startAt: at(18, 0),
+                status: 'confirmed'),
+          ]));
+
+      // Історія Олени: разом із сьогоднішнім гель-лаком — 14 візитів
+      // (9× Гель-лак, 3× Манікюр, 2× Нейл-арт) для «дорогої» картки клієнта.
+      final history = <(int, String)>[
+        (14, 'sv_gel'),
+        (21, 'sv_man'),
+        (28, 'sv_gel'),
+        (35, 'sv_art'),
+        (42, 'sv_gel'),
+        (49, 'sv_man'),
+        (63, 'sv_gel'),
+        (84, 'sv_gel'),
+        (91, 'sv_art'),
+        (105, 'sv_gel'),
+        (119, 'sv_man'),
+        (133, 'sv_gel'),
+        (161, 'sv_gel'),
+      ];
+      await batch((b) => b.insertAll(appointments, [
+            for (var h = 0; h < history.length; h++)
+              AppointmentsCompanion.insert(
+                id: 'ap_ol_$h',
+                businessId: 'b1',
+                clientId: 'cl_olena',
+                serviceId: history[h].$2,
+                staffId: const Value('st1'),
+                startAt: base
+                    .subtract(Duration(days: history[h].$1))
+                    .add(const Duration(hours: 11)),
+                status: 'completed',
+              ),
+          ]));
+    });
+  }
+
+  /// Применяет отраслевой шаблон: задаёт индустрию бизнеса и наполняет каталог
+  /// категориями и услугами. Идемпотентно — заменяет прежний каталог, поэтому
+  /// смена сферы не плодит дубли. `seeds`: (категория, название, минуты, цена).
+  Future<void> applyIndustryTemplate(
+    String industryId,
+    List<(String, String, int, int)> seeds, {
+    String businessId = 'b1',
+  }) async {
+    await transaction(() async {
+      await (update(businesses)..where((t) => t.id.equals(businessId)))
+          .write(BusinessesCompanion(industry: Value(industryId)));
+      await (delete(services)..where((t) => t.businessId.equals(businessId)))
+          .go();
+      await (delete(serviceCategories)
+            ..where((t) => t.businessId.equals(businessId)))
+          .go();
+
+      final categoryIds = <String, String>{};
+      var catIndex = 0;
+      for (final seed in seeds) {
+        final categoryName = seed.$1;
+        if (!categoryIds.containsKey(categoryName)) {
+          final id = '${businessId}_cat_$catIndex';
+          categoryIds[categoryName] = id;
+          await into(serviceCategories)
+              .insert(ServiceCategoriesCompanion.insert(
+            id: id,
+            businessId: businessId,
+            name: categoryName,
+            sortOrder: Value(catIndex),
+          ));
+          catIndex++;
+        }
+      }
+
+      var serviceIndex = 0;
+      final rows = <ServicesCompanion>[
+        for (final seed in seeds)
+          ServicesCompanion.insert(
+            id: '${businessId}_sv_${serviceIndex++}',
+            businessId: businessId,
+            categoryId: Value(categoryIds[seed.$1]),
+            name: seed.$2,
+            durationMinutes: seed.$3,
+            price: seed.$4,
+          ),
+      ];
+      await batch((b) => b.insertAll(services, rows));
+    });
+  }
+}

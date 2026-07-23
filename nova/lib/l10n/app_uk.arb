@@ -1,0 +1,13 @@
+{
+  "@@locale": "uk",
+  "appTitle": "Запис+",
+  "navCalendar": "Календар",
+  "navClients": "Клієнти",
+  "navAnalytics": "Аналітика",
+  "navMenu": "Меню",
+  "today": "Сьогодні",
+  "clients": "Клієнти",
+  "actionSave": "Зберегти",
+  "actionCancel": "Скасувати",
+  "actionBook": "Записати"
+}

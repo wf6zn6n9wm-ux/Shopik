@@ -1,0 +1,4 @@
+source "https://rubygems.org"
+
+# Fastlane для автоматизации сборок/релизов iOS и Android.
+gem "fastlane"

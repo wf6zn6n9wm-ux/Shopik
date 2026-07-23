@@ -1,0 +1,4 @@
+app_identifier("com.nova.app")
+apple_id(ENV["APPLE_ID"])            # почта Apple Developer
+itc_team_id(ENV["APP_STORE_TEAM_ID"])
+team_id(ENV["DEVELOPER_TEAM_ID"])

@@ -1,0 +1,13 @@
+{
+  "@@locale": "ru",
+  "appTitle": "Запис+",
+  "navCalendar": "Календарь",
+  "navClients": "Клиенты",
+  "navAnalytics": "Аналитика",
+  "navMenu": "Меню",
+  "today": "Сегодня",
+  "clients": "Клиенты",
+  "actionSave": "Сохранить",
+  "actionCancel": "Отмена",
+  "actionBook": "Записать"
+}

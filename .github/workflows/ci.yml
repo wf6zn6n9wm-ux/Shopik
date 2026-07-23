@@ -1,0 +1,74 @@
+name: CI
+
+# Гейт качества: на каждый push и PR — кодоген, формат, анализ, тесты.
+# На push формат применяется автоматически и коммитится обратно (self-healing),
+# на PR — строгая проверка (падает, если не отформатировано).
+# Чтобы PR нельзя было смержить с ошибкой, включите Branch protection в
+# Settings → Branches и сделайте job «Analyze, format & test» обязательной проверкой.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-test:
+    name: Analyze, format & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nova
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate localizations (i18n)
+        run: flutter gen-l10n
+
+      - name: Code generation (Drift)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Format
+        run: dart format .
+
+      - name: Auto-commit formatting (push)
+        if: github.event_name == 'push'
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "style: dart format [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
+
+      - name: Verify formatting (pull request)
+        if: github.event_name == 'pull_request'
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze (errors + lints)
+        run: flutter analyze
+
+      - name: Tests
+        run: flutter test
