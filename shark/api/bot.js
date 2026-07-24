@@ -16,7 +16,8 @@
 //   SHARK_ADMIN_IDS, SHARK_APP_URL — URL Mini App (по умолчанию домен ниже).
 
 function env(name) { return process.env['SHARK_' + name] || process.env[name] || ''; }
-const DEFAULT_APP_URL = 'https://shopik-shark.vercel.app/shark/';
+// адрес Mini App (можно переопределить переменной SHARK_APP_URL)
+const DEFAULT_APP_URL = 'https://shopik-rjov.vercel.app/';
 const APP_VERSION = '1';                 // бампать при релизе — обходит кэш Telegram
 function appUrl() {
   const base = env('APP_URL') || DEFAULT_APP_URL;
