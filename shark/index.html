@@ -1220,7 +1220,7 @@ function addStars(n){S.stars+=n;syncBalances();closeSheet();logOp('⭐','Поп�
 
 /* ============ МОДАЛКА / TOAST ============ */
 function showSheet(html){document.getElementById('sheet').innerHTML=html;document.getElementById('ov').classList.add('open');}
-function closeSheet(){document.getElementById('ov').classList.remove('open');}
+function closeSheet(){document.getElementById('ov').classList.remove('open');if(typeof stopCbPoll==='function')stopCbPoll();}
 document.getElementById('ov').onclick=function(e){if(e.target.id==='ov')closeSheet();};
 
 /* ============ ОНБОРДИНГ ============ */
@@ -1417,7 +1417,7 @@ var BOT_USERNAME='Shark_game_app_bot';
 var API_URL='/api/shark';
 var TGAPP=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
 var INIT=TGAPP?(TGAPP.initData||''):'';
-var SERVER=false, ME={}, CFG={usdt_rate:USDT_RATE,min_withdraw:100}, REF={count:0,earned:0}, REFLINK='', PACKS={};
+var SERVER=false, ME={}, CFG={usdt_rate:USDT_RATE,min_withdraw:100}, REF={count:0,earned:0}, REFLINK='', PACKS={}, CRYPTO_PACKS={};
 
 async function api(action,params){
   var r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1439,7 +1439,9 @@ async function refreshState(){
   if(!SERVER) return;
   try{
     var st=await api('state');
-    if(st&&st.ok){ ME=st.user; REF=st.referrals||REF; applyUser(st.user); }
+    if(st&&st.ok){ ME=st.user; REF=st.referrals||REF; applyUser(st.user);
+      if(st.catalog&&st.catalog.packs) PACKS=st.catalog.packs;
+      if(st.catalog&&st.catalog.cryptoPacks) CRYPTO_PACKS=st.catalog.cryptoPacks; }
   }catch(e){}
 }
 async function loadHistory(){
@@ -1630,16 +1632,42 @@ renderRefs=function(){
   renderRefFriends(REF.friends||[]);
   setRefLink();
 };
+/* ---- Пополнение звёзд: вкладки «Крипто Бот» / «Stars» ---- */
+var topupTab='crypto';
+function renderTopupSheet(){
+  var starsKeys=Object.keys(PACKS), cryptoKeys=Object.keys(CRYPTO_PACKS);
+  var tabs='<div class="seg" id="topup-seg" style="margin-top:4px">'
+    +'<button class="'+(topupTab==='crypto'?'active':'')+'" onclick="setTopupTab(\'crypto\')">🤖 Крипто Бот</button>'
+    +'<button class="'+(topupTab==='stars'?'active':'')+'" onclick="setTopupTab(\'stars\')">⭐ Stars</button>'
+    +'</div>';
+  var body;
+  if(topupTab==='crypto'){
+    if(!cryptoKeys.length){ body='<p class="muted">Оплата криптой временно недоступна.</p>'; }
+    else{
+      body='<p class="muted">Оплата через @CryptoBot (USDT) — зачисление автоматически.</p><div class="grid2" style="margin-top:10px">';
+      cryptoKeys.forEach(function(k){ var p=CRYPTO_PACKS[k];
+        body+='<div class="pill" data-cbpack="'+k+'"><div class="ic">⭐</div><div class="nm">'+p.stars+'</div><div class="px">'+p.usd+' USDT</div></div>'; });
+      body+='</div>';
+    }
+  } else {
+    if(!starsKeys.length){ body='<p class="muted">Пополнение временно недоступно.</p>'; }
+    else{
+      body='<p class="muted">Оплата звёздами Telegram — зачисление автоматически.</p><div class="grid2" style="margin-top:10px">';
+      starsKeys.forEach(function(k){ var p=PACKS[k];
+        body+='<div class="pill" data-pack="'+k+'"><div class="ic">⭐</div><div class="nm">'+p.stars+'</div><div class="px">'+p.price+' ★ Telegram</div></div>'; });
+      body+='</div>';
+    }
+  }
+  showSheet('<h3>Пополнить звёзды</h3>'+tabs+body);
+  $all('[data-pack]').forEach(function(el){ el.onclick=function(){ buyStars(el.getAttribute('data-pack')); }; });
+  $all('[data-cbpack]').forEach(function(el){ el.onclick=function(){ buyStarsCrypto(el.getAttribute('data-cbpack')); }; });
+}
+function setTopupTab(t){ topupTab=t; renderTopupSheet(); }
+window.setTopupTab=setTopupTab;
+
 openBuyStars=function(){
   if(!SERVER) return _openBuyStars();
-  var keys=Object.keys(PACKS);
-  if(!keys.length){ showSheet('<h3>Пополнить звёзды</h3><p class="muted">Пополнение временно недоступно. Попробуйте позже.</p><button class="btn-primary" onclick="closeSheet()">Ок</button>'); return; }
-  var html='<h3>Пополнить звёзды</h3><p class="muted">Оплата звёздами Telegram — зачисление автоматически.</p><div class="grid2" style="margin-top:10px">';
-  keys.forEach(function(k){ var p=PACKS[k];
-    html+='<div class="pill" data-pack="'+k+'"><div class="ic">⭐</div><div class="nm">'+p.stars+'</div><div class="px">'+p.price+' ★ Telegram</div></div>'; });
-  html+='</div>';
-  showSheet(html);
-  $all('[data-pack]').forEach(function(el){ el.onclick=function(){ buyStars(el.getAttribute('data-pack')); }; });
+  renderTopupSheet();
 };
 async function buyStars(pack){
   var r=await api('create_stars_invoice',{pack:pack});
@@ -1652,6 +1680,29 @@ async function buyStars(pack){
   } else { toast('Откройте приложение в Telegram для оплаты'); }
 }
 window.buyStars=buyStars;
+
+var cbPollTimer=null;
+function stopCbPoll(){ if(cbPollTimer){ clearInterval(cbPollTimer); cbPollTimer=null; } }
+async function buyStarsCrypto(pack){
+  var r=await api('create_cryptobot_invoice',{pack:pack});
+  if(!r||!r.ok){ toast(r&&r.reason==='not_configured'?'Оплата криптой временно недоступна':'Не удалось создать счёт'); return; }
+  if(TGAPP && TGAPP.openTelegramLink && r.payUrl){ TGAPP.openTelegramLink(r.payUrl); }
+  else if(r.payUrl){ window.open(r.payUrl,'_blank'); }
+  toast('Открыт счёт на '+r.usd+' USDT · ждём оплату…');
+  stopCbPoll();
+  var tries=0;
+  cbPollTimer=setInterval(async function(){
+    tries++;
+    if(tries>60){ stopCbPoll(); return; }              // ~5 минут опроса
+    var st=await api('cryptobot_check',{invoiceId:r.invoiceId});
+    if(st&&st.ok&&st.status==='paid'&&st.credited){
+      stopCbPoll(); closeSheet(); applyUser(st.user);
+      celebrate({n:36});
+      toast('Оплата получена! +'+r.stars+' ⭐ зачислено');
+    }
+  },5000);
+}
+window.buyStarsCrypto=buyStarsCrypto;
 /* достижения и квесты пока не заведены на сервер — в серверном режиме не
    начисляем звёзды локально, чтобы не расходиться с балансом на бэкенде */
 checkAchievements=function(){ if(SERVER) return; return _checkAchievements(); };
@@ -1681,6 +1732,7 @@ async function boot(){
     if(!st||!st.ok){ return; }          // бэкенд не настроен/ошибка — демо-режим
     SERVER=true; ME=st.user; CFG=st.config||CFG; REF=st.referrals||REF;
     if(st.catalog&&st.catalog.packs) PACKS=st.catalog.packs;
+    if(st.catalog&&st.catalog.cryptoPacks) CRYPTO_PACKS=st.catalog.cryptoPacks;
     USDT_RATE=CFG.usdt_rate||USDT_RATE;
     if(st.refLink) REFLINK='https://t.me/'+BOT_USERNAME+st.refLink;
     if(ME.first_name){ var pn=document.getElementById('prof-name'); if(pn) pn.textContent=ME.first_name; var hn=document.getElementById('hero-name'); if(hn) hn.textContent=ME.first_name; }
