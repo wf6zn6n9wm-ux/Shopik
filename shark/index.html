@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>SharkApp</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --abyss:#06121c; --deep:#0a1d2e; --deep2:#0e2740; --surface:#112e42;
+    --surface2:#15384f; --line:#1c3d54; --text:#eaf4f7; --muted:#7fa3b5;
+    --aqua:#2fd4c4; --aqua-dim:#15695f; --gold:#ffc24b; --foam:#cfeef0;
+    --danger:#ff5d6c; --green:#37d39a; --purple:#8b6cff; --radius:20px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;background:var(--abyss);}
+  body{color:var(--text);font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:480px;margin-inline:auto;min-height:100vh;background:radial-gradient(120% 60% at 50% -10%,#0f3350 0%,rgba(6,18,28,0) 60%),var(--abyss);}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;}
+  .screen{display:none;padding:8px 14px 100px;animation:fade .25s ease;}
+  .screen.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  /* бегущая строка live */
+  .ticker{overflow:hidden;white-space:nowrap;background:var(--deep2);border:1px solid var(--line);border-radius:999px;padding:7px 0;margin-bottom:12px;position:relative;}
+  .ticker-track{display:inline-block;white-space:nowrap;animation:scroll 26s linear infinite;}
+  .ticker-track span{margin:0 16px;font-size:12px;color:var(--foam);font-weight:600;}
+  .ticker-track .g{color:var(--green);}
+  @keyframes scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+  .appbar{text-align:center;font-weight:800;font-size:18px;margin:2px 0 10px;}
+  .topbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;}
+  .live{display:inline-flex;align-items:center;gap:5px;font-weight:800;font-size:11px;letter-spacing:.12em;color:var(--danger);background:rgba(255,93,108,.12);padding:5px 9px;border-radius:999px;}
+  .live .pulse{width:7px;height:7px;border-radius:50%;background:var(--danger);animation:pulse 1.2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+  .wallet{display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:999px;font-weight:700;font-size:15px;border:1px solid var(--line);cursor:pointer;}
+  .wallet.money{background:linear-gradient(120deg,#0f3a37,#103048);color:var(--foam);}
+  .wallet.stars{background:var(--deep2);}
+  .wallet .add{width:22px;height:22px;border-radius:50%;background:var(--aqua);color:#03241f;display:grid;place-items:center;font-weight:900;}
+  .spacer{flex:1;}
+  .backbtn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:var(--deep2);border:1px solid var(--line);font-weight:700;font-size:14px;cursor:pointer;}
+
+  h1.title{font-size:28px;margin:6px 2px 14px;letter-spacing:-.02em;}
+  .sub{color:var(--muted);font-size:13px;margin:-8px 2px 16px;line-height:1.4;}
+
+  .hero{display:flex;align-items:center;gap:14px;margin:2px 2px 16px;}
+  .shark-wrap{width:74px;height:74px;flex:none;}
+  .hero h1{font-size:24px;margin:0;letter-spacing:-.02em;}
+  .hero p{margin:3px 0 0;color:var(--muted);font-size:13px;}
+
+  /* push-баннер */
+  .push{display:flex;align-items:center;gap:12px;background:linear-gradient(120deg,#173a55,#10293c);border:1px solid var(--aqua-dim);border-radius:16px;padding:12px 14px;margin-bottom:12px;cursor:pointer;}
+  .push .pi{font-size:28px;}
+  .push .pt{flex:1;}
+  .push .pt b{font-size:14px;}
+  .push .pt p{margin:2px 0 0;color:var(--muted);font-size:12px;}
+  .push .pgo{color:var(--aqua);font-weight:800;font-size:13px;}
+
+  /* daily case banner */
+  .daily{position:relative;overflow:hidden;border-radius:18px;padding:16px;margin-bottom:12px;background:linear-gradient(135deg,#163a55,#0c2334);border:1px solid var(--line);display:flex;align-items:center;gap:14px;}
+  .daily .ic{font-size:46px;}
+  .daily .db{flex:1;}
+  .daily .db b{font-size:17px;}
+  .daily .db p{margin:3px 0 0;color:var(--muted);font-size:12px;}
+  .daily .btn-mini{background:#fff;color:#0a1d2e;font-weight:800;font-size:13px;padding:9px 14px;border-radius:10px;border:0;cursor:pointer;white-space:nowrap;}
+  .daily .btn-mini:disabled{opacity:.4;background:var(--deep2);color:var(--muted);}
+
+  /* streak */
+  .streak{display:flex;gap:6px;margin-bottom:12px;}
+  .streak .day{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 4px;text-align:center;font-size:11px;color:var(--muted);}
+  .streak .day.done{background:linear-gradient(135deg,#0e8d7e,#0a5f6b);border-color:var(--aqua-dim);color:#fff;}
+  .streak .day.today{border-color:var(--gold);}
+  .streak .day b{display:block;font-size:14px;color:var(--gold);margin-top:2px;}
+  .streak .day.done b{color:#fff;}
+
+  .card{position:relative;overflow:hidden;border-radius:var(--radius);padding:22px 20px;margin-bottom:12px;min-height:120px;display:flex;flex-direction:column;justify-content:center;cursor:pointer;transition:transform .1s;border:1px solid rgba(255,255,255,.06);}
+  .card:active{transform:scale(.985);}
+  .card h2{margin:0;font-size:25px;display:flex;align-items:center;gap:10px;}
+  .card p{margin:7px 0 0;font-size:14px;opacity:.82;max-width:60%;line-height:1.3;}
+  .card .emoji{position:absolute;right:14px;bottom:6px;font-size:70px;line-height:1;filter:drop-shadow(0 8px 16px rgba(0,0,0,.35));transform:rotate(-8deg);}
+  .badge{font-size:12px;font-weight:700;background:#fff;color:#0a1d2e;padding:3px 10px;border-radius:999px;}
+  .cur-tag{display:inline-flex;align-items:center;gap:5px;margin-top:12px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(0,0,0,.25);width:fit-content;}
+  .c-tasks{background:linear-gradient(135deg,#0e8d7e,#0a5f6b);}
+  .c-upgrade{background:linear-gradient(135deg,#d98a2b,#b5541f);}
+  .c-roul{background:linear-gradient(135deg,#c0314f,#7a1f3a);}
+  .c-crash{background:linear-gradient(135deg,#2747b0,#16236b);}
+  .c-pvp{background:linear-gradient(135deg,#e0a92e,#b5721f);}
+
+  /* PVP джекпот */
+  .pvp-feed{overflow:hidden;white-space:nowrap;background:var(--deep2);border:1px solid var(--line);border-radius:999px;padding:7px 12px;margin-bottom:10px;font-size:12px;color:var(--foam);font-weight:600;text-align:center;min-height:16px;}
+  .pvp-feed b{color:var(--gold);}
+  .pvp-arc{position:relative;width:260px;height:150px;margin:4px auto 10px;overflow:hidden;}
+  .pvp-arc-ring{position:absolute;top:0;left:0;width:260px;height:260px;border-radius:50%;background:conic-gradient(from 270deg,var(--deep2) 0deg 180deg,#06121c 180deg 360deg);transition:background .3s;}
+  .pvp-arc-hole{position:absolute;top:32px;left:32px;width:196px;height:196px;border-radius:50%;background:radial-gradient(circle at 50% 30%,#0c2334,#06121c);border:1px solid var(--line);}
+  .pvp-arc-center{position:absolute;left:0;right:0;bottom:4px;text-align:center;}
+  .pvp-pot-l{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;}
+  .pvp-pot-v{font-size:32px;font-weight:800;color:var(--gold);margin-top:2px;line-height:1.1;}
+  .pvp-pot-g{color:var(--muted);font-size:12px;margin-top:2px;min-height:15px;}
+  .pvp-fair{color:var(--muted);font-size:11px;text-align:center;margin-top:12px;word-break:break-all;min-height:14px;}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+  .row{display:flex;gap:12px;align-items:center;}
+
+  .task{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 15px;margin-bottom:10px;display:flex;gap:12px;align-items:center;}
+  .task .tb{flex:1;min-width:0;}
+  .task .tt{font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .task .ttag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:.03em;}
+  .ttag.daily{background:rgba(47,212,196,.15);color:var(--aqua);}
+  .ttag.once{background:rgba(139,108,255,.18);color:var(--purple);}
+  .ttag.pro{background:linear-gradient(135deg,#ffc24b,#ff9d2b);color:#3a2400;}
+  .task.locked{opacity:.9;}
+  .task.locked .btn-act{border-color:var(--gold);color:var(--gold);}
+  .pro-banner{position:relative;overflow:hidden;border-radius:18px;padding:16px 18px;margin:6px 0 14px;background:linear-gradient(135deg,#caa23a,#9b6b1e);border:1px solid rgba(255,255,255,.12);}
+  .pro-banner h3{margin:0;font-size:18px;color:#1f1500;}
+  .pro-banner p{margin:5px 0 12px;font-size:13px;color:#3a2c08;line-height:1.4;}
+  .pro-banner .btn-mini{background:#1a1200;color:#ffd87a;font-weight:800;font-size:14px;padding:11px 16px;border-radius:11px;border:0;cursor:pointer;width:100%;}
+  .pro-banner.active-pro{background:linear-gradient(135deg,#0e8d7e,#0a5f6b);}
+  .pro-banner.active-pro h3,.pro-banner.active-pro p{color:#eaf6f8;}
+  .task .td{color:var(--muted);font-size:13px;margin-top:3px;}
+  .task .tr{color:var(--aqua);font-weight:700;font-size:14px;margin-top:6px;}
+  .task .ttime{color:var(--gold);font-size:12px;font-weight:700;margin-top:4px;}
+  .btn-act{border:1px solid var(--aqua-dim);background:transparent;color:var(--aqua);font-weight:600;font-size:14px;padding:9px 14px;border-radius:10px;cursor:pointer;white-space:nowrap;}
+  .btn-act:active{background:rgba(47,212,196,.08);}
+  .task.done{opacity:.5;}
+  .task.done .btn-act{color:var(--muted);border-color:var(--line);pointer-events:none;}
+
+  .btn-primary{width:100%;border:0;background:var(--aqua);color:#03241f;font-weight:800;font-size:16px;padding:15px;border-radius:14px;cursor:pointer;transition:transform .08s,opacity .2s;}
+  .btn-primary:active{transform:scale(.98);}
+  .btn-primary:disabled{opacity:.4;}
+  .btn-ghost{width:100%;border:1px solid var(--line);background:var(--deep2);color:var(--text);font-weight:700;font-size:15px;padding:13px;border-radius:12px;cursor:pointer;}
+
+  .seg{display:flex;background:var(--deep2);border-radius:14px;padding:4px;margin-bottom:16px;}
+  .seg button{flex:1;border:0;background:transparent;color:var(--muted);font-weight:700;font-size:13px;padding:10px 6px;border-radius:10px;cursor:pointer;}
+  .seg button.active{background:var(--surface2);color:var(--text);}
+
+  .roul-stage{height:120px;border-radius:16px;border:1px solid var(--line);background:var(--deep);position:relative;overflow:hidden;margin-bottom:8px;}
+  .roul-pointer{position:absolute;top:0;left:50%;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:14px solid var(--gold);z-index:3;}
+  .roul-strip{display:flex;position:absolute;top:0;left:0;height:100%;align-items:center;will-change:transform;}
+  .roul-item{width:90px;height:90px;margin:0 5px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:34px;flex:none;border:1px solid rgba(255,255,255,.08);}
+  .roul-item small{font-size:12px;font-weight:800;margin-top:2px;color:#fff;}
+
+  .crash-stage{height:230px;border-radius:16px;border:1px solid var(--line);background:radial-gradient(circle at 15% 95%,#13314a,#06121c 70%);position:relative;overflow:hidden;margin-bottom:10px;}
+  .crash-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;}
+  .crash-mult{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:56px;font-weight:800;letter-spacing:-.02em;z-index:3;text-shadow:0 2px 20px rgba(0,0,0,.6);}
+  .crash-shark{position:absolute;left:16px;bottom:12px;width:58px;height:42px;z-index:2;will-change:left,top;}
+  .crash-grid{position:absolute;inset:0;z-index:0;opacity:.12;background-image:linear-gradient(rgba(127,163,181,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(127,163,181,.4) 1px,transparent 1px);background-size:40px 40px;}
+  .crash-history{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px;-webkit-overflow-scrolling:touch;}
+  .crash-history::-webkit-scrollbar{display:none;}
+  .ch-pill{flex:none;font-size:12px;font-weight:800;padding:5px 10px;border-radius:999px;background:var(--deep2);border:1px solid var(--line);}
+  .ch-pill.low{color:var(--danger);} .ch-pill.mid{color:var(--foam);} .ch-pill.high{color:var(--gold);} .ch-pill.huge{color:var(--green);}
+  .auto-row{display:flex;align-items:center;gap:8px;margin:4px 0 12px;}
+  .auto-toggle{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:700;color:var(--text);cursor:pointer;margin:0;}
+  .auto-toggle input{width:18px;height:18px;accent-color:var(--aqua);}
+  .auto-inp{width:70px;text-align:center;font-weight:800;padding:8px;}
+  .crash-status{font-size:13px;color:var(--muted);text-align:center;margin-bottom:8px;}
+  .crash-status b{color:var(--gold);}
+
+  .players{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:12px;}
+  .players .ph{display:flex;justify-content:space-between;padding:10px 14px;color:var(--muted);font-size:12px;font-weight:700;border-bottom:1px solid var(--line);text-transform:uppercase;letter-spacing:.04em;}
+  .prow{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid rgba(28,61,84,.5);font-size:14px;animation:fade .3s;}
+  .prow:last-child{border-bottom:0;}
+  .prow .av{width:28px;height:28px;border-radius:50%;background:var(--deep2);display:grid;place-items:center;font-size:14px;}
+  .prow .nm{flex:1;font-weight:600;}
+  .prow .bet{color:var(--gold);font-weight:700;font-size:13px;}
+  .prow .st{font-weight:800;font-size:13px;min-width:66px;text-align:right;}
+  .st.live{color:var(--muted);} .st.win{color:var(--green);} .st.lose{color:var(--danger);}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .pill{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center;cursor:pointer;}
+  .pill .nm{font-weight:700;font-size:15px;margin-bottom:8px;}
+  .pill .px{display:inline-flex;align-items:center;gap:5px;background:var(--deep2);padding:6px 12px;border-radius:999px;font-weight:800;color:var(--gold);}
+  .pill .ic{font-size:40px;margin-bottom:6px;}
+
+  .contest{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;}
+  .contest .ch{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+  .contest .timer{background:#fff;color:#0a1d2e;font-weight:800;font-size:13px;padding:6px 12px;border-radius:999px;}
+  .prizes{display:flex;gap:8px;}
+  .prize{flex:1;background:var(--deep2);border-radius:12px;padding:10px;text-align:center;}
+  .prize .ic{font-size:32px;} .prize .v{display:inline-flex;align-items:center;gap:4px;font-weight:800;color:var(--gold);font-size:13px;margin-top:4px;}
+  .empty{text-align:center;color:var(--muted);padding:36px 12px;font-size:14px;}
+
+  .leader{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:8px;}
+  .leader .rk{font-weight:800;width:26px;color:var(--muted);}
+  .leader .av{width:38px;height:38px;border-radius:50%;background:var(--deep2);display:grid;place-items:center;font-size:18px;}
+  .leader .nm{flex:1;font-weight:700;}
+  .leader .sc{display:inline-flex;align-items:center;gap:4px;color:var(--gold);font-weight:800;}
+  .leader.you{border-color:var(--aqua);}
+
+  .balance-big{text-align:center;padding:18px 0 6px;}
+  .balance-big .v{font-size:42px;font-weight:800;}
+  .balance-big .l{color:var(--muted);font-size:13px;}
+  .balance-big .conv{color:var(--aqua);font-size:13px;margin-top:4px;font-weight:700;}
+
+  /* профиль шапка */
+  .prof-head{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+  .prof-av{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#163a55,#0c2334);border:2px solid var(--aqua);display:grid;place-items:center;font-size:32px;}
+  .prof-info h2{margin:0;font-size:20px;}
+  .prof-info .lvl{color:var(--muted);font-size:13px;margin-top:3px;}
+  .lvlbar{height:8px;background:var(--deep2);border-radius:99px;overflow:hidden;margin-top:6px;width:160px;}
+  .lvlbar i{display:block;height:100%;background:linear-gradient(90deg,var(--aqua),var(--gold));}
+  .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center;}
+  .stat .sv{font-size:20px;font-weight:800;}
+  .stat .sl{color:var(--muted);font-size:11px;margin-top:2px;}
+
+  label{display:block;font-size:13px;color:var(--muted);margin:14px 2px 6px;}
+  .methods{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .method{border:1px solid var(--line);background:var(--deep2);color:var(--text);padding:11px;border-radius:10px;font-size:13px;cursor:pointer;text-align:center;}
+  .method.active{border-color:var(--aqua);color:var(--aqua);}
+  input{width:100%;background:var(--deep2);border:1px solid var(--line);color:var(--text);padding:13px;border-radius:11px;font-size:15px;outline:none;}
+  input:focus{border-color:var(--aqua);}
+  .conv-hint{color:var(--aqua);font-size:13px;font-weight:700;margin:8px 2px 0;min-height:18px;}
+
+  .copy-row{display:flex;gap:8px;margin-top:6px;}
+  .copy-row input{flex:1;}
+  .copy-row button{border:0;background:var(--aqua);color:#03241f;font-weight:800;padding:0 16px;border-radius:11px;cursor:pointer;}
+
+  .histrow{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;}
+  .histrow .hi{font-size:22px;}
+  .histrow .hb{flex:1;}
+  .histrow .hb b{font-size:14px;}
+  .histrow .hb p{margin:2px 0 0;color:var(--muted);font-size:12px;}
+  .histrow .hv{font-weight:800;font-size:14px;}
+  .hv.plus{color:var(--green);} .hv.minus{color:var(--danger);} .hv.star{color:var(--gold);}
+
+  .bet-row{display:flex;gap:8px;align-items:center;margin:12px 0;flex-wrap:wrap;}
+  .chip{border:1px solid var(--line);background:var(--deep2);color:var(--text);padding:10px 12px;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px;}
+  .chip.active{border-color:var(--gold);color:var(--gold);}
+
+  .tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:480px;background:rgba(8,22,32,.92);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 6px calc(8px + env(safe-area-inset-bottom));z-index:40;}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;position:relative;flex:1;}
+  .tab svg{width:24px;height:24px;}
+  .tab.active{color:var(--aqua);}
+  .tab .dot{position:absolute;top:-2px;right:50%;margin-right:-22px;background:#ff4d5e;color:#fff;font-size:10px;font-weight:800;min-width:16px;height:16px;border-radius:999px;display:grid;place-items:center;padding:0 4px;}
+
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(16px);background:var(--surface2);border:1px solid var(--line);color:var(--text);padding:11px 18px;border-radius:12px;font-size:14px;opacity:0;transition:opacity .25s,transform .25s;z-index:60;max-width:88%;text-align:center;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .overlay{position:fixed;inset:0;background:rgba(0,8,14,.7);display:none;align-items:flex-end;justify-content:center;z-index:50;}
+  .overlay.open{display:flex;}
+  .sheet{background:var(--surface);width:100%;max-width:480px;border-radius:22px 22px 0 0;border-top:1px solid var(--line);padding:20px 18px calc(22px + env(safe-area-inset-bottom));animation:up .22s ease;max-height:88vh;overflow-y:auto;}
+  @keyframes up{from{transform:translateY(100%);}to{transform:none;}}
+  .sheet h3{margin:0 0 4px;font-size:20px;}
+  .sheet .muted{color:var(--muted);font-size:13px;margin-bottom:14px;}
+  .result-emoji{font-size:64px;text-align:center;margin:10px 0;}
+  @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+  .case-anim{animation:shake .4s ease-in-out 3;}
+
+  /* онбординг */
+  .onb{position:fixed;inset:0;z-index:100;background:radial-gradient(120% 70% at 50% 0%,#0f3350,#06121c 70%);display:none;flex-direction:column;max-width:480px;margin-inline:auto;padding:40px 24px calc(28px + env(safe-area-inset-bottom));}
+  .onb.open{display:flex;}
+  .onb-slide{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;animation:fade .3s;}
+  .onb-slide.active{display:flex;}
+  .onb-ic{font-size:84px;margin-bottom:24px;}
+  .onb-slide h2{font-size:26px;margin:0 0 12px;}
+  .onb-slide p{color:var(--muted);font-size:15px;line-height:1.5;max-width:300px;margin:0;}
+  .onb-dots{display:flex;gap:8px;justify-content:center;margin:24px 0;}
+  .onb-dot{width:8px;height:8px;border-radius:50%;background:var(--line);transition:.2s;}
+  .onb-dot.active{background:var(--aqua);width:22px;border-radius:99px;}
+
+  /* колесо фортуны */
+  .wheel-wrap{position:relative;width:260px;height:260px;margin:10px auto 18px;}
+  .wheel{width:100%;height:100%;border-radius:50%;border:6px solid var(--line);transition:transform 4s cubic-bezier(.12,.7,.12,1);}
+  .wheel-ptr{position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:20px solid var(--gold);z-index:3;}
+  .wheel-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;background:var(--surface);border:3px solid var(--gold);display:grid;place-items:center;font-size:22px;}
+
+  /* достижения */
+  .ach{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:8px;}
+  .ach.unlocked{border-color:var(--aqua-dim);}
+  .ach .ai{font-size:30px;width:44px;text-align:center;}
+  .ach.locked .ai{filter:grayscale(1);opacity:.4;}
+  .ach .ab{flex:1;}
+  .ach .ab b{font-size:15px;}
+  .ach .ab p{margin:2px 0 0;color:var(--muted);font-size:12px;}
+  .ach .areward{font-weight:800;color:var(--gold);font-size:13px;}
+  .ach.unlocked .areward{color:var(--green);}
+
+  /* квесты-цепочки */
+  .quest{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px;}
+  .quest .qh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .quest .qh b{font-size:15px;}
+  .quest .qr{color:var(--gold);font-weight:800;font-size:13px;}
+  .qbar{height:10px;background:var(--deep2);border-radius:99px;overflow:hidden;}
+  .qbar i{display:block;height:100%;background:linear-gradient(90deg,var(--aqua),var(--gold));transition:width .4s;}
+  .qsteps{color:var(--muted);font-size:12px;margin-top:6px;}
+
+  /* настройки */
+  .set-row{display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:8px;}
+  .set-row .sl b{font-size:15px;} .set-row .sl p{margin:2px 0 0;color:var(--muted);font-size:12px;}
+  .lang-pick{display:flex;gap:6px;}
+  .lang-pick button{border:1px solid var(--line);background:var(--deep2);color:var(--text);padding:8px 14px;border-radius:9px;font-weight:700;cursor:pointer;font-size:13px;}
+  .lang-pick button.active{border-color:var(--aqua);color:var(--aqua);}
+  .switch{position:relative;width:48px;height:28px;background:var(--deep2);border-radius:99px;border:1px solid var(--line);cursor:pointer;transition:.2s;}
+  .switch.on{background:var(--aqua-dim);border-color:var(--aqua);}
+  .switch i{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:var(--foam);transition:.2s;}
+  .switch.on i{left:22px;background:var(--aqua);}
+  .inp-err{color:var(--danger);font-size:12px;margin:4px 2px 0;min-height:14px;}
+
+/* ============================================================
+   ✦ ABYSSAL GLASS — премиальный слой (Фаза 1)
+   Переопределяет базовые стили через каскад; механики не трогает.
+   ============================================================ */
+:root{
+  --abyss:#050f18; --deep:#0a1c2c; --deep2:#0d2337; --surface:#102b3f; --surface2:#143a52;
+  --line:#204257; --text:#eef7fa; --muted:#8aa9bb;
+  --aqua:#38e5d4; --aqua-2:#19b7ac; --aqua-dim:#12655d;
+  --gold:#ffcf5c; --gold-2:#ff9f2e; --foam:#daf2f5;
+  --danger:#ff6072; --green:#3ee0a3; --purple:#9a7cff;
+  --radius:22px; --radius-lg:26px;
+  --grad-aqua:linear-gradient(135deg,#43ecdb 0%,#16a99d 100%);
+  --grad-gold:linear-gradient(135deg,#ffd873 0%,#ff9f2e 100%);
+  --glass-bg:rgba(18,48,70,.55); --glass-brd:rgba(126,196,214,.16); --glass-hi:rgba(255,255,255,.06);
+  --sh-card:0 18px 40px -18px rgba(0,0,0,.7),0 2px 8px -2px rgba(0,0,0,.5);
+  --sh-soft:0 10px 30px -14px rgba(0,0,0,.6);
+  --glow-aqua:0 0 0 1px rgba(56,229,212,.25),0 10px 30px -8px rgba(56,229,212,.45);
+  --glow-gold:0 10px 30px -8px rgba(255,175,60,.4);
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+html,body{background:var(--abyss);}
+body{
+  background:
+    radial-gradient(130% 70% at 50% -12%, #114363 0%, rgba(5,15,24,0) 58%),
+    radial-gradient(90% 50% at 100% 0%, rgba(56,229,212,.10) 0%, rgba(5,15,24,0) 50%),
+    var(--abyss);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;}
+
+/* живой фон из пузырьков */
+#bubbles{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;}
+
+/* появление экрана целиком — безопасно (fill:none, финал = обычное состояние,
+   контент не может «залипнуть» невидимым); перезапускается при каждой навигации */
+.screen.active{animation:scrIn .46s var(--ease);}
+@keyframes scrIn{from{opacity:0;transform:translateY(10px) scale(.994);}to{opacity:1;transform:none;}}
+
+/* типографика */
+h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;margin:6px 2px 12px;}
+.sub{font-size:13.5px;line-height:1.5;color:var(--muted);}
+
+/* стеклянные панели */
+.panel,.glass{
+  background:var(--glass-bg);border:1px solid var(--glass-brd);border-radius:var(--radius);
+  -webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);
+  box-shadow:var(--sh-soft),inset 0 1px 0 var(--glass-hi);
+}
+
+/* объёмные карточки режимов */
+.card{
+  border-radius:var(--radius-lg);border:1px solid rgba(255,255,255,.08);
+  box-shadow:var(--sh-card),inset 0 1px 0 rgba(255,255,255,.10);
+  transition:transform .18s var(--ease),box-shadow .25s var(--ease),filter .25s;
+}
+.card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(120% 80% at 80% -10%,rgba(255,255,255,.14),rgba(255,255,255,0) 55%);}
+.card:active{transform:scale(.975) translateY(1px);filter:brightness(1.03);}
+.card h2{font-size:24px;letter-spacing:-.02em;font-weight:800;}
+.card .emoji{filter:drop-shadow(0 10px 18px rgba(0,0,0,.45));}
+
+/* кнопки */
+.btn-primary{
+  background:var(--grad-aqua);color:#04241f;border-radius:16px;font-weight:800;letter-spacing:.01em;
+  box-shadow:var(--glow-aqua),inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .12s var(--ease),box-shadow .25s,filter .2s;position:relative;overflow:hidden;
+}
+.btn-primary:active{transform:translateY(1px) scale(.985);filter:saturate(1.1);}
+.btn-primary:disabled{filter:grayscale(.4) brightness(.8);box-shadow:none;}
+.btn-glow{animation:glowPulse 3.4s ease-in-out infinite;}
+@keyframes glowPulse{0%,100%{box-shadow:var(--glow-aqua),inset 0 1px 0 rgba(255,255,255,.35);}50%{box-shadow:0 0 0 1px rgba(56,229,212,.35),0 16px 42px -8px rgba(56,229,212,.6),inset 0 1px 0 rgba(255,255,255,.35);}}
+.btn-ghost{background:var(--glass-bg);border:1px solid var(--glass-brd);border-radius:14px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);transition:transform .12s var(--ease),border-color .2s;}
+.btn-ghost:active{transform:scale(.98);}
+
+/* чипы / сегменты */
+.chip{border-radius:12px;transition:transform .12s var(--ease),border-color .2s,color .2s;}
+.chip:active{transform:scale(.94);}
+.chip.active{box-shadow:0 0 0 1px rgba(255,207,92,.5),0 6px 16px -8px rgba(255,175,60,.5);}
+.seg{background:var(--glass-bg);border:1px solid var(--glass-brd);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-radius:16px;}
+.seg button.active{background:var(--grad-aqua);color:#04241f;font-weight:800;box-shadow:0 6px 16px -8px rgba(56,229,212,.6);}
+
+/* кошельки-чипы */
+.wallet{border-radius:999px;border:1px solid var(--glass-brd);background:var(--glass-bg);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 0 1px 0 var(--glass-hi);}
+.wallet.money{background:linear-gradient(120deg,rgba(16,58,55,.6),rgba(16,48,72,.55));}
+.wallet .add{background:var(--grad-aqua);color:#04241f;}
+
+/* таб-бар: стекло + светящийся активный */
+.tabbar{background:rgba(6,17,26,.72);-webkit-backdrop-filter:blur(20px) saturate(1.3);backdrop-filter:blur(20px) saturate(1.3);border-top:1px solid var(--glass-brd);}
+.tab{transition:color .2s,transform .12s var(--ease);padding-top:6px;}
+.tab svg{transition:transform .2s var(--ease),filter .2s;}
+.tab.active svg{transform:translateY(-2px) scale(1.06);filter:drop-shadow(0 6px 12px rgba(56,229,212,.5));}
+.tab.active::before{content:"";position:absolute;top:-1px;left:50%;transform:translateX(-50%);width:34px;height:3px;border-radius:999px;background:var(--grad-aqua);box-shadow:0 0 10px rgba(56,229,212,.7);}
+.tab:active{transform:scale(.92);}
+
+/* LIVE */
+.live{background:rgba(255,96,114,.12);border:1px solid rgba(255,96,114,.25);}
+
+/* count-up вспышка */
+.bump{animation:bump .5s var(--ease);}
+@keyframes bump{0%{transform:scale(1);}30%{transform:scale(1.14);color:var(--gold);}100%{transform:scale(1);}}
+
+/* ripple */
+.rippling{position:relative;overflow:hidden;}
+.ripple{position:absolute;border-radius:50%;transform:translate(-50%,-50%) scale(0);background:radial-gradient(circle,rgba(255,255,255,.5),rgba(255,255,255,0) 70%);pointer-events:none;animation:ripple .55s var(--ease);z-index:5;}
+@keyframes ripple{to{transform:translate(-50%,-50%) scale(1);opacity:0;}}
+
+/* ---------- HERO ---------- */
+.hero-card{padding:18px 18px 20px;margin-bottom:16px;position:relative;overflow:hidden;}
+.hero-card::before{content:"";position:absolute;right:-40px;top:-50px;width:180px;height:180px;border-radius:50%;
+  background:radial-gradient(circle,rgba(56,229,212,.28),rgba(56,229,212,0) 70%);pointer-events:none;filter:blur(2px);}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;position:relative;z-index:1;}
+.hero-greet{display:flex;flex-direction:column;line-height:1.15;}
+.hero-hi{font-size:13px;color:var(--muted);font-weight:600;}
+.hero-name{font-size:22px;font-weight:800;letter-spacing:-.02em;}
+.hero-online{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--foam);background:rgba(62,224,163,.12);border:1px solid rgba(62,224,163,.28);padding:6px 11px;border-radius:999px;white-space:nowrap;}
+.dot-live{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(62,224,163,.6);animation:ping 1.6s infinite;}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(62,224,163,.5);}70%{box-shadow:0 0 0 7px rgba(62,224,163,0);}100%{box-shadow:0 0 0 0 rgba(62,224,163,0);}}
+.hero-bal{display:flex;align-items:baseline;gap:12px;margin:16px 0 16px;position:relative;z-index:1;}
+.hero-bal-main{display:inline-flex;align-items:center;gap:10px;font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;}
+.hero-bal-main small{font-size:15px;font-weight:700;color:var(--muted);letter-spacing:0;align-self:center;}
+.hero-bal-sub{font-size:15px;color:var(--foam);font-weight:700;opacity:.85;}
+.hero-actions{display:flex;flex-direction:column;gap:10px;position:relative;z-index:1;}
+.hero-actions .btn-primary{padding:16px;font-size:16.5px;}
+.hero-next{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);font-weight:600;justify-content:center;padding:6px;cursor:pointer;}
+.hero-next b{color:var(--foam);}
+
+/* иконка-звезда (градиентная) */
+.ic-star{width:42px;height:42px;display:inline-block;flex:none;
+  background:var(--grad-gold);-webkit-mask:var(--star-mask) center/contain no-repeat;mask:var(--star-mask) center/contain no-repeat;
+  filter:drop-shadow(0 6px 12px rgba(255,175,60,.5));}
+:root{--star-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77 5.82 21l1.18-6.88-5-4.87 7.1-1.01z'/%3E%3C/svg%3E");}
+
+/* ---------- PVP featured на главной ---------- */
+.pvp-feat{position:relative;overflow:hidden;border-radius:var(--radius-lg);padding:18px;margin-bottom:12px;cursor:pointer;
+  background:linear-gradient(135deg,#1a4a5e 0%,#123a52 45%,#3a2d16 100%);
+  border:1px solid rgba(255,207,92,.22);box-shadow:var(--sh-card),inset 0 1px 0 rgba(255,255,255,.12);
+  transition:transform .18s var(--ease);}
+.pvp-feat:active{transform:scale(.98);}
+.pvp-feat::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(120% 90% at 85% -10%,rgba(255,207,92,.18),transparent 55%);}
+.pvp-feat .pf-top{display:flex;align-items:center;gap:8px;position:relative;z-index:1;}
+.pvp-feat .pf-badge{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#3a2400;background:var(--grad-gold);padding:4px 10px;border-radius:999px;}
+.pvp-feat h2{margin:12px 0 4px;font-size:27px;font-weight:800;letter-spacing:-.02em;position:relative;z-index:1;}
+.pvp-feat p{margin:0 0 14px;font-size:13.5px;color:var(--foam);opacity:.85;position:relative;z-index:1;max-width:75%;}
+.pvp-feat .pf-cta{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--grad-gold);color:#2a1a00;font-weight:800;font-size:16px;padding:14px;border-radius:14px;box-shadow:var(--glow-gold),inset 0 1px 0 rgba(255,255,255,.4);position:relative;z-index:1;}
+.pvp-feat .pf-swords{position:absolute;right:-6px;bottom:-10px;width:120px;height:120px;opacity:.9;z-index:0;filter:drop-shadow(0 12px 20px rgba(0,0,0,.4));}
+
+.modes-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modes-grid .card{min-height:130px;margin-bottom:0;}
+
+/* ---------- полишинг списков/профиля/магазина (Фаза 2) ---------- */
+.stat,.leader,.histrow,.pill,.ach{
+  background:var(--glass-bg);border:1px solid var(--glass-brd);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  box-shadow:var(--sh-soft),inset 0 1px 0 var(--glass-hi);
+}
+.stat{border-radius:16px;}
+.stat .sv{font-weight:800;letter-spacing:-.02em;}
+.pill{border-radius:18px;transition:transform .15s var(--ease),box-shadow .22s;}
+.pill:active{transform:scale(.96) translateY(1px);}
+.pill .ic{filter:drop-shadow(0 8px 14px rgba(0,0,0,.45));}
+.pill .px{background:rgba(6,17,26,.5);border:1px solid var(--glass-brd);}
+.leader{border-radius:16px;transition:transform .15s var(--ease);}
+.leader:active{transform:scale(.99);}
+.leader.you{box-shadow:0 0 0 1px rgba(56,229,212,.45),var(--sh-soft);}
+.leader .av,.prow .av{box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
+.histrow{border-radius:14px;}
+.prof-av{box-shadow:0 0 0 2px rgba(56,229,212,.9),0 0 26px -6px rgba(56,229,212,.55);animation:avGlow 3.6s ease-in-out infinite;}
+@keyframes avGlow{0%,100%{box-shadow:0 0 0 2px rgba(56,229,212,.85),0 0 22px -8px rgba(56,229,212,.5);}50%{box-shadow:0 0 0 2px rgba(56,229,212,1),0 0 36px -2px rgba(56,229,212,.8);}}
+.balance-big .v{font-weight:800;letter-spacing:-.02em;}
+.lvlbar,.qbar{box-shadow:inset 0 1px 2px rgba(0,0,0,.4);}
+.lvlbar i{box-shadow:0 0 10px rgba(56,229,212,.5);}
+.sheet{background:var(--glass-bg);-webkit-backdrop-filter:blur(24px) saturate(1.3);backdrop-filter:blur(24px) saturate(1.3);border:1px solid var(--glass-brd);box-shadow:0 -20px 60px -20px rgba(0,0,0,.8),inset 0 1px 0 var(--glass-hi);}
+.result-emoji{filter:drop-shadow(0 12px 24px rgba(0,0,0,.5));animation:pop .5s var(--ease);}
+@keyframes pop{0%{transform:scale(.4);opacity:0;}60%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
+.confetti-cv{position:fixed;inset:0;width:100%;height:100%;z-index:65;pointer-events:none;}
+
+/* ---------- Фаза 3: скелетоны, 3D-иконки, ambient, конкурсы ---------- */
+/* шиммер-скелетон загрузки (№16) */
+.skel{position:relative;overflow:hidden;background:rgba(255,255,255,.05);border-radius:12px;}
+.skel::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(100deg,rgba(255,255,255,0) 20%,rgba(200,240,245,.14) 50%,rgba(255,255,255,0) 80%);
+  animation:shimmer 1.25s infinite;}
+@keyframes shimmer{to{transform:translateX(100%);}}
+.skel-row{height:62px;margin-bottom:10px;border:1px solid var(--glass-brd);}
+
+/* градиентные 3D-иконки на карточках режимов */
+.mode-ic{position:absolute;right:10px;bottom:6px;width:56px;height:56px;filter:drop-shadow(0 10px 16px rgba(0,0,0,.45));opacity:.96;pointer-events:none;transition:transform .25s var(--ease);}
+.card:active .mode-ic{transform:scale(.9) rotate(-4deg);}
+
+/* ambient «жизнь»: лёгкое парение акцентов (параллакс-настроение) */
+.pf-swords{animation:floaty 5.5s ease-in-out infinite;transform-origin:60% 60%;}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(0);}50%{transform:translateY(-7px) rotate(-4deg);}}
+.hero-card::before{animation:glowFloat 8s ease-in-out infinite;}
+@keyframes glowFloat{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(-12px,10px) scale(1.08);}}
+.ic-star{animation:starPulse 3.2s ease-in-out infinite;}
+@keyframes starPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 6px 12px rgba(255,175,60,.5));}50%{transform:scale(1.06);filter:drop-shadow(0 8px 18px rgba(255,175,60,.75));}}
+
+/* tilt-параллакс (по наклону устройства) */
+:root{--tiltx:0;--tilty:0;}
+#bubbles{transform:translate(calc(var(--tiltx) * 2px),calc(var(--tilty) * 2px));}
+.hero-card{transform:perspective(820px) rotateY(calc(var(--tiltx) * 0.5deg)) rotateX(calc(var(--tilty) * -0.5deg));transition:transform .25s ease-out;transform-style:preserve-3d;}
+
+/* краш: список игроков в стиле Aviator (отдельные карточки, зелёные при выводе) */
+#crash-players{background:none;border:0;box-shadow:none;overflow:visible;-webkit-backdrop-filter:none;backdrop-filter:none;}
+#crash-players .ph{border:0;padding:4px 4px 8px;}
+.crow{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:8px;border-radius:16px;
+  background:var(--glass-bg);border:1.5px solid var(--glass-brd);box-shadow:var(--sh-soft),inset 0 1px 0 var(--glass-hi);
+  transition:border-color .25s,background .25s,opacity .25s;}
+.crow.win{border-color:rgba(62,224,163,.6);background:linear-gradient(90deg,rgba(62,224,163,.14),rgba(62,224,163,.04));}
+.crow.lose{opacity:.5;}
+.cav{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;font-size:23px;
+  background:radial-gradient(circle at 38% 28%,#1e5268,#0c2637 72%);border:1px solid var(--glass-brd);box-shadow:inset 0 1px 0 rgba(255,255,255,.1);}
+.cinfo{flex:1;min-width:0;}
+.cnm{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cnm b{color:var(--aqua);}
+.cbet{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:13px;font-weight:700;margin-top:2px;}
+.cbet .star-ic{width:.95em;height:.95em;}
+.cmul{color:var(--foam);}
+.crow.win .cmul{color:var(--green);}
+.cpaywrap{display:flex;align-items:center;gap:4px;font-weight:800;font-size:16px;}
+.cpaywrap .star-ic{width:1em;height:1em;}
+.cpay{color:var(--foam);} .cpay.win{color:var(--green);} .cpay.lose{color:var(--muted);font-weight:700;}
+
+/* история раундов — бордюрные пилюли по тиру */
+.ch-pill{background:rgba(6,17,26,.5);border:1.5px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:800;}
+.ch-pill.low{color:#5fe0b0;border-color:rgba(62,224,163,.5);}
+.ch-pill.mid{color:#7fb3ff;border-color:rgba(110,150,255,.5);}
+.ch-pill.high{color:#c7a3ff;border-color:rgba(154,124,255,.55);}
+.ch-pill.huge{color:var(--gold);border-color:rgba(255,207,92,.6);box-shadow:0 0 12px rgba(255,207,92,.22);}
+
+/* экран «Друзья» (реф-система) */
+.ref-hero{display:flex;gap:14px;align-items:flex-start;padding:18px;margin-bottom:14px;}
+.ref-hero-ic{width:56px;height:56px;flex:none;border-radius:16px;display:grid;place-items:center;background:var(--grad-aqua);box-shadow:var(--glow-aqua),inset 0 1px 0 rgba(255,255,255,.35);}
+.ref-hero-ic svg{width:30px;height:30px;}
+.ref-hero-txt{min-width:0;}
+.ref-hero-txt h3{margin:0;font-size:21px;font-weight:800;letter-spacing:-.02em;line-height:1.22;text-wrap:balance;}
+.ref-accent{color:var(--aqua);}
+.ref-muted{margin:5px 0 12px;color:var(--muted);font-size:13px;}
+.ref-line{margin:0;font-size:15px;font-weight:600;color:var(--text);}
+.ref-line b{display:inline-flex;align-items:center;gap:2px;color:var(--gold);}
+.ref-line .star-ic{width:1em;height:1em;}
+.ref-cap{margin:6px 0 0;color:var(--muted);font-size:12.5px;line-height:1.4;}
+.ref-actions{padding:16px;position:relative;}
+.ref-stats{padding:2px 16px;}
+.ref-stat-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:15px 0;font-size:14px;color:var(--muted);}
+.ref-stat-row b{color:var(--text);font-weight:800;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.ref-stat-row .star-ic{width:1em;height:1em;}
+.ref-div{height:1px;background:var(--glass-brd);}
+.ref-friends-head{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800;margin:18px 2px 12px;}
+.ref-badge{background:var(--glass-bg);border:1px solid var(--glass-brd);border-radius:999px;padding:2px 13px;font-size:14px;font-weight:800;color:var(--muted);}
+
+/* конкурсы под общий стиль */
+.contest{background:var(--glass-bg);border:1px solid var(--glass-brd);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:var(--sh-soft),inset 0 1px 0 var(--glass-hi);border-radius:20px;}
+.contest .timer{background:var(--grad-gold);color:#2a1a00;box-shadow:var(--glow-gold);}
+.prize{background:rgba(6,17,26,.45);border:1px solid var(--glass-brd);border-radius:14px;}
+.prize .ic{filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));}
+
+/* магазин: эмодзи-подарок → объёмный медальон-токен */
+.pill .ic{width:66px;height:66px;margin:0 auto 10px;display:grid;place-items:center;font-size:34px;border-radius:50%;
+  background:radial-gradient(circle at 38% 28%, #1e5268 0%, #0c2637 72%);
+  border:1px solid var(--glass-brd);
+  box-shadow:inset 0 2px 5px rgba(200,240,245,.18),inset 0 -7px 12px rgba(0,0,0,.45),0 12px 20px -10px rgba(0,0,0,.65);
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));transition:transform .25s var(--ease);}
+.pill:active .ic{transform:scale(.94);}
+
+/* маленькая градиентная звезда для чипов ставок */
+.star-ic{display:inline-block;width:1.05em;height:1.05em;vertical-align:-0.14em;margin-right:1px;
+  background:var(--grad-gold);-webkit-mask:var(--star-mask) center/contain no-repeat;mask:var(--star-mask) center/contain no-repeat;
+  filter:drop-shadow(0 2px 3px rgba(255,175,60,.4));}
+.chip.active .star-ic{filter:drop-shadow(0 2px 5px rgba(255,207,92,.7));}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}
+  #bubbles{display:none;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bubbles"></canvas>
+
+<!-- ИГРЫ / ГЛАВНАЯ -->
+<div class="screen active" id="s-home">
+  <div class="hero-card glass">
+    <div class="hero-top">
+      <div class="hero-greet"><span class="hero-hi" id="greet">С возвращением</span><span class="hero-name" id="hero-name">Игрок</span></div>
+      <div class="hero-online"><span class="dot-live"></span><span id="online" class="mono">—</span>&nbsp;онлайн</div>
+    </div>
+    <div class="hero-bal">
+      <div class="hero-bal-main"><span class="ic-star"></span><span class="mono" data-stars>0</span><small>звёзд</small></div>
+      <div class="hero-bal-sub"><span class="mono" data-money>0.00</span> грн</div>
+    </div>
+    <div class="hero-actions">
+      <button class="btn-primary btn-glow" onclick="go('pvp')">Играть сейчас</button>
+      <div class="hero-next" onclick="go('contests')">🏆 Ближайший розыгрыш · <b>через 1 час</b> →</div>
+    </div>
+  </div>
+
+  <div class="pvp-feat" onclick="go('pvp')">
+    <div class="pf-top"><span class="pf-badge">PVP · LIVE</span><span class="hero-online" style="margin-left:auto"><span class="dot-live"></span><span id="pvp-online" class="mono">—</span>&nbsp;в игре</span></div>
+    <h2>Битва за банк</h2>
+    <p>Заходи в общий раунд — победитель забирает весь банк</p>
+    <div class="pf-cta">Войти в битву →</div>
+    <svg class="pf-swords" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="sw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe49a"/><stop offset="1" stop-color="#ff9f2e"/></linearGradient></defs><g stroke="url(#sw)" stroke-width="3.5" stroke-linecap="round"><path d="M13 51 L45 19"/><path d="M51 51 L19 19"/></g><g fill="url(#sw)"><circle cx="45" cy="19" r="3.4"/><circle cx="19" cy="19" r="3.4"/><path d="M11 49l4 4-3 1-2-2z"/><path d="M53 49l-4 4 3 1 2-2z"/></g></svg>
+  </div>
+
+  <div class="modes-grid">
+    <div class="card c-roul" onclick="go('games')"><h2 style="font-size:21px">Игры</h2><p style="max-width:none">Краш и рулетка</p>
+      <svg class="mode-ic" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="gpad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#66fbea"/><stop offset="1" stop-color="#149a8f"/></linearGradient></defs><path fill="url(#gpad)" d="M34 14H14a10 10 0 00-10 10v3.6A5 5 0 0013 31l1-2h12l1 2a5 5 0 009-3.4V24a10 10 0 00-10-10zM15 19v2.5h2.5V24H15v2.5h-2.5V24H10v-2.5h2.5V19zm16 .5a2 2 0 110 4 2 2 0 010-4zm3 4a2 2 0 110 4 2 2 0 010-4z"/></svg></div>
+    <div class="card c-upgrade" onclick="toast('Апгрейд скоро — улучшение подарков за звёзды')"><h2 style="font-size:21px">Апгрейд <span class="badge">Скоро</span></h2><p style="max-width:none">Множь звёзды</p>
+      <svg class="mode-ic" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="chart" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ffd873"/><stop offset="1" stop-color="#ff8e28"/></linearGradient></defs><path stroke="url(#chart)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="M8 34l9-9 6 5 12-13"/><path fill="url(#chart)" d="M28 15h11v11l-4-4-7-7z"/></svg></div>
+  </div>
+</div>
+
+<!-- ИГРЫ (Рулетка + Краш в одном разделе) -->
+<div class="screen" id="s-games">
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
+  <h1 class="title">Игры</h1>
+  <div class="seg" id="games-seg">
+    <button class="active" data-gtab="crash" onclick="setGameTab('crash')">🦈 Краш</button>
+    <button data-gtab="roul" onclick="setGameTab('roul')">🎡 Рулетка</button>
+  </div>
+
+  <!-- РУЛЕТКА -->
+  <div id="game-roul">
+    <p class="sub">Крути за звёзды — выигрывай подарки. Вывести звёзды в деньги нельзя.</p>
+    <div class="roul-stage"><div class="roul-pointer"></div><div class="roul-strip" id="strip"></div></div>
+    <div class="bet-row"><span style="font-weight:700">Ставка:</span><div class="chip" data-bet="50" onclick="setBet(50)"><i class="star-ic"></i>50</div><div class="chip" data-bet="100" onclick="setBet(100)"><i class="star-ic"></i>100</div><div class="chip" data-bet="250" onclick="setBet(250)"><i class="star-ic"></i>250</div></div>
+    <button class="btn-primary" id="spin-btn" onclick="spin()">Крутить за ⭐50</button>
+    <div class="players" id="roul-players" style="margin-top:14px"></div>
+  </div>
+
+  <!-- КРАШ -->
+  <div id="game-crash" style="display:none">
+    <div class="crash-history" id="crash-history"></div>
+    <div class="crash-status" id="crash-status">Следующий раунд через <b>5</b>…</div>
+    <div class="crash-stage" id="crash-stage"><div class="crash-grid"></div><canvas class="crash-canvas" id="crash-canvas"></canvas><div class="crash-shark" id="cshark"></div><div class="crash-mult" id="mult">1.00x</div></div>
+    <div class="bet-row"><span style="font-weight:700">Ставка:</span><div class="chip" data-cbet="50" onclick="setCBet(50)"><i class="star-ic"></i>50</div><div class="chip" data-cbet="100" onclick="setCBet(100)"><i class="star-ic"></i>100</div><div class="chip" data-cbet="250" onclick="setCBet(250)"><i class="star-ic"></i>250</div></div>
+    <div class="auto-row"><label class="auto-toggle"><input type="checkbox" id="auto-chk"> Авто-вывод на</label><input id="auto-mult" class="mono auto-inp" inputmode="decimal" placeholder="2.00" value="2.00"><span style="color:var(--muted);font-size:13px">x</span></div>
+    <button class="btn-primary" id="crash-btn" onclick="crashAction()">Поставить ⭐50 на след. раунд</button>
+    <div class="players" id="crash-players" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- PVP · БИТВА -->
+<div class="screen" id="s-pvp">
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
+  <h1 class="title">PVP · Битва</h1>
+  <p class="sub">Скидывайтесь звёздами в общий банк. Победитель забирает всё. Шанс победы = ваша доля банка.</p>
+  <div class="pvp-feed" id="pvp-feed">⚔️ Соберите банк и заберите его целиком</div>
+  <div class="pvp-arc">
+    <div class="pvp-arc-ring" id="pvp-arc-ring"></div>
+    <div class="pvp-arc-hole"></div>
+    <div class="pvp-arc-center">
+      <div class="pvp-pot-l">Общий банк</div>
+      <div class="pvp-pot-v mono">⭐ <span id="pvp-pot">0</span></div>
+      <div class="pvp-pot-g" id="pvp-round">Сделайте ставку, чтобы начать битву</div>
+    </div>
+  </div>
+  <div class="roul-stage" id="pvp-stage"><div class="roul-pointer"></div><div class="roul-strip" id="pvp-strip"></div></div>
+  <div class="bet-row"><span style="font-weight:700">Ставка:</span><div class="chip" data-pbet="50" onclick="setPBet(50)"><i class="star-ic"></i>50</div><div class="chip" data-pbet="100" onclick="setPBet(100)"><i class="star-ic"></i>100</div><div class="chip" data-pbet="250" onclick="setPBet(250)"><i class="star-ic"></i>250</div></div>
+  <button class="btn-primary" id="pvp-btn" onclick="pvpJoin()">Присоединиться к битве · ⭐50</button>
+  <div class="players" id="pvp-players" style="margin-top:14px"></div>
+  <div class="pvp-fair" id="pvp-fair"></div>
+</div>
+
+<!-- КОНКУРСЫ -->
+<div class="screen" id="s-contests">
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="spacer"></div></div>
+  <h1 class="title">Розыгрыши</h1>
+  <div class="seg" id="contest-seg">
+    <button class="active" data-ctab="active" onclick="setContestTab('active')">Активные</button>
+    <button data-ctab="yours" onclick="setContestTab('yours')">Ваши</button>
+    <button data-ctab="history" onclick="setContestTab('history')">История</button>
+  </div>
+  <div id="contest-body"></div>
+</div>
+
+<!-- ЛИДЕРЫ -->
+<div class="screen" id="s-leaders">
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="spacer"></div></div>
+  <h1 class="title">Лидеры</h1>
+  <p class="sub">Каждую неделю топ-100 по обороту получают ценные призы</p>
+  <div class="panel" style="text-align:center"><b style="font-size:15px">До конца недели</b><div class="mono" style="font-size:24px;font-weight:800;margin-top:6px">1д 09:10:37</div></div>
+  <div id="leader-list"></div>
+</div>
+
+<!-- МАГАЗИН -->
+<div class="screen" id="s-shop">
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span></div></div>
+  <h1 class="title">Магазин подарков</h1>
+  <p class="sub">Трать заработанные и выигранные звёзды на подарки</p>
+  <div class="grid2" id="shop-grid"></div>
+</div>
+
+<!-- ПРОФИЛЬ -->
+<div class="screen" id="s-profile">
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="spacer"></div></div>
+  <div class="prof-head">
+    <div class="prof-av">🦈</div>
+    <div class="prof-info">
+      <h2 id="prof-name">Вы</h2>
+      <div class="lvl" id="prof-lvl">Уровень 1 · Малёк</div>
+      <div class="lvlbar"><i id="lvlbar" style="width:10%"></i></div>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="sv mono" id="st-played">0</div><div class="sl">Сыграно</div></div>
+    <div class="stat"><div class="sv mono" id="st-won">0</div><div class="sl">Выиграно ⭐</div></div>
+    <div class="stat"><div class="sv mono" id="st-rank">—</div><div class="sl">Место</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="balance-big"><div class="v mono" data-money-big>0.00</div><div class="l">Баланс для вывода (заработок)</div><div class="conv" data-money-usdt>≈ 0.00 USDT</div></div>
+    <button class="btn-primary" onclick="openWithdraw()">Вывести деньги</button>
+  </div>
+  <div class="panel">
+    <div class="balance-big"><div class="v mono" data-stars-big>0</div><div class="l">Звёзды для игр</div></div>
+    <button class="btn-ghost" onclick="openBuyStars()">Пополнить звёзды</button>
+  </div>
+
+  <div class="row" style="gap:8px;margin-bottom:8px">
+    <button class="btn-ghost" onclick="go('refs')">👥 Друзья</button>
+    <button class="btn-ghost" onclick="go('history')">📜 История</button>
+  </div>
+  <div class="row" style="gap:8px;margin-bottom:12px">
+    <button class="btn-ghost" onclick="go('ach')">🏅 Достижения</button>
+    <button class="btn-ghost" onclick="go('settings')">⚙️ Настройки</button>
+  </div>
+</div>
+
+<!-- РЕФЕРАЛЫ -->
+<div class="screen" id="s-refs">
+  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ Назад</div><div class="spacer"></div></div>
+  <h1 class="title">Друзья</h1>
+
+  <div class="ref-hero glass">
+    <div class="ref-hero-ic"><svg viewBox="0 0 24 24" fill="#04241f"><circle cx="9" cy="8" r="3.4"/><path d="M3.4 19a5.6 5.6 0 0111.2 0 .8.8 0 01-.8.8H4.2a.8.8 0 01-.8-.8z"/><circle cx="17" cy="8.6" r="2.5"/><path d="M15.6 13.5A4.6 4.6 0 0121 17.6a.8.8 0 01-.8.8h-3c.06-1.9-.6-3.6-1.6-4.9z"/></svg></div>
+    <div class="ref-hero-txt">
+      <h3>Получай <span class="ref-accent" id="ref-share">10%</span> приглашая друзей</h3>
+      <p class="ref-muted">с пополнений звёзд друзей</p>
+      <p class="ref-line">А также по <b><i class="star-ic"></i><span id="ref-per">5</span></b> за каждого друга</p>
+      <p class="ref-cap">но не более <span id="ref-cap">50</span> ⭐ в день · и +<span id="ref-bonus">10</span> грн на вывод</p>
+    </div>
+  </div>
+
+  <div class="panel ref-actions">
+    <button class="btn-primary btn-glow" onclick="invite()">🔗 Пригласить друзей</button>
+    <button class="btn-ghost" style="margin-top:10px" onclick="copyRef()">⧉ Скопировать ссылку</button>
+    <input id="ref-link" class="mono" readonly value="https://t.me/SharkBot?start=ref_482913" style="position:absolute;left:-9999px;top:0;">
+  </div>
+
+  <div class="panel ref-stats">
+    <div class="ref-stat-row"><span>Всего заработано</span><b><span class="mono" id="rf-earned-uah">0.00</span> грн · <span class="mono" id="rf-earned-stars">0</span> <i class="star-ic"></i></b></div>
+    <div class="ref-div"></div>
+    <div class="ref-stat-row"><span>Сегодня начислено</span><b><span class="mono" id="rf-today">0</span> / <span class="mono" id="rf-today-cap">50</span> <i class="star-ic"></i></b></div>
+  </div>
+
+  <div class="ref-friends-head">Мои рефералы <span class="ref-badge" id="rf-count">0</span></div>
+  <div id="ref-list"></div>
+</div>
+
+<!-- ИСТОРИЯ -->
+<div class="screen" id="s-history">
+  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ Назад</div><div class="spacer"></div></div>
+  <h1 class="title">История</h1>
+  <p class="sub">Все начисления, выигрыши и выводы</p>
+  <div id="history-list"></div>
+</div>
+
+<!-- ДОСТИЖЕНИЯ -->
+<div class="screen" id="s-ach">
+  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ Назад</div><div class="spacer"></div></div>
+  <h1 class="title">Достижения</h1>
+  <p class="sub">Открывай бейджи и получай звёзды</p>
+  <div id="ach-list"></div>
+</div>
+
+<!-- НАСТРОЙКИ -->
+<div class="screen" id="s-settings">
+  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ Назад</div><div class="spacer"></div></div>
+  <h1 class="title">Настройки</h1>
+  <div class="set-row"><div class="sl"><b>Язык</b><p>Интерфейс приложения</p></div><div class="lang-pick" id="lang-pick"><button data-lang="ru" class="active" onclick="setLang('ru')">Рус</button><button data-lang="uk" onclick="setLang('uk')">Укр</button></div></div>
+  <div class="set-row"><div class="sl"><b>Звук</b><p>Эффекты в играх</p></div><div class="switch on" id="sound-switch" onclick="toggleSound()"><i></i></div></div>
+  <div class="set-row"><div class="sl"><b>Уведомления</b><p>Кейс готов, новые розыгрыши</p></div><div class="switch on" id="notif-switch" onclick="this.classList.toggle('on')"><i></i></div></div>
+  <div class="set-row" onclick="showOnboarding(true)" style="cursor:pointer"><div class="sl"><b>Как это работает</b><p>Показать обучение снова</p></div><div style="color:var(--aqua);font-weight:800">→</div></div>
+  <div class="set-row" onclick="toast('Поддержка: @SharkSupport')" style="cursor:pointer"><div class="sl"><b>Поддержка</b><p>Связаться с нами</p></div><div style="color:var(--aqua);font-weight:800">→</div></div>
+</div>
+
+<!-- TABBAR -->
+<div class="tabbar">
+  <div class="tab active" data-tab="home" onclick="go('home')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 6H7a5 5 0 00-5 5v2.5A3.5 3.5 0 008.4 15l.5-1h6.2l.5 1a3.5 3.5 0 006.4-1.5V11a5 5 0 00-5-5zM8.5 9.5V11H10v1.4H8.5V14H7.1v-1.6H5.6V11h1.5V9.5zm7.4.4a1 1 0 110 2 1 1 0 010-2zm1.6 2a1 1 0 110 2 1 1 0 010-2z"/></svg>Игры</div>
+  <div class="tab" data-tab="contests" onclick="go('contests')"><span class="dot">2</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9V6.8A2.4 2.4 0 108.6 6H4v3h7zm2 0h7V6h-4.6A2.4 2.4 0 1013 6.8V9zM5 11v8a1 1 0 001 1h5v-9H5zm8 0v9h5a1 1 0 001-1v-8h-6z"/></svg>Конкурсы</div>
+  <div class="tab" data-tab="leaders" onclick="go('leaders')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v2a4 4 0 01-4.4 4A5 5 0 0113 13.6V16h2a3 3 0 013 3v2H6v-2a3 3 0 013-3h2v-2.4A5 5 0 018.4 11 4 4 0 014 7V5h3V3zm-1 4v-.5H6V7a2 2 0 001 1.7A6 6 0 016 7zm12 0a6 6 0 01-1 1.7A2 2 0 0018 7v-.5h.01z"/></svg>Лидеры</div>
+  <div class="tab" data-tab="shop" onclick="go('shop')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 7a3.5 3.5 0 017 0h2.2l1 12.8a1 1 0 01-1 1.1H6.3a1 1 0 01-1-1.1L6.3 7h2.2zm2 0h3a1.5 1.5 0 00-3 0z"/></svg>Магазин</div>
+  <div class="tab" data-tab="profile" onclick="go('profile')"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7.5" r="4.2"/><path d="M4 20.2a8 8 0 0116 0 .9.9 0 01-.9.8H4.9a.9.9 0 01-.9-.8z"/></svg>Профиль</div>
+</div>
+
+<!-- ОНБОРДИНГ -->
+<div class="onb" id="onb">
+  <div class="onb-slide active" data-onb="0">
+    <div class="onb-ic">🦈</div>
+    <h2>Добро пожаловать в Shark</h2>
+    <p>Играй на звёзды и выигрывай подарки. Два разных баланса — звёзды для игр и гривны для вывода.</p>
+  </div>
+  <div class="onb-slide" data-onb="1">
+    <div class="onb-ic">⚔️</div>
+    <h2>PVP — битва за банк</h2>
+    <p>Главный режим: заходи в общий раунд, скидывайся в банк звёздами. Победитель забирает всё.</p>
+  </div>
+  <div class="onb-slide" data-onb="2">
+    <div class="onb-ic">🎮</div>
+    <h2>Игры на звёзды</h2>
+    <p>Краш и рулетка — на звёзды ради азарта и подарков. Звёзды не выводятся в деньги, тратятся внутри.</p>
+  </div>
+  <div class="onb-slide" data-onb="3">
+    <div class="onb-ic">💰</div>
+    <h2>Друзья = деньги</h2>
+    <p>Приглашай друзей и получай гривны на баланс — их можно вывести на карту или в USDT. Поехали!</p>
+  </div>
+  <div class="onb-dots" id="onb-dots"></div>
+  <button class="btn-primary" id="onb-btn" onclick="onbNext()">Далее</button>
+</div>
+
+<div class="overlay" id="ov"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+var USDT_RATE=45;
+
+function sharkSVG(){
+  return '<svg viewBox="0 0 100 70" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">'
+   +'<defs><linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fb9c9"/><stop offset="1" stop-color="#34708a"/></linearGradient>'
+   +'<linearGradient id="be2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf6f8"/><stop offset="1" stop-color="#bfe2ea"/></linearGradient></defs>'
+   +'<path d="M8 40 C20 24 48 18 74 30 C82 33 90 34 96 30 C92 40 86 44 78 44 C84 52 84 60 80 66 C72 60 66 54 62 48 C44 54 22 52 8 40 Z" fill="url(#bg2)"/>'
+   +'<path d="M10 41 C26 50 48 51 62 47 C58 50 50 53 40 53 C28 53 16 49 10 41 Z" fill="url(#be2)"/>'
+   +'<path d="M40 22 L50 8 L56 26 Z" fill="#5f9fb0"/><path d="M30 30 L24 44 L40 40 Z" fill="#4d8597"/>'
+   +'<circle cx="22" cy="37" r="4.2" fill="#fff"/><circle cx="22.8" cy="37.6" r="2.1" fill="#0a1d2e"/>'
+   +'<path d="M9 41 q6 1 12 0 q-3 3 -7 3 q-3 0 -5 -3 Z" fill="#fff"/>'
+   +'<path d="M64 28 l3 8 6 -6 Z" fill="#ffc24b"/></svg>';
+}
+
+/* ============ СОСТОЯНИЕ ============ */
+var S={money:0,stars:0,bet:50,cbet:50,doneTasks:{},joinedContests:{},cashedThisRound:false,
+       played:0,wonStars:0,refCount:0,refEarned:0,dailyOpened:false,streakDay:3,history:[],isPro:false,
+       wheelSpun:false,achievements:{},firstWithdraw:false,onboarded:false,lang:'ru',soundPref:true};
+
+var ROUL_PRIZES=[
+  {emoji:"🫧",name:"Пузырь",value:5,color:"#16236b",weight:30},
+  {emoji:"🌊",name:"Волна",value:10,color:"#1d3a6b",weight:24},
+  {emoji:"🐚",name:"Ракушка",value:20,color:"#3a5f6b",weight:18},
+  {emoji:"🐠",name:"Рыбка",value:40,color:"#0a5f6b",weight:12},
+  {emoji:"🪸",name:"Коралл",value:60,color:"#b5541f",weight:8},
+  {emoji:"⚓",name:"Якорь",value:90,color:"#5a2f7a",weight:5},
+  {emoji:"🦈",name:"Акула",value:150,color:"#7a1f3a",weight:2.5},
+  {emoji:"💎",name:"Жемчуг",value:300,color:"#7a1f3a",weight:0.5}
+];
+
+var SHOP=[
+  {emoji:"🦈",name:"Shark NFT",value:500},{emoji:"🐚",name:"Ракушка",value:331},
+  {emoji:"🪸",name:"Коралл",value:344},{emoji:"🌊",name:"Волна",value:360},
+  {emoji:"🐠",name:"Рыбка",value:334},{emoji:"⚓",name:"Якорь",value:356},
+  {emoji:"💎",name:"Жемчуг",value:600},{emoji:"🔱",name:"Трезубец",value:358}
+];
+
+var LEADERS=[
+  {n:"Dogindfox",s:48720,a:"🦈"},{n:"cakt0_ymep",s:41355,a:"🐙"},
+  {n:"WritePl",s:38900,a:"🐡"},{n:"molodoywq",s:25160,a:"🐠"},
+  {n:"Facesed",s:19980,a:"🦑"},{n:"taracashka42",s:15040,a:"🦀"}
+];
+
+var BOT_NAMES=["ota_try","Faceless","molodoywq","cakt0_ymep","sea_wolf","krd_777","blue_fin","reef_king","aqua_max","tide_88","kraken_x","pearl","marlin","orca_pro","WritePl","deep_one"];
+var BOT_AV=["🐙","🐡","🐠","🦑","🦀","🐬","🐳","🦈","🐚","🪼","🦞","🐟"];
+function randBot(){return {n:BOT_NAMES[Math.floor(Math.random()*BOT_NAMES.length)],a:BOT_AV[Math.floor(Math.random()*BOT_AV.length)]};}
+
+var REF_FRIENDS=[
+  {n:"andrii_k",a:"🐬",earned:34.20,active:true},
+  {n:"maks2008",a:"🐡",earned:12.00,active:true},
+  {n:"olya_sea",a:"🐚",earned:0,active:false}
+];
+
+var STREAK_REWARDS=[10,15,20,30,50,75,150]; // звёзды за день 1..7
+
+/* ============ УТИЛИТЫ ============ */
+function money(n){return Number(n).toFixed(2);}
+function usdt(n){return (Number(n)/USDT_RATE).toFixed(2);}
+function $(s,r){return (r||document).querySelector(s);}
+function $all(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));}
+function rint(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(function(){t.classList.remove('show');},2300);}
+
+/* история операций */
+function logOp(icon,title,sub,val,cls){
+  S.history.unshift({icon:icon,title:title,sub:sub,val:val,cls:cls,t:Date.now()});
+  if(S.history.length>60) S.history.pop();
+  if(document.getElementById('s-history').classList.contains('active')) renderHistory();
+}
+
+/* ============ НАВИГАЦИЯ ============ */
+function go(name){
+  $all('.screen').forEach(function(s){s.classList.remove('active');});
+  var scr=document.getElementById('s-'+name); if(scr) scr.classList.add('active');
+  $all('.tab').forEach(function(t){t.classList.toggle('active',t.getAttribute('data-tab')===name);});
+  window.scrollTo(0,0); closeSheet();
+  if(name==='games'){ setGameTab(gameTab); } else { stopCrashLoop(); stopRoulFeed(); }
+  if(name==='history') renderHistory();
+  if(name==='refs') renderRefs();
+  if(name==='profile') renderProfile();
+}
+
+/* ============ ИГРЫ: переключатель Рулетка/Краш ============ */
+var gameTab='crash';
+function setGameTab(t){
+  gameTab=t;
+  $all('#games-seg button').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-gtab')===t);});
+  var r=document.getElementById('game-roul'), c=document.getElementById('game-crash');
+  if(t==='roul'){
+    if(r)r.style.display=''; if(c)c.style.display='none';
+    stopCrashLoop(); startRoulFeed();
+  } else {
+    if(r)r.style.display='none'; if(c)c.style.display='';
+    stopRoulFeed();
+    stopCrashLoop();          // сброс прошлого состояния
+    crashBots=[]; crashPhase='waiting';
+    renderCrashHistory();
+    startCrashLoop();         // свежий раунд с ботами
+  }
+}
+
+/* ============ БАЛАНСЫ / ПРОФИЛЬ ============ */
+function syncBalances(){
+  $all('[data-money]').forEach(function(e){e.textContent=money(S.money);});
+  $all('[data-stars]').forEach(function(e){e.textContent=S.stars;});
+  var mb=$('[data-money-big]'); if(mb) mb.innerHTML=money(S.money)+' <span style="font-size:20px;color:var(--aqua)">грн</span>';
+  var mu=$('[data-money-usdt]'); if(mu) mu.textContent='≈ '+usdt(S.money)+' USDT';
+  var sb=$('[data-stars-big]'); if(sb) sb.innerHTML=S.stars+' <span style="font-size:20px;color:var(--gold)">⭐</span>';
+}
+function levelInfo(){
+  // уровень от суммарной активности
+  var xp=S.played*10+S.wonStars/10+Object.keys(S.doneTasks).length*15;
+  var lvl=Math.max(1,Math.floor(xp/100)+1);
+  var names=["Малёк","Рыбёшка","Охотник","Хищник","Акула","Мегалодон"];
+  var name=names[Math.min(lvl-1,names.length-1)];
+  var prog=(xp%100); return {lvl:lvl,name:name,prog:prog};
+}
+function renderProfile(){
+  var li=levelInfo();
+  var pn=document.getElementById('prof-lvl'); if(pn) pn.textContent='Уровень '+li.lvl+' · '+li.name;
+  var lb=document.getElementById('lvlbar'); if(lb) lb.style.width=Math.max(li.prog,6)+'%';
+  var sp=document.getElementById('st-played'); if(sp) sp.textContent=S.played;
+  var sw=document.getElementById('st-won'); if(sw) sw.textContent=S.wonStars;
+  var sr=document.getElementById('st-rank'); if(sr) sr.textContent='100+';
+}
+
+/* ============ СЕРИЯ ВХОДОВ ============ */
+function renderStreak(){ /* серия входов убрана */ }
+
+/* ============ PUSH-БАННЕР ============ */
+function renderPush(){
+  var slot=document.getElementById('push-slot'); if(!slot) return; slot.innerHTML='';
+  var el=document.createElement('div'); el.className='push';
+  el.innerHTML='<div class="pi">🏆</div><div class="pt"><b>Новый розыгрыш через 1 час</b><p>6 призов · успейте присоединиться</p></div><div class="pgo">→</div>';
+  el.onclick=function(){go('contests');}; slot.appendChild(el);
+}
+
+/* ============ БЕГУЩАЯ СТРОКА ============ */
+function buildTicker(){
+  var items=[];
+  for(var i=0;i<10;i++){
+    var b=randBot(); var p=ROUL_PRIZES[rint(0,ROUL_PRIZES.length-1)];
+    items.push('<span>'+b.a+' '+b.n+' выиграл '+p.emoji+' <span class="g">+⭐'+p.value+'</span></span>');
+  }
+  var html=items.join('')+items.join(''); // дублируем для бесшовной прокрутки
+  document.getElementById('ticker').innerHTML=html;
+}
+
+/* ============ РУЛЕТКА ============ */
+var spinning=false,stripPrizes=[];
+function pickWeighted(){var total=0,i;for(i=0;i<ROUL_PRIZES.length;i++)total+=ROUL_PRIZES[i].weight;var r=Math.random()*total;for(i=0;i<ROUL_PRIZES.length;i++){r-=ROUL_PRIZES[i].weight;if(r<=0)return ROUL_PRIZES[i];}return ROUL_PRIZES[0];}
+function buildStrip(){var strip=document.getElementById('strip');strip.innerHTML='';stripPrizes=[];for(var i=0;i<50;i++){var p=pickWeighted();stripPrizes.push(p);var it=document.createElement('div');it.className='roul-item';it.style.background=p.color;it.innerHTML=p.emoji+'<small>⭐'+p.value+'</small>';strip.appendChild(it);}}
+function setBet(v){S.bet=v;$all('[data-bet]').forEach(function(c){c.classList.toggle('active',Number(c.getAttribute('data-bet'))===v);});document.getElementById('spin-btn').textContent='Крутить за ⭐'+v;}
+function spin(){
+  if(spinning)return; if(S.stars<S.bet){toast('Недостаточно звёзд — пополните баланс');return;}
+  spinning=true;S.stars-=S.bet;S.played++;syncBalances();buildStrip();
+  beep(440,0.05,0.04,'square');
+  var strip=document.getElementById('strip');var stage=$('.roul-stage');var itemW=100;
+  var target=30+Math.floor(Math.random()*8);var offset=target*itemW-(stage.clientWidth/2)+(itemW/2);
+  strip.style.transition='none';strip.style.transform='translateX(0px)';void strip.offsetWidth;
+  strip.style.transition='transform 3.2s cubic-bezier(.12,.7,.12,1)';strip.style.transform='translateX(-'+offset+'px)';
+  var btn=document.getElementById('spin-btn');btn.disabled=true;
+  // звук-трещотка во время кручения
+  var clk=setInterval(function(){beep(900,0.015,0.015,'square');},90);
+  setTimeout(function(){clearInterval(clk);},3100);
+  setTimeout(function(){
+    var base=stripPrizes[target]||ROUL_PRIZES[0];
+    var betMult=S.bet/50;                                  // 50→x1, 100→x2, 250→x5
+    var winVal=Math.round(base.value*betMult);
+    var prize={emoji:base.emoji,name:base.name,value:winVal};
+    S.stars+=winVal;S.wonStars+=winVal;syncBalances();
+    beep(660,0.12,0.06,'triangle');vibrate(25);
+    spinning=false;btn.disabled=false;
+    logOp('🎰','Рулетка: '+prize.name,'Ставка ⭐'+S.bet,'+⭐'+winVal,'star');
+    pushMyRoulRow(prize);
+    checkAchievements();
+    if(winVal>S.bet) celebrate({n:40});
+    showSheet('<div class="result-emoji">'+prize.emoji+'</div><h3 style="text-align:center">Вы выиграли ⭐'+winVal+'!</h3><p class="muted" style="text-align:center">«'+prize.name+'» (ставка ⭐'+S.bet+', множитель x'+betMult+'). Добавлено на игровой баланс.</p><button class="btn-primary" onclick="closeSheet()">Забрать</button>');
+  },3300);
+}
+function pushMyRoulRow(prize){
+  var box=document.getElementById('roul-players');if(!box)return;
+  if(!box.querySelector('.ph')) box.innerHTML='<div class="ph"><span>Последние спины</span><span>Выигрыш</span></div>';
+  var row=document.createElement('div');row.className='prow';
+  row.innerHTML='<div class="av">🙂</div><div class="nm"><b style="color:var(--aqua)">Вы</b></div><div class="st win">'+prize.emoji+' +⭐'+prize.value+'</div>';
+  var header=box.querySelector('.ph');
+  if(header.nextSibling)box.insertBefore(row,header.nextSibling);else box.appendChild(row);
+  while(box.querySelectorAll('.prow').length>6)box.removeChild(box.lastChild);
+}
+var roulFeedTimer=null;
+function startRoulFeed(){var box=document.getElementById('roul-players');if(!box.querySelector('.ph')){box.innerHTML='<div class="ph"><span>Последние спины</span><span>Выигрыш</span></div>';for(var i=0;i<5;i++)pushRoulRow();}stopRoulFeed();roulFeedTimer=setInterval(pushRoulRow,rint(1800,3200));}
+function stopRoulFeed(){if(roulFeedTimer){clearInterval(roulFeedTimer);roulFeedTimer=null;}}
+function pushRoulRow(){var box=document.getElementById('roul-players');if(!box)return;var b=randBot();var p=pickWeighted();var row=document.createElement('div');row.className='prow';row.innerHTML='<div class="av">'+b.a+'</div><div class="nm">'+b.n+'</div><div class="st win">'+p.emoji+' +⭐'+p.value+'</div>';var header=box.querySelector('.ph');if(header.nextSibling)box.insertBefore(row,header.nextSibling);else box.appendChild(row);while(box.querySelectorAll('.prow').length>6)box.removeChild(box.lastChild);}
+
+/* ============ КРАШ ============ */
+var crashPhase='waiting',crashRAF=null,crashMult=1,crashTarget=0,crashT0=0,crashCountdown=5,crashCdTimer=null,crashBots=[],crashLoopActive=false,iJoined=false;
+var crashHistory=[2.34,1.08,5.71,1.92,3.45,1.00,8.21,2.10];
+var autoCash=false, autoMult=2.0;
+
+/* ===== звук через Web Audio (без файлов) ===== */
+var AC=null, soundOn=true;
+function actx(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } } return AC; }
+function beep(freq,dur,vol,type){
+  if(!soundOn) return; var c=actx(); if(!c) return;
+  try{ var o=c.createOscillator(), g=c.createGain();
+    o.type=type||'sine'; o.frequency.value=freq;
+    g.gain.value=(vol||0.05);
+    o.connect(g); g.connect(c.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+(dur||0.08));
+    o.stop(c.currentTime+(dur||0.08));
+  }catch(e){}
+}
+function vibrate(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
+/* «живые» соперники для краша (боты ставят каждый раунд) */
+var CRASH_NAMES=['Никита','ARMIN','Джастон','Amir','XU','Данёк','sea_wolf','Влад','kraken_x','Максим','reef_king','Артём','SELL FIZ','tide_88','Оля','marlin','Санёк','deep_one','Женя','orca_pro','Дима','blue_fin','Илья','pearl','Тимур','aqua_max'];
+var CRASH_AV=['🦈','🐙','🐡','🐠','🦑','🦀','🐬','🐳','🐚','🪼','🦞','🐟','😎','🤖','👾','🧊','🔥','⚡','🌊','💎','🎯','🃏'];
+var CRASH_BETS=[50,100,150,200,250,300,500];
+function crashBot(){ return { n:CRASH_NAMES[rint(0,CRASH_NAMES.length-1)], a:CRASH_AV[rint(0,CRASH_AV.length-1)] }; }
+function renderCrashHistory(){
+  var box=document.getElementById('crash-history'); if(!box) return;
+  box.innerHTML='';
+  crashHistory.slice(0,12).forEach(function(m){
+    var cls = m<1.5?'low':(m<3?'mid':(m<6?'high':'huge'));
+    var p=document.createElement('div'); p.className='ch-pill '+cls;
+    p.textContent=m.toFixed(2)+'x'; box.appendChild(p);
+  });
+}
+function setCBet(v){S.cbet=v;$all('[data-cbet]').forEach(function(c){c.classList.toggle('active',Number(c.getAttribute('data-cbet'))===v);});updateCrashBtn();}
+function updateCrashBtn(){var btn=document.getElementById('crash-btn');if(!btn)return;
+  if(crashPhase==='waiting'){btn.textContent=iJoined?('Ставка принята ⭐'+S.cbet+' · ждём старт'):('Поставить ⭐'+S.cbet+' на след. раунд');btn.disabled=iJoined;}
+  else if(crashPhase==='flying'){if(iJoined&&!S.cashedThisRound){btn.textContent='Забрать ⭐'+Math.floor(S.cbet*crashMult);btn.disabled=false;}else{btn.textContent='Раунд идёт…';btn.disabled=true;}}
+  else{btn.textContent='Раунд окончен';btn.disabled=true;}}
+function startCrashLoop(){if(crashLoopActive)return;crashLoopActive=true;beginWaiting();}
+function stopCrashLoop(){crashLoopActive=false;if(crashRAF)cancelAnimationFrame(crashRAF);if(crashCdTimer)clearInterval(crashCdTimer);}
+function beginWaiting(){if(!crashLoopActive)return;crashPhase='waiting';crashMult=1;S.cashedThisRound=false;iJoined=false;crashCountdown=5;crashBots=[];var n=rint(3,8);for(var i=0;i<n;i++){crashBots.push({id:i,bot:crashBot(),bet:CRASH_BETS[rint(0,CRASH_BETS.length-1)],cashAt:+(1.2+Math.random()*Math.random()*9).toFixed(2),status:'live',taken:0});}renderCrashPlayers();var mEl=document.getElementById('mult');if(mEl){mEl.textContent='Ожидание';mEl.style.color='';}resetSharkPos();updateCrashBtn();if(crashCdTimer)clearInterval(crashCdTimer);crashCdTimer=setInterval(function(){crashCountdown--;var st=document.getElementById('crash-status');if(st)st.innerHTML='Следующий раунд через <b>'+Math.max(crashCountdown,0)+'</b>…';if(crashCountdown<=0){clearInterval(crashCdTimer);beginFlying();}},1000);var st=document.getElementById('crash-status');if(st)st.innerHTML='Следующий раунд через <b>5</b>…';}
+function setupCanvas(){
+  var cv=document.getElementById('crash-canvas'); if(!cv)return null;
+  var st=document.getElementById('crash-stage');
+  var w=st.clientWidth, h=st.clientHeight;
+  var dpr=window.devicePixelRatio||1;
+  cv.width=w*dpr; cv.height=h*dpr;
+  var ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  return {ctx:ctx,w:w,h:h};
+}
+function beginFlying(){if(!crashLoopActive)return;if(!crashBots.length){var n=rint(3,8);for(var k=0;k<n;k++){crashBots.push({id:k,bot:crashBot(),bet:CRASH_BETS[rint(0,CRASH_BETS.length-1)],cashAt:+(1.2+Math.random()*Math.random()*9).toFixed(2),status:'live',taken:0});}}crashPhase='flying';crashT0=performance.now();crashTarget=+(1.2+Math.random()*Math.random()*12).toFixed(2);var st=document.getElementById('crash-status');if(st)st.innerHTML='Раунд идёт — забирайте вовремя!';renderCrashPlayers();updateCrashBtn();crashRAF=requestAnimationFrame(crashTick);}
+function crashTick(now){
+  if(crashPhase!=='flying')return;
+  var dt=(now-crashT0)/1000;
+  crashMult=1+dt*dt*0.6;
+  var mEl=document.getElementById('mult');
+  if(mEl){mEl.textContent=crashMult.toFixed(2)+'x';mEl.style.color='';}
+
+  var c=setupCanvas();
+  var sh=document.getElementById('cshark');
+  if(c && sh){
+    var w=c.w, h=c.h, ctx=c.ctx;
+    var padL=18, padB=16;                       // отступы (старт слева снизу)
+    // прогресс полёта: чем выше множитель, тем дальше; нормируем к целевому диапазону
+    var p=Math.min(dt/6,1);                      // 0..1 по времени
+    // позиция носа акулы (дуга вправо-вверх)
+    var nx=padL + p*(w-padL-50);
+    var ny=(h-padB) - Math.pow(p,1.35)*(h-padB-30);
+    // рисуем кривую-след от старта до текущей точки (квадратичная дуга, как в Aviator)
+    ctx.beginPath();
+    ctx.moveTo(padL,h-padB);
+    var steps=40,i,px,py;
+    for(i=1;i<=steps;i++){
+      var t=(i/steps)*p;
+      px=padL + t*(w-padL-50);
+      py=(h-padB) - Math.pow(t,1.35)*(h-padB-30);
+      ctx.lineTo(px,py);
+    }
+    // линия
+    ctx.lineWidth=3; ctx.strokeStyle='#2fd4c4';
+    ctx.shadowColor='rgba(47,212,196,.6)'; ctx.shadowBlur=8;
+    ctx.stroke();
+    ctx.shadowBlur=0;
+    // заливка под кривой
+    ctx.lineTo(nx,h-padB); ctx.lineTo(padL,h-padB); ctx.closePath();
+    var grad=ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,'rgba(47,212,196,.28)'); grad.addColorStop(1,'rgba(47,212,196,.02)');
+    ctx.fillStyle=grad; ctx.fill();
+    // позиционируем акулу носом по ходу (вправо-вверх). SVG смотрит влево → зеркалим по X
+    var tilt=-18-Math.sin(dt*3)*3;
+    sh.style.left=(nx-44)+'px';
+    sh.style.top=(ny-20)+'px';
+    sh.style.bottom='auto';
+    sh.style.transform='scaleX(-1) rotate('+tilt+'deg)';
+  }
+
+  crashBots.forEach(function(p2){if(p2.status==='live'&&crashMult>=p2.cashAt){p2.status='win';p2.taken=Math.floor(p2.bet*p2.cashAt);}});
+  renderCrashPlayers();
+  if(iJoined&&!S.cashedThisRound)updateCrashBtn();
+
+  // тиканье звука по мере роста
+  var tickKey=Math.floor(crashMult*5);
+  if(tickKey!==crashTick._lastTick){ crashTick._lastTick=tickKey; beep(300+crashMult*40,0.03,0.025,'square'); }
+
+  // авто-вывод
+  if(iJoined && !S.cashedThisRound && autoCash && crashMult>=autoMult){ crashAction(); }
+
+  if(crashMult>=crashTarget){
+    crashPhase='crashed';
+    if(mEl){mEl.textContent='💥 '+crashTarget.toFixed(2)+'x';mEl.style.color='var(--danger)';}
+    beep(120,0.3,0.08,'sawtooth'); vibrate(80);
+    crashHistory.unshift(+crashTarget.toFixed(2)); if(crashHistory.length>20) crashHistory.pop(); renderCrashHistory();
+    // акула улетает за экран
+    if(sh){sh.style.transition='all .5s ease-in';sh.style.left='110%';sh.style.top='-40px';}
+    setTimeout(function(){if(sh)sh.style.transition='';},520);
+    crashBots.forEach(function(p2){if(p2.status==='live')p2.status='lose';});
+    renderCrashPlayers();
+    if(iJoined&&!S.cashedThisRound){toast('Не успели! Ставка ⭐'+S.cbet+' сгорела на '+crashTarget.toFixed(2)+'x');logOp('💥','Краш: проигрыш','Краш на '+crashTarget.toFixed(2)+'x','−⭐'+S.cbet,'minus');}
+    var st=document.getElementById('crash-status');if(st)st.innerHTML='Улетела на <b>'+crashTarget.toFixed(2)+'x</b>. Новый раунд скоро…';
+    updateCrashBtn();
+    setTimeout(beginWaiting,2600);
+    return;
+  }
+  crashRAF=requestAnimationFrame(crashTick);
+}
+function crashAction(){
+  if(crashPhase==='waiting'){if(iJoined)return;if(S.stars<S.cbet){toast('Недостаточно звёзд — пополните баланс');return;}
+    var chk=document.getElementById('auto-chk'); autoCash=chk?chk.checked:false;
+    var am=parseFloat((document.getElementById('auto-mult')||{}).value||'2'); autoMult=(am&&am>1)?am:2;
+    S.stars-=S.cbet;S.played++;syncBalances();iJoined=true;beep(520,0.06,0.05,'triangle');crashBots.unshift({id:'me',bot:{n:'Вы',a:'🙂'},bet:S.cbet,cashAt:autoCash?autoMult:999,status:'live',taken:0,me:true});renderCrashPlayers();updateCrashBtn();toast(autoCash?('Ставка ⭐'+S.cbet+', авто-вывод на '+autoMult.toFixed(2)+'x'):('Ставка ⭐'+S.cbet+' принята на следующий раунд'));checkAchievements();}
+  else if(crashPhase==='flying'&&iJoined&&!S.cashedThisRound){var win=Math.floor(S.cbet*crashMult);S.stars+=win;S.wonStars+=Math.max(win-S.cbet,0);S.cashedThisRound=true;syncBalances();beep(780,0.12,0.06,'triangle');vibrate(30);var me=crashBots.filter(function(p){return p.me;})[0];if(me){me.status='win';me.taken=win;me.cashAt=crashMult;}renderCrashPlayers();updateCrashBtn();logOp('🚀','Краш: забрал','Множитель '+crashMult.toFixed(2)+'x','+⭐'+win,'star');celebrate({n:44});toast('Забрали ⭐'+win+' на '+crashMult.toFixed(2)+'x!');}}
+function renderCrashPlayers(){
+  var box=document.getElementById('crash-players');if(!box)return;
+  var html='<div class="ph"><span>Игроки в раунде · '+crashBots.length+'</span><span>Ставка · выплата</span></div>';
+  crashBots.forEach(function(p){
+    var cls,mul,pay;
+    if(p.status==='win'){ cls='win'; mul='×'+p.cashAt.toFixed(2); pay='<span class="cpay win">+'+p.taken+'</span>'; }
+    else if(p.status==='lose'){ cls='lose'; mul='💥'; pay='<span class="cpay lose">—</span>'; }
+    else { cls='live'; var cm=(crashPhase==='flying')?crashMult:1; mul='×'+cm.toFixed(2); pay='<span class="cpay">'+Math.floor(p.bet*cm)+'</span>'; }
+    html+='<div class="crow '+cls+'"><div class="cav">'+p.bot.a+'</div>'
+      +'<div class="cinfo"><div class="cnm">'+(p.me?'<b>Вы</b>':p.bot.n)+'</div>'
+      +'<div class="cbet"><i class="star-ic"></i>'+p.bet+' <span class="cmul">'+mul+'</span></div></div>'
+      +'<div class="cpaywrap"><i class="star-ic"></i>'+pay+'</div></div>';
+  });
+  box.innerHTML=html;
+}
+function resetSharkPos(){var sh=document.getElementById('cshark');if(sh){sh.innerHTML=sharkSVG();sh.style.transition='';sh.style.left='18px';sh.style.top='auto';sh.style.bottom='14px';sh.style.transform='scaleX(-1) rotate(-12deg)';}var cv=document.getElementById('crash-canvas');if(cv){var ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);}}
+
+/* ============ МАГАЗИН ============ */
+function renderShop(){var g=document.getElementById('shop-grid');g.innerHTML='';SHOP.forEach(function(it){var el=document.createElement('div');el.className='pill';el.innerHTML='<div class="ic">'+it.emoji+'</div><div class="nm">'+it.name+'</div><div class="px">⭐ '+it.value+'</div>';el.onclick=function(){buyGift(it);};g.appendChild(el);});}
+function buyGift(it){if(S.stars<it.value){toast('Не хватает звёзд на «'+it.name+'»');return;}showSheet('<div class="result-emoji">'+it.emoji+'</div><h3 style="text-align:center">Купить «'+it.name+'»?</h3><p class="muted" style="text-align:center">Спишется ⭐'+it.value+'. Подарок придёт вам в Telegram.</p><button class="btn-primary" id="confirm-gift">Купить за ⭐'+it.value+'</button><button class="btn-ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>');var cg=document.getElementById('confirm-gift');if(cg)cg.onclick=function(){S.stars-=it.value;syncBalances();closeSheet();logOp(it.emoji,'Покупка: '+it.name,'Магазин подарков','−⭐'+it.value,'minus');toast(it.emoji+' «'+it.name+'» куплен!');};}
+
+/* ============ ЛИДЕРЫ ============ */
+function renderLeaders(){var box=document.getElementById('leader-list');box.innerHTML='';LEADERS.forEach(function(l,i){var el=document.createElement('div');el.className='leader';el.innerHTML='<div class="rk">'+(i+1)+'</div><div class="av">'+l.a+'</div><div class="nm">'+l.n+'</div><div class="sc">⭐ '+l.s.toLocaleString('ru')+'</div>';box.appendChild(el);});var you=document.createElement('div');you.className='leader you';you.innerHTML='<div class="rk">100+</div><div class="av">🙂</div><div class="nm">Вы</div><div class="sc">⭐ '+S.stars.toLocaleString('ru')+'</div>';box.appendChild(you);}
+
+/* ============ КОНКУРСЫ ============ */
+var ACTIVE_CONTESTS=[{id:1,prizesN:6,members:4263,timer:"11ч 57м",prizes:[{e:"🦈",v:"1 126"},{e:"🐚",v:"708"},{e:"🪸",v:"530"}]},{id:2,prizesN:9,members:644,timer:"3ч 26м",prizes:[{e:"🌊",v:"1 320"},{e:"🐠",v:"748"},{e:"⚓",v:"474"}]}];
+var HISTORY_CONTESTS=[{id:91,prizesN:6,members:5210,won:false,date:"вчера",prizes:[{e:"💎",v:"2 000"},{e:"🦈",v:"900"},{e:"🐚",v:"500"}]},{id:92,prizesN:3,members:1880,won:true,date:"3 дня назад",prizes:[{e:"🪸",v:"640"},{e:"🐠",v:"320"},{e:"⚓",v:"180"}]}];
+function setContestTab(tab){$all('#contest-seg button').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-ctab')===tab);});var body=document.getElementById('contest-body');body.innerHTML='';if(tab==='active'){ACTIVE_CONTESTS.forEach(function(c){body.appendChild(contestCard(c,'active'));});}else if(tab==='yours'){var joined=ACTIVE_CONTESTS.filter(function(c){return S.joinedContests[c.id];});if(!joined.length){body.innerHTML='<div class="empty">Вы пока не участвуете ни в одном розыгрыше.<br>Зайдите во вкладку «Активные» и нажмите «Участвовать».</div>';}else joined.forEach(function(c){body.appendChild(contestCard(c,'yours'));});}else{HISTORY_CONTESTS.forEach(function(c){body.appendChild(contestCard(c,'history'));});}}
+function contestCard(c,mode){var el=document.createElement('div');el.className='contest';var right=mode==='history'?('<div class="timer" style="background:'+(c.won?'#2fd4c4':'#2a3a4a')+';color:'+(c.won?'#03241f':'#cfeef0')+'">'+(c.won?'Выигрыш':'Завершён')+'</div>'):('<div class="timer">'+c.timer+'</div>');var sub=mode==='history'?(c.date+' · '+c.members.toLocaleString('ru')+' участников'):(c.members.toLocaleString('ru')+' участников');var prizes='<div class="prizes">'+c.prizes.map(function(p){return '<div class="prize"><div class="ic">'+p.e+'</div><div class="v">⭐'+p.v+'</div></div>';}).join('')+'</div>';var btn='';if(mode==='active'){var joined=!!S.joinedContests[c.id];btn='<button class="btn-ghost" style="margin-top:12px" '+(joined?'disabled':'')+' id="cbtn-'+c.id+'">'+(joined?'Вы участвуете ✓':'Участвовать')+'</button>';}else if(mode==='yours'){btn='<div style="margin-top:12px;color:var(--aqua);font-weight:700;text-align:center">Вы участвуете ✓</div>';}el.innerHTML='<div class="ch"><div><b style="font-size:17px">'+c.prizesN+' призов</b><div style="color:var(--muted);font-size:13px">'+sub+'</div></div>'+right+'</div>'+prizes+btn;if(mode==='active'){var b=el.querySelector('#cbtn-'+c.id);if(b&&!S.joinedContests[c.id])b.onclick=function(){S.joinedContests[c.id]=true;logOp('🏆','Участие в розыгрыше',c.prizesN+' призов','','');toast('Вы участвуете в розыгрыше!');setContestTab('active');};}return el;}
+
+/* ============ РЕФЕРАЛЫ ============ */
+function refSet(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
+function renderRefFriends(list){
+  var box=document.getElementById('ref-list');if(!box)return;
+  if(!list||!list.length){box.innerHTML='<div class="empty">Пока никто не присоединился по вашей ссылке. Поделитесь ей с друзьями!</div>';return;}
+  box.innerHTML=list.map(function(f){
+    return '<div class="histrow"><div class="hi">'+(f.av||'🙂')+'</div><div class="hb"><b>'+f.name+'</b><p>присоединился</p></div></div>';
+  }).join('');
+}
+function renderRefs(){ // демо
+  refSet('rf-count',REF_FRIENDS.length+S.refCount);
+  var earned=REF_FRIENDS.reduce(function(a,b){return a+b.earned;},0)+S.refEarned;
+  refSet('rf-earned-uah',money(earned)); refSet('rf-earned-stars','0');
+  refSet('rf-today','0'); refSet('rf-today-cap','50');
+  renderRefFriends(REF_FRIENDS.map(function(f){return {name:f.n,av:f.a};}));
+}
+function copyRef(){var i=document.getElementById('ref-link');try{i.select();document.execCommand('copy');}catch(e){}toast('Ссылка скопирована');}
+function invite(){S.refCount++;S.refEarned+=10;S.money+=10;syncBalances();logOp('👥','Новый реферал','Приглашён друг','+10.00 грн','plus');checkAchievements();toast('Реферал засчитан · +10.00 грн');if(document.getElementById('s-refs').classList.contains('active'))renderRefs();}
+
+/* ============ ИСТОРИЯ ============ */
+function renderHistory(){
+  var box=document.getElementById('history-list');box.innerHTML='';
+  if(!S.history.length){box.innerHTML='<div class="empty">Пока пусто. Выполняйте задания и играйте — здесь появится история.</div>';return;}
+  S.history.forEach(function(h){var el=document.createElement('div');el.className='histrow';var v=h.val?'<div class="hv '+(h.cls||'')+'">'+h.val+'</div>':'';el.innerHTML='<div class="hi">'+h.icon+'</div><div class="hb"><b>'+h.title+'</b><p>'+h.sub+'</p></div>'+v;box.appendChild(el);});
+}
+
+/* ============ ПРОФИЛЬ: ВЫВОД / ПОПОЛНЕНИЕ ============ */
+var wMethod=null;
+function openWithdraw(){if(S.money<100){toast('Минимум для вывода — 100 грн. Заработайте на заданиях.');return;}wMethod=null;showSheet('<h3>Вывод денег</h3><p class="muted">Обрабатывается вручную за 1–3 дня.</p><label>Способ</label><div class="methods" id="wm"><div class="method" data-m="card_ua">Карта · UA (грн)</div><div class="method" data-m="usdt_trc20">USDT · TRC-20</div><div class="method" data-m="usdt_ton">USDT · TON</div><div class="method" data-m="usdt_bep20">USDT · BEP-20</div></div><label>Реквизиты</label><input id="w-req" class="mono" placeholder="Адрес кошелька или номер карты"><label>Сумма в грн (доступно '+money(S.money)+')</label><input id="w-amt" class="mono" inputmode="decimal" placeholder="0.00"><div class="conv-hint" id="conv-hint"></div><button class="btn-primary" style="margin-top:14px" id="do-withdraw">Создать заявку</button>');$all('#wm .method').forEach(function(m){m.onclick=function(){$all('#wm .method').forEach(function(x){x.classList.remove('active');});m.classList.add('active');wMethod=m.getAttribute('data-m');updateConvHint();};});var amt=document.getElementById('w-amt');if(amt)amt.oninput=updateConvHint;var dw=document.getElementById('do-withdraw');if(dw)dw.onclick=doWithdraw;}
+function updateConvHint(){var hint=document.getElementById('conv-hint');if(!hint)return;var amt=parseFloat((document.getElementById('w-amt').value||'').replace(',','.'));if(wMethod&&wMethod.indexOf('usdt')===0&&amt>0){hint.textContent='Получите ≈ '+(amt/USDT_RATE).toFixed(2)+' USDT (курс 1$ = '+USDT_RATE+' грн)';}else{hint.textContent='';}}
+function doWithdraw(){var req=(document.getElementById('w-req').value||'').trim();var amt=parseFloat((document.getElementById('w-amt').value||'').replace(',','.'));if(!wMethod)return toast('Выберите способ');if(!req)return toast('Введите реквизиты');
+  // проверка формата
+  if(wMethod==='card_ua'){ var digits=req.replace(/\s|-/g,''); if(!/^\d{16}$/.test(digits)) return toast('Номер карты — 16 цифр'); }
+  else { if(req.length<20) return toast('Проверьте адрес кошелька (слишком короткий)'); }
+  if(!amt||amt<100)return toast('Минимум 100 грн');if(amt>S.money)return toast('Недостаточно средств');S.money-=amt;S.firstWithdraw=true;syncBalances();closeSheet();var extra=(wMethod.indexOf('usdt')===0)?(' (≈'+(amt/USDT_RATE).toFixed(2)+' USDT)'):'';logOp('💸','Вывод средств',wMethod.replace('_',' ').toUpperCase(),'−'+money(amt)+' грн','minus');checkAchievements();showSheet('<div class="result-emoji">✅</div><h3 style="text-align:center">Спасибо!</h3><p class="muted" style="text-align:center">Заявка на '+money(amt)+' грн'+extra+' принята.<br>Вывод поступит в течение 1–3 дней.</p><button class="btn-primary" onclick="closeSheet()">Ок</button>');}
+function openBuyStars(){showSheet('<h3>Пополнить звёзды</h3><p class="muted">В реальном приложении — оплата звёздами Telegram. Здесь демо-пополнение.</p><div class="grid2" style="margin-top:8px"><div class="pill" data-add="100"><div class="ic">⭐</div><div class="nm">100</div><div class="px">демо</div></div><div class="pill" data-add="500"><div class="ic">⭐</div><div class="nm">500</div><div class="px">демо</div></div><div class="pill" data-add="1000"><div class="ic">⭐</div><div class="nm">1 000</div><div class="px">демо</div></div><div class="pill" data-add="5000"><div class="ic">⭐</div><div class="nm">5 000</div><div class="px">демо</div></div></div>');$all('[data-add]').forEach(function(p){p.onclick=function(){addStars(Number(p.getAttribute('data-add')));};});}
+function addStars(n){S.stars+=n;syncBalances();closeSheet();logOp('⭐','Пополнение звёзд','Покупка','+⭐'+n,'star');toast('+'+n+' ⭐ зачислено');renderLeaders();}
+
+/* ============ МОДАЛКА / TOAST ============ */
+function showSheet(html){document.getElementById('sheet').innerHTML=html;document.getElementById('ov').classList.add('open');}
+function closeSheet(){document.getElementById('ov').classList.remove('open');}
+document.getElementById('ov').onclick=function(e){if(e.target.id==='ov')closeSheet();};
+
+/* ============ ОНБОРДИНГ ============ */
+var onbIndex=0;
+function showOnboarding(force){
+  if(S.onboarded && !force) return;
+  onbIndex=0; document.getElementById('onb').classList.add('open');
+  renderOnbDots(); showOnbSlide();
+}
+function renderOnbDots(){
+  var d=document.getElementById('onb-dots'); d.innerHTML='';
+  for(var i=0;i<4;i++){ var s=document.createElement('div'); s.className='onb-dot'+(i===onbIndex?' active':''); d.appendChild(s); }
+}
+function showOnbSlide(){
+  $all('.onb-slide').forEach(function(s){ s.classList.toggle('active', Number(s.getAttribute('data-onb'))===onbIndex); });
+  renderOnbDots();
+  document.getElementById('onb-btn').textContent = onbIndex>=3 ? 'Начать' : 'Далее';
+}
+function onbNext(){
+  if(onbIndex>=3){ S.onboarded=true; document.getElementById('onb').classList.remove('open'); return; }
+  onbIndex++; showOnbSlide();
+}
+
+/* ============ ДОСТИЖЕНИЯ ============ */
+var ACHIEVEMENTS=[
+  {id:'first_task',ic:'✅',title:'Первое задание',desc:'Выполни любое задание',reward:20,check:function(){return Object.keys(S.doneTasks).length>=1;}},
+  {id:'play10',ic:'🎮',title:'Игрок',desc:'Сыграй 10 раз',reward:50,check:function(){return S.played>=10;}},
+  {id:'win500',ic:'⭐',title:'Звёздный',desc:'Выиграй 500 звёзд суммарно',reward:100,check:function(){return S.wonStars>=500;}},
+  {id:'first_wd',ic:'💸',title:'Первый вывод',desc:'Выведи деньги впервые',reward:30,check:function(){return S.firstWithdraw;}},
+  {id:'ref3',ic:'👥',title:'Промоутер',desc:'Пригласи 3 друзей',reward:80,check:function(){return S.refCount>=3;}},
+  {id:'pro',ic:'🌟',title:'PRO',desc:'Подключи PRO-подписку',reward:60,check:function(){return S.isPro;}}
+];
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(function(a){
+    if(!S.achievements[a.id] && a.check()){
+      S.achievements[a.id]=true; S.stars+=a.reward; syncBalances();
+      logOp('🏅','Достижение: '+a.title,'Награда','+⭐'+a.reward,'star');
+      toast('🏅 Достижение «'+a.title+'» +⭐'+a.reward);
+    }
+  });
+  if(document.getElementById('s-ach').classList.contains('active')) renderAch();
+}
+function renderAch(){
+  var box=document.getElementById('ach-list'); box.innerHTML='';
+  ACHIEVEMENTS.forEach(function(a){
+    var done=!!S.achievements[a.id];
+    var el=document.createElement('div'); el.className='ach '+(done?'unlocked':'locked');
+    el.innerHTML='<div class="ai">'+a.ic+'</div><div class="ab"><b>'+a.title+'</b><p>'+a.desc+'</p></div><div class="areward">'+(done?'✓ +⭐'+a.reward:'+⭐'+a.reward)+'</div>';
+    box.appendChild(el);
+  });
+}
+
+/* ============ НАСТРОЙКИ ============ */
+function setLang(l){ S.lang=l; $all('#lang-pick button').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-lang')===l);}); toast(l==='uk'?'Мову змінено (демо)':'Язык изменён (демо)'); }
+function toggleSound(){ soundOn=!soundOn; S.soundPref=soundOn; document.getElementById('sound-switch').classList.toggle('on',soundOn); if(soundOn) beep(520,0.08,0.05); }
+
+/* ============ PVP · ДЖЕКПОТ-БИТВА ============ */
+var PVP_COLORS=['#0e8d7e','#c0314f','#2747b0','#b5541f','#5a2f7a','#0a5f6b'];
+var pbet=50, pvpSpinning=false;
+function pvpColor(i){ return PVP_COLORS[((i%PVP_COLORS.length)+PVP_COLORS.length)%PVP_COLORS.length]; }
+function setPBet(v){ pbet=v; $all('[data-pbet]').forEach(function(c){c.classList.toggle('active',Number(c.getAttribute('data-pbet'))===v);}); updatePBtn(); }
+function updatePBtn(){ var b=document.getElementById('pvp-btn'); if(b) b.textContent='Присоединиться к битве · ⭐'+pbet; }
+function pickPvpWeighted(players){ var t=0,i; for(i=0;i<players.length;i++)t+=players[i].stake; var r=Math.random()*t; for(i=0;i<players.length;i++){r-=players[i].stake;if(r<=0)return players[i];} return players[0]; }
+function renderPvpArc(players,pot){
+  var ring=document.getElementById('pvp-arc-ring'); if(!ring) return;
+  if(!pot||!players.length){ ring.style.background='conic-gradient(from 270deg,var(--deep2) 0deg 180deg,#06121c 180deg 360deg)'; return; }
+  var a=0, stops=[];
+  players.forEach(function(p,i){ var span=180*(p.stake/pot); stops.push(pvpColor(i)+' '+a.toFixed(2)+'deg '+(a+span).toFixed(2)+'deg'); a+=span; });
+  stops.push('#06121c '+a.toFixed(2)+'deg 360deg');
+  ring.style.background='conic-gradient(from 270deg,'+stops.join(',')+')';
+}
+function renderPvpBank(players,pot){
+  var pv=document.getElementById('pvp-pot'); if(pv) pv.textContent=pot||0;
+  renderPvpArc(players||[], pot||0);
+}
+function setPvpFeed(w,pot){
+  var f=document.getElementById('pvp-feed'); if(!f) return;
+  f.innerHTML='🏆 Последняя битва: <b>'+(w.me?'Вы':w.name)+'</b> '+w.av+' забрал <b>⭐'+pot+'</b>';
+}
+function renderPvpPlayers(players,revealed){
+  var box=document.getElementById('pvp-players'); if(!box) return;
+  var html='<div class="ph"><span>Игроки ('+players.length+')</span><span>Шанс · ставка</span></div>';
+  players.forEach(function(p,i){
+    var win=revealed&&p.winner;
+    html+='<div class="prow"><div class="av" style="background:'+pvpColor(i)+'33">'+p.av+'</div><div class="nm">'+(p.me?'<b style="color:var(--aqua)">Вы</b>':p.name)+(win?' 👑':'')+'</div><div class="bet">⭐'+p.stake+'</div><div class="st '+(win?'win':'live')+'">'+p.pct+'%</div></div>';
+  });
+  box.innerHTML=html;
+}
+function initPvp(){
+  updatePBtn();
+  var pot=document.getElementById('pvp-pot'); if(pot) pot.textContent='0';
+  renderPvpArc([],0);
+  var rd=document.getElementById('pvp-round'); if(rd) rd.textContent='Сделайте ставку, чтобы начать битву';
+  var strip=document.getElementById('pvp-strip'); if(strip){ strip.style.transition='none'; strip.style.transform='translateX(0)'; strip.innerHTML=''; }
+  var pl=document.getElementById('pvp-players'); if(pl) pl.innerHTML='';
+  var fair=document.getElementById('pvp-fair'); if(fair) fair.textContent='';
+}
+/* единая анимация раунда (общая для демо и сервера) */
+function runPvp(round){
+  pvpSpinning=true;
+  var btn=document.getElementById('pvp-btn'); if(btn) btn.disabled=true;
+  var players=round.players, widx=round.winnerIdx;
+  var rd=document.getElementById('pvp-round'); if(rd) rd.textContent='Раунд идёт…';
+  renderPvpBank(players,round.pot);
+  renderPvpPlayers(players,false);
+  var strip=document.getElementById('pvp-strip'); strip.innerHTML='';
+  var cells=[]; for(var i=0;i<50;i++) cells.push(pickPvpWeighted(players));
+  var target=40+Math.floor(Math.random()*5);
+  cells[target]=players[widx];
+  cells.forEach(function(p){
+    var it=document.createElement('div'); it.className='roul-item';
+    it.style.background=pvpColor(players.indexOf(p));
+    it.innerHTML='<span style="font-size:30px">'+p.av+'</span><small>'+p.pct+'%</small>';
+    strip.appendChild(it);
+  });
+  var stage=document.getElementById('pvp-stage'), itemW=100, offset=target*itemW-(stage.clientWidth/2)+(itemW/2);
+  strip.style.transition='none'; strip.style.transform='translateX(0)'; void strip.offsetWidth;
+  strip.style.transition='transform 3.6s cubic-bezier(.12,.7,.12,1)'; strip.style.transform='translateX(-'+offset+'px)';
+  beep(440,0.05,0.04,'square');
+  var clk=setInterval(function(){beep(900,0.015,0.015,'square');},90);
+  setTimeout(function(){clearInterval(clk);},3500);
+  setTimeout(function(){
+    pvpSpinning=false; if(btn) btn.disabled=false;
+    var w=players[widx];
+    renderPvpPlayers(players,true);
+    if(rd) rd.textContent='Победитель: '+(w.me?'Вы':w.name)+' '+w.av;
+    var fair=document.getElementById('pvp-fair');
+    if(fair) fair.textContent='🔒 provably-fair · hash: '+String(round.seedHash).slice(0,16)+'… · seed: '+String(round.seed).slice(0,12)+'…';
+    setPvpFeed(w, round.pot);
+    if(round.user){ applyUser(round.user); }                 // серверный баланс (уже с выплатой)
+    else if(round.local && round.iWon){ S.stars+=round.payout; syncBalances(); }  // демо-начисление
+    if(round.iWon){
+      beep(660,0.12,0.06,'triangle'); vibrate([20,40,30]); celebrate({n:70});
+      logOp('🏆','PVP: победа','Банк ⭐'+round.pot,'+⭐'+round.payout,'star');
+      showSheet('<div class="result-emoji">🏆</div><h3 style="text-align:center">Победа! +⭐'+round.payout+'</h3><p class="muted" style="text-align:center">Вы забрали банк ⭐'+round.pot+' (−'+Math.round((round.rake||0.05)*100)+'% комиссия). Ваш шанс был '+w.pct+'%.</p><button class="btn-primary" onclick="closeSheet()">Забрать</button>');
+    } else if(round.iJoined){
+      beep(120,0.3,0.08,'sawtooth'); vibrate(60);
+      logOp('💀','PVP: проигрыш','Победил '+w.name,'−⭐'+(round.myStake||pbet),'minus');
+      showSheet('<div class="result-emoji">💀</div><h3 style="text-align:center">Победил '+w.name+' '+w.av+'</h3><p class="muted" style="text-align:center">Банк ⭐'+round.pot+' ушёл сопернику. Ваша ставка сгорела. Повезёт в следующий раз!</p><button class="btn-primary" onclick="closeSheet()">Ещё раз</button>');
+    } else {
+      toast('🏆 Победил '+w.name+' · банк ⭐'+round.pot);
+    }
+  },3700);
+}
+/* демо-версия (вне Telegram): весь расчёт локально */
+function pvpJoin(){
+  if(pvpSpinning) return;
+  if(S.stars<pbet){ toast('Недостаточно звёзд — пополните баланс'); return; }
+  S.stars-=pbet; S.played++; syncBalances();
+  var players=[{name:'Вы',av:'🙂',stake:pbet,me:true}];
+  var n=2+Math.floor(Math.random()*3);
+  for(var i=0;i<n;i++){ var b=randBot(); players.push({name:b.n,av:b.a,stake:[50,100,250][rint(0,2)]*(Math.random()<0.15?4:1),me:false}); }
+  var pot=players.reduce(function(a,p){return a+p.stake;},0);
+  var roll=Math.random(),acc=0,widx=players.length-1;
+  for(var j=0;j<players.length;j++){ acc+=players[j].stake/pot; if(roll<=acc){widx=j;break;} }
+  players.forEach(function(p,k){ p.pct=Math.round(p.stake/pot*1000)/10; p.winner=(k===widx); });
+  var iWon=players[widx].me, payout=iWon?Math.floor(pot*0.95):0;
+  runPvp({players:players,pot:pot,winnerIdx:widx,iWon:iWon,iJoined:true,myStake:pbet,payout:payout,rake:0.05,seedHash:'demo-mode',seed:'demo',local:true});
+}
+window.setPBet=setPBet; window.pvpJoin=pvpJoin;
+
+/* перехват go для рендера новых экранов */
+var _go=go;
+go=function(name){
+  _go(name);
+  if(name==='ach') renderAch();
+  if(name==='pvp'){ if(!pvpSpinning) initPvp(); }
+};
+window.go=go;
+
+
+function init(){
+  var hs=document.getElementById('hero-shark'); if(hs) hs.innerHTML=sharkSVG();
+  buildStrip();renderShop();renderLeaders();setContestTab('active');
+  renderStreak();renderPush();renderProfile();
+  syncBalances();setBet(50);setCBet(50);setPBet(50);
+  showOnboarding(false);    // показать обучение при первом запуске
+}
+init();
+
+window.go=go;window.spin=spin;window.setBet=setBet;window.crashAction=crashAction;window.setCBet=setCBet;
+window.openWithdraw=openWithdraw;window.openBuyStars=openBuyStars;window.invite=invite;window.closeSheet=closeSheet;
+window.toast=toast;window.setContestTab=setContestTab;window.copyRef=copyRef;
+window.setGameTab=setGameTab;
+window.onbNext=onbNext;window.showOnboarding=showOnboarding;window.setLang=setLang;window.toggleSound=toggleSound;
+
+/* ============================================================
+   СЕРВЕРНЫЙ СЛОЙ — связь с бэкендом (/api/shark).
+   Если приложение открыто ВНЕ Telegram (нет initData) или бэкенд не
+   настроен — SERVER остаётся false, и всё работает как локальное демо.
+   ============================================================ */
+/* Имя бота для реф-ссылок — замените на username вашего бота (без @). */
+var BOT_USERNAME='Shark_game_app_bot';
+var API_URL='/api/shark';
+var TGAPP=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
+var INIT=TGAPP?(TGAPP.initData||''):'';
+var SERVER=false, ME={}, CFG={usdt_rate:USDT_RATE,min_withdraw:100}, REF={count:0,earned:0}, REFLINK='', PACKS={};
+
+async function api(action,params){
+  var r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(Object.assign({action:action,initData:INIT},params||{}))});
+  return await r.json();
+}
+function applyUser(u){
+  if(!u) return;
+  S.money=u.money; S.stars=u.stars; S.played=u.played; S.wonStars=u.wonStars;
+  syncBalances(); renderProfile(); renderLeaders();
+}
+function setRefLink(){ var i=document.getElementById('ref-link'); if(i&&REFLINK) i.value=REFLINK; }
+function wdErr(reason){
+  var m={below_min:'Сумма меньше минимальной',no_money:'Недостаточно средств',bad_card:'Номер карты — 16 цифр',
+    bad_wallet:'Проверьте адрес кошелька',bad_method:'Выберите способ',no_requisites:'Введите реквизиты'};
+  return m[reason]||'Не удалось создать заявку';
+}
+async function refreshState(){
+  if(!SERVER) return;
+  try{
+    var st=await api('state');
+    if(st&&st.ok){ ME=st.user; REF=st.referrals||REF; applyUser(st.user); }
+  }catch(e){}
+}
+async function loadHistory(){
+  var box=document.getElementById('history-list'); skeletonRows(box,6);
+  var r=await api('history');
+  if(!r||!r.ok){ if(box) box.innerHTML='<div class="empty">Не удалось загрузить историю.</div>'; return; }
+  S.history=(r.history||[]).map(function(h){return {icon:h.icon,title:h.title,sub:h.sub,val:h.val,cls:h.cls,t:h.t};});
+  renderHistory();
+}
+
+/* ---- сохраняем оригиналы (демо) и переопределяем на серверные версии ---- */
+var _spin=spin, _crashAction=crashAction,
+    _buyGift=buyGift, _doWithdraw=doWithdraw, _invite=invite, _renderRefs=renderRefs,
+    _openBuyStars=openBuyStars, _openWithdraw=openWithdraw, _checkAchievements=checkAchievements,
+    _pvpJoin=pvpJoin;
+
+spin=async function(){
+  if(!SERVER) return _spin();
+  if(spinning) return;
+  if(S.stars<S.bet){ toast('Недостаточно звёзд — пополните баланс'); return; }
+  spinning=true; var btn=document.getElementById('spin-btn'); btn.disabled=true;
+  var r=await api('game_bet',{game:'roulette',bet:S.bet});
+  if(!r.ok){ spinning=false; btn.disabled=false; toast(r.reason==='no_stars'?'Недостаточно звёзд':'Ошибка ставки'); return; }
+  applyUser(r.user);
+  buildStrip();
+  var target=30+Math.floor(Math.random()*8);
+  var srv=ROUL_PRIZES[r.prizeIndex]||ROUL_PRIZES[0];
+  stripPrizes[target]=srv;
+  var strip=document.getElementById('strip'), items=strip.children;
+  if(items[target]){ items[target].style.background=srv.color||'#0a5f6b'; items[target].innerHTML=srv.emoji+'<small>⭐'+srv.value+'</small>'; }
+  var stage=$('.roul-stage'), itemW=100, offset=target*itemW-(stage.clientWidth/2)+(itemW/2);
+  strip.style.transition='none'; strip.style.transform='translateX(0px)'; void strip.offsetWidth;
+  strip.style.transition='transform 3.2s cubic-bezier(.12,.7,.12,1)'; strip.style.transform='translateX(-'+offset+'px)';
+  beep(440,0.05,0.04,'square');
+  var clk=setInterval(function(){beep(900,0.015,0.015,'square');},90);
+  setTimeout(function(){clearInterval(clk);},3100);
+  setTimeout(function(){
+    spinning=false; btn.disabled=false; var p=r.prize;
+    beep(660,0.12,0.06,'triangle'); vibrate(25);
+    pushMyRoulRow({emoji:p.emoji,name:p.name,value:p.value});
+    if(p.value>S.bet) celebrate({n:40});
+    showSheet('<div class="result-emoji">'+p.emoji+'</div><h3 style="text-align:center">Вы выиграли ⭐'+p.value+'!</h3><p class="muted" style="text-align:center">«'+p.name+'» (ставка ⭐'+S.bet+', множитель x'+p.betMult+'). Добавлено на игровой баланс.</p><button class="btn-primary" onclick="closeSheet()">Забрать</button>');
+  },3300);
+};
+
+crashAction=async function(){
+  if(!SERVER) return _crashAction();
+  if(crashPhase==='waiting'){
+    if(iJoined) return;
+    if(S.stars<S.cbet){ toast('Недостаточно звёзд — пополните баланс'); return; }
+    var chk=document.getElementById('auto-chk'); autoCash=chk?chk.checked:false;
+    var am=parseFloat((document.getElementById('auto-mult')||{}).value||'2'); autoMult=(am&&am>1)?am:2;
+    var r=await api('crash_bet',{bet:S.cbet,autoMult:autoCash?autoMult:null});
+    if(!r.ok){ toast(r.reason==='no_stars'?'Недостаточно звёзд':'Ошибка ставки'); return; }
+    window._crashRound=r.roundId; applyUser(r.user); iJoined=true;
+    beep(520,0.06,0.05,'triangle');
+    crashBots.unshift({id:'me',bot:{n:'Вы',a:'🙂'},bet:S.cbet,cashAt:autoCash?autoMult:999,status:'live',taken:0,me:true});
+    renderCrashPlayers(); updateCrashBtn();
+    toast(autoCash?('Ставка ⭐'+S.cbet+', авто-вывод на '+autoMult.toFixed(2)+'x'):('Ставка ⭐'+S.cbet+' принята на следующий раунд'));
+  } else if(crashPhase==='flying' && iJoined && !S.cashedThisRound){
+    S.cashedThisRound=true;               // синхронно — защита от повторного клика/авто
+    var r=await api('crash_cashout',{roundId:window._crashRound});
+    if(!r.ok){ S.cashedThisRound=false; toast('Ошибка вывода'); return; }
+    var me=crashBots.filter(function(p){return p.me;})[0];
+    if(r.busted){
+      applyUser(r.user);
+      if(me){ me.status='lose'; }
+      renderCrashPlayers(); updateCrashBtn();
+      toast('Не успели! Ставка ⭐'+S.cbet+' сгорела на '+Number(r.crashPoint).toFixed(2)+'x');
+    } else {
+      applyUser(r.user);
+      beep(780,0.12,0.06,'triangle'); vibrate(30);
+      if(me){ me.status='win'; me.taken=r.win; me.cashAt=r.mult; }
+      renderCrashPlayers(); updateCrashBtn();
+      celebrate({n:44}); toast('Забрали ⭐'+r.win+' на '+Number(r.mult).toFixed(2)+'x!');
+    }
+  }
+};
+
+/* PVP: общий раунд с таймером. Клиент опрашивает pvp_state, показывает живой
+   банк/участников/отсчёт и анимирует розыгрыш, когда раунд завершается. */
+var pvpPollTimer=null, pvpAnimatedRound=0;
+function renderPvpLive(st){
+  if(pvpSpinning) return;
+  var players=st.players||[];
+  renderPvpBank(players, st.pot||0);
+  renderPvpPlayers(players, false);
+  var rd=document.getElementById('pvp-round'), btn=document.getElementById('pvp-btn');
+  if(st.status==='waiting'){
+    if(rd) rd.textContent=players.length?'Ждём игроков…':'Сделайте ставку, чтобы начать битву';
+    if(btn){ btn.disabled=false; btn.textContent='Присоединиться к битве · ⭐'+pbet; }
+  } else if(st.status==='countdown'){
+    if(rd) rd.textContent='До розыгрыша: '+st.secondsLeft+' с';
+    if(btn){ if(st.iJoined){ btn.disabled=true; btn.textContent='Вы в игре · ждём розыгрыша'; } else { btn.disabled=false; btn.textContent='Присоединиться к битве · ⭐'+pbet; } }
+  } else if(st.status==='resolving'){
+    if(rd) rd.textContent='Розыгрыш…'; if(btn) btn.disabled=true;
+  }
+  var fair=document.getElementById('pvp-fair'); if(fair&&st.seedHash) fair.textContent='🔒 provably-fair · hash: '+String(st.seedHash).slice(0,16)+'…';
+}
+async function pvpTick(){
+  if(!SERVER || pvpSpinning) return;
+  var resp; try{ resp=await api('pvp_state'); }catch(e){ return; }
+  if(!resp||!resp.ok||!resp.round) return;
+  var st=resp.round;
+  if(st.status==='done' && st.id!==pvpAnimatedRound){
+    pvpAnimatedRound=st.id;
+    var players=st.players||[];
+    if(players.length && st.winnerIdx>=0){
+      // баланс применит сама runPvp в конце анимации (без спойлера выигрыша)
+      runPvp({players:players,pot:st.pot,winnerIdx:st.winnerIdx,iWon:st.iWon,iJoined:st.iJoined,
+        payout:st.myPayout,rake:st.rake,seedHash:st.seedHash,seed:st.seed,user:resp.user});
+    } else if(resp.user){ applyUser(resp.user); }
+    return;
+  }
+  if(resp.user) applyUser(resp.user);
+  renderPvpLive(st);
+}
+function startPvpPoll(){ if(!SERVER) return; stopPvpPoll(); if(!pvpSpinning) skeletonRows(document.getElementById('pvp-players'),3); pvpTick(); pvpPollTimer=setInterval(pvpTick,1500); }
+function stopPvpPoll(){ if(pvpPollTimer){ clearInterval(pvpPollTimer); pvpPollTimer=null; } }
+
+pvpJoin=async function(){
+  if(!SERVER) return _pvpJoin();
+  if(pvpSpinning) return;
+  if(S.stars<pbet){ toast('Недостаточно звёзд — пополните баланс'); return; }
+  var btn=document.getElementById('pvp-btn'); if(btn) btn.disabled=true;
+  var r=await api('pvp_join',{bet:pbet});
+  if(!r.ok){
+    if(r.reason==='already_joined'){ toast('Вы уже в этом раунде'); if(r.round) renderPvpLive(r.round); }
+    else { toast(r.reason==='no_stars'?'Недостаточно звёзд':(r.reason==='round_closed'?'Раунд закрывается — подождите следующий':'Ошибка ставки')); if(btn) btn.disabled=false; }
+    return;
+  }
+  if(r.user) applyUser(r.user);
+  if(r.round) renderPvpLive(r.round);
+  toast('Ставка ⭐'+pbet+' в банке! Ждём розыгрыша.');
+};
+
+buyGift=function(it){
+  if(!SERVER) return _buyGift(it);
+  if(S.stars<it.value){ toast('Не хватает звёзд на «'+it.name+'»'); return; }
+  showSheet('<div class="result-emoji">'+it.emoji+'</div><h3 style="text-align:center">Купить «'+it.name+'»?</h3><p class="muted" style="text-align:center">Спишется ⭐'+it.value+'. Заявка уйдёт админу — подарок придёт вам в Telegram.</p><button class="btn-primary" id="confirm-gift">Купить за ⭐'+it.value+'</button><button class="btn-ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>');
+  var cg=document.getElementById('confirm-gift'); if(cg) cg.onclick=async function(){
+    cg.disabled=true;
+    var r=await api('buy_gift',{name:it.name});
+    if(!r.ok){ toast(r.reason==='no_stars'?'Не хватает звёзд':'Ошибка'); closeSheet(); return; }
+    applyUser(r.user); closeSheet(); toast(it.emoji+' «'+it.name+'» куплен! Подарок пришлём в Telegram.');
+  };
+};
+
+openWithdraw=function(){
+  if(SERVER && S.money<CFG.min_withdraw){ toast('Минимум для вывода — '+CFG.min_withdraw+' грн.'); return; }
+  return _openWithdraw();
+};
+doWithdraw=async function(){
+  if(!SERVER) return _doWithdraw();
+  var req=(document.getElementById('w-req').value||'').trim();
+  var amt=parseFloat((document.getElementById('w-amt').value||'').replace(',','.'));
+  if(!wMethod) return toast('Выберите способ');
+  if(!req) return toast('Введите реквизиты');
+  if(wMethod==='card_ua'){ var digits=req.replace(/\s|-/g,''); if(!/^\d{16}$/.test(digits)) return toast('Номер карты — 16 цифр'); }
+  else { if(req.length<20) return toast('Проверьте адрес кошелька (слишком короткий)'); }
+  if(!amt||amt<CFG.min_withdraw) return toast('Минимум '+CFG.min_withdraw+' грн');
+  if(amt>S.money) return toast('Недостаточно средств');
+  var r=await api('withdraw_create',{method:wMethod,requisites:req,amount:amt});
+  if(!r.ok){ toast(wdErr(r.reason)); return; }
+  applyUser(r.user); closeSheet();
+  var extra=r.usdt?(' (≈'+Number(r.usdt).toFixed(2)+' USDT)'):'';
+  showSheet('<div class="result-emoji">✅</div><h3 style="text-align:center">Заявка принята!</h3><p class="muted" style="text-align:center">Вывод '+money(r.amount)+' грн'+extra+' отправлен на ручную проверку. Деньги придут в течение 1–3 дней. При отклонении сумма вернётся на баланс.</p><button class="btn-primary" onclick="closeSheet()">Ок</button>');
+};
+
+invite=function(){
+  if(!SERVER) return _invite();
+  var link=REFLINK;
+  if(TGAPP && link && TGAPP.openTelegramLink){
+    TGAPP.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(link)+'&text='+encodeURIComponent('Заходи в Shark — играй на звёзды и выигрывай подарки!'));
+  } else copyRef();
+};
+renderRefs=function(){
+  if(!SERVER) return _renderRefs();
+  refSet('rf-count',REF.count||0);
+  refSet('rf-earned-uah',money(REF.earnedUah||0));
+  refSet('rf-earned-stars',REF.earnedStars||0);
+  refSet('rf-today',REF.todayStars||0);
+  refSet('rf-today-cap',REF.capStars||50);
+  refSet('ref-share',(REF.sharePct||10)+'%');
+  refSet('ref-per',REF.perFriend||5);
+  refSet('ref-cap',REF.capStars||50);
+  refSet('ref-bonus',REF.bonusUah||10);
+  renderRefFriends(REF.friends||[]);
+  setRefLink();
+};
+openBuyStars=function(){
+  if(!SERVER) return _openBuyStars();
+  var keys=Object.keys(PACKS);
+  if(!keys.length){ showSheet('<h3>Пополнить звёзды</h3><p class="muted">Пополнение временно недоступно. Попробуйте позже.</p><button class="btn-primary" onclick="closeSheet()">Ок</button>'); return; }
+  var html='<h3>Пополнить звёзды</h3><p class="muted">Оплата звёздами Telegram — зачисление автоматически.</p><div class="grid2" style="margin-top:10px">';
+  keys.forEach(function(k){ var p=PACKS[k];
+    html+='<div class="pill" data-pack="'+k+'"><div class="ic">⭐</div><div class="nm">'+p.stars+'</div><div class="px">'+p.price+' ★ Telegram</div></div>'; });
+  html+='</div>';
+  showSheet(html);
+  $all('[data-pack]').forEach(function(el){ el.onclick=function(){ buyStars(el.getAttribute('data-pack')); }; });
+};
+async function buyStars(pack){
+  var r=await api('create_stars_invoice',{pack:pack});
+  if(!r||!r.ok){ toast('Не удалось создать счёт'); return; }
+  if(TGAPP && TGAPP.openInvoice){
+    TGAPP.openInvoice(r.link, function(status){
+      if(status==='paid'){ closeSheet(); toast('Оплата прошла! Зачисляем звёзды…'); setTimeout(refreshState,1600); }
+      else if(status==='failed'){ toast('Оплата не удалась'); }
+    });
+  } else { toast('Откройте приложение в Telegram для оплаты'); }
+}
+window.buyStars=buyStars;
+/* достижения и квесты пока не заведены на сервер — в серверном режиме не
+   начисляем звёзды локально, чтобы не расходиться с балансом на бэкенде */
+checkAchievements=function(){ if(SERVER) return; return _checkAchievements(); };
+
+/* обёртка навигации: подгружаем серверные данные при открытии экранов */
+var __goServer=go;
+go=function(name){
+  __goServer(name);
+  if(!SERVER) return;
+  if(name==='pvp') startPvpPoll(); else stopPvpPoll();
+  if(name==='history') loadHistory();
+  else if(name==='refs') renderRefs();
+  else if(name==='home'||name==='profile') refreshState();
+};
+
+/* экспорт переопределённых функций (inline-onclick берут их из window) */
+window.spin=spin;
+window.crashAction=crashAction; window.openWithdraw=openWithdraw; window.invite=invite;
+window.openBuyStars=openBuyStars; window.pvpJoin=pvpJoin; window.go=go;
+
+/* ---- старт: аутентификация в Telegram и загрузка состояния ---- */
+async function boot(){
+  if(TGAPP){ try{ TGAPP.ready(); TGAPP.expand(); }catch(e){} }
+  if(!INIT) return;                     // вне Telegram — остаёмся в демо-режиме
+  try{
+    var st=await api('state');
+    if(!st||!st.ok){ return; }          // бэкенд не настроен/ошибка — демо-режим
+    SERVER=true; ME=st.user; CFG=st.config||CFG; REF=st.referrals||REF;
+    if(st.catalog&&st.catalog.packs) PACKS=st.catalog.packs;
+    USDT_RATE=CFG.usdt_rate||USDT_RATE;
+    if(st.refLink) REFLINK='https://t.me/'+BOT_USERNAME+st.refLink;
+    if(ME.first_name){ var pn=document.getElementById('prof-name'); if(pn) pn.textContent=ME.first_name; var hn=document.getElementById('hero-name'); if(hn) hn.textContent=ME.first_name; }
+    applyUser(st.user); renderPush(); setRefLink();
+  }catch(e){}
+}
+boot();
+
+/* ============================================================
+   ✦ ABYSSAL GLASS — премиальные микро-взаимодействия (Фаза 1)
+   ============================================================ */
+function prefersReduced(){ try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } }
+
+/* праздничный всплеск частиц при выигрыше (№19) */
+function celebrate(opts){
+  if(prefersReduced()) return;
+  opts=opts||{};
+  var cv=document.createElement('canvas'); cv.className='confetti-cv';
+  document.body.appendChild(cv);
+  var ctx=cv.getContext('2d'), dpr=Math.min(window.devicePixelRatio||1,2), w=window.innerWidth, h=window.innerHeight;
+  cv.width=w*dpr; cv.height=h*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  var cx=w/2, cy=opts.y||h*0.40, cols=['#38e5d4','#ffcf5c','#daf2f5','#3ee0a3','#9a7cff'];
+  var N=opts.n||48, ps=[];
+  for(var i=0;i<N;i++){ var a=Math.random()*6.2832, sp=2+Math.random()*7.5;
+    ps.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-4.5-Math.random()*3,
+      r:3+Math.random()*5,c:cols[i%cols.length],rot:Math.random()*6.28,vr:(Math.random()-.5)*.34,
+      bubble:Math.random()<.45,life:0,max:56+Math.random()*30}); }
+  var t0=null;
+  function fr(ts){ if(t0===null)t0=ts;
+    ctx.clearRect(0,0,w,h); var alive=false;
+    for(var i=0;i<ps.length;i++){ var p=ps[i]; if(p.life>p.max) continue; alive=true;
+      p.life++; p.vy+=0.17; p.vx*=0.99; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+      ctx.globalAlpha=Math.max(0,1-p.life/p.max); ctx.fillStyle=p.c;
+      if(p.bubble){ ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.2832); ctx.fill(); }
+      else { ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillRect(-p.r,-p.r*0.55,p.r*2,p.r*1.1); ctx.restore(); }
+    }
+    ctx.globalAlpha=1;
+    if(alive) requestAnimationFrame(fr); else if(cv.parentNode) cv.parentNode.removeChild(cv);
+  }
+  requestAnimationFrame(fr);
+}
+window.celebrate=celebrate;
+
+/* шиммер-скелетон строк (№16) */
+function skeletonRows(box,n){ if(!box) return; var h=''; for(var i=0;i<(n||5);i++) h+='<div class="skel skel-row"></div>'; box.innerHTML=h; }
+window.skeletonRows=skeletonRows;
+
+/* плавный tween числа */
+function tweenNum(from,to,dur,step){
+  if(prefersReduced()||from===to){ step(to); return; }
+  var t0=null;
+  function fr(ts){ if(t0===null)t0=ts; var p=Math.min((ts-t0)/dur,1); var e=1-Math.pow(1-p,3); step(from+(to-from)*e); if(p<1) requestAnimationFrame(fr); }
+  requestAnimationFrame(fr);
+}
+function setNumEls(sel,val,isMoney){
+  $all(sel).forEach(function(el){
+    var cur=parseFloat(el.getAttribute('data-cur'));
+    if(isNaN(cur)) cur=0;
+    if(cur===val){ el.textContent=isMoney?money(val):val; return; }
+    el.setAttribute('data-cur',val);
+    tweenNum(cur,val,600,function(v){ el.textContent=isMoney?money(v):Math.round(v); });
+    if(Math.abs(val-cur)>=(isMoney?0.001:1)){ el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  });
+}
+/* переопределяем syncBalances на живые (count-up) числа */
+syncBalances=function(){
+  setNumEls('[data-money]', Number(S.money), true);
+  setNumEls('[data-stars]', Number(S.stars), false);
+  var mb=$('[data-money-big]'); if(mb) mb.innerHTML=money(S.money)+' <span style="font-size:20px;color:var(--aqua)">грн</span>';
+  var mu=$('[data-money-usdt]'); if(mu) mu.textContent='≈ '+usdt(S.money)+' USDT';
+  var sb=$('[data-stars-big]'); if(sb) sb.innerHTML=S.stars+' <span style="font-size:20px;color:var(--gold)">⭐</span>';
+};
+syncBalances();
+
+/* ripple при тапе на интерактивных элементах */
+(function(){
+  var SEL='.btn-primary,.btn-ghost,.card,.pvp-feat,.chip,.tab,.wallet,.pill,.method,.pf-cta,.btn-mini,.btn-act';
+  document.addEventListener('pointerdown',function(e){
+    if(prefersReduced()) return;
+    var t=e.target.closest(SEL); if(!t) return;
+    var r=t.getBoundingClientRect(); var d=Math.max(r.width,r.height)*1.6;
+    var s=document.createElement('span'); s.className='ripple';
+    s.style.width=s.style.height=d+'px'; s.style.left=(e.clientX-r.left)+'px'; s.style.top=(e.clientY-r.top)+'px';
+    var pos=getComputedStyle(t).position; if(pos==='static'){ t.style.position='relative'; }
+    t.classList.add('rippling'); t.appendChild(s);
+    setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); },560);
+  },{passive:true});
+})();
+
+/* живой счётчик «онлайн» (косметика, как live-лента ботов) */
+(function(){
+  var online=920+Math.floor(Math.random()*680), inGame=28+Math.floor(Math.random()*54);
+  function fmt(n){ return n.toLocaleString('ru'); }
+  function paint(){
+    var o=document.getElementById('online'); if(o){ var oc=parseInt(o.getAttribute('data-cur')||'0',10)||online; o.setAttribute('data-cur',online); tweenNum(oc,online,700,function(v){o.textContent=fmt(Math.round(v));}); }
+    var g=document.getElementById('pvp-online'); if(g){ g.textContent=fmt(inGame); }
+  }
+  paint();
+  setInterval(function(){
+    online=Math.max(650,online+(Math.floor(Math.random()*46)-22));
+    inGame=Math.max(6,Math.min(140,inGame+(Math.floor(Math.random()*9)-4)));
+    paint();
+  },2600);
+})();
+
+/* живой фон: поднимающиеся пузырьки (лёгкий canvas) */
+(function(){
+  var cv=document.getElementById('bubbles'); if(!cv||prefersReduced()) return;
+  var ctx=cv.getContext('2d'), dpr=Math.min(window.devicePixelRatio||1,2), W=0,H=0, bs=[], raf=null, vis=true;
+  function resize(){ W=cv.clientWidth=window.innerWidth; H=cv.clientHeight=window.innerHeight; cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
+  function mk(y){ var r=2+Math.random()*7; return {x:Math.random()*W, y:y===undefined?H+Math.random()*H:y, r:r, sp:6+Math.random()*16+r, drift:(Math.random()-.5)*10, ph:Math.random()*6.28, a:.05+Math.random()*.18}; }
+  function init(){ resize(); bs=[]; var n=Math.round(Math.min(34, W/16)); for(var i=0;i<n;i++) bs.push(mk(Math.random()*H)); }
+  var last=null;
+  function frame(ts){
+    if(!vis){ raf=null; return; }
+    if(last===null) last=ts; var dt=Math.min((ts-last)/1000,.05); last=ts;
+    ctx.clearRect(0,0,W,H);
+    for(var i=0;i<bs.length;i++){ var b=bs[i];
+      b.y-=b.sp*dt; b.ph+=dt*1.4; var x=b.x+Math.sin(b.ph)*b.drift;
+      if(b.y+b.r<0){ bs[i]=mk(H+10); continue; }
+      var g=ctx.createRadialGradient(x-b.r*0.3,b.y-b.r*0.3,b.r*0.2,x,b.y,b.r);
+      g.addColorStop(0,'rgba(180,245,240,'+(b.a*1.1)+')'); g.addColorStop(1,'rgba(56,229,212,0)');
+      ctx.beginPath(); ctx.fillStyle=g; ctx.arc(x,b.y,b.r,0,6.2832); ctx.fill();
+      ctx.beginPath(); ctx.strokeStyle='rgba(200,250,245,'+(b.a*0.5)+')'; ctx.lineWidth=1; ctx.arc(x,b.y,b.r,0,6.2832); ctx.stroke();
+    }
+    raf=requestAnimationFrame(frame);
+  }
+  function start(){ if(!raf){ last=null; raf=requestAnimationFrame(frame); } }
+  window.addEventListener('resize',function(){ resize(); },{passive:true});
+  document.addEventListener('visibilitychange',function(){ vis=!document.hidden; if(vis) start(); });
+  init(); start();
+})();
+
+/* tilt-параллакс по наклону устройства (iOS: доступ по первому тапу) */
+(function(){
+  if(prefersReduced()) return;
+  var root=document.documentElement, tx=0,ty=0,cx=0,cy=0,raf=null;
+  function loop(){
+    cx+=(tx-cx)*0.12; cy+=(ty-cy)*0.12;
+    root.style.setProperty('--tiltx',cx.toFixed(2)); root.style.setProperty('--tilty',cy.toFixed(2));
+    if(Math.abs(tx-cx)>0.04||Math.abs(ty-cy)>0.04) raf=requestAnimationFrame(loop); else raf=null;
+  }
+  function kick(){ if(!raf) raf=requestAnimationFrame(loop); }
+  function onOrient(e){
+    if(e.gamma==null&&e.beta==null) return;
+    var g=Math.max(-28,Math.min(28,e.gamma||0));           // лево-право
+    var b=Math.max(-28,Math.min(28,(e.beta||0)-42));        // наклон вперёд/назад (центр ~42°)
+    tx=g/28*6; ty=b/28*6; kick();
+  }
+  function attach(){ window.addEventListener('deviceorientation',onOrient,true); }
+  var DOE=window.DeviceOrientationEvent;
+  if(DOE && typeof DOE.requestPermission==='function'){
+    var ask=function(){ DOE.requestPermission().then(function(s){ if(s==='granted') attach(); }).catch(function(){}); };
+    document.addEventListener('pointerdown',ask,{once:true});
+  } else if(DOE){ attach(); }
+})();
+</script>
+</body>
+</html>
