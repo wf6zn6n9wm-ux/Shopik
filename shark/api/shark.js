@@ -10,7 +10,8 @@
 //
 // Запрос: POST { action, initData, ...params }
 // Действия: state | game_bet | pvp_state | pvp_join | crash_bet |
-//           crash_cashout | buy_gift | create_stars_invoice | withdraw_create |
+//           crash_cashout | buy_gift | create_stars_invoice |
+//           create_cryptobot_invoice | cryptobot_check | withdraw_create |
 //           history
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
@@ -57,6 +58,15 @@ const STAR_PACKS = {
   s1150: { stars: 1150, price: 1000, title: '1150 звёзд · +15%' },
   s6000: { stars: 6000, price: 5000, title: '6000 звёзд · +20%' }
 };
+
+// Те же тиры звёзд, но оплата через @CryptoBot (USDT). usd — сумма в USDT.
+const CRYPTOBOT_PACKS = {
+  cb100:  { stars: 100,  usd: 1,  title: '100 звёзд' },
+  cb550:  { stars: 550,  usd: 5,  title: '550 звёзд · +10%' },
+  cb1150: { stars: 1150, usd: 10, title: '1150 звёзд · +15%' },
+  cb6000: { stars: 6000, usd: 50, title: '6000 звёзд · +20%' }
+};
+const CRYPTOBOT_API = 'https://pay.crypt.bot/api/';
 
 // PVP-джекпот: комиссия «дома» (house edge) с банка при выплате победителю.
 // Ожидание для игрока = ставка * (1 - PVP_RAKE) — как честная лотерея с рейком.
@@ -267,7 +277,7 @@ module.exports = async (req, res) => {
           todayStars, capStars: CFG.ref_stars_daily_cap, perFriend: CFG.ref_stars_per_friend,
           sharePct: Math.round(CFG.referral_share * 100), bonusUah: CFG.referral_bonus, friends
         },
-        catalog: { roulette: ROUL_PRIZES, shop: SHOP, bets: BET_OPTIONS, methods: WITHDRAW_METHODS, packs: STAR_PACKS },
+        catalog: { roulette: ROUL_PRIZES, shop: SHOP, bets: BET_OPTIONS, methods: WITHDRAW_METHODS, packs: STAR_PACKS, cryptoPacks: CRYPTOBOT_PACKS },
         refLink: botLink(BOT, user.ref_code)
       });
       return;
@@ -479,6 +489,76 @@ module.exports = async (req, res) => {
       const d = await r.json().catch(() => ({}));
       if (!d || !d.ok || !d.result) { json(res, 200, { ok: false, reason: 'invoice_failed' }); return; }
       json(res, 200, { ok: true, link: d.result, stars: pack.stars, price: pack.price });
+      return;
+    }
+
+    // ---------------------------------------------------------
+    //  CREATE_CRYPTOBOT_INVOICE — счёт на пополнение звёзд через @CryptoBot
+    //  (оплата в USDT). Зачисление — не по webhook, а ленивой проверкой
+    //  (cryptobot_check), как резолв PVP-раундов: клиент опрашивает статус
+    //  инвойса напрямую через getInvoices нашим секретным токеном — это
+    //  безопаснее вебхука на serverless (не нужно проверять подпись на raw body).
+    // ---------------------------------------------------------
+    if (action === 'create_cryptobot_invoice') {
+      const CB_TOKEN = env('CRYPTOBOT_TOKEN');
+      if (!CB_TOKEN) { json(res, 200, { ok: false, reason: 'not_configured' }); return; }
+      const pack = CRYPTOBOT_PACKS[body.pack];
+      if (!pack) { json(res, 200, { ok: false, reason: 'bad_pack' }); return; }
+      const payload = JSON.stringify({ tg: me.id, pack: body.pack });
+      const r = await fetch(CRYPTOBOT_API + 'createInvoice', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Crypto-Pay-API-Token': CB_TOKEN },
+        body: JSON.stringify({
+          asset: 'USDT', amount: String(pack.usd),
+          description: 'Shark · ' + pack.title, payload, expires_in: 1800
+        })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!d || !d.ok || !d.result) { json(res, 200, { ok: false, reason: 'invoice_failed' }); return; }
+      json(res, 200, {
+        ok: true, invoiceId: d.result.invoice_id,
+        payUrl: d.result.bot_invoice_url || d.result.pay_url,
+        stars: pack.stars, usd: pack.usd
+      });
+      return;
+    }
+
+    // ---------------------------------------------------------
+    //  CRYPTOBOT_CHECK — опрос статуса инвойса @CryptoBot; при первой оплате
+    //  начисляет звёзды и реферальную долю (идемпотентно по invoice_id —
+    //  повторные опросы после зачисления просто возвращают текущий статус).
+    // ---------------------------------------------------------
+    if (action === 'cryptobot_check') {
+      const CB_TOKEN = env('CRYPTOBOT_TOKEN');
+      if (!CB_TOKEN) { json(res, 200, { ok: false, reason: 'not_configured' }); return; }
+      const invoiceId = Number(body.invoiceId);
+      if (!invoiceId) { json(res, 200, { ok: false, reason: 'bad_invoice' }); return; }
+      const r = await fetch(CRYPTOBOT_API + 'getInvoices?invoice_ids=' + invoiceId, {
+        headers: { 'Crypto-Pay-API-Token': CB_TOKEN }
+      });
+      const d = await r.json().catch(() => ({}));
+      const inv = d && d.ok && d.result && d.result.items && d.result.items[0];
+      if (!inv) { json(res, 200, { ok: false, reason: 'not_found' }); return; }
+      if (inv.status !== 'paid') { json(res, 200, { ok: true, status: inv.status }); return; }
+
+      const idemKey = 'cb_pay:' + inv.invoice_id;
+      const already = await sbGet('shark_ledger?idem=eq.' + encodeURIComponent(idemKey) + '&select=id&limit=1');
+      if (already[0]) { const fresh = await freshUser(); json(res, 200, { ok: true, status: 'paid', credited: true, user: publicUser(fresh) }); return; }
+
+      let pl = {}; try { pl = JSON.parse(inv.payload || '{}'); } catch (e) {}
+      const pack = CRYPTOBOT_PACKS[pl.pack];
+      if (!pack || Number(pl.tg) !== me.id) { json(res, 200, { ok: true, status: 'paid', credited: false }); return; }
+
+      const cr = await applyLedger(me.id, 'stars', pack.stars, 'topup', 'cryptobot', idemKey, { amount: inv.amount, asset: inv.asset });
+      if (!cr.ok) { json(res, 200, { ok: false, reason: 'credit_failed' }); return; }
+      if (user.ref_by) {
+        const share = Math.floor(pack.stars * CFG.referral_share);
+        if (share > 0) {
+          const rr = await applyLedger(user.ref_by, 'stars', share, 'referral', 'topup:' + me.id, 'reftop_cb:' + inv.invoice_id, { from: me.id });
+          if (rr.ok) tgNotify(BOT, user.ref_by, '💜 Ваш друг пополнил баланс — вам +' + share + ' ⭐ (' + Math.round(CFG.referral_share * 100) + '%)');
+        }
+      }
+      const fresh = await freshUser();
+      json(res, 200, { ok: true, status: 'paid', credited: true, stars: pack.stars, user: publicUser(fresh) });
       return;
     }
 
