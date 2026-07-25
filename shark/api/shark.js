@@ -772,20 +772,12 @@ function botLink(botToken, refCode) {
   return refCode ? ('?start=ref_' + refCode) : '';
 }
 function mapHistory(r) {
-  const cur = r.currency === 'stars' ? '⭐' : ' грн';
-  const amt = Number(r.amount);
-  const sign = amt >= 0 ? '+' : '−';
-  const val = r.currency === 'stars' ? (sign + '⭐' + Math.abs(amt)) : (sign + Math.abs(amt).toFixed(2) + ' грн');
-  const titles = {
-    referral: '👥 Реферал', bet: '🎮 Ставка', win: '🏆 Выигрыш',
-    withdraw: '💸 Вывод', withdraw_refund: '↩️ Возврат вывода',
-    gift: '🎁 Подарок', topup: '⭐ Пополнение', adjust: '⚙️ Коррекция'
-  };
+  // title/currency label формируются на клиенте (i18n) — сервер отдаёт только kind + сырые числа
   return {
-    icon: (titles[r.kind] || '•').split(' ')[0],
-    title: (titles[r.kind] || r.kind).replace(/^\S+\s/, ''),
+    kind: r.kind || 'adjust',
+    currency: r.currency, amount: Number(r.amount),
     sub: r.ref || '',
-    val, cls: amt >= 0 ? (r.currency === 'stars' ? 'star' : 'plus') : 'minus',
+    cls: Number(r.amount) >= 0 ? (r.currency === 'stars' ? 'star' : 'plus') : 'minus',
     t: r.created_at
   };
 }
