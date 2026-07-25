@@ -1225,6 +1225,10 @@ document.getElementById('ov').onclick=function(e){if(e.target.id==='ov')closeShe
 
 /* ============ ОНБОРДИНГ ============ */
 var onbIndex=0;
+var ONB_KEY='shark_onboarded_v1';
+function onbSeen(){ try{ return localStorage.getItem(ONB_KEY)==='1'; }catch(e){ return false; } }
+function onbMarkSeen(){ try{ localStorage.setItem(ONB_KEY,'1'); }catch(e){} }
+if(onbSeen()) S.onboarded=true;   // уже видел на этом устройстве — не показываем снова
 function showOnboarding(force){
   if(S.onboarded && !force) return;
   onbIndex=0; document.getElementById('onb').classList.add('open');
@@ -1240,7 +1244,7 @@ function showOnbSlide(){
   document.getElementById('onb-btn').textContent = onbIndex>=3 ? 'Начать' : 'Далее';
 }
 function onbNext(){
-  if(onbIndex>=3){ S.onboarded=true; document.getElementById('onb').classList.remove('open'); return; }
+  if(onbIndex>=3){ S.onboarded=true; onbMarkSeen(); document.getElementById('onb').classList.remove('open'); return; }
   onbIndex++; showOnbSlide();
 }
 
