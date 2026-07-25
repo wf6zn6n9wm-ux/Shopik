@@ -581,37 +581,37 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
   <div class="hero-card glass">
     <div class="hero-top">
       <div class="hero-greet"><span class="hero-hi" id="greet">С возвращением</span><span class="hero-name" id="hero-name">Игрок</span></div>
-      <div class="hero-online"><span class="dot-live"></span><span id="online" class="mono">—</span>&nbsp;онлайн</div>
+      <div class="hero-online"><span class="dot-live"></span><span id="online" class="mono">—</span>&nbsp;<span id="i-online-lbl">онлайн</span></div>
     </div>
     <div class="hero-bal">
-      <div class="hero-bal-main"><span class="ic-star"></span><span class="mono" data-stars>0</span><small>звёзд</small></div>
-      <div class="hero-bal-sub"><span class="mono" data-money>0.00</span> грн</div>
+      <div class="hero-bal-main"><span class="ic-star"></span><span class="mono" data-stars>0</span><small id="i-stars-lbl">звёзд</small></div>
+      <div class="hero-bal-sub"><span class="mono" data-money>0.00</span> <span id="i-uah-lbl">грн</span></div>
     </div>
     <div class="hero-actions">
-      <button class="btn-primary btn-glow" onclick="go('pvp')">Играть сейчас</button>
-      <div class="hero-next" onclick="go('contests')">🏆 Ближайший розыгрыш · <b>через 1 час</b> →</div>
+      <button class="btn-primary btn-glow" onclick="go('pvp')" id="i-play-now">Играть сейчас</button>
+      <div class="hero-next" onclick="go('contests')">🏆 <span id="i-next-draw">Ближайший розыгрыш</span> · <b id="i-next-hour">через 1 час</b> →</div>
     </div>
   </div>
 
   <div class="pvp-feat" onclick="go('pvp')">
-    <div class="pf-top"><span class="pf-badge">PVP · LIVE</span><span class="hero-online" style="margin-left:auto"><span class="dot-live"></span><span id="pvp-online" class="mono">—</span>&nbsp;в игре</span></div>
-    <h2>Битва за банк</h2>
-    <p>Заходи в общий раунд — победитель забирает весь банк</p>
-    <div class="pf-cta">Войти в битву →</div>
+    <div class="pf-top"><span class="pf-badge">PVP · LIVE</span><span class="hero-online" style="margin-left:auto"><span class="dot-live"></span><span id="pvp-online" class="mono">—</span>&nbsp;<span id="i-ingame-lbl">в игре</span></span></div>
+    <h2 id="i-pvp-title">Битва за банк</h2>
+    <p id="i-pvp-desc">Заходи в общий раунд — победитель забирает весь банк</p>
+    <div class="pf-cta" id="i-pvp-cta">Войти в битву →</div>
     <svg class="pf-swords" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="sw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe49a"/><stop offset="1" stop-color="#ff9f2e"/></linearGradient></defs><g stroke="url(#sw)" stroke-width="3.5" stroke-linecap="round"><path d="M13 51 L45 19"/><path d="M51 51 L19 19"/></g><g fill="url(#sw)"><circle cx="45" cy="19" r="3.4"/><circle cx="19" cy="19" r="3.4"/><path d="M11 49l4 4-3 1-2-2z"/><path d="M53 49l-4 4 3 1 2-2z"/></g></svg>
   </div>
 
   <div class="modes-grid">
-    <div class="card c-roul" onclick="go('games')"><h2 style="font-size:21px">Игры</h2><p style="max-width:none">Краш и рулетка</p>
+    <div class="card c-roul" onclick="go('games')"><h2 style="font-size:21px" id="i-games-title">Игры</h2><p style="max-width:none" id="i-games-desc">Краш и рулетка</p>
       <svg class="mode-ic" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="gpad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#66fbea"/><stop offset="1" stop-color="#149a8f"/></linearGradient></defs><path fill="url(#gpad)" d="M34 14H14a10 10 0 00-10 10v3.6A5 5 0 0013 31l1-2h12l1 2a5 5 0 009-3.4V24a10 10 0 00-10-10zM15 19v2.5h2.5V24H15v2.5h-2.5V24H10v-2.5h2.5V19zm16 .5a2 2 0 110 4 2 2 0 010-4zm3 4a2 2 0 110 4 2 2 0 010-4z"/></svg></div>
-    <div class="card c-upgrade" onclick="toast('Апгрейд скоро — улучшение подарков за звёзды')"><h2 style="font-size:21px">Апгрейд <span class="badge">Скоро</span></h2><p style="max-width:none">Множь звёзды</p>
+    <div class="card c-upgrade" onclick="toast(t('upgrade_toast'))"><h2 style="font-size:21px"><span id="i-upgrade-title">Апгрейд</span> <span class="badge" id="i-soon">Скоро</span></h2><p style="max-width:none" id="i-upgrade-desc">Множь звёзды</p>
       <svg class="mode-ic" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="chart" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ffd873"/><stop offset="1" stop-color="#ff8e28"/></linearGradient></defs><path stroke="url(#chart)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="M8 34l9-9 6 5 12-13"/><path fill="url(#chart)" d="M28 15h11v11l-4-4-7-7z"/></svg></div>
   </div>
 </div>
 
 <!-- ИГРЫ (Рулетка + Краш в одном разделе) -->
 <div class="screen" id="s-games">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
   <h1 class="title">Игры</h1>
   <div class="seg" id="games-seg">
     <button class="active" data-gtab="crash" onclick="setGameTab('crash')">🦈 Краш</button>
@@ -641,21 +641,21 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 
 <!-- PVP · БИТВА -->
 <div class="screen" id="s-pvp">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
-  <h1 class="title">PVP · Битва</h1>
-  <p class="sub">Скидывайтесь звёздами в общий банк. Победитель забирает всё. Шанс победы = ваша доля банка.</p>
-  <div class="pvp-feed" id="pvp-feed">⚔️ Соберите банк и заберите его целиком</div>
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
+  <h1 class="title" id="i-pvp-h1">PVP · Битва</h1>
+  <p class="sub" id="i-pvp-sub">Скидывайтесь звёздами в общий банк. Победитель забирает всё. Шанс победы = ваша доля банка.</p>
+  <div class="pvp-feed" id="pvp-feed">⚔️ <span id="i-pvp-feed-default">Соберите банк и заберите его целиком</span></div>
   <div class="pvp-arc">
     <div class="pvp-arc-ring" id="pvp-arc-ring"></div>
     <div class="pvp-arc-hole"></div>
     <div class="pvp-arc-center">
-      <div class="pvp-pot-l">Общий банк</div>
+      <div class="pvp-pot-l" id="i-pvp-pot-lbl">Общий банк</div>
       <div class="pvp-pot-v mono">⭐ <span id="pvp-pot">0</span></div>
       <div class="pvp-pot-g" id="pvp-round">Сделайте ставку, чтобы начать битву</div>
     </div>
   </div>
   <div class="roul-stage" id="pvp-stage"><div class="roul-pointer"></div><div class="roul-strip" id="pvp-strip"></div></div>
-  <div class="bet-row"><span style="font-weight:700">Ставка:</span><div class="chip" data-pbet="50" onclick="setPBet(50)"><i class="star-ic"></i>50</div><div class="chip" data-pbet="100" onclick="setPBet(100)"><i class="star-ic"></i>100</div><div class="chip" data-pbet="250" onclick="setPBet(250)"><i class="star-ic"></i>250</div></div>
+  <div class="bet-row"><span style="font-weight:700" id="i-bet-lbl">Ставка:</span><div class="chip" data-pbet="50" onclick="setPBet(50)"><i class="star-ic"></i>50</div><div class="chip" data-pbet="100" onclick="setPBet(100)"><i class="star-ic"></i>100</div><div class="chip" data-pbet="250" onclick="setPBet(250)"><i class="star-ic"></i>250</div></div>
   <button class="btn-primary" id="pvp-btn" onclick="pvpJoin()">Присоединиться к битве · ⭐50</button>
   <div class="players" id="pvp-players" style="margin-top:14px"></div>
   <div class="pvp-fair" id="pvp-fair"></div>
@@ -663,7 +663,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 
 <!-- КОНКУРСЫ -->
 <div class="screen" id="s-contests">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="spacer"></div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
   <h1 class="title">Розыгрыши</h1>
   <div class="seg" id="contest-seg">
     <button class="active" data-ctab="active" onclick="setContestTab('active')">Активные</button>
@@ -675,7 +675,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 
 <!-- ЛИДЕРЫ -->
 <div class="screen" id="s-leaders">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="spacer"></div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
   <h1 class="title">Лидеры</h1>
   <p class="sub">Каждую неделю топ-100 по обороту получают ценные призы</p>
   <div class="panel" style="text-align:center"><b style="font-size:15px">До конца недели</b><div class="mono" style="font-size:24px;font-weight:800;margin-top:6px">1д 09:10:37</div></div>
@@ -684,7 +684,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 
 <!-- МАГАЗИН -->
 <div class="screen" id="s-shop">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span></div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span></div></div>
   <h1 class="title">Магазин подарков</h1>
   <p class="sub">Трать заработанные и выигранные звёзды на подарки</p>
   <div class="grid2" id="shop-grid"></div>
@@ -692,7 +692,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 
 <!-- ПРОФИЛЬ -->
 <div class="screen" id="s-profile">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ Назад</div><div class="spacer"></div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
   <div class="prof-head">
     <div class="prof-av">🦈</div>
     <div class="prof-info">
@@ -702,33 +702,33 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
     </div>
   </div>
   <div class="stats">
-    <div class="stat"><div class="sv mono" id="st-played">0</div><div class="sl">Сыграно</div></div>
-    <div class="stat"><div class="sv mono" id="st-won">0</div><div class="sl">Выиграно ⭐</div></div>
-    <div class="stat"><div class="sv mono" id="st-rank">—</div><div class="sl">Место</div></div>
+    <div class="stat"><div class="sv mono" id="st-played">0</div><div class="sl" id="i-st-played-lbl">Сыграно</div></div>
+    <div class="stat"><div class="sv mono" id="st-won">0</div><div class="sl" id="i-st-won-lbl">Выиграно ⭐</div></div>
+    <div class="stat"><div class="sv mono" id="st-rank">—</div><div class="sl" id="i-st-rank-lbl">Место</div></div>
   </div>
 
   <div class="panel">
-    <div class="balance-big"><div class="v mono" data-money-big>0.00</div><div class="l">Баланс для вывода (заработок)</div><div class="conv" data-money-usdt>≈ 0.00 USDT</div></div>
-    <button class="btn-primary" onclick="openWithdraw()">Вывести деньги</button>
+    <div class="balance-big"><div class="v mono" data-money-big>0.00</div><div class="l" id="i-bal-money-lbl">Баланс для вывода (заработок)</div><div class="conv" data-money-usdt>≈ 0.00 USDT</div></div>
+    <button class="btn-primary" onclick="openWithdraw()" id="i-withdraw-btn">Вывести деньги</button>
   </div>
   <div class="panel">
-    <div class="balance-big"><div class="v mono" data-stars-big>0</div><div class="l">Звёзды для игр</div></div>
-    <button class="btn-ghost" onclick="openBuyStars()">Пополнить звёзды</button>
+    <div class="balance-big"><div class="v mono" data-stars-big>0</div><div class="l" id="i-bal-stars-lbl">Звёзды для игр</div></div>
+    <button class="btn-ghost" onclick="openBuyStars()" id="i-topup-btn">Пополнить звёзды</button>
   </div>
 
   <div class="row" style="gap:8px;margin-bottom:8px">
-    <button class="btn-ghost" onclick="go('refs')">👥 Друзья</button>
-    <button class="btn-ghost" onclick="go('history')">📜 История</button>
+    <button class="btn-ghost" onclick="go('refs')">👥 <span id="i-friends-btn">Друзья</span></button>
+    <button class="btn-ghost" onclick="go('history')">📜 <span id="i-history-btn">История</span></button>
   </div>
   <div class="row" style="gap:8px;margin-bottom:12px">
-    <button class="btn-ghost" onclick="go('ach')">🏅 Достижения</button>
-    <button class="btn-ghost" onclick="go('settings')">⚙️ Настройки</button>
+    <button class="btn-ghost" onclick="go('ach')">🏅 <span id="i-ach-btn">Достижения</span></button>
+    <button class="btn-ghost" onclick="go('settings')">⚙️ <span id="i-settings-btn">Настройки</span></button>
   </div>
 </div>
 
 <!-- РЕФЕРАЛЫ -->
 <div class="screen" id="s-refs">
-  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ Назад</div><div class="spacer"></div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
   <h1 class="title">Друзья</h1>
 
   <div class="ref-hero glass">
@@ -759,7 +759,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 
 <!-- ИСТОРИЯ -->
 <div class="screen" id="s-history">
-  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ Назад</div><div class="spacer"></div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
   <h1 class="title">История</h1>
   <p class="sub">Все начисления, выигрыши и выводы</p>
   <div id="history-list"></div>
@@ -767,7 +767,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 
 <!-- ДОСТИЖЕНИЯ -->
 <div class="screen" id="s-ach">
-  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ Назад</div><div class="spacer"></div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
   <h1 class="title">Достижения</h1>
   <p class="sub">Открывай бейджи и получай звёзды</p>
   <div id="ach-list"></div>
@@ -775,45 +775,45 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 
 <!-- НАСТРОЙКИ -->
 <div class="screen" id="s-settings">
-  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ Назад</div><div class="spacer"></div></div>
-  <h1 class="title">Настройки</h1>
-  <div class="set-row"><div class="sl"><b>Язык</b><p>Интерфейс приложения</p></div><div class="lang-pick" id="lang-pick"><button data-lang="ru" class="active" onclick="setLang('ru')">Рус</button><button data-lang="uk" onclick="setLang('uk')">Укр</button></div></div>
-  <div class="set-row"><div class="sl"><b>Звук</b><p>Эффекты в играх</p></div><div class="switch on" id="sound-switch" onclick="toggleSound()"><i></i></div></div>
-  <div class="set-row"><div class="sl"><b>Уведомления</b><p>Кейс готов, новые розыгрыши</p></div><div class="switch on" id="notif-switch" onclick="this.classList.toggle('on')"><i></i></div></div>
-  <div class="set-row" onclick="showOnboarding(true)" style="cursor:pointer"><div class="sl"><b>Как это работает</b><p>Показать обучение снова</p></div><div style="color:var(--aqua);font-weight:800">→</div></div>
-  <div class="set-row" onclick="toast('Поддержка: @SharkSupport')" style="cursor:pointer"><div class="sl"><b>Поддержка</b><p>Связаться с нами</p></div><div style="color:var(--aqua);font-weight:800">→</div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
+  <h1 class="title" id="i-settings-h1">Настройки</h1>
+  <div class="set-row"><div class="sl"><b id="i-lang-lbl">Язык</b><p id="i-lang-desc">Интерфейс приложения</p></div><div class="lang-pick" id="lang-pick"><button data-lang="uk" class="active" onclick="setLang('uk')">Укр</button><button data-lang="ru" onclick="setLang('ru')">Рус</button><button data-lang="en" onclick="setLang('en')">Eng</button></div></div>
+  <div class="set-row"><div class="sl"><b id="i-sound-lbl">Звук</b><p id="i-sound-desc">Эффекты в играх</p></div><div class="switch on" id="sound-switch" onclick="toggleSound()"><i></i></div></div>
+  <div class="set-row"><div class="sl"><b id="i-notif-lbl">Уведомления</b><p id="i-notif-desc">Розыгрыши и важные события</p></div><div class="switch on" id="notif-switch" onclick="this.classList.toggle('on')"><i></i></div></div>
+  <div class="set-row" onclick="showOnboarding(true)" style="cursor:pointer"><div class="sl"><b id="i-howworks-lbl">Как это работает</b><p id="i-howworks-desc">Показать обучение снова</p></div><div style="color:var(--aqua);font-weight:800">→</div></div>
+  <div class="set-row" onclick="toast(t('support_toast'))" style="cursor:pointer"><div class="sl"><b id="i-support-lbl">Поддержка</b><p id="i-support-desc">Связаться с нами</p></div><div style="color:var(--aqua);font-weight:800">→</div></div>
 </div>
 
 <!-- TABBAR -->
 <div class="tabbar">
-  <div class="tab active" data-tab="home" onclick="go('home')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 6H7a5 5 0 00-5 5v2.5A3.5 3.5 0 008.4 15l.5-1h6.2l.5 1a3.5 3.5 0 006.4-1.5V11a5 5 0 00-5-5zM8.5 9.5V11H10v1.4H8.5V14H7.1v-1.6H5.6V11h1.5V9.5zm7.4.4a1 1 0 110 2 1 1 0 010-2zm1.6 2a1 1 0 110 2 1 1 0 010-2z"/></svg>Игры</div>
-  <div class="tab" data-tab="contests" onclick="go('contests')"><span class="dot">2</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9V6.8A2.4 2.4 0 108.6 6H4v3h7zm2 0h7V6h-4.6A2.4 2.4 0 1013 6.8V9zM5 11v8a1 1 0 001 1h5v-9H5zm8 0v9h5a1 1 0 001-1v-8h-6z"/></svg>Конкурсы</div>
-  <div class="tab" data-tab="leaders" onclick="go('leaders')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v2a4 4 0 01-4.4 4A5 5 0 0113 13.6V16h2a3 3 0 013 3v2H6v-2a3 3 0 013-3h2v-2.4A5 5 0 018.4 11 4 4 0 014 7V5h3V3zm-1 4v-.5H6V7a2 2 0 001 1.7A6 6 0 016 7zm12 0a6 6 0 01-1 1.7A2 2 0 0018 7v-.5h.01z"/></svg>Лидеры</div>
-  <div class="tab" data-tab="shop" onclick="go('shop')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 7a3.5 3.5 0 017 0h2.2l1 12.8a1 1 0 01-1 1.1H6.3a1 1 0 01-1-1.1L6.3 7h2.2zm2 0h3a1.5 1.5 0 00-3 0z"/></svg>Магазин</div>
-  <div class="tab" data-tab="profile" onclick="go('profile')"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7.5" r="4.2"/><path d="M4 20.2a8 8 0 0116 0 .9.9 0 01-.9.8H4.9a.9.9 0 01-.9-.8z"/></svg>Профиль</div>
+  <div class="tab active" data-tab="home" onclick="go('home')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 6H7a5 5 0 00-5 5v2.5A3.5 3.5 0 008.4 15l.5-1h6.2l.5 1a3.5 3.5 0 006.4-1.5V11a5 5 0 00-5-5zM8.5 9.5V11H10v1.4H8.5V14H7.1v-1.6H5.6V11h1.5V9.5zm7.4.4a1 1 0 110 2 1 1 0 010-2zm1.6 2a1 1 0 110 2 1 1 0 010-2z"/></svg><span id="tab-home">Игры</span></div>
+  <div class="tab" data-tab="contests" onclick="go('contests')"><span class="dot">2</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9V6.8A2.4 2.4 0 108.6 6H4v3h7zm2 0h7V6h-4.6A2.4 2.4 0 1013 6.8V9zM5 11v8a1 1 0 001 1h5v-9H5zm8 0v9h5a1 1 0 001-1v-8h-6z"/></svg><span id="tab-contests">Конкурсы</span></div>
+  <div class="tab" data-tab="leaders" onclick="go('leaders')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v2a4 4 0 01-4.4 4A5 5 0 0113 13.6V16h2a3 3 0 013 3v2H6v-2a3 3 0 013-3h2v-2.4A5 5 0 018.4 11 4 4 0 014 7V5h3V3zm-1 4v-.5H6V7a2 2 0 001 1.7A6 6 0 016 7zm12 0a6 6 0 01-1 1.7A2 2 0 0018 7v-.5h.01z"/></svg><span id="tab-leaders">Лидеры</span></div>
+  <div class="tab" data-tab="shop" onclick="go('shop')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 7a3.5 3.5 0 017 0h2.2l1 12.8a1 1 0 01-1 1.1H6.3a1 1 0 01-1-1.1L6.3 7h2.2zm2 0h3a1.5 1.5 0 00-3 0z"/></svg><span id="tab-shop">Магазин</span></div>
+  <div class="tab" data-tab="profile" onclick="go('profile')"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7.5" r="4.2"/><path d="M4 20.2a8 8 0 0116 0 .9.9 0 01-.9.8H4.9a.9.9 0 01-.9-.8z"/></svg><span id="tab-profile">Профиль</span></div>
 </div>
 
 <!-- ОНБОРДИНГ -->
 <div class="onb" id="onb">
   <div class="onb-slide active" data-onb="0">
     <div class="onb-ic">🦈</div>
-    <h2>Добро пожаловать в Shark</h2>
-    <p>Играй на звёзды и выигрывай подарки. Два разных баланса — звёзды для игр и гривны для вывода.</p>
+    <h2 id="onb-h-0">Добро пожаловать в Shark</h2>
+    <p id="onb-p-0">Играй на звёзды и выигрывай подарки. Два разных баланса — звёзды для игр и гривны для вывода.</p>
   </div>
   <div class="onb-slide" data-onb="1">
     <div class="onb-ic">⚔️</div>
-    <h2>PVP — битва за банк</h2>
-    <p>Главный режим: заходи в общий раунд, скидывайся в банк звёздами. Победитель забирает всё.</p>
+    <h2 id="onb-h-1">PVP — битва за банк</h2>
+    <p id="onb-p-1">Главный режим: заходи в общий раунд, скидывайся в банк звёздами. Победитель забирает всё.</p>
   </div>
   <div class="onb-slide" data-onb="2">
     <div class="onb-ic">🎮</div>
-    <h2>Игры на звёзды</h2>
-    <p>Краш и рулетка — на звёзды ради азарта и подарков. Звёзды не выводятся в деньги, тратятся внутри.</p>
+    <h2 id="onb-h-2">Игры на звёзды</h2>
+    <p id="onb-p-2">Краш и рулетка — на звёзды ради азарта и подарков. Звёзды не выводятся в деньги, тратятся внутри.</p>
   </div>
   <div class="onb-slide" data-onb="3">
     <div class="onb-ic">💰</div>
-    <h2>Друзья = деньги</h2>
-    <p>Приглашай друзей и получай гривны на баланс — их можно вывести на карту или в USDT. Поехали!</p>
+    <h2 id="onb-h-3">Друзья = деньги</h2>
+    <p id="onb-p-3">Приглашай друзей и получай гривны на баланс — их можно вывести на карту или в USDT. Поехали!</p>
   </div>
   <div class="onb-dots" id="onb-dots"></div>
   <button class="btn-primary" id="onb-btn" onclick="onbNext()">Далее</button>
@@ -842,6 +842,170 @@ function sharkSVG(){
 var S={money:0,stars:0,bet:50,cbet:50,doneTasks:{},joinedContests:{},cashedThisRound:false,
        played:0,wonStars:0,refCount:0,refEarned:0,dailyOpened:false,streakDay:3,history:[],isPro:false,
        wheelSpun:false,achievements:{},firstWithdraw:false,onboarded:false,lang:'ru',soundPref:true};
+
+/* ============================================================
+   ЛОКАЛИЗАЦИЯ (uk по умолчанию, ru/en) — ключевые экраны:
+   онбординг, Главная, таб-бар, PVP, Профиль, Настройки.
+   Игры/Конкурсы/Лидеры/Магазин/История/тосты внутри игр — пока RU.
+   ============================================================ */
+var I18N={
+  uk:{
+    greet:'З поверненням', online_lbl:'онлайн', stars_lbl:'зірок', uah_lbl:'грн',
+    play_now:'Грати зараз', next_draw:'Найближчий розіграш', next_hour:'через 1 годину', ingame_lbl:'у грі',
+    pvp_title:'Битва за банк', pvp_desc:'Заходь у спільний раунд — переможець забирає весь банк', pvp_cta:'Увійти в битву →',
+    games_title:'Ігри', games_desc:'Краш і рулетка', upgrade_title:'Апгрейд', soon:'Скоро', upgrade_desc:'Примнож зірки',
+    upgrade_toast:'Апгрейд скоро — покращення подарунків за зірки',
+    tab_home:'Ігри', tab_contests:'Розіграші', tab_leaders:'Лідери', tab_shop:'Магазин', tab_profile:'Профіль',
+    onb_h0:'Ласкаво просимо в Shark', onb_p0:'Грай на зірки і вигравай подарунки. Два різних балансу — зірки для ігор і гривні для виведення.',
+    onb_h1:'PVP — битва за банк', onb_p1:'Головний режим: заходь у спільний раунд, скидайся в банк зірками. Переможець забирає все.',
+    onb_h2:'Ігри на зірки', onb_p2:'Краш і рулетка — на зірки заради азарту й подарунків. Зірки не виводяться в гроші, витрачаються всередині.',
+    onb_h3:'Друзі = гроші', onb_p3:'Запрошуй друзів і отримуй гривні на баланс — їх можна вивести на картку або в USDT. Поїхали!',
+    onb_next:'Далі', onb_start:'Почати',
+    pvp_h1:'PVP · Битва', pvp_sub:'Скидайтеся зірками в спільний банк. Переможець забирає все. Шанс перемоги = ваша частка банку.',
+    pvp_feed_default:'Зберіть банк і заберіть його цілком', pvp_pot_lbl:'Спільний банк', bet_lbl:'Ставка:',
+    st_played:'Зіграно', st_won:'Виграно ⭐', st_rank:'Місце',
+    bal_money_lbl:'Баланс для виведення (заробіток)', withdraw_btn:'Вивести гроші',
+    bal_stars_lbl:'Зірки для ігор', topup_btn:'Поповнити зірки',
+    friends_btn:'Друзі', history_btn:'Історія', ach_btn:'Досягнення', settings_btn:'Налаштування',
+    settings_h1:'Налаштування', lang_lbl:'Мова', lang_desc:'Інтерфейс застосунку',
+    sound_lbl:'Звук', sound_desc:'Ефекти в іграх', notif_lbl:'Сповіщення', notif_desc:'Розіграші та важливі події',
+    howworks_lbl:'Як це працює', howworks_desc:'Показати навчання знову',
+    support_lbl:'Підтримка', support_desc:'Зв\'язатися з нами', support_toast:'Підтримка: @SharkSupport',
+    back:'Назад',
+    pvp_wait:'Зробіть ставку, щоб почати битву', pvp_waiting_players:'Чекаємо гравців…',
+    pvp_countdown:'До розіграшу: ', pvp_sec:' с', pvp_in_battle:'Ви в грі · чекаємо розіграшу',
+    pvp_resolving:'Розіграш…', pvp_join_btn:'Приєднатися до битви · ', pvp_already:'Ви вже в цьому раунді',
+    pvp_no_stars:'Недостатньо зірок — поповніть баланс', pvp_closing:'Раунд закривається — зачекайте наступний',
+    pvp_bet_error:'Помилка ставки', pvp_bet_toast:'Ставка у банку! Чекаємо розіграшу.',
+    lvl_names:['Малятко','Рибка','Мисливець','Хижак','Акула','Мегалодон'], lvl_prefix:'Рівень ',
+    pvp_round_live:'Раунд триває…', pvp_winner_prefix:'Переможець: ', you_word:'Ви', player_default:'Гравець',
+    pvp_win_title_tpl:'Перемога! +⭐{payout}', pvp_win_desc_tpl:'Ви забрали банк ⭐{pot} (−{rake}% комісія). Ваш шанс був {pct}%.', pvp_claim_btn:'Забрати',
+    pvp_lose_title_tpl:'Переміг {name} {av}', pvp_lose_desc_tpl:'Банк ⭐{pot} дістався суперникові. Ваша ставка згоріла. Пощастить наступного разу!', pvp_again_btn:'Ще раз',
+    pvp_spectator_tpl:'🏆 Переміг {name} · банк ⭐{pot}',
+    pvp_last_battle_tpl:'🏆 Останній бій: {name} {av} забрав ⭐{pot}',
+    pvp_players_header_tpl:'Гравці ({n})', pvp_chance_stake_lbl:'Шанс · ставка'
+  },
+  ru:{
+    greet:'С возвращением', online_lbl:'онлайн', stars_lbl:'звёзд', uah_lbl:'грн',
+    play_now:'Играть сейчас', next_draw:'Ближайший розыгрыш', next_hour:'через 1 час', ingame_lbl:'в игре',
+    pvp_title:'Битва за банк', pvp_desc:'Заходи в общий раунд — победитель забирает весь банк', pvp_cta:'Войти в битву →',
+    games_title:'Игры', games_desc:'Краш и рулетка', upgrade_title:'Апгрейд', soon:'Скоро', upgrade_desc:'Множь звёзды',
+    upgrade_toast:'Апгрейд скоро — улучшение подарков за звёзды',
+    tab_home:'Игры', tab_contests:'Конкурсы', tab_leaders:'Лидеры', tab_shop:'Магазин', tab_profile:'Профиль',
+    onb_h0:'Добро пожаловать в Shark', onb_p0:'Играй на звёзды и выигрывай подарки. Два разных баланса — звёзды для игр и гривны для вывода.',
+    onb_h1:'PVP — битва за банк', onb_p1:'Главный режим: заходи в общий раунд, скидывайся в банк звёздами. Победитель забирает всё.',
+    onb_h2:'Игры на звёзды', onb_p2:'Краш и рулетка — на звёзды ради азарта и подарков. Звёзды не выводятся в деньги, тратятся внутри.',
+    onb_h3:'Друзья = деньги', onb_p3:'Приглашай друзей и получай гривны на баланс — их можно вывести на карту или в USDT. Поехали!',
+    onb_next:'Далее', onb_start:'Начать',
+    pvp_h1:'PVP · Битва', pvp_sub:'Скидывайтесь звёздами в общий банк. Победитель забирает всё. Шанс победы = ваша доля банка.',
+    pvp_feed_default:'Соберите банк и заберите его целиком', pvp_pot_lbl:'Общий банк', bet_lbl:'Ставка:',
+    st_played:'Сыграно', st_won:'Выиграно ⭐', st_rank:'Место',
+    bal_money_lbl:'Баланс для вывода (заработок)', withdraw_btn:'Вывести деньги',
+    bal_stars_lbl:'Звёзды для игр', topup_btn:'Пополнить звёзды',
+    friends_btn:'Друзья', history_btn:'История', ach_btn:'Достижения', settings_btn:'Настройки',
+    settings_h1:'Настройки', lang_lbl:'Язык', lang_desc:'Интерфейс приложения',
+    sound_lbl:'Звук', sound_desc:'Эффекты в играх', notif_lbl:'Уведомления', notif_desc:'Розыгрыши и важные события',
+    howworks_lbl:'Как это работает', howworks_desc:'Показать обучение снова',
+    support_lbl:'Поддержка', support_desc:'Связаться с нами', support_toast:'Поддержка: @SharkSupport',
+    back:'Назад',
+    pvp_wait:'Сделайте ставку, чтобы начать битву', pvp_waiting_players:'Ждём игроков…',
+    pvp_countdown:'До розыгрыша: ', pvp_sec:' с', pvp_in_battle:'Вы в игре · ждём розыгрыша',
+    pvp_resolving:'Розыгрыш…', pvp_join_btn:'Присоединиться к битве · ', pvp_already:'Вы уже в этом раунде',
+    pvp_no_stars:'Недостаточно звёзд — пополните баланс', pvp_closing:'Раунд закрывается — подождите следующий',
+    pvp_bet_error:'Ошибка ставки', pvp_bet_toast:'Ставка в банке! Ждём розыгрыша.',
+    lvl_names:['Малёк','Рыбёшка','Охотник','Хищник','Акула','Мегалодон'], lvl_prefix:'Уровень ',
+    pvp_round_live:'Раунд идёт…', pvp_winner_prefix:'Победитель: ', you_word:'Вы', player_default:'Игрок',
+    pvp_win_title_tpl:'Победа! +⭐{payout}', pvp_win_desc_tpl:'Вы забрали банк ⭐{pot} (−{rake}% комиссия). Ваш шанс был {pct}%.', pvp_claim_btn:'Забрать',
+    pvp_lose_title_tpl:'Победил {name} {av}', pvp_lose_desc_tpl:'Банк ⭐{pot} ушёл сопернику. Ваша ставка сгорела. Повезёт в следующий раз!', pvp_again_btn:'Ещё раз',
+    pvp_spectator_tpl:'🏆 Победил {name} · банк ⭐{pot}',
+    pvp_last_battle_tpl:'🏆 Последняя битва: {name} {av} забрал ⭐{pot}',
+    pvp_players_header_tpl:'Игроки ({n})', pvp_chance_stake_lbl:'Шанс · ставка'
+  },
+  en:{
+    greet:'Welcome back', online_lbl:'online', stars_lbl:'stars', uah_lbl:'UAH',
+    play_now:'Play now', next_draw:'Next draw', next_hour:'in 1 hour', ingame_lbl:'playing',
+    pvp_title:'Battle for the pot', pvp_desc:'Join a shared round — the winner takes the whole pot', pvp_cta:'Enter the battle →',
+    games_title:'Games', games_desc:'Crash and roulette', upgrade_title:'Upgrade', soon:'Soon', upgrade_desc:'Multiply your stars',
+    upgrade_toast:'Upgrade coming soon — improve gifts with stars',
+    tab_home:'Games', tab_contests:'Contests', tab_leaders:'Leaders', tab_shop:'Shop', tab_profile:'Profile',
+    onb_h0:'Welcome to Shark', onb_p0:'Play with stars and win gifts. Two separate balances — stars for games and UAH for withdrawal.',
+    onb_h1:'PVP — battle for the pot', onb_p1:'The main mode: join a shared round, throw stars into the pot. The winner takes it all.',
+    onb_h2:'Games for stars', onb_p2:'Crash and roulette — for the thrill and gifts. Stars can\'t be withdrawn as money, only spent inside.',
+    onb_h3:'Friends = money', onb_p3:'Invite friends and earn UAH — withdrawable to card or USDT. Let\'s go!',
+    onb_next:'Next', onb_start:'Start',
+    pvp_h1:'PVP · Battle', pvp_sub:'Throw stars into the shared pot. The winner takes it all. Win chance = your share of the pot.',
+    pvp_feed_default:'Build the pot and take it all', pvp_pot_lbl:'Shared pot', bet_lbl:'Bet:',
+    st_played:'Played', st_won:'Won ⭐', st_rank:'Rank',
+    bal_money_lbl:'Withdrawable balance (earnings)', withdraw_btn:'Withdraw money',
+    bal_stars_lbl:'Stars for games', topup_btn:'Top up stars',
+    friends_btn:'Friends', history_btn:'History', ach_btn:'Achievements', settings_btn:'Settings',
+    settings_h1:'Settings', lang_lbl:'Language', lang_desc:'App interface',
+    sound_lbl:'Sound', sound_desc:'In-game effects', notif_lbl:'Notifications', notif_desc:'Draws and important events',
+    howworks_lbl:'How it works', howworks_desc:'Show the tutorial again',
+    support_lbl:'Support', support_desc:'Contact us', support_toast:'Support: @SharkSupport',
+    back:'Back',
+    pvp_wait:'Place a bet to start the battle', pvp_waiting_players:'Waiting for players…',
+    pvp_countdown:'Draw in: ', pvp_sec:'s', pvp_in_battle:'You\'re in · waiting for the draw',
+    pvp_resolving:'Drawing…', pvp_join_btn:'Join the battle · ', pvp_already:'You are already in this round',
+    pvp_no_stars:'Not enough stars — top up your balance', pvp_closing:'Round is closing — wait for the next one',
+    pvp_bet_error:'Bet error', pvp_bet_toast:'Bet placed! Waiting for the draw.',
+    lvl_names:['Fry','Minnow','Hunter','Predator','Shark','Megalodon'], lvl_prefix:'Level ',
+    pvp_round_live:'Round in progress…', pvp_winner_prefix:'Winner: ', you_word:'You', player_default:'Player',
+    pvp_win_title_tpl:'Victory! +⭐{payout}', pvp_win_desc_tpl:'You took the pot of ⭐{pot} (−{rake}% rake). Your chance was {pct}%.', pvp_claim_btn:'Claim',
+    pvp_lose_title_tpl:'{name} {av} won', pvp_lose_desc_tpl:'The ⭐{pot} pot went to your opponent. Your bet is gone. Better luck next time!', pvp_again_btn:'Try again',
+    pvp_spectator_tpl:'🏆 {name} won · pot ⭐{pot}',
+    pvp_last_battle_tpl:'🏆 Last battle: {name} {av} took ⭐{pot}',
+    pvp_players_header_tpl:'Players ({n})', pvp_chance_stake_lbl:'Chance · bet'
+  }
+};
+var LANG_KEY='shark_lang_v1';
+function detectLang(){
+  try{ var saved=localStorage.getItem(LANG_KEY); if(saved==='ru'||saved==='uk'||saved==='en') return saved; }catch(e){}
+  try{
+    var tgu=window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initDataUnsafe&&window.Telegram.WebApp.initDataUnsafe.user;
+    var code=tgu&&tgu.language_code;
+    if(code==='ru') return 'ru';
+    if(code==='en') return 'en';
+  }catch(e){}
+  return 'uk';
+}
+var L=detectLang();
+function t(key){ var d=I18N[L]||I18N.uk; return (d&&d[key]!=null)?d[key]:((I18N.uk[key]!=null)?I18N.uk[key]:key); }
+function tf(key,vars){ return t(key).replace(/\{(\w+)\}/g,function(_,k){return (vars&&vars[k]!=null)?vars[k]:'';}); }
+function setLangSaved(l){ try{ localStorage.setItem(LANG_KEY,l); }catch(e){} }
+function applyI18n(){
+  var map={
+    greet:'greet', 'i-online-lbl':'online_lbl', 'i-stars-lbl':'stars_lbl', 'i-uah-lbl':'uah_lbl',
+    'i-play-now':'play_now', 'i-next-draw':'next_draw', 'i-next-hour':'next_hour', 'i-ingame-lbl':'ingame_lbl',
+    'i-pvp-title':'pvp_title', 'i-pvp-desc':'pvp_desc', 'i-pvp-cta':'pvp_cta',
+    'i-games-title':'games_title', 'i-games-desc':'games_desc',
+    'i-upgrade-title':'upgrade_title', 'i-soon':'soon', 'i-upgrade-desc':'upgrade_desc',
+    'tab-home':'tab_home', 'tab-contests':'tab_contests', 'tab-leaders':'tab_leaders', 'tab-shop':'tab_shop', 'tab-profile':'tab_profile',
+    'onb-h-0':'onb_h0', 'onb-p-0':'onb_p0', 'onb-h-1':'onb_h1', 'onb-p-1':'onb_p1',
+    'onb-h-2':'onb_h2', 'onb-p-2':'onb_p2', 'onb-h-3':'onb_h3', 'onb-p-3':'onb_p3',
+    'i-pvp-h1':'pvp_h1', 'i-pvp-sub':'pvp_sub', 'i-pvp-feed-default':'pvp_feed_default',
+    'i-pvp-pot-lbl':'pvp_pot_lbl', 'i-bet-lbl':'bet_lbl',
+    'i-st-played-lbl':'st_played', 'i-st-won-lbl':'st_won', 'i-st-rank-lbl':'st_rank',
+    'i-bal-money-lbl':'bal_money_lbl', 'i-withdraw-btn':'withdraw_btn',
+    'i-bal-stars-lbl':'bal_stars_lbl', 'i-topup-btn':'topup_btn',
+    'i-friends-btn':'friends_btn', 'i-history-btn':'history_btn', 'i-ach-btn':'ach_btn', 'i-settings-btn':'settings_btn',
+    'i-settings-h1':'settings_h1', 'i-lang-lbl':'lang_lbl', 'i-lang-desc':'lang_desc',
+    'i-sound-lbl':'sound_lbl', 'i-sound-desc':'sound_desc', 'i-notif-lbl':'notif_lbl', 'i-notif-desc':'notif_desc',
+    'i-howworks-lbl':'howworks_lbl', 'i-howworks-desc':'howworks_desc',
+    'i-support-lbl':'support_lbl', 'i-support-desc':'support_desc'
+  };
+  Object.keys(map).forEach(function(id){
+    var el=document.getElementById(id); if(el) el.textContent=t(map[id]);
+  });
+  $all('.i-back').forEach(function(el){ el.textContent=t('back'); });
+  // имя игрока — только пока нет настоящего имени с сервера (не перезаписывать ME.first_name)
+  if(!(typeof ME!=='undefined' && ME && ME.first_name)){
+    var hn=document.getElementById('hero-name'); if(hn) hn.textContent=t('player_default');
+    var pn=document.getElementById('prof-name'); if(pn) pn.textContent=t('you_word');
+  }
+  $all('#lang-pick button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-lang')===L); });
+  var onbBtn=document.getElementById('onb-btn'); if(onbBtn) onbBtn.textContent = onbIndex>=3 ? t('onb_start') : t('onb_next');
+}
 
 var ROUL_PRIZES=[
   {emoji:"🫧",name:"Пузырь",value:5,color:"#16236b",weight:30},
@@ -937,13 +1101,13 @@ function levelInfo(){
   // уровень от суммарной активности
   var xp=S.played*10+S.wonStars/10+Object.keys(S.doneTasks).length*15;
   var lvl=Math.max(1,Math.floor(xp/100)+1);
-  var names=["Малёк","Рыбёшка","Охотник","Хищник","Акула","Мегалодон"];
+  var names=(I18N[L]&&I18N[L].lvl_names)||I18N.uk.lvl_names;
   var name=names[Math.min(lvl-1,names.length-1)];
   var prog=(xp%100); return {lvl:lvl,name:name,prog:prog};
 }
 function renderProfile(){
   var li=levelInfo();
-  var pn=document.getElementById('prof-lvl'); if(pn) pn.textContent='Уровень '+li.lvl+' · '+li.name;
+  var pn=document.getElementById('prof-lvl'); if(pn) pn.textContent=t('lvl_prefix')+li.lvl+' · '+li.name;
   var lb=document.getElementById('lvlbar'); if(lb) lb.style.width=Math.max(li.prog,6)+'%';
   var sp=document.getElementById('st-played'); if(sp) sp.textContent=S.played;
   var sw=document.getElementById('st-won'); if(sw) sw.textContent=S.wonStars;
@@ -1241,7 +1405,7 @@ function renderOnbDots(){
 function showOnbSlide(){
   $all('.onb-slide').forEach(function(s){ s.classList.toggle('active', Number(s.getAttribute('data-onb'))===onbIndex); });
   renderOnbDots();
-  document.getElementById('onb-btn').textContent = onbIndex>=3 ? 'Начать' : 'Далее';
+  document.getElementById('onb-btn').textContent = onbIndex>=3 ? t('onb_start') : t('onb_next');
 }
 function onbNext(){
   if(onbIndex>=3){ S.onboarded=true; onbMarkSeen(); document.getElementById('onb').classList.remove('open'); return; }
@@ -1278,7 +1442,12 @@ function renderAch(){
 }
 
 /* ============ НАСТРОЙКИ ============ */
-function setLang(l){ S.lang=l; $all('#lang-pick button').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-lang')===l);}); toast(l==='uk'?'Мову змінено (демо)':'Язык изменён (демо)'); }
+function setLang(l){
+  L=l; S.lang=l; setLangSaved(l); applyI18n();
+  if(typeof updatePBtn==='function') updatePBtn();
+  var msgs={uk:'Мову змінено',ru:'Язык изменён',en:'Language changed'};
+  toast(msgs[l]||msgs.uk);
+}
 function toggleSound(){ soundOn=!soundOn; S.soundPref=soundOn; document.getElementById('sound-switch').classList.toggle('on',soundOn); if(soundOn) beep(520,0.08,0.05); }
 
 /* ============ PVP · ДЖЕКПОТ-БИТВА ============ */
@@ -1286,7 +1455,7 @@ var PVP_COLORS=['#0e8d7e','#c0314f','#2747b0','#b5541f','#5a2f7a','#0a5f6b'];
 var pbet=50, pvpSpinning=false;
 function pvpColor(i){ return PVP_COLORS[((i%PVP_COLORS.length)+PVP_COLORS.length)%PVP_COLORS.length]; }
 function setPBet(v){ pbet=v; $all('[data-pbet]').forEach(function(c){c.classList.toggle('active',Number(c.getAttribute('data-pbet'))===v);}); updatePBtn(); }
-function updatePBtn(){ var b=document.getElementById('pvp-btn'); if(b) b.textContent='Присоединиться к битве · ⭐'+pbet; }
+function updatePBtn(){ var b=document.getElementById('pvp-btn'); if(b) b.textContent=t('pvp_join_btn')+'⭐'+pbet; }
 function pickPvpWeighted(players){ var t=0,i; for(i=0;i<players.length;i++)t+=players[i].stake; var r=Math.random()*t; for(i=0;i<players.length;i++){r-=players[i].stake;if(r<=0)return players[i];} return players[0]; }
 function renderPvpArc(players,pot){
   var ring=document.getElementById('pvp-arc-ring'); if(!ring) return;
@@ -1302,14 +1471,14 @@ function renderPvpBank(players,pot){
 }
 function setPvpFeed(w,pot){
   var f=document.getElementById('pvp-feed'); if(!f) return;
-  f.innerHTML='🏆 Последняя битва: <b>'+(w.me?'Вы':w.name)+'</b> '+w.av+' забрал <b>⭐'+pot+'</b>';
+  f.innerHTML=tf('pvp_last_battle_tpl',{name:'<b>'+(w.me?t('you_word'):w.name)+'</b>',av:w.av,pot:'<b>'+pot+'</b>'});
 }
 function renderPvpPlayers(players,revealed){
   var box=document.getElementById('pvp-players'); if(!box) return;
-  var html='<div class="ph"><span>Игроки ('+players.length+')</span><span>Шанс · ставка</span></div>';
+  var html='<div class="ph"><span>'+tf('pvp_players_header_tpl',{n:players.length})+'</span><span>'+t('pvp_chance_stake_lbl')+'</span></div>';
   players.forEach(function(p,i){
     var win=revealed&&p.winner;
-    html+='<div class="prow"><div class="av" style="background:'+pvpColor(i)+'33">'+p.av+'</div><div class="nm">'+(p.me?'<b style="color:var(--aqua)">Вы</b>':p.name)+(win?' 👑':'')+'</div><div class="bet">⭐'+p.stake+'</div><div class="st '+(win?'win':'live')+'">'+p.pct+'%</div></div>';
+    html+='<div class="prow"><div class="av" style="background:'+pvpColor(i)+'33">'+p.av+'</div><div class="nm">'+(p.me?'<b style="color:var(--aqua)">'+t('you_word')+'</b>':p.name)+(win?' 👑':'')+'</div><div class="bet">⭐'+p.stake+'</div><div class="st '+(win?'win':'live')+'">'+p.pct+'%</div></div>';
   });
   box.innerHTML=html;
 }
@@ -1317,7 +1486,7 @@ function initPvp(){
   updatePBtn();
   var pot=document.getElementById('pvp-pot'); if(pot) pot.textContent='0';
   renderPvpArc([],0);
-  var rd=document.getElementById('pvp-round'); if(rd) rd.textContent='Сделайте ставку, чтобы начать битву';
+  var rd=document.getElementById('pvp-round'); if(rd) rd.textContent=t('pvp_wait');
   var strip=document.getElementById('pvp-strip'); if(strip){ strip.style.transition='none'; strip.style.transform='translateX(0)'; strip.innerHTML=''; }
   var pl=document.getElementById('pvp-players'); if(pl) pl.innerHTML='';
   var fair=document.getElementById('pvp-fair'); if(fair) fair.textContent='';
@@ -1327,7 +1496,7 @@ function runPvp(round){
   pvpSpinning=true;
   var btn=document.getElementById('pvp-btn'); if(btn) btn.disabled=true;
   var players=round.players, widx=round.winnerIdx;
-  var rd=document.getElementById('pvp-round'); if(rd) rd.textContent='Раунд идёт…';
+  var rd=document.getElementById('pvp-round'); if(rd) rd.textContent=t('pvp_round_live');
   renderPvpBank(players,round.pot);
   renderPvpPlayers(players,false);
   var strip=document.getElementById('pvp-strip'); strip.innerHTML='';
@@ -1350,7 +1519,7 @@ function runPvp(round){
     pvpSpinning=false; if(btn) btn.disabled=false;
     var w=players[widx];
     renderPvpPlayers(players,true);
-    if(rd) rd.textContent='Победитель: '+(w.me?'Вы':w.name)+' '+w.av;
+    if(rd) rd.textContent=t('pvp_winner_prefix')+(w.me?t('you_word'):w.name)+' '+w.av;
     var fair=document.getElementById('pvp-fair');
     if(fair) fair.textContent='🔒 provably-fair · hash: '+String(round.seedHash).slice(0,16)+'… · seed: '+String(round.seed).slice(0,12)+'…';
     setPvpFeed(w, round.pot);
@@ -1359,20 +1528,21 @@ function runPvp(round){
     if(round.iWon){
       beep(660,0.12,0.06,'triangle'); vibrate([20,40,30]); celebrate({n:70});
       logOp('🏆','PVP: победа','Банк ⭐'+round.pot,'+⭐'+round.payout,'star');
-      showSheet('<div class="result-emoji">🏆</div><h3 style="text-align:center">Победа! +⭐'+round.payout+'</h3><p class="muted" style="text-align:center">Вы забрали банк ⭐'+round.pot+' (−'+Math.round((round.rake||0.05)*100)+'% комиссия). Ваш шанс был '+w.pct+'%.</p><button class="btn-primary" onclick="closeSheet()">Забрать</button>');
+      var rakePct=Math.round((round.rake||0.05)*100);
+      showSheet('<div class="result-emoji">🏆</div><h3 style="text-align:center">'+tf('pvp_win_title_tpl',{payout:round.payout})+'</h3><p class="muted" style="text-align:center">'+tf('pvp_win_desc_tpl',{pot:round.pot,rake:rakePct,pct:w.pct})+'</p><button class="btn-primary" onclick="closeSheet()">'+t('pvp_claim_btn')+'</button>');
     } else if(round.iJoined){
       beep(120,0.3,0.08,'sawtooth'); vibrate(60);
       logOp('💀','PVP: проигрыш','Победил '+w.name,'−⭐'+(round.myStake||pbet),'minus');
-      showSheet('<div class="result-emoji">💀</div><h3 style="text-align:center">Победил '+w.name+' '+w.av+'</h3><p class="muted" style="text-align:center">Банк ⭐'+round.pot+' ушёл сопернику. Ваша ставка сгорела. Повезёт в следующий раз!</p><button class="btn-primary" onclick="closeSheet()">Ещё раз</button>');
+      showSheet('<div class="result-emoji">💀</div><h3 style="text-align:center">'+tf('pvp_lose_title_tpl',{name:w.name,av:w.av})+'</h3><p class="muted" style="text-align:center">'+tf('pvp_lose_desc_tpl',{pot:round.pot})+'</p><button class="btn-primary" onclick="closeSheet()">'+t('pvp_again_btn')+'</button>');
     } else {
-      toast('🏆 Победил '+w.name+' · банк ⭐'+round.pot);
+      toast(tf('pvp_spectator_tpl',{name:w.name,pot:round.pot}));
     }
   },3700);
 }
 /* демо-версия (вне Telegram): весь расчёт локально */
 function pvpJoin(){
   if(pvpSpinning) return;
-  if(S.stars<pbet){ toast('Недостаточно звёзд — пополните баланс'); return; }
+  if(S.stars<pbet){ toast(t('pvp_no_stars')); return; }
   S.stars-=pbet; S.played++; syncBalances();
   var players=[{name:'Вы',av:'🙂',stake:pbet,me:true}];
   var n=2+Math.floor(Math.random()*3);
@@ -1397,6 +1567,7 @@ window.go=go;
 
 
 function init(){
+  applyI18n();
   var hs=document.getElementById('hero-shark'); if(hs) hs.innerHTML=sharkSVG();
   buildStrip();renderShop();renderLeaders();setContestTab('active');
   renderStreak();renderPush();renderProfile();
@@ -1535,13 +1706,13 @@ function renderPvpLive(st){
   renderPvpPlayers(players, false);
   var rd=document.getElementById('pvp-round'), btn=document.getElementById('pvp-btn');
   if(st.status==='waiting'){
-    if(rd) rd.textContent=players.length?'Ждём игроков…':'Сделайте ставку, чтобы начать битву';
-    if(btn){ btn.disabled=false; btn.textContent='Присоединиться к битве · ⭐'+pbet; }
+    if(rd) rd.textContent=players.length?t('pvp_waiting_players'):t('pvp_wait');
+    if(btn){ btn.disabled=false; btn.textContent=t('pvp_join_btn')+'⭐'+pbet; }
   } else if(st.status==='countdown'){
-    if(rd) rd.textContent='До розыгрыша: '+st.secondsLeft+' с';
-    if(btn){ if(st.iJoined){ btn.disabled=true; btn.textContent='Вы в игре · ждём розыгрыша'; } else { btn.disabled=false; btn.textContent='Присоединиться к битве · ⭐'+pbet; } }
+    if(rd) rd.textContent=t('pvp_countdown')+st.secondsLeft+t('pvp_sec');
+    if(btn){ if(st.iJoined){ btn.disabled=true; btn.textContent=t('pvp_in_battle'); } else { btn.disabled=false; btn.textContent=t('pvp_join_btn')+'⭐'+pbet; } }
   } else if(st.status==='resolving'){
-    if(rd) rd.textContent='Розыгрыш…'; if(btn) btn.disabled=true;
+    if(rd) rd.textContent=t('pvp_resolving'); if(btn) btn.disabled=true;
   }
   var fair=document.getElementById('pvp-fair'); if(fair&&st.seedHash) fair.textContent='🔒 provably-fair · hash: '+String(st.seedHash).slice(0,16)+'…';
 }
@@ -1569,17 +1740,17 @@ function stopPvpPoll(){ if(pvpPollTimer){ clearInterval(pvpPollTimer); pvpPollTi
 pvpJoin=async function(){
   if(!SERVER) return _pvpJoin();
   if(pvpSpinning) return;
-  if(S.stars<pbet){ toast('Недостаточно звёзд — пополните баланс'); return; }
+  if(S.stars<pbet){ toast(t('pvp_no_stars')); return; }
   var btn=document.getElementById('pvp-btn'); if(btn) btn.disabled=true;
   var r=await api('pvp_join',{bet:pbet});
   if(!r.ok){
-    if(r.reason==='already_joined'){ toast('Вы уже в этом раунде'); if(r.round) renderPvpLive(r.round); }
-    else { toast(r.reason==='no_stars'?'Недостаточно звёзд':(r.reason==='round_closed'?'Раунд закрывается — подождите следующий':'Ошибка ставки')); if(btn) btn.disabled=false; }
+    if(r.reason==='already_joined'){ toast(t('pvp_already')); if(r.round) renderPvpLive(r.round); }
+    else { toast(r.reason==='no_stars'?t('pvp_no_stars'):(r.reason==='round_closed'?t('pvp_closing'):t('pvp_bet_error'))); if(btn) btn.disabled=false; }
     return;
   }
   if(r.user) applyUser(r.user);
   if(r.round) renderPvpLive(r.round);
-  toast('Ставка ⭐'+pbet+' в банке! Ждём розыгрыша.');
+  toast(t('pvp_bet_toast'));
 };
 
 buyGift=function(it){
