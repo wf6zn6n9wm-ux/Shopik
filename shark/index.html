@@ -662,6 +662,169 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}
   #bubbles{display:none;}
 }
+
+/* ============================================================
+   ✦ ONYX 2026 — полная пересборка дизайн-системы (Senior Product
+   Design pass). Единая палитра/радиусы/тени/кнопки каскадом поверх
+   всех прежних слоёв — старые точечные override'ы ниже по коду
+   выигрывают у ранних объявлений тех же переменных/классов.
+   ============================================================ */
+:root{
+  --abyss:#080A0D; --deep:#0c0f13; --deep2:#11161D; --surface:#11161D; --surface2:#171E27;
+  --line:#1E252E; --text:#F5F7FA; --muted:#8B94A3;
+  --aqua:#32E0C4; --aqua-2:#22B79E; --aqua-dim:#173B36;
+  --gold:#FFC94A; --gold-2:#FFA724; --foam:#EAFBF7;
+  --danger:#FF5C6A; --green:#34D399; --purple:#8C7CFF;
+  --radius:22px; --radius-lg:24px;
+  --grad-aqua:linear-gradient(135deg,#4CF0D6 0%,#22B79E 100%);
+  --grad-gold:linear-gradient(135deg,#FFDD8A 0%,#FFA724 100%);
+  --glass-bg:#11161D; --glass-brd:rgba(255,255,255,.08); --glass-hi:rgba(255,255,255,.04);
+  --sh-card:0 20px 44px -22px rgba(0,0,0,.9),0 2px 10px -4px rgba(0,0,0,.6);
+  --sh-soft:0 12px 28px -16px rgba(0,0,0,.7);
+  --glow-aqua:0 0 0 1px rgba(50,224,196,.24),0 10px 26px -8px rgba(50,224,196,.38);
+  --glow-gold:0 10px 26px -8px rgba(255,201,74,.36);
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+html,body{background:var(--abyss);}
+body{
+  background:radial-gradient(110% 50% at 50% -8%,#0e1218 0%,rgba(8,10,13,0) 55%),var(--abyss);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",ui-sans-serif,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* -------- типографика -------- */
+h1.title{font-size:32px;font-weight:800;letter-spacing:-.035em;margin:4px 2px 14px;}
+.sub{font-size:14px;color:var(--muted);}
+h2{letter-spacing:-.02em;}
+
+/* -------- единая карточка -------- */
+.panel,.glass,.card,.pill,.leader,.stat,.histrow,.ach,.contest,.crow,.quest,.task,.set-row,.method,.push,.daily{
+  background:var(--surface)!important;border:1px solid var(--glass-brd);
+  -webkit-backdrop-filter:none;backdrop-filter:none;
+  box-shadow:var(--sh-soft);
+}
+.panel,.card,.contest,.quest,.push,.daily{border-radius:var(--radius);}
+.pill,.leader,.stat,.histrow,.ach,.crow,.task,.set-row,.method{border-radius:18px;}
+.card:active,.pill:active,.leader:active,.crow:active{transform:scale(.98);}
+.card::after{display:none;}
+
+/* игровые карточки — одна общая тёмная поверхность + акцентная иконка,
+   без «случайных» цветных плашек под каждый режим */
+.c-tasks,.c-upgrade,.c-roul,.c-crash,.c-pvp{background:var(--surface)!important;}
+.card h2{color:var(--text);}
+.card .badge{background:var(--grad-gold);color:#2a1a00;}
+
+/* hero / pvp-feat — тоже единая тёмная поверхность с мягким акцентным свечением,
+   вместо цветного градиента на всю карточку */
+.hero-card,.pvp-feat{background:var(--surface)!important;border:1px solid var(--glass-brd);box-shadow:var(--sh-card);}
+.hero-card::before{background:radial-gradient(circle,rgba(50,224,196,.20),rgba(50,224,196,0) 70%);}
+.pvp-feat::after{background:radial-gradient(120% 90% at 85% -10%,rgba(255,201,74,.12),transparent 55%);}
+.pvp-feat .pf-badge{background:var(--grad-gold);}
+
+/* -------- кнопки: единая система -------- */
+.btn-primary{height:58px;padding:0 20px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:16.5px;background:var(--grad-aqua);color:#03231d;box-shadow:var(--glow-aqua),inset 0 1px 0 rgba(255,255,255,.3);}
+.btn-ghost{height:54px;padding:0 18px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:var(--surface2)!important;border:1px solid var(--glass-brd);color:var(--text);font-weight:700;-webkit-backdrop-filter:none;backdrop-filter:none;}
+.btn-ghost:active{background:var(--line)!important;}
+.hero-actions .btn-primary{height:58px;padding:0 20px;}
+button{font-family:inherit;}
+
+/* -------- инпуты/переключатели: единый стиль -------- */
+input,.method{background:var(--surface2);border:1px solid var(--glass-brd);border-radius:16px;}
+input:focus{border-color:var(--aqua);}
+.switch,.cr-switch-track{background:var(--surface2);}
+.switch.on,.cr-switch input:checked ~ .cr-switch-track{background:var(--grad-aqua);}
+
+/* -------- модальные окна (шторки) — единый стиль -------- */
+.sheet{background:#0D1117;-webkit-backdrop-filter:none;backdrop-filter:none;border:1px solid var(--glass-brd);border-top-left-radius:28px;border-top-right-radius:28px;box-shadow:0 -24px 60px -20px rgba(0,0,0,.9);}
+.overlay{background:rgba(3,4,6,.78);}
+
+/* -------- навигация: минимальная, полупрозрачная, светящийся активный -------- */
+.tabbar{background:rgba(8,10,13,.86);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);border-top:1px solid var(--glass-brd);padding-top:10px;}
+.tab{opacity:.55;}
+.tab.active{opacity:1;}
+
+/* -------- чипы/сегменты -------- */
+.chip{background:var(--surface2);border:1px solid var(--glass-brd);}
+.chip.active{background:var(--grad-gold)!important;color:#2a1a00;border-color:transparent;}
+.seg{background:var(--surface2);border:1px solid var(--glass-brd);-webkit-backdrop-filter:none;backdrop-filter:none;}
+
+/* -------- разрядка по сетке 8px между крупными блоками -------- */
+.screen>.panel,.screen>.card,.screen>.hero-card,.screen>.pvp-feat,.screen>.modes-grid,
+.screen>.contest,.screen>#leader-list>*,.screen>.grid2{margin-bottom:24px;}
+.modes-grid{gap:16px;}
+
+/* -------- топ-бар главной: баланс · онлайн · профиль -------- */
+.home-top{display:flex;align-items:center;gap:10px;margin:2px 2px 20px;}
+.home-top .spacer{flex:1;}
+.home-top-pill{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--glass-brd);border-radius:999px;padding:9px 14px;font-weight:800;font-size:14px;box-shadow:var(--sh-soft);}
+.home-top-pill .ic-star{width:18px;height:18px;}
+.home-profile-btn{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--surface);border:1px solid var(--glass-brd);cursor:pointer;box-shadow:var(--sh-soft);transition:transform .12s var(--ease);font-size:18px;}
+.home-profile-btn:active{transform:scale(.92);}
+
+/* -------- превью-секции на главной: конкурсы/лидеры/магазин -------- */
+.home-section{margin-bottom:24px;}
+.home-section-head{display:flex;align-items:center;justify-content:space-between;margin:0 2px 12px;}
+.home-section-head h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.02em;}
+.home-section-head a{color:var(--aqua);font-weight:700;font-size:13px;cursor:pointer;}
+.home-preview-card{background:var(--surface);border:1px solid var(--glass-brd);border-radius:var(--radius);padding:16px;box-shadow:var(--sh-soft);cursor:pointer;transition:transform .15s var(--ease);}
+.home-preview-card:active{transform:scale(.98);}
+.hp-contest{display:flex;align-items:center;gap:14px;}
+.hp-contest .hp-ic{width:52px;height:52px;flex:none;border-radius:16px;display:grid;place-items:center;font-size:26px;background:radial-gradient(circle at 38% 28%,#1e5268,#0c2637 72%);}
+.hp-contest .hp-b{flex:1;min-width:0;}
+.hp-contest .hp-b b{font-size:15px;}
+.hp-contest .hp-b p{margin:3px 0 0;color:var(--muted);font-size:12.5px;}
+.hp-contest .hp-timer{background:var(--grad-gold);color:#2a1a00;font-weight:800;font-size:12px;padding:5px 10px;border-radius:999px;white-space:nowrap;}
+.hp-leaders{display:flex;gap:10px;}
+.hp-leaders .hp-lcard{flex:1;text-align:center;padding:14px 8px;}
+.hp-leaders .hp-lcard .av{width:40px;height:40px;border-radius:50%;margin:0 auto 8px;background:var(--surface2);display:grid;place-items:center;font-size:18px;}
+.hp-leaders .hp-lcard b{display:block;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hp-leaders .hp-lcard .sc{color:var(--gold);font-weight:800;font-size:12px;margin-top:3px;}
+.hp-shop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+
+/* -------- rarity-теги в магазине -------- */
+.rarity{position:absolute;top:10px;left:10px;font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;z-index:2;}
+.rarity.common{background:rgba(139,148,163,.18);color:#c3cbd6;}
+.rarity.rare{background:rgba(95,180,255,.18);color:#7fb3ff;}
+.rarity.epic{background:rgba(154,124,255,.2);color:#b7a3ff;}
+.rarity.legendary{background:var(--grad-gold);color:#2a1a00;}
+.pill{position:relative;}
+
+/* -------- прогресс-бар конкурсов -------- */
+.contest-progress{margin-top:12px;}
+.contest-progress .cp-row{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:5px;}
+.contest-progress .cp-bar{height:7px;background:var(--surface2);border-radius:99px;overflow:hidden;}
+.contest-progress .cp-bar i{display:block;height:100%;background:var(--grad-aqua);border-radius:99px;}
+
+/* -------- подиум лидеров (топ-3) -------- */
+.podium{display:flex;align-items:flex-end;gap:10px;margin-bottom:24px;}
+.podium-slot{flex:1;text-align:center;background:var(--surface);border:1px solid var(--glass-brd);border-radius:var(--radius);padding:16px 8px;box-shadow:var(--sh-soft);position:relative;animation:podiumIn .5s var(--ease) backwards;}
+.podium-slot.p1{padding-top:28px;order:2;box-shadow:var(--glow-gold),var(--sh-card);border-color:rgba(255,201,74,.35);}
+.podium-slot.p2{order:1;}
+.podium-slot.p3{order:3;}
+.podium-slot .rk{position:absolute;top:10px;left:10px;font-size:11px;font-weight:800;color:var(--muted);}
+.podium-slot.p1 .rk{color:var(--gold);}
+.podium-slot .av{width:52px;height:52px;border-radius:50%;margin:0 auto 10px;background:var(--surface2);display:grid;place-items:center;font-size:24px;border:2px solid var(--glass-brd);}
+.podium-slot.p1 .av{width:64px;height:64px;font-size:28px;border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,201,74,.18);}
+.podium-slot .nm{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.podium-slot .sc{color:var(--gold);font-weight:800;font-size:13px;margin-top:4px;}
+.podium-slot .medal{font-size:20px;margin-bottom:4px;}
+@keyframes podiumIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+.podium-slot.p2{animation-delay:.05s;} .podium-slot.p1{animation-delay:.15s;} .podium-slot.p3{animation-delay:0s;}
+
+@media (prefers-reduced-motion: reduce){ .podium-slot{animation:none;} }
+
+/* -------- профиль: крупный аватар + меню-карточки -------- */
+.prof-head-card{padding:20px 18px;}
+.prof-head{margin-bottom:0;}
+.prof-av{width:88px;height:88px;font-size:40px;border-width:2px;}
+.prof-info h2{font-size:22px;}
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+.menu-card{background:var(--surface);border:1px solid var(--glass-brd);border-radius:18px;padding:16px;
+  display:flex;flex-direction:column;gap:10px;cursor:pointer;font-weight:700;font-size:14.5px;box-shadow:var(--sh-soft);
+  transition:transform .15s var(--ease),background .15s;}
+.menu-card:active{transform:scale(.97);background:var(--surface2);}
+.menu-card .mc-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;
+  background:radial-gradient(circle at 38% 28%,#1e5268,#0c2637 72%);}
 </style>
 </head>
 <body>
@@ -670,10 +833,16 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 
 <!-- ИГРЫ / ГЛАВНАЯ -->
 <div class="screen active" id="s-home">
+  <div class="home-top">
+    <div class="home-top-pill"><span class="ic-star" style="width:18px;height:18px"></span><span class="mono" data-stars>0</span></div>
+    <div class="home-top-pill"><span class="dot-live"></span>&nbsp;<span id="online" class="mono">—</span></div>
+    <div class="spacer"></div>
+    <div class="home-profile-btn" onclick="go('profile')">🦈</div>
+  </div>
+
   <div class="hero-card glass">
     <div class="hero-top">
       <div class="hero-greet"><span class="hero-hi" id="greet">С возвращением</span><span class="hero-name" id="hero-name">Игрок</span></div>
-      <div class="hero-online"><span class="dot-live"></span><span id="online" class="mono">—</span>&nbsp;<span id="i-online-lbl">онлайн</span></div>
     </div>
     <div class="hero-bal">
       <div class="hero-bal-main"><span class="ic-star"></span><span class="mono" data-stars>0</span><small id="i-stars-lbl">звёзд</small></div>
@@ -698,6 +867,21 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
       <svg class="mode-ic" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="gpad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#66fbea"/><stop offset="1" stop-color="#149a8f"/></linearGradient></defs><path fill="url(#gpad)" d="M34 14H14a10 10 0 00-10 10v3.6A5 5 0 0013 31l1-2h12l1 2a5 5 0 009-3.4V24a10 10 0 00-10-10zM15 19v2.5h2.5V24H15v2.5h-2.5V24H10v-2.5h2.5V19zm16 .5a2 2 0 110 4 2 2 0 010-4zm3 4a2 2 0 110 4 2 2 0 010-4z"/></svg></div>
     <div class="card c-upgrade" onclick="toast(t('upgrade_toast'))"><h2 style="font-size:21px"><span id="i-upgrade-title">Апгрейд</span> <span class="badge" id="i-soon">Скоро</span></h2><p style="max-width:none" id="i-upgrade-desc">Множь звёзды</p>
       <svg class="mode-ic" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="chart" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ffd873"/><stop offset="1" stop-color="#ff8e28"/></linearGradient></defs><path stroke="url(#chart)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="M8 34l9-9 6 5 12-13"/><path fill="url(#chart)" d="M28 15h11v11l-4-4-7-7z"/></svg></div>
+  </div>
+
+  <div class="home-section">
+    <div class="home-section-head"><h3 id="i-home-contests-h">Розыгрыши</h3><a onclick="go('contests')" id="i-home-contests-all">Все →</a></div>
+    <div id="home-contest-preview"></div>
+  </div>
+
+  <div class="home-section">
+    <div class="home-section-head"><h3 id="i-home-leaders-h">Лидеры</h3><a onclick="go('leaders')" id="i-home-leaders-all">Все →</a></div>
+    <div class="hp-leaders" id="home-leaders-preview"></div>
+  </div>
+
+  <div class="home-section">
+    <div class="home-section-head"><h3 id="i-home-shop-h">Магазин</h3><a onclick="go('shop')" id="i-home-shop-all">Все →</a></div>
+    <div class="hp-shop-grid" id="home-shop-preview"></div>
   </div>
 </div>
 
@@ -814,12 +998,14 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 <!-- ПРОФИЛЬ -->
 <div class="screen" id="s-profile">
   <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
-  <div class="prof-head">
-    <div class="prof-av">🦈</div>
-    <div class="prof-info">
-      <h2 id="prof-name">Вы</h2>
-      <div class="lvl" id="prof-lvl">Уровень 1 · Малёк</div>
-      <div class="lvlbar"><i id="lvlbar" style="width:10%"></i></div>
+  <div class="panel prof-head-card">
+    <div class="prof-head">
+      <div class="prof-av">🦈</div>
+      <div class="prof-info">
+        <h2 id="prof-name">Вы</h2>
+        <div class="lvl" id="prof-lvl">Уровень 1 · Малёк</div>
+        <div class="lvlbar"><i id="lvlbar" style="width:10%"></i></div>
+      </div>
     </div>
   </div>
   <div class="stats">
@@ -837,13 +1023,11 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
     <button class="btn-ghost" onclick="openBuyStars()" id="i-topup-btn">Пополнить звёзды</button>
   </div>
 
-  <div class="row" style="gap:8px;margin-bottom:8px">
-    <button class="btn-ghost" onclick="go('refs')">👥 <span id="i-friends-btn">Друзья</span></button>
-    <button class="btn-ghost" onclick="go('history')">📜 <span id="i-history-btn">История</span></button>
-  </div>
-  <div class="row" style="gap:8px;margin-bottom:12px">
-    <button class="btn-ghost" onclick="go('ach')">🏅 <span id="i-ach-btn">Достижения</span></button>
-    <button class="btn-ghost" onclick="go('settings')">⚙️ <span id="i-settings-btn">Настройки</span></button>
+  <div class="menu-grid">
+    <div class="menu-card" onclick="go('refs')"><div class="mc-ic">👥</div><span id="i-friends-btn">Друзья</span></div>
+    <div class="menu-card" onclick="go('history')"><div class="mc-ic">📜</div><span id="i-history-btn">История</span></div>
+    <div class="menu-card" onclick="go('ach')"><div class="mc-ic">🏅</div><span id="i-ach-btn">Достижения</span></div>
+    <div class="menu-card" onclick="go('settings')"><div class="mc-ic">⚙️</div><span id="i-settings-btn">Настройки</span></div>
   </div>
 </div>
 
@@ -1076,7 +1260,9 @@ var I18N={
     crash_cashout_error:'Помилка виводу',
     push_new_draw_title:'Новий розіграш через 1 годину', push_new_draw_sub:'6 призів · встигніть приєднатися',
     ticker_won_word:'виграв',
-    cr_phase_live:'Раунд триває', cr_phase_over:'Раунд завершено'
+    cr_phase_live:'Раунд триває', cr_phase_over:'Раунд завершено',
+    see_all_lbl:'Всі →', home_contest_empty:'Поки немає активних розіграшів',
+    rarity_common:'Звичайний', rarity_rare:'Рідкісний', rarity_epic:'Епічний', rarity_legendary:'Легендарний'
   },
   ru:{
     greet:'С возвращением', online_lbl:'онлайн', stars_lbl:'звёзд', uah_lbl:'грн',
@@ -1184,7 +1370,9 @@ var I18N={
     crash_cashout_error:'Ошибка вывода',
     push_new_draw_title:'Новый розыгрыш через 1 час', push_new_draw_sub:'6 призов · успейте присоединиться',
     ticker_won_word:'выиграл',
-    cr_phase_live:'Раунд идёт', cr_phase_over:'Раунд завершён'
+    cr_phase_live:'Раунд идёт', cr_phase_over:'Раунд завершён',
+    see_all_lbl:'Все →', home_contest_empty:'Пока нет активных розыгрышей',
+    rarity_common:'Обычный', rarity_rare:'Редкий', rarity_epic:'Эпический', rarity_legendary:'Легендарный'
   },
   en:{
     greet:'Welcome back', online_lbl:'online', stars_lbl:'stars', uah_lbl:'UAH',
@@ -1292,7 +1480,9 @@ var I18N={
     crash_cashout_error:'Cash out error',
     push_new_draw_title:'New draw in 1 hour', push_new_draw_sub:'6 prizes · join in time',
     ticker_won_word:'won',
-    cr_phase_live:'Round live', cr_phase_over:'Round over'
+    cr_phase_live:'Round live', cr_phase_over:'Round over',
+    see_all_lbl:'All →', home_contest_empty:'No active draws right now',
+    rarity_common:'Common', rarity_rare:'Rare', rarity_epic:'Epic', rarity_legendary:'Legendary'
   }
 };
 var LANG_KEY='shark_lang_v1';
@@ -1336,6 +1526,9 @@ function applyI18n(){
     'i-contest-tab-history':'history_btn',
     'i-leaders-h1':'leaders_screen_h1', 'i-leaders-sub':'leaders_sub', 'i-leaders-week-end':'leaders_week_end_lbl',
     'i-shop-h1':'shop_h1', 'i-shop-sub':'shop_sub',
+    'i-home-contests-h':'contests_h1', 'i-home-contests-all':'see_all_lbl',
+    'i-home-leaders-h':'leaders_screen_h1', 'i-home-leaders-all':'see_all_lbl',
+    'i-home-shop-h':'shop_h1', 'i-home-shop-all':'see_all_lbl',
     'i-ref-hero-pre':'ref_hero_pre', 'i-ref-hero-post':'ref_hero_post', 'i-ref-hero-muted':'ref_hero_muted',
     'i-ref-line-pre':'ref_line_pre', 'i-ref-line-post':'ref_line_post',
     'i-ref-cap-pre':'ref_cap_pre', 'i-ref-cap-mid':'ref_cap_mid', 'i-ref-cap-post':'ref_cap_post',
@@ -1780,7 +1973,42 @@ function renderCrashPlayers(){
 function resetSharkPos(){var sh=document.getElementById('cshark');if(sh){sh.innerHTML=sharkSVG();sh.style.transition='';sh.style.left='18px';sh.style.top='auto';sh.style.bottom='14px';sh.style.transform='scaleX(-1) rotate(-12deg)';sh.style.filter='';}var cv=document.getElementById('crash-canvas');if(cv){var ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);}}
 
 /* ============ МАГАЗИН ============ */
-function renderShop(){var g=document.getElementById('shop-grid');g.innerHTML='';SHOP.forEach(function(it){var el=document.createElement('div');el.className='pill';el.innerHTML='<div class="ic">'+it.emoji+'</div><div class="nm">'+it.name+'</div><div class="px">⭐ '+it.value+'</div>';el.onclick=function(){buyGift(it);};g.appendChild(el);});}
+function shopRarity(v){ return v>=550?'legendary':(v>=450?'epic':(v>=380?'rare':'common')); }
+function shopRarityLbl(r){ var m={common:t('rarity_common'),rare:t('rarity_rare'),epic:t('rarity_epic'),legendary:t('rarity_legendary')}; return m[r]||r; }
+function shopCardHTML(it){
+  var r=shopRarity(it.value);
+  return '<div class="rarity '+r+'">'+shopRarityLbl(r)+'</div><div class="ic">'+it.emoji+'</div><div class="nm">'+it.name+'</div><div class="px">⭐ '+it.value+'</div>';
+}
+function renderShop(){var g=document.getElementById('shop-grid');g.innerHTML='';SHOP.forEach(function(it){var el=document.createElement('div');el.className='pill';el.innerHTML=shopCardHTML(it);el.onclick=function(){buyGift(it);};g.appendChild(el);});}
+function renderHomeShopPreview(){
+  var g=document.getElementById('home-shop-preview'); if(!g) return; g.innerHTML='';
+  SHOP.slice(0,3).forEach(function(it){var el=document.createElement('div');el.className='pill';el.innerHTML=shopCardHTML(it);el.onclick=function(){go('shop');};g.appendChild(el);});
+}
+function renderHomeLeadersPreview(){
+  var g=document.getElementById('home-leaders-preview'); if(!g) return; g.innerHTML='';
+  var medals=['🥇','🥈','🥉'];
+  LEADERS.slice(0,3).forEach(function(l,i){
+    var el=document.createElement('div'); el.className='hp-lcard'; el.onclick=function(){go('leaders');};
+    el.innerHTML='<div class="medal">'+medals[i]+'</div>'+avDiv('av',l.a,40)+'<b>'+l.n+'</b><div class="sc">⭐ '+l.s.toLocaleString('ru')+'</div>';
+    g.appendChild(el);
+  });
+}
+function contestProgress(c){
+  var m=/(\d+)ч\s*(\d+)?/.exec(c.timer||''); var hoursLeft=m?parseInt(m[1],10):12;
+  return Math.max(6,Math.min(96,Math.round(100-(hoursLeft/24*100))));
+}
+function renderHomeContestPreview(){
+  var box=document.getElementById('home-contest-preview'); if(!box) return; box.innerHTML='';
+  var c=ACTIVE_CONTESTS[0];
+  if(!c){ box.innerHTML='<div class="empty">'+t('home_contest_empty')+'</div>'; return; }
+  var pct=contestProgress(c);
+  var el=document.createElement('div'); el.className='home-preview-card hp-contest'; el.onclick=function(){go('contests');};
+  el.innerHTML='<div class="hp-ic">🏆</div><div class="hp-b"><b>'+tf('prizes_count_tpl',{n:c.prizesN})+'</b><p>'+c.members.toLocaleString('ru')+' '+t('contest_members_word')+'</p>'
+    +'<div class="contest-progress"><div class="cp-row"><span>'+t('contest_tab_active')+'</span><span>'+pct+'%</span></div><div class="cp-bar"><i style="width:'+pct+'%"></i></div></div></div>'
+    +'<div class="hp-timer">'+c.timer+'</div>';
+  box.appendChild(el);
+}
+function renderHomePreviews(){ renderHomeContestPreview(); renderHomeLeadersPreview(); renderHomeShopPreview(); }
 function buyGift(it){if(S.stars<it.value){toast(tf('gift_insufficient_toast_tpl',{name:it.name}));return;}showSheet('<div class="result-emoji">'+it.emoji+'</div><h3 style="text-align:center">'+tf('buy_gift_title_tpl',{name:it.name})+'</h3><p class="muted" style="text-align:center">'+tf('buy_gift_desc_demo_tpl',{value:it.value})+'</p><button class="btn-primary" id="confirm-gift">'+tf('buy_gift_btn_tpl',{value:it.value})+'</button><button class="btn-ghost" style="margin-top:8px" onclick="closeSheet()">'+t('cancel_btn')+'</button>');var cg=document.getElementById('confirm-gift');if(cg)cg.onclick=function(){S.stars-=it.value;syncBalances();closeSheet();logOp(it.emoji,tf('hist_gift_buy_title_tpl',{name:it.name}),t('shop_h1'),'−⭐'+it.value,'minus');toast(it.emoji+' '+tf('gift_bought_demo_toast_tpl',{name:it.name}));};}
 
 /* ============ ЛИДЕРЫ ============ */
@@ -1804,13 +2032,28 @@ function startLeaderCountdown(){
   tick(); leaderCdTimer=setInterval(tick,1000);
 }
 function stopLeaderCountdown(){ if(leaderCdTimer){clearInterval(leaderCdTimer);leaderCdTimer=null;} }
-function renderLeaders(){var box=document.getElementById('leader-list');box.innerHTML='';LEADERS.forEach(function(l,i){var el=document.createElement('div');el.className='leader';el.innerHTML='<div class="rk">'+(i+1)+'</div>'+avDiv('av',l.a,38)+'<div class="nm">'+l.n+'</div><div class="sc">⭐ '+l.s.toLocaleString('ru')+'</div>';box.appendChild(el);});var you=document.createElement('div');you.className='leader you';you.innerHTML='<div class="rk">100+</div><div class="av">🙂</div><div class="nm">'+t('you_word')+'</div><div class="sc">⭐ '+S.stars.toLocaleString('ru')+'</div>';box.appendChild(you);}
+function renderLeaders(){
+  var box=document.getElementById('leader-list'); box.innerHTML='';
+  var top3=LEADERS.slice(0,3), rest=LEADERS.slice(3);
+  if(top3.length){
+    var pod=document.createElement('div'); pod.className='podium';
+    var medals=['🥇','🥈','🥉'];
+    top3.forEach(function(l,i){
+      var slot=document.createElement('div'); slot.className='podium-slot p'+(i+1);
+      slot.innerHTML='<div class="rk">#'+(i+1)+'</div><div class="medal">'+medals[i]+'</div>'+avDiv('av',l.a,i===0?64:52)+'<div class="nm">'+l.n+'</div><div class="sc">⭐ '+l.s.toLocaleString('ru')+'</div>';
+      pod.appendChild(slot);
+    });
+    box.appendChild(pod);
+  }
+  rest.forEach(function(l,i){var el=document.createElement('div');el.className='leader';el.innerHTML='<div class="rk">'+(i+4)+'</div>'+avDiv('av',l.a,38)+'<div class="nm">'+l.n+'</div><div class="sc">⭐ '+l.s.toLocaleString('ru')+'</div>';box.appendChild(el);});
+  var you=document.createElement('div');you.className='leader you';you.innerHTML='<div class="rk">100+</div><div class="av">🙂</div><div class="nm">'+t('you_word')+'</div><div class="sc">⭐ '+S.stars.toLocaleString('ru')+'</div>';box.appendChild(you);
+}
 
 /* ============ КОНКУРСЫ ============ */
 var ACTIVE_CONTESTS=[{id:1,prizesN:6,members:4263,timer:"11ч 57м",prizes:[{e:"🦈",v:"1 126"},{e:"🐚",v:"708"},{e:"🪸",v:"530"}]},{id:2,prizesN:9,members:644,timer:"3ч 26м",prizes:[{e:"🌊",v:"1 320"},{e:"🐠",v:"748"},{e:"⚓",v:"474"}]}];
 var HISTORY_CONTESTS=[{id:91,prizesN:6,members:5210,won:false,date:"вчера",prizes:[{e:"💎",v:"2 000"},{e:"🦈",v:"900"},{e:"🐚",v:"500"}]},{id:92,prizesN:3,members:1880,won:true,date:"3 дня назад",prizes:[{e:"🪸",v:"640"},{e:"🐠",v:"320"},{e:"⚓",v:"180"}]}];
 function setContestTab(tab){$all('#contest-seg button').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-ctab')===tab);});var body=document.getElementById('contest-body');body.innerHTML='';if(tab==='active'){ACTIVE_CONTESTS.forEach(function(c){body.appendChild(contestCard(c,'active'));});}else if(tab==='yours'){var joined=ACTIVE_CONTESTS.filter(function(c){return S.joinedContests[c.id];});if(!joined.length){body.innerHTML='<div class="empty">'+t('contest_empty_yours')+'</div>';}else joined.forEach(function(c){body.appendChild(contestCard(c,'yours'));});}else{HISTORY_CONTESTS.forEach(function(c){body.appendChild(contestCard(c,'history'));});}}
-function contestCard(c,mode){var el=document.createElement('div');el.className='contest';var right=mode==='history'?('<div class="timer" style="background:'+(c.won?'#2fd4c4':'#2a3a4a')+';color:'+(c.won?'#03241f':'#cfeef0')+'">'+(c.won?t('win_col_lbl'):t('contest_ended_lbl'))+'</div>'):('<div class="timer">'+c.timer+'</div>');var sub=mode==='history'?(c.date+' · '+c.members.toLocaleString('ru')+' '+t('contest_members_word')):(c.members.toLocaleString('ru')+' '+t('contest_members_word'));var prizes='<div class="prizes">'+c.prizes.map(function(p){return '<div class="prize"><div class="ic">'+p.e+'</div><div class="v">⭐'+p.v+'</div></div>';}).join('')+'</div>';var btn='';if(mode==='active'){var joined=!!S.joinedContests[c.id];btn='<button class="btn-ghost" style="margin-top:12px" '+(joined?'disabled':'')+' id="cbtn-'+c.id+'">'+(joined?t('contest_joined_lbl'):t('contest_join_btn'))+'</button>';}else if(mode==='yours'){btn='<div style="margin-top:12px;color:var(--aqua);font-weight:700;text-align:center">'+t('contest_joined_lbl')+'</div>';}el.innerHTML='<div class="ch"><div><b style="font-size:17px">'+tf('prizes_count_tpl',{n:c.prizesN})+'</b><div style="color:var(--muted);font-size:13px">'+sub+'</div></div>'+right+'</div>'+prizes+btn;if(mode==='active'){var b=el.querySelector('#cbtn-'+c.id);if(b&&!S.joinedContests[c.id])b.onclick=function(){S.joinedContests[c.id]=true;logOp('🏆',t('hist_contest_join_title'),tf('prizes_count_tpl',{n:c.prizesN}),'','');toast(t('contest_joined_toast'));setContestTab('active');};}return el;}
+function contestCard(c,mode){var el=document.createElement('div');el.className='contest';var right=mode==='history'?('<div class="timer" style="background:'+(c.won?'#2fd4c4':'#2a3a4a')+';color:'+(c.won?'#03241f':'#cfeef0')+'">'+(c.won?t('win_col_lbl'):t('contest_ended_lbl'))+'</div>'):('<div class="timer">'+c.timer+'</div>');var sub=mode==='history'?(c.date+' · '+c.members.toLocaleString('ru')+' '+t('contest_members_word')):(c.members.toLocaleString('ru')+' '+t('contest_members_word'));var prizes='<div class="prizes">'+c.prizes.map(function(p){return '<div class="prize"><div class="ic">'+p.e+'</div><div class="v">⭐'+p.v+'</div></div>';}).join('')+'</div>';var progress=mode==='active'?('<div class="contest-progress"><div class="cp-row"><span>'+t('contest_tab_active')+'</span><span>'+contestProgress(c)+'%</span></div><div class="cp-bar"><i style="width:'+contestProgress(c)+'%"></i></div></div>'):'';var btn='';if(mode==='active'){var joined=!!S.joinedContests[c.id];btn='<button class="btn-ghost" style="margin-top:12px" '+(joined?'disabled':'')+' id="cbtn-'+c.id+'">'+(joined?t('contest_joined_lbl'):t('contest_join_btn'))+'</button>';}else if(mode==='yours'){btn='<div style="margin-top:12px;color:var(--aqua);font-weight:700;text-align:center">'+t('contest_joined_lbl')+'</div>';}el.innerHTML='<div class="ch"><div><b style="font-size:17px">'+tf('prizes_count_tpl',{n:c.prizesN})+'</b><div style="color:var(--muted);font-size:13px">'+sub+'</div></div>'+right+'</div>'+prizes+progress+btn;if(mode==='active'){var b=el.querySelector('#cbtn-'+c.id);if(b&&!S.joinedContests[c.id])b.onclick=function(){S.joinedContests[c.id]=true;logOp('🏆',t('hist_contest_join_title'),tf('prizes_count_tpl',{n:c.prizesN}),'','');toast(t('contest_joined_toast'));setContestTab('active');};}return el;}
 
 /* ============ РЕФЕРАЛЫ ============ */
 function refSet(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
@@ -2035,7 +2278,7 @@ window.go=go;
 function init(){
   applyI18n();
   var hs=document.getElementById('hero-shark'); if(hs) hs.innerHTML=sharkSVG();
-  buildStrip();renderShop();renderLeaders();setContestTab('active');
+  buildStrip();renderShop();renderLeaders();setContestTab('active');renderHomePreviews();
   renderStreak();renderPush();renderProfile();
   syncBalances();setBet(50);setCBet(50);setPBet(50);
   showOnboarding(false);    // показать обучение при первом запуске
