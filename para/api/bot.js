@@ -54,10 +54,13 @@ async function sbGet(path) {
   const t = await r.text(); try { return t ? JSON.parse(t) : []; } catch (e) { return []; }
 }
 async function sbPost(path, row) {
-  const URL = env('SUPABASE_URL'); if (!URL) return;
-  await fetch(URL + '/rest/v1/' + path, {
-    method: 'POST', headers: Object.assign({}, sbHeaders(), { Prefer: 'return=minimal' }), body: JSON.stringify(row)
-  });
+  const URL = env('SUPABASE_URL'); if (!URL) return { ok: false, status: 0 };
+  try {
+    const r = await fetch(URL + '/rest/v1/' + path, {
+      method: 'POST', headers: Object.assign({}, sbHeaders(), { Prefer: 'return=minimal' }), body: JSON.stringify(row)
+    });
+    return { ok: r.ok, status: r.status };
+  } catch (e) { return { ok: false, status: 0 }; }
 }
 // найти tg второго участника пары (нужно для DUO — Premium покрывает обоих)
 async function findPartnerTg(userId) {
@@ -71,7 +74,9 @@ async function findPartnerTg(userId) {
   } catch (e) { return null; }
 }
 // активировать подписку по данным успешного платежа (idempotent-безопасно: одна запись на платёж)
-async function activateSubscription(token, payloadStr) {
+async function activateSubscription(token, sp) {
+  const payloadStr = sp && sp.invoice_payload;
+  const chargeId = (sp && sp.telegram_payment_charge_id) || null; // нужен для возврата (refundStarPayment)
   let pl = {}; try { pl = JSON.parse(payloadStr || '{}'); } catch (e) {}
   const uid = pl.tg, planKey = pl.plan, plan = PLANS[planKey];
   if (!uid || !plan) return;
@@ -85,12 +90,16 @@ async function activateSubscription(token, payloadStr) {
   const end = addMonths(startFrom, plan.months);
   const partner = plan.type === 'duo' ? await findPartnerTg(uid) : null;
   const nowIso = new Date().toISOString();
+  // база строки + charge_id. Если колонки charge_id ещё нет в БД — вставка с ней
+  // упадёт (400), тогда пишем без неё, чтобы подписка точно сохранилась.
+  const baseRow = {
+    telegram_user_id: uid, partner_user_id: partner, plan: planKey, type: plan.type,
+    start_date: nowIso, end_date: end.toISOString(), status: 'active', created_at: nowIso, updated_at: nowIso
+  };
   try {
-    await sbPost('subscriptions', {
-      telegram_user_id: uid, partner_user_id: partner, plan: planKey, type: plan.type,
-      start_date: nowIso, end_date: end.toISOString(), status: 'active', created_at: nowIso, updated_at: nowIso
-    });
-  } catch (e) {}
+    const res1 = await sbPost('subscriptions', Object.assign({ charge_id: chargeId }, baseRow));
+    if (!res1 || !res1.ok) { await sbPost('subscriptions', baseRow); }
+  } catch (e) { try { await sbPost('subscriptions', baseRow); } catch (e2) {} }
   const until = end.toISOString().slice(0, 10);
   try {
     await tg('sendMessage', token, {
@@ -160,7 +169,7 @@ module.exports = async (req, res) => {
     }
     // 2) successful_payment — платёж прошёл, активируем подписку
     if (update.message && update.message.successful_payment) {
-      await activateSubscription(TOKEN, update.message.successful_payment.invoice_payload);
+      await activateSubscription(TOKEN, update.message.successful_payment);
       res.status(200).json({ ok: true }); return;
     }
 
