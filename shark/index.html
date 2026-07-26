@@ -799,7 +799,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
   <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
   <h1 class="title" id="i-leaders-h1">Лидеры</h1>
   <p class="sub" id="i-leaders-sub">Каждую неделю топ-100 по обороту получают ценные призы</p>
-  <div class="panel" style="text-align:center"><b style="font-size:15px" id="i-leaders-week-end">До конца недели</b><div class="mono" style="font-size:24px;font-weight:800;margin-top:6px">1д 09:10:37</div></div>
+  <div class="panel" style="text-align:center"><b style="font-size:15px" id="i-leaders-week-end">До конца недели</b><div class="mono" id="leader-countdown" style="font-size:24px;font-weight:800;margin-top:6px">—</div></div>
   <div id="leader-list"></div>
 </div>
 
@@ -1440,6 +1440,7 @@ function go(name){
   if(name==='history') renderHistory();
   if(name==='refs') renderRefs();
   if(name==='profile') renderProfile();
+  if(name==='leaders'){ startLeaderCountdown(); } else { stopLeaderCountdown(); }
 }
 
 /* ============ ИГРЫ: переключатель Рулетка/Краш ============ */
@@ -1783,6 +1784,26 @@ function renderShop(){var g=document.getElementById('shop-grid');g.innerHTML='';
 function buyGift(it){if(S.stars<it.value){toast(tf('gift_insufficient_toast_tpl',{name:it.name}));return;}showSheet('<div class="result-emoji">'+it.emoji+'</div><h3 style="text-align:center">'+tf('buy_gift_title_tpl',{name:it.name})+'</h3><p class="muted" style="text-align:center">'+tf('buy_gift_desc_demo_tpl',{value:it.value})+'</p><button class="btn-primary" id="confirm-gift">'+tf('buy_gift_btn_tpl',{value:it.value})+'</button><button class="btn-ghost" style="margin-top:8px" onclick="closeSheet()">'+t('cancel_btn')+'</button>');var cg=document.getElementById('confirm-gift');if(cg)cg.onclick=function(){S.stars-=it.value;syncBalances();closeSheet();logOp(it.emoji,tf('hist_gift_buy_title_tpl',{name:it.name}),t('shop_h1'),'−⭐'+it.value,'minus');toast(it.emoji+' '+tf('gift_bought_demo_toast_tpl',{name:it.name}));};}
 
 /* ============ ЛИДЕРЫ ============ */
+var leaderCdTimer=null;
+function leaderWeekEndTarget(){
+  var now=new Date();
+  var day=now.getDay();                        // 0=вс,1=пн,...6=сб
+  var daysUntilMonday=(8-day)%7; if(daysUntilMonday===0) daysUntilMonday=7;
+  return new Date(now.getFullYear(),now.getMonth(),now.getDate()+daysUntilMonday,0,0,0,0);
+}
+function startLeaderCountdown(){
+  stopLeaderCountdown();
+  function pad(n){return (n<10?'0':'')+n;}
+  function tick(){
+    var el=document.getElementById('leader-countdown'); if(!el){stopLeaderCountdown();return;}
+    var diff=Math.max(0,leaderWeekEndTarget()-new Date());
+    var d=Math.floor(diff/86400000), h=Math.floor(diff%86400000/3600000),
+        m=Math.floor(diff%3600000/60000), s=Math.floor(diff%60000/1000);
+    el.textContent=(d>0?d+'д ':'')+pad(h)+':'+pad(m)+':'+pad(s);
+  }
+  tick(); leaderCdTimer=setInterval(tick,1000);
+}
+function stopLeaderCountdown(){ if(leaderCdTimer){clearInterval(leaderCdTimer);leaderCdTimer=null;} }
 function renderLeaders(){var box=document.getElementById('leader-list');box.innerHTML='';LEADERS.forEach(function(l,i){var el=document.createElement('div');el.className='leader';el.innerHTML='<div class="rk">'+(i+1)+'</div>'+avDiv('av',l.a,38)+'<div class="nm">'+l.n+'</div><div class="sc">⭐ '+l.s.toLocaleString('ru')+'</div>';box.appendChild(el);});var you=document.createElement('div');you.className='leader you';you.innerHTML='<div class="rk">100+</div><div class="av">🙂</div><div class="nm">'+t('you_word')+'</div><div class="sc">⭐ '+S.stars.toLocaleString('ru')+'</div>';box.appendChild(you);}
 
 /* ============ КОНКУРСЫ ============ */
