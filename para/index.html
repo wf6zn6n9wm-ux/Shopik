@@ -627,7 +627,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v46 · PARA+ реально включает функции';
+var APP_VERSION = 'v47 · Админ: возврат звёзд (refund)';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -2369,18 +2369,25 @@ function adminWishesView(){
 
 // ---------- Админ-вкладка «PARA+» (кто купил подписку, суммы, статусы) ----------
 function admSubRow(x){
-  var badge=x.status==='active'?{t:'✅ активна',c:''}:{t:'⌛ истекла',c:' wait'};
+  var badge=x.status==='active'?{t:'✅ активна',c:''}
+    :x.status==='refunded'?{t:'↩︎ возвращено',c:' wait'}
+    :{t:'⌛ истекла',c:' wait'};
   var who=x.buyer?esc(x.buyer):('ID '+esc(String(x.user||'—')));
   var typeLabel=x.type==='duo'?'💞 DUO':'❤️ SOLO';
   var months=x.months?(' · '+x.months+' мес'):'';
   var partner=(x.type==='duo'&&(x.partnerName||x.partner))?(' → '+(x.partnerName?esc(x.partnerName):('ID '+esc(String(x.partner))))):'';
   var search=((x.buyer||'')+' '+(x.user||'')+' '+(x.plan||'')).toLowerCase();
+  // кнопка возврата — только если есть charge_id и подписка ещё не возвращена
+  var refundBtn=(x.charge && x.status!=='refunded')
+    ? '<button class="uchip-f" data-act="adm-sub-refund" data-charge="'+esc(x.charge)+'" data-user="'+esc(String(x.user||''))+'" data-buyer="'+esc(who)+'" style="color:#ff8fb0">↩︎ Вернуть</button>'
+    : '';
   return '<div class="urow" data-name="'+esc(search)+'">'+
     '<div class="uav uav-l" style="font-size:15px;background:rgba(255,255,255,.06)">'+(x.type==='duo'?'💞':'❤️')+'</div>'+
     '<div class="flex1" style="min-width:0"><div class="urow-nm">'+who+'<span class="uchip">'+typeLabel+'</span></div>'+
     '<div class="urow-sub">'+x.stars+' ⭐'+months+partner+'</div>'+
     '<div class="urow-sub muted2">'+esc(x.start||'')+' → '+esc(x.end||'')+'</div></div>'+
-    '<span class="uchip'+badge.c+'">'+badge.t+'</span></div>';
+    '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:0 0 auto">'+
+      '<span class="uchip'+badge.c+'">'+badge.t+'</span>'+refundBtn+'</div></div>';
 }
 function adminSubsView(){
   var d=S.admSubsData;
@@ -2401,7 +2408,8 @@ function adminSubsView(){
     '<div class="b" style="color:#ffcf5c">'+fmtNum(st.stars)+' ⭐</div></div>'+
     admSrcRow('❤️ SOLO', st.solo, st.total, '#ff5e8a')+
     admSrcRow('💞 DUO', st.duo, st.total, '#c026d3')+
-    '<div class="xs muted2 mt2">Активные подписки — на '+fmtNum(st.activeStars)+' ⭐. Оплата в Telegram Stars.</div></div>';
+    '<div class="xs muted2 mt2">Активные подписки — на '+fmtNum(st.activeStars)+' ⭐. Выручка — без возвратов.'+
+    ((st.refunded||0)>0?(' Возвращено: '+st.refunded+'.'):'')+'</div></div>';
   var fil=window.__admSubFilter||'all';
   var chip=function(kk,l){ return '<button class="uchip-f'+(fil===kk?' on':'')+'" data-act="adm-sub-filter" data-f="'+kk+'">'+l+'</button>'; };
   var filters='<div class="row gap2" style="margin:0 0 10px">'+chip('all','Все')+chip('active','Активные')+chip('expired','Истёкшие')+'</div>';
@@ -2664,6 +2672,17 @@ var ACTS={
     render(); },
   'adm-wish-filter':function(el){ window.__admWishFilter=el.dataset.f||'all'; render(); },
   'adm-sub-filter':function(el){ window.__admSubFilter=el.dataset.f||'all'; render(); },
+  'adm-sub-refund':function(el){ var charge=el.dataset.charge, user=el.dataset.user, buyer=el.dataset.buyer||'покупателю';
+    var empty={subs:[],stats:{total:0,active:0,refunded:0,expired:0,solo:0,duo:0,stars:0,activeStars:0},count:0};
+    var doRefund=function(){ haptic('light'); showToast('⏳','Возврат','отправляем звёзды…');
+      api('refund_sub',{charge:charge,user:user}).then(function(r){
+        if(r&&r.ok){ showToast('✅','Возвращено','звёзды вернулись · '+buyer); haptic('success');
+          S.admSubsData=null; render(); api('admin_subs').then(function(rr){ S.admSubsData=(rr&&rr.ok)?rr:empty; render(); }).catch(function(){ S.admSubsData=empty; render(); }); }
+        else { showToast('⚠️','Не вышло',((r&&(r.error||r.reason))||'ошибка возврата')); }
+      }).catch(function(){ showToast('⚠️','Нет связи','попробуйте ещё раз'); }); };
+    var msg='Вернуть звёзды '+buyer+'? Premium отключится, отменить нельзя.';
+    if(TG&&TG.showConfirm){ TG.showConfirm(msg,function(ok){ if(ok) doRefund(); }); }
+    else if(window.confirm(msg)){ doRefund(); } },
   'adm-subs-refresh':function(){ haptic('light'); var empty={subs:[],stats:{total:0,active:0,expired:0,solo:0,duo:0,stars:0,activeStars:0},count:0}; S.admSubsData=null; render(); api('admin_subs').then(function(r){ S.admSubsData=(r&&r.ok)?r:empty; render(); }).catch(function(){ S.admSubsData=empty; render(); }); },
   'cfg-add':function(el){ var k=el.dataset.sec; cfgCollect(); var sec=cfgSections().filter(function(s){return s.key===k;})[0]; if(!S.adminConfig[k])S.adminConfig[k]=[]; S.adminConfig[k].push(sec.tpl()); haptic('light'); render(); },
   'cfg-del':function(el){ var k=el.dataset.sec, i=+el.dataset.idx; cfgCollect(); if(S.adminConfig[k])S.adminConfig[k].splice(i,1); haptic('light'); render(); },

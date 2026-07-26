@@ -665,16 +665,21 @@ module.exports = async (req, res) => {
       if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
       const d10 = (s) => String(s || '').slice(0, 10);
       const nowMs = Date.now();
+      // Пытаемся выбрать вместе с charge_id; если колонки ещё нет (миграция не
+      // выполнена) — PostgREST вернёт ошибку (не массив), тогда берём без неё.
+      const selBase = 'telegram_user_id,partner_user_id,plan,type,start_date,end_date,status,created_at';
       let subs = [];
-      try { subs = await sb('subscriptions?order=created_at.desc&limit=1000&select=telegram_user_id,partner_user_id,plan,type,start_date,end_date,status,created_at'); } catch (e) { subs = []; }
-      subs = Array.isArray(subs) ? subs : [];
+      try { subs = await sb('subscriptions?order=created_at.desc&limit=1000&select=' + selBase + ',charge_id'); } catch (e) {}
+      if (!Array.isArray(subs)) subs = [];
+      if (!subs.length) { try { const s2 = await sb('subscriptions?order=created_at.desc&limit=1000&select=' + selBase); if (Array.isArray(s2)) subs = s2; } catch (e) {} }
       // имена покупателей и партнёров из para_members
       let members = [];
       try { members = await sb('para_members?select=tg_id,name'); } catch (e) {}
       const nameByTg = {}; (members || []).forEach((m) => { nameByTg[m.tg_id] = m.name; });
       const list = subs.map((row) => {
         const plan = PLANS[row.plan] || {};
-        const active = (row.status === 'active') && row.end_date && (Date.parse(row.end_date) > nowMs);
+        const refunded = row.status === 'refunded';
+        const active = !refunded && (row.status === 'active') && row.end_date && (Date.parse(row.end_date) > nowMs);
         return {
           user: row.telegram_user_id,
           buyer: nameByTg[row.telegram_user_id] || null,
@@ -684,17 +689,20 @@ module.exports = async (req, res) => {
           stars: plan.stars || 0,
           start: d10(row.start_date), end: d10(row.end_date),
           created: d10(row.created_at),
-          status: active ? 'active' : 'expired'
+          charge: row.charge_id || null,                  // для возврата (может отсутствовать у старых записей)
+          status: refunded ? 'refunded' : (active ? 'active' : 'expired')
         };
       });
       const activeList = list.filter((x) => x.status === 'active');
+      const refundedList = list.filter((x) => x.status === 'refunded');
       const stats = {
         total: list.length,
         active: activeList.length,
-        expired: list.length - activeList.length,
+        refunded: refundedList.length,
+        expired: list.length - activeList.length - refundedList.length,
         solo: list.filter((x) => x.type === 'solo').length,
         duo: list.filter((x) => x.type === 'duo').length,
-        stars: list.reduce((a, x) => a + (x.stars || 0), 0),               // валовая выручка в звёздах
+        stars: list.filter((x) => x.status !== 'refunded').reduce((a, x) => a + (x.stars || 0), 0),  // выручка без возвратов
         activeStars: activeList.reduce((a, x) => a + (x.stars || 0), 0)
       };
       // живой баланс звёзд бота (Bot API getMyStarBalance); при ошибке → null, карточка скрыта
@@ -705,6 +713,33 @@ module.exports = async (req, res) => {
         if (jb && jb.ok && jb.result && typeof jb.result.amount === 'number') botStars = jb.result.amount;
       } catch (e) {}
       res.status(200).json({ ok: true, subs: list, stats: stats, count: list.length, botStars: botStars });
+      return;
+    }
+
+    // -------- ADMIN: возврат звёзд за подписку (refundStarPayment) --------
+    if (action === 'refund_sub') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const chargeId = String(body.charge || '').trim();
+      const uid = String(body.user || '').trim();
+      if (!chargeId || !uid) { res.status(200).json({ ok: false, reason: 'bad_params' }); return; }
+      // 1) вернуть звёзды покупателю через Telegram
+      let tgOk = false, tgErr = '';
+      try {
+        const r = await fetch('https://api.telegram.org/bot' + BOT + '/refundStarPayment', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: Number(uid), telegram_payment_charge_id: chargeId })
+        });
+        const j = await r.json().catch(() => ({}));
+        tgOk = !!(j && j.ok); tgErr = (j && j.description) || '';
+      } catch (e) { tgErr = String(e && e.message).slice(0, 200); }
+      if (!tgOk) { res.status(200).json({ ok: false, reason: 'refund_failed', error: tgErr }); return; }
+      // 2) пометить подписку возвращённой — это снимает Premium (status != active)
+      try {
+        await sb('subscriptions?charge_id=eq.' + encodeURIComponent(chargeId),
+          { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
+            body: JSON.stringify({ status: 'refunded', updated_at: new Date().toISOString() }) });
+      } catch (e) {}
+      res.status(200).json({ ok: true });
       return;
     }
 
