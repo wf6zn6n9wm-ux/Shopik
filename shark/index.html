@@ -1378,17 +1378,17 @@ var SHOP=[
 var LEADERS=[
   {n:"Dogindfox",s:48720,a:"🦈"},{n:"cakt0_ymep",s:41355,a:"🐙"},
   {n:"WritePl",s:38900,a:"🐡"},{n:"molodoywq",s:25160,a:"🐠"},
-  {n:"Facesed",s:19980,a:"🦑"},{n:"taracashka42",s:15040,a:"🦀"}
+  {n:"Facesed",s:19980,a:"🦑"},{n:"taracashka42",s:15040,a:"🦉"}
 ];
 
 var BOT_NAMES=["ota_try","Faceless","molodoywq","cakt0_ymep","sea_wolf","krd_777","blue_fin","reef_king","aqua_max","tide_88","kraken_x","pearl","marlin","orca_pro","WritePl","deep_one"];
-var BOT_AV=["🐙","🐡","🐠","🦑","🦀","🐬","🐳","🦈","🐚","🪼","🦞","🐟"];
+var BOT_AV=["🦈","🐬","🐳","🐙","🐡","🦑","🐠","🦭","🐢","🦊","🐺","🦁","🐯","🐻","🐼","🐨","🦉","🐧","🤖","👾"];
 function randBot(){return {n:BOT_NAMES[Math.floor(Math.random()*BOT_NAMES.length)],a:BOT_AV[Math.floor(Math.random()*BOT_AV.length)]};}
 
 var REF_FRIENDS=[
   {n:"andrii_k",a:"🐬",earned:34.20,active:true},
   {n:"maks2008",a:"🐡",earned:12.00,active:true},
-  {n:"olya_sea",a:"🐚",earned:0,active:false}
+  {n:"olya_sea",a:"🐧",earned:0,active:false}
 ];
 
 var STREAK_REWARDS=[10,15,20,30,50,75,150]; // звёзды за день 1..7
@@ -1574,7 +1574,7 @@ function beep(freq,dur,vol,type){
 function vibrate(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
 /* «живые» соперники для краша (боты ставят каждый раунд) */
 var CRASH_NAMES=['Никита','ARMIN','Джастон','Amir','XU','Данёк','sea_wolf','Влад','kraken_x','Максим','reef_king','Артём','SELL FIZ','tide_88','Оля','marlin','Санёк','deep_one','Женя','orca_pro','Дима','blue_fin','Илья','pearl','Тимур','aqua_max'];
-var CRASH_AV=['🦈','🐙','🐡','🐠','🦑','🦀','🐬','🐳','🐚','🪼','🦞','🐟','😎','🤖','👾','🧊','🔥','⚡','🌊','💎','🎯','🃏'];
+var CRASH_AV=['🦈','🐙','🐡','🐠','🦑','🐬','🐳','🦊','🐺','🦁','🐯','🐻','🐼','🐨','🦉','🐢','🦭','🐧','😎','🤖','👾','🧊','🔥','⚡','🌊','💎','🎯','🃏'];
 var CRASH_BETS=[50,100,150,200,250,300,500];
 function crashBot(){ return { n:CRASH_NAMES[rint(0,CRASH_NAMES.length-1)], a:CRASH_AV[rint(0,CRASH_AV.length-1)] }; }
 function renderCrashHistory(){
