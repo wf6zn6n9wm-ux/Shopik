@@ -627,7 +627,7 @@ if (TG) { try {
   TG.setHeaderColor && TG.setHeaderColor('#17121b');
 } catch(e){} }
 var TG_BOT = 'para_couple_bot';
-var APP_VERSION = 'v45.1 · Админ: PARA+ (баланс бота, подписки)';
+var APP_VERSION = 'v46 · PARA+ реально включает функции';
 var TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
 var START_PARAM = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)
   || new URLSearchParams(location.search).get('startapp')
@@ -1410,9 +1410,13 @@ function wishesScreen(){
     }).join('');
   }
 
+  // счётчик лимита для бесплатных пар (PARA+ — безлимит)
+  var limitLine=(ONLINE && !isPremium())
+    ? '<div class="xs muted2 center-t" style="margin:-2px 0 10px">Желаний: '+activeWishCount()+' / '+FREE_WISH_LIMIT+' · <button class="pp-inline" data-act="paraplus-open">безлимит с PARA+</button></div>'
+    : '';
   return '<div class="wrap">'+screenTitle('💖','Желания','мечты, которые исполняем вместе')+
     (list.length?'<button class="add-wish" data-act="wish-open-add">➕ Добавить желание</button>':'')+
-    filters+'<div style="height:6px"></div>'+body+'</div>';
+    limitLine+filters+'<div style="height:6px"></div>'+body+'</div>';
 }
 
 // модалка создания желания
@@ -1435,8 +1439,11 @@ function wishModal(){
 function qUnlocked(q,lvl){ return (q.level||0)<=lvl; }
 function socialAvas(){ return '<span class="qod-ava">🧑</span><span class="qod-ava">👩</span><span class="qod-ava">🧔</span>'; }
 // «Квест дня» — детерминированный выбор из featured/разблокированных, ротация по дню
+// «Квест дня» для бесплатных не должен попадать на премиум-квест (иначе он был бы заблокирован)
+function qPickable(q,lvl){ return qUnlocked(q,lvl) && !(isPremiumQuest(q)&&!isPremium()); }
 function qToday(defs,lvl){
-  var pool=defs.filter(function(q){ return q.featured&&qUnlocked(q,lvl); });
+  var pool=defs.filter(function(q){ return q.featured&&qPickable(q,lvl); });
+  if(!pool.length) pool=defs.filter(function(q){ return qPickable(q,lvl); });
   if(!pool.length) pool=defs.filter(function(q){ return qUnlocked(q,lvl); });
   if(!pool.length) pool=defs;
   if(!pool.length) return null;
@@ -1507,17 +1514,22 @@ function questsScreen(){
   var rec=defs.filter(function(q){ return (S.qcat==='all'||q.cat===S.qcat); });
   var recHtml=rec.map(function(q){
     var c=qcatOf(q.cat), dd=QDIFF[q.diff]||QDIFF.easy;
-    var locked=!qUnlocked(q,lvl), done=!!S.qdone[q.id];
-    var play=locked
+    var levelLocked=!qUnlocked(q,lvl), premLocked=isPremiumQuest(q)&&!isPremium();
+    var locked=levelLocked||premLocked, done=!!S.qdone[q.id];
+    var play=premLocked
+      ? '<button class="q-rec-play" data-act="quest-prem" style="background:var(--grad);box-shadow:none">🔒</button>'
+      : levelLocked
       ? '<div class="q-rec-play" style="background:rgba(255,255,255,.12);box-shadow:none">🔒</div>'
       : (done
         ? '<div class="q-rec-play" style="background:var(--green);box-shadow:none">✓</div>'
         : '<button class="q-rec-play" data-act="quest-done" data-id="'+q.id+'">▶</button>');
+    var premBadge=isPremiumQuest(q)?'<span style="position:absolute;top:6px;left:6px;background:var(--grad);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:999px;box-shadow:0 3px 8px rgba(192,38,211,.4)">PARA+</span>':'';
+    var diffLine=premLocked?'🔒 PARA+':(levelLocked?('🔒 ур. '+((q.level||0)+1)):dd.l);
     return '<div class="q-rec"'+(locked?' style="opacity:.6"':'')+'>'+
-      '<div class="q-rec-illu" style="background:'+hex2rgba(c.color,.16)+';position:relative">'+q.emoji+
+      '<div class="q-rec-illu" style="background:'+hex2rgba(c.color,.16)+';position:relative">'+q.emoji+premBadge+
         '<span style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.4);color:#fcd34d;font-size:10px;font-weight:700;padding:3px 7px;border-radius:999px">💖+'+q.pts+'</span></div>'+
       '<div class="q-rec-title">'+esc(q.title)+'</div>'+
-      '<div class="q-diff" style="color:'+dd.c+';margin-top:2px">'+(locked?('🔒 ур. '+((q.level||0)+1)):dd.l)+'</div>'+
+      '<div class="q-diff" style="color:'+(premLocked?'#ff8fb0':dd.c)+';margin-top:2px">'+diffLine+'</div>'+
       play+
       '</div>';
   }).join('') || '<div class="muted small" style="padding:18px 4px">В этой категории пока нет квестов.</div>';
@@ -1708,6 +1720,34 @@ function ourStatsCard(){
       cell('🏆',((p.levelIndex||0)+1),'уровень')+
     '</div></div>';
 }
+// Расширенная статистика пары — премиум-блок (PARA+). Бесплатным — заблокированный тизер.
+function premiumStatsCard(){
+  var p=S.progress; if(!p) return '';
+  if(!isPremium()){
+    return '<button class="card p4 mb3" data-act="paraplus-open" style="width:100%;text-align:left;display:block;border:1px dashed rgba(255,94,138,.35)">'+
+      '<div class="row between" style="align-items:center"><div class="sb" style="font-size:15px">📊 Расширенная статистика</div>'+
+      '<span class="pp-entry-cta">PARA+</span></div>'+
+      '<div class="xs muted2 mt2">Глубже о вашей паре: Love Points в день, доля исполненных желаний, любимая категория, путь до уровня. 🔒 Откроется с PARA+.</div></button>';
+  }
+  var since=(S.couple&&S.couple.since)?S.couple.since:null;
+  var days=since?Math.max(1,Math.floor((sod(new Date())-sod(new Date(since)))/DAY)):1;
+  var avgRaw=(p.points||0)/days;
+  var avg=avgRaw>=10?String(Math.round(avgRaw)):String(Math.round(avgRaw*10)/10);
+  var ws=(S.wishes||[]), wt=ws.length, wd=ws.filter(function(w){ return w.status==='done'; }).length;
+  var wpct=wt?Math.round(wd/wt*100):0;
+  var byCat={}; ws.forEach(function(w){ var c=w.category||'❤️'; byCat[c]=(byCat[c]||0)+1; });
+  var topCat='—', topN=0; Object.keys(byCat).forEach(function(c){ if(byCat[c]>topN){ topN=byCat[c]; topCat=c; } });
+  var next=p.next?Math.max(0,(p.next.min||0)-(p.points||0)):0;
+  var cell=function(ic,v,l){ return '<div class="ustat"><div class="ustat-ic">'+ic+'</div><div class="ustat-v">'+v+'</div><div class="ustat-l">'+l+'</div></div>'; };
+  return '<div class="card p4 mb3"><div class="row between" style="align-items:center;margin-bottom:12px">'+
+    '<div class="sb" style="font-size:15px">📊 Расширенная статистика</div><span class="pp-badge">PARA+</span></div>'+
+    '<div class="ustat-grid">'+
+      cell('⚡',avg,'Love Points/день')+
+      cell('🎁',wpct+'%','желаний исполнено')+
+      cell('💌',topCat,'любимая категория')+
+      cell('📈',(p.next?next:'MAX'),(p.next?'до уровня':'макс. уровень'))+
+    '</div></div>';
+}
 // Архив «Вопрос дня» — дневник пары из прошлых вопросов и ответов
 function archiveView(){
   var d=S.archiveData;
@@ -1740,14 +1780,21 @@ var PARAPLUS={
   solo:[ {key:'solo_1',label:'1 месяц',stars:199}, {key:'solo_3',label:'3 месяца',stars:499}, {key:'solo_12',label:'12 месяцев',stars:1499} ]
 };
 // Преимущества Premium — единый список для экрана PARA+ и промо-оффера (иконка, текст).
+// Каждый пункт реально работает в коде (см. isPremium-гейты), без пустых обещаний.
 var PP_BENEFITS=[
-  ['✨','Все темы оформления'],
-  ['❤️','Безлимитные желания'],
-  ['🤖','AI-вопросы и идеи свиданий'],
-  ['🎯','Эксклюзивные квесты'],
-  ['📊','Расширенная статистика отношений'],
+  ['✨','Все темы и рамки оформления'],
+  ['⭐','Безлимитные желания'],
+  ['🎯','Эксклюзивные премиум-квесты'],
+  ['📊','Расширенная статистика пары'],
+  ['💞','Premium сразу для двоих (DUO)'],
   ['🚀','Все будущие Premium-функции']
 ];
+// Лимит активных желаний для бесплатных пар (совпадает с сервером). PARA+ — безлимит.
+var FREE_WISH_LIMIT=20;
+function activeWishCount(){ return (S.wishes||[]).filter(function(w){ return (w.status||'new')!=='done'; }).length; }
+function wishLimitReached(){ return ONLINE && !isPremium() && activeWishCount()>=FREE_WISH_LIMIT; }
+// Премиум-квест — самые глубокие задания (сложность hard); открываются только с PARA+.
+function isPremiumQuest(q){ return !!(q && q.diff==='hard'); }
 function ppBenefitsHtml(){
   return '<div class="pp-benefits">'+PP_BENEFITS.map(function(b){
     return '<div class="pp-benefit"><span class="pp-benefit-ic">'+b[0]+'</span><span>'+esc(b[1])+'</span></div>';
@@ -1829,7 +1876,7 @@ function premiumPromo(){
   return '<div class="ovl" style="align-items:center"><div class="pp-promo">'+
     '<div class="pp-promo-emo">💞</div>'+
     '<div class="pp-promo-t">Откройте PARA+</div>'+
-    '<div class="pp-promo-s">Все темы, безлимитные желания, AI-идеи для свиданий и эксклюзивные квесты — чтобы быть ещё ближе.</div>'+
+    '<div class="pp-promo-s">Все темы оформления, безлимитные желания, эксклюзивные квесты и расширенная статистика пары — чтобы быть ещё ближе.</div>'+
     ppBenefitsHtml()+
     '<button class="add-wish" style="margin-top:4px" data-act="promo-buy">Смотреть тарифы</button>'+
     '<button class="btn btn-ghost btn-sm" style="margin-top:10px" data-act="promo-close">Позже</button>'+
@@ -1901,7 +1948,7 @@ function usScreen(){
   var foot='<div class="center-t xs muted2 mt6">PARA · '+(TG?'Telegram Mini App':'веб-версия (PWA)')+' · '+APP_VERSION+'</div>';
   var profileBtn='<button class="btn btn-ghost mb3" style="width:100%;justify-content:center" data-act="profile-open">✏️ Профиль и даты</button>';
   var archiveBtn='<button class="btn btn-ghost mb3" style="width:100%;justify-content:center" data-act="archive-open">📖 Наши прошлые вопросы</button>';
-  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+paraPlusEntry()+profileBtn+levelCard()+ourStatsCard()+archiveBtn+stats+home+invite+reset+foot+'</div>';
+  return '<div class="wrap">'+screenTitle('💞','Мы','')+head+paraPlusEntry()+profileBtn+levelCard()+ourStatsCard()+premiumStatsCard()+archiveBtn+stats+home+invite+reset+foot+'</div>';
 }
 
 // ---------- Полная админка (overlay внутри приложения) ----------
@@ -2655,7 +2702,7 @@ var ACTS={
   'pf-del':function(el){ pfCollect(); S.profileDraft.extra.splice(+el.dataset.idx,1); haptic('light'); render(); },
   'profile-save':function(){ pfCollect(); var draft=S.profileDraft; S.profile=draft; save('profile'); applyProfile(); buildDates(); S.profileOpen=false; S.profileDraft=null; haptic('success'); render();
     if(ONLINE&&S.couple){ api('profile_set', pfPayload(draft)).then(function(r){ if(r&&r.ok&&r.profile){ S.profile=r.profile; save('profile'); refreshDates(); render(); } else if(r&&r.reason==='db_error'){ showToast('⚠️','Сохранено локально','синхронизация недоступна'); } }).catch(function(){ showToast('⚠️','Нет связи','сохранено локально'); }); } },
-  'wish-open-add':function(){ S.wmodal={cat:'❤️',points:20}; haptic('light'); render(); },
+  'wish-open-add':function(){ if(wishLimitReached()){ showToast('🔒','Лимит желаний','до '+FREE_WISH_LIMIT+' — безлимит с PARA+'); S.promoOpen=true; haptic('light'); render(); return; } S.wmodal={cat:'❤️',points:20}; haptic('light'); render(); },
   'wish-cancel':function(){ S.wmodal=null; render(); },
   'wish-cat':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.cat=el.dataset.e; haptic('light'); render(); } },
   'wish-pts':function(el){ if(S.wmodal){ S.wmodal.text=val('#wtitle')||S.wmodal.text||''; S.wmodal.points=+el.dataset.p; haptic('light'); render(); } },
@@ -2665,6 +2712,7 @@ var ACTS={
       S.wmodal=null; haptic('success'); render();
       api('wish_add',{text:t,category:cat,points:pts}).then(function(r){
         if(r&&r.ok&&r.wishes){ applyServerWishes(r.wishes); render(); }
+        else if(r&&r.reason==='wish_limit'){ refreshWishes(); showToast('🔒','Лимит желаний','до '+(r.limit||FREE_WISH_LIMIT)+' — безлимит с PARA+'); S.promoOpen=true; render(); }
         else { showToast('⚠️','Не сохранилось',(r&&(r.error||r.reason))||'ошибка сервера'); refreshWishes(); }
       }).catch(function(){ showToast('⚠️','Нет связи','попробуйте ещё раз'); refreshWishes(); }); return; }
     S.wishes.unshift({id:Date.now(),by:S.who,text:t,category:cat,points:pts,status:'new'}); save('wishes'); S.wmodal=null; haptic('success'); render(); },
@@ -2725,7 +2773,8 @@ var ACTS={
     else { showToast('💌','Отправлено','партнёру ушёл бы пуш ❤️'); render(); }
     setTimeout(function(){ render(); }, 30500); },
   'qcat':function(el){ S.qcat=el.dataset.k; haptic('light'); render(); },
-  'quest-done':function(el){ var id=+el.dataset.id; if(S.qdone[id])return; var defs=questDefs(),q=null; for(var i=0;i<defs.length;i++) if(defs[i].id===id) q=defs[i]; if(!q)return; S.qdone[id]=true; save('qdone'); S.points+=q.pts; save('points'); track('quest'); track('points',q.pts); S.qburst={pts:q.pts,emoji:q.emoji}; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.qburst=null; render(); },1500); },
+  'quest-done':function(el){ var id=+el.dataset.id; if(S.qdone[id])return; var defs=questDefs(),q=null; for(var i=0;i<defs.length;i++) if(defs[i].id===id) q=defs[i]; if(!q)return; if(isPremiumQuest(q)&&!isPremium()){ S.promoOpen=true; haptic('light'); render(); return; } S.qdone[id]=true; save('qdone'); S.points+=q.pts; save('points'); track('quest'); track('points',q.pts); S.qburst={pts:q.pts,emoji:q.emoji}; haptic('success'); render(); afterEarn(); setTimeout(function(){ S.qburst=null; render(); },1500); },
+  'quest-prem':function(){ S.promoOpen=true; haptic('light'); render(); },
   'wheel':function(el){ var w=WHEEL[+el.dataset.i]; S.toast=w; haptic('light'); render(); setTimeout(function(){S.toast=null;render();},2200); },
   'home-add':function(){ try{TG.addToHomeScreen();haptic('light');}catch(e){} },
   'reset':function(){ stopLinkPoll(); stopWishPoll(); prevLinked=null; S.showInvite=false; S.couple=null; S.tab='today'; S.who='me'; S.ob={step:'welcome',mode:null,name:(TG_USER?(TG_USER.first_name||'Ты'):''),myCode:makeCode(),code:'',waiting:false}; save('couple'); save('tab'); save('who'); haptic('warning'); render(); }
