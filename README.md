@@ -154,7 +154,8 @@ create table profit_shops (
   id uuid primary key default gen_random_uuid(),
   invite_code text unique not null,
   owner_tg   bigint,
-  share_pct  int  default 30,      -- доля управляющей, %
+  share_pct  int  default 30,      -- доля управляющей от прибыли, %
+  salary_pct int  default 0,       -- зарплата управляющей, % от цены продажи (авто)
   currency   text default 'грн',
   created_at timestamptz default now()
 );
@@ -220,6 +221,10 @@ alter table profit_sales    enable row level security;
 > выполни в SQL Editor только блок с тремя новыми таблицами
 > `profit_products` / `profit_stock` / `profit_sales` (и их `alter table … enable
 > row level security`). Старую `profit_deals` можно удалить: `drop table profit_deals;`.
+>
+> Миграция для авто-зарплаты (если магазин создан до её появления):
+> `alter table profit_shops add column if not exists salary_pct int default 0;`
+> (Бэкенд читает столбец мягко — без него работает, просто % зарплаты недоступен.)
 
 ### 2. Заведи Telegram-бота
 

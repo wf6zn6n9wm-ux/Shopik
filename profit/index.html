@@ -234,7 +234,7 @@
 <script>
 "use strict";
 const KEY='profit_state_v2';
-const DEFAULTS={ settings:{sharePct:30, currency:'грн', ownerName:'Я', managerName:'Управляющая'}, role:'owner', tab:'stock', products:[], sales:[] };
+const DEFAULTS={ settings:{sharePct:30, salaryPct:0, currency:'грн', ownerName:'Я', managerName:'Управляющая'}, role:'owner', tab:'stock', products:[], sales:[] };
 function loadLocal(){
   try{ const r=JSON.parse(localStorage.getItem(KEY)); if(r&&r.settings) return {...DEFAULTS,...r, settings:{...DEFAULTS.settings,...r.settings}}; }catch(e){}
   return JSON.parse(JSON.stringify(DEFAULTS));
@@ -243,20 +243,20 @@ let S=loadLocal();
 function saveLocal(){ localStorage.setItem(KEY, JSON.stringify(S)); }
 
 let ONLINE=false, SHOP=null, PRODUCTS=[], SALES=[];
-const V={online:false, role:'owner', products:[], sales:[], sharePct:30, currency:'грн', ownerName:'Я', managerName:'Управляющая', shop:null};
+const V={online:false, role:'owner', products:[], sales:[], sharePct:30, salaryPct:0, currency:'грн', ownerName:'Я', managerName:'Управляющая', shop:null};
 function buildView(){
   V.online=ONLINE;
   if(ONLINE){
     V.shop=SHOP;
     if(SHOP){
-      V.role=SHOP.role; V.products=PRODUCTS; V.sales=SALES; V.sharePct=SHOP.sharePct; V.currency=SHOP.currency||'грн';
+      V.role=SHOP.role; V.products=PRODUCTS; V.sales=SALES; V.sharePct=SHOP.sharePct; V.salaryPct=SHOP.salaryPct==null?0:SHOP.salaryPct; V.currency=SHOP.currency||'грн';
       const p=SHOP.partner;
       if(SHOP.role==='owner'){ V.ownerName=SHOP.me.name||'Владелец'; V.managerName=p?p.name:'Управляющая'; }
       else{ V.managerName=SHOP.me.name||'Управляющая'; V.ownerName=p?p.name:'Владелец'; }
-    }else{ V.role='owner'; V.products=[]; V.sales=[]; V.sharePct=30; V.currency='грн'; V.ownerName='Владелец'; V.managerName='Управляющая'; }
+    }else{ V.role='owner'; V.products=[]; V.sales=[]; V.sharePct=30; V.salaryPct=0; V.currency='грн'; V.ownerName='Владелец'; V.managerName='Управляющая'; }
   }else{
     V.shop=null; V.role=S.role; V.products=S.products; V.sales=S.sales;
-    V.sharePct=S.settings.sharePct; V.currency=S.settings.currency; V.ownerName=S.settings.ownerName; V.managerName=S.settings.managerName;
+    V.sharePct=S.settings.sharePct; V.salaryPct=S.settings.salaryPct||0; V.currency=S.settings.currency; V.ownerName=S.settings.ownerName; V.managerName=S.settings.managerName;
   }
 }
 
@@ -551,10 +551,19 @@ function pctCard(editable){
     <div class="row between small muted mt2"><span>Владельцу: <b class="sky" id="ownPctLive">${100-s}%</b></span><span>Управляющей: <b class="am">${s}%</b></span></div>
     ${editable?`<div class="row gap2 mt3 wrapf"><button class="chip" data-setpct="20">20%</button><button class="chip" data-setpct="30">30%</button><button class="chip" data-setpct="40">40%</button><button class="chip" data-setpct="50">50%</button></div>`:`<div class="small muted2 mt2">Процент задаёт владелец.</div>`}</div>`;
 }
+function salaryPctCard(editable){
+  const s=V.salaryPct;
+  return `<div class="cfg">
+    <div class="row between mb2"><div class="b">Зарплата управляющей<br><span class="small muted">% от цены продажи</span></div><div class="am eb" style="font-size:22px" id="salLive">${s}%</div></div>
+    <input type="range" min="0" max="30" step="1" value="${s}" class="range" id="salRange" style="--fill:${Math.round(s/30*100)}%" ${editable?'':'disabled'}>
+    <div class="small muted mt2" style="line-height:1.45">Авто-заполняется в форме продажи (поправить вручную можно всегда). <b>0%</b> — без авто-зарплаты.</div>
+    ${editable?`<div class="row gap2 mt3 wrapf"><button class="chip" data-setsal="0">0%</button><button class="chip" data-setsal="5">5%</button><button class="chip" data-setsal="7">7%</button><button class="chip" data-setsal="10">10%</button></div>`:`<div class="small muted2 mt2">Процент задаёт владелец.</div>`}</div>`;
+}
 function settingsOnline(){
   const isOwner=V.role==='owner'; const linked=V.shop&&V.shop.linked;
   let h=`<div class="banner live">🟢 Онлайн-режим. Данные общие и синхронны с партнёром.</div>`;
   h+=pctCard(isOwner);
+  h+=salaryPctCard(isOwner);
   h+=`<div class="cfg"><div class="lbl">Валюта</div>
     <input class="input" id="cfgCur" value="${esc(V.currency)}" placeholder="грн" ${isOwner?'':'disabled'}>
     ${isOwner?`<button class="btn btn-primary mt3" data-act="saveCurOnline">Сохранить валюту</button>`:`<div class="small muted2 mt2">Валюту задаёт владелец.</div>`}</div>`;
@@ -569,6 +578,7 @@ function settingsDemo(){
   const s=S.settings;
   return `<div class="banner demo">🟡 Демо-режим: данные только на этом устройстве. Открой через Telegram-бота, чтобы вести общий склад с управляющей.</div>
   ${pctCard(true)}
+  ${salaryPctCard(true)}
   <div class="cfg"><div class="lbl">Имя владельца (тебя)</div><input class="input mb3" id="cfgOwner" value="${esc(s.ownerName)}" placeholder="Я">
     <div class="lbl">Имя управляющей</div><input class="input mb3" id="cfgMgr" value="${esc(s.managerName)}" placeholder="Управляющая">
     <div class="lbl">Валюта</div><input class="input" id="cfgCur" value="${esc(s.currency)}" placeholder="грн">
@@ -582,6 +592,11 @@ function bindSettings(){
   if(r && !r.disabled){
     r.oninput=()=>{ const v=+r.value; r.style.setProperty('--fill',v+'%'); $('pctLive').textContent=v+'%'; const op=$('ownPctLive'); if(op)op.textContent=(100-v)+'%'; V.sharePct=v; $('pctBadge').innerHTML='доля управляющей<br><span class="am eb" style="font-size:14px">'+v+'%</span>'; };
     r.onchange=()=>{ if(V.online){ apiCall('settings_save',{share_pct:+r.value},'Доля: '+r.value+'%'); } else { S.settings.sharePct=+r.value; saveLocal(); toast('Доля управляющей: '+r.value+'%'); } };
+  }
+  const sr=$('salRange');
+  if(sr && !sr.disabled){
+    sr.oninput=()=>{ const v=+sr.value; sr.style.setProperty('--fill',Math.round(v/30*100)+'%'); $('salLive').textContent=v+'%'; V.salaryPct=v; };
+    sr.onchange=()=>{ if(V.online){ apiCall('settings_save',{salary_pct:+sr.value},'Зарплата: '+sr.value+'%'); } else { S.settings.salaryPct=+sr.value; saveLocal(); toast('Зарплата: '+sr.value+'% от продажи'); } };
   }
 }
 
@@ -626,28 +641,31 @@ function sheetShip(lot){
     <button class="btn btn-primary mt4" data-act="saveShip" data-id="${lot.id}">Сохранить доставку</button>`);
   setTimeout(()=>$('fShip2')&&$('fShip2').focus(),200);
 }
-let sellSel={pid:null,size:null};
+let sellSel={pid:null,size:null}, salaryAuto=true;
 function sheetSell(p){
   const a=prodAgg(p);
   const sizes=Object.keys(a.bySize).filter(s=>a.bySize[s]>0).sort();
-  sellSel={pid:p.id, size:sizes.length?sizes[0]:null};
+  sellSel={pid:p.id, size:sizes.length?sizes[0]:null}; salaryAuto=true;
+  const salHint = V.salaryPct>0 ? `<span class="muted2">(по умолчанию ${V.salaryPct}% — авто)</span>` : '';
   openSheet(`<div class="sh-title">Продажа</div>
     <div class="small muted mt1 mb4">${esc(p.name)}</div>
     <div class="lbl">Размер (что продано)</div>
     <div class="row gap2 wrapf" id="sizeRow">${sizes.map(s=>`<button class="chip ${s===sellSel.size?'on':''}" data-selsize="${esc(s)}">${esc(s)} · ${a.bySize[s]} шт</button>`).join('')}</div>
     <div class="lbl mt4">Цена продажи, ${esc(V.currency)}</div>
-    <input class="input" id="fSale" inputmode="numeric" placeholder="4000" oninput="previewSell()">
+    <input class="input" id="fSale" inputmode="numeric" placeholder="4000" oninput="onSaleInput()">
     <div class="row gap2 mt3 wrapf">${['3000','3500','4000','4500'].map(x=>`<button class="chip" data-fill="fSale" data-val="${x}" data-pv="1">${x}</button>`).join('')}</div>
-    <div class="lbl mt4">Зарплата с продажи, ${esc(V.currency)}</div>
-    <input class="input" id="fSalary" inputmode="numeric" placeholder="200" oninput="previewSell()">
-    <div class="row gap2 mt3 wrapf"><button class="chip" data-fill="fSalary" data-val="200" data-pv="1">200</button>
-      <button class="chip" data-salpct="5">5%</button><button class="chip" data-salpct="10">10%</button>
+    <div class="lbl mt4">Зарплата с продажи, ${esc(V.currency)} ${salHint}</div>
+    <input class="input" id="fSalary" inputmode="numeric" placeholder="${V.salaryPct>0?'авто от продажи':'200'}" oninput="onSalaryInput()">
+    <div class="row gap2 mt3 wrapf">${V.salaryPct>0?`<button class="chip" data-salpct="${V.salaryPct}">${V.salaryPct}%</button>`:''}<button class="chip" data-salpct="5">5%</button><button class="chip" data-salpct="10">10%</button>
       <button class="chip" data-fill="fSalary" data-val="0" data-pv="1">Без ЗП</button></div>
     <div class="split mt4" id="preview"></div>
     <button class="btn btn-gold mt4" data-act="saveSell" data-pid="${p.id}">Провести продажу</button>`);
   previewSell();
   setTimeout(()=>$('fSale')&&$('fSale').focus(),200);
 }
+function onSaleInput(){ if(salaryAuto && V.salaryPct>0){ const s=num($('fSale').value); const inp=$('fSalary'); if(inp) inp.value=s?Math.round(s*V.salaryPct/100):''; } previewSell(); }
+function onSalaryInput(){ salaryAuto=false; previewSell(); }
+window.onSaleInput=onSaleInput; window.onSalaryInput=onSalaryInput;
 function selSizeCost(){
   const p=V.products.find(x=>x.id===sellSel.pid); if(!p||!sellSel.size) return 0;
   const l=fifoLot(p,sellSel.size); return l?lotCost(l):0;
@@ -676,11 +694,13 @@ document.addEventListener('click',e=>{
   const selsize=e.target.closest('[data-selsize]');
   if(selsize){ sellSel.size=selsize.dataset.selsize; document.querySelectorAll('#sizeRow .chip').forEach(c=>c.classList.toggle('on',c.dataset.selsize===sellSel.size)); previewSell(); return; }
   const fill=e.target.closest('[data-fill]');
-  if(fill){ const inp=$(fill.dataset.fill); if(inp){ inp.value=fill.dataset.val; if(fill.dataset.pv) previewSell(); } return; }
+  if(fill){ const inp=$(fill.dataset.fill); if(inp){ inp.value=fill.dataset.val; if(fill.dataset.fill==='fSalary') salaryAuto=false; if(fill.dataset.pv) previewSell(); } return; }
   const salpct=e.target.closest('[data-salpct]');
-  if(salpct){ const sale=num($('fSale')?$('fSale').value:0); const inp=$('fSalary'); if(inp){ inp.value=Math.round(sale*(+salpct.dataset.salpct)/100); previewSell(); } return; }
+  if(salpct){ salaryAuto=false; const sale=num($('fSale')?$('fSale').value:0); const inp=$('fSalary'); if(inp){ inp.value=Math.round(sale*(+salpct.dataset.salpct)/100); previewSell(); } return; }
   const setpct=e.target.closest('[data-setpct]');
   if(setpct){ const v=+setpct.dataset.setpct; if(V.online){ apiCall('settings_save',{share_pct:v},'Доля: '+v+'%'); } else { S.settings.sharePct=v; saveLocal(); buildView(); render(); toast('Доля: '+v+'%'); } return; }
+  const setsal=e.target.closest('[data-setsal]');
+  if(setsal){ const v=+setsal.dataset.setsal; if(V.online){ apiCall('settings_save',{salary_pct:v},'Зарплата: '+v+'%'); } else { S.settings.salaryPct=v; saveLocal(); buildView(); render(); toast('Зарплата: '+v+'% от продажи'); } return; }
 
   const a=e.target.closest('[data-act]'); if(!a) return;
   const act=a.dataset.act, id=a.dataset.id, pid=a.dataset.pid;
