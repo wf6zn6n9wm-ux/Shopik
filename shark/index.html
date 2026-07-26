@@ -1375,14 +1375,36 @@ var SHOP=[
   {emoji:"💎",name:"Жемчуг",value:600},{emoji:"🔱",name:"Трезубец",value:358}
 ];
 
+/* реальные фото вместо эмодзи — спрайт-лист (см. assets/avatars.png), 7×3 ячейки по 128px */
+/* файл спрайта 2688×900 (реальные аватарки в верхней полосе 2688×128,
+   остальное — прозрачный отступ, оставшийся от генерации); поэтому
+   масштабируем именно fileW×fileH, а не cols*cell×rows*cell */
+var AVATAR_SPRITE={cell:128,cols:21,fileW:2688,fileH:900,pos:{
+  manta:[0,0],giraffe:[1,0],frog:[2,0],starfish:[3,0],jellyfish:[4,0],tarantula:[5,0],butterfly1:[6,0],
+  nudibranch1:[7,0],owl:[8,0],tiger:[9,0],orbspider:[10,0],snail:[11,0],turtle:[12,0],arowana:[13,0],
+  monkey:[14,0],cuttlefish:[15,0],morayeel:[16,0],crab:[17,0],bluejay:[18,0],jumpingspider:[19,0],greennudi:[20,0]
+}};
+function avatarBgStyle(key,size){
+  var p=AVATAR_SPRITE.pos[key]; if(!p) return '';
+  var scale=size/AVATAR_SPRITE.cell;
+  var bw=Math.round(AVATAR_SPRITE.fileW*scale), bh=Math.round(AVATAR_SPRITE.fileH*scale);
+  var bx=Math.round(p[0]*AVATAR_SPRITE.cell*scale), by=Math.round(p[1]*AVATAR_SPRITE.cell*scale);
+  return 'background-image:url(assets/avatars.png);background-size:'+bw+'px '+bh+'px;background-position:-'+bx+'px -'+by+'px;background-repeat:no-repeat;';
+}
+function avDiv(cls,key,size,fallbackStyle){
+  var isPhoto=!!AVATAR_SPRITE.pos[key];
+  var style=isPhoto?avatarBgStyle(key,size):(fallbackStyle||'');
+  return '<div class="'+cls+'"'+(style?' style="'+style+'"':'')+'>'+(isPhoto?'':key)+'</div>';
+}
+
 var LEADERS=[
-  {n:"Dogindfox",s:48720,a:"🦈"},{n:"cakt0_ymep",s:41355,a:"🐙"},
-  {n:"WritePl",s:38900,a:"🐡"},{n:"molodoywq",s:25160,a:"🐠"},
-  {n:"Facesed",s:19980,a:"🦑"},{n:"taracashka42",s:15040,a:"🦉"}
+  {n:"Dogindfox",s:48720,a:"manta"},{n:"cakt0_ymep",s:41355,a:"tiger"},
+  {n:"WritePl",s:38900,a:"owl"},{n:"molodoywq",s:25160,a:"turtle"},
+  {n:"Facesed",s:19980,a:"tarantula"},{n:"taracashka42",s:15040,a:"monkey"}
 ];
 
 var BOT_NAMES=["ota_try","Faceless","molodoywq","cakt0_ymep","sea_wolf","krd_777","blue_fin","reef_king","aqua_max","tide_88","kraken_x","pearl","marlin","orca_pro","WritePl","deep_one"];
-var BOT_AV=["🦈","🐬","🐳","🐙","🐡","🦑","🐠","🦭","🐢","🦊","🐺","🦁","🐯","🐻","🐼","🐨","🦉","🐧","🤖","👾"];
+var BOT_AV=["manta","giraffe","frog","starfish","jellyfish","tarantula","butterfly1","nudibranch1","owl","tiger","orbspider","snail","turtle","arowana","monkey","cuttlefish","morayeel","crab","bluejay","jumpingspider","greennudi"];
 function randBot(){return {n:BOT_NAMES[Math.floor(Math.random()*BOT_NAMES.length)],a:BOT_AV[Math.floor(Math.random()*BOT_AV.length)]};}
 
 var REF_FRIENDS=[
@@ -1530,7 +1552,7 @@ function pushMyRoulRow(prize){
 var roulFeedTimer=null;
 function startRoulFeed(){var box=document.getElementById('roul-players');if(!box.querySelector('.ph')){box.innerHTML='<div class="ph"><span>'+t('roul_recent_spins_lbl')+'</span><span>'+t('win_col_lbl')+'</span></div>';for(var i=0;i<5;i++)pushRoulRow();}stopRoulFeed();roulFeedTimer=setInterval(pushRoulRow,rint(1800,3200));}
 function stopRoulFeed(){if(roulFeedTimer){clearInterval(roulFeedTimer);roulFeedTimer=null;}}
-function pushRoulRow(){var box=document.getElementById('roul-players');if(!box)return;var b=randBot();var p=pickWeighted();var row=document.createElement('div');row.className='prow';row.innerHTML='<div class="av">'+b.a+'</div><div class="nm">'+b.n+'</div><div class="st win">'+p.emoji+' +⭐'+p.value+'</div>';var header=box.querySelector('.ph');if(header.nextSibling)box.insertBefore(row,header.nextSibling);else box.appendChild(row);while(box.querySelectorAll('.prow').length>6)box.removeChild(box.lastChild);}
+function pushRoulRow(){var box=document.getElementById('roul-players');if(!box)return;var b=randBot();var p=pickWeighted();var row=document.createElement('div');row.className='prow';row.innerHTML=avDiv('av',b.a,28)+'<div class="nm">'+b.n+'</div><div class="st win">'+p.emoji+' +⭐'+p.value+'</div>';var header=box.querySelector('.ph');if(header.nextSibling)box.insertBefore(row,header.nextSibling);else box.appendChild(row);while(box.querySelectorAll('.prow').length>6)box.removeChild(box.lastChild);}
 
 /* ============ КРАШ ============ */
 var crashPhase='waiting',crashRAF=null,crashMult=1,crashTarget=0,crashT0=0,crashCountdown=5,crashCdTimer=null,crashBots=[],crashLoopActive=false,iJoined=false;
@@ -1574,7 +1596,7 @@ function beep(freq,dur,vol,type){
 function vibrate(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
 /* «живые» соперники для краша (боты ставят каждый раунд) */
 var CRASH_NAMES=['Никита','ARMIN','Джастон','Amir','XU','Данёк','sea_wolf','Влад','kraken_x','Максим','reef_king','Артём','SELL FIZ','tide_88','Оля','marlin','Санёк','deep_one','Женя','orca_pro','Дима','blue_fin','Илья','pearl','Тимур','aqua_max'];
-var CRASH_AV=['🦈','🐙','🐡','🐠','🦑','🐬','🐳','🦊','🐺','🦁','🐯','🐻','🐼','🐨','🦉','🐢','🦭','🐧','😎','🤖','👾','🧊','🔥','⚡','🌊','💎','🎯','🃏'];
+var CRASH_AV=["manta","giraffe","frog","starfish","jellyfish","tarantula","butterfly1","nudibranch1","owl","tiger","orbspider","snail","turtle","arowana","monkey","cuttlefish","morayeel","crab","bluejay","jumpingspider","greennudi"];
 var CRASH_BETS=[50,100,150,200,250,300,500];
 function crashBot(){ return { n:CRASH_NAMES[rint(0,CRASH_NAMES.length-1)], a:CRASH_AV[rint(0,CRASH_AV.length-1)] }; }
 function renderCrashHistory(){
@@ -1747,7 +1769,7 @@ function renderCrashPlayers(){
     if(p.status==='win'){ cls='win'; mul='×'+p.cashAt.toFixed(2); pay='<span class="cpay win">+'+p.taken+'</span>'; }
     else if(p.status==='lose'){ cls='lose'; mul='💥'; pay='<span class="cpay lose">—</span>'; }
     else { cls='live'; var cm=(crashPhase==='flying')?crashMult:1; mul='×'+cm.toFixed(2); pay='<span class="cpay">'+Math.floor(p.bet*cm)+'</span>'; }
-    html+='<div class="crow '+cls+'"><div class="cav">'+p.bot.a+'</div>'
+    html+='<div class="crow '+cls+'">'+avDiv('cav',p.bot.a,44)
       +'<div class="cinfo"><div class="cnm">'+(p.me?'<b>'+t('you_word')+'</b>':p.bot.n)+'</div>'
       +'<div class="cbet"><i class="star-ic"></i>'+p.bet+' <span class="cmul">'+mul+'</span></div></div>'
       +'<div class="cpaywrap"><i class="star-ic"></i>'+pay+'</div></div>';
@@ -1761,7 +1783,7 @@ function renderShop(){var g=document.getElementById('shop-grid');g.innerHTML='';
 function buyGift(it){if(S.stars<it.value){toast(tf('gift_insufficient_toast_tpl',{name:it.name}));return;}showSheet('<div class="result-emoji">'+it.emoji+'</div><h3 style="text-align:center">'+tf('buy_gift_title_tpl',{name:it.name})+'</h3><p class="muted" style="text-align:center">'+tf('buy_gift_desc_demo_tpl',{value:it.value})+'</p><button class="btn-primary" id="confirm-gift">'+tf('buy_gift_btn_tpl',{value:it.value})+'</button><button class="btn-ghost" style="margin-top:8px" onclick="closeSheet()">'+t('cancel_btn')+'</button>');var cg=document.getElementById('confirm-gift');if(cg)cg.onclick=function(){S.stars-=it.value;syncBalances();closeSheet();logOp(it.emoji,tf('hist_gift_buy_title_tpl',{name:it.name}),t('shop_h1'),'−⭐'+it.value,'minus');toast(it.emoji+' '+tf('gift_bought_demo_toast_tpl',{name:it.name}));};}
 
 /* ============ ЛИДЕРЫ ============ */
-function renderLeaders(){var box=document.getElementById('leader-list');box.innerHTML='';LEADERS.forEach(function(l,i){var el=document.createElement('div');el.className='leader';el.innerHTML='<div class="rk">'+(i+1)+'</div><div class="av">'+l.a+'</div><div class="nm">'+l.n+'</div><div class="sc">⭐ '+l.s.toLocaleString('ru')+'</div>';box.appendChild(el);});var you=document.createElement('div');you.className='leader you';you.innerHTML='<div class="rk">100+</div><div class="av">🙂</div><div class="nm">'+t('you_word')+'</div><div class="sc">⭐ '+S.stars.toLocaleString('ru')+'</div>';box.appendChild(you);}
+function renderLeaders(){var box=document.getElementById('leader-list');box.innerHTML='';LEADERS.forEach(function(l,i){var el=document.createElement('div');el.className='leader';el.innerHTML='<div class="rk">'+(i+1)+'</div>'+avDiv('av',l.a,38)+'<div class="nm">'+l.n+'</div><div class="sc">⭐ '+l.s.toLocaleString('ru')+'</div>';box.appendChild(el);});var you=document.createElement('div');you.className='leader you';you.innerHTML='<div class="rk">100+</div><div class="av">🙂</div><div class="nm">'+t('you_word')+'</div><div class="sc">⭐ '+S.stars.toLocaleString('ru')+'</div>';box.appendChild(you);}
 
 /* ============ КОНКУРСЫ ============ */
 var ACTIVE_CONTESTS=[{id:1,prizesN:6,members:4263,timer:"11ч 57м",prizes:[{e:"🦈",v:"1 126"},{e:"🐚",v:"708"},{e:"🪸",v:"530"}]},{id:2,prizesN:9,members:644,timer:"3ч 26м",prizes:[{e:"🌊",v:"1 320"},{e:"🐠",v:"748"},{e:"⚓",v:"474"}]}];
@@ -1901,7 +1923,7 @@ function renderPvpPlayers(players,revealed){
   var html='<div class="ph"><span>'+tf('pvp_players_header_tpl',{n:players.length})+'</span><span>'+t('pvp_chance_stake_lbl')+'</span></div>';
   players.forEach(function(p,i){
     var win=revealed&&p.winner;
-    html+='<div class="prow"><div class="av" style="background:'+pvpColor(i)+'33">'+p.av+'</div><div class="nm">'+(p.me?'<b style="color:var(--aqua)">'+t('you_word')+'</b>':p.name)+(win?' 👑':'')+'</div><div class="bet">⭐'+p.stake+'</div><div class="st '+(win?'win':'live')+'">'+p.pct+'%</div></div>';
+    html+='<div class="prow">'+avDiv('av',p.av,28,'background:'+pvpColor(i)+'33')+'<div class="nm">'+(p.me?'<b style="color:var(--aqua)">'+t('you_word')+'</b>':p.name)+(win?' 👑':'')+'</div><div class="bet">⭐'+p.stake+'</div><div class="st '+(win?'win':'live')+'">'+p.pct+'%</div></div>';
   });
   box.innerHTML=html;
 }
