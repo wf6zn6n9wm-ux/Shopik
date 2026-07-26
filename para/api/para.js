@@ -105,6 +105,8 @@ const PLANS = {
   duo_3:   { type: 'duo',  months: 3,  stars: 999,  title: 'PARA+ DUO · 3 месяца' },
   duo_12:  { type: 'duo',  months: 12, stars: 2999, title: 'PARA+ DUO · 12 месяцев' }
 };
+// Лимит активных (невыполненных) желаний для бесплатных пар. PARA+ снимает лимит.
+const FREE_WISH_LIMIT = 20;
 // Прибавить N месяцев к дате (для расчёта end_date).
 function addMonths(date, months) {
   const d = new Date(date.getTime());
@@ -891,6 +893,13 @@ module.exports = async (req, res) => {
       if (!mem) { res.status(200).json({ ok: false, reason: 'no_couple' }); return; }
       const text = String(body.text || '').trim().slice(0, 200);
       if (!text) { res.status(200).json({ ok: false, reason: 'empty' }); return; }
+      // Лимит желаний: у бесплатных пар — не больше FREE_WISH_LIMIT активных; PARA+ безлимит.
+      const premW = await premiumStatus(me.id, mem.couple_id);
+      if (!premW.active) {
+        let activeCount = 0;
+        try { activeCount = await sbCount('para_wishes?couple_id=eq.' + mem.couple_id + '&status=neq.done'); } catch (e) {}
+        if (activeCount >= FREE_WISH_LIMIT) { res.status(200).json({ ok: false, reason: 'wish_limit', limit: FREE_WISH_LIMIT }); return; }
+      }
       const cat = String(body.category || '❤️').slice(0, 8);
       let pts = parseInt(body.points, 10); if ([10, 20, 30, 50].indexOf(pts) === -1) pts = 20;
       try {
