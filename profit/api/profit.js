@@ -120,7 +120,10 @@ module.exports = async (req, res) => {
       return await sb('profit_members?shop_id=eq.' + shopId + '&select=tg_id,name,role&order=role');
     }
     async function shopRow(shopId) {
-      const rows = await sb('profit_shops?id=eq.' + shopId + '&select=id,invite_code,share_pct,currency,owner_tg');
+      // с salary_pct; если колонка ещё не создана (миграция не выполнена) — откат без неё
+      let rows;
+      try { rows = await sb('profit_shops?id=eq.' + shopId + '&select=id,invite_code,share_pct,salary_pct,currency,owner_tg'); }
+      catch (e) { rows = await sb('profit_shops?id=eq.' + shopId + '&select=id,invite_code,share_pct,currency,owner_tg'); }
       return (rows && rows[0]) || null;
     }
     function shopView(shop, members) {
@@ -129,6 +132,7 @@ module.exports = async (req, res) => {
       return {
         id: shop.id, inviteCode: shop.invite_code,
         sharePct: shop.share_pct == null ? 30 : shop.share_pct,
+        salaryPct: shop.salary_pct == null ? 0 : shop.salary_pct,
         currency: shop.currency || 'грн',
         role: (mine && mine.role) || 'owner',
         me: { name: me.name },
@@ -227,6 +231,7 @@ module.exports = async (req, res) => {
       if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
       const patch = {};
       if (body.share_pct != null) patch.share_pct = Math.min(100, Math.max(0, Math.round(Number(body.share_pct) || 0)));
+      if (body.salary_pct != null) patch.salary_pct = Math.min(100, Math.max(0, Math.round(Number(body.salary_pct) || 0)));
       if (body.currency != null) patch.currency = String(body.currency).slice(0, 12) || 'грн';
       if (Object.keys(patch).length) {
         await sb('profit_shops?id=eq.' + SHOP, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(patch) });
