@@ -286,12 +286,12 @@ function prodAgg(p){
 }
 function fifoLot(p,size){ return (p.stock||[]).filter(l=>l.size===size&&(l.qty||0)>0)[0]||null; }
 function calcSale(s){
-  // Закупку вкладывает управляющая → ей возврат себестоимости + зарплата + её доля.
-  // Владельцу — только его доля от чистой прибыли.
+  // Закупку вкладывает управляющая → ей возврат себестоимости + её доля прибыли.
+  // Зарплата — расход на продавца (уходит продавцу), в доход сторон не входит.
   const pct=V.sharePct/100;
   const net=(s.sale||0)-(s.cost||0)-(s.salary||0);
   const mgrShare=Math.round(net*pct), ownShare=net-mgrShare;
-  return {net, mgrShare, ownShare, mgrTotal:(s.cost||0)+(s.salary||0)+mgrShare, ownTotal:ownShare};
+  return {net, mgrShare, ownShare, mgrTotal:(s.cost||0)+mgrShare, ownTotal:ownShare};
 }
 function totals(){
   const t={stockValue:0,pairsInStock:0,turnover:0,net:0,salaryTotal:0,mgrEarn:0,ownProfit:0,costReturn:0,
@@ -299,7 +299,7 @@ function totals(){
   V.products.forEach(p=>(p.stock||[]).forEach(l=>{ t.stockValue+=(l.qty||0)*lotCost(l); t.pairsInStock+=(l.qty||0); }));
   V.sales.forEach(s=>{ const c=calcSale(s); t.soldCount++;
     t.turnover+=s.sale||0; t.net+=c.net; t.salaryTotal+=s.salary||0;
-    t.mgrEarn+=(s.salary||0)+c.mgrShare; t.ownProfit+=c.ownShare; t.costReturn+=s.cost||0;
+    t.mgrEarn+=c.mgrShare; t.ownProfit+=c.ownShare; t.costReturn+=s.cost||0;
     if(s.settled){ t.mgrWithdrawn+=c.mgrTotal; t.ownReceived+=c.ownTotal; }
     else{ t.mgrWithdrawable+=c.mgrTotal; t.ownReceivable+=c.ownTotal; }
   });
@@ -453,7 +453,7 @@ function saleCard(s){
     <div class="row between" style="align-items:flex-start"><div class="pname flex1">${esc(s.name)} · <span class="muted">р.${esc(s.size)}</span></div>${status}</div>
     <div class="kv"><span class="kk">Продажа</span><span class="vv">${money(s.sale)}</span></div>
     <div class="kv"><span class="kk">Себестоимость</span><span class="vv">${money(s.cost)}</span></div>
-    <div class="kv"><span class="kk">Зарплата</span><span class="vv am">${money(s.salary)}</span></div>
+    ${s.salary?`<div class="kv"><span class="kk">Зарплата продавцу</span><span class="vv am">−${money(s.salary)}</span></div>`:''}
     <div class="split">
       <div class="kv" style="padding:2px 0"><span class="kk">Чистая прибыль</span><span class="vv ${c.net<0?'rd':'em'}">${money(c.net)}</span></div>
       <div class="divi"></div>
@@ -461,7 +461,7 @@ function saleCard(s){
       <div class="kv" style="padding:2px 0"><span class="kk">${esc(V.ownerName)} · ${100-V.sharePct}%</span><span class="vv sky">${money(c.ownShare)}</span></div>
     </div>`;
   if(isOwner) h+=`<div class="kv" style="margin-top:9px"><span class="kk">${s.settled?'Получено':'К получению'}, вам <span class="muted2">(ваша доля)</span></span><span class="vv sky">${money(c.ownTotal)}</span></div>`;
-  else h+=`<div class="kv" style="margin-top:9px"><span class="kk">${s.settled?'Забрано':'Можно забрать'} <span class="muted2">(вложенное+ЗП+доля)</span></span><span class="vv am">${money(c.mgrTotal)}</span></div>`;
+  else h+=`<div class="kv" style="margin-top:9px"><span class="kk">${s.settled?'Забрано':'Можно забрать'} <span class="muted2">(вложенное+доля)</span></span><span class="vv am">${money(c.mgrTotal)}</span></div>`;
   h+=`<div class="row gap2 mt3">`;
   if(isOwner) h+=`<button class="chip" data-act="delSale" data-id="${s.id}">Отменить</button>`;
   h+= s.settled
@@ -535,14 +535,14 @@ function explainerCard(){
   return `<div class="exp mt4">
     <div class="b mb2">Как считается прибыль</div>
     <div class="formula mb3"><b>Себестоимость пары</b> (сразу с доставкой) вкладывает управляющая.<br>
-    Продажа − Себестоимость − Зарплата = <b class="em">чистая прибыль</b>.<br>
+    Продажа − Себестоимость − <b>Зарплата продавцу</b> = <b class="em">чистая прибыль</b>.<br>
     От неё <b class="am">${pct}%</b> — управляющей, <b class="sky">${100-pct}%</b> — владельцу.<br>
-    Управляющая забирает назад вложенную себестоимость + зарплату + её долю; владельцу — только его доля прибыли.</div>
+    Управляющая забирает назад вложенное + её долю; зарплата уходит продавцу; владельцу — его доля прибыли.</div>
     <div style="height:1px;background:rgba(255,255,255,.1);margin:4px 0 10px"></div>
     <div class="xs muted up mb2">Пример (себестоимость 2200)</div>
     <div class="fl"><span class="op">Продажа</span><b>4 000 ${c}</b></div>
     <div class="fl"><span class="op">− Себестоимость</span><b>2 200 ${c}</b></div>
-    <div class="fl"><span class="op">− Зарплата</span><b>200 ${c}</b></div>
+    <div class="fl"><span class="op">− Зарплата продавцу</span><b>200 ${c}</b></div>
     <div class="fl" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:7px"><span class="op">Чистая прибыль</span><b class="em">${net} ${c}</b></div>
     <div class="fl"><span class="op">Управляющей (${pct}%)</span><b class="am">${ms} ${c}</b></div>
     <div class="fl"><span class="op">Владельцу (${100-pct}%)</span><b class="sky">${os} ${c}</b></div>
@@ -565,7 +565,7 @@ function summaryOwner(t){
     <div class="stat"><div class="k">Пар на складе</div><div class="v sm">${t.pairsInStock}</div></div>
   </div>
   <div class="card p4 mt4 small muted" style="line-height:1.5">
-    <b class="sky">Как читать:</b> товар покупает управляющая за свои деньги (<b>${money(t.stockValue)}</b> сейчас в обороте). После продажи она возвращает себе вложенное + зарплату + ${V.sharePct}% прибыли, а тебе отдаёт <b>${100-V.sharePct}% чистой прибыли</b>. «Рассчитаться» на продаже фиксирует, что доля тебе передана.
+    <b class="sky">Как читать:</b> товар покупает управляющая за свои деньги (<b>${money(t.stockValue)}</b> сейчас в обороте). Зарплата продавцов — расход (вычитается из прибыли). Чистую прибыль вы делите: тебе <b>${100-V.sharePct}%</b>, ей ${V.sharePct}% (плюс она возвращает вложенное). «Рассчитаться» на продаже фиксирует, что доля тебе передана.
   </div>
   ${explainerCard()}`;
 }
@@ -573,17 +573,17 @@ function summaryManager(t){
   return `
   <div class="hero manager"><div class="hero-cap">✋ Можно забрать сейчас</div>
     <div class="hero-big am">${money(t.mgrWithdrawable)}</div>
-    <div class="hero-sub">С проданных, ещё не рассчитанных пар: вложенное + зарплата + твоя доля (${V.sharePct}%).</div></div>
+    <div class="hero-sub">С проданных, ещё не рассчитанных пар: вложенное + твоя доля (${V.sharePct}%).</div></div>
   <div class="grid2 mt4">
     <div class="stat"><div class="k">Вложено сейчас</div><div class="v am">${money(t.stockValue)}</div></div>
-    <div class="stat"><div class="k">Заработано (ЗП+доля)</div><div class="v em">${money(t.mgrEarn)}</div></div>
-    <div class="stat"><div class="k">Зарплата всего</div><div class="v sm">${money(t.salaryTotal)}</div></div>
-    <div class="stat"><div class="k">Твоя доля прибыли</div><div class="v am sm">${money(t.mgrEarn-t.salaryTotal)}</div></div>
+    <div class="stat"><div class="k">Твоя доля (заработано)</div><div class="v em">${money(t.mgrEarn)}</div></div>
+    <div class="stat"><div class="k">Выплачено продавцам</div><div class="v sm">${money(t.salaryTotal)}</div></div>
     <div class="stat"><div class="k">Уже забрано</div><div class="v sm">${money(t.mgrWithdrawn)}</div></div>
     <div class="stat"><div class="k">Оборот магазина</div><div class="v sm">${money(t.turnover)}</div></div>
+    <div class="stat"><div class="k">Пар на складе</div><div class="v sm">${t.pairsInStock}</div></div>
   </div>
   <div class="card p4 mt4 small muted" style="line-height:1.5">
-    <b class="am">Как читать:</b> ты вкладываешь свои деньги в товар (<b>${money(t.stockValue)}</b> сейчас). С каждой продажи забираешь <b>вложенное назад + зарплату + ${V.sharePct}% чистой прибыли</b>. Владельцу — ${100-V.sharePct}%. «Можно забрать» — готовые к выплате деньги по непосчитанным продажам.
+    <b class="am">Как читать:</b> ты вкладываешь свои деньги в товар (<b>${money(t.stockValue)}</b> сейчас). С каждой продажи забираешь <b>вложенное назад + ${V.sharePct}% чистой прибыли</b>. Зарплата продавцу — отдельный расход (уходит продавцу). Владельцу — ${100-V.sharePct}%. «Можно забрать» — готовые к выплате деньги по непосчитанным продажам.
   </div>
   ${explainerCard()}`;
 }
@@ -601,7 +601,7 @@ function pctCard(editable){
 function salaryPctCard(editable){
   const s=V.salaryPct;
   return `<div class="cfg">
-    <div class="row between mb2"><div class="b">Зарплата управляющей<br><span class="small muted">% от цены продажи</span></div><div class="am eb" style="font-size:22px" id="salLive">${s}%</div></div>
+    <div class="row between mb2"><div class="b">Зарплата продавцу<br><span class="small muted">% от цены продажи (расход)</span></div><div class="am eb" style="font-size:22px" id="salLive">${s}%</div></div>
     <input type="range" min="0" max="30" step="1" value="${s}" class="range" id="salRange" style="--fill:${Math.round(s/30*100)}%" ${editable?'':'disabled'}>
     <div class="small muted mt2" style="line-height:1.45">Авто-заполняется в форме продажи (поправить вручную можно всегда). <b>0%</b> — без авто-зарплаты.</div>
     ${editable?`<div class="row gap2 mt3 wrapf"><button class="chip" data-setsal="0">0%</button><button class="chip" data-setsal="5">5%</button><button class="chip" data-setsal="7">7%</button><button class="chip" data-setsal="10">10%</button></div>`:`<div class="small muted2 mt2">Процент задаёт владелец.</div>`}</div>`;
@@ -714,7 +714,7 @@ function sheetSell(p){
     <div class="lbl mt4">Цена продажи, ${esc(V.currency)}</div>
     <input class="input" id="fSale" inputmode="numeric" placeholder="4000" oninput="onSaleInput()">
     <div class="row gap2 mt3 wrapf">${['3000','3500','4000','4500'].map(x=>`<button class="chip" data-fill="fSale" data-val="${x}" data-pv="1">${x}</button>`).join('')}</div>
-    <div class="lbl mt4">Зарплата с продажи, ${esc(V.currency)} ${salHint}</div>
+    <div class="lbl mt4">Зарплата продавцу с продажи, ${esc(V.currency)} ${salHint}</div>
     <input class="input" id="fSalary" inputmode="numeric" placeholder="${V.salaryPct>0?'авто от продажи':'200'}" oninput="onSalaryInput()">
     <div class="row gap2 mt3 wrapf">${V.salaryPct>0?`<button class="chip" data-salpct="${V.salaryPct}">${V.salaryPct}%</button>`:''}<button class="chip" data-salpct="5">5%</button><button class="chip" data-salpct="10">10%</button>
       <button class="chip" data-fill="fSalary" data-val="0" data-pv="1">Без ЗП</button></div>
@@ -737,9 +737,10 @@ function previewSell(){
   const el=$('preview'); if(!el) return;
   el.innerHTML=`
     <div class="kv" style="padding:3px 0"><span class="kk">Себестоимость пары</span><span class="vv">${money(cost)}</span></div>
+    ${salary?`<div class="kv" style="padding:3px 0"><span class="kk">Зарплата продавцу</span><span class="vv am">−${money(salary)}</span></div>`:''}
     <div class="kv" style="padding:3px 0"><span class="kk">Чистая прибыль</span><span class="vv ${net<0?'rd':'em'}">${money(net)}</span></div>
     <div class="divi"></div>
-    <div class="kv" style="padding:3px 0"><span class="kk">${esc(V.managerName)}: вложенное + ЗП + доля (${V.sharePct}%)</span><span class="vv am">${money(cost+salary+ms)}</span></div>
+    <div class="kv" style="padding:3px 0"><span class="kk">${esc(V.managerName)}: вложенное + доля (${V.sharePct}%)</span><span class="vv am">${money(cost+ms)}</span></div>
     <div class="kv" style="padding:3px 0"><span class="kk">${esc(V.ownerName)}: доля (${100-V.sharePct}%)</span><span class="vv sky">${money(os)}</span></div>`;
 }
 window.previewSell=previewSell;
