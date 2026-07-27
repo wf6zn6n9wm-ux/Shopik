@@ -172,10 +172,19 @@ create table profit_members (
 -- один пользователь = один магазин (MVP)
 create unique index profit_members_tg on profit_members(tg_id);
 
--- Модель (позиция склада): фото + название
+-- Папка склада (категория): группирует модели
+create table profit_folders (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid references profit_shops(id) on delete cascade,
+  name text,
+  created_at timestamptz default now()
+);
+
+-- Модель (позиция склада): фото + название + папка (необязательно)
 create table profit_products (
   id uuid primary key default gen_random_uuid(),
   shop_id uuid references profit_shops(id) on delete cascade,
+  folder_id uuid references profit_folders(id) on delete set null,
   name text,
   photo text,                      -- сжатое фото (data URL)
   created_at timestamptz default now()
@@ -212,10 +221,24 @@ create table profit_sales (
 -- service-role ключом (в браузер не попадает).
 alter table profit_shops    enable row level security;
 alter table profit_members  enable row level security;
+alter table profit_folders  enable row level security;
 alter table profit_products enable row level security;
 alter table profit_stock    enable row level security;
 alter table profit_sales    enable row level security;
 ```
+
+Миграция для папок (если склад создан до их появления):
+```sql
+create table if not exists profit_folders (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid references profit_shops(id) on delete cascade,
+  name text,
+  created_at timestamptz default now()
+);
+alter table profit_products add column if not exists folder_id uuid references profit_folders(id) on delete set null;
+alter table profit_folders enable row level security;
+```
+(Бэкенд читает `folder_id`/папки мягко — без миграции работает, просто папки недоступны.)
 
 > Если у тебя уже создан магазин по старой схеме (таблица `profit_deals`),
 > выполни в SQL Editor только блок с тремя новыми таблицами
