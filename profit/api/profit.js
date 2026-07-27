@@ -140,8 +140,18 @@ module.exports = async (req, res) => {
         linked: members.length >= 2
       };
     }
+    async function shopFolders(shopId) {
+      // папки склада; если таблицы ещё нет (миграция не выполнена) — пустой список
+      try {
+        const rows = await sb('profit_folders?shop_id=eq.' + shopId + '&select=id,name,created_at&order=created_at.asc');
+        return (rows || []).map((f) => ({ id: f.id, name: f.name }));
+      } catch (e) { return []; }
+    }
     async function shopProducts(shopId) {
-      const prods = await sb('profit_products?shop_id=eq.' + shopId + '&select=id,name,photo,created_at&order=created_at.desc');
+      // с folder_id; откат без него, если колонка ещё не создана
+      let prods;
+      try { prods = await sb('profit_products?shop_id=eq.' + shopId + '&select=id,name,photo,folder_id,created_at&order=created_at.desc'); }
+      catch (e) { prods = await sb('profit_products?shop_id=eq.' + shopId + '&select=id,name,photo,created_at&order=created_at.desc'); }
       const stock = await sb('profit_stock?shop_id=eq.' + shopId + '&select=id,product_id,size,qty,purchase,shipping,created_at&order=created_at.asc');
       const byProd = {};
       (stock || []).forEach((s) => {
@@ -150,7 +160,7 @@ module.exports = async (req, res) => {
           shipping: s.shipping == null ? null : n0(s.shipping)
         });
       });
-      return (prods || []).map((p) => ({ id: p.id, name: p.name, photo: p.photo || null, stock: byProd[p.id] || [] }));
+      return (prods || []).map((p) => ({ id: p.id, name: p.name, photo: p.photo || null, folderId: p.folder_id || null, stock: byProd[p.id] || [] }));
     }
     async function shopSales(shopId) {
       const rows = await sb('profit_sales?shop_id=eq.' + shopId + '&select=id,product_id,name,size,sale,salary,cost,settled,sold_at&order=sold_at.desc');
@@ -167,9 +177,10 @@ module.exports = async (req, res) => {
     async function stateResponse(shopId) {
       const shop = await shopRow(shopId);
       const members = await shopMembers(shopId);
+      const folders = await shopFolders(shopId);
       const products = await shopProducts(shopId);
       const sales = await shopSales(shopId);
-      return { ok: true, shop: shopView(shop, members), products, sales };
+      return { ok: true, shop: shopView(shop, members), folders, products, sales };
     }
 
     const action = body.action;
@@ -240,13 +251,52 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // --- запись профиля товара с мягким откатом, если колонки folder_id ещё нет ---
+    async function saveProduct(path, method, rec) {
+      try {
+        return await sb(path, { method, headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(rec) });
+      } catch (e) {
+        if ('folder_id' in rec) { const o = Object.assign({}, rec); delete o.folder_id; return await sb(path, { method, headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(o) }); }
+        throw e;
+      }
+    }
+
+    // -------- FOLDER ADD/EDIT/DELETE (владелец) --------
+    if (action === 'folder_add') {
+      if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      const name = String(body.name || '').trim().slice(0, 80);
+      if (!name) { res.status(200).json({ ok: false, reason: 'bad_input' }); return; }
+      try { await sb('profit_folders', { method: 'POST', body: JSON.stringify({ shop_id: SHOP, name }) }); }
+      catch (e) { res.status(200).json({ ok: false, reason: 'folders_off' }); return; }
+      res.status(200).json(await stateResponse(SHOP));
+      return;
+    }
+    if (action === 'folder_edit') {
+      if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      const id = String(body.id || ''); const name = String(body.name || '').trim().slice(0, 80);
+      if (!name) { res.status(200).json({ ok: false, reason: 'bad_input' }); return; }
+      await sb('profit_folders?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify({ name }) });
+      res.status(200).json(await stateResponse(SHOP));
+      return;
+    }
+    if (action === 'folder_delete') {
+      if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      const id = String(body.id || '');
+      // товары внутри — FK on delete set null снимет folder_id (останутся «без папки»)
+      await sb('profit_folders?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP, { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) });
+      res.status(200).json(await stateResponse(SHOP));
+      return;
+    }
+
     // -------- PRODUCT ADD/EDIT/DELETE (владелец) --------
     if (action === 'product_add') {
       if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
       const name = String(body.name || '').trim().slice(0, 120);
       if (!name) { res.status(200).json({ ok: false, reason: 'bad_input' }); return; }
       const photo = typeof body.photo === 'string' && body.photo.length < 700000 ? body.photo : null;
-      await sb('profit_products', { method: 'POST', body: JSON.stringify({ shop_id: SHOP, name, photo }) });
+      const rec = { shop_id: SHOP, name, photo };
+      if (body.folder_id) rec.folder_id = String(body.folder_id);
+      await saveProduct('profit_products', 'POST', rec);
       res.status(200).json(await stateResponse(SHOP));
       return;
     }
@@ -256,7 +306,8 @@ module.exports = async (req, res) => {
       const patch = {};
       if (body.name != null) patch.name = String(body.name).trim().slice(0, 120);
       if (body.photo !== undefined) patch.photo = (typeof body.photo === 'string' && body.photo.length < 700000) ? body.photo : null;
-      await sb('profit_products?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(patch) });
+      if (body.folder_id !== undefined) patch.folder_id = body.folder_id ? String(body.folder_id) : null;
+      await saveProduct('profit_products?id=eq.' + encodeURIComponent(id) + '&shop_id=eq.' + SHOP, 'PATCH', patch);
       res.status(200).json(await stateResponse(SHOP));
       return;
     }

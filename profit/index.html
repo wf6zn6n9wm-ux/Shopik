@@ -110,6 +110,12 @@
   .stat .v.sm{font-size:16px;}
 
   /* product */
+  .folder{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px;margin-bottom:10px;}
+  .folder .frow{display:flex;align-items:center;gap:12px;}
+  .folder .frow:active{opacity:.7;}
+  .ficon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;
+    background:radial-gradient(circle at 50% 35%,rgba(52,211,153,.20),rgba(16,185,129,.06));flex:0 0 44px;}
+  .fname{font-size:16px;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .prod{position:relative;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px;margin-bottom:12px;overflow:hidden;}
   .pthumb{width:66px;height:66px;border-radius:15px;object-fit:cover;background:rgba(255,255,255,.06);flex:0 0 66px;
     display:flex;align-items:center;justify-content:center;font-size:30px;border:1px solid var(--line2);}
@@ -234,7 +240,7 @@
 <script>
 "use strict";
 const KEY='profit_state_v2';
-const DEFAULTS={ settings:{sharePct:30, salaryPct:0, currency:'грн', ownerName:'Я', managerName:'Управляющая'}, role:'owner', tab:'stock', products:[], sales:[] };
+const DEFAULTS={ settings:{sharePct:30, salaryPct:0, currency:'грн', ownerName:'Я', managerName:'Управляющая'}, role:'owner', tab:'stock', folders:[], products:[], sales:[] };
 function loadLocal(){
   try{ const r=JSON.parse(localStorage.getItem(KEY)); if(r&&r.settings) return {...DEFAULTS,...r, settings:{...DEFAULTS.settings,...r.settings}}; }catch(e){}
   return JSON.parse(JSON.stringify(DEFAULTS));
@@ -242,20 +248,21 @@ function loadLocal(){
 let S=loadLocal();
 function saveLocal(){ localStorage.setItem(KEY, JSON.stringify(S)); }
 
-let ONLINE=false, SHOP=null, PRODUCTS=[], SALES=[];
-const V={online:false, role:'owner', products:[], sales:[], sharePct:30, salaryPct:0, currency:'грн', ownerName:'Я', managerName:'Управляющая', shop:null};
+let ONLINE=false, SHOP=null, FOLDERS=[], PRODUCTS=[], SALES=[];
+let curFolder=null;   // открытая папка (id) или null = обзор
+const V={online:false, role:'owner', folders:[], products:[], sales:[], sharePct:30, salaryPct:0, currency:'грн', ownerName:'Я', managerName:'Управляющая', shop:null};
 function buildView(){
   V.online=ONLINE;
   if(ONLINE){
     V.shop=SHOP;
     if(SHOP){
-      V.role=SHOP.role; V.products=PRODUCTS; V.sales=SALES; V.sharePct=SHOP.sharePct; V.salaryPct=SHOP.salaryPct==null?0:SHOP.salaryPct; V.currency=SHOP.currency||'грн';
+      V.role=SHOP.role; V.folders=FOLDERS; V.products=PRODUCTS; V.sales=SALES; V.sharePct=SHOP.sharePct; V.salaryPct=SHOP.salaryPct==null?0:SHOP.salaryPct; V.currency=SHOP.currency||'грн';
       const p=SHOP.partner;
       if(SHOP.role==='owner'){ V.ownerName=SHOP.me.name||'Владелец'; V.managerName=p?p.name:'Управляющая'; }
       else{ V.managerName=SHOP.me.name||'Управляющая'; V.ownerName=p?p.name:'Владелец'; }
-    }else{ V.role='owner'; V.products=[]; V.sales=[]; V.sharePct=30; V.salaryPct=0; V.currency='грн'; V.ownerName='Владелец'; V.managerName='Управляющая'; }
+    }else{ V.role='owner'; V.folders=[]; V.products=[]; V.sales=[]; V.sharePct=30; V.salaryPct=0; V.currency='грн'; V.ownerName='Владелец'; V.managerName='Управляющая'; }
   }else{
-    V.shop=null; V.role=S.role; V.products=S.products; V.sales=S.sales;
+    V.shop=null; V.role=S.role; V.folders=S.folders||[]; V.products=S.products; V.sales=S.sales;
     V.sharePct=S.settings.sharePct; V.salaryPct=S.settings.salaryPct||0; V.currency=S.settings.currency; V.ownerName=S.settings.ownerName; V.managerName=S.settings.managerName;
   }
 }
@@ -305,8 +312,8 @@ async function api(action, extra){
   const r=await fetch('/api/profit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({action, initData:tgInitData()}, extra||{}))});
   return r.json();
 }
-const ERR={forbidden:'Менять это может только владелец',not_found:'Не найдено',shop_full:'В магазине уже двое',not_configured:'Сервер не подключён',bad_auth:'Ошибка входа Telegram',rate_limited:'Слишком часто — подождите',bad_code:'Неверный код',bad_input:'Проверьте введённые данные',out_of_stock:'Нет в наличии этого размера',no_shop:'Сначала создайте или войдите в магазин'};
-function applyState(j){ if('shop' in j){ SHOP=j.shop||null; PRODUCTS=j.products||[]; SALES=j.sales||[]; } }
+const ERR={forbidden:'Менять это может только владелец',not_found:'Не найдено',shop_full:'В магазине уже двое',not_configured:'Сервер не подключён',bad_auth:'Ошибка входа Telegram',rate_limited:'Слишком часто — подождите',bad_code:'Неверный код',bad_input:'Проверьте введённые данные',out_of_stock:'Нет в наличии этого размера',no_shop:'Сначала создайте или войдите в магазин',folders_off:'Сначала выполни SQL для папок (в чате)'};
+function applyState(j){ if('shop' in j){ SHOP=j.shop||null; FOLDERS=j.folders||[]; PRODUCTS=j.products||[]; SALES=j.sales||[]; } }
 async function apiCall(action, extra, okMsg){
   try{
     const j=await api(action, extra);
@@ -462,22 +469,61 @@ function saleCard(s){
   h+=`</div></div>`;
   return h;
 }
+function folderCard(f, models, pairs){
+  const isOwner=V.role==='owner';
+  return `<div class="folder"><div class="frow" data-act="openFolder" data-id="${f.id}">
+    <div class="ficon">📁</div>
+    <div class="flex1" style="min-width:0"><div class="fname">${esc(f.name)}</div><div class="small muted">${models} модел${models===1?'ь':(models>=2&&models<=4?'и':'ей')} · ${pairs} пар</div></div>
+    <div class="muted2 b" style="font-size:22px">›</div></div>
+    ${isOwner?`<div class="row gap2 mt2"><button class="chip" data-act="editFolder" data-id="${f.id}">✏️ Переименовать</button><button class="chip" data-act="delFolder" data-id="${f.id}">🗑</button></div>`:''}</div>`;
+}
 function viewStock(){
   const isOwner=V.role==='owner';
   let h='';
   if(V.online && V.shop && !V.shop.linked) h+=inviteBanner();
-  h+= isOwner
-    ? `<button class="btn btn-primary" data-act="addProduct"><span style="font-size:18px;line-height:1">＋</span> Добавить модель</button>`
-    : `<div class="card p4 row gap3"><div style="font-size:28px">📦</div><div class="flex1"><div class="sb">Склад ведёт владелец</div><div class="small muted mt1">Он добавляет модели, размеры и закупку. Ты продаёшь пары со склада.</div></div></div>`;
+
+  // --- ВНУТРИ ПАПКИ ---
+  if(curFolder){
+    const f=V.folders.find(x=>x.id===curFolder);
+    if(!f){ curFolder=null; }
+    else{
+      h+=`<button class="btn btn-ghost btn-sm" data-act="folderBack">← Все папки</button>`;
+      h+=`<div class="row between mt3" style="align-items:center"><div class="b" style="font-size:20px">📁 ${esc(f.name)}</div>`;
+      if(isOwner) h+=`<div class="row gap2"><button class="chip" data-act="editFolder" data-id="${f.id}">✏️</button><button class="chip" data-act="delFolder" data-id="${f.id}">🗑</button></div>`;
+      h+=`</div>`;
+      const inFolder=V.products.filter(p=>p.folderId===curFolder);
+      if(isOwner) h+=`<button class="btn btn-primary mt3" data-act="addProduct" data-folder="${f.id}"><span style="font-size:18px;line-height:1">＋</span> Добавить модель в папку</button>`;
+      if(!inFolder.length) h+=`<div class="empty"><div class="ic">📂</div><div class="t">В папке пусто</div><div class="d">${isOwner?'Добавь сюда первую модель.':'Здесь пока нет товаров.'}</div></div>`;
+      else{ h+=`<div class="sh">Модели · ${inFolder.length}</div>`; inFolder.forEach(p=>h+=productCard(p)); }
+      return h;
+    }
+  }
+
+  // --- ОБЗОР: папки + без папки + продажи ---
+  if(isOwner){
+    h+=`<div class="row gap2"><button class="btn btn-ghost btn-sm" data-act="addFolder">📁 ＋ Папка</button><button class="btn btn-primary btn-sm flex1" data-act="addProduct"><span style="font-size:16px">＋</span> Модель</button></div>`;
+  }else{
+    h+=`<div class="card p4 row gap3"><div style="font-size:28px">📦</div><div class="flex1"><div class="sb">Склад ведёт владелец</div><div class="small muted mt1">Открывай папки и продавай пары со склада.</div></div></div>`;
+  }
 
   const soldOpen=V.sales.filter(s=>!s.settled), soldDone=V.sales.filter(s=>s.settled);
-  if(!V.products.length){
+  const uncat=V.products.filter(p=>!p.folderId);
+
+  if(!V.products.length && !V.folders.length){
     h+=`<div class="empty"><div class="ic">👟</div><div class="t">Склад пуст</div>
-      <div class="d">${isOwner?'Добавь первую модель — фото, название, потом размеры и закупку.':'Как только владелец добавит товар, ты сможешь продавать.'}</div></div>`;
+      <div class="d">${isOwner?'Создай папку (напр. «Nike») или сразу добавь модель — фото, название, размеры, закупку.':'Как только владелец добавит товар, ты сможешь продавать.'}</div></div>`;
     h+=explainerCard(); return h;
   }
-  h+=`<div class="sh">Склад · моделей ${V.products.length}</div>`;
-  V.products.forEach(p=>h+=productCard(p));
+
+  if(V.folders.length){
+    h+=`<div class="sh">Папки · ${V.folders.length}</div>`;
+    V.folders.forEach(f=>{
+      const prods=V.products.filter(p=>p.folderId===f.id);
+      let pairs=0; prods.forEach(p=>(p.stock||[]).forEach(l=>pairs+=l.qty||0));
+      h+=folderCard(f, prods.length, pairs);
+    });
+  }
+  if(uncat.length){ h+=`<div class="sh">Без папки · ${uncat.length}</div>`; uncat.forEach(p=>h+=productCard(p)); }
   if(soldOpen.length){ h+=`<div class="sh">Продано · к расчёту · ${soldOpen.length}</div>`; soldOpen.forEach(s=>h+=saleCard(s)); }
   if(soldDone.length){ h+=`<div class="sh">Рассчитано · ${soldDone.length}</div>`; soldDone.forEach(s=>h+=saleCard(s)); }
   return h;
@@ -605,16 +651,31 @@ function openSheet(html){ $('sheet').innerHTML='<div class="grab"></div>'+html; 
 function closeSheet(){ $('ov').classList.remove('on'); }
 $('ov').addEventListener('click',e=>{ if(e.target.id==='ov') closeSheet(); });
 
-function sheetProduct(p){
+let sheetFolder=null;
+function sheetProduct(p, preset){
   const edit=!!p; sheetPhoto=edit?(p.photo||null):null;
+  sheetFolder = edit ? (p.folderId||null) : (preset||null);
+  const folderChips = `<div class="lbl mt4">Папка</div><div class="row gap2 wrapf" id="folderRow">
+    <button class="chip ${sheetFolder?'':'on'}" data-selfolder="">Без папки</button>
+    ${V.folders.map(f=>`<button class="chip ${sheetFolder===f.id?'on':''}" data-selfolder="${f.id}">📁 ${esc(f.name)}</button>`).join('')}
+  </div>`;
   openSheet(`<div class="sh-title mb4">${edit?'Изменить модель':'Новая модель'}</div>
     <div class="photobox" id="photoBox">${sheetPhoto?`<img src="${sheetPhoto}">`:'<div class="ph">Фото товара<br>(необязательно)</div>'}</div>
     <div class="row gap2 mb4"><button class="btn btn-ghost btn-sm flex1" onclick="pickPhoto()">📷 ${edit&&p.photo?'Заменить фото':'Добавить фото'}</button>
-      ${'' /* clear */}<button class="btn btn-ghost btn-sm" data-act="clearPhoto">Убрать</button></div>
+      <button class="btn btn-ghost btn-sm" data-act="clearPhoto">Убрать</button></div>
     <div class="lbl">Название модели</div>
     <input class="input" id="fName" value="${edit?esc(p.name):''}" placeholder="Nike Air Max 90">
+    ${folderChips}
     <button class="btn btn-primary mt4" data-act="${edit?'saveProduct':'createProduct'}" ${edit?`data-pid="${p.id}"`:''}>${edit?'Сохранить':'Добавить модель'}</button>`);
   setTimeout(()=>$('fName')&&$('fName').focus(),200);
+}
+function sheetFolderEdit(f){
+  const edit=!!f;
+  openSheet(`<div class="sh-title mb4">${edit?'Переименовать папку':'Новая папка'}</div>
+    <div class="lbl">Название папки</div>
+    <input class="input" id="fFolderName" value="${edit?esc(f.name):''}" placeholder="напр. Nike">
+    <button class="btn btn-primary mt4" data-act="${edit?'saveFolder':'createFolder'}" ${edit?`data-id="${f.id}"`:''}>${edit?'Сохранить':'Создать папку'}</button>`);
+  setTimeout(()=>$('fFolderName')&&$('fFolderName').focus(),200);
 }
 function sheetStock(pid, lot){
   const edit=!!lot;
@@ -693,6 +754,8 @@ document.addEventListener('click',e=>{
 
   const selsize=e.target.closest('[data-selsize]');
   if(selsize){ sellSel.size=selsize.dataset.selsize; document.querySelectorAll('#sizeRow .chip').forEach(c=>c.classList.toggle('on',c.dataset.selsize===sellSel.size)); previewSell(); return; }
+  const selfolder=e.target.closest('[data-selfolder]');
+  if(selfolder){ sheetFolder=selfolder.dataset.selfolder||null; document.querySelectorAll('#folderRow .chip').forEach(c=>c.classList.toggle('on',(c.dataset.selfolder||'')===(sheetFolder||''))); return; }
   const fill=e.target.closest('[data-fill]');
   if(fill){ const inp=$(fill.dataset.fill); if(inp){ inp.value=fill.dataset.val; if(fill.dataset.fill==='fSalary') salaryAuto=false; if(fill.dataset.pv) previewSell(); } return; }
   const salpct=e.target.closest('[data-salpct]');
@@ -711,20 +774,44 @@ document.addEventListener('click',e=>{
   if(act==='joinShop'){ const code=($('joinCode').value||'').toUpperCase().trim(); if(code.length<4){ toast('Введите код'); return; } apiCall('shop_join',{code}); return; }
   if(act==='copyCode'){ const code=V.shop&&V.shop.inviteCode||''; try{ navigator.clipboard.writeText(code); toast('Код скопирован: '+code); }catch(e){ toast('Код: '+code); } return; }
 
+  // folders
+  if(act==='openFolder'){ curFolder=id; render(); return; }
+  if(act==='folderBack'){ curFolder=null; render(); return; }
+  if(act==='addFolder'){ sheetFolderEdit(null); return; }
+  if(act==='editFolder'){ const f=V.folders.find(x=>x.id===id); if(f) sheetFolderEdit(f); return; }
+  if(act==='createFolder'){
+    const name=$('fFolderName').value.trim(); if(!name){ toast('Введи название папки'); return; }
+    if(V.online){ apiCall('folder_add',{name},'Папка создана').then(ok=>{ if(ok) closeSheet(); }); }
+    else{ S.folders.push({id:uid(),name}); saveLocal(); closeSheet(); buildView(); render(); toast('Папка создана'); }
+    return;
+  }
+  if(act==='saveFolder'){
+    const name=$('fFolderName').value.trim(); if(!name){ toast('Введи название'); return; }
+    if(V.online){ apiCall('folder_edit',{id,name},'Сохранено').then(ok=>{ if(ok) closeSheet(); }); }
+    else{ const f=S.folders.find(x=>x.id===id); if(f)f.name=name; saveLocal(); closeSheet(); buildView(); render(); toast('Сохранено'); }
+    return;
+  }
+  if(act==='delFolder'){
+    if(!confirm('Удалить папку? Товары внутри останутся (перейдут в «Без папки»).')) return;
+    if(V.online){ apiCall('folder_delete',{id},'Папка удалена').then(ok=>{ if(ok&&curFolder===id){ curFolder=null; render(); } }); }
+    else{ S.folders=S.folders.filter(x=>x.id!==id); S.products.forEach(p=>{ if(p.folderId===id) p.folderId=null; }); if(curFolder===id) curFolder=null; saveLocal(); buildView(); render(); toast('Папка удалена'); }
+    return;
+  }
+
   // product
-  if(act==='addProduct'){ sheetProduct(null); return; }
+  if(act==='addProduct'){ sheetProduct(null, a.dataset.folder||curFolder||null); return; }
   if(act==='editProduct'){ sheetProduct(prod); return; }
   if(act==='clearPhoto'){ sheetPhoto=null; const box=$('photoBox'); if(box) box.innerHTML='<div class="ph">Фото товара<br>(необязательно)</div>'; return; }
   if(act==='createProduct'){
     const name=$('fName').value.trim(); if(!name){ toast('Введи название'); return; }
-    if(V.online){ apiCall('product_add',{name,photo:sheetPhoto},'Модель добавлена').then(ok=>{ if(ok) closeSheet(); }); }
-    else{ S.products.unshift({id:uid(),name,photo:sheetPhoto,stock:[]}); saveLocal(); closeSheet(); buildView(); render(); toast('Модель добавлена'); }
+    if(V.online){ apiCall('product_add',{name,photo:sheetPhoto,folder_id:sheetFolder},'Модель добавлена').then(ok=>{ if(ok) closeSheet(); }); }
+    else{ S.products.unshift({id:uid(),name,photo:sheetPhoto,folderId:sheetFolder||null,stock:[]}); saveLocal(); closeSheet(); buildView(); render(); toast('Модель добавлена'); }
     return;
   }
   if(act==='saveProduct'){
     const name=$('fName').value.trim()||prod.name;
-    if(V.online){ apiCall('product_edit',{id:pid,name,photo:sheetPhoto},'Сохранено').then(ok=>{ if(ok) closeSheet(); }); }
-    else{ prod.name=name; prod.photo=sheetPhoto; saveLocal(); closeSheet(); buildView(); render(); toast('Сохранено'); }
+    if(V.online){ apiCall('product_edit',{id:pid,name,photo:sheetPhoto,folder_id:sheetFolder},'Сохранено').then(ok=>{ if(ok) closeSheet(); }); }
+    else{ prod.name=name; prod.photo=sheetPhoto; prod.folderId=sheetFolder||null; saveLocal(); closeSheet(); buildView(); render(); toast('Сохранено'); }
     return;
   }
   if(act==='delProduct'){
@@ -793,7 +880,7 @@ document.addEventListener('click',e=>{
   // settings
   if(act==='saveCurOnline'){ apiCall('settings_save',{currency:$('cfgCur').value.trim()||'грн'},'Сохранено'); return; }
   if(act==='saveCfg'){ S.settings.ownerName=$('cfgOwner').value.trim()||'Я'; S.settings.managerName=$('cfgMgr').value.trim()||'Управляющая'; S.settings.currency=$('cfgCur').value.trim()||'грн'; saveLocal(); buildView(); render(); toast('Настройки сохранены'); return; }
-  if(act==='reset'){ if(confirm('Очистить склад и продажи? Настройки останутся.')){ S.products=[]; S.sales=[]; saveLocal(); buildView(); render(); toast('Очищено'); } return; }
+  if(act==='reset'){ if(confirm('Очистить склад и продажи? Настройки останутся.')){ S.products=[]; S.sales=[]; S.folders=[]; curFolder=null; saveLocal(); buildView(); render(); toast('Очищено'); } return; }
 });
 
 try{ const tg=window.Telegram&&window.Telegram.WebApp; if(tg){ tg.ready(); tg.expand&&tg.expand(); tg.setHeaderColor&&tg.setHeaderColor('#0b1210'); } }catch(e){}
