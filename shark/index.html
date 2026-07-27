@@ -817,6 +817,42 @@ input:focus{border-color:var(--aqua);}
   background:radial-gradient(circle at 38% 28%,#1e5268,#0c2637 72%);}
 
 /* ══════════════════════════════════════════════════════════════════════
+   АДМИН-ПАНЕЛЬ (Э2 — каркас)
+
+   Служебный раздел: намеренно выглядит иначе, чем игровые экраны, чтобы его
+   нельзя было спутать с функцией для игрока. Тёплая янтарная линия вместо
+   фирменной бирюзы, без свечения и стекла. Все имена с префиксом adm- ,
+   ни один селектор не пересекается с остальным стилем.
+   Вход в профиле скрыт по умолчанию — показывает его только сервер.
+   ══════════════════════════════════════════════════════════════════════ */
+.adm-entry{display:none;align-items:center;gap:12px;width:100%;padding:14px 16px;margin-bottom:12px;
+  background:linear-gradient(180deg,rgba(255,196,84,.07),rgba(255,196,84,.02));
+  border:1px solid rgba(255,196,84,.26);border-radius:18px;cursor:pointer;text-align:left;
+  font:inherit;color:var(--text);transition:transform .15s var(--ease),background .15s;}
+.adm-entry.on{display:flex;}
+.adm-entry:active{transform:scale(.98);background:rgba(255,196,84,.10);}
+.adm-entry .ae-ic{width:38px;height:38px;flex:none;border-radius:11px;display:grid;place-items:center;font-size:18px;
+  background:radial-gradient(circle at 38% 28%,#5a4318,#2a1f08 74%);}
+.adm-entry .ae-tx{flex:1;min-width:0;}
+.adm-entry .ae-tx b{display:block;font-size:14.5px;font-weight:800;}
+.adm-entry .ae-tx p{margin:2px 0 0;font-size:12px;color:var(--muted);}
+.adm-entry .ae-go{color:#ffc454;font-weight:800;flex:none;}
+
+#s-admin .title{color:#ffd98a;}
+.adm-note{display:flex;gap:9px;align-items:flex-start;padding:11px 13px;margin-bottom:14px;
+  background:rgba(255,196,84,.06);border:1px solid rgba(255,196,84,.2);border-radius:14px;
+  font-size:12.5px;line-height:1.5;color:var(--muted);}
+.adm-note .an-ic{flex:none;}
+#adm-seg{margin-bottom:14px;}
+#adm-seg button.active{background:linear-gradient(180deg,#ffd071,#f0a92c);color:#2a1c00;
+  box-shadow:0 6px 16px -8px rgba(255,196,84,.55);}
+.adm-pane{display:none;}
+.adm-pane.on{display:block;}
+.adm-ph{text-align:center;color:var(--muted);padding:34px 14px;font-size:13.5px;line-height:1.6;
+  border:1px dashed var(--line);border-radius:18px;}
+.adm-ph .ap-ic{font-size:26px;display:block;margin-bottom:8px;opacity:.65;}
+
+/* ══════════════════════════════════════════════════════════════════════
    PVP · ЭКРАН (Э1 каркас + Э2 визуальный слой)
 
    Геометрия механизма выводится из ОДНОГО базового размера — ширины карточки.
@@ -1401,6 +1437,13 @@ input:focus{border-color:var(--aqua);}
     <button class="btn-ghost" onclick="openBuyStars()" id="i-topup-btn">Пополнить звёзды</button>
   </div>
 
+  <!-- вход в админку: скрыт, пока сервер не подтвердит права -->
+  <button class="adm-entry" id="adm-entry" type="button" onclick="go('admin')">
+    <div class="ae-ic">🛠</div>
+    <div class="ae-tx"><b id="i-adm-entry-lbl">Админ-панель</b><p id="i-adm-entry-desc">Служебный раздел</p></div>
+    <div class="ae-go">→</div>
+  </button>
+
   <div class="menu-grid">
     <div class="menu-card" onclick="go('refs')"><div class="mc-ic">👥</div><span id="i-friends-btn">Друзья</span></div>
     <div class="menu-card" onclick="go('history')"><div class="mc-ic">📜</div><span id="i-history-btn">История</span></div>
@@ -1467,6 +1510,29 @@ input:focus{border-color:var(--aqua);}
   <div class="set-row" onclick="toast(t('support_toast'))" style="cursor:pointer"><div class="sl"><b id="i-support-lbl">Поддержка</b><p id="i-support-desc">Связаться с нами</p></div><div style="color:var(--aqua);font-weight:800">→</div></div>
 </div>
 
+<!-- АДМИН-ПАНЕЛЬ (каркас) -->
+<div class="screen" id="s-admin">
+  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
+  <h1 class="title" id="i-adm-h1">Админ-панель</h1>
+  <div class="adm-note"><span class="an-ic">🔒</span><span id="i-adm-note">Раздел виден только вам. Все действия проверяет сервер.</span></div>
+
+  <div class="seg" id="adm-seg">
+    <button data-atab="stats" class="active" onclick="admTab('stats')" id="i-adm-tab-stats">Сводка</button>
+    <button data-atab="players" onclick="admTab('players')" id="i-adm-tab-players">Игроки</button>
+    <button data-atab="grant" onclick="admTab('grant')" id="i-adm-tab-grant">Баланс</button>
+  </div>
+
+  <div class="adm-pane on" id="adm-pane-stats">
+    <div class="adm-ph"><span class="ap-ic">📊</span><span id="i-adm-ph-stats">Сводка по игрокам и обороту</span></div>
+  </div>
+  <div class="adm-pane" id="adm-pane-players">
+    <div class="adm-ph"><span class="ap-ic">👥</span><span id="i-adm-ph-players">Список игроков с поиском</span></div>
+  </div>
+  <div class="adm-pane" id="adm-pane-grant">
+    <div class="adm-ph"><span class="ap-ic">⭐</span><span id="i-adm-ph-grant">Начисление звёзд на свой аккаунт</span></div>
+  </div>
+</div>
+
 <!-- TABBAR -->
 <div class="tabbar">
   <div class="tab active" data-tab="home" onclick="go('home')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 6H7a5 5 0 00-5 5v2.5A3.5 3.5 0 008.4 15l.5-1h6.2l.5 1a3.5 3.5 0 006.4-1.5V11a5 5 0 00-5-5zM8.5 9.5V11H10v1.4H8.5V14H7.1v-1.6H5.6V11h1.5V9.5zm7.4.4a1 1 0 110 2 1 1 0 010-2zm1.6 2a1 1 0 110 2 1 1 0 010-2z"/></svg><span id="tab-home">Игры</span></div>
@@ -1524,7 +1590,7 @@ function sharkSVG(){
 /* ============ СОСТОЯНИЕ ============ */
 var S={money:0,stars:0,bet:50,cbet:50,doneTasks:{},joinedContests:{},cashedThisRound:false,
        played:0,wonStars:0,refCount:0,refEarned:0,dailyOpened:false,streakDay:3,history:[],isPro:false,
-       wheelSpun:false,achievements:{},firstWithdraw:false,onboarded:false,lang:'ru',soundPref:true};
+       wheelSpun:false,achievements:{},firstWithdraw:false,onboarded:false,lang:'ru',soundPref:true,isAdmin:false};
 
 /* ============================================================
    ЛОКАЛИЗАЦИЯ (uk по умолчанию, ru/en) — ключевые экраны:
@@ -1637,7 +1703,13 @@ var I18N={
     ticker_won_word:'виграв',
     cr_phase_live:'Раунд триває', cr_phase_over:'Раунд завершено',
     see_all_lbl:'Всі →', home_contest_empty:'Поки немає активних розіграшів',
-    rarity_common:'Звичайний', rarity_rare:'Рідкісний', rarity_epic:'Епічний', rarity_legendary:'Легендарний'
+    rarity_common:'Звичайний', rarity_rare:'Рідкісний', rarity_epic:'Епічний', rarity_legendary:'Легендарний',
+    /* Адмін-панель (Е2) */
+    adm_entry_lbl:'Адмін-панель', adm_entry_desc:'Службовий розділ',
+    adm_h1:'Адмін-панель', adm_note:'Розділ бачите лише ви. Усі дії перевіряє сервер.',
+    adm_tab_stats:'Зведення', adm_tab_players:'Гравці', adm_tab_grant:'Баланс',
+    adm_ph_stats:'Зведення щодо гравців і обороту', adm_ph_players:'Список гравців із пошуком',
+    adm_ph_grant:'Нарахування зірок на власний акаунт'
   },
   ru:{
     /* PVP — новый экран (Э5) */
@@ -1744,7 +1816,13 @@ var I18N={
     ticker_won_word:'выиграл',
     cr_phase_live:'Раунд идёт', cr_phase_over:'Раунд завершён',
     see_all_lbl:'Все →', home_contest_empty:'Пока нет активных розыгрышей',
-    rarity_common:'Обычный', rarity_rare:'Редкий', rarity_epic:'Эпический', rarity_legendary:'Легендарный'
+    rarity_common:'Обычный', rarity_rare:'Редкий', rarity_epic:'Эпический', rarity_legendary:'Легендарный',
+    /* Админ-панель (Э2) */
+    adm_entry_lbl:'Админ-панель', adm_entry_desc:'Служебный раздел',
+    adm_h1:'Админ-панель', adm_note:'Раздел виден только вам. Все действия проверяет сервер.',
+    adm_tab_stats:'Сводка', adm_tab_players:'Игроки', adm_tab_grant:'Баланс',
+    adm_ph_stats:'Сводка по игрокам и обороту', adm_ph_players:'Список игроков с поиском',
+    adm_ph_grant:'Начисление звёзд на свой аккаунт'
   },
   en:{
     /* PVP — новый экран (Э5) */
@@ -1851,7 +1929,13 @@ var I18N={
     ticker_won_word:'won',
     cr_phase_live:'Round live', cr_phase_over:'Round over',
     see_all_lbl:'All →', home_contest_empty:'No active draws right now',
-    rarity_common:'Common', rarity_rare:'Rare', rarity_epic:'Epic', rarity_legendary:'Legendary'
+    rarity_common:'Common', rarity_rare:'Rare', rarity_epic:'Epic', rarity_legendary:'Legendary',
+    /* Admin panel (stage 2) */
+    adm_entry_lbl:'Admin panel', adm_entry_desc:'Internal section',
+    adm_h1:'Admin panel', adm_note:'Only you can see this section. Every action is checked server-side.',
+    adm_tab_stats:'Overview', adm_tab_players:'Players', adm_tab_grant:'Balance',
+    adm_ph_stats:'Overview of players and turnover', adm_ph_players:'Player list with search',
+    adm_ph_grant:'Credit stars to your own account'
   }
 };
 var LANG_KEY='shark_lang_v1';
@@ -1903,7 +1987,11 @@ function applyI18n(){
     'i-ref-invite-btn':'ref_invite_btn', 'i-ref-copy-btn':'ref_copy_btn',
     'i-ref-earned-lbl':'ref_earned_lbl', 'i-ref-today-lbl':'ref_today_lbl', 'i-ref-friends-head':'ref_friends_head',
     'i-refs-h1':'friends_btn', 'i-history-h1':'history_btn', 'i-history-sub':'history_sub',
-    'i-ach-h1':'ach_btn', 'i-ach-sub':'ach_sub'
+    'i-ach-h1':'ach_btn', 'i-ach-sub':'ach_sub',
+    'i-adm-entry-lbl':'adm_entry_lbl', 'i-adm-entry-desc':'adm_entry_desc',
+    'i-adm-h1':'adm_h1', 'i-adm-note':'adm_note',
+    'i-adm-tab-stats':'adm_tab_stats', 'i-adm-tab-players':'adm_tab_players', 'i-adm-tab-grant':'adm_tab_grant',
+    'i-adm-ph-stats':'adm_ph_stats', 'i-adm-ph-players':'adm_ph_players', 'i-adm-ph-grant':'adm_ph_grant'
   };
   Object.keys(map).forEach(function(id){
     var el=document.getElementById(id); if(el) el.textContent=t(map[id]);
@@ -2032,6 +2120,9 @@ function logOp(icon,title,sub,val,cls){
 
 /* ============ НАВИГАЦИЯ ============ */
 function go(name){
+  // админка недоступна без подтверждения сервера — на случай прямого вызова
+  // из консоли; сами действия панели сервер всё равно проверяет отдельно
+  if(name==='admin' && !S.isAdmin) name='profile';
   $all('.screen').forEach(function(s){s.classList.remove('active');});
   var scr=document.getElementById('s-'+name); if(scr) scr.classList.add('active');
   $all('.tab').forEach(function(t){t.classList.toggle('active',t.getAttribute('data-tab')===name);});
@@ -2041,6 +2132,24 @@ function go(name){
   if(name==='refs') renderRefs();
   if(name==='profile') renderProfile();
   if(name==='leaders'){ startLeaderCountdown(); } else { stopLeaderCountdown(); }
+  if(name==='admin') admTab(admTabCur);
+}
+
+/* ============ АДМИН-ПАНЕЛЬ (каркас) ============ */
+/* Права приходят только из ответа сервера на state. Клиент их не выводит и не
+   хранит между сессиями: пока сервер не сказал isAdmin, входа в профиле нет. */
+var admTabCur='stats';
+/* вызывается из boot() внутри try — не должна бросать, иначе молча сорвётся
+   вся загрузка состояния и приложение останется в демо-режиме */
+function syncAdminEntry(){
+  var e=document.getElementById('adm-entry'); if(e) e.classList.toggle('on',!!S.isAdmin);
+  var s=document.getElementById('s-admin');
+  if(!S.isAdmin && s && s.classList.contains('active')) go('profile');
+}
+function admTab(name){
+  admTabCur=name;
+  $all('#adm-seg button').forEach(function(b){ b.classList.toggle('active',b.getAttribute('data-atab')===name); });
+  $all('.adm-pane').forEach(function(p){ p.classList.toggle('on',p.id==='adm-pane-'+name); });
 }
 
 /* ============ ИГРЫ: переключатель Рулетка/Краш ============ */
@@ -3280,6 +3389,7 @@ async function refreshState(){
   try{
     var st=await api('state');
     if(st&&st.ok){ ME=st.user; REF=st.referrals||REF; applyUser(st.user);
+      S.isAdmin=!!st.isAdmin; syncAdminEntry();
       if(st.catalog&&st.catalog.packs) PACKS=st.catalog.packs;
       if(st.catalog&&st.catalog.cryptoPacks) CRYPTO_PACKS=st.catalog.cryptoPacks; }
   }catch(e){}
@@ -3569,6 +3679,7 @@ go=function(name){
 /* экспорт переопределённых функций (inline-onclick берут их из window) */
 window.spin=spin;
 window.crashAction=crashAction; window.openWithdraw=openWithdraw; window.invite=invite;
+window.admTab=admTab;
 window.openBuyStars=openBuyStars; window.pvpJoin=pvpJoin; window.go=go;
 
 /* ---- старт: аутентификация в Telegram и загрузка состояния ---- */
@@ -3579,6 +3690,7 @@ async function boot(){
     var st=await api('state');
     if(!st||!st.ok){ return; }          // бэкенд не настроен/ошибка — демо-режим
     SERVER=true; ME=st.user; CFG=st.config||CFG; REF=st.referrals||REF;
+    S.isAdmin=!!st.isAdmin; syncAdminEntry();
     if(st.catalog&&st.catalog.packs) PACKS=st.catalog.packs;
     if(st.catalog&&st.catalog.cryptoPacks) CRYPTO_PACKS=st.catalog.cryptoPacks;
     USDT_RATE=CFG.usdt_rate||USDT_RATE;
