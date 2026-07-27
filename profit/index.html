@@ -726,19 +726,37 @@ function sheetFolderEdit(f){
     <button class="btn btn-primary mt4" data-act="${edit?'saveFolder':'createFolder'}" ${edit?`data-id="${f.id}"`:''}>${edit?'Сохранить':'Создать папку'}</button>`);
   setTimeout(()=>$('fFolderName')&&$('fFolderName').focus(),200);
 }
-function sheetStock(pid, lot){
-  const edit=!!lot;
-  openSheet(`<div class="sh-title mb4">${edit?'Изменить лот':'Размер и пары'}</div>
+function stockRowHtml(size,qty){
+  return `<div class="strow row gap2" style="margin-bottom:8px">
+    <input class="input strow-size" inputmode="numeric" value="${size==null?'':esc(size)}" placeholder="размер" style="flex:1">
+    <input class="input strow-qty" inputmode="numeric" value="${qty==null?1:qty}" placeholder="шт" style="width:78px;text-align:center">
+    <button class="chip" data-act="rmRow" style="padding:12px 13px">✕</button></div>`;
+}
+function sheetStock(pid){ // добавление нескольких размеров сразу
+  openSheet(`<div class="sh-title mb2">Размеры и пары</div>
+    <div class="small muted mb4">Добавь один или несколько размеров с количеством — все с одной себестоимостью.</div>
+    <div class="lbl">Быстро добавить размер</div>
+    <div class="row gap2 wrapf mb4">${['39','40','41','42','43','44','45','46'].map(x=>`<button class="chip" data-act="addSizeRow" data-size="${x}">${x}</button>`).join('')}</div>
+    <div class="lbl">Размеры и количество</div>
+    <div id="stockRows">${stockRowHtml('',1)}</div>
+    <button class="btn btn-ghost btn-sm mb4" data-act="addRow">＋ Ещё размер</button>
+    <div class="lbl">Себестоимость за пару, ${esc(V.currency)} <span class="muted2">(сразу с доставкой)</span></div>
+    <input class="input" id="fPurch" inputmode="numeric" placeholder="2200">
+    <button class="btn btn-primary mt4" data-act="createStockMulti" data-pid="${pid}">Добавить на склад</button>`);
+  setTimeout(()=>{ const s=$('stockRows'); const i=s&&s.querySelector('.strow-size'); if(i) i.focus(); },200);
+}
+function sheetStockEdit(lot){ // редактирование одного лота
+  openSheet(`<div class="sh-title mb4">Изменить лот</div>
     <div class="lbl">Размер</div>
-    <input class="input" id="fSize" inputmode="numeric" value="${edit?esc(lot.size):''}" placeholder="44">
+    <input class="input" id="fSize" inputmode="numeric" value="${esc(lot.size)}" placeholder="44">
     <div class="row gap2 mt3 wrapf">${['39','40','41','42','43','44','45','46'].map(x=>`<button class="chip" data-fill="fSize" data-val="${x}">${x}</button>`).join('')}</div>
-    <div class="lbl mt4">Количество пар этого размера</div>
-    <input class="input" id="fQty" inputmode="numeric" value="${edit?lot.qty:'1'}" placeholder="1">
+    <div class="lbl mt4">Количество пар</div>
+    <input class="input" id="fQty" inputmode="numeric" value="${lot.qty}" placeholder="1">
     <div class="row gap2 mt3 wrapf">${['1','2','3','4','5'].map(x=>`<button class="chip" data-fill="fQty" data-val="${x}">${x}</button>`).join('')}</div>
     <div class="lbl mt4">Себестоимость за пару, ${esc(V.currency)} <span class="muted2">(сразу с доставкой)</span></div>
-    <input class="input" id="fPurch" inputmode="numeric" value="${edit?lot.purchase:''}" placeholder="2200">
-    <button class="btn btn-primary mt4" data-act="${edit?'saveLot':'createStock'}" ${edit?`data-id="${lot.id}"`:`data-pid="${pid}"`}>${edit?'Сохранить':'Добавить на склад'}</button>
-    ${edit?`<button class="btn btn-danger mt2" data-act="delLot" data-id="${lot.id}">Удалить лот</button>`:''}`);
+    <input class="input" id="fPurch" inputmode="numeric" value="${lot.purchase}" placeholder="2200">
+    <button class="btn btn-primary mt4" data-act="saveLot" data-id="${lot.id}">Сохранить</button>
+    <button class="btn btn-danger mt2" data-act="delLot" data-id="${lot.id}">Удалить лот</button>`);
   setTimeout(()=>$('fSize')&&$('fSize').focus(),200);
 }
 function sheetShip(lot){
@@ -872,14 +890,25 @@ document.addEventListener('click',e=>{
   }
 
   // stock
-  if(act==='addStock'){ sheetStock(pid,null); return; }
-  if(act==='editLot'){ const p=V.products.find(x=>x.id===a.dataset.pid)|| V.products.find(x=>(x.stock||[]).some(l=>l.id===id)); const lot=p&&p.stock.find(l=>l.id===id); if(lot) sheetStock(p.id,lot); return; }
-  if(act==='ship'){ let lot=null; V.products.forEach(p=>(p.stock||[]).forEach(l=>{ if(l.id===id) lot=l; })); if(lot) sheetShip(lot); return; }
-  if(act==='createStock'){
-    const size=($('fSize').value||'').trim(), qty=Math.max(1,num($('fQty').value)||1), purchase=num($('fPurch').value);
-    if(!size){ toast('Укажи размер'); return; } if(!purchase){ toast('Укажи себестоимость за пару'); return; }
-    if(V.online){ apiCall('stock_add',{product_id:pid,size,qty,purchase,shipping:null},'Добавлено на склад').then(ok=>{ if(ok) closeSheet(); }); }
-    else{ prod.stock.push({id:uid(),size,qty,purchase,shipping:null}); saveLocal(); closeSheet(); buildView(); render(); toast('Добавлено на склад'); }
+  if(act==='addStock'){ sheetStock(pid); return; }
+  if(act==='editLot'){ const p=V.products.find(x=>x.id===a.dataset.pid)|| V.products.find(x=>(x.stock||[]).some(l=>l.id===id)); const lot=p&&p.stock.find(l=>l.id===id); if(lot) sheetStockEdit(lot); return; }
+  if(act==='addSizeRow'){
+    const sz=a.dataset.size; const cont=$('stockRows'); if(!cont) return;
+    // если есть строка с пустым размером — заполним её, иначе добавим новую
+    let empty=null; cont.querySelectorAll('.strow').forEach(r=>{ if(!empty && !r.querySelector('.strow-size').value.trim()) empty=r; });
+    if(empty){ empty.querySelector('.strow-size').value=sz; if(!empty.querySelector('.strow-qty').value.trim()) empty.querySelector('.strow-qty').value='1'; }
+    else cont.insertAdjacentHTML('beforeend', stockRowHtml(sz,1));
+    return;
+  }
+  if(act==='addRow'){ const cont=$('stockRows'); if(cont) cont.insertAdjacentHTML('beforeend', stockRowHtml('',1)); return; }
+  if(act==='rmRow'){ const row=a.closest('.strow'); const cont=$('stockRows'); if(row&&cont&&cont.querySelectorAll('.strow').length>1) row.remove(); else if(row){ row.querySelector('.strow-size').value=''; } return; }
+  if(act==='createStockMulti'){
+    const items=[...document.querySelectorAll('#stockRows .strow')].map(r=>({size:(r.querySelector('.strow-size').value||'').trim(), qty:Math.max(1,num(r.querySelector('.strow-qty').value)||1)})).filter(x=>x.size);
+    const purchase=num($('fPurch').value);
+    if(!items.length){ toast('Добавь хотя бы один размер'); return; }
+    if(!purchase){ toast('Укажи себестоимость за пару'); return; }
+    if(V.online){ apiCall('stock_bulk',{product_id:pid,purchase,items},'Добавлено на склад').then(ok=>{ if(ok) closeSheet(); }); }
+    else{ items.forEach(it=>prod.stock.push({id:uid(),size:it.size,qty:it.qty,purchase,shipping:null})); saveLocal(); closeSheet(); buildView(); render(); toast('Добавлено на склад'); }
     return;
   }
   if(act==='saveLot'){
