@@ -945,10 +945,14 @@ input:focus{border-color:var(--aqua);}
 /* перспектива — доля от ширины карточки, иначе вид барабана менялся бы
    вместе с адаптивным размером (820/84 при эталонных 84px) */
 .px-track{position:absolute;inset:0;perspective:calc(var(--px-cw)*9.76);perspective-origin:50% 46%;}
+/* Слой под композитор поднимаем только пока лента реально движется: постоянный
+   will-change держал бы семь отдельных слоёв всё время, что на слабых
+   устройствах стоит памяти без всякой пользы. */
+.px-track.px-moving .px-card{will-change:transform;}
 
 /* ── карточка: стекло, объём, отражение ── */
 .px-card{position:absolute;top:var(--px-ctop);width:var(--px-cw);height:var(--px-ch);border-radius:var(--px-r);
-  z-index:2;overflow:hidden;transform-origin:50% 50%;will-change:transform,filter,opacity;
+  z-index:2;overflow:hidden;transform-origin:50% 50%;contain:layout style;   /* без paint: он срезал бы отражение карточки */
   background:
     linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0) 30%),
     linear-gradient(180deg,#18242f 0%,#0d171f 54%,#080e14 100%);
@@ -1128,6 +1132,13 @@ input:focus{border-color:var(--aqua);}
 .px-dock{margin-top:clamp(14px,5vw,22px);}
 .px-chips{display:flex;gap:8px;margin-bottom:12px;}
 .px-chips .chip{flex:1;justify-content:center;}
+
+/* Бюджет частиц: на слабых устройствах половина взвеси и пузырей и один слой
+   каустики вместо двух — фон остаётся живым, но анимируемых элементов вдвое
+   меньше. */
+#s-pvp.px-lite .px-mote:nth-child(2n),
+#s-pvp.px-lite .px-bub:nth-child(2n){display:none;}
+#s-pvp.px-lite .px-caus2{display:none;}
 
 @media (prefers-reduced-motion:reduce){
   #s-pvp .px-breathe,#s-pvp .px-caus,#s-pvp .px-rays i,#s-pvp .px-mote,#s-pvp .px-bub,
@@ -2780,6 +2791,7 @@ function pxOutcome(st){
   if(sum) sum.className='px-sum '+(mine?'px-mine':'px-lost');
   var ln=pxEl('px-tline-i'); if(ln) ln.style.width='0%';
 
+  pxMoveFlag(false);   /* лента остановлена, композиторный слой больше не нужен */
   /* банк замирает: сумма меняется только после вспышки */
   PXR.bankHold=true;
   pxUnder(); pxSub(); pxCta();
@@ -2847,8 +2859,10 @@ function pxRoundEnd(){
   if(lbl){ lbl.textContent=t('pvp_pot_lbl'); lbl.style.color=''; }
   var e=pxEl('px-pot-n'); if(e) e.textContent='0';
   var ln=pxEl('px-tline-i'); if(ln) ln.style.width='100%';
+  pxTrim();
   pxReset();
   pxDrift(-PXG.cw*PX_K.drift);
+  if(pxWant) pxMoveFlag(true);
   pxUnder(); pxSub(); pxCta();
 }
 
@@ -2952,7 +2966,7 @@ function pxMakeCard(){
     +'<span class="px-nm"></span><span class="px-pc"></span><span class="px-stk"></span>';
   d._e=d.children[0]; d._w=d.children[1]; d._a=d.children[2];
   d._n=d.children[3]; d._p=d.children[4]; d._s=d.children[5];
-  d._pid=-2; d._rev=-1; d._op=-1; d._bl=-1; d._cls='';
+  d._pid=-2; d._rev=-1; d._op=-1; d._bl=-1;
   return d;
 }
 
@@ -2971,7 +2985,13 @@ function pxMeasure(){
   while(pxPool.length<PXG.n){ var d=pxMakeCard(); track.appendChild(d); pxPool.push(d); }
   probe.style.visibility='';
   pxMark=document.getElementById('px-mark');
+  pxTrackEl=track;
   pxRM=prefersReduced();
+  if(!PXG.ready){
+    var lite=(navigator.deviceMemory&&navigator.deviceMemory<=4)
+          || (navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4);
+    if(lite){ var sc=document.getElementById('s-pvp'); if(sc) sc.classList.add('px-lite'); }
+  }
   PXG.ready=true;
   return true;
 }
@@ -3016,6 +3036,21 @@ function pxSetPlayers(list){
     pxFillSeq(pxCur()+2);
   }
 }
+/* Индексы ленты растут вместе с раундами, поэтому между раундами сдвигаем
+   систему координат: выбрасываем уже пройденные билеты и на столько же
+   подтягиваем позицию. Иначе массив рос бы неограниченно — за 25 раундов
+   он доходил до 1119 элементов. */
+function pxTrim(){
+  if(!PXG.ready||pxBusy()) return;
+  var drop=pxCur()-PXG.n-2;
+  if(drop<PX_K.seq) return;
+  pxSeq.splice(0,drop);
+  pxX+=drop*PXG.pitch;
+  pxLastCi-=drop;
+  if(pxWinTicket>=0) pxWinTicket-=drop;
+  if(pxLand>=0) pxLand-=drop;
+}
+
 /* новый раунд: состав пуст, лента снова показывает свободные слоты */
 function pxReset(){
   pxPlayers=[]; pxSeeded=false; pxRev++;
@@ -3028,10 +3063,13 @@ function pxRender(){
   if(!PXG.ready) return;
   var cw=PXG.cw, pitch=PXG.pitch, cen=PXG.cen, half=cw/2;
   var first=Math.max(0,Math.ceil((-cw-pxX)/pitch));
+  var sp=pxV<0?-pxV:pxV, fast=sp>cw*8;
   for(var k=0;k<PXG.n;k++){
     var d=pxPool[k], i=first+k, left=pxX+i*pitch;
-    if(left>PXG.w){ if(d._cls!=='off'){ d.style.display='none'; d._cls='off'; } continue; }
-    if(d._cls==='off'){ d.style.display=''; d._cls=''; }
+    /* Карточки за правым краем не прячем через display: каждое переключение
+       инвалидировало layout всей ленты и на разгоне давало до 0.7 пересчёта
+       на кадр. Они и так обрезаны overflow у .px-reel, а transform считается
+       на композиторе. */
 
     var rel=(left+half-cen)/cen, ad=rel<0?-rel:rel; if(ad>1) ad=1;
     var win=(i===pxWinTicket), op, bl;
@@ -3051,8 +3089,12 @@ function pxRender(){
     if(op!==d._op){ d.style.opacity=op; d._op=op; }
     if(bl!==d._bl){ d.style.filter=bl>0?'blur('+bl+'px)':''; d._bl=bl; }
 
+    /* На разгоне содержимое карточки всё равно нечитаемо из-за смаза, а его
+       смена — единственное, что заставляет пересчитывать layout. Пропускаем
+       перерисовку, пока лента идёт быстро: слот сам перерисуется, как только
+       скорость упадёт, — условие ниже остаётся истинным. */
     var pid=pxSeq[i]; if(pid===undefined) pid=-1;
-    if(pid!==d._pid || d._rev!==pxRev || d._won!==(i===pxWinTicket)) pxPaint(d,pid,i);
+    if(!fast&&(pid!==d._pid || d._rev!==pxRev || d._won!==(i===pxWinTicket))) pxPaint(d,pid,i);
   }
 }
 
@@ -3152,13 +3194,18 @@ function pxSync(){
     cancelAnimationFrame(pxRaf); pxRaf=0;
   }
 }
+var pxTrackEl=null, pxMoving=false;
+function pxMoveFlag(on){
+  if(on===pxMoving||!pxTrackEl) return;
+  pxMoving=on; pxTrackEl.classList.toggle('px-moving',on);
+}
 function pxStart(){
   if(!pxMeasure()) return;
   if(!pxSeq.length) pxFillSeq(0);
   pxDrift(-PXG.cw*PX_K.drift);
-  pxWant=true; pxSync(); pxRender();
+  pxWant=true; pxSync(); pxMoveFlag(true); pxRender();
 }
-function pxStop(){ pxWant=false; pxSync(); }
+function pxStop(){ pxWant=false; pxSync(); pxMoveFlag(false); }
 /* геометрия переснимается только при смене размеров, не в кадре */
 var pxRzT=null;
 addEventListener('resize',function(){
