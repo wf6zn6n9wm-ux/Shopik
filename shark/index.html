@@ -85,17 +85,6 @@
   .c-crash{background:linear-gradient(135deg,#2747b0,#16236b);}
   .c-pvp{background:linear-gradient(135deg,#e0a92e,#b5721f);}
 
-  /* PVP джекпот */
-  .pvp-feed{overflow:hidden;white-space:nowrap;background:var(--deep2);border:1px solid var(--line);border-radius:999px;padding:7px 12px;margin-bottom:10px;font-size:12px;color:var(--foam);font-weight:600;text-align:center;min-height:16px;}
-  .pvp-feed b{color:var(--gold);}
-  .pvp-arc{position:relative;width:260px;height:150px;margin:4px auto 10px;overflow:hidden;}
-  .pvp-arc-ring{position:absolute;top:0;left:0;width:260px;height:260px;border-radius:50%;background:conic-gradient(from 270deg,var(--deep2) 0deg 180deg,#06121c 180deg 360deg);transition:background .3s;}
-  .pvp-arc-hole{position:absolute;top:32px;left:32px;width:196px;height:196px;border-radius:50%;background:radial-gradient(circle at 50% 30%,#0c2334,#06121c);border:1px solid var(--line);}
-  .pvp-arc-center{position:absolute;left:0;right:0;bottom:4px;text-align:center;}
-  .pvp-pot-l{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;}
-  .pvp-pot-v{font-size:32px;font-weight:800;color:var(--gold);margin-top:2px;line-height:1.1;}
-  .pvp-pot-g{color:var(--muted);font-size:12px;margin-top:2px;min-height:15px;}
-  .pvp-fair{color:var(--muted);font-size:11px;text-align:center;margin-top:12px;word-break:break-all;min-height:14px;}
 
   .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
   .row{display:flex;gap:12px;align-items:center;}
@@ -1324,29 +1313,6 @@ input:focus{border-color:var(--aqua);}
 
   <div class="px-flash" id="px-flash"></div>
 
-  <!-- Прежний экран. Разметка остаётся в DOM до Э5, чтобы работающий сейчас
-       рендер и анимация (runPvp / renderPvpLive) не падали на отсутствующих
-       узлах: PVP на ветке остаётся играбельным, пока новый движок не готов.
-       Удаляется целиком в Э5, когда новый экран берёт управление. -->
-  <div id="pvp-legacy" hidden>
-    <h1 class="title" id="i-pvp-h1">PVP · Битва</h1>
-    <p class="sub" id="i-pvp-sub">Скидывайтесь звёздами в общий банк. Победитель забирает всё. Шанс победы = ваша доля банка.</p>
-    <div class="pvp-feed" id="pvp-feed">⚔️ <span id="i-pvp-feed-default">Соберите банк и заберите его целиком</span></div>
-    <div class="pvp-arc">
-      <div class="pvp-arc-ring" id="pvp-arc-ring"></div>
-      <div class="pvp-arc-hole"></div>
-      <div class="pvp-arc-center">
-        <div class="pvp-pot-l" id="i-pvp-pot-lbl">Общий банк</div>
-        <div class="pvp-pot-v mono">⭐ <span id="pvp-pot">0</span></div>
-        <div class="pvp-pot-g" id="pvp-round">Сделайте ставку, чтобы начать битву</div>
-      </div>
-    </div>
-    <div class="roul-stage" id="pvp-stage"><div class="roul-pointer"></div><div class="roul-strip" id="pvp-strip"></div></div>
-    <div class="bet-row"><span style="font-weight:700" id="i-bet-lbl">Ставка:</span></div>
-    <button class="btn-primary" id="pvp-btn" onclick="pvpJoin()">Присоединиться к битве · ⭐50</button>
-    <div class="players" id="pvp-players"></div>
-    <div class="pvp-fair" id="pvp-fair"></div>
-  </div>
 </div>
 
 <!-- КОНКУРСЫ -->
@@ -1538,6 +1504,8 @@ var S={money:0,stars:0,bet:50,cbet:50,doneTasks:{},joinedContests:{},cashedThisR
    ============================================================ */
 var I18N={
   uk:{
+    /* PVP — новый экран (Э5) */
+    px_sub_waiting:'Чекаємо гравців', px_sub_join_tpl:'Увійдіть до кінця відліку · ставка <b>{bet}</b>', px_sub_in_tpl:'Ставка <b>{stake}</b> · шанс <b class="px-mn">{pct}%</b> · заберете <b>{payout}</b>', px_sub_won_tpl:'Забрали банк із шансом <b class="px-mn">{pct}%</b>', px_sub_lost:'Ваш квиток не випав', px_waiting_players:'Чекаємо гравців…', px_players_tpl:'{n} у раунді', px_game_tpl:'Гра #{id}', px_cta_join:'Увійти в битву', px_cta_wait:'Приймаємо ставку…', px_cta_spin:'Крутимо…', px_cta_over:'Раунд завершено', px_badge_spin:'РОЗІГРАШ', px_badge_won:'БАНК ВАШ', px_badge_lost:'БАНК ПІШОВ', px_lbl_won:'Ви забрали банк', px_lbl_lost_tpl:'{name} забирає',
     greet:'З поверненням', online_lbl:'онлайн', stars_lbl:'зірок', uah_lbl:'грн',
     play_now:'Грати зараз', next_draw:'Найближчий розіграш', next_hour:'через 1 годину', ingame_lbl:'у грі',
     pvp_title:'Битва за банк', pvp_desc:'Заходь у спільний раунд — переможець забирає весь банк', pvp_cta:'Увійти в битву →',
@@ -1648,6 +1616,8 @@ var I18N={
     rarity_common:'Звичайний', rarity_rare:'Рідкісний', rarity_epic:'Епічний', rarity_legendary:'Легендарний'
   },
   ru:{
+    /* PVP — новый экран (Э5) */
+    px_sub_waiting:'Ждём игроков', px_sub_join_tpl:'Войдите до конца отсчёта · ставка <b>{bet}</b>', px_sub_in_tpl:'Ставка <b>{stake}</b> · шанс <b class="px-mn">{pct}%</b> · заберёте <b>{payout}</b>', px_sub_won_tpl:'Забрали банк с шансом <b class="px-mn">{pct}%</b>', px_sub_lost:'Ваш билет не выпал', px_waiting_players:'Ждём игроков…', px_players_tpl:'{n} в раунде', px_game_tpl:'Игра #{id}', px_cta_join:'Войти в битву', px_cta_wait:'Принимаем ставку…', px_cta_spin:'Крутим…', px_cta_over:'Раунд завершён', px_badge_spin:'РОЗЫГРЫШ', px_badge_won:'БАНК ВАШ', px_badge_lost:'БАНК УШЁЛ', px_lbl_won:'Вы забрали банк', px_lbl_lost_tpl:'{name} забирает',
     greet:'С возвращением', online_lbl:'онлайн', stars_lbl:'звёзд', uah_lbl:'грн',
     play_now:'Играть сейчас', next_draw:'Ближайший розыгрыш', next_hour:'через 1 час', ingame_lbl:'в игре',
     pvp_title:'Битва за банк', pvp_desc:'Заходи в общий раунд — победитель забирает весь банк', pvp_cta:'Войти в битву →',
@@ -1758,6 +1728,8 @@ var I18N={
     rarity_common:'Обычный', rarity_rare:'Редкий', rarity_epic:'Эпический', rarity_legendary:'Легендарный'
   },
   en:{
+    /* PVP — новый экран (Э5) */
+    px_sub_waiting:'Waiting for players', px_sub_join_tpl:'Join before the timer ends · bet <b>{bet}</b>', px_sub_in_tpl:'Bet <b>{stake}</b> · chance <b class="px-mn">{pct}%</b> · you take <b>{payout}</b>', px_sub_won_tpl:'Took the pot at <b class="px-mn">{pct}%</b>', px_sub_lost:'Your ticket did not come up', px_waiting_players:'Waiting for players…', px_players_tpl:'{n} in the round', px_game_tpl:'Game #{id}', px_cta_join:'Enter the battle', px_cta_wait:'Placing bet…', px_cta_spin:'Spinning…', px_cta_over:'Round over', px_badge_spin:'DRAW', px_badge_won:'POT IS YOURS', px_badge_lost:'POT IS GONE', px_lbl_won:'You took the pot', px_lbl_lost_tpl:'{name} takes it',
     greet:'Welcome back', online_lbl:'online', stars_lbl:'stars', uah_lbl:'UAH',
     play_now:'Play now', next_draw:'Next draw', next_hour:'in 1 hour', ingame_lbl:'playing',
     pvp_title:'Battle for the pot', pvp_desc:'Join a shared round — the winner takes the whole pot', pvp_cta:'Enter the battle →',
@@ -1893,8 +1865,7 @@ function applyI18n(){
     'tab-home':'tab_home', 'tab-contests':'tab_contests', 'tab-leaders':'tab_leaders', 'tab-shop':'tab_shop', 'tab-profile':'tab_profile',
     'onb-h-0':'onb_h0', 'onb-p-0':'onb_p0', 'onb-h-1':'onb_h1', 'onb-p-1':'onb_p1',
     'onb-h-2':'onb_h2', 'onb-p-2':'onb_p2', 'onb-h-3':'onb_h3', 'onb-p-3':'onb_p3',
-    'i-pvp-h1':'pvp_h1', 'i-pvp-sub':'pvp_sub', 'i-pvp-feed-default':'pvp_feed_default',
-    'i-pvp-pot-lbl':'pvp_pot_lbl', 'i-bet-lbl':'bet_lbl',
+    'px-lbl':'pvp_pot_lbl',
     'i-st-played-lbl':'st_played', 'i-st-won-lbl':'st_won', 'i-st-rank-lbl':'st_rank',
     'i-bal-money-lbl':'bal_money_lbl', 'i-withdraw-btn':'withdraw_btn',
     'i-bal-stars-lbl':'bal_stars_lbl', 'i-topup-btn':'topup_btn',
@@ -2575,117 +2546,20 @@ function renderAch(){
 /* ============ НАСТРОЙКИ ============ */
 function setLang(l){
   L=l; S.lang=l; setLangSaved(l); applyI18n();
-  if(typeof updatePBtn==='function') updatePBtn();
+  if(typeof pxCta==='function'){ pxCta(); pxUnder(); pxSub(); }
   var msgs={uk:'Мову змінено',ru:'Язык изменён',en:'Language changed'};
   toast(msgs[l]||msgs.uk);
 }
 function toggleSound(){ soundOn=!soundOn; S.soundPref=soundOn; document.getElementById('sound-switch').classList.toggle('on',soundOn); if(soundOn) beep(520,0.08,0.05); }
 
-/* ============ PVP · ДЖЕКПОТ-БИТВА ============ */
-var PVP_COLORS=['#0e8d7e','#c0314f','#2747b0','#b5541f','#5a2f7a','#0a5f6b'];
-var pbet=50, pvpSpinning=false;
-function pvpColor(i){ return PVP_COLORS[((i%PVP_COLORS.length)+PVP_COLORS.length)%PVP_COLORS.length]; }
-function setPBet(v){ pbet=v; $all('[data-pbet]').forEach(function(c){c.classList.toggle('active',Number(c.getAttribute('data-pbet'))===v);}); updatePBtn(); }
-function updatePBtn(){ var b=document.getElementById('pvp-btn'); if(b) b.textContent=t('pvp_join_btn')+'⭐'+pbet; }
-function pickPvpWeighted(players){ var t=0,i; for(i=0;i<players.length;i++)t+=players[i].stake; var r=Math.random()*t; for(i=0;i<players.length;i++){r-=players[i].stake;if(r<=0)return players[i];} return players[0]; }
-function renderPvpArc(players,pot){
-  var ring=document.getElementById('pvp-arc-ring'); if(!ring) return;
-  if(!pot||!players.length){ ring.style.background='conic-gradient(from 270deg,var(--deep2) 0deg 180deg,#06121c 180deg 360deg)'; return; }
-  var a=0, stops=[];
-  players.forEach(function(p,i){ var span=180*(p.stake/pot); stops.push(pvpColor(i)+' '+a.toFixed(2)+'deg '+(a+span).toFixed(2)+'deg'); a+=span; });
-  stops.push('#06121c '+a.toFixed(2)+'deg 360deg');
-  ring.style.background='conic-gradient(from 270deg,'+stops.join(',')+')';
+/* ============ PVP · СТАВКА ============ */
+var pbet=50;
+function setPBet(v){
+  pbet=v;
+  $all('[data-pbet]').forEach(function(c){ c.classList.toggle('active',Number(c.getAttribute('data-pbet'))===v); });
+  pxCta();
 }
-function renderPvpBank(players,pot){
-  var pv=document.getElementById('pvp-pot'); if(pv) pv.textContent=pot||0;
-  renderPvpArc(players||[], pot||0);
-}
-function setPvpFeed(w,pot){
-  var f=document.getElementById('pvp-feed'); if(!f) return;
-  f.innerHTML=tf('pvp_last_battle_tpl',{name:'<b>'+(w.me?t('you_word'):w.name)+'</b>',av:w.av,pot:'<b>'+pot+'</b>'});
-}
-function renderPvpPlayers(players,revealed){
-  var box=document.getElementById('pvp-players'); if(!box) return;
-  var html='<div class="ph"><span>'+tf('pvp_players_header_tpl',{n:players.length})+'</span><span>'+t('pvp_chance_stake_lbl')+'</span></div>';
-  players.forEach(function(p,i){
-    var win=revealed&&p.winner;
-    html+='<div class="prow">'+avDiv('av',p.av,28,'background:'+pvpColor(i)+'33')+'<div class="nm">'+(p.me?'<b style="color:var(--aqua)">'+t('you_word')+'</b>':p.name)+(win?' 👑':'')+'</div><div class="bet">⭐'+p.stake+'</div><div class="st '+(win?'win':'live')+'">'+p.pct+'%</div></div>';
-  });
-  box.innerHTML=html;
-}
-function initPvp(){
-  updatePBtn();
-  var pot=document.getElementById('pvp-pot'); if(pot) pot.textContent='0';
-  renderPvpArc([],0);
-  var rd=document.getElementById('pvp-round'); if(rd) rd.textContent=t('pvp_wait');
-  var strip=document.getElementById('pvp-strip'); if(strip){ strip.style.transition='none'; strip.style.transform='translateX(0)'; strip.innerHTML=''; }
-  var pl=document.getElementById('pvp-players'); if(pl) pl.innerHTML='';
-  var fair=document.getElementById('pvp-fair'); if(fair) fair.textContent='';
-}
-/* единая анимация раунда (общая для демо и сервера) */
-function runPvp(round){
-  pvpSpinning=true;
-  var btn=document.getElementById('pvp-btn'); if(btn) btn.disabled=true;
-  var players=round.players, widx=round.winnerIdx;
-  var rd=document.getElementById('pvp-round'); if(rd) rd.textContent=t('pvp_round_live');
-  renderPvpBank(players,round.pot);
-  renderPvpPlayers(players,false);
-  var strip=document.getElementById('pvp-strip'); strip.innerHTML='';
-  var cells=[]; for(var i=0;i<50;i++) cells.push(pickPvpWeighted(players));
-  var target=40+Math.floor(Math.random()*5);
-  cells[target]=players[widx];
-  cells.forEach(function(p){
-    var it=document.createElement('div'); it.className='roul-item';
-    it.style.background=pvpColor(players.indexOf(p));
-    it.innerHTML='<span style="font-size:30px">'+p.av+'</span><small>'+p.pct+'%</small>';
-    strip.appendChild(it);
-  });
-  var stage=document.getElementById('pvp-stage'), itemW=100, offset=target*itemW-(stage.clientWidth/2)+(itemW/2);
-  strip.style.transition='none'; strip.style.transform='translateX(0)'; void strip.offsetWidth;
-  strip.style.transition='transform 3.6s cubic-bezier(.12,.7,.12,1)'; strip.style.transform='translateX(-'+offset+'px)';
-  beep(440,0.05,0.04,'square');
-  var clk=setInterval(function(){beep(900,0.015,0.015,'square');},90);
-  setTimeout(function(){clearInterval(clk);},3500);
-  setTimeout(function(){
-    pvpSpinning=false; if(btn) btn.disabled=false;
-    var w=players[widx];
-    renderPvpPlayers(players,true);
-    if(rd) rd.textContent=t('pvp_winner_prefix')+(w.me?t('you_word'):w.name)+' '+w.av;
-    var fair=document.getElementById('pvp-fair');
-    if(fair) fair.textContent='🔒 provably-fair · hash: '+String(round.seedHash).slice(0,16)+'… · seed: '+String(round.seed).slice(0,12)+'…';
-    setPvpFeed(w, round.pot);
-    if(round.user){ applyUser(round.user); }                 // серверный баланс (уже с выплатой)
-    else if(round.local && round.iWon){ S.stars+=round.payout; syncBalances(); }  // демо-начисление
-    if(round.iWon){
-      beep(660,0.12,0.06,'triangle'); vibrate([20,40,30]); celebrate({n:70});
-      logOp('🏆',t('hist_pvp_win_title'),tf('hist_pvp_win_sub_tpl',{pot:round.pot}),'+⭐'+round.payout,'star');
-      var rakePct=Math.round((round.rake||0.05)*100);
-      showSheet('<div class="result-emoji">🏆</div><h3 style="text-align:center">'+tf('pvp_win_title_tpl',{payout:round.payout})+'</h3><p class="muted" style="text-align:center">'+tf('pvp_win_desc_tpl',{pot:round.pot,rake:rakePct,pct:w.pct})+'</p><button class="btn-primary" onclick="closeSheet()">'+t('pvp_claim_btn')+'</button>');
-    } else if(round.iJoined){
-      beep(120,0.3,0.08,'sawtooth'); vibrate(60);
-      logOp('💀',t('hist_pvp_lose_title'),tf('hist_pvp_lose_sub_tpl',{name:w.name}),'−⭐'+(round.myStake||pbet),'minus');
-      showSheet('<div class="result-emoji">💀</div><h3 style="text-align:center">'+tf('pvp_lose_title_tpl',{name:w.name,av:w.av})+'</h3><p class="muted" style="text-align:center">'+tf('pvp_lose_desc_tpl',{pot:round.pot})+'</p><button class="btn-primary" onclick="closeSheet()">'+t('pvp_again_btn')+'</button>');
-    } else {
-      toast(tf('pvp_spectator_tpl',{name:w.name,pot:round.pot}));
-    }
-  },3700);
-}
-/* демо-версия (вне Telegram): весь расчёт локально */
-function pvpJoin(){
-  if(pvpSpinning) return;
-  if(S.stars<pbet){ toast(t('pvp_no_stars')); return; }
-  S.stars-=pbet; S.played++; syncBalances();
-  var players=[{name:'Вы',av:'🙂',stake:pbet,me:true}];
-  var n=2+Math.floor(Math.random()*3);
-  for(var i=0;i<n;i++){ var b=randBot(); players.push({name:b.n,av:b.a,stake:[50,100,250][rint(0,2)]*(Math.random()<0.15?4:1),me:false}); }
-  var pot=players.reduce(function(a,p){return a+p.stake;},0);
-  var roll=Math.random(),acc=0,widx=players.length-1;
-  for(var j=0;j<players.length;j++){ acc+=players[j].stake/pot; if(roll<=acc){widx=j;break;} }
-  players.forEach(function(p,k){ p.pct=Math.round(p.stake/pot*1000)/10; p.winner=(k===widx); });
-  var iWon=players[widx].me, payout=iWon?Math.floor(pot*0.95):0;
-  runPvp({players:players,pot:pot,winnerIdx:widx,iWon:iWon,iJoined:true,myStake:pbet,payout:payout,rake:0.05,seedHash:'demo-mode',seed:'demo',local:true});
-}
-window.setPBet=setPBet; window.pvpJoin=pvpJoin;
+window.setPBet=setPBet;
 
 /* ============ PVP · ДВИЖОК ЛЕНТЫ (Э3) ============================
    Пул узлов создаётся один раз и живёт всё время работы экрана. В кадре
@@ -2719,10 +2593,11 @@ var pxX=0, pxV=0, pxRaf=0, pxPrev=0, pxWant=false, pxSeeded=false;
    jit    — сдвиг остановки внутри карточки: маркер не встаёт ровно по центру
    hold   — короткая пауза после попадания, чтобы игрок осознал результат */
 var PX_SPIN={T:5.0, pw:3.2, settle:.62, damp:7, freq:16, over:.179, jit:.31,
-             ahead:36, aheadR:7, hold:.10};
+             ahead:36, aheadR:7, hold:.10, warmAt:.70};
 var pxPhase='idle';               /* idle | spin | settle | hold */
 var pxSp=null, pxSet=null, pxHold=0, pxLand=-1, pxOnLand=null;
 var pxFlash=0, pxMarkOn=false, pxLastCi=0, pxMark=null, pxRM=false;
+var pxWarmed=false, pxOnWarm=null, pxWinTicket=-1;
 
 function pxHaptic(k){
   try{
@@ -2743,7 +2618,7 @@ function pxSpin(winIdx,cb){
   pxSeq[pxLand]=winIdx;
   var jit=(Math.random()*2-1)*PXG.cw*PX_SPIN.jit;
   var target=PXG.cen-(pxLand*PXG.pitch+PXG.cw/2)+jit;
-  pxOnLand=cb||null; pxLastCi=cur;
+  pxOnLand=cb||null; pxLastCi=cur; pxWarmed=false;
   if(pxRM){ pxX=target; pxV=0; pxPhase='hold'; pxHold=PX_SPIN.hold; return pxLand; }
   pxSp={x0:pxX, x1:target-PXG.cw*PX_SPIN.over, target:target, t:0};
   pxPhase='spin';
@@ -2751,6 +2626,253 @@ function pxSpin(winIdx,cb){
 }
 function pxBusy(){ return pxPhase!=='idle'; }
 function pxDrift(v){ if(pxPhase==='idle') pxV=v; }
+
+/* ============ PVP · МАШИНА СОСТОЯНИЙ РАУНДА (Э5) ==================
+   Серверные статусы раунда — waiting / countdown / resolving / done —
+   отображаются в фазы экрана. Ответ сервера не интерпретируется по-новому:
+   поля те же, меняется только то, что рисуется.
+   Порядок фаз: ждём -> отсчёт -> последние секунды -> розыгрыш ->
+   золото проступает -> исход -> сброс к следующему раунду.
+   ================================================================= */
+var PX_OUT_MS=4200;      /* сцена исхода: держим под серверным окном грейса */
+var PX_HOT_S=4;          /* с этой секунды отсчёт становится тревожным */
+
+var PXR={id:0, status:'idle', pot:0, potShown:0, joined:false, pending:false,
+         animated:0, deadline:0, total:15, hot:false, outcome:null, resetT:null};
+
+function pxEl(id){ return document.getElementById(id); }
+
+/* ---- банк: докручивается в общем кадре, а не перерисовывается скачком ---- */
+function pxBank(dt){
+  var d=PXR.pot-PXR.potShown;
+  if(d>-0.5&&d<0.5){ if(PXR.potShown!==PXR.pot) PXR.potShown=PXR.pot; else return; }
+  else PXR.potShown+=d*Math.min(1,dt*9);
+  var v=Math.round(PXR.potShown);
+  if(v!==PXR._potTxt){ PXR._potTxt=v; var e=pxEl('px-pot-n');
+    if(e) e.textContent=(PXR.outcome&&PXR.outcome.mine?'+':'')+pxNum(v); }
+}
+
+/* ---- отсчёт: держим локальный дедлайн, иначе таймер дёргался бы раз в
+       полторы секунды вслед за поллингом ---- */
+function pxTimer(){
+  if(PXR.status!=='countdown'){ return; }
+  var left=Math.max(0,(PXR.deadline-Date.now())/1000);
+  var sec=Math.ceil(left);
+  if(sec!==PXR._sec){
+    PXR._sec=sec;
+    var lv=pxEl('px-live'); if(lv) lv.innerHTML='<i></i>0:'+(sec<10?'0':'')+sec;
+  }
+  var hot=left<=PX_HOT_S;
+  if(hot!==PXR.hot){
+    PXR.hot=hot;
+    var w=pxEl('px-reel-wrap'), pb=pxEl('px-pot'), lv2=pxEl('px-live');
+    if(w) w.classList.toggle('px-hot',hot);
+    if(pb) pb.classList.toggle('px-hot',hot);
+    if(lv2) lv2.className='px-live'+(hot?' px-hot':'');
+    pxDrift(-PXG.cw*(hot?PX_K.drift*2.4:PX_K.drift));
+  }
+  var ln=pxEl('px-tline-i');
+  if(ln) ln.style.width=(Math.max(0,left/PXR.total)*100).toFixed(1)+'%';
+}
+
+/* ---- подпись под банком ---- */
+function pxSub(){
+  var e=pxEl('px-sub'); if(!e) return;
+  if(PXR.outcome){
+    e.innerHTML = PXR.outcome.mine
+      ? tf('px_sub_won_tpl',{pct:PXR.outcome.pct})
+      : t('px_sub_lost');
+    return;
+  }
+  var me=null,i;
+  for(i=0;i<pxPlayers.length;i++) if(pxPlayers[i].me){ me=pxPlayers[i]; break; }
+  if(!me){ e.innerHTML = PXR.status==='countdown'
+      ? tf('px_sub_join_tpl',{bet:pxNum(pbet)}) : t('px_sub_waiting'); return; }
+  e.innerHTML=tf('px_sub_in_tpl',{stake:pxNum(me.stake),pct:Math.round(me.tf*100),
+                                  payout:pxNum(Math.floor(PXR.pot*0.95))});
+}
+
+/* ---- строка участников под лентой ---- */
+function pxUnder(){
+  var box=pxEl('px-stack'), who=pxEl('px-who'), gid=pxEl('px-gid');
+  if(!box||!who) return;
+  var n=pxPlayers.length;
+  if(!n){ box.innerHTML=''; who.textContent=t('px_waiting_players'); who.style.color=''; }
+  else{
+    var html='',i,lim=Math.min(n,6);
+    for(i=0;i<lim;i++){
+      var p=pxPlayers[i], cls='';
+      if(PXR.outcome) cls=(i===PXR.outcome.idx)?'px-win':'px-out';
+      if(p.me) cls='px-me'+(cls?' '+cls:'');
+      html+='<i class="'+cls+'" style="'+avatarBgStyle(p.avKey,28)+'"></i>';
+    }
+    box.innerHTML=html;
+    who.textContent=tf('px_players_tpl',{n:n})+(n>lim?' +'+(n-lim):'');
+    who.style.color='';
+  }
+  if(gid) gid.textContent=PXR.id?tf('px_game_tpl',{id:PXR.id}):'';
+}
+
+function pxCta(){
+  var b=pxEl('px-cta'); if(!b) return;
+  var txt,dis=false;
+  if(PXR.outcome){ txt=t('px_cta_over'); dis=true; }
+  else if(pxBusy()){ txt=t('px_cta_spin'); dis=true; }
+  else if(PXR.pending){ txt=t('px_cta_wait'); dis=true; }
+  else if(PXR.joined){ txt=t('pvp_in_battle'); dis=true; }
+  else txt=t('px_cta_join')+' · ⭐'+pbet;
+  if(b.textContent!==txt) b.textContent=txt;
+  if(b.disabled!==dis) b.disabled=dis;
+  b.classList.toggle('btn-ghost',dis);
+}
+
+/* ---- золото проступает в последней четверти вращения ---- */
+pxOnWarm=function(){
+  var w=pxEl('px-reel-wrap'), lv=pxEl('px-live');
+  if(w) w.classList.add('px-warm');
+  if(lv) lv.className='px-live px-warm';
+};
+
+/* ---- исход: Э5 переводит экран в состояние, эффекты добавит Э6 ---- */
+function pxOutcome(st){
+  var wi=st.winnerIdx, w=pxPlayers[wi];
+  if(!w) return pxRoundEnd();
+  var mine=!!st.iWon, payout=Number(st.myPayout)||Math.floor(Number(st.pot)*(1-(Number(st.rake)||0.05)));
+  PXR.outcome={idx:wi,mine:mine,name:w.me?t('you_word'):w.name,pct:Math.round(w.tf*100),payout:payout};
+
+  var wrap=pxEl('px-reel-wrap'), reel=pxEl('px-reel'), pot=pxEl('px-pot'),
+      sum=pxEl('px-sum'), lv=pxEl('px-live'), lbl=pxEl('px-lbl'), mk=pxEl('px-mark');
+  if(wrap){ wrap.classList.remove('px-hot','px-warm'); wrap.classList.add(mine?'px-done':'px-lose'); }
+  if(reel) reel.classList.add('px-focus');
+  if(pot) pot.classList.toggle('px-lose',!mine);
+  if(mk) mk.classList.add('px-gold');
+  if(lv){ lv.className='px-live '+(mine?'px-done':'px-cold');
+          lv.innerHTML='<i></i>'+(mine?t('px_badge_won'):t('px_badge_lost')); }
+  if(lbl){ lbl.textContent=mine?t('px_lbl_won'):tf('px_lbl_lost_tpl',{name:PXR.outcome.name});
+           lbl.style.color=mine?'var(--aqua)':'#5a6472'; }
+  if(sum) sum.className='px-sum '+(mine?'px-mine':'px-lost');
+  PXR.pot=mine?payout:Math.floor(Number(st.pot)*(1-(Number(st.rake)||0.05)));
+  if(mine){ PXR.potShown=0; PXR._potTxt=-1; }
+  var ln=pxEl('px-tline-i'); if(ln) ln.style.width='0%';
+  pxMarkWinner();
+  pxUnder(); pxSub(); pxCta();
+  clearTimeout(PXR.resetT);
+  PXR.resetT=setTimeout(pxRoundEnd,PX_OUT_MS);
+}
+/* билет, на котором остановилась лента, помечается как выигравший: только он
+   остаётся в фокусе, когда остальные уходят в расфокус */
+function pxMarkWinner(){ pxWinTicket=pxLand; }
+
+/* ---- сброс к следующему раунду ---- */
+function pxRoundEnd(){
+  clearTimeout(PXR.resetT); PXR.resetT=null;
+  PXR.outcome=null; PXR.winTicket=-1; PXR.joined=false; PXR.pending=false;
+  PXR.pot=0; PXR.potShown=0; PXR._potTxt=-1; PXR._sec=-1; PXR.hot=false;
+  PXR.status='idle'; PXR.deadline=0;
+  var wrap=pxEl('px-reel-wrap'), reel=pxEl('px-reel'), pot=pxEl('px-pot'),
+      sum=pxEl('px-sum'), lv=pxEl('px-live'), lbl=pxEl('px-lbl'), mk=pxEl('px-mark');
+  if(wrap) wrap.className='px-reel-wrap';
+  if(reel) reel.className='px-reel';
+  if(pot) pot.className='px-pot';
+  if(sum) sum.className='px-sum';
+  if(mk) mk.className='px-mark';
+  if(lv){ lv.className='px-live'; lv.innerHTML='<i></i>LIVE'; }
+  if(lbl){ lbl.textContent=t('pvp_pot_lbl'); lbl.style.color=''; }
+  var e=pxEl('px-pot-n'); if(e) e.textContent='0';
+  var ln=pxEl('px-tline-i'); if(ln) ln.style.width='100%';
+  pxReset();
+  pxDrift(-PXG.cw*PX_K.drift);
+  pxUnder(); pxSub(); pxCta();
+}
+
+/* ---- главный маппер: серверное состояние -> экран ---- */
+function pxApply(st){
+  if(!st) return;
+  if(pxBusy()||PXR.outcome) return;              /* идёт розыгрыш или показ исхода */
+
+  /* завершённый раунд, который мы ещё не проигрывали */
+  if(st.status==='done'&&st.id!==PXR.animated&&st.winnerIdx>=0&&(st.players||[]).length){
+    PXR.animated=st.id; PXR.id=st.id;
+    pxSetPlayers(st.players);
+    PXR.pot=Number(st.pot)||0;
+    PXR.status='resolving';
+    var lv=pxEl('px-live'); if(lv){ lv.className='px-live'; lv.innerHTML='<i></i>'+t('px_badge_spin'); }
+    var w=pxEl('px-reel-wrap'), pb=pxEl('px-pot');
+    if(w) w.classList.remove('px-hot'); if(pb) pb.classList.remove('px-hot');
+    PXR.hot=false;
+    var ln=pxEl('px-tline-i'); if(ln) ln.style.width='0%';
+    pxUnder(); pxSub(); pxCta();
+    pxSpin(st.winnerIdx,function(){ pxOutcome(st); });
+    return;
+  }
+  if(st.status==='done') return;                 /* уже проиграли этот раунд */
+
+  if(st.id!==PXR.id){ PXR.id=st.id; PXR.animated=PXR.animated||0; }
+  PXR.status=st.status;
+  PXR.joined=!!st.iJoined;
+  PXR.pot=Number(st.pot)||0;
+
+  var players=st.players||[];
+  var changed=players.length!==pxPlayers.length;
+  if(!changed) for(var i=0;i<players.length;i++)
+    if(pxPlayers[i].stake!==Number(players[i].stake)||pxPlayers[i].name!==players[i].name){ changed=true; break; }
+  if(changed) pxSetPlayers(players);
+
+  if(st.status==='countdown'){
+    var left=Math.max(0,Number(st.secondsLeft)||0);
+    var nd=Date.now()+left*1000;
+    /* дедлайн подтягиваем, только если сервер разошёлся с локальным больше
+       чем на секунду — иначе таймер дёргался бы на каждом ответе */
+    if(!PXR.deadline||Math.abs(nd-PXR.deadline)>1000) PXR.deadline=nd;
+    if(left>PXR.total) PXR.total=left;
+    pxTimer();
+  } else {
+    PXR.deadline=0; PXR._sec=-1;
+    var lv2=pxEl('px-live');
+    if(lv2&&!PXR.hot){ lv2.className='px-live'; lv2.innerHTML='<i></i>LIVE'; }
+    var ln2=pxEl('px-tline-i'); if(ln2) ln2.style.width='100%';
+  }
+  pxUnder(); pxSub(); pxCta();
+}
+
+/* ---- вход и уход с экрана ---- */
+function pxEnter(){
+  pxStart();
+  if(!PXR.outcome&&!pxBusy()) pxRoundEnd();
+  else { pxUnder(); pxSub(); pxCta(); }
+}
+function pxLeave(){
+  pxStop();
+  clearTimeout(PXR.resetT); PXR.resetT=null;
+  if(PXR.outcome||pxBusy()) pxRoundEnd();
+}
+
+/* ---- демо-раунд вне Telegram: собираем ответ той же формы, что и сервер,
+       и прогоняем через ту же машину состояний ---- */
+var pxDemoT=null;
+function pvpJoin(){
+  if(pxBusy()||PXR.joined||PXR.pending) return;
+  if(S.stars<pbet){ toast(t('pvp_no_stars')); return; }
+  S.stars-=pbet; S.played++; syncBalances();
+  var players=[{name:t('you_word'),av:'🙂',stake:pbet,me:true}],i,n=2+Math.floor(Math.random()*3);
+  for(i=0;i<n;i++){ var b=randBot();
+    players.push({name:b.n,av:b.a,stake:[50,100,250][rint(0,2)]*(Math.random()<0.15?4:1),me:false}); }
+  var pot=0; for(i=0;i<players.length;i++) pot+=players[i].stake;
+  var roll=Math.random(),acc=0,wi=players.length-1;
+  for(i=0;i<players.length;i++){ acc+=players[i].stake/pot; if(roll<=acc){ wi=i; break; } }
+  var id=PXR.id+1, secs=PVP_DEMO_S;
+  pxApply({id:id,status:'countdown',secondsLeft:secs,pot:pot,players:players,iJoined:true});
+  toast(t('pvp_bet_toast')); pxHaptic('medium');
+  clearTimeout(pxDemoT);
+  pxDemoT=setTimeout(function(){
+    var mine=players[wi].me, payout=Math.floor(pot*0.95);
+    if(mine){ S.stars+=payout; syncBalances(); }
+    pxApply({id:id,status:'done',pot:pot,players:players,winnerIdx:wi,
+             iJoined:true,iWon:mine,myPayout:mine?payout:0,rake:0.05});
+  },secs*1000);
+}
+var PVP_DEMO_S=15;
+window.pvpJoin=pvpJoin;
 
 function pxNum(n){ n=Math.round(n); return n>=1000?n.toLocaleString('ru').replace(/ /g,' '):String(n); }
 
@@ -2828,7 +2950,7 @@ function pxSetPlayers(list){
 /* новый раунд: состав пуст, лента снова показывает свободные слоты */
 function pxReset(){
   pxPlayers=[]; pxSeeded=false; pxRev++;
-  pxPhase='idle'; pxSp=null; pxSet=null; pxOnLand=null; pxLand=-1; pxFlash=0;
+  pxPhase='idle'; pxSp=null; pxSet=null; pxOnLand=null; pxLand=-1; pxFlash=0; pxWinTicket=-1;
   if(pxMark&&pxMarkOn){ pxMark.classList.remove('px-tick'); pxMarkOn=false; }
   if(PXG.ready) pxFillSeq(Math.max(0,pxCur()-PXG.n-1)); else pxSeq.length=0;
 }
@@ -2853,19 +2975,19 @@ function pxRender(){
     if(bl!==d._bl){ d.style.filter=bl>0?'blur('+bl+'px)':''; d._bl=bl; }
 
     var pid=pxSeq[i]; if(pid===undefined) pid=-1;
-    if(pid!==d._pid || d._rev!==pxRev) pxPaint(d,pid);
+    if(pid!==d._pid || d._rev!==pxRev || d._won!==(i===pxWinTicket)) pxPaint(d,pid,i);
   }
 }
 
 /* содержимое карточки: только когда слот взял новый билет или сменился состав */
-function pxPaint(d,pid){
-  d._pid=pid; d._rev=pxRev;
+function pxPaint(d,pid,i){
+  d._pid=pid; d._rev=pxRev; d._won=(i===pxWinTicket);
   var p=pid>=0?pxPlayers[pid]:null;
-  var cls='px-card'+(p&&p.me?' px-me':'');
+  var cls='px-card'+(p&&p.me?' px-me':'')+(d._won?' px-won':'');
   if(cls!==d.className){ d.className=cls; }
   if(p){
     d._e.style.background=p.col.c;
-    d._w.style.background='linear-gradient(180deg,transparent,'+p.col.g+'.20))';
+    d._w.style.background='linear-gradient(180deg,transparent,'+p.col.g+(d._won?'.34':'.20')+'))';
     d._a.style.cssText=avatarBgStyle(p.avKey,Math.round(PXG.cw*.64));
     d._a.style.opacity='';
     d._n.textContent=p.me?t('you_word'):p.name;
@@ -2889,6 +3011,7 @@ function pxTick(now){
     var p=pxSp.t/PX_SPIN.T; if(p>1) p=1;
     var nx=pxSp.x0+(pxSp.x1-pxSp.x0)*(1-Math.pow(1-p,PX_SPIN.pw));
     pxV=(nx-pxX)/dt; pxX=nx;
+    if(p>PX_SPIN.warmAt&&!pxWarmed){ pxWarmed=true; if(pxOnWarm) pxOnWarm(); }
     if(p>=1){
       /* удар: лента дошла до упора и сейчас отыграет назад */
       pxSet={t:0,from:pxSp.x1,to:pxSp.target}; pxSp=null; pxPhase='settle';
@@ -2907,6 +3030,7 @@ function pxTick(now){
   } else {
     pxX+=pxV*dt;
   }
+  pxBank(dt); pxTimer();
 
   /* щелчок на каждой карточке, прошедшей под маркером: частота сама следует
      за скоростью. Вспышка гаснет по тому же кадровому счётчику, а не по
@@ -2956,7 +3080,7 @@ var _go=go;
 go=function(name){
   _go(name);
   if(name==='ach') renderAch();
-  if(name==='pvp'){ if(!pvpSpinning) initPvp(); pxStart(); } else pxStop();
+  if(name==='pvp'){ pxEnter(); } else pxLeave();
 };
 window.go=go;
 
@@ -3097,60 +3221,41 @@ crashAction=async function(){
   }
 };
 
-/* PVP: общий раунд с таймером. Клиент опрашивает pvp_state, показывает живой
-   банк/участников/отсчёт и анимирует розыгрыш, когда раунд завершается. */
-var pvpPollTimer=null, pvpAnimatedRound=0;
-function renderPvpLive(st){
-  if(pvpSpinning) return;
-  var players=st.players||[];
-  renderPvpBank(players, st.pot||0);
-  renderPvpPlayers(players, false);
-  var rd=document.getElementById('pvp-round'), btn=document.getElementById('pvp-btn');
-  if(st.status==='waiting'){
-    if(rd) rd.textContent=players.length?t('pvp_waiting_players'):t('pvp_wait');
-    if(btn){ btn.disabled=false; btn.textContent=t('pvp_join_btn')+'⭐'+pbet; }
-  } else if(st.status==='countdown'){
-    if(rd) rd.textContent=t('pvp_countdown')+st.secondsLeft+t('pvp_sec');
-    if(btn){ if(st.iJoined){ btn.disabled=true; btn.textContent=t('pvp_in_battle'); } else { btn.disabled=false; btn.textContent=t('pvp_join_btn')+'⭐'+pbet; } }
-  } else if(st.status==='resolving'){
-    if(rd) rd.textContent=t('pvp_resolving'); if(btn) btn.disabled=true;
-  }
-  var fair=document.getElementById('pvp-fair'); if(fair&&st.seedHash) fair.textContent='🔒 provably-fair · hash: '+String(st.seedHash).slice(0,16)+'…';
-}
+/* PVP: поллинг общего раунда. Серверные вызовы прежние (pvp_state / pvp_join),
+   меняется только то, куда уходит ответ — в машину состояний нового экрана. */
+var pvpPollTimer=null;
 async function pvpTick(){
-  if(!SERVER || pvpSpinning) return;
+  if(!SERVER) return;
+  if(pxBusy()) return;                      /* во время розыгрыша не опрашиваем */
   var resp; try{ resp=await api('pvp_state'); }catch(e){ return; }
   if(!resp||!resp.ok||!resp.round) return;
-  var st=resp.round;
-  if(st.status==='done' && st.id!==pvpAnimatedRound){
-    pvpAnimatedRound=st.id;
-    var players=st.players||[];
-    if(players.length && st.winnerIdx>=0){
-      // баланс применит сама runPvp в конце анимации (без спойлера выигрыша)
-      runPvp({players:players,pot:st.pot,winnerIdx:st.winnerIdx,iWon:st.iWon,iJoined:st.iJoined,
-        payout:st.myPayout,rake:st.rake,seedHash:st.seedHash,seed:st.seed,user:resp.user});
-    } else if(resp.user){ applyUser(resp.user); }
-    return;
-  }
   if(resp.user) applyUser(resp.user);
-  renderPvpLive(st);
+  pxApply(resp.round);
 }
-function startPvpPoll(){ if(!SERVER) return; stopPvpPoll(); if(!pvpSpinning) skeletonRows(document.getElementById('pvp-players'),3); pvpTick(); pvpPollTimer=setInterval(pvpTick,1500); }
+function startPvpPoll(){
+  if(!SERVER) return;
+  stopPvpPoll(); pvpTick(); pvpPollTimer=setInterval(pvpTick,1500);
+}
 function stopPvpPoll(){ if(pvpPollTimer){ clearInterval(pvpPollTimer); pvpPollTimer=null; } }
 
 pvpJoin=async function(){
   if(!SERVER) return _pvpJoin();
-  if(pvpSpinning) return;
+  if(pxBusy()||PXR.joined) return;
   if(S.stars<pbet){ toast(t('pvp_no_stars')); return; }
-  var btn=document.getElementById('pvp-btn'); if(btn) btn.disabled=true;
-  var r=await api('pvp_join',{bet:pbet});
-  if(!r.ok){
-    if(r.reason==='already_joined'){ toast(t('pvp_already')); if(r.round) renderPvpLive(r.round); }
-    else { toast(r.reason==='no_stars'?t('pvp_no_stars'):(r.reason==='round_closed'?t('pvp_closing'):t('pvp_bet_error'))); if(btn) btn.disabled=false; }
+  PXR.pending=true; pxCta();
+  var r;
+  try{ r=await api('pvp_join',{bet:pbet}); }
+  catch(e){ PXR.pending=false; pxCta(); toast(t('pvp_bet_error')); return; }
+  PXR.pending=false;
+  if(!r||!r.ok){
+    if(r&&r.reason==='already_joined'){ toast(t('pvp_already')); if(r.round) pxApply(r.round); }
+    else { toast(!r?t('pvp_bet_error'):r.reason==='no_stars'?t('pvp_no_stars')
+            :r.reason==='round_closed'?t('pvp_closing'):t('pvp_bet_error')); pxCta(); }
     return;
   }
   if(r.user) applyUser(r.user);
-  if(r.round) renderPvpLive(r.round);
+  if(r.round) pxApply(r.round);
+  pxHaptic('medium');
   toast(t('pvp_bet_toast'));
 };
 
