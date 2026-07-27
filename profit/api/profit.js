@@ -65,16 +65,17 @@ function n0(v) { return Math.max(0, Math.round(Number(v) || 0)); }
 function sizeNorm(v) { return String(v == null ? '' : v).trim().slice(0, 12); }
 
 // раздел прибыли по проданной паре (для пуша). Клиент считает так же.
-// Деньги на закупку вкладывает УПРАВЛЯЮЩАЯ → ей возвращается себестоимость + её доля
-// (+ зарплата). Владельцу — только его доля от чистой прибыли.
+// Закупку вкладывает УПРАВЛЯЮЩАЯ → ей возврат себестоимости + её доля прибыли.
+// Зарплата — это оплата ПРОДАВЦУ (расход), уменьшает прибыль и уходит продавцу,
+// в доход управляющей/владельца не входит. Владельцу — его доля от прибыли.
 function split(sale, cost, salary, pct) {
   const net = n0(sale) - n0(cost) - n0(salary);
   const mgrShare = Math.round(net * pct / 100);
   const ownShare = net - mgrShare;
   return {
     net, mgrShare, ownShare,
-    mgrTotal: n0(cost) + n0(salary) + mgrShare, // управляющей: возврат вложенного + зарплата + её доля
-    ownTotal: ownShare                          // владельцу: только его доля от прибыли
+    mgrTotal: n0(cost) + mgrShare, // управляющей: возврат вложенного + её доля
+    ownTotal: ownShare             // владельцу: только его доля прибыли
   };
 }
 
@@ -388,7 +389,7 @@ module.exports = async (req, res) => {
       members.filter((m) => Number(m.tg_id) !== me.id).forEach((o) => {
         const txt = o.role === 'owner'
           ? '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Чистая прибыль ' + s.net + '. Ваша доля: ' + s.ownShare + '.'
-          : '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Тебе: вложенное ' + cost + ' + зарплата ' + salary + ' + доля ' + s.mgrShare + ' = ' + s.mgrTotal + '.';
+          : '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Тебе: вложенное ' + cost + ' + доля ' + s.mgrShare + ' = ' + s.mgrTotal + ' (зарплата продавцу ' + salary + ' — отдельно).';
         sendPush(BOT, o.tg_id, txt).catch(() => {});
       });
       res.status(200).json(await stateResponse(SHOP));
