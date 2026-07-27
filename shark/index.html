@@ -16,7 +16,7 @@
   html,body{margin:0;background:var(--abyss);}
   body{color:var(--text);font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:480px;margin-inline:auto;min-height:100vh;background:radial-gradient(120% 60% at 50% -10%,#0f3350 0%,rgba(6,18,28,0) 60%),var(--abyss);}
   .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;}
-  .screen{display:none;padding:8px 14px 100px;animation:fade .25s ease;}
+  .screen{display:none;padding:8px var(--scr-pad) 100px;animation:fade .25s ease;}
   .screen.active{display:block;}
   @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
@@ -314,6 +314,7 @@
   --glow-aqua:0 0 0 1px rgba(56,229,212,.25),0 10px 30px -8px rgba(56,229,212,.45);
   --glow-gold:0 10px 30px -8px rgba(255,175,60,.4);
   --ease:cubic-bezier(.22,.61,.36,1);
+  --scr-pad:14px;   /* боковое поле экранов: нужен блокам во всю ширину */
 }
 html,body{background:var(--abyss);}
 body{
@@ -827,59 +828,302 @@ input:focus{border-color:var(--aqua);}
   background:radial-gradient(circle at 38% 28%,#1e5268,#0c2637 72%);}
 
 /* ══════════════════════════════════════════════════════════════════════
-   PVP · КАРКАС (Э1)
-   Только композиция: размеры, позиции, отступы. Материал экрана — стекло,
-   вода, клинки, свет — приходит отдельным слоем в Э2, поэтому здесь у блоков
-   плоские заливки-заглушки. Все имена с префиксом px-, чтобы ни один селектор
-   не пересёкся с существующими 800+ правилами.
+   PVP · ЭКРАН (Э1 каркас + Э2 визуальный слой)
+
+   Геометрия механизма выводится из ОДНОГО базового размера — ширины карточки.
+   Она ограничена и по ширине экрана, и по высоте, чтобы на низких устройствах
+   барабан не выдавливал банк и кнопку за экран. Все остальные размеры — доли
+   от неё, поэтому пропорции механизма одинаковы на любом Mini App.
+   Имена с префиксом px- : ни один селектор не пересекается с остальным стилем.
    ══════════════════════════════════════════════════════════════════════ */
+#s-pvp{
+  /* На телефоне ограничение задаёт ширина (21.5vw ≈ 84px при 390px — ровно как
+     в утверждённом макете), на низких экранах подхватывает высота, нижняя
+     граница не даёт барабану измельчать. */
+  --px-cw:clamp(76px,min(21.5vw,11vh),98px);     /* ширина карточки — база */
+  --px-ch:calc(var(--px-cw)*1.786);              /* пропорция карточки 84:150 */
+  --px-gap:calc(var(--px-cw)*.131);
+  --px-band:calc(var(--px-ch)*1.44);             /* высота барабана + место под отражение */
+  --px-slot:calc(var(--px-cw)*1.333);            /* зона захвата */
+  --px-ctop:calc(var(--px-cw)*.167);             /* отступ карточки от верха барабана */
+  --px-r:calc(var(--px-cw)*.226);
+  --px-pad:clamp(14px,4.2vw,22px);
+  --px-rail:clamp(5px,1.5vw,8px);
+  --px-ink:#e7f1f7;
+}
 
 /* ── банк ── */
-.px-pot{position:relative;text-align:center;padding:14px 0 0;}
+.px-pot{position:relative;text-align:center;padding:clamp(8px,2.4vw,16px) 0 0;}
 .px-pot .px-z{position:relative;z-index:1;}
-.px-live{display:inline-flex;align-items:center;gap:9px;height:32px;padding:0 18px;border-radius:999px;
-  font-size:11.5px;font-weight:800;letter-spacing:.16em;font-variant-numeric:tabular-nums;
-  background:rgba(50,224,196,.10);color:var(--aqua);}
-.px-live i{width:6px;height:6px;border-radius:50%;background:var(--aqua);flex:none;}
-.px-lbl{margin-top:26px;font-size:10.5px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#56606d;}
-.px-sum{margin-top:14px;display:flex;align-items:center;justify-content:center;gap:13px;
-  font-size:72px;font-weight:800;letter-spacing:-.065em;line-height:.9;color:var(--gold);}
-.px-sum svg{width:38px;height:38px;flex:none;}
-.px-sub{margin-top:20px;font-size:12.5px;font-weight:600;color:#5c6773;letter-spacing:.01em;}
-.px-sub b{color:#93a0ad;font-weight:800;}
+.px-glow{position:absolute;left:50%;top:clamp(20px,6vw,38px);width:min(100%,420px);
+  height:clamp(150px,44vw,250px);transform:translateX(-50%);border-radius:50%;pointer-events:none;z-index:0;
+  filter:blur(34px);transition:background .5s var(--ease);
+  background:radial-gradient(circle,rgba(255,201,74,.30),rgba(255,167,36,0) 66%);}
+.px-pot.px-hot .px-glow{background:radial-gradient(circle,rgba(255,92,106,.32),rgba(255,92,106,0) 66%);}
+.px-pot.px-lose .px-glow{background:radial-gradient(circle,rgba(96,124,148,.20),rgba(96,124,148,0) 66%);}
+.px-shk{position:absolute;pointer-events:none;fill:currentColor;}
+.px-pot .px-shk{left:2%;top:clamp(16px,5vw,34px);width:min(64%,250px);height:auto;color:#67dcec;opacity:0;
+  animation:pxSwim 34s linear infinite;}
+@keyframes pxSwim{0%{transform:translateX(-24%)}8%{opacity:.075}70%{opacity:.075}100%{transform:translateX(82%);opacity:0}}
 
-/* ── лента: во всю ширину, за паддинги экрана ── */
-.px-reel-wrap{position:relative;height:216px;margin:30px -14px 0;overflow:hidden;}
-.px-depth{position:absolute;inset:0;overflow:hidden;background:#07121a;}
-.px-reel{position:absolute;inset:0;overflow:hidden;z-index:2;}
-.px-track{position:absolute;inset:0;}
-/* зона захвата: 112px по центру — ширина карточки плюс поля */
-.px-capz{position:absolute;left:50%;top:8px;width:112px;height:162px;margin-left:-56px;z-index:3;
-  pointer-events:none;border-radius:22px;}
-.px-mark{position:absolute;left:50%;top:16px;height:146px;width:1px;z-index:6;pointer-events:none;}
-.px-jaws{position:absolute;left:50%;top:0;width:112px;height:216px;margin-left:-56px;z-index:7;pointer-events:none;}
-.px-jaws .px-jw{position:absolute;left:0;width:112px;height:24px;display:block;}
-.px-jaws .px-jw-t{top:6px;}
-.px-jaws .px-jw-b{bottom:6px;transform:scaleY(-1);}
-.px-tline{position:absolute;left:30px;right:30px;bottom:15px;height:2px;border-radius:2px;z-index:10;
-  background:rgba(255,255,255,.06);}
+.px-live{display:inline-flex;align-items:center;gap:9px;height:clamp(28px,8vw,32px);padding:0 clamp(13px,4.4vw,18px);
+  border-radius:999px;font-size:clamp(10.5px,3vw,11.5px);font-weight:800;letter-spacing:.16em;
+  font-variant-numeric:tabular-nums;background:rgba(56,229,212,.10);color:var(--aqua);
+  box-shadow:inset 0 0 0 1px rgba(56,229,212,.24);transition:.3s var(--ease);}
+.px-live i{width:6px;height:6px;border-radius:50%;background:var(--aqua);flex:none;
+  box-shadow:0 0 10px var(--aqua);animation:pxBlink 1.7s ease-in-out infinite;}
+@keyframes pxBlink{0%,100%{opacity:1}50%{opacity:.2}}
+.px-live.px-hot{background:rgba(255,96,114,.14);color:#ff8a94;box-shadow:inset 0 0 0 1px rgba(255,96,114,.32);
+  transform:scale(1.07);}
+.px-live.px-hot i{background:var(--danger);box-shadow:0 0 12px var(--danger);animation-duration:.45s;}
+.px-live.px-warm{background:rgba(255,207,92,.10);color:#f0c878;box-shadow:inset 0 0 0 1px rgba(255,207,92,.22);}
+.px-live.px-warm i{background:var(--gold);box-shadow:0 0 10px var(--gold);animation-duration:.9s;}
+.px-live.px-done{background:rgba(255,207,92,.14);color:var(--gold);box-shadow:inset 0 0 0 1px rgba(255,207,92,.32);}
+.px-live.px-done i{background:var(--gold);box-shadow:0 0 12px var(--gold);animation:none;}
+.px-live.px-cold{background:rgba(140,165,185,.08);color:#8a97a6;box-shadow:inset 0 0 0 1px rgba(140,165,185,.18);}
+.px-live.px-cold i{background:#7e8b99;box-shadow:none;animation:none;}
+
+.px-lbl{margin-top:clamp(16px,5.6vw,26px);font-size:clamp(9.5px,2.8vw,10.5px);font-weight:800;letter-spacing:.15em;
+  text-transform:uppercase;color:#56606d;transition:color .35s var(--ease);}
+.px-sum{margin-top:clamp(8px,3.4vw,14px);display:flex;align-items:center;justify-content:center;
+  gap:clamp(8px,3.2vw,13px);font-size:clamp(44px,17vw,76px);font-weight:800;letter-spacing:-.065em;line-height:.9;
+  color:#ffd46b;text-shadow:0 0 60px rgba(255,201,74,.6),0 0 130px rgba(255,167,36,.32);
+  transition:color .45s var(--ease),text-shadow .45s var(--ease);}
+.px-sum svg{width:clamp(24px,9vw,40px);height:clamp(24px,9vw,40px);flex:none;
+  filter:drop-shadow(0 5px 16px rgba(255,167,36,.65));}
+.px-sum.px-mine{color:#6ff3dc;text-shadow:0 0 60px rgba(56,229,212,.6),0 0 130px rgba(56,229,212,.34);}
+.px-sum.px-lost{color:#78858f;text-shadow:none;}
+.px-sum.px-lost svg{opacity:.32;filter:none;}
+.px-sub{margin-top:clamp(12px,4.6vw,20px);font-size:clamp(11.5px,3.4vw,12.5px);font-weight:600;color:#5c6773;}
+.px-sub b{color:#93a0ad;font-weight:800;}
+.px-sub .px-mn{color:var(--aqua);}
+
+/* ══ ЛЕНТА: корпус механизма во всю ширину ══ */
+/* во всю ширину: выходим за поля экрана ровно на их величину. Через общий
+   токен --scr-pad, а не через vw, — иначе появляется горизонтальное
+   переполнение и весь экран уезжает вбок. */
+.px-reel-wrap{position:relative;height:var(--px-band);overflow:hidden;
+  margin:clamp(18px,6vw,30px) calc(var(--scr-pad)*-1) 0;}
+.px-depth{position:absolute;inset:0;overflow:hidden;transition:filter .7s var(--ease);
+  background:
+    radial-gradient(150% 70% at 50% -12%,rgba(96,214,240,.15),transparent 62%),
+    linear-gradient(180deg,#0e212d 0%,#081521 42%,#040a0f 78%,#02060a 100%);
+  box-shadow:inset 0 1px 0 rgba(150,232,255,.16),inset 0 -40px 46px -34px #000;}
+/* линия поверхности воды */
+.px-depth::after{content:"";position:absolute;left:0;right:0;top:0;height:1px;z-index:3;
+  background:linear-gradient(90deg,transparent,rgba(170,240,255,.5) 30%,rgba(170,240,255,.5) 70%,transparent);}
+.px-breathe{position:absolute;inset:0;pointer-events:none;animation:pxBreathe 11s ease-in-out infinite alternate;
+  background:radial-gradient(130% 62% at 50% -4%,rgba(120,222,252,.13),transparent 62%);}
+@keyframes pxBreathe{0%{opacity:.5}100%{opacity:1}}
+/* каустика: два встречных слоя световых пятен у поверхности */
+.px-caus{position:absolute;left:-10%;right:-10%;top:-6%;height:56%;pointer-events:none;filter:blur(15px);opacity:.5;
+  background:
+    radial-gradient(closest-side,rgba(160,240,255,.55),transparent) 8% 26%/38% 25% no-repeat,
+    radial-gradient(closest-side,rgba(160,240,255,.4),transparent) 44% 8%/54% 29% no-repeat,
+    radial-gradient(closest-side,rgba(160,240,255,.45),transparent) 82% 30%/44% 23% no-repeat;
+  animation:pxDrift 17s ease-in-out infinite alternate;}
+@keyframes pxDrift{0%{transform:translateX(-16px) scaleX(1)}100%{transform:translateX(16px) scaleX(1.07)}}
+.px-caus2{top:12%;height:70%;opacity:.3;filter:blur(19px);animation:pxDrift2 23s ease-in-out infinite alternate;}
+@keyframes pxDrift2{0%{transform:translateX(22px)}100%{transform:translateX(-22px)}}
+/* лучи с поверхности */
+.px-rays{position:absolute;inset:0;overflow:hidden;opacity:.5;transition:opacity .7s var(--ease);}
+.px-rays i{position:absolute;top:-55%;width:15%;height:220%;transform-origin:50% 0;filter:blur(8px);
+  background:linear-gradient(180deg,rgba(140,232,255,.22),rgba(140,232,255,0) 68%);
+  animation:pxSway 12s ease-in-out infinite;}
+.px-rays i:nth-child(1){left:9%;transform:rotate(10deg);}
+.px-rays i:nth-child(2){left:40%;width:22%;animation-delay:-4s;transform:rotate(-6deg);}
+.px-rays i:nth-child(3){left:77%;animation-delay:-8s;transform:rotate(13deg);}
+@keyframes pxSway{0%,100%{opacity:.5}50%{opacity:1}}
+/* взвесь и пузыри */
+.px-motes,.px-bubs{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.px-mote{position:absolute;border-radius:50%;background:rgba(190,240,255,.5);animation:pxFloat linear infinite;}
+@keyframes pxFloat{0%{transform:translate(0,0);opacity:0}18%{opacity:.55}82%{opacity:.5}
+  100%{transform:translate(-18px,-42px);opacity:0}}
+.px-bub{position:absolute;bottom:-14px;border-radius:50%;animation:pxRise linear infinite;
+  background:radial-gradient(circle at 34% 30%,rgba(230,250,255,.5),rgba(150,225,250,.10) 62%);
+  box-shadow:inset 0 0 0 1px rgba(200,245,255,.32);}
+@keyframes pxRise{0%{transform:translate(0,0) scale(.9);opacity:0}14%{opacity:.9}
+  100%{transform:translate(13px,-260px) scale(1.05);opacity:0}}
+.px-reel-wrap .px-shk{left:-28%;top:24%;width:45%;height:auto;color:#9ce6f8;opacity:.055;
+  animation:pxSwim2 44s linear infinite;}
+@keyframes pxSwim2{to{transform:translateX(300%)}}
+.px-abyss{position:absolute;left:0;right:0;bottom:0;height:34%;pointer-events:none;z-index:3;
+  background:linear-gradient(180deg,transparent,rgba(1,4,8,.85));}
+
+.px-reel{position:absolute;inset:0;overflow:hidden;z-index:2;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 17%,#000 83%,transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 17%,#000 83%,transparent 100%);}
+.px-track{position:absolute;inset:0;perspective:820px;perspective-origin:50% 46%;}
+
+/* ── карточка: стекло, объём, отражение ── */
+.px-card{position:absolute;top:var(--px-ctop);width:var(--px-cw);height:var(--px-ch);border-radius:var(--px-r);
+  z-index:2;overflow:hidden;transform-origin:50% 50%;will-change:transform,filter,opacity;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0) 30%),
+    linear-gradient(180deg,#18242f 0%,#0d171f 54%,#080e14 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(226,246,255,.22),
+    inset 0 0 0 1px rgba(150,215,245,.075),
+    inset 0 -34px 42px -32px rgba(130,210,245,.28),
+    0 20px 34px -18px rgba(0,0,0,.95), 0 3px 8px rgba(0,0,0,.55);
+  -webkit-box-reflect:below 6px linear-gradient(to bottom,transparent 42%,rgba(0,0,0,.30));}
+/* косой блик по стеклу */
+.px-card::after{content:"";position:absolute;left:-46%;top:-40%;width:62%;height:200%;transform:rotate(19deg);
+  pointer-events:none;background:linear-gradient(90deg,transparent,rgba(200,242,255,.075),transparent);}
+.px-card .px-edge{position:absolute;left:0;right:0;top:0;height:3px;background:rgba(255,255,255,.07);z-index:2;}
+.px-card .px-wash{position:absolute;left:0;right:0;bottom:0;height:52%;pointer-events:none;}
+.px-card .px-av{position:absolute;left:50%;top:11%;width:64%;height:36%;margin-left:-32%;border-radius:50%;
+  background-repeat:no-repeat;z-index:2;
+  box-shadow:0 0 0 1.5px rgba(180,235,255,.20),0 8px 16px -6px rgba(0,0,0,.8);}
+.px-card .px-nm{position:absolute;left:0;right:0;top:55%;text-align:center;font-size:calc(var(--px-cw)*.113);
+  font-weight:700;color:#78838f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;z-index:2;}
+.px-card .px-pc{position:absolute;left:0;right:0;top:64%;text-align:center;font-size:calc(var(--px-cw)*.238);
+  font-weight:800;letter-spacing:-.03em;color:var(--px-ink);z-index:2;text-shadow:0 2px 10px rgba(0,0,0,.6);}
+.px-card .px-stk{position:absolute;left:0;right:0;bottom:8.6%;text-align:center;font-size:calc(var(--px-cw)*.119);
+  font-weight:700;color:#6b7784;z-index:2;font-variant-numeric:tabular-nums;}
+.px-card.px-me{background:
+    linear-gradient(180deg,rgba(120,255,235,.12),rgba(255,255,255,0) 30%),
+    linear-gradient(180deg,#10262a 0%,#08171a 54%,#050f11 100%);
+  box-shadow:inset 0 1px 0 rgba(150,255,238,.3),inset 0 0 0 1.5px rgba(56,229,212,.34),
+    inset 0 -34px 42px -32px rgba(56,229,212,.3),
+    0 20px 34px -18px rgba(0,0,0,.95),0 0 26px -10px rgba(56,229,212,.5);}
+.px-card.px-me .px-pc{color:#7ff0dc;}
+.px-card.px-won{z-index:6;background:
+    linear-gradient(180deg,rgba(255,240,190,.30),rgba(255,255,255,0) 30%),
+    linear-gradient(168deg,#5a4315 0%,#2c2009 52%,#150e05 100%);
+  box-shadow:inset 0 1.5px 0 rgba(255,248,214,.65),inset 0 0 0 1.5px rgba(255,213,110,.95),
+    inset 0 -40px 50px -28px rgba(255,198,92,.7),inset 0 22px 30px -26px rgba(255,246,214,.5),
+    0 38px 62px -16px rgba(0,0,0,.98),0 0 90px -4px rgba(255,201,74,1),
+    0 0 26px -2px rgba(255,232,160,.75);}
+.px-card.px-won::before{content:"";position:absolute;left:0;right:0;top:0;height:52%;pointer-events:none;z-index:1;
+  background:linear-gradient(180deg,rgba(255,250,228,.16),transparent);}
+.px-card.px-won .px-nm{color:#ebce86;} .px-card.px-won .px-pc{color:#ffe9b0;} .px-card.px-won .px-stk{color:#c9a45c;}
+/* соседи гаснут, победитель остаётся единственным объектом */
+.px-reel.px-focus .px-card:not(.px-won){opacity:.3!important;filter:blur(2.2px) grayscale(.45)!important;}
+
+/* ── зона захвата и скобки ── */
+.px-capz{position:absolute;left:50%;top:3.7%;width:var(--px-slot);height:75%;margin-left:calc(var(--px-slot)/-2);
+  z-index:3;pointer-events:none;border-radius:calc(var(--px-r)*1.16);transition:.45s var(--ease);
+  box-shadow:inset 0 0 0 1px rgba(56,229,212,.20),0 0 40px -8px rgba(56,229,212,.45);
+  background:radial-gradient(ellipse at 50% 50%,rgba(56,229,212,.09),transparent 74%);}
+.px-bk{position:absolute;width:calc(var(--px-slot)*.134);height:calc(var(--px-slot)*.134);z-index:4;
+  pointer-events:none;border:1.5px solid rgba(150,240,255,.7);transition:border-color .4s var(--ease);
+  filter:drop-shadow(0 0 6px rgba(120,225,255,.5));}
+.px-bk1{left:calc(50% - var(--px-slot)/2);top:3.7%;border-right:0;border-bottom:0;border-radius:7px 0 0 0;}
+.px-bk2{left:calc(50% + var(--px-slot)/2 - var(--px-slot)*.134);top:3.7%;border-left:0;border-bottom:0;border-radius:0 7px 0 0;}
+.px-bk3{left:calc(50% - var(--px-slot)/2);top:71.8%;border-right:0;border-top:0;border-radius:0 0 0 7px;}
+.px-bk4{left:calc(50% + var(--px-slot)/2 - var(--px-slot)*.134);top:71.8%;border-left:0;border-top:0;border-radius:0 0 7px 0;}
+
+/* ── клинки ── */
+.px-jaws{position:absolute;left:50%;top:0;width:var(--px-slot);height:100%;margin-left:calc(var(--px-slot)/-2);
+  z-index:7;pointer-events:none;}
+.px-jaws .px-jw{position:absolute;left:0;width:100%;height:calc(var(--px-slot)*.214);display:block;opacity:.9;
+  filter:drop-shadow(0 2px 12px rgba(140,230,255,.55)) drop-shadow(0 0 2px rgba(0,0,0,.6));}
+.px-jaws .px-jw-t{top:2.8%;transform:translateY(var(--px-o,0px));}
+.px-jaws .px-jw-b{bottom:2.8%;transform:scaleY(-1) translateY(var(--px-o,0px));}
+
+.px-mark{position:absolute;left:50%;top:7.4%;height:67.6%;width:1px;z-index:6;pointer-events:none;
+  transition:box-shadow .12s;
+  background:linear-gradient(180deg,rgba(56,229,212,0),rgba(56,229,212,.42) 22%,rgba(56,229,212,.42) 78%,rgba(56,229,212,0));}
+.px-mark.px-tick{box-shadow:0 0 30px 2px rgba(225,255,255,.85);
+  background:linear-gradient(180deg,transparent,#fff 22%,#fff 78%,transparent);}
+.px-mark.px-gold{opacity:0;}
+
+/* ── корпус: внутренние тени, направляющие, насечки, выпуклое стекло ── */
+.px-slotin{position:absolute;inset:0;z-index:5;pointer-events:none;
+  box-shadow:inset 0 16px 26px -16px #000, inset 0 -16px 26px -16px #000,
+             inset 26px 0 34px -24px #000, inset -26px 0 34px -24px #000;}
+.px-rail{position:absolute;left:0;right:0;height:var(--px-rail);z-index:12;pointer-events:none;}
+.px-rail-t{top:0;background:linear-gradient(180deg,#31424f 0%,#16202a 52%,#080d13 100%);
+  box-shadow:inset 0 1px 0 rgba(198,240,255,.28),0 7px 16px -7px #000;}
+.px-rail-b{bottom:0;background:linear-gradient(0deg,#31424f 0%,#16202a 52%,#080d13 100%);
+  box-shadow:inset 0 -1px 0 rgba(198,240,255,.22),0 -7px 16px -7px #000;}
+.px-ticks{position:absolute;left:0;right:0;height:5px;z-index:12;pointer-events:none;opacity:.3;
+  background-image:repeating-linear-gradient(90deg,rgba(185,235,255,.65) 0 1px,transparent 1px calc(var(--px-cw)*.226));}
+.px-ticks-t{top:var(--px-rail);}
+.px-ticks-b{bottom:var(--px-rail);}
+.px-glass{position:absolute;inset:0;z-index:11;pointer-events:none;
+  background:linear-gradient(102deg,rgba(196,242,255,.075) 0%,rgba(196,242,255,.022) 24%,transparent 44%,
+    transparent 60%,rgba(196,242,255,.05) 86%,rgba(196,242,255,.012) 100%);}
+
+.px-tline{position:absolute;left:var(--px-pad);right:var(--px-pad);bottom:calc(var(--px-rail)*1.9);height:2px;
+  border-radius:2px;z-index:10;background:rgba(255,255,255,.06);}
 .px-tline i{position:absolute;left:50%;top:0;bottom:0;width:100%;transform:translateX(-50%);border-radius:2px;
-  background:var(--aqua);display:block;}
+  display:block;transition:background .3s var(--ease);
+  background:linear-gradient(90deg,rgba(25,183,172,0),#43ecdb,rgba(25,183,172,0));}
+
+/* ── объёмный источник золотого света (победа) ── */
+.px-god{position:absolute;left:50%;top:0;width:min(300px,78%);height:100%;transform:translateX(-50%);z-index:1;
+  pointer-events:none;opacity:0;transition:opacity .5s var(--ease);mix-blend-mode:screen;}
+.px-god i{position:absolute;display:block;}
+.px-core{left:50%;top:-24%;width:53%;height:53%;margin-left:-26.5%;filter:blur(14px);
+  background:radial-gradient(ellipse at 50% 66%,rgba(255,248,220,.72),rgba(255,198,96,.34) 40%,transparent 74%);}
+.px-shaft{left:50%;top:-4%;width:15%;height:97%;margin-left:-7.5%;transform-origin:50% 0;filter:blur(6px);
+  background:linear-gradient(180deg,rgba(255,228,158,.30),rgba(255,200,100,.09) 46%,transparent 78%);}
+.px-s1{transform:rotate(-17deg) scaleX(.7);opacity:.55;}
+.px-s2{transform:rotate(-8deg) scaleX(.9);opacity:.75;}
+.px-s3{transform:scaleX(1.5);}
+.px-s4{transform:rotate(8deg) scaleX(.9);opacity:.75;}
+.px-s5{transform:rotate(17deg) scaleX(.7);opacity:.55;}
+.px-flare-h{left:0;right:0;top:44%;height:2.5px;filter:blur(2.5px);
+  background:linear-gradient(90deg,transparent,rgba(255,238,190,.45) 32%,rgba(255,252,232,.85) 50%,
+    rgba(255,238,190,.45) 68%,transparent);}
+.px-flare-v{left:50%;top:-11%;width:2.5px;height:116%;margin-left:-1.25px;filter:blur(2.5px);
+  background:linear-gradient(180deg,transparent,rgba(255,246,214,.55) 30%,rgba(255,246,214,.32) 70%,transparent);}
+
+/* ── ударная волна и вспышка ── */
+.px-shock{position:absolute;left:50%;top:50%;width:55%;height:55%;transform:translate(-50%,-50%);border-radius:50%;
+  z-index:9;pointer-events:none;opacity:0;border:2px solid rgba(205,246,255,.75);
+  box-shadow:0 0 22px rgba(160,230,255,.5),inset 0 0 22px rgba(160,230,255,.35);}
+.px-flash{position:fixed;inset:0;z-index:2400;pointer-events:none;opacity:0;
+  background:radial-gradient(circle at 50% 52%,rgba(255,242,205,.9),rgba(255,201,74,.26) 22%,transparent 52%);}
+
+/* ══ СОСТОЯНИЯ БАРАБАНА ══ */
+/* последние секунды — тревога */
+.px-reel-wrap.px-hot .px-capz{box-shadow:inset 0 0 0 1px rgba(255,96,114,.28),0 0 46px -8px rgba(255,96,114,.55);
+  background:radial-gradient(ellipse at 50% 50%,rgba(255,96,114,.11),transparent 74%);}
+.px-reel-wrap.px-hot .px-tline i{background:linear-gradient(90deg,rgba(184,42,56,0),#ff5c6a,rgba(184,42,56,0));}
+/* последняя четверть вращения — золото проступает заранее */
+.px-reel-wrap.px-warm .px-capz{box-shadow:inset 0 0 0 1px rgba(255,206,110,.34),0 0 58px -8px rgba(255,201,74,.5);
+  background:radial-gradient(ellipse at 50% 50%,rgba(255,201,74,.09),transparent 74%);}
+.px-reel-wrap.px-warm .px-bk{border-color:rgba(255,216,136,.8);}
+.px-reel-wrap.px-warm .px-jw{filter:drop-shadow(0 2px 14px rgba(255,201,74,.6)) drop-shadow(0 0 2px rgba(0,0,0,.6));}
+/* победа */
+.px-reel-wrap.px-done .px-capz{box-shadow:inset 0 0 0 1px rgba(255,201,74,.5),0 0 70px -4px rgba(255,201,74,.8);
+  background:radial-gradient(ellipse at 50% 50%,rgba(255,201,74,.15),transparent 74%);}
+.px-reel-wrap.px-done .px-bk{border-color:rgba(255,201,74,.85);}
+.px-reel-wrap.px-done .px-jw{opacity:1;filter:drop-shadow(0 0 14px rgba(255,201,74,.85));}
+.px-reel-wrap.px-done .px-god{opacity:1;}
+/* проигрыш — вода холодеет */
+.px-reel-wrap.px-lose .px-depth{filter:saturate(.28) brightness(.55);}
+.px-reel-wrap.px-lose .px-rays,.px-reel-wrap.px-lose .px-caus{opacity:.1;}
+.px-reel-wrap.px-lose .px-capz{box-shadow:inset 0 0 0 1px rgba(120,142,162,.22),0 0 30px -10px rgba(90,120,140,.35);
+  background:none;}
+.px-reel-wrap.px-lose .px-bk{border-color:rgba(130,152,170,.3);}
+.px-reel-wrap.px-lose .px-jw{opacity:.5;filter:drop-shadow(0 0 6px rgba(110,140,160,.3));}
 
 /* ── строка под лентой ── */
-.px-under{display:flex;align-items:center;gap:11px;margin-top:24px;height:34px;}
+.px-under{display:flex;align-items:center;gap:11px;margin-top:clamp(16px,5vw,24px);height:34px;}
 .px-stack{display:flex;flex:none;}
 .px-stack i{width:28px;height:28px;border-radius:50%;background-repeat:no-repeat;margin-left:-9px;display:block;
-  box-shadow:0 0 0 2px var(--bg);}
+  box-shadow:0 0 0 2px var(--abyss);transition:opacity .4s var(--ease),filter .4s var(--ease);}
 .px-stack i:first-child{margin-left:0;}
+.px-stack i.px-me{box-shadow:0 0 0 2px var(--abyss),0 0 0 3.5px var(--aqua);}
+.px-stack i.px-out{opacity:.2;filter:grayscale(1);}
+.px-stack i.px-win{box-shadow:0 0 0 2px var(--abyss),0 0 0 3.5px var(--gold);}
 .px-who{flex:1;min-width:0;font-size:12.5px;font-weight:700;color:#77838f;letter-spacing:-.01em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .px-gid{font-size:11px;font-weight:700;color:#39424d;font-variant-numeric:tabular-nums;}
 
 /* ── док ── */
-.px-dock{margin-top:22px;}
+.px-dock{margin-top:clamp(14px,5vw,22px);}
 .px-chips{display:flex;gap:8px;margin-bottom:12px;}
 .px-chips .chip{flex:1;justify-content:center;}
+
+@media (prefers-reduced-motion:reduce){
+  #s-pvp .px-breathe,#s-pvp .px-caus,#s-pvp .px-rays i,#s-pvp .px-mote,#s-pvp .px-bub,
+  #s-pvp .px-shk,#s-pvp .px-live i{animation:none!important;}
+}
 </style>
 </head>
 <body>
@@ -1013,6 +1257,7 @@ input:focus{border-color:var(--aqua);}
   <!-- банк -->
   <div class="px-pot" id="px-pot">
     <div class="px-glow"></div>
+    <svg class="px-shk" viewBox="0 0 230 92" aria-hidden="true"><g><path d="M10 52 C34 26 80 17 122 23 C144 26 160 34 172 44 L198 24 L192 47 L222 53 L191 60 L196 84 L170 58 C157 68 138 76 116 78 C76 82 32 72 10 52 Z"/><path d="M88 22 L97 2 L116 19 Z"/><path d="M98 64 L88 88 L118 71 Z"/><circle cx="30" cy="46" r="3.4" fill="#02080c"/></g></svg>
     <div class="px-z">
       <div class="px-live" id="px-live"><i></i>LIVE</div>
       <div class="px-lbl" id="px-lbl">Общий банк</div>
@@ -1030,8 +1275,9 @@ input:focus{border-color:var(--aqua);}
       <div class="px-breathe"></div>
       <div class="px-caus"></div><div class="px-caus px-caus2"></div>
       <div class="px-rays"><i></i><i></i><i></i></div>
-      <div class="px-motes" id="px-motes"></div>
-      <div class="px-bubs" id="px-bubs"></div>
+      <svg class="px-shk" viewBox="0 0 230 92" aria-hidden="true"><g><path d="M10 52 C34 26 80 17 122 23 C144 26 160 34 172 44 L198 24 L192 47 L222 53 L191 60 L196 84 L170 58 C157 68 138 76 116 78 C76 82 32 72 10 52 Z"/><path d="M88 22 L97 2 L116 19 Z"/><path d="M98 64 L88 88 L118 71 Z"/><circle cx="30" cy="46" r="3.4" fill="#02080c"/></g></svg>
+      <div class="px-motes" id="px-motes"><i class="px-mote" style="left:7%;top:22%;width:1.4px;height:1.4px;animation-duration:13s;animation-delay:-3s"></i><i class="px-mote" style="left:19%;top:68%;width:1.0px;height:1.0px;animation-duration:17s;animation-delay:-9s"></i><i class="px-mote" style="left:28%;top:12%;width:1.8px;height:1.8px;animation-duration:11s;animation-delay:-15s"></i><i class="px-mote" style="left:36%;top:84%;width:1.2px;height:1.2px;animation-duration:19s;animation-delay:-1s"></i><i class="px-mote" style="left:44%;top:40%;width:1.5px;height:1.5px;animation-duration:14s;animation-delay:-11s"></i><i class="px-mote" style="left:52%;top:74%;width:0.9px;height:0.9px;animation-duration:21s;animation-delay:-6s"></i><i class="px-mote" style="left:61%;top:18%;width:1.7px;height:1.7px;animation-duration:12s;animation-delay:-17s"></i><i class="px-mote" style="left:69%;top:58%;width:1.1px;height:1.1px;animation-duration:16s;animation-delay:-4s"></i><i class="px-mote" style="left:77%;top:30%;width:1.4px;height:1.4px;animation-duration:20s;animation-delay:-13s"></i><i class="px-mote" style="left:85%;top:80%;width:1.3px;height:1.3px;animation-duration:15s;animation-delay:-8s"></i><i class="px-mote" style="left:92%;top:46%;width:1.0px;height:1.0px;animation-duration:18s;animation-delay:-19s"></i><i class="px-mote" style="left:14%;top:52%;width:1.2px;height:1.2px;animation-duration:22s;animation-delay:-7s"></i><i class="px-mote" style="left:57%;top:6%;width:1.6px;height:1.6px;animation-duration:13s;animation-delay:-14s"></i><i class="px-mote" style="left:83%;top:64%;width:1.1px;height:1.1px;animation-duration:17s;animation-delay:-2s"></i></div>
+      <div class="px-bubs" id="px-bubs"><i class="px-bub" style="left:9%;width:3.6px;height:3.6px;animation-duration:11s;animation-delay:-3s"></i><i class="px-bub" style="left:23%;width:5.2px;height:5.2px;animation-duration:15s;animation-delay:-9s"></i><i class="px-bub" style="left:38%;width:2.9px;height:2.9px;animation-duration:12s;animation-delay:-14s"></i><i class="px-bub" style="left:50%;width:6.0px;height:6.0px;animation-duration:17s;animation-delay:-5s"></i><i class="px-bub" style="left:64%;width:3.3px;height:3.3px;animation-duration:13s;animation-delay:-11s"></i><i class="px-bub" style="left:78%;width:4.6px;height:4.6px;animation-duration:16s;animation-delay:-1s"></i><i class="px-bub" style="left:90%;width:3.0px;height:3.0px;animation-duration:14s;animation-delay:-7s"></i></div>
       <div class="px-abyss"></div>
     </div>
     <div class="px-god" id="px-god">
