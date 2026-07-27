@@ -387,7 +387,7 @@ function viewOnboard(){
     <div class="hero-big" style="font-size:25px;line-height:1.15">Общий магазин<br>для вас двоих</div>
     <div class="hero-sub">Данные синхронны у владельца и управляющей — каждый со своего телефона.</div></div>
   <div class="onb mt4"><div class="b mb2">👑 Вы — владелец</div>
-    <div class="small muted mb3" style="line-height:1.5">Создайте магазин и передайте код управляющей. Вы заводите склад: модели, размеры, закупку и доставку.</div>
+    <div class="small muted mb3" style="line-height:1.5">Создайте магазин и передайте код управляющей. Вы заводите склад: модели, размеры и себестоимость пары.</div>
     <button class="btn btn-primary" data-act="createShop">Создать магазин</button></div>
   <div class="orline"><div class="ln"></div><span class="xs muted">или</span><div class="ln"></div></div>
   <div class="onb"><div class="b mb2">🛍 Вы — управляющая</div>
@@ -413,7 +413,7 @@ function productCard(p){
   let h=`<div class="prod"><div class="row gap3" style="align-items:flex-start">
     ${photo}
     <div class="flex1" style="min-width:0">
-      <div class="row between"><div class="pname flex1">${esc(p.name)}</div>${a.missing&&a.total?'<span class="pill pill-warn">дост. не внесена</span>':''}</div>
+      <div class="row between"><div class="pname flex1">${esc(p.name)}</div></div>
       <div class="small muted" style="margin-top:3px">Себестоимость пары: <b>${costTxt}</b> · всего пар: <b>${a.total}</b></div>
       <div class="sizes">${szHtml}</div>
     </div></div>`;
@@ -425,8 +425,7 @@ function productCard(p){
       p.stock.forEach(l=>{
         h+=`<div class="lot"><span class="sz">${esc(l.size)}</span>
           <span class="muted small">${l.qty} шт</span>
-          <span class="flex1 small">зак ${money(l.purchase)}${l.shipping==null?' · <span class="am">дост —</span>':' · дост '+money(l.shipping)}</span>
-          ${l.shipping==null?`<button class="chip" data-act="ship" data-id="${l.id}">Доставка</button>`:''}
+          <span class="flex1 small">себест. ${money(lotCost(l))}/пара</span>
           <button class="chip" data-act="editLot" data-id="${l.id}" data-pid="${p.id}">✏️</button></div>`;
       });
       h+=`</div>`;
@@ -511,7 +510,7 @@ function viewStock(){
 
   if(!V.products.length && !V.folders.length){
     h+=`<div class="empty"><div class="ic">👟</div><div class="t">Склад пуст</div>
-      <div class="d">${isOwner?'Создай папку (напр. «Nike») или сразу добавь модель — фото, название, размеры, закупку.':'Как только владелец добавит товар, ты сможешь продавать.'}</div></div>`;
+      <div class="d">${isOwner?'Создай папку (напр. «Nike») или сразу добавь модель — фото, название, размеры и себестоимость.':'Как только владелец добавит товар, ты сможешь продавать.'}</div></div>`;
     h+=explainerCard(); return h;
   }
 
@@ -533,12 +532,12 @@ function explainerCard(){
   const cost=2200, net=4000-cost-200, ms=Math.round(net*pct/100), os=net-ms;
   return `<div class="exp mt4">
     <div class="b mb2">Как считается прибыль</div>
-    <div class="formula mb3">Себестоимость пары = <b>закупка + доставка</b> (платит владелец).<br>
+    <div class="formula mb3"><b>Себестоимость пары</b> (сразу с доставкой) платит владелец.<br>
     Продажа − Себестоимость − Зарплата = <b class="em">чистая прибыль</b>.<br>
     От неё <b class="am">${pct}%</b> — управляющей, <b class="sky">${100-pct}%</b> — владельцу.<br>
     Владельцу возвращается вложенная себестоимость + его доля; управляющей — зарплата + её доля.</div>
     <div style="height:1px;background:rgba(255,255,255,.1);margin:4px 0 10px"></div>
-    <div class="xs muted up mb2">Пример (закупка 2000 + доставка 200)</div>
+    <div class="xs muted up mb2">Пример (себестоимость 2200)</div>
     <div class="fl"><span class="op">Продажа</span><b>4 000 ${c}</b></div>
     <div class="fl"><span class="op">− Себестоимость</span><b>2 200 ${c}</b></div>
     <div class="fl"><span class="op">− Зарплата</span><b>200 ${c}</b></div>
@@ -686,10 +685,8 @@ function sheetStock(pid, lot){
     <div class="lbl mt4">Количество пар этого размера</div>
     <input class="input" id="fQty" inputmode="numeric" value="${edit?lot.qty:'1'}" placeholder="1">
     <div class="row gap2 mt3 wrapf">${['1','2','3','4','5'].map(x=>`<button class="chip" data-fill="fQty" data-val="${x}">${x}</button>`).join('')}</div>
-    <div class="lbl mt4">Закупка за пару, ${esc(V.currency)}</div>
-    <input class="input" id="fPurch" inputmode="numeric" value="${edit?lot.purchase:''}" placeholder="2000">
-    <div class="lbl mt4">Доставка за пару, ${esc(V.currency)} <span class="muted2">(можно позже)</span></div>
-    <input class="input" id="fShip" inputmode="numeric" value="${edit&&lot.shipping!=null?lot.shipping:''}" placeholder="напр. 200 — или пусто">
+    <div class="lbl mt4">Себестоимость за пару, ${esc(V.currency)} <span class="muted2">(сразу с доставкой)</span></div>
+    <input class="input" id="fPurch" inputmode="numeric" value="${edit?lot.purchase:''}" placeholder="2200">
     <button class="btn btn-primary mt4" data-act="${edit?'saveLot':'createStock'}" ${edit?`data-id="${lot.id}"`:`data-pid="${pid}"`}>${edit?'Сохранить':'Добавить на склад'}</button>
     ${edit?`<button class="btn btn-danger mt2" data-act="delLot" data-id="${lot.id}">Удалить лот</button>`:''}`);
   setTimeout(()=>$('fSize')&&$('fSize').focus(),200);
@@ -827,17 +824,15 @@ document.addEventListener('click',e=>{
   if(act==='ship'){ let lot=null; V.products.forEach(p=>(p.stock||[]).forEach(l=>{ if(l.id===id) lot=l; })); if(lot) sheetShip(lot); return; }
   if(act==='createStock'){
     const size=($('fSize').value||'').trim(), qty=Math.max(1,num($('fQty').value)||1), purchase=num($('fPurch').value);
-    const shipRaw=$('fShip').value.trim(); const shipping=shipRaw===''?null:num(shipRaw);
-    if(!size){ toast('Укажи размер'); return; } if(!purchase){ toast('Укажи закупку за пару'); return; }
-    if(V.online){ apiCall('stock_add',{product_id:pid,size,qty,purchase,shipping},'Добавлено на склад').then(ok=>{ if(ok) closeSheet(); }); }
-    else{ prod.stock.push({id:uid(),size,qty,purchase,shipping}); saveLocal(); closeSheet(); buildView(); render(); toast('Добавлено на склад'); }
+    if(!size){ toast('Укажи размер'); return; } if(!purchase){ toast('Укажи себестоимость за пару'); return; }
+    if(V.online){ apiCall('stock_add',{product_id:pid,size,qty,purchase,shipping:null},'Добавлено на склад').then(ok=>{ if(ok) closeSheet(); }); }
+    else{ prod.stock.push({id:uid(),size,qty,purchase,shipping:null}); saveLocal(); closeSheet(); buildView(); render(); toast('Добавлено на склад'); }
     return;
   }
   if(act==='saveLot'){
     const size=($('fSize').value||'').trim(), qty=num($('fQty').value), purchase=num($('fPurch').value);
-    const shipRaw=$('fShip').value.trim(); const shipping=shipRaw===''?null:num(shipRaw);
-    if(V.online){ apiCall('stock_edit',{id,size,qty,purchase,shipping},'Сохранено').then(ok=>{ if(ok) closeSheet(); }); }
-    else{ V.products.forEach(p=>(p.stock||[]).forEach(l=>{ if(l.id===id){ l.size=size;l.qty=qty;l.purchase=purchase;l.shipping=shipping; } })); saveLocal(); closeSheet(); buildView(); render(); toast('Сохранено'); }
+    if(V.online){ apiCall('stock_edit',{id,size,qty,purchase},'Сохранено').then(ok=>{ if(ok) closeSheet(); }); }
+    else{ V.products.forEach(p=>(p.stock||[]).forEach(l=>{ if(l.id===id){ l.size=size;l.qty=qty;l.purchase=purchase; } })); saveLocal(); closeSheet(); buildView(); render(); toast('Сохранено'); }
     return;
   }
   if(act==='delLot'){
