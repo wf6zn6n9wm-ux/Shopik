@@ -2709,6 +2709,49 @@ var PXG={cw:0,ch:0,pitch:0,cen:0,w:0,n:0,ready:false};
 var pxPool=[], pxSeq=[], pxPlayers=[], pxRev=0;
 var pxX=0, pxV=0, pxRaf=0, pxPrev=0, pxWant=false, pxSeeded=false;
 
+/* ── физика вращения (Э4) ─────────────────────────────────────────
+   Всё считается в rAF: CSS-переходов на барабане нет принципиально, иначе
+   лента ощущалась бы как скролл, а не как тяжёлый механизм.
+   T      — длительность основного замедления
+   pw     — степень кривой: 90% пути проходится за первую половину времени
+   settle — упругая доводка после перелёта, только в самом конце
+   over   — насколько лента проскакивает цель (доля ширины карточки)
+   jit    — сдвиг остановки внутри карточки: маркер не встаёт ровно по центру
+   hold   — короткая пауза после попадания, чтобы игрок осознал результат */
+var PX_SPIN={T:5.0, pw:3.2, settle:.62, damp:7, freq:16, over:.179, jit:.31,
+             ahead:36, aheadR:7, hold:.10};
+var pxPhase='idle';               /* idle | spin | settle | hold */
+var pxSp=null, pxSet=null, pxHold=0, pxLand=-1, pxOnLand=null;
+var pxFlash=0, pxMarkOn=false, pxLastCi=0, pxMark=null, pxRM=false;
+
+function pxHaptic(k){
+  try{
+    var H=window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.HapticFeedback;
+    if(H){ if(k==='win') H.notificationOccurred('success'); else H.impactOccurred(k); return; }
+  }catch(e){}
+  vibrate(k==='light'?7:k==='medium'?14:k==='heavy'?30:[18,45,18,45,70]);
+}
+
+/* Точка остановки известна ДО начала вращения: выбираем индекс далеко впереди,
+   кладём в него победителя и считаем целевое смещение. Дальше физика просто
+   приводит ленту в эту точку — «случайно доехать» не до чего. */
+function pxSpin(winIdx,cb){
+  if(!PXG.ready&&!pxMeasure()){ if(cb) cb(-1); return; }
+  var cur=pxCur();
+  pxFillSeq(cur+2);
+  pxLand=cur+PX_SPIN.ahead+Math.floor(Math.random()*PX_SPIN.aheadR);
+  pxSeq[pxLand]=winIdx;
+  var jit=(Math.random()*2-1)*PXG.cw*PX_SPIN.jit;
+  var target=PXG.cen-(pxLand*PXG.pitch+PXG.cw/2)+jit;
+  pxOnLand=cb||null; pxLastCi=cur;
+  if(pxRM){ pxX=target; pxV=0; pxPhase='hold'; pxHold=PX_SPIN.hold; return pxLand; }
+  pxSp={x0:pxX, x1:target-PXG.cw*PX_SPIN.over, target:target, t:0};
+  pxPhase='spin';
+  return pxLand;
+}
+function pxBusy(){ return pxPhase!=='idle'; }
+function pxDrift(v){ if(pxPhase==='idle') pxV=v; }
+
 function pxNum(n){ n=Math.round(n); return n>=1000?n.toLocaleString('ru').replace(/ /g,' '):String(n); }
 
 function pxMakeCard(){
@@ -2736,6 +2779,8 @@ function pxMeasure(){
   PXG.n=Math.ceil(w/PXG.pitch)+2;
   while(pxPool.length<PXG.n){ var d=pxMakeCard(); track.appendChild(d); pxPool.push(d); }
   probe.style.visibility='';
+  pxMark=document.getElementById('px-mark');
+  pxRM=prefersReduced();
   PXG.ready=true;
   return true;
 }
@@ -2783,6 +2828,8 @@ function pxSetPlayers(list){
 /* новый раунд: состав пуст, лента снова показывает свободные слоты */
 function pxReset(){
   pxPlayers=[]; pxSeeded=false; pxRev++;
+  pxPhase='idle'; pxSp=null; pxSet=null; pxOnLand=null; pxLand=-1; pxFlash=0;
+  if(pxMark&&pxMarkOn){ pxMark.classList.remove('px-tick'); pxMarkOn=false; }
   if(PXG.ready) pxFillSeq(Math.max(0,pxCur()-PXG.n-1)); else pxSeq.length=0;
 }
 
@@ -2835,7 +2882,51 @@ function pxPaint(d,pid){
 function pxTick(now){
   pxRaf=requestAnimationFrame(pxTick);
   var dt=pxPrev?Math.min((now-pxPrev)/1000,.05):0; pxPrev=now;
-  pxX+=pxV*dt;
+  if(!dt){ pxRender(); return; }
+
+  if(pxPhase==='spin'){
+    pxSp.t+=dt;
+    var p=pxSp.t/PX_SPIN.T; if(p>1) p=1;
+    var nx=pxSp.x0+(pxSp.x1-pxSp.x0)*(1-Math.pow(1-p,PX_SPIN.pw));
+    pxV=(nx-pxX)/dt; pxX=nx;
+    if(p>=1){
+      /* удар: лента дошла до упора и сейчас отыграет назад */
+      pxSet={t:0,from:pxSp.x1,to:pxSp.target}; pxSp=null; pxPhase='settle';
+      pxHaptic('heavy');
+    }
+  } else if(pxPhase==='settle'){
+    pxSet.t+=dt;
+    var q=pxSet.t/PX_SPIN.settle; if(q>1) q=1;
+    var d=Math.exp(-PX_SPIN.damp*q)*Math.cos(PX_SPIN.freq*q);
+    var nx2=pxSet.to+(pxSet.from-pxSet.to)*d;
+    pxV=(nx2-pxX)/dt; pxX=nx2;
+    if(q>=1){ pxX=pxSet.to; pxV=0; pxSet=null; pxPhase='hold'; pxHold=PX_SPIN.hold; }
+  } else if(pxPhase==='hold'){
+    pxHold-=dt;
+    if(pxHold<=0){ pxPhase='idle'; var cb=pxOnLand; pxOnLand=null; if(cb) cb(pxLand); }
+  } else {
+    pxX+=pxV*dt;
+  }
+
+  /* щелчок на каждой карточке, прошедшей под маркером: частота сама следует
+     за скоростью. Вспышка гаснет по тому же кадровому счётчику, а не по
+     таймеру, — на разгоне их было бы больше двадцати в секунду. */
+  var ci=pxCur();
+  if(ci!==pxLastCi){
+    pxLastCi=ci;
+    var sp=pxV<0?-pxV:pxV;
+    if(sp>PXG.cw*.15){
+      var iv=PXG.pitch/sp;
+      pxFlash=iv*.55; if(pxFlash>.07) pxFlash=.07;
+      if(pxMark&&!pxMarkOn){ pxMark.classList.add('px-tick'); pxMarkOn=true; }
+      if(sp<PXG.cw*5) pxHaptic('light');
+    }
+  }
+  if(pxFlash>0){
+    pxFlash-=dt;
+    if(pxFlash<=0&&pxMarkOn){ pxMark.classList.remove('px-tick'); pxMarkOn=false; }
+  }
+
   pxRender();
 }
 /* цикл живёт, только пока экран PVP открыт и вкладка видима */
@@ -2847,7 +2938,7 @@ function pxSync(){
 function pxStart(){
   if(!pxMeasure()) return;
   if(!pxSeq.length) pxFillSeq(0);
-  pxV=-PXG.cw*PX_K.drift;
+  pxDrift(-PXG.cw*PX_K.drift);
   pxWant=true; pxSync(); pxRender();
 }
 function pxStop(){ pxWant=false; pxSync(); }
