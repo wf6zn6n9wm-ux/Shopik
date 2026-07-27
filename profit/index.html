@@ -624,9 +624,7 @@ function summaryManager(t){
   <div class="grid2 mt4">
     <div class="stat"><div class="k">Вложено сейчас</div><div class="v am">${money(t.stockValue)}</div></div>
     <div class="stat"><div class="k">Твоя доля (заработано)</div><div class="v em">${money(t.mgrEarn)}</div></div>
-    <div class="stat"><div class="k">Выплачено продавцам</div><div class="v sm">${money(t.salaryTotal)}</div></div>
     <div class="stat"><div class="k">Уже забрано</div><div class="v sm">${money(t.mgrWithdrawn)}</div></div>
-    <div class="stat"><div class="k">Оборот магазина</div><div class="v sm">${money(t.turnover)}</div></div>
     <div class="stat"><div class="k">Пар на складе</div><div class="v sm">${t.pairsInStock}</div></div>
   </div>
   ${periodDashboard()}
