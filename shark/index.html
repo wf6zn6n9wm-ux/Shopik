@@ -953,7 +953,9 @@ input:focus{border-color:var(--aqua);}
 .px-reel{position:absolute;inset:0;overflow:hidden;z-index:2;
   -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 17%,#000 83%,transparent 100%);
   mask-image:linear-gradient(90deg,transparent 0,#000 17%,#000 83%,transparent 100%);}
-.px-track{position:absolute;inset:0;perspective:820px;perspective-origin:50% 46%;}
+/* перспектива — доля от ширины карточки, иначе вид барабана менялся бы
+   вместе с адаптивным размером (820/84 при эталонных 84px) */
+.px-track{position:absolute;inset:0;perspective:calc(var(--px-cw)*9.76);perspective-origin:50% 46%;}
 
 /* ── карточка: стекло, объём, отражение ── */
 .px-card{position:absolute;top:var(--px-ctop);width:var(--px-cw);height:var(--px-ch);border-radius:var(--px-r);
@@ -2685,12 +2687,185 @@ function pvpJoin(){
 }
 window.setPBet=setPBet; window.pvpJoin=pvpJoin;
 
+/* ============ PVP · ДВИЖОК ЛЕНТЫ (Э3) ============================
+   Пул узлов создаётся один раз и живёт всё время работы экрана. В кадре
+   пишутся только transform / opacity / filter, причём два последних — лишь
+   когда значение реально изменилось (поэтому они квантуются). Содержимое
+   карточки переписывается только в момент, когда слот берёт новый билет.
+   Из DOM размеры читаются один раз в pxMeasure() и переснимаются на resize —
+   во время движения обращений к layout нет.
+   ================================================================= */
+
+/* палитра участников: цвет канта и цвет подсвета под карточкой */
+var PX_COLORS=[
+  {c:'#38e5d4',g:'rgba(56,229,212,'},  {c:'#5fb4ff',g:'rgba(95,180,255,'},
+  {c:'#a896ff',g:'rgba(168,150,255,'}, {c:'#ff9f45',g:'rgba(255,159,69,'},
+  {c:'#4ade80',g:'rgba(74,222,128,'},  {c:'#ff6e7a',g:'rgba(255,110,122,'}
+];
+/* пропорции барабана — доли от ширины карточки, чтобы вид не зависел от экрана */
+var PX_K={z:.881, deg:25, sc:.05, op:.40, blur:2.4, blurFrom:.32, drift:.548, seq:150};
+
+var PXG={cw:0,ch:0,pitch:0,cen:0,w:0,n:0,ready:false};
+var pxPool=[], pxSeq=[], pxPlayers=[], pxRev=0;
+var pxX=0, pxV=0, pxRaf=0, pxPrev=0, pxWant=false, pxSeeded=false;
+
+function pxNum(n){ n=Math.round(n); return n>=1000?n.toLocaleString('ru').replace(/ /g,' '):String(n); }
+
+function pxMakeCard(){
+  var d=document.createElement('div');
+  d.className='px-card';
+  d.innerHTML='<span class="px-edge"></span><span class="px-wash"></span><span class="px-av"></span>'
+    +'<span class="px-nm"></span><span class="px-pc"></span><span class="px-stk"></span>';
+  d._e=d.children[0]; d._w=d.children[1]; d._a=d.children[2];
+  d._n=d.children[3]; d._p=d.children[4]; d._s=d.children[5];
+  d._pid=-2; d._rev=-1; d._op=-1; d._bl=-1; d._cls='';
+  return d;
+}
+
+/* единственное место, где читается layout */
+function pxMeasure(){
+  var reel=document.getElementById('px-reel'), track=document.getElementById('px-track');
+  if(!reel||!track) return false;
+  var w=reel.clientWidth; if(!w) return false;
+  var probe=pxPool[0];
+  if(!probe){ probe=pxMakeCard(); probe.style.visibility='hidden'; track.appendChild(probe); pxPool.push(probe); }
+  /* кастомные свойства не резолвятся в px через getPropertyValue — меряем узел */
+  var cw=probe.offsetWidth, ch=probe.offsetHeight;
+  if(!cw) return false;
+  PXG.w=w; PXG.cw=cw; PXG.ch=ch; PXG.pitch=cw*1.131; PXG.cen=w/2;
+  PXG.n=Math.ceil(w/PXG.pitch)+2;
+  while(pxPool.length<PXG.n){ var d=pxMakeCard(); track.appendChild(d); pxPool.push(d); }
+  probe.style.visibility='';
+  PXG.ready=true;
+  return true;
+}
+
+function pxWeighted(){
+  var n=pxPlayers.length; if(!n) return -1;
+  var tot=0,i; for(i=0;i<n;i++) tot+=pxPlayers[i].stake;
+  if(tot<=0) return 0;
+  var r=Math.random()*tot;
+  for(i=0;i<n;i++){ r-=pxPlayers[i].stake; if(r<=0) return i; }
+  return n-1;
+}
+/* последовательность билетов: доля игрока = доля его карточек в ленте */
+function pxFillSeq(from){
+  from=Math.max(0,from|0);
+  for(var i=from;i<from+PX_K.seq;i++) pxSeq[i]=pxWeighted();
+  pxSeq.length=from+PX_K.seq;
+}
+function pxIndexAt(x){ return (PXG.cen-PXG.cw/2-x)/PXG.pitch; }
+function pxCur(){ return Math.round(pxIndexAt(pxX)); }
+
+/* состав раунда: цвета, лица, доли; лента впереди пересобирается под новые доли */
+function pxSetPlayers(list){
+  pxPlayers=list||[];
+  var tot=0,i; for(i=0;i<pxPlayers.length;i++) tot+=Number(pxPlayers[i].stake)||0;
+  for(i=0;i<pxPlayers.length;i++){
+    var p=pxPlayers[i];
+    p.stake=Number(p.stake)||0;
+    p.tf=tot?p.stake/tot:0;
+    p.col=p.me?PX_COLORS[0]:PX_COLORS[1+(i%(PX_COLORS.length-1))];
+  }
+  pvpAssignAvatars(pxPlayers);
+  pxRev++;
+  if(!PXG.ready){ pxFillSeq(0); return; }
+  if(!pxSeeded && pxPlayers.length){
+    /* первый состав раунда: заполняем и видимое окно, иначе игрок несколько
+       секунд смотрит на пустые слоты, пока билеты доедут до кадра */
+    pxFillSeq(Math.max(0,pxCur()-PXG.n-1)); pxSeeded=true;
+  } else {
+    /* доли изменились по ходу набора — пересобираем только то, что впереди,
+       чтобы карточки в кадре не подменились на глазах */
+    pxFillSeq(pxCur()+2);
+  }
+}
+/* новый раунд: состав пуст, лента снова показывает свободные слоты */
+function pxReset(){
+  pxPlayers=[]; pxSeeded=false; pxRev++;
+  if(PXG.ready) pxFillSeq(Math.max(0,pxCur()-PXG.n-1)); else pxSeq.length=0;
+}
+
+function pxRender(){
+  if(!PXG.ready) return;
+  var cw=PXG.cw, pitch=PXG.pitch, cen=PXG.cen, half=cw/2;
+  var first=Math.max(0,Math.ceil((-cw-pxX)/pitch));
+  for(var k=0;k<PXG.n;k++){
+    var d=pxPool[k], i=first+k, left=pxX+i*pitch;
+    if(left>PXG.w){ if(d._cls!=='off'){ d.style.display='none'; d._cls='off'; } continue; }
+    if(d._cls==='off'){ d.style.display=''; d._cls=''; }
+
+    var rel=(left+half-cen)/cen, ad=rel<0?-rel:rel; if(ad>1) ad=1;
+    d.style.transform='translateX('+left.toFixed(1)+'px) rotateY('+(rel*PX_K.deg).toFixed(1)
+      +'deg) translateZ('+(-ad*cw*PX_K.z).toFixed(0)+'px) scale('+(1-ad*PX_K.sc).toFixed(3)+')';
+
+    /* квантуем — иначе стиль переписывается каждый кадр без видимой разницы */
+    var op=Math.round((1-ad*PX_K.op)*50)/50;
+    if(op!==d._op){ d.style.opacity=op; d._op=op; }
+    var bl=Math.round(Math.max(0,ad-PX_K.blurFrom)*PX_K.blur*4)/4;
+    if(bl!==d._bl){ d.style.filter=bl>0?'blur('+bl+'px)':''; d._bl=bl; }
+
+    var pid=pxSeq[i]; if(pid===undefined) pid=-1;
+    if(pid!==d._pid || d._rev!==pxRev) pxPaint(d,pid);
+  }
+}
+
+/* содержимое карточки: только когда слот взял новый билет или сменился состав */
+function pxPaint(d,pid){
+  d._pid=pid; d._rev=pxRev;
+  var p=pid>=0?pxPlayers[pid]:null;
+  var cls='px-card'+(p&&p.me?' px-me':'');
+  if(cls!==d.className){ d.className=cls; }
+  if(p){
+    d._e.style.background=p.col.c;
+    d._w.style.background='linear-gradient(180deg,transparent,'+p.col.g+'.20))';
+    d._a.style.cssText=avatarBgStyle(p.avKey,Math.round(PXG.cw*.64));
+    d._a.style.opacity='';
+    d._n.textContent=p.me?t('you_word'):p.name;
+    d._p.textContent=Math.round(p.tf*100)+'%';
+    d._s.textContent='★ '+pxNum(p.stake);
+  } else {
+    d._e.style.background='rgba(255,255,255,.05)';
+    d._w.style.background='none';
+    d._a.style.cssText=''; d._a.style.opacity='.08';
+    d._n.textContent=''; d._p.textContent='—'; d._s.textContent='';
+  }
+}
+
+function pxTick(now){
+  pxRaf=requestAnimationFrame(pxTick);
+  var dt=pxPrev?Math.min((now-pxPrev)/1000,.05):0; pxPrev=now;
+  pxX+=pxV*dt;
+  pxRender();
+}
+/* цикл живёт, только пока экран PVP открыт и вкладка видима */
+function pxSync(){
+  var run=pxWant&&!document.hidden;
+  if(run&&!pxRaf){ pxPrev=0; pxRaf=requestAnimationFrame(pxTick); }
+  else if(!run&&pxRaf){ cancelAnimationFrame(pxRaf); pxRaf=0; }
+}
+function pxStart(){
+  if(!pxMeasure()) return;
+  if(!pxSeq.length) pxFillSeq(0);
+  pxV=-PXG.cw*PX_K.drift;
+  pxWant=true; pxSync(); pxRender();
+}
+function pxStop(){ pxWant=false; pxSync(); }
+/* геометрия переснимается только при смене размеров, не в кадре */
+var pxRzT=null;
+addEventListener('resize',function(){
+  if(!PXG.ready) return;
+  clearTimeout(pxRzT);
+  pxRzT=setTimeout(function(){ if(pxMeasure()){ for(var k=0;k<pxPool.length;k++){ pxPool[k]._op=-1; pxPool[k]._bl=-1; pxPool[k]._rev=-1; } pxRender(); } },140);
+});
+document.addEventListener('visibilitychange',pxSync);
+
 /* перехват go для рендера новых экранов */
 var _go=go;
 go=function(name){
   _go(name);
   if(name==='ach') renderAch();
-  if(name==='pvp'){ if(!pvpSpinning) initPvp(); }
+  if(name==='pvp'){ if(!pvpSpinning) initPvp(); pxStart(); } else pxStop();
 };
 window.go=go;
 
