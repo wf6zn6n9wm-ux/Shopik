@@ -1523,7 +1523,7 @@ var S={money:0,stars:0,bet:50,cbet:50,doneTasks:{},joinedContests:{},cashedThisR
 var I18N={
   uk:{
     /* PVP — новый экран (Э5) */
-    px_sub_waiting:'Чекаємо гравців', px_sub_join_tpl:'Увійдіть до кінця відліку · ставка <b>{bet}</b>', px_sub_in_tpl:'Ставка <b>{stake}</b> · шанс <b class="px-mn">{pct}%</b> · заберете <b>{payout}</b>', px_sub_won_tpl:'Забрали банк із шансом <b class="px-mn">{pct}%</b>', px_sub_lost:'Ваш квиток не випав', px_waiting_players:'Чекаємо гравців…', px_players_tpl:'{n} у раунді', px_game_tpl:'Гра #{id}', px_cta_join:'Увійти в битву', px_cta_wait:'Приймаємо ставку…', px_cta_spin:'Крутимо…', px_cta_over:'Раунд завершено', px_badge_spin:'РОЗІГРАШ', px_badge_won:'БАНК ВАШ', px_badge_lost:'БАНК ПІШОВ', px_lbl_won:'Ви забрали банк', px_lbl_lost_tpl:'{name} забирає',
+    px_sub_waiting:'Чекаємо гравців', px_sub_join_tpl:'Увійдіть до кінця відліку · ставка <b>{bet}</b>', px_sub_in_tpl:'Ставка <b>{stake}</b> · шанс <b class="px-mn">{pct}%</b> · заберете <b>{payout}</b>', px_sub_won_tpl:'Забрали банк із шансом <b class="px-mn">{pct}%</b>', px_sub_lost:'Ваш квиток не випав', px_players_tpl:'{n} у раунді', px_game_tpl:'Гра #{id}', px_cta_join:'Увійти в битву', px_cta_wait:'Приймаємо ставку…', px_cta_spin:'Крутимо…', px_cta_over:'Раунд завершено', px_badge_spin:'РОЗІГРАШ', px_badge_won:'БАНК ВАШ', px_badge_lost:'БАНК ПІШОВ', px_lbl_won:'Ви забрали банк', px_lbl_lost_tpl:'{name} забирає',
     greet:'З поверненням', online_lbl:'онлайн', stars_lbl:'зірок', uah_lbl:'грн',
     play_now:'Грати зараз', next_draw:'Найближчий розіграш', next_hour:'через 1 годину', ingame_lbl:'у грі',
     pvp_title:'Битва за банк', pvp_desc:'Заходь у спільний раунд — переможець забирає весь банк', pvp_cta:'Увійти в битву →',
@@ -1535,8 +1535,7 @@ var I18N={
     onb_h2:'Ігри на зірки', onb_p2:'Краш і рулетка — на зірки заради азарту й подарунків. Зірки не виводяться в гроші, витрачаються всередині.',
     onb_h3:'Друзі = гроші', onb_p3:'Запрошуй друзів і отримуй гривні на баланс — їх можна вивести на картку або в USDT. Поїхали!',
     onb_next:'Далі', onb_start:'Почати',
-    pvp_h1:'PVP · Битва', pvp_sub:'Скидайтеся зірками в спільний банк. Переможець забирає все. Шанс перемоги = ваша частка банку.',
-    pvp_feed_default:'Зберіть банк і заберіть його цілком', pvp_pot_lbl:'Спільний банк', bet_lbl:'Ставка:',
+    pvp_pot_lbl:'Спільний банк', bet_lbl:'Ставка:',
     st_played:'Зіграно', st_won:'Виграно ⭐', st_rank:'Місце',
     bal_money_lbl:'Баланс для виведення (заробіток)', withdraw_btn:'Вивести гроші',
     bal_stars_lbl:'Зірки для ігор', topup_btn:'Поповнити зірки',
@@ -1546,18 +1545,14 @@ var I18N={
     howworks_lbl:'Як це працює', howworks_desc:'Показати навчання знову',
     support_lbl:'Підтримка', support_desc:'Зв\'язатися з нами', support_toast:'Підтримка: @SharkSupport',
     back:'Назад',
-    pvp_wait:'Зробіть ставку, щоб почати битву', pvp_waiting_players:'Чекаємо гравців…',
-    pvp_countdown:'До розіграшу: ', pvp_sec:' с', pvp_in_battle:'Ви в грі · чекаємо розіграшу',
-    pvp_resolving:'Розіграш…', pvp_join_btn:'Приєднатися до битви · ', pvp_already:'Ви вже в цьому раунді',
+    pvp_waiting_players:'Чекаємо гравців…',
+    pvp_in_battle:'Ви в грі · чекаємо розіграшу',
+    pvp_already:'Ви вже в цьому раунді',
     pvp_no_stars:'Недостатньо зірок — поповніть баланс', pvp_closing:'Раунд закривається — зачекайте наступний',
     pvp_bet_error:'Помилка ставки', pvp_bet_toast:'Ставка у банку! Чекаємо розіграшу.',
     lvl_names:['Малятко','Рибка','Мисливець','Хижак','Акула','Мегалодон'], lvl_prefix:'Рівень ',
-    pvp_round_live:'Раунд триває…', pvp_winner_prefix:'Переможець: ', you_word:'Ви', player_default:'Гравець',
-    pvp_win_title_tpl:'Перемога! +⭐{payout}', pvp_win_desc_tpl:'Ви забрали банк ⭐{pot} (−{rake}% комісія). Ваш шанс був {pct}%.', pvp_claim_btn:'Забрати',
-    pvp_lose_title_tpl:'Переміг {name} {av}', pvp_lose_desc_tpl:'Банк ⭐{pot} дістався суперникові. Ваша ставка згоріла. Пощастить наступного разу!', pvp_again_btn:'Ще раз',
-    pvp_spectator_tpl:'🏆 Переміг {name} · банк ⭐{pot}',
-    pvp_last_battle_tpl:'🏆 Останній бій: {name} {av} забрав ⭐{pot}',
-    pvp_players_header_tpl:'Гравці ({n})', pvp_chance_stake_lbl:'Шанс · ставка',
+    you_word:'Ви', player_default:'Гравець',
+    pvp_claim_btn:'Забрати',
     games_screen_h1:'Ігри', crash_tab_lbl:'Краш', roul_tab_lbl:'Рулетка',
     roul_sub:'Крути за зірки — вигравай подарунки. Вивести зірки в гроші не можна.',
     spin_btn_tpl:'Крутити за ⭐{bet}', crash_next_round_tpl:'Наступний раунд через {n}…',
@@ -1635,7 +1630,7 @@ var I18N={
   },
   ru:{
     /* PVP — новый экран (Э5) */
-    px_sub_waiting:'Ждём игроков', px_sub_join_tpl:'Войдите до конца отсчёта · ставка <b>{bet}</b>', px_sub_in_tpl:'Ставка <b>{stake}</b> · шанс <b class="px-mn">{pct}%</b> · заберёте <b>{payout}</b>', px_sub_won_tpl:'Забрали банк с шансом <b class="px-mn">{pct}%</b>', px_sub_lost:'Ваш билет не выпал', px_waiting_players:'Ждём игроков…', px_players_tpl:'{n} в раунде', px_game_tpl:'Игра #{id}', px_cta_join:'Войти в битву', px_cta_wait:'Принимаем ставку…', px_cta_spin:'Крутим…', px_cta_over:'Раунд завершён', px_badge_spin:'РОЗЫГРЫШ', px_badge_won:'БАНК ВАШ', px_badge_lost:'БАНК УШЁЛ', px_lbl_won:'Вы забрали банк', px_lbl_lost_tpl:'{name} забирает',
+    px_sub_waiting:'Ждём игроков', px_sub_join_tpl:'Войдите до конца отсчёта · ставка <b>{bet}</b>', px_sub_in_tpl:'Ставка <b>{stake}</b> · шанс <b class="px-mn">{pct}%</b> · заберёте <b>{payout}</b>', px_sub_won_tpl:'Забрали банк с шансом <b class="px-mn">{pct}%</b>', px_sub_lost:'Ваш билет не выпал', px_players_tpl:'{n} в раунде', px_game_tpl:'Игра #{id}', px_cta_join:'Войти в битву', px_cta_wait:'Принимаем ставку…', px_cta_spin:'Крутим…', px_cta_over:'Раунд завершён', px_badge_spin:'РОЗЫГРЫШ', px_badge_won:'БАНК ВАШ', px_badge_lost:'БАНК УШЁЛ', px_lbl_won:'Вы забрали банк', px_lbl_lost_tpl:'{name} забирает',
     greet:'С возвращением', online_lbl:'онлайн', stars_lbl:'звёзд', uah_lbl:'грн',
     play_now:'Играть сейчас', next_draw:'Ближайший розыгрыш', next_hour:'через 1 час', ingame_lbl:'в игре',
     pvp_title:'Битва за банк', pvp_desc:'Заходи в общий раунд — победитель забирает весь банк', pvp_cta:'Войти в битву →',
@@ -1647,8 +1642,7 @@ var I18N={
     onb_h2:'Игры на звёзды', onb_p2:'Краш и рулетка — на звёзды ради азарта и подарков. Звёзды не выводятся в деньги, тратятся внутри.',
     onb_h3:'Друзья = деньги', onb_p3:'Приглашай друзей и получай гривны на баланс — их можно вывести на карту или в USDT. Поехали!',
     onb_next:'Далее', onb_start:'Начать',
-    pvp_h1:'PVP · Битва', pvp_sub:'Скидывайтесь звёздами в общий банк. Победитель забирает всё. Шанс победы = ваша доля банка.',
-    pvp_feed_default:'Соберите банк и заберите его целиком', pvp_pot_lbl:'Общий банк', bet_lbl:'Ставка:',
+    pvp_pot_lbl:'Общий банк', bet_lbl:'Ставка:',
     st_played:'Сыграно', st_won:'Выиграно ⭐', st_rank:'Место',
     bal_money_lbl:'Баланс для вывода (заработок)', withdraw_btn:'Вывести деньги',
     bal_stars_lbl:'Звёзды для игр', topup_btn:'Пополнить звёзды',
@@ -1658,18 +1652,14 @@ var I18N={
     howworks_lbl:'Как это работает', howworks_desc:'Показать обучение снова',
     support_lbl:'Поддержка', support_desc:'Связаться с нами', support_toast:'Поддержка: @SharkSupport',
     back:'Назад',
-    pvp_wait:'Сделайте ставку, чтобы начать битву', pvp_waiting_players:'Ждём игроков…',
-    pvp_countdown:'До розыгрыша: ', pvp_sec:' с', pvp_in_battle:'Вы в игре · ждём розыгрыша',
-    pvp_resolving:'Розыгрыш…', pvp_join_btn:'Присоединиться к битве · ', pvp_already:'Вы уже в этом раунде',
+    pvp_waiting_players:'Ждём игроков…',
+    pvp_in_battle:'Вы в игре · ждём розыгрыша',
+    pvp_already:'Вы уже в этом раунде',
     pvp_no_stars:'Недостаточно звёзд — пополните баланс', pvp_closing:'Раунд закрывается — подождите следующий',
     pvp_bet_error:'Ошибка ставки', pvp_bet_toast:'Ставка в банке! Ждём розыгрыша.',
     lvl_names:['Малёк','Рыбёшка','Охотник','Хищник','Акула','Мегалодон'], lvl_prefix:'Уровень ',
-    pvp_round_live:'Раунд идёт…', pvp_winner_prefix:'Победитель: ', you_word:'Вы', player_default:'Игрок',
-    pvp_win_title_tpl:'Победа! +⭐{payout}', pvp_win_desc_tpl:'Вы забрали банк ⭐{pot} (−{rake}% комиссия). Ваш шанс был {pct}%.', pvp_claim_btn:'Забрать',
-    pvp_lose_title_tpl:'Победил {name} {av}', pvp_lose_desc_tpl:'Банк ⭐{pot} ушёл сопернику. Ваша ставка сгорела. Повезёт в следующий раз!', pvp_again_btn:'Ещё раз',
-    pvp_spectator_tpl:'🏆 Победил {name} · банк ⭐{pot}',
-    pvp_last_battle_tpl:'🏆 Последняя битва: {name} {av} забрал ⭐{pot}',
-    pvp_players_header_tpl:'Игроки ({n})', pvp_chance_stake_lbl:'Шанс · ставка',
+    you_word:'Вы', player_default:'Игрок',
+    pvp_claim_btn:'Забрать',
     games_screen_h1:'Игры', crash_tab_lbl:'Краш', roul_tab_lbl:'Рулетка',
     roul_sub:'Крути за звёзды — выигрывай подарки. Вывести звёзды в деньги нельзя.',
     spin_btn_tpl:'Крутить за ⭐{bet}', crash_next_round_tpl:'Следующий раунд через {n}…',
@@ -1747,7 +1737,7 @@ var I18N={
   },
   en:{
     /* PVP — новый экран (Э5) */
-    px_sub_waiting:'Waiting for players', px_sub_join_tpl:'Join before the timer ends · bet <b>{bet}</b>', px_sub_in_tpl:'Bet <b>{stake}</b> · chance <b class="px-mn">{pct}%</b> · you take <b>{payout}</b>', px_sub_won_tpl:'Took the pot at <b class="px-mn">{pct}%</b>', px_sub_lost:'Your ticket did not come up', px_waiting_players:'Waiting for players…', px_players_tpl:'{n} in the round', px_game_tpl:'Game #{id}', px_cta_join:'Enter the battle', px_cta_wait:'Placing bet…', px_cta_spin:'Spinning…', px_cta_over:'Round over', px_badge_spin:'DRAW', px_badge_won:'POT IS YOURS', px_badge_lost:'POT IS GONE', px_lbl_won:'You took the pot', px_lbl_lost_tpl:'{name} takes it',
+    px_sub_waiting:'Waiting for players', px_sub_join_tpl:'Join before the timer ends · bet <b>{bet}</b>', px_sub_in_tpl:'Bet <b>{stake}</b> · chance <b class="px-mn">{pct}%</b> · you take <b>{payout}</b>', px_sub_won_tpl:'Took the pot at <b class="px-mn">{pct}%</b>', px_sub_lost:'Your ticket didn\'t come up', px_players_tpl:'{n} in the round', px_game_tpl:'Game #{id}', px_cta_join:'Enter the battle', px_cta_wait:'Placing bet…', px_cta_spin:'Spinning…', px_cta_over:'Round over', px_badge_spin:'DRAW', px_badge_won:'POT IS YOURS', px_badge_lost:'POT IS GONE', px_lbl_won:'You took the pot', px_lbl_lost_tpl:'{name} takes it',
     greet:'Welcome back', online_lbl:'online', stars_lbl:'stars', uah_lbl:'UAH',
     play_now:'Play now', next_draw:'Next draw', next_hour:'in 1 hour', ingame_lbl:'playing',
     pvp_title:'Battle for the pot', pvp_desc:'Join a shared round — the winner takes the whole pot', pvp_cta:'Enter the battle →',
@@ -1759,8 +1749,7 @@ var I18N={
     onb_h2:'Games for stars', onb_p2:'Crash and roulette — for the thrill and gifts. Stars can\'t be withdrawn as money, only spent inside.',
     onb_h3:'Friends = money', onb_p3:'Invite friends and earn UAH — withdrawable to card or USDT. Let\'s go!',
     onb_next:'Next', onb_start:'Start',
-    pvp_h1:'PVP · Battle', pvp_sub:'Throw stars into the shared pot. The winner takes it all. Win chance = your share of the pot.',
-    pvp_feed_default:'Build the pot and take it all', pvp_pot_lbl:'Shared pot', bet_lbl:'Bet:',
+    pvp_pot_lbl:'Shared pot', bet_lbl:'Bet:',
     st_played:'Played', st_won:'Won ⭐', st_rank:'Rank',
     bal_money_lbl:'Withdrawable balance (earnings)', withdraw_btn:'Withdraw money',
     bal_stars_lbl:'Stars for games', topup_btn:'Top up stars',
@@ -1770,18 +1759,14 @@ var I18N={
     howworks_lbl:'How it works', howworks_desc:'Show the tutorial again',
     support_lbl:'Support', support_desc:'Contact us', support_toast:'Support: @SharkSupport',
     back:'Back',
-    pvp_wait:'Place a bet to start the battle', pvp_waiting_players:'Waiting for players…',
-    pvp_countdown:'Draw in: ', pvp_sec:'s', pvp_in_battle:'You\'re in · waiting for the draw',
-    pvp_resolving:'Drawing…', pvp_join_btn:'Join the battle · ', pvp_already:'You are already in this round',
+    pvp_waiting_players:'Waiting for players…',
+    pvp_in_battle:'You\'re in · waiting for the draw',
+    pvp_already:'You are already in this round',
     pvp_no_stars:'Not enough stars — top up your balance', pvp_closing:'Round is closing — wait for the next one',
     pvp_bet_error:'Bet error', pvp_bet_toast:'Bet placed! Waiting for the draw.',
     lvl_names:['Fry','Minnow','Hunter','Predator','Shark','Megalodon'], lvl_prefix:'Level ',
-    pvp_round_live:'Round in progress…', pvp_winner_prefix:'Winner: ', you_word:'You', player_default:'Player',
-    pvp_win_title_tpl:'Victory! +⭐{payout}', pvp_win_desc_tpl:'You took the pot of ⭐{pot} (−{rake}% rake). Your chance was {pct}%.', pvp_claim_btn:'Claim',
-    pvp_lose_title_tpl:'{name} {av} won', pvp_lose_desc_tpl:'The ⭐{pot} pot went to your opponent. Your bet is gone. Better luck next time!', pvp_again_btn:'Try again',
-    pvp_spectator_tpl:'🏆 {name} won · pot ⭐{pot}',
-    pvp_last_battle_tpl:'🏆 Last battle: {name} {av} took ⭐{pot}',
-    pvp_players_header_tpl:'Players ({n})', pvp_chance_stake_lbl:'Chance · bet',
+    you_word:'You', player_default:'Player',
+    pvp_claim_btn:'Claim',
     games_screen_h1:'Games', crash_tab_lbl:'Crash', roul_tab_lbl:'Roulette',
     roul_sub:'Spin for stars — win gifts. Stars cannot be withdrawn as money.',
     spin_btn_tpl:'Spin for ⭐{bet}', crash_next_round_tpl:'Next round in {n}…',
@@ -2706,7 +2691,7 @@ function pxSub(){
   }
   var me=null,i;
   for(i=0;i<pxPlayers.length;i++) if(pxPlayers[i].me){ me=pxPlayers[i]; break; }
-  if(!me){ e.innerHTML = PXR.status==='countdown'
+  if(!me){ e.innerHTML = pxPlayers.length
       ? tf('px_sub_join_tpl',{bet:pxNum(pbet)}) : t('px_sub_waiting'); return; }
   e.innerHTML=tf('px_sub_in_tpl',{stake:pxNum(me.stake),pct:Math.round(me.tf*100),
                                   payout:pxNum(Math.floor(PXR.pot*0.95))});
@@ -2717,7 +2702,7 @@ function pxUnder(){
   var box=pxEl('px-stack'), who=pxEl('px-who'), gid=pxEl('px-gid');
   if(!box||!who) return;
   var n=pxPlayers.length;
-  if(!n){ box.innerHTML=''; who.textContent=t('px_waiting_players'); who.style.color=''; }
+  if(!n){ box.innerHTML=''; who.textContent=t('pvp_waiting_players'); who.style.color=''; }
   else{
     var html='',i,lim=Math.min(n,6);
     for(i=0;i<lim;i++){
@@ -2727,7 +2712,7 @@ function pxUnder(){
       html+='<i class="'+cls+'" style="'+avatarBgStyle(p.avKey,28)+'"></i>';
     }
     box.innerHTML=html;
-    who.textContent=tf('px_players_tpl',{n:n})+(n>lim?' +'+(n-lim):'');
+    who.textContent=tf('px_players_tpl',{n:n});   /* n — полное число, стопка показывает первых шестерых */
     who.style.color='';
   }
   if(gid) gid.textContent=PXR.id?tf('px_game_tpl',{id:PXR.id}):'';
