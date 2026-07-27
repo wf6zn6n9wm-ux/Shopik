@@ -881,7 +881,7 @@ input:focus{border-color:var(--aqua);}
 .px-sum svg{width:clamp(24px,9vw,40px);height:clamp(24px,9vw,40px);flex:none;
   filter:drop-shadow(0 5px 16px rgba(255,167,36,.65));}
 .px-sum.px-mine{color:#6ff3dc;text-shadow:0 0 60px rgba(56,229,212,.6),0 0 130px rgba(56,229,212,.34);}
-.px-sum.px-lost{color:#78858f;text-shadow:none;}
+.px-sum.px-lost{color:#7f9599;text-shadow:0 0 40px rgba(110,150,160,.22);}
 .px-sum.px-lost svg{opacity:.32;filter:none;}
 .px-sub{margin-top:clamp(12px,4.6vw,20px);font-size:clamp(11.5px,3.4vw,12.5px);font-weight:600;color:#5c6773;}
 .px-sub b{color:#93a0ad;font-weight:800;}
@@ -1062,6 +1062,21 @@ input:focus{border-color:var(--aqua);}
 .px-flare-v{left:50%;top:-11%;width:2.5px;height:116%;margin-left:-1.25px;filter:blur(2.5px);
   background:linear-gradient(180deg,transparent,rgba(255,246,214,.55) 30%,rgba(255,246,214,.32) 70%,transparent);}
 
+/* ── развязка: удар, волна, вспышка (Э6) ── */
+.px-reel-wrap.px-thud{animation:pxThud .34s cubic-bezier(.3,1.5,.5,1);}
+@keyframes pxThud{0%{transform:translateY(0)}30%{transform:translateY(4px)}100%{transform:translateY(0)}}
+.px-shock.px-go{animation:pxShock .6s cubic-bezier(.16,.9,.3,1) forwards;}
+@keyframes pxShock{0%{opacity:.95;transform:translate(-50%,-50%) scale(.28)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(3)}}
+.px-shock.px-cold{border-color:rgba(150,185,195,.5);box-shadow:0 0 18px rgba(120,160,175,.35);}
+.px-flash.px-go{animation:pxFlash .7s var(--ease) forwards;}
+@keyframes pxFlash{0%{opacity:0;transform:scale(.45)}10%{opacity:1}100%{opacity:0;transform:scale(1.7)}}
+/* сумма проявляется после вспышки, а не подменяется на месте */
+.px-sum.px-pop{animation:pxSumPop .55s cubic-bezier(.34,1.56,.64,1);}
+@keyframes pxSumPop{0%{transform:scale(.78);opacity:.35}60%{transform:scale(1.05)}100%{transform:scale(1)}}
+.wallet.px-pop{animation:pxBalPop .7s cubic-bezier(.34,1.56,.64,1);}
+@keyframes pxBalPop{0%,100%{transform:scale(1)}35%{transform:scale(1.15)}}
+
 /* ── ударная волна и вспышка ── */
 .px-shock{position:absolute;left:50%;top:50%;width:55%;height:55%;transform:translate(-50%,-50%);border-radius:50%;
   z-index:9;pointer-events:none;opacity:0;border:2px solid rgba(205,246,255,.75);
@@ -1086,7 +1101,10 @@ input:focus{border-color:var(--aqua);}
 .px-reel-wrap.px-done .px-jw{opacity:1;filter:drop-shadow(0 0 14px rgba(255,201,74,.85));}
 .px-reel-wrap.px-done .px-god{opacity:1;}
 /* проигрыш — вода холодеет */
-.px-reel-wrap.px-lose .px-depth{filter:saturate(.28) brightness(.55);}
+.px-reel-wrap.px-lose .px-depth{filter:saturate(.3) brightness(.56);}
+/* стальной сине-зелёный film поверх ленты вместо обесцвечивания в серое:
+   банк ушёл — но это не наказание, поэтому ни грамма красного */
+.px-reel-wrap.px-lose .px-glass{background:linear-gradient(180deg,rgba(104,150,158,.11),rgba(62,100,114,.17));}
 .px-reel-wrap.px-lose .px-rays,.px-reel-wrap.px-lose .px-caus{opacity:.1;}
 .px-reel-wrap.px-lose .px-capz{box-shadow:inset 0 0 0 1px rgba(120,142,162,.22),0 0 30px -10px rgba(90,120,140,.35);
   background:none;}
@@ -2577,7 +2595,8 @@ var PX_COLORS=[
   {c:'#4ade80',g:'rgba(74,222,128,'},  {c:'#ff6e7a',g:'rgba(255,110,122,'}
 ];
 /* пропорции барабана — доли от ширины карточки, чтобы вид не зависел от экрана */
-var PX_K={z:.881, deg:25, sc:.05, op:.40, blur:2.4, blurFrom:.32, drift:.548, seq:150};
+var PX_K={z:.881, deg:25, sc:.05, op:.40, blur:2.4, blurFrom:.32, drift:.548, seq:150,
+          wz:.86, wy:.024, wsc:1.05};
 
 var PXG={cw:0,ch:0,pitch:0,cen:0,w:0,n:0,ready:false};
 var pxPool=[], pxSeq=[], pxPlayers=[], pxRev=0;
@@ -2644,6 +2663,7 @@ function pxEl(id){ return document.getElementById(id); }
 
 /* ---- банк: докручивается в общем кадре, а не перерисовывается скачком ---- */
 function pxBank(dt){
+  if(PXR.bankHold) return;
   var d=PXR.pot-PXR.potShown;
   if(d>-0.5&&d<0.5){ if(PXR.potShown!==PXR.pot) PXR.potShown=PXR.pot; else return; }
   else PXR.potShown+=d*Math.min(1,dt*9);
@@ -2733,29 +2753,85 @@ pxOnWarm=function(){
   if(lv) lv.className='px-live px-warm';
 };
 
-/* ---- исход: Э5 переводит экран в состояние, эффекты добавит Э6 ---- */
+/* ---- развязка раунда (Э6) ----------------------------------------
+   Порядок: удар и волна в момент остановки -> пауза 130 мс, чтобы игрок
+   успел прочитать карточку -> вспышка -> и только после неё меняется банк.
+   Эффектов намеренно немного: ощущение механизма даёт их совпадение по
+   времени, а не количество. ------------------------------------------- */
+var PX_BEAT=130;                       /* пауза между попаданием и вспышкой */
+function pxMyStake(){ for(var i=0;i<pxPlayers.length;i++) if(pxPlayers[i].me) return pxPlayers[i].stake; return pbet; }
 function pxOutcome(st){
   var wi=st.winnerIdx, w=pxPlayers[wi];
   if(!w) return pxRoundEnd();
-  var mine=!!st.iWon, payout=Number(st.myPayout)||Math.floor(Number(st.pot)*(1-(Number(st.rake)||0.05)));
+  var mine=!!st.iWon;
+  var took=Math.floor(Number(st.pot)*(1-(Number(st.rake)||0.05)));
+  var payout=Number(st.myPayout)||took;
   PXR.outcome={idx:wi,mine:mine,name:w.me?t('you_word'):w.name,pct:Math.round(w.tf*100),payout:payout};
 
   var wrap=pxEl('px-reel-wrap'), reel=pxEl('px-reel'), pot=pxEl('px-pot'),
-      sum=pxEl('px-sum'), lv=pxEl('px-live'), lbl=pxEl('px-lbl'), mk=pxEl('px-mark');
-  if(wrap){ wrap.classList.remove('px-hot','px-warm'); wrap.classList.add(mine?'px-done':'px-lose'); }
+      sum=pxEl('px-sum'), lv=pxEl('px-live'), lbl=pxEl('px-lbl'),
+      mk=pxEl('px-mark'), shock=pxEl('px-shock');
+
+  /* 1. удар: корпус вздрагивает, от пасти расходится волна */
+  if(wrap){
+    wrap.classList.remove('px-hot','px-warm');
+    wrap.classList.add(mine?'px-done':'px-lose');
+    if(!pxRM){ wrap.classList.remove('px-thud'); void wrap.offsetWidth; wrap.classList.add('px-thud'); }
+  }
+  if(shock&&!pxRM){
+    shock.className='px-shock'+(mine?'':' px-cold');
+    void shock.offsetWidth; shock.classList.add('px-go');
+  }
+  /* победитель выходит вперёд, остальные — в расфокус */
+  pxMarkWinner();
   if(reel) reel.classList.add('px-focus');
-  if(pot) pot.classList.toggle('px-lose',!mine);
   if(mk) mk.classList.add('px-gold');
+
+  if(pot) pot.classList.toggle('px-lose',!mine);
   if(lv){ lv.className='px-live '+(mine?'px-done':'px-cold');
           lv.innerHTML='<i></i>'+(mine?t('px_badge_won'):t('px_badge_lost')); }
   if(lbl){ lbl.textContent=mine?t('px_lbl_won'):tf('px_lbl_lost_tpl',{name:PXR.outcome.name});
            lbl.style.color=mine?'var(--aqua)':'#5a6472'; }
   if(sum) sum.className='px-sum '+(mine?'px-mine':'px-lost');
-  PXR.pot=mine?payout:Math.floor(Number(st.pot)*(1-(Number(st.rake)||0.05)));
-  if(mine){ PXR.potShown=0; PXR._potTxt=-1; }
   var ln=pxEl('px-tline-i'); if(ln) ln.style.width='0%';
-  pxMarkWinner();
+
+  /* банк замирает: сумма меняется только после вспышки */
+  PXR.bankHold=true;
   pxUnder(); pxSub(); pxCta();
+
+  clearTimeout(PXR.beatT);
+  PXR.beatT=setTimeout(function(){
+    if(!PXR.outcome) return;
+    /* 2. вспышка — и сразу за ней смена суммы */
+    if(mine&&!pxRM){
+      var fl=pxEl('px-flash');
+      if(fl){ fl.classList.remove('px-go'); void fl.offsetWidth; fl.classList.add('px-go'); }
+    }
+    PXR.pot=mine?payout:took;
+    if(mine){ PXR.potShown=0; PXR._potTxt=-1; }
+    PXR.bankHold=false;
+    if(sum&&!pxRM){ sum.classList.remove('px-pop'); void sum.offsetWidth; sum.classList.add('px-pop'); }
+
+    /* 3. баланс: серверный ответ придержан до этого момента, иначе шапка
+       выдала бы результат ещё до остановки ленты */
+    if(PXR.pendingUser){ applyUser(PXR.pendingUser); PXR.pendingUser=null; }
+    if(mine){
+      var wal=document.querySelector('#s-pvp .wallet');
+      if(wal&&!pxRM){ wal.classList.remove('px-pop'); void wal.offsetWidth; wal.classList.add('px-pop'); }
+      pxHaptic('win');
+      var rl=pxEl('px-reel');
+      /* салют бьёт чуть ниже центра, чтобы за секунду ушёл вниз и не закрывал
+         карточку-победителя дольше нужного */
+      if(rl){ var rr=rl.getBoundingClientRect(); celebrate({n:40,y:rr.top+rr.height*0.58}); }
+      beep(660,0.12,0.06,'triangle');
+      logOp('🏆',t('hist_pvp_win_title'),tf('hist_pvp_win_sub_tpl',{pot:took}),'+⭐'+payout,'star');
+    } else if(PXR.joined){
+      beep(150,0.22,0.05,'sine');
+      logOp('💀',t('hist_pvp_lose_title'),tf('hist_pvp_lose_sub_tpl',{name:PXR.outcome.name}),
+            '−⭐'+pxMyStake(),'minus');
+    }
+  },PX_BEAT);
+
   clearTimeout(PXR.resetT);
   PXR.resetT=setTimeout(pxRoundEnd,PX_OUT_MS);
 }
@@ -2766,6 +2842,12 @@ function pxMarkWinner(){ pxWinTicket=pxLand; }
 /* ---- сброс к следующему раунду ---- */
 function pxRoundEnd(){
   clearTimeout(PXR.resetT); PXR.resetT=null;
+  clearTimeout(PXR.beatT); PXR.beatT=null;
+  PXR.bankHold=false; PXR.pendingUser=null;
+  var fl0=pxEl('px-flash'); if(fl0) fl0.classList.remove('px-go');
+  var sk0=pxEl('px-shock'); if(sk0) sk0.className='px-shock';
+  var sm0=pxEl('px-sum'); if(sm0) sm0.classList.remove('px-pop');
+  var wl0=document.querySelector('#s-pvp .wallet'); if(wl0) wl0.classList.remove('px-pop');
   PXR.outcome=null; PXR.winTicket=-1; PXR.joined=false; PXR.pending=false;
   PXR.pot=0; PXR.potShown=0; PXR._potTxt=-1; PXR._sec=-1; PXR.hot=false;
   PXR.status='idle'; PXR.deadline=0;
@@ -2866,7 +2948,7 @@ function pvpJoin(){
   clearTimeout(pxDemoT);
   pxDemoT=setTimeout(function(){
     var mine=players[wi].me, payout=Math.floor(pot*0.95);
-    if(mine){ S.stars+=payout; syncBalances(); }
+    if(mine) PXR.pendingUser={money:S.money,stars:S.stars+payout,played:S.played,wonStars:S.wonStars};
     pxApply({id:id,status:'done',pot:pot,players:players,winnerIdx:wi,
              iJoined:true,iWon:mine,myPayout:mine?payout:0,rake:0.05});
   },secs*1000);
@@ -2965,13 +3047,21 @@ function pxRender(){
     if(d._cls==='off'){ d.style.display=''; d._cls=''; }
 
     var rel=(left+half-cen)/cen, ad=rel<0?-rel:rel; if(ad>1) ad=1;
-    d.style.transform='translateX('+left.toFixed(1)+'px) rotateY('+(rel*PX_K.deg).toFixed(1)
-      +'deg) translateZ('+(-ad*cw*PX_K.z).toFixed(0)+'px) scale('+(1-ad*PX_K.sc).toFixed(3)+')';
-
-    /* квантуем — иначе стиль переписывается каждый кадр без видимой разницы */
-    var op=Math.round((1-ad*PX_K.op)*50)/50;
+    var win=(i===pxWinTicket), op, bl;
+    if(win){
+      /* победитель выходит из барабана к зрителю: без поворота, ближе по Z и
+         чуть крупнее — остальные в это время уходят в расфокус */
+      d.style.transform='translateX('+left.toFixed(1)+'px) translateY('+(cw*PX_K.wy).toFixed(1)
+        +'px) translateZ('+(cw*PX_K.wz).toFixed(0)+'px) scale('+PX_K.wsc+')';
+      op=1; bl=0;
+    } else {
+      d.style.transform='translateX('+left.toFixed(1)+'px) rotateY('+(rel*PX_K.deg).toFixed(1)
+        +'deg) translateZ('+(-ad*cw*PX_K.z).toFixed(0)+'px) scale('+(1-ad*PX_K.sc).toFixed(3)+')';
+      /* квантуем — иначе стиль переписывается каждый кадр без видимой разницы */
+      op=Math.round((1-ad*PX_K.op)*50)/50;
+      bl=Math.round(Math.max(0,ad-PX_K.blurFrom)*PX_K.blur*4)/4;
+    }
     if(op!==d._op){ d.style.opacity=op; d._op=op; }
-    var bl=Math.round(Math.max(0,ad-PX_K.blurFrom)*PX_K.blur*4)/4;
     if(bl!==d._bl){ d.style.filter=bl>0?'blur('+bl+'px)':''; d._bl=bl; }
 
     var pid=pxSeq[i]; if(pid===undefined) pid=-1;
@@ -3229,8 +3319,14 @@ async function pvpTick(){
   if(pxBusy()) return;                      /* во время розыгрыша не опрашиваем */
   var resp; try{ resp=await api('pvp_state'); }catch(e){ return; }
   if(!resp||!resp.ok||!resp.round) return;
-  if(resp.user) applyUser(resp.user);
-  pxApply(resp.round);
+  var r=resp.round;
+  if(resp.user){
+    /* если пришёл ещё не проигранный завершённый раунд — баланс придерживаем:
+       иначе шапка выдаст результат раньше, чем остановится лента */
+    var spoil=r.status==='done'&&r.id!==PXR.animated&&r.winnerIdx>=0&&(r.players||[]).length;
+    if(spoil) PXR.pendingUser=resp.user; else applyUser(resp.user);
+  }
+  pxApply(r);
 }
 function startPvpPoll(){
   if(!SERVER) return;
