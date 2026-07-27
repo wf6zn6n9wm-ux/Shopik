@@ -852,6 +852,32 @@ input:focus{border-color:var(--aqua);}
   border:1px dashed var(--line);border-radius:18px;}
 .adm-ph .ap-ic{font-size:26px;display:block;margin-bottom:8px;opacity:.65;}
 
+/* --- сводка (Э3) --- */
+.adm-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px;min-height:28px;}
+.adm-upd{flex:1;min-width:0;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.adm-rfr{flex:none;border:1px solid rgba(255,196,84,.28);background:rgba(255,196,84,.07);color:#ffc454;
+  font:inherit;font-size:12px;font-weight:800;padding:6px 12px;border-radius:11px;cursor:pointer;}
+.adm-rfr:active{transform:scale(.96);}
+.adm-rfr[disabled]{opacity:.45;cursor:default;}
+.adm-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px;}
+.adm-card>h4{margin:0 0 11px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#ffc454;}
+.adm-kpis{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.adm-kpi{background:var(--deep2);border-radius:13px;padding:11px 12px;min-width:0;}
+.adm-kpi .ak-v{font-size:21px;font-weight:800;letter-spacing:-.02em;line-height:1.15;
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.adm-kpi .ak-l{margin-top:3px;font-size:11.5px;color:var(--muted);line-height:1.35;}
+.adm-row{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
+.adm-row:first-child{border-top:0;padding-top:0;}
+.adm-row span{flex:1;min-width:0;font-size:13px;color:var(--muted);}
+.adm-row b{flex:none;font-size:14.5px;font-variant-numeric:tabular-nums;}
+.adm-row.hi b{color:#ffc454;}
+.adm-row.warn b{color:#ff9d5c;}
+.adm-note-sm{margin-top:9px;font-size:11.5px;line-height:1.5;color:var(--muted);}
+.adm-err{text-align:center;padding:26px 16px;border:1px solid var(--line);border-radius:18px;}
+.adm-err p{margin:0 0 12px;font-size:13.5px;color:var(--muted);line-height:1.55;}
+.adm-skel{height:74px;border-radius:18px;margin-bottom:10px;
+  background:linear-gradient(90deg,var(--surface),var(--surface2),var(--surface));}
+
 /* ══════════════════════════════════════════════════════════════════════
    PVP · ЭКРАН (Э1 каркас + Э2 визуальный слой)
 
@@ -1523,7 +1549,11 @@ input:focus{border-color:var(--aqua);}
   </div>
 
   <div class="adm-pane on" id="adm-pane-stats">
-    <div class="adm-ph"><span class="ap-ic">📊</span><span id="i-adm-ph-stats">Сводка по игрокам и обороту</span></div>
+    <div class="adm-bar">
+      <div class="adm-upd" id="adm-upd"></div>
+      <button class="adm-rfr" type="button" onclick="admLoadStats(true)" id="i-adm-refresh">Обновить</button>
+    </div>
+    <div id="adm-stats"></div>
   </div>
   <div class="adm-pane" id="adm-pane-players">
     <div class="adm-ph"><span class="ap-ic">👥</span><span id="i-adm-ph-players">Список игроков с поиском</span></div>
@@ -1709,7 +1739,16 @@ var I18N={
     adm_h1:'Адмін-панель', adm_note:'Розділ бачите лише ви. Усі дії перевіряє сервер.',
     adm_tab_stats:'Зведення', adm_tab_players:'Гравці', adm_tab_grant:'Баланс',
     adm_ph_stats:'Зведення щодо гравців і обороту', adm_ph_players:'Список гравців із пошуком',
-    adm_ph_grant:'Нарахування зірок на власний акаунт'
+    adm_ph_grant:'Нарахування зірок на власний акаунт',
+    /* Зведення (Е3) */
+    adm_refresh:'Оновити', adm_updated_tpl:'Дані на {time}', adm_err:'Не вдалося завантажити дані',
+    adm_retry:'Повторити', adm_no_server:'Доступно лише всередині Telegram',
+    adm_capped_tpl:'Показано останні {n} записів — обіг може бути неповним',
+    adm_g_players:'Гравці', adm_g_balances:'На балансах', adm_g_flow:'Обіг за 7 днів',
+    adm_s_total:'усього', adm_s_active24:'активні за добу', adm_s_new24:'нові за добу', adm_s_new7:'нові за тиждень',
+    adm_s_stars_held:'Зірок на руках', adm_s_money_held:'Гривень на руках', adm_s_pending_wd:'Заявки на виведення',
+    adm_s_bets:'Поставлено', adm_s_wins:'Виграно', adm_s_rake:'Залишилось дому',
+    adm_s_topups:'Поповнення', adm_s_grants:'Нараховано вручну', adm_s_gifts:'Витрачено на подарунки'
   },
   ru:{
     /* PVP — новый экран (Э5) */
@@ -1822,7 +1861,16 @@ var I18N={
     adm_h1:'Админ-панель', adm_note:'Раздел виден только вам. Все действия проверяет сервер.',
     adm_tab_stats:'Сводка', adm_tab_players:'Игроки', adm_tab_grant:'Баланс',
     adm_ph_stats:'Сводка по игрокам и обороту', adm_ph_players:'Список игроков с поиском',
-    adm_ph_grant:'Начисление звёзд на свой аккаунт'
+    adm_ph_grant:'Начисление звёзд на свой аккаунт',
+    /* Сводка (Э3) */
+    adm_refresh:'Обновить', adm_updated_tpl:'Данные на {time}', adm_err:'Не удалось загрузить данные',
+    adm_retry:'Повторить', adm_no_server:'Доступно только внутри Telegram',
+    adm_capped_tpl:'Показаны последние {n} записей — оборот может быть неполным',
+    adm_g_players:'Игроки', adm_g_balances:'На балансах', adm_g_flow:'Оборот за 7 дней',
+    adm_s_total:'всего', adm_s_active24:'активны за сутки', adm_s_new24:'новые за сутки', adm_s_new7:'новые за неделю',
+    adm_s_stars_held:'Звёзд на руках', adm_s_money_held:'Гривен на руках', adm_s_pending_wd:'Заявки на вывод',
+    adm_s_bets:'Поставлено', adm_s_wins:'Выиграно', adm_s_rake:'Осталось дому',
+    adm_s_topups:'Пополнения', adm_s_grants:'Начислено вручную', adm_s_gifts:'Потрачено на подарки'
   },
   en:{
     /* PVP — новый экран (Э5) */
@@ -1935,7 +1983,16 @@ var I18N={
     adm_h1:'Admin panel', adm_note:'Only you can see this section. Every action is checked server-side.',
     adm_tab_stats:'Overview', adm_tab_players:'Players', adm_tab_grant:'Balance',
     adm_ph_stats:'Overview of players and turnover', adm_ph_players:'Player list with search',
-    adm_ph_grant:'Credit stars to your own account'
+    adm_ph_grant:'Credit stars to your own account',
+    /* Overview (stage 3) */
+    adm_refresh:'Refresh', adm_updated_tpl:'As of {time}', adm_err:'Could not load the data',
+    adm_retry:'Try again', adm_no_server:'Available inside Telegram only',
+    adm_capped_tpl:'Showing the latest {n} records — turnover may be incomplete',
+    adm_g_players:'Players', adm_g_balances:'Held balances', adm_g_flow:'Turnover, 7 days',
+    adm_s_total:'total', adm_s_active24:'active in 24h', adm_s_new24:'new in 24h', adm_s_new7:'new in 7 days',
+    adm_s_stars_held:'Stars held', adm_s_money_held:'UAH held', adm_s_pending_wd:'Withdrawals pending',
+    adm_s_bets:'Wagered', adm_s_wins:'Won', adm_s_rake:'House keeps',
+    adm_s_topups:'Top-ups', adm_s_grants:'Credited manually', adm_s_gifts:'Spent on gifts'
   }
 };
 var LANG_KEY='shark_lang_v1';
@@ -1991,7 +2048,8 @@ function applyI18n(){
     'i-adm-entry-lbl':'adm_entry_lbl', 'i-adm-entry-desc':'adm_entry_desc',
     'i-adm-h1':'adm_h1', 'i-adm-note':'adm_note',
     'i-adm-tab-stats':'adm_tab_stats', 'i-adm-tab-players':'adm_tab_players', 'i-adm-tab-grant':'adm_tab_grant',
-    'i-adm-ph-stats':'adm_ph_stats', 'i-adm-ph-players':'adm_ph_players', 'i-adm-ph-grant':'adm_ph_grant'
+    'i-adm-ph-stats':'adm_ph_stats', 'i-adm-ph-players':'adm_ph_players', 'i-adm-ph-grant':'adm_ph_grant',
+    'i-adm-refresh':'adm_refresh'
   };
   Object.keys(map).forEach(function(id){
     var el=document.getElementById(id); if(el) el.textContent=t(map[id]);
@@ -2004,6 +2062,8 @@ function applyI18n(){
   }
   $all('#lang-pick button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-lang')===L); });
   var onbBtn=document.getElementById('onb-btn'); if(onbBtn) onbBtn.textContent = onbIndex>=3 ? t('onb_start') : t('onb_next');
+  // сводка админки собрана строками — перерисовываем её под новый язык
+  if(typeof admStats!=='undefined' && admStats && admStats.data) admRenderStats();
 }
 
 var ROUL_PRIZES=[
@@ -2150,6 +2210,105 @@ function admTab(name){
   admTabCur=name;
   $all('#adm-seg button').forEach(function(b){ b.classList.toggle('active',b.getAttribute('data-atab')===name); });
   $all('.adm-pane').forEach(function(p){ p.classList.toggle('on',p.id==='adm-pane-'+name); });
+  if(name==='stats') admLoadStats(false);
+}
+
+/* ---- Сводка ---- */
+var ADM_STATS_TTL=60000;              // держим цифры минуту, потом перечитываем
+var admStats={data:null,at:0,busy:false};
+
+/* разряды узким неразрывным пробелом: длинное число не рвётся при переносе */
+/* Разряды разделяем узким неразрывным пробелом: длинное число не рвётся при
+   переносе строки. Единственное место, где задан разделитель. */
+var ADM_TSEP='\u202f';
+function admGroup(str){
+  var o='', i;
+  for(i=0;i<str.length;i++){ if(i&&(str.length-i)%3===0) o+=ADM_TSEP; o+=str.charAt(i); }
+  return o;
+}
+function admNum(n){                   // звёзды и счётчики — целые
+  n=Math.round(Number(n)||0);
+  return (n<0?'\u2212':'')+admGroup(String(Math.abs(n)));
+}
+function admMoney(n){                 // гривны — разряды и всегда две копейки
+  n=Number(n)||0;
+  var q=Math.abs(n).toFixed(2).split('.');
+  return (n<0?'\u2212':'')+admGroup(q[0])+'.'+q[1];
+}
+function admHM(ms){
+  var d=new Date(ms), p=function(x){ return (x<10?'0':'')+x; };
+  return p(d.getHours())+':'+p(d.getMinutes());
+}
+function admBusy(on){
+  var b=document.getElementById('i-adm-refresh'); if(b) b.disabled=!!on;
+}
+
+async function admLoadStats(force){
+  var box=document.getElementById('adm-stats'); if(!box) return;
+  if(admStats.busy) return;
+  // свежие цифры не перезапрашиваем при каждом заходе на вкладку
+  if(!force && admStats.data && (Date.now()-admStats.at)<ADM_STATS_TTL){ admRenderStats(); return; }
+  if(!SERVER){ box.innerHTML='<div class="adm-ph"><span class="ap-ic">🔌</span>'+t('adm_no_server')+'</div>'; return; }
+
+  admStats.busy=true; admBusy(true);
+  if(!admStats.data){
+    box.innerHTML='<div class="adm-skel"></div><div class="adm-skel"></div><div class="adm-skel"></div>';
+    var u0=document.getElementById('adm-upd'); if(u0) u0.textContent='';   // штамп времени от прошлых данных
+  }
+  var r=null;
+  try{ r=await api('admin_stats'); }catch(e){ r=null; }
+  admStats.busy=false; admBusy(false);
+
+  // сервер отозвал права — уходим с экрана, а не показываем пустоту
+  if(r&&r.ok===false&&r.reason==='forbidden'){ S.isAdmin=false; syncAdminEntry(); return; }
+  if(!r||!r.ok||!r.stats){ admRenderErr(); return; }
+  admStats.data=r.stats; admStats.at=Date.now();
+  admRenderStats();
+}
+
+function admRenderErr(){
+  var box=document.getElementById('adm-stats'); if(!box) return;
+  // прошлые цифры не затираем — лучше устаревшие, чем пустой экран
+  if(admStats.data){ toast(t('adm_err')); admRenderStats(); return; }
+  box.innerHTML='<div class="adm-err"><p>'+t('adm_err')+'</p>'
+    +'<button class="btn-ghost" type="button" onclick="admLoadStats(true)">'+t('adm_retry')+'</button></div>';
+  var u=document.getElementById('adm-upd'); if(u) u.textContent='';
+}
+
+function admRenderStats(){
+  var box=document.getElementById('adm-stats'), s=admStats.data; if(!box||!s) return;
+  var u=document.getElementById('adm-upd');
+  if(u) u.textContent=tf('adm_updated_tpl',{time:admHM(admStats.at)});
+
+  function kpi(v,l){ return '<div class="adm-kpi"><div class="ak-v">'+v+'</div><div class="ak-l">'+l+'</div></div>'; }
+  function row(l,v,cls){ return '<div class="adm-row'+(cls?' '+cls:'')+'"><span>'+l+'</span><b>'+v+'</b></div>'; }
+  var st=function(n){ return admNum(n)+ADM_TSEP+'⭐'; };
+
+  var h='';
+  h+='<div class="adm-card"><h4>'+t('adm_g_players')+'</h4><div class="adm-kpis">'
+    +kpi(admNum(s.users),t('adm_s_total'))
+    +kpi(admNum(s.active24h),t('adm_s_active24'))
+    +kpi('+'+admNum(s.new24h),t('adm_s_new24'))
+    +kpi('+'+admNum(s.new7d),t('adm_s_new7'))
+    +'</div></div>';
+
+  h+='<div class="adm-card"><h4>'+t('adm_g_balances')+'</h4>'
+    +row(t('adm_s_stars_held'),st(s.starsHeld))
+    +row(t('adm_s_money_held'),admMoney(s.moneyHeld)+ADM_TSEP+t('uah_lbl'))
+    +row(t('adm_s_pending_wd'),admNum(s.pendingWithdrawals),s.pendingWithdrawals>0?'warn':'')
+    +'</div>';
+
+  h+='<div class="adm-card"><h4>'+t('adm_g_flow')+'</h4>'
+    +row(t('adm_s_bets'),st(s.bets7d))
+    +row(t('adm_s_wins'),st(s.wins7d))
+    +row(t('adm_s_rake'),st(s.rake7d),'hi')
+    +row(t('adm_s_topups'),st(s.topups7d))
+    +row(t('adm_s_grants'),st(s.grants7d))
+    +row(t('adm_s_gifts'),st(s.giftsSpent7d));
+  if(s.scan&&s.scan.capped) h+='<p class="adm-note-sm">'+tf('adm_capped_tpl',{n:admNum(s.scan.cap)})+'</p>';
+  h+='</div>';
+
+  box.innerHTML=h;
 }
 
 /* ============ ИГРЫ: переключатель Рулетка/Краш ============ */
@@ -3679,7 +3838,7 @@ go=function(name){
 /* экспорт переопределённых функций (inline-onclick берут их из window) */
 window.spin=spin;
 window.crashAction=crashAction; window.openWithdraw=openWithdraw; window.invite=invite;
-window.admTab=admTab;
+window.admTab=admTab; window.admLoadStats=admLoadStats;
 window.openBuyStars=openBuyStars; window.pvpJoin=pvpJoin; window.go=go;
 
 /* ---- старт: аутентификация в Telegram и загрузка состояния ---- */
