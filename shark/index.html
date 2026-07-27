@@ -911,6 +911,16 @@ input:focus{border-color:var(--aqua);}
   font-weight:700;cursor:pointer;}
 .adm-more[disabled]{opacity:.5;cursor:default;}
 
+/* --- начисление звёзд (Э5) --- */
+.adm-gr-bal{text-align:center;padding:18px 14px;}
+.adm-gr-bal .agb-v{font-size:32px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+.adm-gr-bal .agb-l{margin-top:3px;font-size:12.5px;color:var(--muted);}
+.adm-amt{font-size:26px!important;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;
+  letter-spacing:-.01em;padding:14px!important;}
+.adm-card #adm-gr-chips{margin-bottom:10px;}
+.adm-gr-go{width:100%;margin-top:9px;}
+.adm-gr-go[disabled]{opacity:.45;cursor:default;box-shadow:none;}
+
 /* ══════════════════════════════════════════════════════════════════════
    PVP · ЭКРАН (Э1 каркас + Э2 визуальный слой)
 
@@ -1601,7 +1611,25 @@ input:focus{border-color:var(--aqua);}
     <div id="adm-players"></div>
   </div>
   <div class="adm-pane" id="adm-pane-grant">
-    <div class="adm-ph"><span class="ap-ic">⭐</span><span id="i-adm-ph-grant">Начисление звёзд на свой аккаунт</span></div>
+    <div class="adm-card adm-gr-bal">
+      <div class="agb-v"><span id="adm-gr-bal">0</span> ⭐</div>
+      <div class="agb-l" id="i-adm-gr-bal-lbl">Ваш баланс</div>
+    </div>
+    <div class="adm-card">
+      <input class="adm-inp adm-amt" id="adm-gr-amt" type="text" inputmode="numeric" autocomplete="off"
+             placeholder="0" oninput="admGrInput(this.value)">
+      <div class="adm-chips" id="adm-gr-chips">
+        <button class="adm-chip" type="button" onclick="admGrAdd(100)">+100</button>
+        <button class="adm-chip" type="button" onclick="admGrAdd(500)">+500</button>
+        <button class="adm-chip" type="button" onclick="admGrAdd(1000)">+1000</button>
+        <button class="adm-chip" type="button" onclick="admGrAdd(5000)">+5000</button>
+        <button class="adm-chip" type="button" onclick="admGrClear()" id="i-adm-gr-clear">Сброс</button>
+      </div>
+      <input class="adm-inp" id="adm-gr-note" type="text" maxlength="60" autocomplete="off" placeholder="Комментарий (необязательно)">
+      <button class="btn-primary adm-gr-go" type="button" onclick="admGrant(1)" id="adm-gr-plus">Начислить</button>
+      <button class="btn-ghost adm-gr-go" type="button" onclick="admGrant(-1)" id="adm-gr-minus">Списать</button>
+    </div>
+    <p class="adm-note-sm" id="i-adm-gr-hint">Начисление идёт через тот же леджер, что и любое движение средств, и видно в истории. Только на ваш аккаунт.</p>
   </div>
 </div>
 
@@ -1797,7 +1825,16 @@ var I18N={
     adm_pl_total_tpl:'Усього гравців: {n}', adm_pl_found_tpl:'Знайдено: {n}',
     adm_pl_empty:'Нікого не знайшли', adm_pl_more_tpl:'Показати ще ({n})',
     adm_pl_games_tpl:'{n} партій', adm_tag_admin:'адмін', adm_tag_banned:'бан',
-    adm_ago_now:'зараз', adm_ago_min_tpl:'{n} хв', adm_ago_h_tpl:'{n} год', adm_ago_d_tpl:'{n} дн'
+    adm_ago_now:'зараз', adm_ago_min_tpl:'{n} хв', adm_ago_h_tpl:'{n} год', adm_ago_d_tpl:'{n} дн',
+    /* Нарахування зірок (Е5) */
+    adm_gr_bal_lbl:'Ваш баланс', adm_gr_clear:'Скинути', adm_gr_note_ph:'Коментар (необов’язково)',
+    adm_gr_credit:'Нарахувати', adm_gr_debit:'Списати',
+    adm_gr_credit_tpl:'Нарахувати {n} ⭐', adm_gr_debit_tpl:'Списати {n} ⭐',
+    adm_gr_ok_tpl:'Нараховано {n} ⭐', adm_gr_ok_minus_tpl:'Списано {n} ⭐',
+    adm_gr_err_amount:'Введіть суму від 1 до 1 000 000',
+    adm_gr_err_funds:'Недостатньо зірок на балансі',
+    adm_gr_err_target:'Нарахування доступне лише на ваш акаунт',
+    adm_gr_hint:'Нарахування проходить через той самий леджер, що й будь-який інший рух коштів, і видно в історії. Тільки на ваш акаунт.'
   },
   ru:{
     /* PVP — новый экран (Э5) */
@@ -1926,7 +1963,16 @@ var I18N={
     adm_pl_total_tpl:'Всего игроков: {n}', adm_pl_found_tpl:'Найдено: {n}',
     adm_pl_empty:'Никого не нашли', adm_pl_more_tpl:'Показать ещё ({n})',
     adm_pl_games_tpl:'{n} партий', adm_tag_admin:'админ', adm_tag_banned:'бан',
-    adm_ago_now:'сейчас', adm_ago_min_tpl:'{n} мин', adm_ago_h_tpl:'{n} ч', adm_ago_d_tpl:'{n} дн'
+    adm_ago_now:'сейчас', adm_ago_min_tpl:'{n} мин', adm_ago_h_tpl:'{n} ч', adm_ago_d_tpl:'{n} дн',
+    /* Начисление звёзд (Э5) */
+    adm_gr_bal_lbl:'Ваш баланс', adm_gr_clear:'Сброс', adm_gr_note_ph:'Комментарий (необязательно)',
+    adm_gr_credit:'Начислить', adm_gr_debit:'Списать',
+    adm_gr_credit_tpl:'Начислить {n} ⭐', adm_gr_debit_tpl:'Списать {n} ⭐',
+    adm_gr_ok_tpl:'Начислено {n} ⭐', adm_gr_ok_minus_tpl:'Списано {n} ⭐',
+    adm_gr_err_amount:'Введите сумму от 1 до 1 000 000',
+    adm_gr_err_funds:'Недостаточно звёзд на балансе',
+    adm_gr_err_target:'Начисление доступно только на ваш аккаунт',
+    adm_gr_hint:'Начисление идёт через тот же леджер, что и любое движение средств, и видно в истории. Только на ваш аккаунт.'
   },
   en:{
     /* PVP — новый экран (Э5) */
@@ -2055,7 +2101,16 @@ var I18N={
     adm_pl_total_tpl:'Players: {n}', adm_pl_found_tpl:'Found: {n}',
     adm_pl_empty:'Nobody found', adm_pl_more_tpl:'Show more ({n})',
     adm_pl_games_tpl:'{n} rounds', adm_tag_admin:'admin', adm_tag_banned:'ban',
-    adm_ago_now:'now', adm_ago_min_tpl:'{n}m', adm_ago_h_tpl:'{n}h', adm_ago_d_tpl:'{n}d'
+    adm_ago_now:'now', adm_ago_min_tpl:'{n}m', adm_ago_h_tpl:'{n}h', adm_ago_d_tpl:'{n}d',
+    /* Crediting stars (stage 5) */
+    adm_gr_bal_lbl:'Your balance', adm_gr_clear:'Clear', adm_gr_note_ph:'Note (optional)',
+    adm_gr_credit:'Credit', adm_gr_debit:'Deduct',
+    adm_gr_credit_tpl:'Credit {n} ⭐', adm_gr_debit_tpl:'Deduct {n} ⭐',
+    adm_gr_ok_tpl:'Credited {n} ⭐', adm_gr_ok_minus_tpl:'Deducted {n} ⭐',
+    adm_gr_err_amount:'Enter an amount between 1 and 1,000,000',
+    adm_gr_err_funds:'Not enough stars on the balance',
+    adm_gr_err_target:'Crediting works on your own account only',
+    adm_gr_hint:'The credit goes through the same ledger as any other movement of funds and shows up in history. Your own account only.'
   }
 };
 var LANG_KEY='shark_lang_v1';
@@ -2114,7 +2169,8 @@ function applyI18n(){
     'i-adm-ph-stats':'adm_ph_stats', 'i-adm-ph-players':'adm_ph_players', 'i-adm-ph-grant':'adm_ph_grant',
     'i-adm-refresh':'adm_refresh',
     'i-adm-sort-seen':'adm_sort_seen', 'i-adm-sort-stars':'adm_sort_stars',
-    'i-adm-sort-new':'adm_sort_new', 'i-adm-sort-played':'adm_sort_played'
+    'i-adm-sort-new':'adm_sort_new', 'i-adm-sort-played':'adm_sort_played',
+    'i-adm-gr-bal-lbl':'adm_gr_bal_lbl', 'i-adm-gr-clear':'adm_gr_clear', 'i-adm-gr-hint':'adm_gr_hint'
   };
   Object.keys(map).forEach(function(id){
     var el=document.getElementById(id); if(el) el.textContent=t(map[id]);
@@ -2128,6 +2184,8 @@ function applyI18n(){
   $all('#lang-pick button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-lang')===L); });
   var onbBtn=document.getElementById('onb-btn'); if(onbBtn) onbBtn.textContent = onbIndex>=3 ? t('onb_start') : t('onb_next');
   var aq=document.getElementById('adm-q'); if(aq) aq.placeholder=t('adm_pl_search_ph');
+  var an=document.getElementById('adm-gr-note'); if(an) an.placeholder=t('adm_gr_note_ph');
+  if(typeof admGr!=='undefined' && admGr) admGrSync();
   // списки админки собраны строками — перерисовываем их под новый язык
   if(typeof admStats!=='undefined' && admStats && admStats.data) admRenderStats();
   if(typeof admPl!=='undefined' && admPl && admPl.loaded) admRenderPlayers();
@@ -2279,6 +2337,81 @@ function admTab(name){
   $all('.adm-pane').forEach(function(p){ p.classList.toggle('on',p.id==='adm-pane-'+name); });
   if(name==='stats') admLoadStats(false);
   if(name==='players') admPlLoad('enter');
+  if(name==='grant') admGrSync();
+}
+
+/* ---- Начисление звёзд себе ---- */
+var ADM_GR_MAX=1000000;
+var admGr={amount:0,busy:false,key:''};
+
+/* Ключ идемпотентности живёт до успешного начисления: повтор после обрыва
+   связи не удвоит баланс (сервер узнает тот же ключ), а осознанное повторное
+   начисление той же суммы получит новый ключ и пройдёт. */
+function admGrKey(){
+  if(!admGr.key) admGr.key=String(Date.now())+'.'+Math.random().toString(36).slice(2,8);
+  return admGr.key;
+}
+function admGrInput(v){
+  var digits=String(v||'').replace(/[^\d]/g,'').slice(0,7);
+  admGr.amount=Number(digits||0);
+  admGr.key='';                                  // сумма изменилась — это уже другое намерение
+  var f=document.getElementById('adm-gr-amt');
+  if(f && f.value!==digits) f.value=digits;
+  admGrSync();
+}
+function admGrAdd(n){
+  admGrInput(String(Math.min(admGr.amount+n,ADM_GR_MAX)));
+}
+function admGrClear(){ admGrInput(''); }
+
+function admGrSync(){
+  var b=document.getElementById('adm-gr-bal'); if(b) b.textContent=admNum(S.stars);
+  var n=admGr.amount, has=n>0, enough=(S.stars>=n);
+  var p=document.getElementById('adm-gr-plus'), m=document.getElementById('adm-gr-minus');
+  if(p){
+    p.textContent=has?tf('adm_gr_credit_tpl',{n:admNum(n)}):t('adm_gr_credit');
+    p.disabled=!has||admGr.busy;
+  }
+  if(m){
+    m.textContent=has?tf('adm_gr_debit_tpl',{n:admNum(n)}):t('adm_gr_debit');
+    // списать больше, чем есть, нельзя — сервер это отклонит, не даём и нажать
+    m.disabled=!has||!enough||admGr.busy;
+  }
+}
+
+async function admGrant(sign){
+  if(admGr.busy) return;
+  var n=admGr.amount;
+  if(!(n>0)||n>ADM_GR_MAX){ toast(t('adm_gr_err_amount')); return; }
+  if(sign<0 && S.stars<n){ toast(t('adm_gr_err_funds')); return; }
+  if(!SERVER){ toast(t('adm_no_server')); return; }
+
+  var noteEl=document.getElementById('adm-gr-note');
+  admGr.busy=true; admGrSync();
+  var r=null;
+  try{
+    r=await api('admin_grant',{currency:'stars',amount:sign*n,key:admGrKey(),note:noteEl?noteEl.value:''});
+  }catch(e){ r=null; }
+  admGr.busy=false;
+
+  if(r&&r.ok===false&&r.reason==='forbidden'){ S.isAdmin=false; syncAdminEntry(); return; }
+  if(!r||!r.ok){ toast(admGrErr(r&&r.reason)); admGrSync(); return; }
+
+  admGr.key='';                                  // начисление прошло — следующее будет новым
+  if(r.user) applyUser(r.user); else S.stars=Number(r.balance||S.stars);
+  syncBalances();
+  admStats.data=null;                            // сводка устарела: цифры сдвинулись
+  admPl.loaded=false;                            // и своя строка в списке игроков тоже
+  if(noteEl) noteEl.value='';
+  admGrInput('');
+  toast(tf(sign<0?'adm_gr_ok_minus_tpl':'adm_gr_ok_tpl',{n:admNum(n)}));
+}
+
+function admGrErr(reason){
+  var m={bad_amount:t('adm_gr_err_amount'), bad_currency:t('adm_gr_err_amount'),
+         target_not_admin:t('adm_gr_err_target'), no_user:t('adm_gr_err_target'),
+         ledger_failed:t('adm_gr_err_funds')};
+  return m[reason]||t('adm_err');
 }
 
 /* ---- Список игроков ---- */
@@ -3712,6 +3845,7 @@ function applyUser(u){
   if(u.tg_id) S.tgId=u.tg_id;   // нужен PVP: стабильное лицо для своей карточки
   S.money=u.money; S.stars=u.stars; S.played=u.played; S.wonStars=u.wonStars;
   syncBalances(); renderProfile(); renderLeaders();
+  if(typeof admGr!=='undefined' && admGr) admGrSync();
 }
 function setRefLink(){ var i=document.getElementById('ref-link'); if(i&&REFLINK) i.value=REFLINK; }
 function wdErr(reason){
@@ -4016,6 +4150,7 @@ window.spin=spin;
 window.crashAction=crashAction; window.openWithdraw=openWithdraw; window.invite=invite;
 window.admTab=admTab; window.admLoadStats=admLoadStats;
 window.admPlQuery=admPlQuery; window.admPlSort=admPlSort; window.admPlLoad=admPlLoad;
+window.admGrInput=admGrInput; window.admGrAdd=admGrAdd; window.admGrClear=admGrClear; window.admGrant=admGrant;
 window.openBuyStars=openBuyStars; window.pvpJoin=pvpJoin; window.go=go;
 
 /* ---- старт: аутентификация в Telegram и загрузка состояния ---- */
