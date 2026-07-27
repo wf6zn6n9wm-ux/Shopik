@@ -644,9 +644,12 @@ module.exports = async (req, res) => {
     //  • forJoin=false (опрос состояния): истёкший countdown разыгрываем и
     //    ВОЗВРАЩАЕМ завершённый раунд, чтобы клиенты успели проиграть анимацию
     //    (в течение PVP_ANIM_GRACE_S). Только по истечении грейса создаём новый.
+    //    Окно = поллинг (до 1.5 с) + вращение ленты (5 с) + показ развязки
+    //    (4.6 с) с запасом. Механики раунда не касается — только когда сервер
+    //    заводит следующий.
     //  • forJoin=true (ставка): истёкший/завершённый раунд не годится — сразу
     //    заводим свежий waiting и играем в нём.
-    const PVP_ANIM_GRACE_S = 6;
+    const PVP_ANIM_GRACE_S = 12;
     async function ensurePvpRound(forJoin) {
       for (let attempt = 0; attempt < 4; attempt++) {
         let rows = await sbGet('shark_pvp_rounds?order=id.desc&limit=1&select=*');

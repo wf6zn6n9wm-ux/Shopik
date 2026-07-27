@@ -825,6 +825,61 @@ input:focus{border-color:var(--aqua);}
 .menu-card:active{transform:scale(.97);background:var(--surface2);}
 .menu-card .mc-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;
   background:radial-gradient(circle at 38% 28%,#1e5268,#0c2637 72%);}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PVP · КАРКАС (Э1)
+   Только композиция: размеры, позиции, отступы. Материал экрана — стекло,
+   вода, клинки, свет — приходит отдельным слоем в Э2, поэтому здесь у блоков
+   плоские заливки-заглушки. Все имена с префиксом px-, чтобы ни один селектор
+   не пересёкся с существующими 800+ правилами.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── банк ── */
+.px-pot{position:relative;text-align:center;padding:14px 0 0;}
+.px-pot .px-z{position:relative;z-index:1;}
+.px-live{display:inline-flex;align-items:center;gap:9px;height:32px;padding:0 18px;border-radius:999px;
+  font-size:11.5px;font-weight:800;letter-spacing:.16em;font-variant-numeric:tabular-nums;
+  background:rgba(50,224,196,.10);color:var(--aqua);}
+.px-live i{width:6px;height:6px;border-radius:50%;background:var(--aqua);flex:none;}
+.px-lbl{margin-top:26px;font-size:10.5px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#56606d;}
+.px-sum{margin-top:14px;display:flex;align-items:center;justify-content:center;gap:13px;
+  font-size:72px;font-weight:800;letter-spacing:-.065em;line-height:.9;color:var(--gold);}
+.px-sum svg{width:38px;height:38px;flex:none;}
+.px-sub{margin-top:20px;font-size:12.5px;font-weight:600;color:#5c6773;letter-spacing:.01em;}
+.px-sub b{color:#93a0ad;font-weight:800;}
+
+/* ── лента: во всю ширину, за паддинги экрана ── */
+.px-reel-wrap{position:relative;height:216px;margin:30px -14px 0;overflow:hidden;}
+.px-depth{position:absolute;inset:0;overflow:hidden;background:#07121a;}
+.px-reel{position:absolute;inset:0;overflow:hidden;z-index:2;}
+.px-track{position:absolute;inset:0;}
+/* зона захвата: 112px по центру — ширина карточки плюс поля */
+.px-capz{position:absolute;left:50%;top:8px;width:112px;height:162px;margin-left:-56px;z-index:3;
+  pointer-events:none;border-radius:22px;}
+.px-mark{position:absolute;left:50%;top:16px;height:146px;width:1px;z-index:6;pointer-events:none;}
+.px-jaws{position:absolute;left:50%;top:0;width:112px;height:216px;margin-left:-56px;z-index:7;pointer-events:none;}
+.px-jaws .px-jw{position:absolute;left:0;width:112px;height:24px;display:block;}
+.px-jaws .px-jw-t{top:6px;}
+.px-jaws .px-jw-b{bottom:6px;transform:scaleY(-1);}
+.px-tline{position:absolute;left:30px;right:30px;bottom:15px;height:2px;border-radius:2px;z-index:10;
+  background:rgba(255,255,255,.06);}
+.px-tline i{position:absolute;left:50%;top:0;bottom:0;width:100%;transform:translateX(-50%);border-radius:2px;
+  background:var(--aqua);display:block;}
+
+/* ── строка под лентой ── */
+.px-under{display:flex;align-items:center;gap:11px;margin-top:24px;height:34px;}
+.px-stack{display:flex;flex:none;}
+.px-stack i{width:28px;height:28px;border-radius:50%;background-repeat:no-repeat;margin-left:-9px;display:block;
+  box-shadow:0 0 0 2px var(--bg);}
+.px-stack i:first-child{margin-left:0;}
+.px-who{flex:1;min-width:0;font-size:12.5px;font-weight:700;color:#77838f;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.px-gid{font-size:11px;font-weight:700;color:#39424d;font-variant-numeric:tabular-nums;}
+
+/* ── док ── */
+.px-dock{margin-top:22px;}
+.px-chips{display:flex;gap:8px;margin-bottom:12px;}
+.px-chips .chip{flex:1;justify-content:center;}
 </style>
 </head>
 <body>
@@ -947,23 +1002,103 @@ input:focus{border-color:var(--aqua);}
 <!-- PVP · БИТВА -->
 <div class="screen" id="s-pvp">
   <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
-  <h1 class="title" id="i-pvp-h1">PVP · Битва</h1>
-  <p class="sub" id="i-pvp-sub">Скидывайтесь звёздами в общий банк. Победитель забирает всё. Шанс победы = ваша доля банка.</p>
-  <div class="pvp-feed" id="pvp-feed">⚔️ <span id="i-pvp-feed-default">Соберите банк и заберите его целиком</span></div>
-  <div class="pvp-arc">
-    <div class="pvp-arc-ring" id="pvp-arc-ring"></div>
-    <div class="pvp-arc-hole"></div>
-    <div class="pvp-arc-center">
-      <div class="pvp-pot-l" id="i-pvp-pot-lbl">Общий банк</div>
-      <div class="pvp-pot-v mono">⭐ <span id="pvp-pot">0</span></div>
-      <div class="pvp-pot-g" id="pvp-round">Сделайте ставку, чтобы начать битву</div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <linearGradient id="pxGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe49a"/><stop offset="1" stop-color="#ffa724"/></linearGradient>
+    <linearGradient id="pxJaw" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c7dde8"/><stop offset=".5" stop-color="#edf7fc"/><stop offset="1" stop-color="#7e9dae"/></linearGradient>
+  </defs></svg>
+
+  <!-- банк -->
+  <div class="px-pot" id="px-pot">
+    <div class="px-glow"></div>
+    <div class="px-z">
+      <div class="px-live" id="px-live"><i></i>LIVE</div>
+      <div class="px-lbl" id="px-lbl">Общий банк</div>
+      <div class="px-sum" id="px-sum">
+        <svg viewBox="0 0 24 24"><path fill="url(#pxGold)" d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77 5.82 21l1.18-6.88-5-4.87 7.1-1.01z"/></svg>
+        <span class="mono" id="px-pot-n">0</span>
+      </div>
+      <div class="px-sub mono" id="px-sub">Ждём игроков</div>
     </div>
   </div>
-  <div class="roul-stage" id="pvp-stage"><div class="roul-pointer"></div><div class="roul-strip" id="pvp-strip"></div></div>
-  <div class="bet-row"><span style="font-weight:700" id="i-bet-lbl">Ставка:</span><div class="chip" data-pbet="50" onclick="setPBet(50)"><i class="star-ic"></i>50</div><div class="chip" data-pbet="100" onclick="setPBet(100)"><i class="star-ic"></i>100</div><div class="chip" data-pbet="250" onclick="setPBet(250)"><i class="star-ic"></i>250</div></div>
-  <button class="btn-primary" id="pvp-btn" onclick="pvpJoin()">Присоединиться к битве · ⭐50</button>
-  <div class="players" id="pvp-players" style="margin-top:14px"></div>
-  <div class="pvp-fair" id="pvp-fair"></div>
+
+  <!-- лента -->
+  <div class="px-reel-wrap" id="px-reel-wrap">
+    <div class="px-depth">
+      <div class="px-breathe"></div>
+      <div class="px-caus"></div><div class="px-caus px-caus2"></div>
+      <div class="px-rays"><i></i><i></i><i></i></div>
+      <div class="px-motes" id="px-motes"></div>
+      <div class="px-bubs" id="px-bubs"></div>
+      <div class="px-abyss"></div>
+    </div>
+    <div class="px-god" id="px-god">
+      <i class="px-core"></i>
+      <i class="px-shaft px-s1"></i><i class="px-shaft px-s2"></i><i class="px-shaft px-s3"></i>
+      <i class="px-shaft px-s4"></i><i class="px-shaft px-s5"></i>
+      <i class="px-flare-v"></i><i class="px-flare-h"></i>
+    </div>
+    <div class="px-reel" id="px-reel"><div class="px-track" id="px-track"></div></div>
+    <div class="px-capz"></div>
+    <div class="px-bk px-bk1"></div><div class="px-bk px-bk2"></div>
+    <div class="px-bk px-bk3"></div><div class="px-bk px-bk4"></div>
+    <div class="px-mark" id="px-mark"></div>
+    <div class="px-jaws" id="px-jaws">
+      <svg class="px-jw px-jw-t" viewBox="0 0 112 26"><path fill="url(#pxJaw)" d="M0 0 H112 C88 3.5 70 9.5 56 26 C42 9.5 24 3.5 0 0 Z"/><rect x="0" y="0" width="112" height="1.7" fill="rgba(243,253,255,.92)"/></svg>
+      <svg class="px-jw px-jw-b" viewBox="0 0 112 26"><path fill="url(#pxJaw)" d="M0 0 H112 C88 3.5 70 9.5 56 26 C42 9.5 24 3.5 0 0 Z"/><rect x="0" y="0" width="112" height="1.7" fill="rgba(243,253,255,.92)"/></svg>
+    </div>
+    <div class="px-slotin"></div>
+    <div class="px-shock" id="px-shock"></div>
+    <div class="px-glass"></div>
+    <div class="px-rail px-rail-t"></div><div class="px-rail px-rail-b"></div>
+    <div class="px-ticks px-ticks-t"></div><div class="px-ticks px-ticks-b"></div>
+    <div class="px-tline"><i id="px-tline-i"></i></div>
+  </div>
+
+  <!-- кто в раунде -->
+  <div class="px-under">
+    <div class="px-stack" id="px-stack"></div>
+    <div class="px-who" id="px-who">Ждём игроков…</div>
+    <div class="px-gid mono" id="px-gid"></div>
+  </div>
+
+  <!-- ставка и вход -->
+  <div class="px-dock">
+    <div class="px-chips">
+      <div class="chip" data-pbet="50" onclick="setPBet(50)"><i class="star-ic"></i>50</div>
+      <div class="chip" data-pbet="100" onclick="setPBet(100)"><i class="star-ic"></i>100</div>
+      <div class="chip" data-pbet="250" onclick="setPBet(250)"><i class="star-ic"></i>250</div>
+    </div>
+    <button class="btn-primary" id="px-cta" onclick="pvpJoin()">Войти в битву · ⭐50</button>
+  </div>
+
+  <div class="px-flash" id="px-flash"></div>
+
+  <!-- Прежний экран. Разметка остаётся в DOM до Э5, чтобы работающий сейчас
+       рендер и анимация (runPvp / renderPvpLive) не падали на отсутствующих
+       узлах: PVP на ветке остаётся играбельным, пока новый движок не готов.
+       Удаляется целиком в Э5, когда новый экран берёт управление. -->
+  <div id="pvp-legacy" hidden>
+    <h1 class="title" id="i-pvp-h1">PVP · Битва</h1>
+    <p class="sub" id="i-pvp-sub">Скидывайтесь звёздами в общий банк. Победитель забирает всё. Шанс победы = ваша доля банка.</p>
+    <div class="pvp-feed" id="pvp-feed">⚔️ <span id="i-pvp-feed-default">Соберите банк и заберите его целиком</span></div>
+    <div class="pvp-arc">
+      <div class="pvp-arc-ring" id="pvp-arc-ring"></div>
+      <div class="pvp-arc-hole"></div>
+      <div class="pvp-arc-center">
+        <div class="pvp-pot-l" id="i-pvp-pot-lbl">Общий банк</div>
+        <div class="pvp-pot-v mono">⭐ <span id="pvp-pot">0</span></div>
+        <div class="pvp-pot-g" id="pvp-round">Сделайте ставку, чтобы начать битву</div>
+      </div>
+    </div>
+    <div class="roul-stage" id="pvp-stage"><div class="roul-pointer"></div><div class="roul-strip" id="pvp-strip"></div></div>
+    <div class="bet-row"><span style="font-weight:700" id="i-bet-lbl">Ставка:</span></div>
+    <button class="btn-primary" id="pvp-btn" onclick="pvpJoin()">Присоединиться к битве · ⭐50</button>
+    <div class="players" id="pvp-players"></div>
+    <div class="pvp-fair" id="pvp-fair"></div>
+  </div>
 </div>
 
 <!-- КОНКУРСЫ -->
