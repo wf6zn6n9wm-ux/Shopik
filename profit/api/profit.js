@@ -65,14 +65,16 @@ function n0(v) { return Math.max(0, Math.round(Number(v) || 0)); }
 function sizeNorm(v) { return String(v == null ? '' : v).trim().slice(0, 12); }
 
 // раздел прибыли по проданной паре (для пуша). Клиент считает так же.
+// Деньги на закупку вкладывает УПРАВЛЯЮЩАЯ → ей возвращается себестоимость + её доля
+// (+ зарплата). Владельцу — только его доля от чистой прибыли.
 function split(sale, cost, salary, pct) {
   const net = n0(sale) - n0(cost) - n0(salary);
   const mgrShare = Math.round(net * pct / 100);
   const ownShare = net - mgrShare;
   return {
     net, mgrShare, ownShare,
-    mgrTotal: n0(salary) + mgrShare,        // управляющей: зарплата + её доля
-    ownTotal: n0(cost) + ownShare           // владельцу: возврат себестоимости + его доля
+    mgrTotal: n0(cost) + n0(salary) + mgrShare, // управляющей: возврат вложенного + зарплата + её доля
+    ownTotal: ownShare                          // владельцу: только его доля от прибыли
   };
 }
 
@@ -385,8 +387,8 @@ module.exports = async (req, res) => {
       const s = split(sale, cost, salary, shop.share_pct == null ? 30 : shop.share_pct);
       members.filter((m) => Number(m.tg_id) !== me.id).forEach((o) => {
         const txt = o.role === 'owner'
-          ? '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Прибыль ' + s.net + '. Вам к получению: ' + s.ownTotal + ' (себестоимость ' + cost + ' + доля ' + s.ownShare + ').'
-          : '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Тебе: зарплата ' + salary + ' + доля ' + s.mgrShare + ' = ' + s.mgrTotal + '.';
+          ? '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Чистая прибыль ' + s.net + '. Ваша доля: ' + s.ownShare + '.'
+          : '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Тебе: вложенное ' + cost + ' + зарплата ' + salary + ' + доля ' + s.mgrShare + ' = ' + s.mgrTotal + '.';
         sendPush(BOT, o.tg_id, txt).catch(() => {});
       });
       res.status(200).json(await stateResponse(SHOP));
