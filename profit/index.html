@@ -780,10 +780,10 @@ function sheetSell(p){
     <div class="lbl mt4">Цена продажи, ${esc(V.currency)}</div>
     <input class="input" id="fSale" inputmode="numeric" placeholder="4000" oninput="onSaleInput()">
     <div class="row gap2 mt3 wrapf">${['3000','3500','4000','4500'].map(x=>`<button class="chip" data-fill="fSale" data-val="${x}" data-pv="1">${x}</button>`).join('')}</div>
-    <div class="lbl mt4">Зарплата продавцу с продажи, ${esc(V.currency)} ${salHint}</div>
+    ${V.role==='owner' ? `<div class="lbl mt4">Зарплата продавцу с продажи, ${esc(V.currency)} ${salHint}</div>
     <input class="input" id="fSalary" inputmode="numeric" placeholder="${V.salaryPct>0?'авто от продажи':'200'}" oninput="onSalaryInput()">
     <div class="row gap2 mt3 wrapf">${V.salaryPct>0?`<button class="chip" data-salpct="${V.salaryPct}">${V.salaryPct}%</button>`:''}<button class="chip" data-salpct="5">5%</button><button class="chip" data-salpct="10">10%</button>
-      <button class="chip" data-fill="fSalary" data-val="0" data-pv="1">Без ЗП</button></div>
+      <button class="chip" data-fill="fSalary" data-val="0" data-pv="1">Без ЗП</button></div>` : ``}
     <div class="split mt4" id="preview"></div>
     <button class="btn btn-gold mt4" data-act="saveSell" data-pid="${p.id}">Провести продажу</button>`);
   previewSell();
@@ -792,13 +792,15 @@ function sheetSell(p){
 function onSaleInput(){ if(salaryAuto && V.salaryPct>0){ const s=num($('fSale').value); const inp=$('fSalary'); if(inp) inp.value=s?Math.round(s*V.salaryPct/100):''; } previewSell(); }
 function onSalaryInput(){ salaryAuto=false; previewSell(); }
 window.onSaleInput=onSaleInput; window.onSalaryInput=onSalaryInput;
+// зарплата продавцу: если поле есть (у владельца) — из него; иначе авто по % (у управляющей)
+function saleSalary(sale){ const el=$('fSalary'); if(el) return num(el.value); return Math.round((sale||0)*(V.salaryPct||0)/100); }
 function selSizeCost(){
   const p=V.products.find(x=>x.id===sellSel.pid); if(!p||!sellSel.size) return 0;
   const l=fifoLot(p,sellSel.size); return l?lotCost(l):0;
 }
 function previewSell(){
   const cost=selSizeCost();
-  const sale=num($('fSale')?$('fSale').value:0), salary=num($('fSalary')?$('fSalary').value:0);
+  const sale=num($('fSale')?$('fSale').value:0), salary=saleSalary(sale);
   const pct=V.sharePct/100, net=sale-cost-salary, ms=Math.round(net*pct), os=net-ms;
   const el=$('preview'); if(!el) return;
   el.innerHTML=`
@@ -934,7 +936,7 @@ document.addEventListener('click',e=>{
   if(act==='saveSell'){
     if(!sellSel.size){ toast('Выбери размер'); return; }
     const sale=num($('fSale').value); if(!sale){ toast('Введи цену продажи'); return; }
-    const salary=num($('fSalary').value);
+    const salary=saleSalary(sale);
     if(V.online){ apiCall('sale_add',{product_id:pid,size:sellSel.size,sale,salary},'Продажа проведена').then(ok=>{ if(ok) closeSheet(); }); }
     else{
       const p=S.products.find(x=>x.id===pid); const lot=fifoLot(p,sellSel.size);

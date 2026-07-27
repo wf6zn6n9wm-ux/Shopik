@@ -392,7 +392,6 @@ module.exports = async (req, res) => {
       const product_id = String(body.product_id || '');
       const size = sizeNorm(body.size);
       const sale = n0(body.sale);
-      const salary = n0(body.salary);
       if (!product_id || !size || !sale) { res.status(200).json({ ok: false, reason: 'bad_input' }); return; }
       const prod = await sb('profit_products?id=eq.' + encodeURIComponent(product_id) + '&shop_id=eq.' + SHOP + '&select=id,name');
       if (!prod || !prod[0]) { res.status(200).json({ ok: false, reason: 'not_found' }); return; }
@@ -401,9 +400,13 @@ module.exports = async (req, res) => {
       const lot = lots && lots[0];
       if (!lot) { res.status(200).json({ ok: false, reason: 'out_of_stock' }); return; }
       const cost = n0(lot.purchase) + (lot.shipping == null ? 0 : n0(lot.shipping));
+      const shop = await shopRow(SHOP);
+      const salPct = shop.salary_pct == null ? 0 : shop.salary_pct;
+      // зарплату продавцу задаёт владелец (%): управляющая её не переопределяет —
+      // сервер считает сам по проценту. Владелец может внести значение вручную.
+      const salary = isOwner ? n0(body.salary) : Math.round(sale * salPct / 100);
       await sb('profit_stock?id=eq.' + lot.id + '&shop_id=eq.' + SHOP, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify({ qty: n0(lot.qty) - 1 }) });
       await sb('profit_sales', { method: 'POST', body: JSON.stringify({ shop_id: SHOP, product_id, name: prod[0].name, size, sale, salary, cost }) });
-      const shop = await shopRow(SHOP);
       const members = await shopMembers(SHOP);
       const s = split(sale, cost, salary, shop.share_pct == null ? 30 : shop.share_pct);
       members.filter((m) => Number(m.tg_id) !== me.id).forEach((o) => {
