@@ -19,6 +19,8 @@
 //   SHARK_SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_ROLE_KEY   (секрет!)
 //   SHARK_BOT_TOKEN / BOT_TOKEN                                   (токен бота)
 //   SHARK_ADMIN_IDS         — tg_id админов через запятую (кому слать заявки на вывод)
+//   SHARK_ADMIN_PANEL_IDS   — tg_id, кому доступна админ-панель (отдельно от уведомлений).
+//                             Не задан = панель закрыта для всех.
 //
 // Если ключи не заданы — возвращаем { ok:false, reason:'not_configured' },
 // и index.html мягко откатывается в локальный демо-режим.
@@ -75,6 +77,15 @@ const PVP_DURATION_S = 15;       // длительность отсчёта ра
 const PVP_BOT_NAMES = ['sea_wolf', 'krd_777', 'blue_fin', 'reef_king', 'aqua_max', 'tide_88',
   'kraken_x', 'pearl', 'marlin', 'orca_pro', 'deep_one', 'ota_try', 'molodoywq', 'cakt0'];
 const PVP_BOT_AV = ['🐙', '🐡', '🐠', '🦑', '🦀', '🐬', '🐳', '🦈', '🐚', '🪼', '🦞', '🐟'];
+
+// Админка. Права определяет ТОЛЬКО сервер по ADMIN_PANEL_IDS — клиент на них не влияет.
+//  • ADMIN_SCAN — верхняя граница выборки для агрегатов (суммы балансов, оборот
+//    по леджеру считаются в памяти, без изменения схемы БД). Сколько строк реально
+//    просмотрено — возвращаем клиенту, чтобы цифра не выглядела точной, когда она
+//    упёрлась в потолок.
+//  • ADMIN_GRANT_MAX — потолок одного ручного начисления.
+const ADMIN_SCAN = 5000;
+const ADMIN_GRANT_MAX = 1000000;
 function pvpMakeBots(n) {
   const used = {}, bots = [];
   for (let i = 0; i < n; i++) {
@@ -163,6 +174,10 @@ module.exports = async (req, res) => {
 
     const H = { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' };
 
+    // Права админа. Считаются здесь, после проверки подписи initData: me.id —
+    // это подтверждённый Telegram id, подделать его клиент не может.
+    const IS_ADMIN = panelIds().includes(Number(me.id));
+
     // --- Supabase REST хелперы ---
     async function sb(path, opts) {
       const r = await fetch(URL + '/rest/v1/' + path, Object.assign({ headers: H }, opts || {}));
@@ -171,6 +186,16 @@ module.exports = async (req, res) => {
       return { ok: r.ok, status: r.status, data };
     }
     async function sbGet(path) { const r = await sb(path); return Array.isArray(r.data) ? r.data : []; }
+    // COUNT без выгрузки строк: PostgREST отдаёт итог в заголовке Content-Range
+    async function sbCount(path) {
+      try {
+        const r = await fetch(URL + '/rest/v1/' + path, {
+          headers: Object.assign({}, H, { Prefer: 'count=exact', Range: '0-0' })
+        });
+        const n = Number(String(r.headers.get('content-range') || '').split('/')[1]);
+        return Number.isFinite(n) ? n : 0;
+      } catch (e) { return 0; }
+    }
     // RPC: атомарное движение средств; бросает при нехватке
     async function applyLedger(tg, currency, amount, kind, ref, idem, meta) {
       const r = await sb('rpc/shark_apply_ledger', {
@@ -268,6 +293,7 @@ module.exports = async (req, res) => {
       json(res, 200, {
         ok: true,
         user: publicUser(user),
+        isAdmin: IS_ADMIN,
         config: {
           usdt_rate: CFG.usdt_rate, min_withdraw: CFG.min_withdraw,
           referral_bonus: CFG.referral_bonus, referral_share: CFG.referral_share
@@ -341,6 +367,15 @@ module.exports = async (req, res) => {
       if (round.status !== 'waiting' && round.status !== 'countdown') {
         json(res, 200, { ok: false, reason: 'round_closed' }); return;
       }
+      // Админ-аккаунт пополняется вручную, поэтому не садится за один стол с
+      // живыми игроками — и наоборот. Проверка симметричная: конфликт, если в
+      // раунде уже есть реальная ставка «другого класса». Боты (tg_id = null)
+      // не в счёт, они и есть спарринг для админского аккаунта.
+      const seated = await sbGet('shark_pvp_bets?round_id=eq.' + round.id + '&tg_id=not.is.null&select=tg_id');
+      const adm = panelIds();
+      const mixed = seated.some((b) => b.tg_id != null && Number(b.tg_id) !== Number(me.id) && adm.includes(Number(b.tg_id)) !== IS_ADMIN);
+      if (mixed) { json(res, 200, { ok: false, reason: 'round_mixed' }); return; }
+
       // вставляем ставку ПЕРВОЙ — уникальный индекс (round_id, tg_id) защищает
       // от двойного входа при быстром двойном тапе; списываем только если строка
       // реально создалась (не дубликат)
@@ -617,6 +652,135 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // ---------------------------------------------------------
+    //  ADMIN_STATS — сводка по игрокам и обороту
+    // ---------------------------------------------------------
+    if (action === 'admin_stats') {
+      if (!IS_ADMIN) { json(res, 200, { ok: false, reason: 'forbidden' }); return; }
+      const now = Date.now();
+      const d1 = new Date(now - 24 * 3600 * 1000).toISOString();
+      const d7 = new Date(now - 7 * 24 * 3600 * 1000).toISOString();
+
+      const [users, new24h, new7d, active24h, pendingWithdrawals] = await Promise.all([
+        sbCount('shark_users?select=tg_id'),
+        sbCount('shark_users?select=tg_id&created_at=gte.' + d1),
+        sbCount('shark_users?select=tg_id&created_at=gte.' + d7),
+        sbCount('shark_users?select=tg_id&last_seen=gte.' + d1),
+        sbCount('shark_withdrawals?select=id&status=eq.pending')
+      ]);
+
+      // суммы балансов — считаем на месте, ограниченной выборкой (без изменения схемы)
+      const bal = await sbGet('shark_users?select=stars_balance,money_balance&limit=' + ADMIN_SCAN);
+      let starsHeld = 0, moneyHeld = 0;
+      bal.forEach((u) => { starsHeld += Number(u.stars_balance || 0); moneyHeld += Number(u.money_balance || 0); });
+
+      // оборот за 7 дней: складываем леджер по (валюта, вид операции)
+      const led = await sbGet('shark_ledger?created_at=gte.' + d7 + '&select=currency,amount,kind&order=created_at.desc&limit=' + ADMIN_SCAN);
+      const flow = {};
+      led.forEach((l) => {
+        const k = (l.currency === 'stars' ? 's:' : 'm:') + (l.kind || 'adjust');
+        flow[k] = (flow[k] || 0) + Number(l.amount || 0);
+      });
+      const bets7d = Math.round(-(flow['s:bet'] || 0));      // ставки уходят минусом
+      const wins7d = Math.round(flow['s:win'] || 0);
+
+      json(res, 200, {
+        ok: true,
+        stats: {
+          users, new24h, new7d, active24h, pendingWithdrawals,
+          starsHeld: Math.round(starsHeld),
+          moneyHeld: Math.round(moneyHeld * 100) / 100,
+          bets7d, wins7d,
+          rake7d: bets7d - wins7d,                            // что осталось «дому»
+          topups7d: Math.round(flow['s:topup'] || 0),
+          grants7d: Math.round(flow['s:adjust'] || 0),         // ручные начисления
+          giftsSpent7d: Math.round(-(flow['s:gift'] || 0)),
+          // прозрачность выборки: если упёрлись в потолок — цифра неполная
+          scan: { cap: ADMIN_SCAN, users: bal.length, ledger: led.length, capped: bal.length >= ADMIN_SCAN || led.length >= ADMIN_SCAN }
+        }
+      });
+      return;
+    }
+
+    // ---------------------------------------------------------
+    //  ADMIN_PLAYERS — список игроков с поиском и постраничностью
+    // ---------------------------------------------------------
+    if (action === 'admin_players') {
+      if (!IS_ADMIN) { json(res, 200, { ok: false, reason: 'forbidden' }); return; }
+      const q = String(body.q || '').trim().slice(0, 60);
+      const limit = Math.min(Math.max(Number(body.limit) || 30, 1), 100);
+      const offset = Math.max(Number(body.offset) || 0, 0);
+      const sort = body.sort === 'stars' ? 'stars_balance.desc'
+        : body.sort === 'new' ? 'created_at.desc'
+          : body.sort === 'played' ? 'played.desc'
+            : 'last_seen.desc';
+
+      let filter = '';
+      if (q) {
+        if (/^\d+$/.test(q)) filter = '&tg_id=eq.' + q;
+        else {
+          // Значение берём в двойные кавычки — так запятые и скобки в имени не
+          // ломают синтаксис or=(...). Внутри кавычек экранируем \ и ".
+          const like = encodeURIComponent('"*' + q.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '*"');
+          filter = '&or=(first_name.ilike.' + like + ',username.ilike.' + like + ')';
+        }
+      }
+      const base = 'shark_users?select=tg_id,username,first_name,lang,stars_balance,money_balance,played,won_stars,banned,created_at,last_seen' + filter;
+      const total = await sbCount(base);
+      const rows = await sbGet(base + '&order=' + sort + '&limit=' + limit + '&offset=' + offset);
+      const adm = panelIds();
+
+      json(res, 200, {
+        ok: true, total, limit, offset,
+        players: rows.map((u) => ({
+          tg_id: Number(u.tg_id),
+          name: u.first_name || '',
+          username: u.username || '',
+          lang: u.lang || 'ru',
+          stars: Number(u.stars_balance || 0),
+          money: Number(u.money_balance || 0),
+          played: Number(u.played || 0),
+          wonStars: Number(u.won_stars || 0),
+          banned: !!u.banned,
+          isAdmin: adm.includes(Number(u.tg_id)),
+          createdAt: u.created_at,
+          lastSeen: u.last_seen
+        }))
+      });
+      return;
+    }
+
+    // ---------------------------------------------------------
+    //  ADMIN_GRANT — ручное начисление ⭐ на админский аккаунт
+    //  Только звёзды и только админам: грн — выводимые деньги, их нельзя
+    //  рисовать; чужой баланс из панели не трогаем.
+    // ---------------------------------------------------------
+    if (action === 'admin_grant') {
+      if (!IS_ADMIN) { json(res, 200, { ok: false, reason: 'forbidden' }); return; }
+      const target = Number(body.tg || me.id);
+      const amount = Math.trunc(Number(body.amount));
+      if (body.currency && body.currency !== 'stars') { json(res, 200, { ok: false, reason: 'bad_currency' }); return; }
+      if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > ADMIN_GRANT_MAX) {
+        json(res, 200, { ok: false, reason: 'bad_amount' }); return;
+      }
+      if (!panelIds().includes(target)) { json(res, 200, { ok: false, reason: 'target_not_admin' }); return; }
+      const dst = await sbGet('shark_users?tg_id=eq.' + target + '&select=tg_id');
+      if (!dst[0]) { json(res, 200, { ok: false, reason: 'no_user' }); return; }
+
+      // идемпотентность: ключ приходит с клиента, повтор того же ключа не двигает баланс
+      const key = String(body.key || '').replace(/[^\w:.-]/g, '').slice(0, 48) || crypto.randomBytes(8).toString('hex');
+      const idem = 'admin_grant:' + me.id + ':' + target + ':' + key;
+      const r = await applyLedger(target, 'stars', amount, 'adjust', 'admin:' + me.id, idem,
+        { admin_grant: 1, by: Number(me.id), note: String(body.note || '').slice(0, 120) });
+      if (!r.ok) { json(res, 200, { ok: false, reason: 'ledger_failed' }); return; }
+
+      const after = await sbGet('shark_users?tg_id=eq.' + target + '&select=*');
+      const out = { ok: true, target, amount, balance: Number((after[0] && after[0].stars_balance) || 0) };
+      if (target === Number(me.id) && after[0]) out.user = publicUser(after[0]);
+      json(res, 200, out);
+      return;
+    }
+
     json(res, 200, { ok: false, reason: 'unknown_action' });
 
     // ===== вложенные хелперы, которым нужен доступ к sb/me =====
@@ -758,6 +922,13 @@ module.exports = async (req, res) => {
 // ============================================================
 function adminIds() {
   return (env('ADMIN_IDS') || '').split(',').map((s) => s.trim()).filter(Boolean).map(Number);
+}
+// Кому доступна админ-панель. Отдельный список от ADMIN_IDS: тот отвечает лишь
+// за уведомления в Telegram (выводы, подарки), и добавить туда человека ради
+// уведомлений не должно открывать ему панель. Пока ADMIN_PANEL_IDS не задан,
+// панель не доступна никому — включается явной установкой переменной.
+function panelIds() {
+  return (env('ADMIN_PANEL_IDS') || '').split(',').map((s) => s.trim()).filter(Boolean).map(Number);
 }
 function publicUser(u) {
   return {
