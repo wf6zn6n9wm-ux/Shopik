@@ -19,6 +19,8 @@
 //   SHARK_SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_ROLE_KEY   (секрет!)
 //   SHARK_BOT_TOKEN / BOT_TOKEN                                   (токен бота)
 //   SHARK_ADMIN_IDS         — tg_id админов через запятую (кому слать заявки на вывод)
+//   SHARK_ADMIN_PANEL_IDS   — tg_id, кому доступна админ-панель (отдельно от уведомлений).
+//                             Не задан = панель закрыта для всех.
 //
 // Если ключи не заданы — возвращаем { ok:false, reason:'not_configured' },
 // и index.html мягко откатывается в локальный демо-режим.
@@ -76,7 +78,7 @@ const PVP_BOT_NAMES = ['sea_wolf', 'krd_777', 'blue_fin', 'reef_king', 'aqua_max
   'kraken_x', 'pearl', 'marlin', 'orca_pro', 'deep_one', 'ota_try', 'molodoywq', 'cakt0'];
 const PVP_BOT_AV = ['🐙', '🐡', '🐠', '🦑', '🦀', '🐬', '🐳', '🦈', '🐚', '🪼', '🦞', '🐟'];
 
-// Админка. Права определяет ТОЛЬКО сервер по ADMIN_IDS — клиент на них не влияет.
+// Админка. Права определяет ТОЛЬКО сервер по ADMIN_PANEL_IDS — клиент на них не влияет.
 //  • ADMIN_SCAN — верхняя граница выборки для агрегатов (суммы балансов, оборот
 //    по леджеру считаются в памяти, без изменения схемы БД). Сколько строк реально
 //    просмотрено — возвращаем клиенту, чтобы цифра не выглядела точной, когда она
@@ -174,7 +176,7 @@ module.exports = async (req, res) => {
 
     // Права админа. Считаются здесь, после проверки подписи initData: me.id —
     // это подтверждённый Telegram id, подделать его клиент не может.
-    const IS_ADMIN = adminIds().includes(Number(me.id));
+    const IS_ADMIN = panelIds().includes(Number(me.id));
 
     // --- Supabase REST хелперы ---
     async function sb(path, opts) {
@@ -370,7 +372,7 @@ module.exports = async (req, res) => {
       // раунде уже есть реальная ставка «другого класса». Боты (tg_id = null)
       // не в счёт, они и есть спарринг для админского аккаунта.
       const seated = await sbGet('shark_pvp_bets?round_id=eq.' + round.id + '&tg_id=not.is.null&select=tg_id');
-      const adm = adminIds();
+      const adm = panelIds();
       const mixed = seated.some((b) => b.tg_id != null && Number(b.tg_id) !== Number(me.id) && adm.includes(Number(b.tg_id)) !== IS_ADMIN);
       if (mixed) { json(res, 200, { ok: false, reason: 'round_mixed' }); return; }
 
@@ -726,7 +728,7 @@ module.exports = async (req, res) => {
       const base = 'shark_users?select=tg_id,username,first_name,lang,stars_balance,money_balance,played,won_stars,banned,created_at,last_seen' + filter;
       const total = await sbCount(base);
       const rows = await sbGet(base + '&order=' + sort + '&limit=' + limit + '&offset=' + offset);
-      const adm = adminIds();
+      const adm = panelIds();
 
       json(res, 200, {
         ok: true, total, limit, offset,
@@ -761,7 +763,7 @@ module.exports = async (req, res) => {
       if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > ADMIN_GRANT_MAX) {
         json(res, 200, { ok: false, reason: 'bad_amount' }); return;
       }
-      if (!adminIds().includes(target)) { json(res, 200, { ok: false, reason: 'target_not_admin' }); return; }
+      if (!panelIds().includes(target)) { json(res, 200, { ok: false, reason: 'target_not_admin' }); return; }
       const dst = await sbGet('shark_users?tg_id=eq.' + target + '&select=tg_id');
       if (!dst[0]) { json(res, 200, { ok: false, reason: 'no_user' }); return; }
 
@@ -920,6 +922,13 @@ module.exports = async (req, res) => {
 // ============================================================
 function adminIds() {
   return (env('ADMIN_IDS') || '').split(',').map((s) => s.trim()).filter(Boolean).map(Number);
+}
+// Кому доступна админ-панель. Отдельный список от ADMIN_IDS: тот отвечает лишь
+// за уведомления в Telegram (выводы, подарки), и добавить туда человека ради
+// уведомлений не должно открывать ему панель. Пока ADMIN_PANEL_IDS не задан,
+// панель не доступна никому — включается явной установкой переменной.
+function panelIds() {
+  return (env('ADMIN_PANEL_IDS') || '').split(',').map((s) => s.trim()).filter(Boolean).map(Number);
 }
 function publicUser(u) {
   return {
