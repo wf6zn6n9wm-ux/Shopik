@@ -110,6 +110,13 @@
   .stat .v.sm{font-size:16px;}
 
   /* product */
+  .seg{display:flex;gap:4px;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:12px;}
+  .seg button{flex:1;padding:9px;border-radius:11px;font-size:13px;font-weight:800;color:var(--muted);transition:all .18s;}
+  .seg button.on{background:var(--grad);color:#04140e;}
+  .pcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 14px;margin-bottom:10px;}
+  .pbar{height:8px;border-radius:999px;background:rgba(255,255,255,.08);margin:9px 0 8px;overflow:hidden;}
+  .pbar-fill{height:100%;background:var(--grad);border-radius:999px;min-width:3px;}
+  .pline{display:flex;justify-content:space-between;font-size:12.5px;padding:2px 0;}
   .folder{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px;margin-bottom:10px;}
   .folder .frow{display:flex;align-items:center;gap:12px;}
   .folder .frow:active{opacity:.7;}
@@ -240,7 +247,7 @@
 <script>
 "use strict";
 const KEY='profit_state_v2';
-const DEFAULTS={ settings:{sharePct:30, salaryPct:0, currency:'грн', ownerName:'Я', managerName:'Управляющая'}, role:'owner', tab:'stock', folders:[], products:[], sales:[] };
+const DEFAULTS={ settings:{sharePct:30, salaryPct:0, currency:'грн', ownerName:'Я', managerName:'Управляющая'}, role:'owner', tab:'stock', periodMode:'month', folders:[], products:[], sales:[] };
 function loadLocal(){
   try{ const r=JSON.parse(localStorage.getItem(KEY)); if(r&&r.settings) return {...DEFAULTS,...r, settings:{...DEFAULTS.settings,...r.settings}}; }catch(e){}
   return JSON.parse(JSON.stringify(DEFAULTS));
@@ -550,6 +557,45 @@ function explainerCard(){
 }
 
 /* ---- ИТОГИ ---- */
+const MON_SHORT=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+const MON_FULL=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+function periodKey(soldAt, mode){
+  const d = soldAt ? new Date(soldAt) : null; if(!d || isNaN(d.getTime())) return null;
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return mode==='day' ? y+'-'+m+'-'+day : y+'-'+m;
+}
+function periodLabel(key, mode){
+  const p=key.split('-').map(Number);
+  return mode==='day' ? p[2]+' '+MON_SHORT[p[1]-1]+' '+p[0] : MON_FULL[p[1]-1]+' '+p[0];
+}
+function salesByPeriod(mode){
+  const bk={};
+  V.sales.forEach(s=>{ const k=periodKey(s.soldAt, mode); if(!k) return;
+    const b=bk[k]||(bk[k]={key:k,turnover:0,net:0,mgrShare:0,ownShare:0,salary:0,count:0});
+    const c=calcSale(s); b.turnover+=s.sale||0; b.net+=c.net; b.mgrShare+=c.mgrShare; b.ownShare+=c.ownShare; b.salary+=s.salary||0; b.count++; });
+  return Object.values(bk).sort((a,b)=> a.key<b.key?1:-1);
+}
+function periodDashboard(){
+  const mode=S.periodMode||'month';
+  const isOwner=V.role==='owner';
+  let h=`<div class="sh">📊 Динамика</div>
+    <div class="seg"><button class="${mode==='day'?'on':''}" data-period="day">По дням</button><button class="${mode==='month'?'on':''}" data-period="month">По месяцам</button></div>`;
+  const rows=salesByPeriod(mode);
+  if(!rows.length){ h+=`<div class="card p4 small muted ct" style="padding:22px 16px">Пока нет продаж — статистика появится после первой продажи.</div>`; return h; }
+  const maxNet=Math.max.apply(null, rows.map(r=>Math.abs(r.net)).concat([1]));
+  rows.forEach(r=>{
+    const my=isOwner?r.ownShare:r.mgrShare;
+    const barW=Math.max(3,Math.round(Math.abs(r.net)/maxNet*100));
+    h+=`<div class="pcard">
+      <div class="row between"><div class="b">${periodLabel(r.key,mode)}</div><div class="small muted">${r.count} пар · ${money(r.turnover)}</div></div>
+      <div class="pbar"><div class="pbar-fill" style="width:${barW}%"></div></div>
+      <div class="pline"><span class="muted">Чистая прибыль</span><b class="em">${money(r.net)}</b></div>
+      <div class="pline"><span class="muted">Твоя доля${isOwner?' ('+(100-V.sharePct)+'%)':' ('+V.sharePct+'%)'}</span><b class="${isOwner?'sky':'am'}">${money(my)}</b></div>
+      ${r.salary?`<div class="pline"><span class="muted">Зарплата продавцам</span><b>−${money(r.salary)}</b></div>`:''}
+    </div>`;
+  });
+  return h;
+}
 function viewSummary(){ return V.role==='owner'?summaryOwner(totals()):summaryManager(totals()); }
 function summaryOwner(t){
   return `
@@ -564,6 +610,7 @@ function summaryOwner(t){
     <div class="stat"><div class="k">Вложила управляющая</div><div class="v am sm">${money(t.stockValue)}</div></div>
     <div class="stat"><div class="k">Пар на складе</div><div class="v sm">${t.pairsInStock}</div></div>
   </div>
+  ${periodDashboard()}
   <div class="card p4 mt4 small muted" style="line-height:1.5">
     <b class="sky">Как читать:</b> товар покупает управляющая за свои деньги (<b>${money(t.stockValue)}</b> сейчас в обороте). Зарплата продавцов — расход (вычитается из прибыли). Чистую прибыль вы делите: тебе <b>${100-V.sharePct}%</b>, ей ${V.sharePct}% (плюс она возвращает вложенное). «Рассчитаться» на продаже фиксирует, что доля тебе передана.
   </div>
@@ -582,6 +629,7 @@ function summaryManager(t){
     <div class="stat"><div class="k">Оборот магазина</div><div class="v sm">${money(t.turnover)}</div></div>
     <div class="stat"><div class="k">Пар на складе</div><div class="v sm">${t.pairsInStock}</div></div>
   </div>
+  ${periodDashboard()}
   <div class="card p4 mt4 small muted" style="line-height:1.5">
     <b class="am">Как читать:</b> ты вкладываешь свои деньги в товар (<b>${money(t.stockValue)}</b> сейчас). С каждой продажи забираешь <b>вложенное назад + ${V.sharePct}% чистой прибыли</b>. Зарплата продавцу — отдельный расход (уходит продавцу). Владельцу — ${100-V.sharePct}%. «Можно забрать» — готовые к выплате деньги по непосчитанным продажам.
   </div>
@@ -751,6 +799,8 @@ document.addEventListener('click',e=>{
   if(roleBtn){ S.role=roleBtn.dataset.role; saveLocal(); buildView(); render(); return; }
   const navBtn=e.target.closest('#nav button');
   if(navBtn){ S.tab=navBtn.dataset.tab; saveLocal(); render(); return; }
+  const perBtn=e.target.closest('[data-period]');
+  if(perBtn){ S.periodMode=perBtn.dataset.period; saveLocal(); render(); return; }
 
   const selsize=e.target.closest('[data-selsize]');
   if(selsize){ sellSel.size=selsize.dataset.selsize; document.querySelectorAll('#sizeRow .chip').forEach(c=>c.classList.toggle('on',c.dataset.selsize===sellSel.size)); previewSell(); return; }
