@@ -340,6 +340,26 @@ module.exports = async (req, res) => {
       res.status(200).json(await stateResponse(SHOP));
       return;
     }
+    // -------- STOCK BULK (несколько размеров сразу, одна себестоимость) --------
+    if (action === 'stock_bulk') {
+      if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      const product_id = String(body.product_id || '');
+      const purchase = n0(body.purchase);
+      const items = Array.isArray(body.items) ? body.items : [];
+      if (!product_id || !purchase || !items.length) { res.status(200).json({ ok: false, reason: 'bad_input' }); return; }
+      const prod = await sb('profit_products?id=eq.' + encodeURIComponent(product_id) + '&shop_id=eq.' + SHOP + '&select=id,name');
+      if (!prod || !prod[0]) { res.status(200).json({ ok: false, reason: 'not_found' }); return; }
+      const rows = items
+        .map((it) => ({ shop_id: SHOP, product_id, size: sizeNorm(it.size), qty: Math.max(1, n0(it.qty) || 1), purchase, shipping: null }))
+        .filter((r) => r.size);
+      if (!rows.length) { res.status(200).json({ ok: false, reason: 'bad_input' }); return; }
+      await sb('profit_stock', { method: 'POST', body: JSON.stringify(rows) });
+      const members = await shopMembers(SHOP);
+      const total = rows.reduce((s, r) => s + r.qty, 0);
+      pushOthers(members, '📦 На склад: «' + prod[0].name + '» — ' + rows.map((r) => r.size + '×' + r.qty).join(', ') + ' (' + total + ' пар).');
+      res.status(200).json(await stateResponse(SHOP));
+      return;
+    }
     if (action === 'stock_edit') {
       if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
       const id = String(body.id || '');
