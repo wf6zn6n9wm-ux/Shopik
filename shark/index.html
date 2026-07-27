@@ -2641,7 +2641,7 @@ function pxDrift(v){ if(pxPhase==='idle') pxV=v; }
 var PX_OUT_MS=4200;      /* сцена исхода: держим под серверным окном грейса */
 var PX_HOT_S=4;          /* с этой секунды отсчёт становится тревожным */
 
-var PXR={id:0, status:'idle', pot:0, potShown:0, joined:false, pending:false,
+var PXR={id:0, status:'idle', pot:0, potShown:0, joined:false, pending:false, rake:0.05,
          animated:0, deadline:0, total:15, hot:false, outcome:null, resetT:null};
 
 function pxEl(id){ return document.getElementById(id); }
@@ -2694,7 +2694,7 @@ function pxSub(){
   if(!me){ e.innerHTML = pxPlayers.length
       ? tf('px_sub_join_tpl',{bet:pxNum(pbet)}) : t('px_sub_waiting'); return; }
   e.innerHTML=tf('px_sub_in_tpl',{stake:pxNum(me.stake),pct:Math.round(me.tf*100),
-                                  payout:pxNum(Math.floor(PXR.pot*0.95))});
+                                  payout:pxNum(Math.floor(PXR.pot*(1-PXR.rake)))});
 }
 
 /* ---- строка участников под лентой ---- */
@@ -2877,6 +2877,7 @@ function pxApply(st){
   if(st.id!==PXR.id){ PXR.id=st.id; PXR.animated=PXR.animated||0; }
   PXR.status=st.status;
   PXR.joined=!!st.iJoined;
+  if(st.rake!=null) PXR.rake=Number(st.rake)||0.05;
   PXR.pot=Number(st.pot)||0;
 
   var players=st.players||[];
@@ -2911,6 +2912,7 @@ function pxEnter(){
 function pxLeave(){
   pxStop();
   clearTimeout(PXR.resetT); PXR.resetT=null;
+  clearTimeout(pxDemoT); pxDemoT=null;   /* демо-раунд не доигрывает вне экрана */
   if(PXR.outcome||pxBusy()) pxRoundEnd();
 }
 
@@ -3128,11 +3130,27 @@ function pxTick(now){
 
   pxRender();
 }
-/* цикл живёт, только пока экран PVP открыт и вкладка видима */
+/* Цикл живёт, только пока экран PVP открыт и вкладка видима.
+   Если приложение свернули посреди вращения, при возврате не переигрываем
+   его заново: раунд на сервере давно закрыт, поэтому доводим ленту до
+   вычисленной цели и сразу показываем исход. */
+var pxHidAt=0, PX_FF_MS=1800;
+function pxFastForward(){
+  if(pxPhase==='spin'&&pxSp){ pxX=pxSp.target; pxSp=null; }
+  else if(pxPhase==='settle'&&pxSet){ pxX=pxSet.to; pxSet=null; }
+  else return false;
+  pxV=0; pxPhase='hold'; pxHold=0; pxWarmed=true;
+  return true;
+}
 function pxSync(){
   var run=pxWant&&!document.hidden;
-  if(run&&!pxRaf){ pxPrev=0; pxRaf=requestAnimationFrame(pxTick); }
-  else if(!run&&pxRaf){ cancelAnimationFrame(pxRaf); pxRaf=0; }
+  if(run&&!pxRaf){
+    if(pxHidAt&&Date.now()-pxHidAt>PX_FF_MS) pxFastForward();
+    pxHidAt=0; pxPrev=0; pxRaf=requestAnimationFrame(pxTick);
+  } else if(!run&&pxRaf){
+    if(document.hidden) pxHidAt=Date.now();
+    cancelAnimationFrame(pxRaf); pxRaf=0;
+  }
 }
 function pxStart(){
   if(!pxMeasure()) return;
@@ -3300,10 +3318,14 @@ crashAction=async function(){
    меняется только то, куда уходит ответ — в машину состояний нового экрана. */
 var pvpPollTimer=null;
 async function pvpTick(){
-  if(!SERVER) return;
-  if(pxBusy()) return;                      /* во время розыгрыша не опрашиваем */
-  var resp; try{ resp=await api('pvp_state'); }catch(e){ return; }
-  if(!resp||!resp.ok||!resp.round) return;
+  if(!SERVER||!pvpPolling) return;
+  if(pxBusy()){ schedulePvpPoll(); return; }   /* во время розыгрыша не опрашиваем */
+  var resp;
+  try{ resp=await api('pvp_state'); }
+  catch(e){ pvpPollDelay=Math.min(pvpPollDelay*2,PVP_POLL_MAX); schedulePvpPoll(); return; }
+  if(!resp||!resp.ok||!resp.round){ pvpPollDelay=Math.min(pvpPollDelay*2,PVP_POLL_MAX); schedulePvpPoll(); return; }
+  pvpPollDelay=PVP_POLL_MS;                     /* связь есть — возвращаем частоту */
+  schedulePvpPoll();
   var r=resp.round;
   if(resp.user){
     /* если пришёл ещё не проигранный завершённый раунд — баланс придерживаем:
@@ -3313,15 +3335,27 @@ async function pvpTick(){
   }
   pxApply(r);
 }
+var PVP_POLL_MS=1500, PVP_POLL_MAX=12000, pvpPollDelay=PVP_POLL_MS, pvpPolling=false;
+/* Планируем следующий опрос сами, а не через setInterval: при обрыве связи
+   интервал удваивается до 12 с, при первом успешном ответе возвращается к
+   полутора секундам. Иначе офлайн давал бы сорок запросов в минуту. */
+function schedulePvpPoll(){
+  if(!pvpPolling) return;   /* ушли с экрана, пока запрос был в полёте */
+  if(pvpPollTimer){ clearTimeout(pvpPollTimer); pvpPollTimer=null; }
+  pvpPollTimer=setTimeout(function(){ pvpPollTimer=null; pvpTick(); },pvpPollDelay);
+}
 function startPvpPoll(){
   if(!SERVER) return;
-  stopPvpPoll(); pvpTick(); pvpPollTimer=setInterval(pvpTick,1500);
+  stopPvpPoll(); pvpPolling=true; pvpPollDelay=PVP_POLL_MS; pvpTick();
 }
-function stopPvpPoll(){ if(pvpPollTimer){ clearInterval(pvpPollTimer); pvpPollTimer=null; } }
+function stopPvpPoll(){
+  pvpPolling=false;
+  if(pvpPollTimer){ clearTimeout(pvpPollTimer); pvpPollTimer=null; }
+}
 
 pvpJoin=async function(){
   if(!SERVER) return _pvpJoin();
-  if(pxBusy()||PXR.joined) return;
+  if(pxBusy()||PXR.joined||PXR.pending) return;   /* pending закрывает окно между тапами */
   if(S.stars<pbet){ toast(t('pvp_no_stars')); return; }
   PXR.pending=true; pxCta();
   var r;
