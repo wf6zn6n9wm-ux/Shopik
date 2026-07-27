@@ -1590,6 +1590,45 @@ function avDiv(cls,key,size,fallbackStyle){
   return '<div class="'+cls+'"'+(style?' style="'+style+'"':'')+'>'+(isPhoto?'':key)+'</div>';
 }
 
+/* ---------- PVP: адаптер серверного раунда под фотокарточки ----------
+   Сервер хранит участника как {name, av, stake, me, pct}, где av — эмодзи
+   (боты) или '🙂' (реальные игроки). Новый экран PVP рисует фотокарточки, но
+   менять серверные данные ради этого не нужно: ключ спрайта выводится здесь,
+   детерминированно, чтобы один и тот же участник всегда был с одним лицом.
+   Эмодзи остаётся валидным значением — avDiv() рендерит его как фолбэк. */
+var PVP_AV_KEYS=Object.keys(AVATAR_SPRITE.pos);
+function pvpHash(s){
+  var h=2166136261,i; s=String(s==null?'':s);
+  for(i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=(h*16777619)>>>0; }
+  return h>>>0;
+}
+/* Раздаёт лица всем участникам раунда за один проход. Внутри раунда лица
+   уникальны: при совпадении хеша берём следующий свободный ключ, иначе на
+   пятерых игроков примерно в 40% случаев выпали бы два одинаковых. */
+function pvpAssignAvatars(players){
+  var used={},i,p,seed,k,n=PVP_AV_KEYS.length;
+  for(i=0;i<players.length;i++){
+    p=players[i];
+    if(AVATAR_SPRITE.pos[p.av]){ p.avKey=p.av; used[p.avKey]=1; }
+  }
+  for(i=0;i<players.length;i++){
+    p=players[i]; if(p.avKey) continue;
+    /* себя привязываем к tg_id: имя приходит как «Вы» и одинаково у всех */
+    seed=(p.me&&S.tgId)?('id:'+S.tgId):('nm:'+(p.name||''));
+    k=pvpHash(seed)%n;
+    while(used[PVP_AV_KEYS[k]] && Object.keys(used).length<n) k=(k+1)%n;
+    p.avKey=PVP_AV_KEYS[k]; used[p.avKey]=1;
+  }
+  return players;
+}
+/* Своя ставка в раунде — берём из состава, а не из выбранной фишки:
+   войти можно было с другой ставкой (или с другого устройства). */
+function pvpMyStake(st){
+  var pl=(st&&st.players)||[],i;
+  for(i=0;i<pl.length;i++) if(pl[i].me) return Number(pl[i].stake)||0;
+  return 0;
+}
+
 var LEADERS=[
   {n:"Dogindfox",s:48720,a:"manta"},{n:"cakt0_ymep",s:41355,a:"tiger"},
   {n:"WritePl",s:38900,a:"owl"},{n:"molodoywq",s:25160,a:"turtle"},
@@ -2310,6 +2349,7 @@ async function api(action,params){
 }
 function applyUser(u){
   if(!u) return;
+  if(u.tg_id) S.tgId=u.tg_id;   // нужен PVP: стабильное лицо для своей карточки
   S.money=u.money; S.stars=u.stars; S.played=u.played; S.wonStars=u.wonStars;
   syncBalances(); renderProfile(); renderLeaders();
 }
