@@ -195,6 +195,49 @@ update shark_config set data = jsonb_build_object(
   ) || data
  where id = 1 and not (data ? 'min_withdraw_ton');
 
+-- ---------- кейсы с подарками (за Telegram Stars) ---------------------------
+--  Звёзды НЕ хранятся на балансе: кейс покупается счётом в XTR в момент
+--  нажатия. Заказ заводится ДО оплаты и хранит seed исхода — так исход
+--  зафиксирован раньше, чем известно, кто и сколько заплатил. Клиенту сразу
+--  отдаётся только хэш seed; сам seed раскрывается после оплаты, и любой может
+--  пересчитать выпадение. Тот же приём, что в краше и PVP.
+create table if not exists shark_case_orders (
+  id          bigint generated always as identity primary key,
+  tg_id       bigint not null references shark_users(tg_id),
+  case_key    text   not null,
+  star_price  integer not null,
+  seed        text   not null,                        -- раскрывается после оплаты
+  seed_hash   text   not null,                        -- публикуется заранее
+  status      text   not null default 'pending'       -- pending | paid | failed | refunded
+              check (status in ('pending','paid','failed','refunded')),
+  charge_id   text   unique,                          -- telegram_payment_charge_id: защита от повтора
+  gift_id     bigint,
+  created_at  timestamptz not null default now(),
+  paid_at     timestamptz
+);
+create index if not exists shark_case_orders_tg_idx on shark_case_orders(tg_id, created_at desc);
+
+-- ---------- инвентарь подарков ----------------------------------------------
+--  Выдача подарка сейчас ручная — как и выплаты: бот присылает админу карточку,
+--  админ отправляет подарок в Telegram и отмечает. Поэтому у записи есть
+--  состояние доставки, а не только факт выпадения.
+create table if not exists shark_gifts (
+  id          bigint generated always as identity primary key,
+  tg_id       bigint not null references shark_users(tg_id),
+  order_id    bigint references shark_case_orders(id),
+  case_key    text,
+  name        text   not null,
+  emoji       text,
+  star_value  integer not null default 0,             -- цена подарка в звёздах
+  rarity      text,                                   -- common | rare | epic | legendary
+  status      text   not null default 'held'          -- held | sending | sent
+              check (status in ('held','sending','sent')),
+  created_at  timestamptz not null default now(),
+  sent_at     timestamptz
+);
+create index if not exists shark_gifts_tg_idx on shark_gifts(tg_id, created_at desc);
+create index if not exists shark_gifts_status_idx on shark_gifts(status, created_at desc);
+
 -- ============================================================================
 --  Атомарное движение средств: пишет строку леджера и обновляет кэш баланса
 --  за одну транзакцию. Идемпотентность по p_idem (повторный вызов с тем же

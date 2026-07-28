@@ -13,7 +13,7 @@
 //
 // Запрос: POST { action, initData, ...params }
 // Действия: state | game_bet | pvp_state | pvp_join | crash_bet |
-//           crash_cashout | buy_gift |
+//           crash_cashout | case_open | case_result | gifts |
 //           create_cryptobot_invoice | cryptobot_check | withdraw_create |
 //           history
 //
@@ -51,6 +51,79 @@ const ROUL_PRIZES = [
   { emoji: '🦈', name: 'Акула',   mult: 5,   weight: 2.4 },
   { emoji: '💎', name: 'Жемчуг',  mult: 20,  weight: 0.6 }
 ];
+// ============================================================
+//  🎁 Кейсы с подарками Telegram — покупаются за Telegram Stars
+// ============================================================
+//  Звёзды на балансе НЕ хранятся: кейс оплачивается счётом в XTR в момент
+//  покупки, звёзды проходят насквозь и оседают у Telegram. Поэтому операции
+//  «звёзды → деньги» не существует, и игровая экономика на TON с этим не
+//  пересекается ни в одной точке.
+//
+//  У кейса, в отличие от игр на TON, выплата — настоящий подарок со своей
+//  ценой в звёздах. Значит маржа считается не по рейку, а по разнице цены
+//  кейса и ожидаемой стоимости выпадения. Тест держит её в коридоре 15–35%:
+//  ниже — кейсы работают в убыток, выше — их не станут открывать второй раз.
+//  value — цена подарка в звёздах, weight — вес в таблице выпадений.
+const CASE_RARITY = ['common', 'common', 'rare', 'epic', 'legendary', 'legendary'];
+const CASES = {
+  reef: {
+    key: 'reef', emoji: '🐚', name: 'Риф', price: 50,
+    drops: [
+      { emoji: '🫧', name: 'Пузырь',   value: 15,   weight: 55  },
+      { emoji: '🌊', name: 'Волна',    value: 25,   weight: 25  },
+      { emoji: '🐚', name: 'Ракушка',  value: 50,   weight: 13  },
+      { emoji: '🐠', name: 'Рыбка',    value: 100,  weight: 5   },
+      { emoji: '🪸', name: 'Коралл',   value: 500,  weight: 1.7 },
+      { emoji: '⚓', name: 'Якорь',    value: 1000, weight: 0.3 }
+    ]
+  },
+  deep: {
+    key: 'deep', emoji: '🌊', name: 'Глубина', price: 150,
+    drops: [
+      { emoji: '🌊', name: 'Волна',    value: 25,   weight: 42  },
+      { emoji: '🐚', name: 'Ракушка',  value: 50,   weight: 28  },
+      { emoji: '🐠', name: 'Рыбка',    value: 100,  weight: 18  },
+      { emoji: '🪸', name: 'Коралл',   value: 200,  weight: 8   },
+      { emoji: '⚓', name: 'Якорь',    value: 1000, weight: 3.4 },
+      { emoji: '🦈', name: 'Акула',    value: 2500, weight: 0.6 }
+    ]
+  },
+  abyss: {
+    key: 'abyss', emoji: '🦈', name: 'Бездна', price: 500,
+    drops: [
+      { emoji: '🐠', name: 'Рыбка',    value: 100,   weight: 36  },
+      { emoji: '🪸', name: 'Коралл',   value: 200,   weight: 32  },
+      { emoji: '⚓', name: 'Якорь',    value: 500,   weight: 21  },
+      { emoji: '🦈', name: 'Акула',    value: 1000,  weight: 8   },
+      { emoji: '💎', name: 'Жемчуг',   value: 2500,  weight: 2.5 },
+      { emoji: '🔱', name: 'Трезубец', value: 10000, weight: 0.3 }
+    ]
+  }
+};
+// Выпадение по seed — так же, как победитель PVP: seed зафиксирован до оплаты,
+// раскрывается после, и любой может пересчитать результат сам.
+function caseRoll(seed, drops) {
+  const roll = parseInt(crypto.createHash('sha256').update('case:' + seed).digest('hex').slice(0, 8), 16) / 0xffffffff;
+  const total = drops.reduce((a, d) => a + d.weight, 0);
+  let acc = 0;
+  for (let i = 0; i < drops.length; i++) {
+    acc += drops[i].weight / total;
+    if (roll <= acc) return i;
+  }
+  return drops.length - 1;
+}
+function casePublic(c) {
+  const total = c.drops.reduce((a, d) => a + d.weight, 0);
+  return {
+    key: c.key, emoji: c.emoji, name: c.name, price: c.price,
+    drops: c.drops.map((d, i) => ({
+      emoji: d.emoji, name: d.name, value: d.value,
+      chance: Math.round((d.weight / total) * 1000) / 10,
+      rarity: CASE_RARITY[i] || 'common'
+    }))
+  };
+}
+
 const SHOP = [
   { emoji: '🦈', name: 'Shark NFT', value: 500 }, { emoji: '🐚', name: 'Ракушка', value: 331 },
   { emoji: '🪸', name: 'Коралл',   value: 344 }, { emoji: '🌊', name: 'Волна',   value: 360 },
@@ -384,6 +457,7 @@ module.exports = async (req, res) => {
         },
         catalog: {
           roulette: ROUL_PRIZES, shop: SHOP,
+          cases: Object.keys(CASES).map((k) => casePublic(CASES[k])),
           bets: TON_BETS, minBet: fromNano(TON_MIN_BET_NANO),
           topups: TON_TOPUPS, minTopup: Number(CFG.min_topup_ton),
           methods: WITHDRAW_METHODS
@@ -697,6 +771,87 @@ module.exports = async (req, res) => {
       }
       const fresh = await freshUser();
       json(res, 200, { ok: true, id: wd.id, amount, hours: Number(CFG.withdraw_hours) || 24, user: publicUser(fresh) });
+      return;
+    }
+
+    // ---------------------------------------------------------
+    //  CASE_OPEN — счёт в Telegram Stars на покупку кейса.
+    //  Баланса в звёздах нет: платёж идёт напрямую в Telegram, а мы лишь
+    //  заводим заказ. Исход фиксируем ЗДЕСЬ, до оплаты — иначе его можно было
+    //  бы подобрать, увидев, кто именно платит. Клиенту сразу отдаём только
+    //  хэш seed; сам seed раскроется после оплаты.
+    // ---------------------------------------------------------
+    if (action === 'case_open') {
+      const c = CASES[body.case];
+      if (!c) { json(res, 200, { ok: false, reason: 'bad_case' }); return; }
+
+      const seed = crypto.randomBytes(16).toString('hex');
+      const seedHash = crypto.createHash('sha256').update(seed).digest('hex');
+      const ins = await sb('shark_case_orders', {
+        method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ tg_id: me.id, case_key: c.key, star_price: c.price, seed, seed_hash: seedHash })
+      });
+      const order = Array.isArray(ins.data) ? ins.data[0] : ins.data;
+      if (!order) { json(res, 200, { ok: false, reason: 'order_failed' }); return; }
+
+      const r = await fetch('https://api.telegram.org/bot' + BOT + '/createInvoiceLink', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Shark · кейс «' + c.name + '»',
+          description: 'Открыть кейс и получить подарок Telegram',
+          payload: JSON.stringify({ order: order.id, tg: me.id }),
+          currency: 'XTR',
+          prices: [{ label: 'Кейс «' + c.name + '»', amount: c.price }]
+        })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!d || !d.ok || !d.result) {
+        await sb('shark_case_orders?id=eq.' + order.id, {
+          method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
+          body: JSON.stringify({ status: 'failed' })
+        });
+        json(res, 200, { ok: false, reason: 'invoice_failed' }); return;
+      }
+      json(res, 200, { ok: true, orderId: order.id, link: d.result, price: c.price, seedHash });
+      return;
+    }
+
+    // ---------------------------------------------------------
+    //  CASE_RESULT — опрос исхода заказа. Оплату подтверждает Telegram
+    //  вебхуком в api/bot.js; клиент просто ждёт, когда заказ станет paid.
+    // ---------------------------------------------------------
+    if (action === 'case_result') {
+      const rows = await sbGet('shark_case_orders?id=eq.' + Number(body.orderId) + '&tg_id=eq.' + me.id + '&select=*');
+      const o = rows[0];
+      if (!o) { json(res, 200, { ok: false, reason: 'no_order' }); return; }
+      if (o.status !== 'paid') { json(res, 200, { ok: true, status: o.status }); return; }
+
+      const c = CASES[o.case_key];
+      const idx = c ? caseRoll(o.seed, c.drops) : -1;
+      const g = await sbGet('shark_gifts?id=eq.' + Number(o.gift_id) + '&select=*');
+      json(res, 200, {
+        ok: true, status: 'paid',
+        gift: g[0] ? { name: g[0].name, emoji: g[0].emoji, value: g[0].star_value, rarity: g[0].rarity } : null,
+        // раскрываем seed: теперь выпадение можно пересчитать самому
+        seed: o.seed, seedHash: o.seed_hash, index: idx
+      });
+      return;
+    }
+
+    // ---------------------------------------------------------
+    //  GIFTS — инвентарь подарков пользователя
+    // ---------------------------------------------------------
+    if (action === 'gifts') {
+      const rows = await sbGet('shark_gifts?tg_id=eq.' + me.id + '&order=created_at.desc&limit=100&select=id,name,emoji,star_value,rarity,status,case_key,created_at,sent_at');
+      json(res, 200, {
+        ok: true,
+        gifts: rows.map((g) => ({
+          id: g.id, name: g.name, emoji: g.emoji, value: Number(g.star_value || 0),
+          rarity: g.rarity || 'common', status: g.status, caseKey: g.case_key,
+          at: g.created_at, sentAt: g.sent_at
+        })),
+        totalValue: rows.reduce((a, g) => a + Number(g.star_value || 0), 0)
+      });
       return;
     }
 
