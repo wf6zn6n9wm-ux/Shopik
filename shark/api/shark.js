@@ -48,7 +48,33 @@ const SHOP = [
   { emoji: '🐠', name: 'Рыбка',    value: 334 }, { emoji: '⚓', name: 'Якорь',   value: 356 },
   { emoji: '💎', name: 'Жемчуг',   value: 600 }, { emoji: '🔱', name: 'Трезубец', value: 358 }
 ];
-const BET_OPTIONS = [50, 100, 250];
+const BET_OPTIONS = [50, 100, 250];          // историческое (звёзды), уходит вместе с игрой на звёздах
+
+// ============================================================
+//  💎 TON — единственная игровая валюта
+// ============================================================
+//  Все денежные расчёты внутри кода идут в НАНОТОНАХ (целых числах), и только
+//  на границе с базой превращаются в десятичные TON. Причина простая: ставки —
+//  доли TON, а в JS 0.1 + 0.2 !== 0.3. На банке PVP из нескольких таких долей
+//  ошибка становится видимой и накапливается от раунда к раунду. Целые числа
+//  убирают её полностью: 1 TON = 1e9 нанотон, а Number точен до 2^53, то есть
+//  до ~9 миллионов TON — с запасом на любые балансы этого приложения.
+const NANO = 1e9;
+function toNano(ton) {                        // 0.1 -> 100000000
+  const n = Math.round(Number(ton) * NANO);
+  return Number.isFinite(n) ? n : 0;
+}
+function fromNano(nano) {                     // 100000000 -> 0.1
+  return Math.round(Number(nano) || 0) / NANO;
+}
+// строка для базы: без экспоненциальной записи и без хвоста нулей
+function nanoToDb(nano) {
+  const neg = nano < 0, a = Math.abs(Math.round(nano));
+  const whole = Math.floor(a / NANO), frac = String(a % NANO).padStart(9, '0').replace(/0+$/, '');
+  return (neg ? '-' : '') + whole + (frac ? '.' + frac : '');
+}
+const TON_BETS_DEFAULT = [0.1, 0.5, 1];
+const TON_MIN_BET_NANO = toNano(0.1);         // минимальная ставка — 0.1 TON
 const WITHDRAW_METHODS = ['card_ua', 'usdt_trc20', 'usdt_ton', 'usdt_bep20'];
 
 // Пакеты пополнения игровых звёзд через Telegram Stars (валюта XTR).
@@ -991,6 +1017,7 @@ function panelIds() {
 function publicUser(u) {
   return {
     tg_id: u.tg_id, username: u.username, first_name: u.first_name, lang: u.lang,
+    ton: Number(u.ton_balance || 0), wonTon: Number(u.won_ton || 0),
     money: Number(u.money_balance), stars: Number(u.stars_balance),
     played: Number(u.played || 0), wonStars: Number(u.won_stars || 0),
     refCode: u.ref_code

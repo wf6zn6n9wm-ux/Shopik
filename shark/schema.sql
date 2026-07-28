@@ -4,9 +4,12 @@
 --  Применить один раз: Supabase → SQL Editor → вставить этот файл → Run.
 --
 --  Принципы:
---   • Две НЕзависимые валюты: uah (грн, реальные, выводятся) и stars (⭐, игровые,
---     НЕ выводятся — тратятся на подарки/игры). Нет ни одной операции, которая
---     конвертирует stars → uah.
+--   • Одна игровая валюта: ton (💎). Ей играют, её пополняют и выводят.
+--   • Telegram Stars (⭐) НЕ хранятся на балансе вообще: кейс с подарком
+--     покупается счётом в XTR в момент покупки, звёзды проходят насквозь.
+--     Поэтому нет и не может быть операции stars → деньги.
+--   • uah и stars остаются в проверке валют леджера только ради истории:
+--     старые строки переписывать нельзя. Новых начислений в них не бывает.
 --   • Баланс = кэш в shark_users.money_balance / stars_balance, а СМЫСЛ хранится
 --     в леджере shark_ledger. Любое движение денег/звёзд идёт через функцию
 --     shark_apply_ledger(), которая атомарно пишет строку леджера и обновляет
@@ -23,8 +26,9 @@ create table if not exists shark_users (
   username       text,
   first_name     text,
   lang           text    not null default 'ru',
-  money_balance  numeric(14,2) not null default 0,   -- грн, доступно к выводу
-  stars_balance  bigint  not null default 0,          -- ⭐, игровая валюта
+  ton_balance    numeric(20,9) not null default 0,   -- 💎 TON: единственная игровая валюта, выводится
+  money_balance  numeric(14,2) not null default 0,   -- грн — историческое, новых начислений нет
+  stars_balance  bigint  not null default 0,          -- ⭐ — историческое, звёзды больше не хранятся
   ref_code       text    unique,                       -- код этого юзера для приглашений
   ref_by         bigint  references shark_users(tg_id),-- кто пригласил
   banned         boolean not null default false,
@@ -38,21 +42,32 @@ create table if not exists shark_users (
 -- для БД, созданных до реф-обновления: добавить недостающие столбцы
 alter table shark_users add column if not exists ref_day date;
 alter table shark_users add column if not exists ref_stars_today integer not null default 0;
+-- переход на TON-экономику
+alter table shark_users add column if not exists ton_balance numeric(20,9) not null default 0;
+alter table shark_users add column if not exists won_ton numeric(20,9) not null default 0;
 
 -- ---------- леджер (источник истины по движению средств) ---------------------
 create table if not exists shark_ledger (
   id         bigint generated always as identity primary key,
   tg_id      bigint not null references shark_users(tg_id),
-  currency   text   not null check (currency in ('uah','stars')),
-  amount     numeric(14,2) not null,                   -- + начисление, − списание
+  currency   text   not null check (currency in ('ton','uah','stars')),
+  amount     numeric(20,9) not null,                   -- + начисление, − списание
   kind       text   not null,                          -- referral|bet|win|withdraw|withdraw_refund|gift|topup|adjust
   ref        text,                                     -- ссылка на сущность (id вывода/раунда)
   idem       text   unique,                            -- ключ идемпотентности (может быть null для «всегда уникальных»)
   meta       jsonb  not null default '{}',
-  balance_after numeric(14,2),                         -- баланс соответствующей валюты после операции
+  balance_after numeric(20,9),                         -- баланс соответствующей валюты после операции
   created_at timestamptz not null default now()
 );
 create index if not exists shark_ledger_tg_idx on shark_ledger(tg_id, created_at desc);
+-- Переход на TON для БД, созданных раньше. Точность 9 знаков нужна потому, что
+-- ставки — доли TON (минимальная 0.1), а numeric(14,2) округлил бы их в ноль.
+-- Старые значения 'uah'/'stars' в проверке остаются: историю переписывать нельзя.
+alter table shark_ledger alter column amount        type numeric(20,9);
+alter table shark_ledger alter column balance_after type numeric(20,9);
+alter table shark_ledger drop constraint if exists shark_ledger_currency_check;
+alter table shark_ledger add  constraint shark_ledger_currency_check
+  check (currency in ('ton','uah','stars'));
 
 -- ---------- заявки на вывод (ручное подтверждение) ---------------------------
 create table if not exists shark_withdrawals (
@@ -60,8 +75,9 @@ create table if not exists shark_withdrawals (
   tg_id       bigint not null references shark_users(tg_id),
   method      text   not null,                          -- card_ua | usdt_trc20 | usdt_ton | usdt_bep20
   requisites  text   not null,
-  amount_uah  numeric(14,2) not null,
-  amount_usdt numeric(14,2),                            -- справочно, если метод USDT
+  amount_ton  numeric(20,9),                            -- сумма вывода в TON (новые заявки)
+  amount_uah  numeric(14,2),                            -- историческое (грн-заявки)
+  amount_usdt numeric(14,2),                            -- историческое
   status      text   not null default 'pending'         -- pending | approved | rejected | paid
               check (status in ('pending','approved','rejected','paid')),
   admin_note  text,
@@ -71,6 +87,9 @@ create table if not exists shark_withdrawals (
   decided_by  bigint
 );
 create index if not exists shark_wd_status_idx on shark_withdrawals(status, created_at desc);
+-- переход на TON: сумма теперь в amount_ton, старое поле перестаёт быть обязательным
+alter table shark_withdrawals add  column if not exists amount_ton numeric(20,9);
+alter table shark_withdrawals alter column amount_uah drop not null;
 
 -- ---------- рефералы ---------------------------------------------------------
 create table if not exists shark_referrals (
@@ -151,13 +170,18 @@ create table if not exists shark_config (
   check (id = 1)
 );
 insert into shark_config(id, data) values (1, '{
-  "usdt_rate": 45,
-  "min_withdraw": 100,
-  "referral_bonus": 10,
+  "min_withdraw_ton": 1,
+  "ton_bets": [0.1, 0.5, 1],
   "referral_share": 0.10,
-  "ref_stars_per_friend": 5,
-  "ref_stars_daily_cap": 50
+  "referral_bonus_ton": 0.05
 }') on conflict (id) do nothing;
+-- для БД, заведённых до перехода на TON: досыпать новые ключи, старые не трогая
+update shark_config set data = jsonb_build_object(
+    'min_withdraw_ton',   1,
+    'ton_bets',           '[0.1, 0.5, 1]'::jsonb,
+    'referral_bonus_ton', 0.05
+  ) || data
+ where id = 1 and not (data ? 'min_withdraw_ton');
 
 -- ============================================================================
 --  Атомарное движение средств: пишет строку леджера и обновляет кэш баланса
@@ -182,7 +206,9 @@ begin
   -- идемпотентность: если такой idem уже есть — вернуть текущий баланс, не двигая
   if p_idem is not null then
     if exists (select 1 from shark_ledger where idem = p_idem) then
-      if p_currency = 'uah' then
+      if p_currency = 'ton' then
+        select ton_balance into v_balance from shark_users where tg_id = p_tg;
+      elsif p_currency = 'uah' then
         select money_balance into v_balance from shark_users where tg_id = p_tg;
       else
         select stars_balance into v_balance from shark_users where tg_id = p_tg;
@@ -192,7 +218,13 @@ begin
   end if;
 
   -- блокируем строку пользователя и обновляем нужный баланс
-  if p_currency = 'uah' then
+  if p_currency = 'ton' then
+    update shark_users
+       set ton_balance = ton_balance + p_amount,
+           last_seen = now()
+     where tg_id = p_tg
+    returning ton_balance into v_balance;
+  elsif p_currency = 'uah' then
     update shark_users
        set money_balance = money_balance + p_amount,
            last_seen = now()
