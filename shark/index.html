@@ -1726,6 +1726,7 @@ var I18N={
     pvp_waiting_players:'Чекаємо гравців…',
     pvp_in_battle:'Ви в грі · чекаємо розіграшу',
     pvp_already:'Ви вже в цьому раунді',
+    pvp_mixed_admin:'Акаунт із ручним балансом не грає в одному раунді з живими гравцями',
     pvp_no_stars:'Недостатньо зірок — поповніть баланс', pvp_closing:'Раунд закривається — зачекайте наступний',
     pvp_bet_error:'Помилка ставки', pvp_bet_toast:'Ставка у банку! Чекаємо розіграшу.',
     lvl_names:['Малятко','Рибка','Мисливець','Хижак','Акула','Мегалодон'], lvl_prefix:'Рівень ',
@@ -1865,6 +1866,7 @@ var I18N={
     pvp_waiting_players:'Ждём игроков…',
     pvp_in_battle:'Вы в игре · ждём розыгрыша',
     pvp_already:'Вы уже в этом раунде',
+    pvp_mixed_admin:'Аккаунт с ручным балансом не играет в одном раунде с живыми игроками',
     pvp_no_stars:'Недостаточно звёзд — пополните баланс', pvp_closing:'Раунд закрывается — подождите следующий',
     pvp_bet_error:'Ошибка ставки', pvp_bet_toast:'Ставка в банке! Ждём розыгрыша.',
     lvl_names:['Малёк','Рыбёшка','Охотник','Хищник','Акула','Мегалодон'], lvl_prefix:'Уровень ',
@@ -2004,6 +2006,7 @@ var I18N={
     pvp_waiting_players:'Waiting for players…',
     pvp_in_battle:'You\'re in · waiting for the draw',
     pvp_already:'You are already in this round',
+    pvp_mixed_admin:'An account with a manually credited balance does not share a round with live players',
     pvp_no_stars:'Not enough stars — top up your balance', pvp_closing:'Round is closing — wait for the next one',
     pvp_bet_error:'Bet error', pvp_bet_toast:'Bet placed! Waiting for the draw.',
     lvl_names:['Fry','Minnow','Hunter','Predator','Shark','Megalodon'], lvl_prefix:'Level ',
@@ -4017,7 +4020,9 @@ pvpJoin=async function(){
   if(!r||!r.ok){
     if(r&&r.reason==='already_joined'){ toast(t('pvp_already')); if(r.round) pxApply(r.round); }
     else { toast(!r?t('pvp_bet_error'):r.reason==='no_stars'?t('pvp_no_stars')
-            :r.reason==='round_closed'?t('pvp_closing'):t('pvp_bet_error')); pxCta(); }
+            :r.reason==='round_closed'?t('pvp_closing')
+            :r.reason==='round_mixed_admin'?t('pvp_mixed_admin')
+            :r.reason==='round_mixed'?t('pvp_closing'):t('pvp_bet_error')); pxCta(); }
     return;
   }
   if(r.user) applyUser(r.user);

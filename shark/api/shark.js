@@ -374,7 +374,9 @@ module.exports = async (req, res) => {
       const seated = await sbGet('shark_pvp_bets?round_id=eq.' + round.id + '&tg_id=not.is.null&select=tg_id');
       const adm = panelIds();
       const mixed = seated.some((b) => b.tg_id != null && Number(b.tg_id) !== Number(me.id) && adm.includes(Number(b.tg_id)) !== IS_ADMIN);
-      if (mixed) { json(res, 200, { ok: false, reason: 'round_mixed' }); return; }
+      // причина разная для двух сторон: админу нужно настоящее объяснение,
+      // обычному игроку незачем знать про админские аккаунты
+      if (mixed) { json(res, 200, { ok: false, reason: IS_ADMIN ? 'round_mixed_admin' : 'round_mixed' }); return; }
 
       // вставляем ставку ПЕРВОЙ — уникальный индекс (round_id, tg_id) защищает
       // от двойного входа при быстром двойном тапе; списываем только если строка
