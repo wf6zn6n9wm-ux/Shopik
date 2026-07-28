@@ -78,6 +78,23 @@ const PVP_BOT_NAMES = ['sea_wolf', 'krd_777', 'blue_fin', 'reef_king', 'aqua_max
   'kraken_x', 'pearl', 'marlin', 'orca_pro', 'deep_one', 'ota_try', 'molodoywq', 'cakt0'];
 const PVP_BOT_AV = ['🐙', '🐡', '🐠', '🦑', '🦀', '🐬', '🐳', '🦈', '🐚', '🪼', '🦞', '🐟'];
 
+// ВАЖНО: эти константы живут в области модуля, а не внутри обработчика.
+// Внутри они объявлялись ниже обработчиков действий, а те возвращают ответ
+// раньше — const до своего объявления недоступна (temporal dead zone), и
+// ensurePvpRound падал с ReferenceError, как только раунд становился done.
+// Снаружи клиент видел вечно крутящуюся ленту вместо победителя.
+//
+//  • ANIM_GRACE — сколько держим завершённый раунд, чтобы клиенты доиграли
+//    анимацию: поллинг (1.5 с) + вращение (5 с) + развязка (4.6 с) с запасом.
+//  • STUCK — резолв двухфазный (countdown -> resolving -> done); если между
+//    фазами оборвался вызов, раунд остаётся в resolving. Через столько секунд
+//    его можно переклеймить и дорешать.
+//  • GIVEUP — если выплата раз за разом не проходит, всё же закрываем раунд:
+//    одна сломанная выплата не должна останавливать режим навсегда.
+const PVP_ANIM_GRACE_S = 12;
+const PVP_STUCK_S = 25;
+const PVP_GIVEUP_S = 300;
+
 // Админка. Права определяет ТОЛЬКО сервер по ADMIN_PANEL_IDS — клиент на них не влияет.
 //  • ADMIN_SCAN — верхняя граница выборки для агрегатов (суммы балансов, оборот
 //    по леджеру считаются в памяти, без изменения схемы БД). Сколько строк реально
@@ -815,14 +832,19 @@ module.exports = async (req, res) => {
     //    заводит следующий.
     //  • forJoin=true (ставка): истёкший/завершённый раунд не годится — сразу
     //    заводим свежий waiting и играем в нём.
-    const PVP_ANIM_GRACE_S = 12;
     async function ensurePvpRound(forJoin) {
       for (let attempt = 0; attempt < 4; attempt++) {
         let rows = await sbGet('shark_pvp_rounds?order=id.desc&limit=1&select=*');
         let r = rows[0];
         // истёкший отсчёт — разыграть, затем перечитать (станет done)
         if (r && r.status === 'countdown' && r.resolve_at && Date.now() >= new Date(r.resolve_at).getTime()) {
-          await resolvePvpRound(r);
+          await resolvePvpRound(r, false);
+          rows = await sbGet('shark_pvp_rounds?order=id.desc&limit=1&select=*');
+          r = rows[0];
+        }
+        // зависший resolving — дорешать
+        if (r && r.status === 'resolving' && pvpStuckFor(r) > PVP_STUCK_S) {
+          await resolvePvpRound(r, true);
           rows = await sbGet('shark_pvp_rounds?order=id.desc&limit=1&select=*');
           r = rows[0];
         }
@@ -844,15 +866,38 @@ module.exports = async (req, res) => {
       return null;
     }
 
-    // атомарно разыграть истёкший раунд (защита от двойного резолва)
-    async function resolvePvpRound(round) {
-      // застолбить право резолвить: countdown -> resolving получает ровно один вызов
-      const claim = await sb('shark_pvp_rounds?id=eq.' + round.id + '&status=eq.countdown', {
+    // сколько секунд раунд висит в resolving (resolve_at обновляется на каждом клейме)
+    function pvpStuckFor(r) {
+      const t = Date.parse(r.resolve_at || r.created_at);
+      return t ? (Date.now() - t) / 1000 : Infinity;
+    }
+
+    // Застолбить право дорешать раунд — ровно одному вызову.
+    //  • обычный заход: countdown -> resolving, статус и служит замком;
+    //  • повторный по зависшему: статус у всех уже resolving, поэтому замок —
+    //    сравнение-и-замена resolve_at (кто первым его сдвинул, тот и решает).
+    async function pvpClaim(round, stale) {
+      const now = new Date().toISOString();
+      let q, body;
+      if (stale) {
+        q = '&status=eq.resolving' + (round.resolve_at
+          ? '&resolve_at=eq.' + encodeURIComponent(round.resolve_at) : '&resolve_at=is.null');
+        body = { resolve_at: now };
+      } else {
+        q = '&status=eq.countdown';
+        body = { status: 'resolving', resolve_at: now };
+      }
+      const c = await sb('shark_pvp_rounds?id=eq.' + round.id + q, {
         method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
-        body: JSON.stringify({ status: 'resolving' })
+        body: JSON.stringify(body)
       });
-      if (!Array.isArray(claim.data) || !claim.data[0]) return; // уже кто-то разыгрывает/разыграл
-      const r = claim.data[0];
+      return (Array.isArray(c.data) && c.data[0]) || null;
+    }
+
+    // атомарно разыграть истёкший раунд (защита от двойного резолва)
+    async function resolvePvpRound(round, stale) {
+      const r = await pvpClaim(round, stale);
+      if (!r) return;                        // уже кто-то разыгрывает/разыграл
       const bets = await sbGet('shark_pvp_bets?round_id=eq.' + r.id + '&order=id.asc&select=*');
       const pot = bets.reduce((a, b) => a + Number(b.stake), 0);
       let winner = null, payout = 0;
@@ -862,8 +907,19 @@ module.exports = async (req, res) => {
         payout = Math.floor(pot * (1 - Number(r.rake)));
         winner = { name: w.name, av: w.av, tg_id: w.tg_id, stake: Number(w.stake), pct: Math.round((w.stake / pot) * 1000) / 10, payout };
         if (w.tg_id) {
-          await applyLedger(w.tg_id, 'stars', payout, 'win', 'pvp:' + r.id, 'pvp_win:' + r.id, { pot });
-          await bumpStats(w.tg_id, { won: Math.max(payout - Number(w.stake), 0) });
+          const cr = await applyLedger(w.tg_id, 'stars', payout, 'win', 'pvp:' + r.id, 'pvp_win:' + r.id, { pot });
+          // Выплата не прошла — раунд не закрываем, следующий проход повторит
+          // (ключ идемпотентности не даст заплатить дважды). Но если ломается
+          // раз за разом, через PVP_GIVEUP_S всё же закрываем: одна сломанная
+          // выплата не должна навсегда останавливать режим. Провал остаётся
+          // в winner.payout_failed — видно и в леджере, и в карточке раунда.
+          if (!cr.ok) {
+            const total = (Date.now() - Date.parse(r.created_at)) / 1000;
+            if (total < PVP_GIVEUP_S) return;
+            winner.payout_failed = true; winner.payout = 0; payout = 0;
+          } else {
+            await bumpStats(w.tg_id, { won: Math.max(payout - Number(w.stake), 0) });
+          }
         }
       }
       // всем реальным участникам +1 к «сыграно»

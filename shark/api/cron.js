@@ -54,10 +54,22 @@ function winnerIndex(seed, bets, pot) {
   return bets.length - 1;
 }
 
-async function resolveRound(round) {
-  const claim = await sbReq('shark_pvp_rounds?id=eq.' + round.id + '&status=eq.countdown', 'PATCH', { status: 'resolving' }, 'return=representation');
-  if (!Array.isArray(claim.data) || !claim.data[0]) return false;
-  const r = claim.data[0];
+// Застолбить раунд. stale=true — повторный заход на зависший в resolving:
+// статус там уже не отличает claim'ы, поэтому замком служит сравнение-и-замена
+// resolve_at (кто первым его сдвинул, тот и дорешает).
+async function claimRound(round, stale) {
+  const now = new Date().toISOString();
+  const q = stale
+    ? '&status=eq.resolving' + (round.resolve_at ? '&resolve_at=eq.' + encodeURIComponent(round.resolve_at) : '&resolve_at=is.null')
+    : '&status=eq.countdown';
+  const body = stale ? { resolve_at: now } : { status: 'resolving', resolve_at: now };
+  const c = await sbReq('shark_pvp_rounds?id=eq.' + round.id + q, 'PATCH', body, 'return=representation');
+  return (Array.isArray(c.data) && c.data[0]) || null;
+}
+
+async function resolveRound(round, stale) {
+  const r = await claimRound(round, stale);
+  if (!r) return false;
   const bets = await sbGet('shark_pvp_bets?round_id=eq.' + r.id + '&order=id.asc&select=*');
   const pot = bets.reduce((a, b) => a + Number(b.stake), 0);
   let winner = null;
@@ -79,10 +91,14 @@ module.exports = async (req, res) => {
   try {
     if (!env('SUPABASE_URL') || !env('SUPABASE_SERVICE_ROLE_KEY')) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
     const nowIso = new Date().toISOString();
-    const stale = await sbGet('shark_pvp_rounds?status=eq.countdown&resolve_at=lte.' + nowIso + '&select=id,seed,rake&limit=20');
+    const expired = await sbGet('shark_pvp_rounds?status=eq.countdown&resolve_at=lte.' + nowIso + '&select=id,seed,rake,resolve_at&limit=20');
+    // раунды, зависшие между фазами резолва — их некому дорешать, кроме нас
+    const stuckIso = new Date(Date.now() - 25000).toISOString();
+    const stuck = await sbGet('shark_pvp_rounds?status=eq.resolving&or=(resolve_at.lte.' + stuckIso + ',resolve_at.is.null)&select=id,seed,rake,resolve_at&limit=20');
     let resolved = 0;
-    for (const r of stale) { if (await resolveRound(r)) resolved++; }
-    res.status(200).json({ ok: true, resolved, checked: stale.length });
+    for (const r of expired) { if (await resolveRound(r, false)) resolved++; }
+    for (const r of stuck) { if (await resolveRound(r, true)) resolved++; }
+    res.status(200).json({ ok: true, resolved, checked: expired.length + stuck.length, stuck: stuck.length });
   } catch (e) {
     res.status(200).json({ ok: false, error: String(e && e.message) });
   }
