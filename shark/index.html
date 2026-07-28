@@ -1577,6 +1577,7 @@ input:focus{border-color:var(--aqua);}
   <div class="set-row"><div class="sl"><b id="i-notif-lbl">Уведомления</b><p id="i-notif-desc">Розыгрыши и важные события</p></div><div class="switch on" id="notif-switch" onclick="this.classList.toggle('on')"><i></i></div></div>
   <div class="set-row" onclick="showOnboarding(true)" style="cursor:pointer"><div class="sl"><b id="i-howworks-lbl">Как это работает</b><p id="i-howworks-desc">Показать обучение снова</p></div><div style="color:var(--aqua);font-weight:800">→</div></div>
   <div class="set-row" onclick="toast(t('support_toast'))" style="cursor:pointer"><div class="sl"><b id="i-support-lbl">Поддержка</b><p id="i-support-desc">Связаться с нами</p></div><div style="color:var(--aqua);font-weight:800">→</div></div>
+  <div class="set-row" onclick="copyMyId()" style="cursor:pointer"><div class="sl"><b id="i-myid-lbl">Ваш ID</b><p id="i-myid-desc">Номер аккаунта — нажмите, чтобы скопировать</p></div><div class="mono" id="my-id" style="color:var(--muted);font-weight:800">—</div></div>
 </div>
 
 <!-- АДМИН-ПАНЕЛЬ (каркас) -->
@@ -1834,6 +1835,7 @@ var I18N={
     adm_gr_err_amount:'Введіть суму від 1 до 1 000 000',
     adm_gr_err_funds:'Недостатньо зірок на балансі',
     adm_gr_err_target:'Нарахування доступне лише на ваш акаунт',
+    myid_lbl:'Ваш ID', myid_desc:'Номер акаунта — натисніть, щоб скопіювати', myid_copied:'ID скопійовано',
     adm_gr_hint:'Нарахування проходить через той самий леджер, що й будь-який інший рух коштів, і видно в історії. Тільки на ваш акаунт.'
   },
   ru:{
@@ -1972,6 +1974,7 @@ var I18N={
     adm_gr_err_amount:'Введите сумму от 1 до 1 000 000',
     adm_gr_err_funds:'Недостаточно звёзд на балансе',
     adm_gr_err_target:'Начисление доступно только на ваш аккаунт',
+    myid_lbl:'Ваш ID', myid_desc:'Номер аккаунта — нажмите, чтобы скопировать', myid_copied:'ID скопирован',
     adm_gr_hint:'Начисление идёт через тот же леджер, что и любое движение средств, и видно в истории. Только на ваш аккаунт.'
   },
   en:{
@@ -2110,6 +2113,7 @@ var I18N={
     adm_gr_err_amount:'Enter an amount between 1 and 1,000,000',
     adm_gr_err_funds:'Not enough stars on the balance',
     adm_gr_err_target:'Crediting works on your own account only',
+    myid_lbl:'Your ID', myid_desc:'Account number — tap to copy', myid_copied:'ID copied',
     adm_gr_hint:'The credit goes through the same ledger as any other movement of funds and shows up in history. Your own account only.'
   }
 };
@@ -2170,6 +2174,7 @@ function applyI18n(){
     'i-adm-refresh':'adm_refresh',
     'i-adm-sort-seen':'adm_sort_seen', 'i-adm-sort-stars':'adm_sort_stars',
     'i-adm-sort-new':'adm_sort_new', 'i-adm-sort-played':'adm_sort_played',
+    'i-myid-lbl':'myid_lbl', 'i-myid-desc':'myid_desc',
     'i-adm-gr-bal-lbl':'adm_gr_bal_lbl', 'i-adm-gr-clear':'adm_gr_clear', 'i-adm-gr-hint':'adm_gr_hint'
   };
   Object.keys(map).forEach(function(id){
@@ -3055,6 +3060,22 @@ function renderRefs(){ // демо
   refSet('rf-today','0'); refSet('rf-today-cap','50');
   renderRefFriends(REF_FRIENDS.map(function(f){return {name:f.n,av:f.a};}));
 }
+/* Показываем tg_id из ответа СЕРВЕРА (publicUser.tg_id), а не из initDataUnsafe:
+   именно это число сервер сверяет со списком админов, поэтому только оно и
+   отвечает на вопрос «почему панели нет». */
+function syncMyId(){
+  var e=document.getElementById('my-id'); if(!e) return;
+  e.textContent=S.tgId?String(S.tgId):'—';
+}
+function copyMyId(){
+  if(!S.tgId){ toast(t('adm_no_server')); return; }
+  var ta=document.createElement('textarea');
+  ta.value=String(S.tgId); ta.style.cssText='position:fixed;left:-9999px;top:0';
+  document.body.appendChild(ta);
+  try{ ta.select(); document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+  toast(t('myid_copied'));
+}
 function copyRef(){var i=document.getElementById('ref-link');try{i.select();document.execCommand('copy');}catch(e){}toast(t('ref_link_copied'));}
 function invite(){S.refCount++;S.refEarned+=10;S.money+=10;syncBalances();logOp('👥',t('hist_ref_new_title'),t('hist_ref_new_sub'),'+10.00 грн','plus');checkAchievements();toast(t('ref_demo_credited'));if(document.getElementById('s-refs').classList.contains('active'))renderRefs();}
 
@@ -3842,7 +3863,7 @@ async function api(action,params){
 }
 function applyUser(u){
   if(!u) return;
-  if(u.tg_id) S.tgId=u.tg_id;   // нужен PVP: стабильное лицо для своей карточки
+  if(u.tg_id){ S.tgId=u.tg_id; syncMyId(); }   // PVP: стабильное лицо + показ id в настройках
   S.money=u.money; S.stars=u.stars; S.played=u.played; S.wonStars=u.wonStars;
   syncBalances(); renderProfile(); renderLeaders();
   if(typeof admGr!=='undefined' && admGr) admGrSync();
@@ -4150,6 +4171,7 @@ window.spin=spin;
 window.crashAction=crashAction; window.openWithdraw=openWithdraw; window.invite=invite;
 window.admTab=admTab; window.admLoadStats=admLoadStats;
 window.admPlQuery=admPlQuery; window.admPlSort=admPlSort; window.admPlLoad=admPlLoad;
+window.copyMyId=copyMyId;
 window.admGrInput=admGrInput; window.admGrAdd=admGrAdd; window.admGrClear=admGrClear; window.admGrant=admGrant;
 window.openBuyStars=openBuyStars; window.pvpJoin=pvpJoin; window.go=go;
 
