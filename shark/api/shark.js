@@ -351,8 +351,12 @@ module.exports = async (req, res) => {
     const CFG = Object.assign({
       min_withdraw_ton: 1, min_topup_ton: TON_MIN_TOPUP, withdraw_hours: 24,
       ton_bets: TON_BETS_DEFAULT, ton_topups: TON_TOPUPS_DEFAULT,
-      referral_bonus_ton: 0.05, referral_share: 0.10
+      referral_bonus_ton: 0.05, referral_share_percent: 10
     }, (cfgRows[0] && cfgRows[0].data) || {});
+    // Процент реферального вознаграждения от дохода платформы. Зажимаем в
+    // 0..100: опечатка в базе (скажем, 1000 вместо 10) иначе платила бы
+    // больше, чем платформа заработала, — то есть печатала бы деньги.
+    const REF_PCT = Math.min(100, Math.max(0, Number(CFG.referral_share_percent) || 0));
     // Список ставок берём из конфига, но чиним: только числа не ниже минимума,
     // без дублей, по возрастанию. Кривая правка в базе иначе открыла бы ставку
     // в ноль или отрицательную — а это прямой путь к печати денег.
@@ -448,12 +452,11 @@ module.exports = async (req, res) => {
         config: {
           minWithdrawTon: Number(CFG.min_withdraw_ton), minTopupTon: Number(CFG.min_topup_ton),
           withdrawHours: Number(CFG.withdraw_hours) || 24,
-          referralShare: Number(CFG.referral_share), referralBonusTon: Number(CFG.referral_bonus_ton)
+          referralSharePercent: REF_PCT, referralBonusTon: Number(CFG.referral_bonus_ton)
         },
         referrals: {
           count: refs.length, earnedTon: fromNano(earnedNano),
-          sharePct: Math.round(CFG.referral_share * 100),
-          bonusTon: Number(CFG.referral_bonus_ton), friends
+          sharePct: REF_PCT, bonusTon: Number(CFG.referral_bonus_ton), friends
         },
         catalog: {
           roulette: ROUL_PRIZES, shop: SHOP,
@@ -486,12 +489,16 @@ module.exports = async (req, res) => {
       if (winNano > 0) {
         await applyLedger(me.id, 'ton', nanoToDb(winNano), 'win', 'roulette', null, { prize: base.name, mult: base.mult, bet: fromNano(nano) });
       }
-      await sb('shark_bets', {
-        method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
+      const rIns = await sb('shark_bets', {
+        method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
         body: JSON.stringify({ tg_id: me.id, game: 'roulette', bet_nano: nano, payout_nano: winNano,
           detail: { prize: base.name, emoji: base.emoji, mult: base.mult } })
       });
+      const rRow = Array.isArray(rIns.data) ? rIns.data[0] : rIns.data;
       await bumpStats(me.id, { played: 1, wonNano: Math.max(winNano - nano, 0) });
+      // доход платформы по спину = ставка − выплата; ключ привязан к строке
+      // ставки, поэтому повторить начисление невозможно
+      if (rRow) await settleGameRevenue(user, nano, winNano, 'ref_rev:roul:' + rRow.id, { game: 'roulette' });
       const fresh = await freshUser();
       json(res, 200, {
         ok: true,
@@ -581,11 +588,18 @@ module.exports = async (req, res) => {
       const nano = betNano(body.bet, TON_BETS);
       if (!nano) { json(res, 200, { ok: false, reason: 'bad_bet' }); return; }
       if (!hasTon(user, nano)) { json(res, 200, { ok: false, reason: 'no_funds' }); return; }
-      // закрыть возможные брошенные открытые ставки этого юзера (проигрыш)
-      await sb('shark_bets?tg_id=eq.' + me.id + '&game=eq.crash&status=eq.open', {
-        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
-        body: JSON.stringify({ status: 'done' })
-      });
+      // Закрыть брошенные открытые ставки: игрок ушёл, не забрав — ставка
+      // осталась платформе, значит это тоже завершённая сессия с доходом.
+      const abandoned = await sbGet('shark_bets?tg_id=eq.' + me.id + '&game=eq.crash&status=eq.open&select=id,bet_nano');
+      if (abandoned.length) {
+        await sb('shark_bets?tg_id=eq.' + me.id + '&game=eq.crash&status=eq.open', {
+          method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
+          body: JSON.stringify({ status: 'done' })
+        });
+        for (const ab of abandoned) {
+          await settleGameRevenue(user, Number(ab.bet_nano || 0), 0, 'ref_rev:crash:' + ab.id, { game: 'crash', abandoned: true });
+        }
+      }
       const deb = await applyLedger(me.id, 'ton', nanoToDb(-nano), 'bet', 'crash', null, { bet: fromNano(nano) });
       if (!deb.ok) { json(res, 200, { ok: false, reason: 'no_funds' }); return; }
 
@@ -630,6 +644,8 @@ module.exports = async (req, res) => {
           method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
           body: JSON.stringify({ status: 'done', payout_nano: 0, server_seed: round.server_seed })
         });
+        // не успел — ставка целиком остаётся платформе
+        await settleGameRevenue(user, Number(round.bet_nano || 0), 0, 'ref_rev:crash:' + roundId, { game: 'crash', busted: true });
         json(res, 200, { ok: true, busted: true, crashPoint, seed: round.server_seed, user: publicUser(user) });
         return;
       }
@@ -642,6 +658,9 @@ module.exports = async (req, res) => {
         body: JSON.stringify({ status: 'done', payout_nano: winNano, detail: Object.assign({}, round.detail, { cashMult }) })
       });
       await bumpStats(me.id, { wonNano: Math.max(winNano - betNanoVal, 0) });
+      // забрал по множителю: доход платформы = ставка − выплата, обычно минус,
+      // тогда рефереру не идёт ничего
+      await settleGameRevenue(user, betNanoVal, winNano, 'ref_rev:crash:' + roundId, { game: 'crash', mult: cashMult });
       const fresh = await freshUser();
       json(res, 200, { ok: true, busted: false, mult: cashMult, win: fromNano(winNano), crashPoint, seed: round.server_seed, user: publicUser(fresh) });
       return;
@@ -998,14 +1017,34 @@ module.exports = async (req, res) => {
 
     // ===== вложенные хелперы, которым нужен доступ к sb/me =====
 
-    // Заплатить пригласившему при пополнении друга: разовый бонус за друга
-    // (только с первого пополнения) плюс доля с суммы. Оба начисления
-    // идемпотентны по своим ключам, поэтому повторный опрос статуса счёта
-    // ничего не задваивает.
+    // Заплатить пригласившему долю от ДОХОДА ПЛАТФОРМЫ, который принёс
+    // приглашённый игрок. Источник выплаты — рейк, а не депозит: платим из
+    // того, что заработали, поэтому реферальная программа не может уйти в
+    // минус независимо от поведения игрока.
+    //
+    //  revenueNano — доход платформы по конкретной завершённой сессии, в
+    //  нанотонах. Ноль или минус (игрок выиграл) — не платим ничего.
+    //  idem — ключ, привязанный к самой сессии, поэтому повторная обработка
+    //  того же раунда не начисляет второй раз.
+    //
+    //  Инвариант: выплата = floor(доход × процент / 100) при проценте не выше
+    //  100, значит она НИКОГДА не превышает доход по этой сессии.
+    async function payRefRevenue(invitedTg, inviterTg, revenueNano, idem, meta) {
+      if (!inviterTg || !(revenueNano > 0) || REF_PCT <= 0) return 0;
+      const cut = Math.floor(revenueNano * REF_PCT / 100);
+      if (cut <= 0 || cut > revenueNano) return 0;      // страховка на случай кривого процента
+      const r = await applyLedger(inviterTg, 'ton', nanoToDb(cut), 'referral',
+        'revenue:' + invitedTg, idem, Object.assign({ from: invitedTg, revenue: fromNano(revenueNano), pct: REF_PCT }, meta || {}));
+      return r.ok ? cut : 0;
+    }
+
+    // Заплатить разовый бонус за друга при его первом пополнении. Сам процент
+    // с пополнений больше не платится: он шёл из депозита, то есть из денег,
+    // которые платформа ещё не заработала.
     async function payReferrer(invited, paidNano, invoiceId) {
       const inviter = invited && invited.ref_by;
       if (!inviter) return;
-      let bonusNano = 0, shareNano = 0;
+      let bonusNano = 0;
 
       // разовый бонус: ключ привязан к другу, а не к счёту — значит платится
       // ровно один раз за всю жизнь этой пары
@@ -1019,21 +1058,31 @@ module.exports = async (req, res) => {
         }
       }
 
-      shareNano = Math.floor(paidNano * Number(CFG.referral_share || 0));
-      if (shareNano > 0) {
-        const sr = await applyLedger(inviter, 'ton', nanoToDb(shareNano), 'referral', 'topup:' + invited.tg_id,
-          'ref_share:' + invoiceId, { from: invited.tg_id });
-        if (!sr.ok) shareNano = 0;
-      }
+      if (bonusNano <= 0) return;
+      await bumpRefEarned(inviter, invited.tg_id, bonusNano);
+      tgNotify(BOT, inviter, '💎 Друг сделал первое пополнение — вам бонус +' + fromNano(bonusNano) + ' TON');
+    }
 
-      const total = bonusNano + shareNano;
-      if (total <= 0) return;
-      await sb('shark_referrals?inviter_tg=eq.' + inviter + '&invited_tg=eq.' + invited.tg_id, {
+    // накопленный заработок пары в карточке реферала
+    async function bumpRefEarned(inviterTg, invitedTg, addNano) {
+      if (!(addNano > 0)) return;
+      const rows = await sbGet('shark_referrals?inviter_tg=eq.' + inviterTg + '&invited_tg=eq.' + invitedTg + '&select=earned');
+      const cur = rows[0] ? toNano(rows[0].earned) : 0;
+      await sb('shark_referrals?inviter_tg=eq.' + inviterTg + '&invited_tg=eq.' + invitedTg, {
         method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
-        body: JSON.stringify({ earned: fromNano(total) })
+        body: JSON.stringify({ earned: fromNano(cur + addNano) })
       });
-      tgNotify(BOT, inviter, '💎 Друг пополнил баланс — вам +' + fromNano(total) + ' TON'
-        + (bonusNano ? ' (включая бонус за друга)' : ''));
+    }
+
+    // Выплата рефереру по завершённой игровой сессии одного игрока.
+    // Один вход для краша и рулетки: обе считают доход одинаково —
+    // ставка минус выплата.
+    async function settleGameRevenue(u, betNano, payoutNano, idem, meta) {
+      if (!u || !u.ref_by) return 0;
+      const revenue = betNano - payoutNano;
+      const paid = await payRefRevenue(u.tg_id, u.ref_by, revenue, idem, meta);
+      if (paid > 0) await bumpRefEarned(u.ref_by, u.tg_id, paid);
+      return paid;
     }
 
     // Вернуть «текущий» раунд PVP.
@@ -1138,6 +1187,28 @@ module.exports = async (req, res) => {
       }
       // всем реальным участникам +1 к «сыграно»
       for (const b of bets) { if (b.tg_id) await bumpStats(b.tg_id, { played: 1 }); }
+
+      // Реферальные выплаты по раунду. Доход платформы здесь — удержанный
+      // рейк (банк минус выплата победителю). Между участниками он делится
+      // пропорционально ставкам: чей вклад в банк больше, тот и принёс больше
+      // рейка. Сумма долей не превышает удержанного, потому что доли — части
+      // одного и того же числа.
+      const heldNano = pot - payout;
+      if (heldNano > 0 && pot > 0) {
+        const real = bets.filter((b) => b.tg_id);
+        if (real.length) {
+          const us = await sbGet('shark_users?tg_id=in.(' + real.map((b) => b.tg_id).join(',') + ')&select=tg_id,ref_by');
+          const refOf = {}; us.forEach((u) => { if (u.ref_by) refOf[u.tg_id] = u.ref_by; });
+          for (const b of real) {
+            const inviter = refOf[b.tg_id];
+            if (!inviter) continue;
+            const mine = Math.floor(heldNano * Number(b.stake) / pot);
+            const paidRef = await payRefRevenue(b.tg_id, inviter, mine, 'ref_rev:pvp:' + r.id + ':' + b.tg_id,
+              { game: 'pvp', round: r.id });
+            if (paidRef > 0) await bumpRefEarned(inviter, b.tg_id, paidRef);
+          }
+        }
+      }
       await sb('shark_pvp_rounds?id=eq.' + r.id, {
         method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
         body: JSON.stringify({ status: 'done', pot, winner, resolved_at: new Date().toISOString() })

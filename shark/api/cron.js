@@ -90,6 +90,32 @@ async function resolveRound(round, stale) {
     }
   }
   for (const b of bets) { if (b.tg_id) await bumpPlayed(b.tg_id, 1, 0); }
+
+  // Реферальные выплаты — те же правила, что в api/shark.js: доля от
+  // удержанного рейка, пропорционально ставкам. Если бы cron их не делал,
+  // раунды, дорешанные им, молча теряли бы начисления рефереру.
+  const held = pot - (winner ? winner.payout : 0);
+  if (held > 0 && pot > 0) {
+    const real = bets.filter((b) => b.tg_id);
+    if (real.length) {
+      const cfg = await sbGet('shark_config?id=eq.1&select=data');
+      const pct = Math.min(100, Math.max(0, Number((cfg[0] && cfg[0].data && cfg[0].data.referral_share_percent)) || 0));
+      if (pct > 0) {
+        const us = await sbGet('shark_users?tg_id=in.(' + real.map((b) => b.tg_id).join(',') + ')&select=tg_id,ref_by');
+        const refOf = {}; us.forEach((u) => { if (u.ref_by) refOf[u.tg_id] = u.ref_by; });
+        for (const b of real) {
+          const inviter = refOf[b.tg_id];
+          if (!inviter) continue;
+          const mine = Math.floor(held * Number(b.stake) / pot);
+          const cut = Math.floor(mine * pct / 100);
+          if (cut > 0 && cut <= mine) {
+            await applyLedger(inviter, 'ton', nanoToDb(cut), 'referral', 'revenue:' + b.tg_id,
+              'ref_rev:pvp:' + r.id + ':' + b.tg_id, { from: b.tg_id, game: 'pvp', round: r.id, pct });
+          }
+        }
+      }
+    }
+  }
   await sbReq('shark_pvp_rounds?id=eq.' + r.id, 'PATCH', { status: 'done', pot, winner, resolved_at: new Date().toISOString() }, 'return=minimal');
   return true;
 }

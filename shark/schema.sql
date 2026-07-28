@@ -181,7 +181,7 @@ insert into shark_config(id, data) values (1, '{
   "withdraw_hours": 24,
   "ton_bets": [0.1, 0.5, 1],
   "ton_topups": [1, 5, 10, 25],
-  "referral_share": 0.10,
+  "referral_share_percent": 10,
   "referral_bonus_ton": 0.05
 }') on conflict (id) do nothing;
 -- для БД, заведённых до перехода на TON: досыпать новые ключи, старые не трогая
@@ -191,7 +191,8 @@ update shark_config set data = jsonb_build_object(
     'withdraw_hours',     24,
     'ton_bets',           '[0.1, 0.5, 1]'::jsonb,
     'ton_topups',         '[1, 5, 10, 25]'::jsonb,
-    'referral_bonus_ton', 0.05
+    'referral_bonus_ton', 0.05,
+    'referral_share_percent', 10
   ) || data
  where id = 1 and not (data ? 'min_withdraw_ton');
 
