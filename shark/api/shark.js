@@ -32,15 +32,21 @@ function env(name) { return process.env['SHARK_' + name] || process.env[name] ||
 // ============================================================
 //  Игровой конфиг — единый серверный источник (клиенту не доверяем)
 // ============================================================
+// Рулетка на TON: приз — МНОЖИТЕЛЬ к ставке, а не фиксированная сумма.
+// Прежняя таблица (фиксированные звёзды) давала дому 46.3% — на игровых
+// звёздах это терпимо, на реальных деньгах это грабёж. Новая настроена на тот
+// же рейк, что и PVP: матожидание игрока 0.958, дому 4.2%, каждый четвёртый
+// спин в плюс. Лестница редкости и названия сохранены.
+// Инвариант проверяется тестом: если кто-то поправит веса, edge не уплывёт молча.
 const ROUL_PRIZES = [
-  { emoji: '🫧', name: 'Пузырь',  value: 5,   weight: 30 },
-  { emoji: '🌊', name: 'Волна',   value: 10,  weight: 24 },
-  { emoji: '🐚', name: 'Ракушка', value: 20,  weight: 18 },
-  { emoji: '🐠', name: 'Рыбка',   value: 40,  weight: 12 },
-  { emoji: '🪸', name: 'Коралл',  value: 60,  weight: 8  },
-  { emoji: '⚓', name: 'Якорь',   value: 90,  weight: 5  },
-  { emoji: '🦈', name: 'Акула',   value: 150, weight: 2.5 },
-  { emoji: '💎', name: 'Жемчуг',  value: 300, weight: 0.5 }
+  { emoji: '🫧', name: 'Пузырь',  mult: 0.2, weight: 34  },
+  { emoji: '🌊', name: 'Волна',   mult: 0.4, weight: 24  },
+  { emoji: '🐚', name: 'Ракушка', mult: 0.8, weight: 18  },
+  { emoji: '🐠', name: 'Рыбка',   mult: 1.5, weight: 10  },
+  { emoji: '🪸', name: 'Коралл',  mult: 2,   weight: 7   },
+  { emoji: '⚓', name: 'Якорь',   mult: 3,   weight: 4   },
+  { emoji: '🦈', name: 'Акула',   mult: 5,   weight: 2.4 },
+  { emoji: '💎', name: 'Жемчуг',  mult: 20,  weight: 0.6 }
 ];
 const SHOP = [
   { emoji: '🦈', name: 'Shark NFT', value: 500 }, { emoji: '🐚', name: 'Ракушка', value: 331 },
@@ -129,14 +135,14 @@ const PVP_GIVEUP_S = 300;
 //  • ADMIN_GRANT_MAX — потолок одного ручного начисления.
 const ADMIN_SCAN = 5000;
 const ADMIN_GRANT_MAX = 1000000;
-function pvpMakeBots(n) {
+function pvpMakeBots(n, betsTon) {
   const used = {}, bots = [];
   for (let i = 0; i < n; i++) {
     let nm; do { nm = PVP_BOT_NAMES[Math.floor(Math.random() * PVP_BOT_NAMES.length)]; } while (used[nm]);
     used[nm] = 1;
     bots.push({
       name: nm, av: PVP_BOT_AV[Math.floor(Math.random() * PVP_BOT_AV.length)],
-      stake: BET_OPTIONS[Math.floor(Math.random() * BET_OPTIONS.length)] * (Math.random() < 0.15 ? 4 : 1)
+      stake: toNano(betsTon[Math.floor(Math.random() * betsTon.length)]) * (Math.random() < 0.15 ? 4 : 1)
     });
   }
   return bots;
@@ -221,6 +227,17 @@ module.exports = async (req, res) => {
     // это подтверждённый Telegram id, подделать его клиент не может.
     const IS_ADMIN = panelIds().includes(Number(me.id));
 
+    // Ставка приходит с клиента в TON. Принимаем только значения из серверного
+    // списка — клиенту сумму не доверяем, как и всему остальному. Возвращаем
+    // нанотоны: дальше все расчёты идут целыми числами.
+    function betNano(v, betsTon) {
+      const n = toNano(v);
+      if (!n || n < TON_MIN_BET_NANO) return 0;
+      return betsTon.some((b) => toNano(b) === n) ? n : 0;
+    }
+    // хватает ли на балансе (баланс из базы — десятичный TON)
+    function hasTon(u, nano) { return toNano(u.ton_balance) >= nano; }
+
     // --- Supabase REST хелперы ---
     async function sb(path, opts) {
       const r = await fetch(URL + '/rest/v1/' + path, Object.assign({ headers: H }, opts || {}));
@@ -255,9 +272,21 @@ module.exports = async (req, res) => {
     // --- конфиг ---
     const cfgRows = await sbGet('shark_config?id=eq.1&select=data');
     const CFG = Object.assign({
+      min_withdraw_ton: 1, ton_bets: TON_BETS_DEFAULT, referral_bonus_ton: 0.05,
       usdt_rate: 45, min_withdraw: 100, referral_bonus: 10, referral_share: 0.10,
       ref_stars_per_friend: 5, ref_stars_daily_cap: 50
     }, (cfgRows[0] && cfgRows[0].data) || {});
+    // Список ставок берём из конфига, но чиним: только числа не ниже минимума,
+    // без дублей, по возрастанию. Кривая правка в базе иначе открыла бы ставку
+    // в ноль или отрицательную — а это прямой путь к печати денег.
+    const TON_BETS = (function () {
+      const src = Array.isArray(CFG.ton_bets) ? CFG.ton_bets : TON_BETS_DEFAULT;
+      const seen = {}, out = [];
+      src.map(Number).filter((v) => toNano(v) >= TON_MIN_BET_NANO)
+        .sort((a, b) => a - b)
+        .forEach((v) => { if (!seen[v]) { seen[v] = 1; out.push(v); } });
+      return out.length ? out : TON_BETS_DEFAULT;
+    })();
 
     // --- убедиться что пользователь есть (upsert) ---
     async function ensureUser() {
@@ -346,7 +375,7 @@ module.exports = async (req, res) => {
           todayStars, capStars: CFG.ref_stars_daily_cap, perFriend: CFG.ref_stars_per_friend,
           sharePct: Math.round(CFG.referral_share * 100), bonusUah: CFG.referral_bonus, friends
         },
-        catalog: { roulette: ROUL_PRIZES, shop: SHOP, bets: BET_OPTIONS, methods: WITHDRAW_METHODS, packs: STAR_PACKS, cryptoPacks: CRYPTOBOT_PACKS },
+        catalog: { roulette: ROUL_PRIZES, shop: SHOP, bets: TON_BETS, minBet: fromNano(TON_MIN_BET_NANO), methods: WITHDRAW_METHODS, packs: STAR_PACKS, cryptoPacks: CRYPTOBOT_PACKS },
         refLink: botLink(BOT, user.ref_code)
       });
       return;
@@ -356,30 +385,31 @@ module.exports = async (req, res) => {
     //  GAME_BET — рулетка (единый запрос: списываем ставку, исход на сервере)
     // ---------------------------------------------------------
     if (action === 'game_bet') {
-      const game = body.game;
-      const bet = Number(body.bet);
-      if (!BET_OPTIONS.includes(bet)) { json(res, 200, { ok: false, reason: 'bad_bet' }); return; }
-      if (game !== 'roulette') { json(res, 200, { ok: false, reason: 'bad_game' }); return; }
-      if (Number(user.stars_balance) < bet) { json(res, 200, { ok: false, reason: 'no_stars' }); return; }
+      if (body.game !== 'roulette') { json(res, 200, { ok: false, reason: 'bad_game' }); return; }
+      const nano = betNano(body.bet, TON_BETS);
+      if (!nano) { json(res, 200, { ok: false, reason: 'bad_bet' }); return; }
+      if (!hasTon(user, nano)) { json(res, 200, { ok: false, reason: 'no_funds' }); return; }
 
-      // ставка
-      const deb = await applyLedger(me.id, 'stars', -bet, 'bet', 'roulette', null, { bet });
-      if (!deb.ok) { json(res, 200, { ok: false, reason: 'no_stars' }); return; }
+      const deb = await applyLedger(me.id, 'ton', nanoToDb(-nano), 'bet', 'roulette', null, { bet: fromNano(nano) });
+      if (!deb.ok) { json(res, 200, { ok: false, reason: 'no_funds' }); return; }
 
-      // исход
+      // исход: приз — множитель к ставке. Округление вниз, чтобы дом не
+      // терял доли нанотона на каждом спине.
       const base = pickWeighted(ROUL_PRIZES);
-      const betMult = bet / 50;                       // 50→x1, 100→x2, 250→x5
-      const win = Math.round(base.value * betMult);
-      await applyLedger(me.id, 'stars', win, 'win', 'roulette', null, { prize: base.name, bet });
+      const winNano = Math.floor(nano * base.mult);
+      if (winNano > 0) {
+        await applyLedger(me.id, 'ton', nanoToDb(winNano), 'win', 'roulette', null, { prize: base.name, mult: base.mult, bet: fromNano(nano) });
+      }
       await sb('shark_bets', {
         method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
-        body: JSON.stringify({ tg_id: me.id, game: 'roulette', bet_stars: bet, payout: win, detail: { prize: base.name, emoji: base.emoji, mult: betMult } })
+        body: JSON.stringify({ tg_id: me.id, game: 'roulette', bet_nano: nano, payout_nano: winNano,
+          detail: { prize: base.name, emoji: base.emoji, mult: base.mult } })
       });
-      await bumpStats(me.id, { played: 1, won: win });
+      await bumpStats(me.id, { played: 1, wonNano: Math.max(winNano - nano, 0) });
       const fresh = await freshUser();
       json(res, 200, {
         ok: true,
-        prize: { emoji: base.emoji, name: base.name, value: win, betMult },
+        prize: { emoji: base.emoji, name: base.name, mult: base.mult, win: fromNano(winNano), bet: fromNano(nano) },
         // индекс приза (для остановки барабана в нужной ячейке на клиенте)
         prizeIndex: ROUL_PRIZES.findIndex((p) => p.name === base.name),
         user: publicUser(fresh)
@@ -401,9 +431,9 @@ module.exports = async (req, res) => {
     //  PVP_JOIN — войти в текущий общий раунд (ставка в общий банк)
     // ---------------------------------------------------------
     if (action === 'pvp_join') {
-      const bet = Number(body.bet);
-      if (!BET_OPTIONS.includes(bet)) { json(res, 200, { ok: false, reason: 'bad_bet' }); return; }
-      if (Number(user.stars_balance) < bet) { json(res, 200, { ok: false, reason: 'no_stars' }); return; }
+      const nano = betNano(body.bet, TON_BETS);
+      if (!nano) { json(res, 200, { ok: false, reason: 'bad_bet' }); return; }
+      if (!hasTon(user, nano)) { json(res, 200, { ok: false, reason: 'no_funds' }); return; }
 
       let round = await ensurePvpRound(true);
       // принимаем ставки только пока идёт набор/отсчёт
@@ -426,19 +456,19 @@ module.exports = async (req, res) => {
       // реально создалась (не дубликат)
       const betIns = await sb('shark_pvp_bets', {
         method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=representation,resolution=ignore-duplicates' }),
-        body: JSON.stringify({ round_id: round.id, tg_id: me.id, name: user.first_name || 'Игрок', av: '🙂', stake: bet })
+        body: JSON.stringify({ round_id: round.id, tg_id: me.id, name: user.first_name || 'Игрок', av: '🙂', stake: nano })
       });
       const betRow = Array.isArray(betIns.data) ? betIns.data[0] : null;
       if (!betRow) { const st = await pvpRoundState(round); json(res, 200, { ok: false, reason: 'already_joined', round: st, user: publicUser(user) }); return; }
       // списываем ставку; при нехватке средств откатываем вставленную ставку
-      const deb = await applyLedger(me.id, 'stars', -bet, 'bet', 'pvp:' + round.id, null, { bet });
+      const deb = await applyLedger(me.id, 'ton', nanoToDb(-nano), 'bet', 'pvp:' + round.id, null, { bet: fromNano(nano) });
       if (!deb.ok) {
         await sb('shark_pvp_bets?id=eq.' + betRow.id, { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) });
-        json(res, 200, { ok: false, reason: 'no_stars' }); return;
+        json(res, 200, { ok: false, reason: 'no_funds' }); return;
       }
       // если это первая ставка — запускаем отсчёт и подсаживаем ботов для оживления
       if (round.status === 'waiting') {
-        const bots = pvpMakeBots(1 + Math.floor(Math.random() * 3));
+        const bots = pvpMakeBots(1 + Math.floor(Math.random() * 3), TON_BETS);
         if (bots.length) {
           await sb('shark_pvp_bets', {
             method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
@@ -462,16 +492,16 @@ module.exports = async (req, res) => {
     //  CRASH_BET — поставить на раунд краша (сервер задаёт точку краша)
     // ---------------------------------------------------------
     if (action === 'crash_bet') {
-      const bet = Number(body.bet);
-      if (!BET_OPTIONS.includes(bet)) { json(res, 200, { ok: false, reason: 'bad_bet' }); return; }
-      if (Number(user.stars_balance) < bet) { json(res, 200, { ok: false, reason: 'no_stars' }); return; }
+      const nano = betNano(body.bet, TON_BETS);
+      if (!nano) { json(res, 200, { ok: false, reason: 'bad_bet' }); return; }
+      if (!hasTon(user, nano)) { json(res, 200, { ok: false, reason: 'no_funds' }); return; }
       // закрыть возможные брошенные открытые ставки этого юзера (проигрыш)
       await sb('shark_bets?tg_id=eq.' + me.id + '&game=eq.crash&status=eq.open', {
         method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
         body: JSON.stringify({ status: 'done' })
       });
-      const deb = await applyLedger(me.id, 'stars', -bet, 'bet', 'crash', null, { bet });
-      if (!deb.ok) { json(res, 200, { ok: false, reason: 'no_stars' }); return; }
+      const deb = await applyLedger(me.id, 'ton', nanoToDb(-nano), 'bet', 'crash', null, { bet: fromNano(nano) });
+      if (!deb.ok) { json(res, 200, { ok: false, reason: 'no_funds' }); return; }
 
       // provably-fair точка краша
       const seed = crypto.randomBytes(16).toString('hex');
@@ -480,7 +510,7 @@ module.exports = async (req, res) => {
       const ins = await sb('shark_bets', {
         method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
         body: JSON.stringify({
-          tg_id: me.id, game: 'crash', bet_stars: bet, payout: 0, status: 'open',
+          tg_id: me.id, game: 'crash', bet_nano: nano, payout_nano: 0, status: 'open',
           server_seed: seed, seed_hash: seedHash, crash_point: crashPoint,
           started_at: new Date().toISOString(),
           detail: { autoMult: Number(body.autoMult) || null }
@@ -512,21 +542,22 @@ module.exports = async (req, res) => {
         // не успел — краш
         await sb('shark_bets?id=eq.' + roundId, {
           method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
-          body: JSON.stringify({ status: 'done', payout: 0, server_seed: round.server_seed })
+          body: JSON.stringify({ status: 'done', payout_nano: 0, server_seed: round.server_seed })
         });
         json(res, 200, { ok: true, busted: true, crashPoint, seed: round.server_seed, user: publicUser(user) });
         return;
       }
       const cashMult = Math.floor(mult * 100) / 100;
-      const win = Math.floor(round.bet_stars * cashMult);
-      await applyLedger(me.id, 'stars', win, 'win', 'crash:' + roundId, 'crash_win:' + roundId, { mult: cashMult });
+      const betNanoVal = Number(round.bet_nano || 0);
+      const winNano = Math.floor(betNanoVal * cashMult);      // вниз: доли нанотона остаются дому
+      await applyLedger(me.id, 'ton', nanoToDb(winNano), 'win', 'crash:' + roundId, 'crash_win:' + roundId, { mult: cashMult });
       await sb('shark_bets?id=eq.' + roundId, {
         method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
-        body: JSON.stringify({ status: 'done', payout: win, detail: Object.assign({}, round.detail, { cashMult }) })
+        body: JSON.stringify({ status: 'done', payout_nano: winNano, detail: Object.assign({}, round.detail, { cashMult }) })
       });
-      await bumpStats(me.id, { won: Math.max(win - round.bet_stars, 0) });
+      await bumpStats(me.id, { wonNano: Math.max(winNano - betNanoVal, 0) });
       const fresh = await freshUser();
-      json(res, 200, { ok: true, busted: false, mult: cashMult, win, crashPoint, seed: round.server_seed, user: publicUser(fresh) });
+      json(res, 200, { ok: true, busted: false, mult: cashMult, win: fromNano(winNano), crashPoint, seed: round.server_seed, user: publicUser(fresh) });
       return;
     }
 
@@ -924,6 +955,7 @@ module.exports = async (req, res) => {
     async function resolvePvpRound(round, stale) {
       const r = await pvpClaim(round, stale);
       if (!r) return;                        // уже кто-то разыгрывает/разыграл
+      // всё в нанотонах — целые числа, банк из долей TON складывается точно
       const bets = await sbGet('shark_pvp_bets?round_id=eq.' + r.id + '&order=id.asc&select=*');
       const pot = bets.reduce((a, b) => a + Number(b.stake), 0);
       let winner = null, payout = 0;
@@ -933,7 +965,7 @@ module.exports = async (req, res) => {
         payout = Math.floor(pot * (1 - Number(r.rake)));
         winner = { name: w.name, av: w.av, tg_id: w.tg_id, stake: Number(w.stake), pct: Math.round((w.stake / pot) * 1000) / 10, payout };
         if (w.tg_id) {
-          const cr = await applyLedger(w.tg_id, 'stars', payout, 'win', 'pvp:' + r.id, 'pvp_win:' + r.id, { pot });
+          const cr = await applyLedger(w.tg_id, 'ton', nanoToDb(payout), 'win', 'pvp:' + r.id, 'pvp_win:' + r.id, { pot: fromNano(pot) });
           // Выплата не прошла — раунд не закрываем, следующий проход повторит
           // (ключ идемпотентности не даст заплатить дважды). Но если ломается
           // раз за разом, через PVP_GIVEUP_S всё же закрываем: одна сломанная
@@ -944,7 +976,7 @@ module.exports = async (req, res) => {
             if (total < PVP_GIVEUP_S) return;
             winner.payout_failed = true; winner.payout = 0; payout = 0;
           } else {
-            await bumpStats(w.tg_id, { won: Math.max(payout - Number(w.stake), 0) });
+            await bumpStats(w.tg_id, { wonNano: Math.max(payout - Number(w.stake), 0) });
           }
         }
       }
@@ -962,8 +994,8 @@ module.exports = async (req, res) => {
       const pot = bets.reduce((a, b) => a + Number(b.stake), 0) || Number(round.pot) || 0;
       const players = bets.map((b) => ({
         name: b.tg_id && Number(b.tg_id) === me.id ? 'Вы' : b.name, av: b.av || '🙂',
-        stake: Number(b.stake), me: Number(b.tg_id) === me.id,
-        pct: pot ? Math.round((b.stake / pot) * 1000) / 10 : 0
+        stake: fromNano(b.stake), me: Number(b.tg_id) === me.id,
+        pct: pot ? Math.round((Number(b.stake) / pot) * 1000) / 10 : 0
       }));
       const done = round.status === 'done';
       let secondsLeft = 0;
@@ -987,11 +1019,12 @@ module.exports = async (req, res) => {
 
     async function freshUser() { const r = await sbGet('shark_users?tg_id=eq.' + me.id + '&select=*'); return r[0] || user; }
     async function bumpStats(tg, d) {
-      const u = await sbGet('shark_users?tg_id=eq.' + tg + '&select=played,won_stars');
+      const u = await sbGet('shark_users?tg_id=eq.' + tg + '&select=played,won_ton');
       if (!u[0]) return;
       const patch = {};
       if (d.played) patch.played = Number(u[0].played || 0) + d.played;
-      if (d.won) patch.won_stars = Number(u[0].won_stars || 0) + d.won;
+      // копим чистый выигрыш в TON; won_stars больше не растёт — звёзд в игре нет
+      if (d.wonNano) patch.won_ton = nanoToDb(toNano(u[0].won_ton) + d.wonNano);
       if (Object.keys(patch).length) {
         await sb('shark_users?tg_id=eq.' + tg, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(patch) });
       }

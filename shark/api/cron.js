@@ -39,12 +39,19 @@ async function applyLedger(tg_id, currency, amount, kind, ref, idem, meta) {
   });
   return { ok: r.ok };
 }
-async function bumpPlayed(tg_id, playedInc, wonInc) {
-  const u = await sbGet('shark_users?tg_id=eq.' + tg_id + '&select=played,won_stars');
+// ставки и банк хранятся в нанотонах (целые), в базу уходит десятичный TON
+const NANO = 1e9;
+function nanoToDb(nano) {
+  const neg = nano < 0, a = Math.abs(Math.round(nano));
+  const whole = Math.floor(a / NANO), frac = String(a % NANO).padStart(9, '0').replace(/0+$/, '');
+  return (neg ? '-' : '') + whole + (frac ? '.' + frac : '');
+}
+async function bumpPlayed(tg_id, playedInc, wonNanoInc) {
+  const u = await sbGet('shark_users?tg_id=eq.' + tg_id + '&select=played,won_ton');
   if (!u[0]) return;
   const patch = {};
   if (playedInc) patch.played = Number(u[0].played || 0) + playedInc;
-  if (wonInc) patch.won_stars = Number(u[0].won_stars || 0) + wonInc;
+  if (wonNanoInc) patch.won_ton = nanoToDb(Math.round(Number(u[0].won_ton || 0) * NANO) + wonNanoInc);
   if (Object.keys(patch).length) await sbReq('shark_users?tg_id=eq.' + tg_id, 'PATCH', patch, 'return=minimal');
 }
 function winnerIndex(seed, bets, pot) {
@@ -78,7 +85,7 @@ async function resolveRound(round, stale) {
     const payout = Math.floor(pot * (1 - Number(r.rake)));
     winner = { name: w.name, av: w.av, tg_id: w.tg_id, stake: Number(w.stake), pct: Math.round((w.stake / pot) * 1000) / 10, payout };
     if (w.tg_id) {
-      await applyLedger(w.tg_id, 'stars', payout, 'win', 'pvp:' + r.id, 'pvp_win:' + r.id, { pot });
+      await applyLedger(w.tg_id, 'ton', nanoToDb(payout), 'win', 'pvp:' + r.id, 'pvp_win:' + r.id, { pot: pot / NANO });
       await bumpPlayed(w.tg_id, 0, Math.max(payout - Number(w.stake), 0));
     }
   }

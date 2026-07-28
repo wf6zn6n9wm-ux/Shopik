@@ -117,6 +117,12 @@ create table if not exists shark_bets (
   created_at  timestamptz not null default now()
 );
 create index if not exists shark_bets_tg_idx on shark_bets(tg_id, created_at desc);
+-- Переход на TON. Отдельные колонки, а не переиспользование bet_stars/payout:
+-- держать в поле с именем «stars» нанотоны — ровно тот вид двусмысленности,
+-- который через полгода приводит к неверным отчётам. Старые колонки остаются
+-- со своим прежним смыслом для уже сыгранных раундов.
+alter table shark_bets add column if not exists bet_nano    bigint not null default 0;
+alter table shark_bets add column if not exists payout_nano bigint not null default 0;
 
 -- ---------- покупки подарков -------------------------------------------------
 create table if not exists shark_gifts (
