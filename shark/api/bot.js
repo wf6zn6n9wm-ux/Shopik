@@ -29,10 +29,6 @@ function adminIds() {
 function isAdmin(id) { return adminIds().includes(Number(id)); }
 
 // Пакеты звёзд — те же, что в api/shark.js (сколько игровых звёзд зачислять)
-const STAR_PACKS = {
-  s100:  { stars: 100 },  s550:  { stars: 550 },
-  s1150: { stars: 1150 }, s6000: { stars: 6000 }
-};
 
 const WELCOME =
   '🦈 Добро пожаловать в Shark!\n\n' +
@@ -76,22 +72,6 @@ async function applyLedger(tg_id, currency, amount, kind, ref, idem, meta) {
   return { ok: r.ok, status: r.status };
 }
 // начислить пригласившему звёзды за друга с суточным лимитом (idempotent)
-async function awardRefStars(inviterTg, want, idemKey) {
-  const ex = await sbGet('shark_ledger?idem=eq.' + encodeURIComponent(idemKey) + '&select=id&limit=1');
-  if (ex[0]) return 0;
-  const cfg = await sbGet('shark_config?id=eq.1&select=data');
-  const cap = (cfg[0] && cfg[0].data && cfg[0].data.ref_stars_daily_cap) || 50;
-  const inv = await sbGet('shark_users?tg_id=eq.' + inviterTg + '&select=ref_day,ref_stars_today');
-  if (!inv[0]) return 0;
-  const today = new Date().toISOString().slice(0, 10);
-  const todayCount = (inv[0].ref_day === today) ? Number(inv[0].ref_stars_today || 0) : 0;
-  const give = Math.min(Number(want), Math.max(0, cap - todayCount));
-  if (give <= 0) return 0;
-  const r = await applyLedger(inviterTg, 'stars', give, 'referral', 'friend', idemKey, {});
-  if (!r.ok) return 0;
-  await sbPatch('shark_users?tg_id=eq.' + inviterTg, { ref_day: today, ref_stars_today: todayCount + give });
-  return give;
-}
 
 async function ensureUser(from, startParam) {
   const rows = await sbGet('shark_users?tg_id=eq.' + from.id + '&select=tg_id');
@@ -115,12 +95,10 @@ async function ensureUser(from, startParam) {
       method: 'POST', headers: Object.assign({}, sbHeaders(), { Prefer: 'return=minimal,resolution=ignore-duplicates' }),
       body: JSON.stringify({ inviter_tg: refBy, invited_tg: from.id })
     });
-    const cfg = await sbGet('shark_config?id=eq.1&select=data');
-    const bonus = (cfg[0] && cfg[0].data && cfg[0].data.referral_bonus) || 10;
-    const perFriend = (cfg[0] && cfg[0].data && cfg[0].data.ref_stars_per_friend) || 5;
-    await applyLedger(refBy, 'uah', bonus, 'referral', 'signup:' + from.id, 'ref_signup:' + from.id, { invited: from.id });
-    const gs = await awardRefStars(refBy, perFriend, 'refstars_signup:' + from.id);
-    await tg('sendMessage', { chat_id: refBy, text: '👥 Новый друг по вашей ссылке! +' + bonus.toFixed(2) + ' грн' + (gs > 0 ? ' и +' + gs + ' ⭐' : '') });
+    // Бонус платится не за переход по ссылке, а за первое пополнение друга —
+    // иначе регистрация одноразовых аккаунтов сама по себе приносит деньги.
+    // Начисляет payReferrer() в api/shark.js при подтверждении оплаты.
+    await tg('sendMessage', { chat_id: refBy, text: '👥 Новый друг по вашей ссылке! Бонус придёт, когда он пополнит баланс.' });
   }
   return true;
 }
@@ -147,17 +125,25 @@ async function handleCallback(cq) {
     if (!wd) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Заявка не найдена', show_alert: true }); return; }
     if (wd.status !== 'pending') { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Уже обработана: ' + wd.status, show_alert: true }); return; }
 
+    // Новые заявки в TON, но в базе могут висеть незакрытые грн-заявки времён
+    // старой экономики. Возвращать надо ровно ту валюту, которую списали,
+    // поэтому смотрим на заполненную колонку суммы, а не на текущий режим.
+    const isTon = wd.amount_ton != null;
+    const amt = isTon ? Number(wd.amount_ton) : Number(wd.amount_uah);
+    const cur = isTon ? 'ton' : 'uah';
+    const label = isTon ? (amt + ' TON') : (amt.toFixed(2) + ' грн');
+
     if (kind === 'wd_ok') {
       await sbPatch('shark_withdrawals?id=eq.' + id + '&status=eq.pending', { status: 'paid', decided_at: new Date().toISOString(), decided_by: fromId });
       await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n✅ ВЫПЛАЧЕНО (' + fromId + ')' });
-      await tg('sendMessage', { chat_id: wd.tg_id, text: '✅ Вывод ' + Number(wd.amount_uah).toFixed(2) + ' грн отправлен. Спасибо!' });
+      await tg('sendMessage', { chat_id: wd.tg_id, text: '✅ Вывод ' + label + ' отправлен. Спасибо!' });
       await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отмечено выплаченным' });
     } else {
-      // отклонение → вернуть деньги на баланс
-      await applyLedger(wd.tg_id, 'uah', Number(wd.amount_uah), 'withdraw_refund', 'wd:' + id, 'wd_refund:' + id, {});
+      // отклонение → вернуть на баланс
+      await applyLedger(wd.tg_id, cur, amt, 'withdraw_refund', 'wd:' + id, 'wd_refund:' + id, {});
       await sbPatch('shark_withdrawals?id=eq.' + id + '&status=eq.pending', { status: 'rejected', decided_at: new Date().toISOString(), decided_by: fromId });
-      await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n❌ ОТКЛОНЕНО, деньги возвращены (' + fromId + ')' });
-      await tg('sendMessage', { chat_id: wd.tg_id, text: '❌ Заявка на вывод ' + Number(wd.amount_uah).toFixed(2) + ' грн отклонена. Деньги возвращены на баланс.' });
+      await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n❌ ОТКЛОНЕНО, средства возвращены (' + fromId + ')' });
+      await tg('sendMessage', { chat_id: wd.tg_id, text: '❌ Заявка на вывод ' + label + ' отклонена. Средства возвращены на баланс.' });
       await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отклонено, возврат сделан' });
     }
     return;
@@ -194,32 +180,10 @@ module.exports = async (req, res) => {
 
     const msg = update.message;
 
-    // Telegram Stars: успешная оплата → зачисляем игровые звёзды (idempotent)
-    if (msg && msg.successful_payment) {
-      const sp = msg.successful_payment;
-      let pl = {}; try { pl = JSON.parse(sp.invoice_payload || '{}'); } catch (e) {}
-      const pack = STAR_PACKS[pl.pack];
-      const uid = pl.tg || (msg.from && msg.from.id);
-      if (pack && uid) {
-        const r = await applyLedger(uid, 'stars', pack.stars, 'topup', 'stars', 'pay:' + sp.telegram_payment_charge_id, { price: sp.total_amount });
-        if (r.ok) {
-          await tg('sendMessage', { chat_id: uid, text: '✅ Зачислено ' + pack.stars + ' ⭐. Удачной игры!' });
-          // 10% с пополнения — пригласившему (в звёздах), без суточного лимита
-          const u = await sbGet('shark_users?tg_id=eq.' + uid + '&select=ref_by');
-          const refBy = u[0] && u[0].ref_by;
-          if (refBy) {
-            const cfg = await sbGet('shark_config?id=eq.1&select=data');
-            const share = (cfg[0] && cfg[0].data && cfg[0].data.referral_share) || 0.10;
-            const s = Math.floor(pack.stars * share);
-            if (s > 0) {
-              const rr = await applyLedger(refBy, 'stars', s, 'referral', 'topup:' + uid, 'reftop:' + sp.telegram_payment_charge_id, { from: uid });
-              if (rr.ok) await tg('sendMessage', { chat_id: refBy, text: '💜 Ваш друг пополнил баланс — вам +' + s + ' ⭐ (' + Math.round(share * 100) + '%)' });
-            }
-          }
-        }
-      }
-      res.status(200).json({ ok: true }); return;
-    }
+    // Оплата Telegram Stars больше НЕ зачисляет баланс: звёзды на счету не
+    // хранятся. Этот обработчик вернётся на Э4 — там за звёзды покупается
+    // кейс с подарком, и оплата сразу выдаёт подарок в инвентарь.
+    if (msg && msg.successful_payment) { res.status(200).json({ ok: true }); return; }
 
     if (msg && msg.text) {
       const text = msg.text.trim();

@@ -4,13 +4,16 @@
 // поэтому подделать чужой tg_id нельзя. Доступ к БД — только отсюда, сервисным
 // ключом Supabase (в браузер он не попадает).
 //
-// Главный принцип: ВСЁ, что касается денег (грн) и звёзд, считает сервер.
-// Клиент присылает лишь намерение; награды, цены, каталог заданий, исходы игр —
-// на сервере. Звёзды НЕ конвертируются в деньги ни одним действием.
+// Главный принцип: ВСЁ, что касается денег, считает сервер. Клиент присылает
+// лишь намерение; ставки, цены, исходы игр — на сервере.
+//
+// Валюта одна — TON: ей играют, её пополняют и выводят. Telegram Stars на
+// балансе не хранятся вообще: ими покупаются только кейсы с подарками, счётом
+// в момент покупки. Поэтому операции «звёзды → деньги» не существует.
 //
 // Запрос: POST { action, initData, ...params }
 // Действия: state | game_bet | pvp_state | pvp_join | crash_bet |
-//           crash_cashout | buy_gift | create_stars_invoice |
+//           crash_cashout | buy_gift |
 //           create_cryptobot_invoice | cryptobot_check | withdraw_create |
 //           history
 //
@@ -81,25 +84,26 @@ function nanoToDb(nano) {
 }
 const TON_BETS_DEFAULT = [0.1, 0.5, 1];
 const TON_MIN_BET_NANO = toNano(0.1);         // минимальная ставка — 0.1 TON
-const WITHDRAW_METHODS = ['card_ua', 'usdt_trc20', 'usdt_ton', 'usdt_bep20'];
+// Вывод только в TON, на кошелёк. Прежние методы (карта, USDT в трёх сетях)
+// ушли вместе с гривной: валюта в приложении одна.
+const WITHDRAW_METHODS = ['ton'];
+const TON_TOPUPS_DEFAULT = [1, 5, 10, 25];   // быстрые суммы пополнения
+const TON_MIN_TOPUP = 0.5;
 
-// Пакеты пополнения игровых звёзд через Telegram Stars (валюта XTR).
-// price — сколько Telegram Stars платит пользователь; stars — сколько игровых
-// звёзд зачисляем (в больших пакетах — бонус). Источник цен — сервер.
-const STAR_PACKS = {
-  s100:  { stars: 100,  price: 100,  title: '100 звёзд' },
-  s550:  { stars: 550,  price: 500,  title: '550 звёзд · +10%' },
-  s1150: { stars: 1150, price: 1000, title: '1150 звёзд · +15%' },
-  s6000: { stars: 6000, price: 5000, title: '6000 звёзд · +20%' }
-};
+// Адрес TON: дружественный (48 символов base64url), сырой (workchain:hex)
+// или доменное имя .ton. Выплату делает человек, поэтому задача проверки —
+// отсечь опечатки и мусор, а не заменить собой глаза админа.
+function isTonAddress(a) {
+  const v = String(a || '').trim();
+  if (/^[A-Za-z0-9_-]{48}$/.test(v)) return true;
+  if (/^-?\d{1,10}:[0-9a-fA-F]{64}$/.test(v)) return true;
+  if (/^[a-z0-9][a-z0-9-]{2,124}\.ton$/i.test(v)) return true;
+  return false;
+}
 
-// Те же тиры звёзд, но оплата через @CryptoBot (USDT). usd — сумма в USDT.
-const CRYPTOBOT_PACKS = {
-  cb100:  { stars: 100,  usd: 1,  title: '100 звёзд' },
-  cb550:  { stars: 550,  usd: 5,  title: '550 звёзд · +10%' },
-  cb1150: { stars: 1150, usd: 10, title: '1150 звёзд · +15%' },
-  cb6000: { stars: 6000, usd: 50, title: '6000 звёзд · +20%' }
-};
+// Пакеты STAR_PACKS и CRYPTOBOT_PACKS удалены. Пополнение теперь в TON один
+// к одному: сколько пришло, столько и зачислено. Ни курса, ни бонусов за
+// объём — а значит и арбитража «занёс дешевле, вывел дороже» не существует.
 const CRYPTOBOT_API = 'https://pay.crypt.bot/api/';
 
 // PVP-джекпот: комиссия «дома» (house edge) с банка при выплате победителю.
@@ -132,9 +136,9 @@ const PVP_GIVEUP_S = 300;
 //    по леджеру считаются в памяти, без изменения схемы БД). Сколько строк реально
 //    просмотрено — возвращаем клиенту, чтобы цифра не выглядела точной, когда она
 //    упёрлась в потолок.
-//  • ADMIN_GRANT_MAX — потолок одного ручного начисления.
+//  • ADMIN_GRANT_MAX_TON — потолок одного ручного начисления, в TON.
 const ADMIN_SCAN = 5000;
-const ADMIN_GRANT_MAX = 1000000;
+const ADMIN_GRANT_MAX_TON = 1000;
 function pvpMakeBots(n, betsTon) {
   const used = {}, bots = [];
   for (let i = 0; i < n; i++) {
@@ -272,9 +276,9 @@ module.exports = async (req, res) => {
     // --- конфиг ---
     const cfgRows = await sbGet('shark_config?id=eq.1&select=data');
     const CFG = Object.assign({
-      min_withdraw_ton: 1, ton_bets: TON_BETS_DEFAULT, referral_bonus_ton: 0.05,
-      usdt_rate: 45, min_withdraw: 100, referral_bonus: 10, referral_share: 0.10,
-      ref_stars_per_friend: 5, ref_stars_daily_cap: 50
+      min_withdraw_ton: 1, min_topup_ton: TON_MIN_TOPUP, withdraw_hours: 24,
+      ton_bets: TON_BETS_DEFAULT, ton_topups: TON_TOPUPS_DEFAULT,
+      referral_bonus_ton: 0.05, referral_share: 0.10
     }, (cfgRows[0] && cfgRows[0].data) || {});
     // Список ставок берём из конфига, но чиним: только числа не ниже минимума,
     // без дублей, по возрастанию. Кривая правка в базе иначе открыла бы ставку
@@ -286,6 +290,13 @@ module.exports = async (req, res) => {
         .sort((a, b) => a - b)
         .forEach((v) => { if (!seen[v]) { seen[v] = 1; out.push(v); } });
       return out.length ? out : TON_BETS_DEFAULT;
+    })();
+    const TON_TOPUPS = (function () {
+      const src = Array.isArray(CFG.ton_topups) ? CFG.ton_topups : TON_TOPUPS_DEFAULT;
+      const min = toNano(CFG.min_topup_ton), seen = {}, out = [];
+      src.map(Number).filter((v) => toNano(v) >= min).sort((a, b) => a - b)
+        .forEach((v) => { if (!seen[v]) { seen[v] = 1; out.push(v); } });
+      return out.length ? out : TON_TOPUPS_DEFAULT;
     })();
 
     // --- убедиться что пользователь есть (upsert) ---
@@ -323,15 +334,11 @@ module.exports = async (req, res) => {
           method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal,resolution=ignore-duplicates' }),
           body: JSON.stringify({ inviter_tg: refBy, invited_tg: me.id })
         });
-        // приветственный бонус пригласившему: +referral_bonus грн (на вывод) и
-        // +ref_stars_per_friend ⭐ (с суточным лимитом ref_stars_daily_cap)
-        await applyLedger(refBy, 'uah', CFG.referral_bonus, 'referral', 'signup:' + me.id, 'ref_signup:' + me.id, { invited: me.id });
-        await sb('shark_referrals?inviter_tg=eq.' + refBy + '&invited_tg=eq.' + me.id, {
-          method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
-          body: JSON.stringify({ earned: CFG.referral_bonus })
-        });
-        const gs = await awardRefStars(refBy, CFG.ref_stars_per_friend, 'refstars_signup:' + me.id);
-        tgNotify(BOT, refBy, '👥 Новый друг по вашей ссылке! +' + CFG.referral_bonus.toFixed(2) + ' грн' + (gs > 0 ? ' и +' + gs + ' ⭐' : ''));
+        // Бонус за друга НЕ платим за сам факт перехода по ссылке. Раньше это
+        // были игровые гривны, теперь — реальные деньги, а значит регистрация
+        // одноразовых аккаунтов ради выплаты становится выгодной. Платим при
+        // первом пополнении друга: см. payReferrer().
+        tgNotify(BOT, refBy, '👥 Новый друг по вашей ссылке! Бонус придёт, когда он пополнит баланс.');
       }
       return u;
     }
@@ -347,12 +354,11 @@ module.exports = async (req, res) => {
     // ---------------------------------------------------------
     if (action === 'state') {
       const refs = await sbGet('shark_referrals?inviter_tg=eq.' + me.id + '&order=created_at.desc&select=invited_tg,earned,created_at');
-      // заработок с рефералов из леджера (грн — вывод, звёзды — игра)
+      // заработок с рефералов — только TON: старые строки в грн и звёздах
+      // остаются в истории, но в текущий счёт не идут
       const led = await sbGet('shark_ledger?tg_id=eq.' + me.id + '&kind=eq.referral&select=currency,amount');
-      let earnedUah = 0, earnedStars = 0;
-      led.forEach((l) => { if (l.currency === 'uah') earnedUah += Number(l.amount); else earnedStars += Number(l.amount); });
-      const today = todayUTC();
-      const todayStars = (user.ref_day === today) ? Number(user.ref_stars_today || 0) : 0;
+      let earnedNano = 0;
+      led.forEach((l) => { if (l.currency === 'ton') earnedNano += toNano(l.amount); });
       // имена приглашённых
       let friends = [];
       const ids = refs.map((r) => r.invited_tg).filter(Boolean);
@@ -367,15 +373,21 @@ module.exports = async (req, res) => {
         user: publicUser(user),
         isAdmin: IS_ADMIN,
         config: {
-          usdt_rate: CFG.usdt_rate, min_withdraw: CFG.min_withdraw,
-          referral_bonus: CFG.referral_bonus, referral_share: CFG.referral_share
+          minWithdrawTon: Number(CFG.min_withdraw_ton), minTopupTon: Number(CFG.min_topup_ton),
+          withdrawHours: Number(CFG.withdraw_hours) || 24,
+          referralShare: Number(CFG.referral_share), referralBonusTon: Number(CFG.referral_bonus_ton)
         },
         referrals: {
-          count: refs.length, earnedUah: Math.round(earnedUah * 100) / 100, earnedStars,
-          todayStars, capStars: CFG.ref_stars_daily_cap, perFriend: CFG.ref_stars_per_friend,
-          sharePct: Math.round(CFG.referral_share * 100), bonusUah: CFG.referral_bonus, friends
+          count: refs.length, earnedTon: fromNano(earnedNano),
+          sharePct: Math.round(CFG.referral_share * 100),
+          bonusTon: Number(CFG.referral_bonus_ton), friends
         },
-        catalog: { roulette: ROUL_PRIZES, shop: SHOP, bets: TON_BETS, minBet: fromNano(TON_MIN_BET_NANO), methods: WITHDRAW_METHODS, packs: STAR_PACKS, cryptoPacks: CRYPTOBOT_PACKS },
+        catalog: {
+          roulette: ROUL_PRIZES, shop: SHOP,
+          bets: TON_BETS, minBet: fromNano(TON_MIN_BET_NANO),
+          topups: TON_TOPUPS, minTopup: Number(CFG.min_topup_ton),
+          methods: WITHDRAW_METHODS
+        },
         refLink: botLink(BOT, user.ref_code)
       });
       return;
@@ -565,43 +577,17 @@ module.exports = async (req, res) => {
     //  BUY_GIFT — купить подарок за звёзды
     // ---------------------------------------------------------
     if (action === 'buy_gift') {
-      const item = SHOP.find((s) => s.name === body.name);
-      if (!item) { json(res, 200, { ok: false, reason: 'no_item' }); return; }
-      if (Number(user.stars_balance) < item.value) { json(res, 200, { ok: false, reason: 'no_stars' }); return; }
-      const deb = await applyLedger(me.id, 'stars', -item.value, 'gift', item.name, null, { emoji: item.emoji });
-      if (!deb.ok) { json(res, 200, { ok: false, reason: 'no_stars' }); return; }
-      await sb('shark_gifts', {
-        method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
-        body: JSON.stringify({ tg_id: me.id, name: item.name, emoji: item.emoji, cost_stars: item.value })
-      });
-      notifyAdmins(BOT, adminIds(), '🎁 Куплен подарок «' + item.name + '» ' + item.emoji + '\n👤 ' + userLabel(user) + '\n⭐' + item.value + '\n\nОтправьте подарок вручную.');
-      const fresh = await freshUser();
-      json(res, 200, { ok: true, user: publicUser(fresh) });
+      // Покупка за звёзды с баланса больше невозможна: баланса в звёздах нет.
+      // Подарки переезжают в кейсы, которые оплачиваются счётом в Stars в
+      // момент покупки — это Э4. Отвечаем честной причиной, а не «не хватает
+      // звёзд»: молчаливо неработающий экран хуже, чем явно закрытый.
+      json(res, 200, { ok: false, reason: 'moved_to_cases' });
       return;
     }
 
-    // ---------------------------------------------------------
-    //  CREATE_STARS_INVOICE — счёт на пополнение звёзд через Telegram Stars
-    //  Зачисление делает бот в successful_payment (idempotent по charge_id).
-    // ---------------------------------------------------------
-    if (action === 'create_stars_invoice') {
-      const pack = STAR_PACKS[body.pack];
-      if (!pack) { json(res, 200, { ok: false, reason: 'bad_pack' }); return; }
-      const payload = JSON.stringify({ tg: me.id, pack: body.pack });
-      const r = await fetch('https://api.telegram.org/bot' + BOT + '/createInvoiceLink', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'Shark · ' + pack.title,
-          description: 'Пополнение игрового баланса на ' + pack.stars + ' звёзд',
-          payload, currency: 'XTR',
-          prices: [{ label: pack.title, amount: pack.price }]
-        })
-      });
-      const d = await r.json().catch(() => ({}));
-      if (!d || !d.ok || !d.result) { json(res, 200, { ok: false, reason: 'invoice_failed' }); return; }
-      json(res, 200, { ok: true, link: d.result, stars: pack.stars, price: pack.price });
-      return;
-    }
+    // CREATE_STARS_INVOICE удалён: Telegram Stars больше не пополняют баланс.
+    // Звёздами покупаются только кейсы с подарками, и покупка идёт счётом в
+    // момент нажатия — баланса в звёздах не существует (см. Э4).
 
     // ---------------------------------------------------------
     //  CREATE_CRYPTOBOT_INVOICE — счёт на пополнение звёзд через @CryptoBot
@@ -613,30 +599,32 @@ module.exports = async (req, res) => {
     if (action === 'create_cryptobot_invoice') {
       const CB_TOKEN = env('CRYPTOBOT_TOKEN');
       if (!CB_TOKEN) { json(res, 200, { ok: false, reason: 'not_configured' }); return; }
-      const pack = CRYPTOBOT_PACKS[body.pack];
-      if (!pack) { json(res, 200, { ok: false, reason: 'bad_pack' }); return; }
-      const payload = JSON.stringify({ tg: me.id, pack: body.pack });
+      const nano = toNano(body.amount);
+      if (!nano || nano < toNano(CFG.min_topup_ton)) {
+        json(res, 200, { ok: false, reason: 'below_min', min: Number(CFG.min_topup_ton) }); return;
+      }
+      const amount = fromNano(nano);
       const r = await fetch(CRYPTOBOT_API + 'createInvoice', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Crypto-Pay-API-Token': CB_TOKEN },
         body: JSON.stringify({
-          asset: 'USDT', amount: String(pack.usd),
-          description: 'Shark · ' + pack.title, payload, expires_in: 1800
+          asset: 'TON', amount: String(amount),
+          description: 'Shark · пополнение ' + amount + ' TON',
+          payload: JSON.stringify({ tg: me.id }), expires_in: 1800
         })
       });
       const d = await r.json().catch(() => ({}));
       if (!d || !d.ok || !d.result) { json(res, 200, { ok: false, reason: 'invoice_failed' }); return; }
       json(res, 200, {
         ok: true, invoiceId: d.result.invoice_id,
-        payUrl: d.result.bot_invoice_url || d.result.pay_url,
-        stars: pack.stars, usd: pack.usd
+        payUrl: d.result.bot_invoice_url || d.result.pay_url, amount
       });
       return;
     }
 
     // ---------------------------------------------------------
-    //  CRYPTOBOT_CHECK — опрос статуса инвойса @CryptoBot; при первой оплате
-    //  начисляет звёзды и реферальную долю (идемпотентно по invoice_id —
-    //  повторные опросы после зачисления просто возвращают текущий статус).
+    //  CRYPTOBOT_CHECK — опрос статуса счёта; при первой оплате зачисляет TON
+    //  и платит пригласившему. Идемпотентность по invoice_id: повторные опросы
+    //  после зачисления просто возвращают текущий статус.
     // ---------------------------------------------------------
     if (action === 'cryptobot_check') {
       const CB_TOKEN = env('CRYPTOBOT_TOKEN');
@@ -656,20 +644,19 @@ module.exports = async (req, res) => {
       if (already[0]) { const fresh = await freshUser(); json(res, 200, { ok: true, status: 'paid', credited: true, user: publicUser(fresh) }); return; }
 
       let pl = {}; try { pl = JSON.parse(inv.payload || '{}'); } catch (e) {}
-      const pack = CRYPTOBOT_PACKS[pl.pack];
-      if (!pack || Number(pl.tg) !== me.id) { json(res, 200, { ok: true, status: 'paid', credited: false }); return; }
+      if (Number(pl.tg) !== me.id) { json(res, 200, { ok: true, status: 'paid', credited: false }); return; }
+      // Зачисляем то, что РЕАЛЬНО пришло, а не то, что просили в счёте: если
+      // сумма разойдётся, правда на стороне платежа, а не наших ожиданий.
+      if (inv.asset !== 'TON') { json(res, 200, { ok: false, reason: 'bad_asset' }); return; }
+      const paidNano = toNano(inv.amount);
+      if (paidNano <= 0) { json(res, 200, { ok: false, reason: 'bad_amount' }); return; }
 
-      const cr = await applyLedger(me.id, 'stars', pack.stars, 'topup', 'cryptobot', idemKey, { amount: inv.amount, asset: inv.asset });
+      const cr = await applyLedger(me.id, 'ton', nanoToDb(paidNano), 'topup', 'cryptobot', idemKey,
+        { amount: fromNano(paidNano), asset: 'TON', invoice: inv.invoice_id });
       if (!cr.ok) { json(res, 200, { ok: false, reason: 'credit_failed' }); return; }
-      if (user.ref_by) {
-        const share = Math.floor(pack.stars * CFG.referral_share);
-        if (share > 0) {
-          const rr = await applyLedger(user.ref_by, 'stars', share, 'referral', 'topup:' + me.id, 'reftop_cb:' + inv.invoice_id, { from: me.id });
-          if (rr.ok) tgNotify(BOT, user.ref_by, '💜 Ваш друг пополнил баланс — вам +' + share + ' ⭐ (' + Math.round(CFG.referral_share * 100) + '%)');
-        }
-      }
+      await payReferrer(user, paidNano, inv.invoice_id);
       const fresh = await freshUser();
-      json(res, 200, { ok: true, status: 'paid', credited: true, stars: pack.stars, user: publicUser(fresh) });
+      json(res, 200, { ok: true, status: 'paid', credited: true, amount: fromNano(paidNano), user: publicUser(fresh) });
       return;
     }
 
@@ -677,35 +664,29 @@ module.exports = async (req, res) => {
     //  WITHDRAW_CREATE — заявка на вывод (ручное подтверждение админом)
     // ---------------------------------------------------------
     if (action === 'withdraw_create') {
-      const method = body.method;
-      const requisites = (body.requisites || '').toString().trim();
-      const amount = Math.round(Number(body.amount) * 100) / 100;
-      if (!WITHDRAW_METHODS.includes(method)) { json(res, 200, { ok: false, reason: 'bad_method' }); return; }
-      if (!requisites) { json(res, 200, { ok: false, reason: 'no_requisites' }); return; }
-      // валидация реквизитов
-      if (method === 'card_ua') {
-        const digits = requisites.replace(/[\s-]/g, '');
-        if (!/^\d{16}$/.test(digits)) { json(res, 200, { ok: false, reason: 'bad_card' }); return; }
-      } else if (requisites.length < 20) { json(res, 200, { ok: false, reason: 'bad_wallet' }); return; }
-      if (!(amount >= CFG.min_withdraw)) { json(res, 200, { ok: false, reason: 'below_min', min: CFG.min_withdraw }); return; }
-      if (amount > Number(user.money_balance)) { json(res, 200, { ok: false, reason: 'no_money' }); return; }
+      const address = (body.requisites || body.address || '').toString().trim();
+      const nano = toNano(body.amount);
+      const minNano = toNano(CFG.min_withdraw_ton);
+      if (!isTonAddress(address)) { json(res, 200, { ok: false, reason: 'bad_wallet' }); return; }
+      if (!nano || nano < minNano) { json(res, 200, { ok: false, reason: 'below_min', min: Number(CFG.min_withdraw_ton) }); return; }
+      if (nano > toNano(user.ton_balance)) { json(res, 200, { ok: false, reason: 'no_funds' }); return; }
 
-      // списываем сразу (деньги «заморожены» в заявке; вернём при отклонении)
-      const deb = await applyLedger(me.id, 'uah', -amount, 'withdraw', 'pending', null, { method });
-      if (!deb.ok) { json(res, 200, { ok: false, reason: 'no_money' }); return; }
-      const usdt = method.indexOf('usdt') === 0 ? Math.round((amount / CFG.usdt_rate) * 100) / 100 : null;
+      // списываем сразу: деньги «заморожены» в заявке, вернём при отклонении
+      const deb = await applyLedger(me.id, 'ton', nanoToDb(-nano), 'withdraw', 'pending', null, { address });
+      if (!deb.ok) { json(res, 200, { ok: false, reason: 'no_funds' }); return; }
+
+      const amount = fromNano(nano);
       const ins = await sb('shark_withdrawals', {
         method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
-        body: JSON.stringify({ tg_id: me.id, method, requisites: requisites.slice(0, 200), amount_uah: amount, amount_usdt: usdt })
+        body: JSON.stringify({ tg_id: me.id, method: 'ton', requisites: address.slice(0, 200), amount_ton: nanoToDb(nano) })
       });
       const wd = Array.isArray(ins.data) ? ins.data[0] : ins.data;
 
-      // уведомить админов карточкой с кнопками
+      // карточка админу с кнопками — выплату он делает вручную
       const text = '💸 Заявка на вывод #' + wd.id + '\n\n' +
         '👤 ' + userLabel(user) + '\n' +
-        '💰 ' + amount.toFixed(2) + ' грн' + (usdt ? ' (≈ ' + usdt.toFixed(2) + ' USDT)' : '') + '\n' +
-        '🏦 ' + method.replace(/_/g, ' ').toUpperCase() + '\n' +
-        '📇 ' + requisites + '\n\n' +
+        '💎 ' + amount + ' TON\n' +
+        '📇 ' + address + '\n\n' +
         'Выплату отправьте ВРУЧНУЮ, затем подтвердите.';
       const sent = await notifyAdmins(BOT, adminIds(), text, withdrawDecisionKb(wd.id));
       if (sent && sent.messageId) {
@@ -715,7 +696,7 @@ module.exports = async (req, res) => {
         });
       }
       const fresh = await freshUser();
-      json(res, 200, { ok: true, id: wd.id, amount, usdt, user: publicUser(fresh) });
+      json(res, 200, { ok: true, id: wd.id, amount, hours: Number(CFG.withdraw_hours) || 24, user: publicUser(fresh) });
       return;
     }
 
@@ -829,14 +810,15 @@ module.exports = async (req, res) => {
     // ---------------------------------------------------------
     //  ADMIN_GRANT — ручное начисление ⭐ на админский аккаунт
     //  Только звёзды и только админам: грн — выводимые деньги, их нельзя
-    //  рисовать; чужой баланс из панели не трогаем.
+    //  Начисляется TON — единственная валюта приложения. Чужой баланс из
+    //  панели не трогаем: цель инструмента — тестировать на своём аккаунте.
     // ---------------------------------------------------------
     if (action === 'admin_grant') {
       if (!IS_ADMIN) { json(res, 200, { ok: false, reason: 'forbidden' }); return; }
       const target = Number(body.tg || me.id);
-      const amount = Math.trunc(Number(body.amount));
-      if (body.currency && body.currency !== 'stars') { json(res, 200, { ok: false, reason: 'bad_currency' }); return; }
-      if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > ADMIN_GRANT_MAX) {
+      const nano = toNano(body.amount);
+      if (body.currency && body.currency !== 'ton') { json(res, 200, { ok: false, reason: 'bad_currency' }); return; }
+      if (!nano || Math.abs(nano) > toNano(ADMIN_GRANT_MAX_TON)) {
         json(res, 200, { ok: false, reason: 'bad_amount' }); return;
       }
       if (!panelIds().includes(target)) { json(res, 200, { ok: false, reason: 'target_not_admin' }); return; }
@@ -846,12 +828,12 @@ module.exports = async (req, res) => {
       // идемпотентность: ключ приходит с клиента, повтор того же ключа не двигает баланс
       const key = String(body.key || '').replace(/[^\w:.-]/g, '').slice(0, 48) || crypto.randomBytes(8).toString('hex');
       const idem = 'admin_grant:' + me.id + ':' + target + ':' + key;
-      const r = await applyLedger(target, 'stars', amount, 'adjust', 'admin:' + me.id, idem,
+      const r = await applyLedger(target, 'ton', nanoToDb(nano), 'adjust', 'admin:' + me.id, idem,
         { admin_grant: 1, by: Number(me.id), note: String(body.note || '').slice(0, 120) });
       if (!r.ok) { json(res, 200, { ok: false, reason: 'ledger_failed' }); return; }
 
       const after = await sbGet('shark_users?tg_id=eq.' + target + '&select=*');
-      const out = { ok: true, target, amount, balance: Number((after[0] && after[0].stars_balance) || 0) };
+      const out = { ok: true, target, amount: fromNano(nano), balance: Number((after[0] && after[0].ton_balance) || 0) };
       if (target === Number(me.id) && after[0]) out.user = publicUser(after[0]);
       json(res, 200, out);
       return;
@@ -861,23 +843,42 @@ module.exports = async (req, res) => {
 
     // ===== вложенные хелперы, которым нужен доступ к sb/me =====
 
-    // начислить пригласившему звёзды за друга с суточным лимитом (idempotent)
-    async function awardRefStars(inviterTg, want, idemKey) {
-      const ex = await sbGet('shark_ledger?idem=eq.' + encodeURIComponent(idemKey) + '&select=id&limit=1');
-      if (ex[0]) return 0;                                    // уже начисляли
-      const inv = await sbGet('shark_users?tg_id=eq.' + inviterTg + '&select=ref_day,ref_stars_today');
-      if (!inv[0]) return 0;
-      const today = todayUTC();
-      const todayCount = (inv[0].ref_day === today) ? Number(inv[0].ref_stars_today || 0) : 0;
-      const give = Math.min(Number(want), Math.max(0, Number(CFG.ref_stars_daily_cap) - todayCount));
-      if (give <= 0) return 0;
-      const r = await applyLedger(inviterTg, 'stars', give, 'referral', 'friend', idemKey, {});
-      if (!r.ok) return 0;
-      await sb('shark_users?tg_id=eq.' + inviterTg, {
+    // Заплатить пригласившему при пополнении друга: разовый бонус за друга
+    // (только с первого пополнения) плюс доля с суммы. Оба начисления
+    // идемпотентны по своим ключам, поэтому повторный опрос статуса счёта
+    // ничего не задваивает.
+    async function payReferrer(invited, paidNano, invoiceId) {
+      const inviter = invited && invited.ref_by;
+      if (!inviter) return;
+      let bonusNano = 0, shareNano = 0;
+
+      // разовый бонус: ключ привязан к другу, а не к счёту — значит платится
+      // ровно один раз за всю жизнь этой пары
+      const bonusIdem = 'ref_bonus:' + invited.tg_id;
+      const seen = await sbGet('shark_ledger?idem=eq.' + encodeURIComponent(bonusIdem) + '&select=id&limit=1');
+      if (!seen[0]) {
+        bonusNano = toNano(CFG.referral_bonus_ton);
+        if (bonusNano > 0) {
+          const b = await applyLedger(inviter, 'ton', nanoToDb(bonusNano), 'referral', 'friend:' + invited.tg_id, bonusIdem, { invited: invited.tg_id });
+          if (!b.ok) bonusNano = 0;
+        }
+      }
+
+      shareNano = Math.floor(paidNano * Number(CFG.referral_share || 0));
+      if (shareNano > 0) {
+        const sr = await applyLedger(inviter, 'ton', nanoToDb(shareNano), 'referral', 'topup:' + invited.tg_id,
+          'ref_share:' + invoiceId, { from: invited.tg_id });
+        if (!sr.ok) shareNano = 0;
+      }
+
+      const total = bonusNano + shareNano;
+      if (total <= 0) return;
+      await sb('shark_referrals?inviter_tg=eq.' + inviter + '&invited_tg=eq.' + invited.tg_id, {
         method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }),
-        body: JSON.stringify({ ref_day: today, ref_stars_today: todayCount + give })
+        body: JSON.stringify({ earned: fromNano(total) })
       });
-      return give;
+      tgNotify(BOT, inviter, '💎 Друг пополнил баланс — вам +' + fromNano(total) + ' TON'
+        + (bonusNano ? ' (включая бонус за друга)' : ''));
     }
 
     // Вернуть «текущий» раунд PVP.

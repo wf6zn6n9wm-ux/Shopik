@@ -73,7 +73,7 @@ alter table shark_ledger add  constraint shark_ledger_currency_check
 create table if not exists shark_withdrawals (
   id          bigint generated always as identity primary key,
   tg_id       bigint not null references shark_users(tg_id),
-  method      text   not null,                          -- card_ua | usdt_trc20 | usdt_ton | usdt_bep20
+  method      text   not null,                          -- ton (историческое: card_ua | usdt_*)
   requisites  text   not null,
   amount_ton  numeric(20,9),                            -- сумма вывода в TON (новые заявки)
   amount_uah  numeric(14,2),                            -- историческое (грн-заявки)
@@ -177,14 +177,20 @@ create table if not exists shark_config (
 );
 insert into shark_config(id, data) values (1, '{
   "min_withdraw_ton": 1,
+  "min_topup_ton": 0.5,
+  "withdraw_hours": 24,
   "ton_bets": [0.1, 0.5, 1],
+  "ton_topups": [1, 5, 10, 25],
   "referral_share": 0.10,
   "referral_bonus_ton": 0.05
 }') on conflict (id) do nothing;
 -- для БД, заведённых до перехода на TON: досыпать новые ключи, старые не трогая
 update shark_config set data = jsonb_build_object(
     'min_withdraw_ton',   1,
+    'min_topup_ton',      0.5,
+    'withdraw_hours',     24,
     'ton_bets',           '[0.1, 0.5, 1]'::jsonb,
+    'ton_topups',         '[1, 5, 10, 25]'::jsonb,
     'referral_bonus_ton', 0.05
   ) || data
  where id = 1 and not (data ? 'min_withdraw_ton');
