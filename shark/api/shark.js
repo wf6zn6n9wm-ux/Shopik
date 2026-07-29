@@ -191,6 +191,23 @@ const STAR_PACKS = {
   l:  { key: 'l',  emoji: '🦈', name: 'Акула',    stars: 2000,  xtr: 2000,  ton: 6.8,  usdt: 31 },
   xl: { key: 'xl', emoji: '💎', name: 'Сокровище', stars: 5000, xtr: 5000,  ton: 16.5, usdt: 75 }
 };
+// Задания. Наград за пополнение здесь намеренно нет: подталкивать заданиями
+// к оплате — первое, за что цепляется модерация. Всё, что можно выполнить, —
+// это играть, приглашать и возвращаться.
+//   goal — сколько нужно; metric — что именно считаем на сервере;
+//   reward — сколько ⭐ начислим; go — экран, куда отправить игрока.
+const TASKS = [
+  { grp: 'daily', icon: '🎮', key: 'play3',    metric: 'played_today', goal: 3,   reward: 15,  go: 'games' },
+  { grp: 'daily', icon: '👋', key: 'visit',    metric: 'visit_today',  goal: 1,   reward: 5,   go: 'home' },
+  { grp: 'daily', icon: '⚔️', key: 'pvp1',     metric: 'pvp_today',    goal: 1,   reward: 10,  go: 'pvp' },
+  { grp: 'once',  icon: '🕹', key: 'play25',   metric: 'played',       goal: 25,  reward: 100, go: 'games' },
+  { grp: 'once',  icon: '🏆', key: 'win1000',  metric: 'won',          goal: 1000, reward: 150, go: 'games' },
+  { grp: 'once',  icon: '👥', key: 'ref3',     metric: 'refs',         goal: 3,   reward: 200, go: 'refs' },
+  { grp: 'once',  icon: '🎁', key: 'case1',    metric: 'cases',        goal: 1,   reward: 50,  go: 'gifts' }
+];
+const TASK_GROUPS = { daily: { icon: '📅', key: 'daily' }, once: { icon: '🎯', key: 'once' } };
+function taskByKey(k) { return TASKS.filter((t) => t.key === k)[0] || null; }
+
 const PAY_METHODS = ['xtr', 'ton', 'usdt'];
 function packPublic(p) {
   return { key: p.key, emoji: p.emoji, name: p.name, stars: p.stars,
@@ -964,6 +981,91 @@ module.exports = async (req, res) => {
     }
 
     // ---------------------------------------------------------
+    //  TASKS — задания и прогресс по ним.
+    //  Прогресс считает сервер из того, что уже есть в базе (ставки, рефералы,
+    //  кейсы), а не из счётчиков, которые пришлёт клиент: иначе «выполнил»
+    //  подделывается одним запросом.
+    // ---------------------------------------------------------
+    if (action === 'tasks' || action === 'task_claim') {
+      const claimed = await sbGet('shark_task_claims?tg_id=eq.' + me.id + '&select=task_key,created_at,reward');
+      const doneMap = {};
+      claimed.forEach((c) => { doneMap[c.task_key] = c.created_at; });
+
+      // Метрики. Дневные считаем от начала суток UTC — граница должна быть
+      // одна для всех, иначе задание «сыграй 3 раза» обнуляется у каждого в
+      // своё время и спор с игроком не разрешить.
+      const dayStart = new Date(); dayStart.setUTCHours(0, 0, 0, 0);
+      const dIso = dayStart.toISOString();
+      const [playedToday, pvpToday, casesCnt, refsCnt] = await Promise.all([
+        sbCount('shark_bets?select=id&tg_id=eq.' + me.id + '&created_at=gte.' + dIso),
+        sbCount('shark_pvp_bets?select=id&tg_id=eq.' + me.id + '&created_at=gte.' + dIso),
+        sbCount('shark_gifts?select=id&tg_id=eq.' + me.id),
+        sbCount('shark_referrals?select=invited_tg&inviter_tg=eq.' + me.id)
+      ]);
+      const M = {
+        played_today: playedToday,
+        pvp_today: pvpToday,
+        visit_today: 1,                       // сам факт открытия приложения
+        played: starInt(user.played),
+        won: starInt(user.won_stars),
+        cases: casesCnt,
+        refs: refsCnt
+      };
+      const progressOf = (t) => starInt(M[t.metric]);
+      const readyOf = (t) => progressOf(t) >= t.goal;
+
+      if (action === 'task_claim') {
+        const t = taskByKey(String(body.task || ''));
+        if (!t) { json(res, 200, { ok: false, reason: 'bad_task' }); return; }
+        // Дневные задания можно забрать раз в сутки, разовые — один раз за всё
+        // время. И то и другое держится на уникальном ключе в базе, а не на
+        // проверке здесь: два быстрых тапа иначе начислят дважды.
+        const idemKey = t.grp === 'daily'
+          ? 'task:' + t.key + ':' + me.id + ':' + dIso.slice(0, 10)
+          : 'task:' + t.key + ':' + me.id;
+        if (doneMap[t.key] && (t.grp !== 'daily' || doneMap[t.key] >= dIso)) {
+          json(res, 200, { ok: false, reason: 'already' }); return;
+        }
+        if (!readyOf(t)) { json(res, 200, { ok: false, reason: 'not_ready' }); return; }
+
+        const ins = await sb('shark_task_claims', {
+          method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
+          body: JSON.stringify({ tg_id: me.id, task_key: t.key, idem: idemKey, reward: t.reward })
+        });
+        const row = Array.isArray(ins.data) ? ins.data[0] : null;
+        if (!row) { json(res, 200, { ok: false, reason: 'already' }); return; }
+
+        const cr = await applyLedger(me.id, 'stars', t.reward, 'task', 'task:' + t.key, idemKey,
+          { task: t.key, reward: t.reward });
+        if (!cr.ok) { json(res, 200, { ok: false, reason: 'credit_failed' }); return; }
+        const fresh = await freshUser();
+        json(res, 200, { ok: true, task: t.key, reward: t.reward, user: publicUser(fresh) });
+        return;
+      }
+
+      const groups = ['daily', 'once'].map((g) => ({
+        key: g, icon: TASK_GROUPS[g].icon,
+        tasks: TASKS.filter((t) => t.grp === g).map((t) => {
+          const isClaimed = !!doneMap[t.key] && (t.grp !== 'daily' || doneMap[t.key] >= dIso);
+          return {
+            key: t.key, icon: t.icon, goal: t.goal, reward: t.reward, go: t.go,
+            progress: progressOf(t), ready: readyOf(t), claimed: isClaimed
+          };
+        })
+      })).filter((g) => g.tasks.length);
+
+      const all = groups.reduce((a, g) => a.concat(g.tasks), []);
+      json(res, 200, {
+        ok: true, groups,
+        done: all.filter((x) => x.claimed).length,
+        total: all.length,
+        // сколько ⭐ уже принесли задания за всё время
+        earned: claimed.reduce((a, c) => a + starInt(c.reward), 0)
+      });
+      return;
+    }
+
+    // ---------------------------------------------------------
     //  ADMIN_STATS — сводка по игрокам и обороту
     // ---------------------------------------------------------
     if (action === 'admin_stats') {
@@ -1205,19 +1307,22 @@ module.exports = async (req, res) => {
     // того, что заработали, поэтому реферальная программа не может уйти в
     // минус независимо от поведения игрока.
     //
-    //  revenue — доход платформы по конкретной завершённой сессии, в ⭐.
-    //  Ноль или минус (игрок выиграл) — не платим ничего.
+    //  spent — сколько ⭐ приглашённый потратил в этой сессии (его вход).
+    //  Платим долю от ПОТРАЧЕННОГО, а не от дохода платформы.
     //  idem — ключ, привязанный к самой сессии, поэтому повторная обработка
     //  того же раунда не начисляет второй раз.
     //
-    //  Инвариант: выплата = floor(доход × процент / 100) при проценте не выше
-    //  100, значит она НИКОГДА не превышает доход по этой сессии.
-    async function payRefRevenue(invitedTg, inviterTg, revenue, idem, meta) {
-      if (!inviterTg || !(revenue > 0) || REF_PCT <= 0) return 0;
-      const cut = Math.floor(revenue * REF_PCT / 100);
-      if (cut <= 0 || cut > revenue) return 0;          // страховка на случай кривого процента
+    //  ВНИМАНИЕ ПРО ЭКОНОМИКУ: доля считается от оборота, а не от заработка.
+    //  Преимущество дома — около 5%, поэтому 10% от потраченного означает, что
+    //  на каждую заработанную звезду выплачивается примерно две. Программа
+    //  прибыльна только при referral_share_percent НИЖЕ преимущества дома.
+    //  Значение берётся из конфига, чтобы его можно было поправить без деплоя.
+    async function payRefRevenue(invitedTg, inviterTg, spent, idem, meta) {
+      if (!inviterTg || !(spent > 0) || REF_PCT <= 0) return 0;
+      const cut = Math.floor(spent * REF_PCT / 100);
+      if (cut <= 0) return 0;
       const r = await applyLedger(inviterTg, 'stars', cut, 'referral',
-        'revenue:' + invitedTg, idem, Object.assign({ from: invitedTg, revenue, pct: REF_PCT }, meta || {}));
+        'spent:' + invitedTg, idem, Object.assign({ from: invitedTg, spent, pct: REF_PCT }, meta || {}));
       return r.ok ? cut : 0;
     }
 
@@ -1260,10 +1365,13 @@ module.exports = async (req, res) => {
     // Выплата рефереру по завершённой игровой сессии одного игрока.
     // Один вход для краша и рулетки: обе считают доход одинаково —
     // ставка минус выплата.
+    //  bet — потраченное игроком, payout оставлен в подписи ради читаемости
+    //  вызовов и попадает в meta: по нему потом видно, была ли сессия для
+    //  платформы прибыльной, хотя на размер выплаты он больше не влияет.
     async function settleGameRevenue(u, bet, payout, idem, meta) {
       if (!u || !u.ref_by) return 0;
-      const revenue = bet - payout;
-      const paid = await payRefRevenue(u.tg_id, u.ref_by, revenue, idem, meta);
+      const paid = await payRefRevenue(u.tg_id, u.ref_by, bet, idem,
+        Object.assign({ payout }, meta || {}));
       if (paid > 0) await bumpRefEarned(u.ref_by, u.tg_id, paid);
       return paid;
     }
@@ -1376,8 +1484,9 @@ module.exports = async (req, res) => {
       // пропорционально ставкам: чей вклад в банк больше, тот и принёс больше
       // рейка. Сумма долей не превышает удержанного, потому что доли — части
       // одного и того же числа.
-      const rakeKept = pot - payout;
-      if (rakeKept > 0 && pot > 0) {
+      // Доля считается от входа каждого игрока, поэтому наличие рейка больше
+      // не условие выплаты: играли — значит потратили.
+      if (pot > 0) {
         const real = bets.filter((b) => b.tg_id);
         if (real.length) {
           const us = await sbGet('shark_users?tg_id=in.(' + real.map((b) => b.tg_id).join(',') + ')&select=tg_id,ref_by');
@@ -1385,7 +1494,7 @@ module.exports = async (req, res) => {
           for (const b of real) {
             const inviter = refOf[b.tg_id];
             if (!inviter) continue;
-            const mine = Math.floor(rakeKept * starInt(b.stake) / pot);
+            const mine = starInt(b.stake);
             const paidRef = await payRefRevenue(b.tg_id, inviter, mine, 'ref_rev:pvp:' + r.id + ':' + b.tg_id,
               { game: 'pvp', round: r.id });
             if (paidRef > 0) await bumpRefEarned(inviter, b.tg_id, paidRef);

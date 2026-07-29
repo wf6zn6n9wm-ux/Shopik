@@ -87,10 +87,9 @@ async function resolveRound(round, stale) {
   for (const b of bets) { if (b.tg_id) await bumpPlayed(b.tg_id, 1, 0); }
 
   // Реферальные выплаты — те же правила, что в api/shark.js: доля от
-  // удержанного рейка, пропорционально ставкам. Если бы cron их не делал,
-  // раунды, дорешанные им, молча теряли бы начисления рефереру.
-  const held = pot - (winner ? winner.payout : 0);
-  if (held > 0 && pot > 0) {
+  // ПОТРАЧЕННОГО игроком, а не от рейка. Если бы cron их не делал, раунды,
+  // дорешанные им, молча теряли бы начисления рефереру.
+  if (pot > 0) {
     const real = bets.filter((b) => b.tg_id);
     if (real.length) {
       const cfg = await sbGet('shark_config?id=eq.1&select=data');
@@ -101,10 +100,10 @@ async function resolveRound(round, stale) {
         for (const b of real) {
           const inviter = refOf[b.tg_id];
           if (!inviter) continue;
-          const mine = Math.floor(held * starInt(b.stake) / pot);
+          const mine = starInt(b.stake);
           const cut = Math.floor(mine * pct / 100);
-          if (cut > 0 && cut <= mine) {
-            await applyLedger(inviter, 'stars', cut, 'referral', 'revenue:' + b.tg_id,
+          if (cut > 0) {
+            await applyLedger(inviter, 'stars', cut, 'referral', 'spent:' + b.tg_id,
               'ref_rev:pvp:' + r.id + ':' + b.tg_id, { from: b.tg_id, game: 'pvp', round: r.id, pct });
           }
         }

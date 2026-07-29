@@ -47,7 +47,7 @@ create table if not exists shark_ledger (
   tg_id      bigint not null references shark_users(tg_id),
   currency   text   not null check (currency in ('stars','ton','uah')),
   amount     numeric(20,9) not null,                   -- + начисление, − списание
-  kind       text   not null,                          -- referral|bet|win|claim_hold|claim_return|gift|topup|adjust
+  kind       text   not null,                          -- referral|bet|win|claim_hold|claim_return|task|gift|topup|adjust
   ref        text,                                     -- ссылка на сущность (id вывода/раунда)
   idem       text   unique,                            -- ключ идемпотентности (может быть null для «всегда уникальных»)
   meta       jsonb  not null default '{}',
@@ -90,6 +90,20 @@ create index if not exists shark_claims_status_idx on shark_claims(status, creat
 -- кто их разбирает. Частичный уникальный индекс — самая надёжная защита.
 create unique index if not exists shark_claims_one_open_idx
   on shark_claims(tg_id) where status in ('new','in_review');
+
+-- ---------- забранные награды за задания --------------------------------------
+--  Уникальный idem — это и есть защита от двойного начисления: дневное задание
+--  получает ключ с датой, разовое — без неё, поэтому «забрать дважды» ломается
+--  на индексе, а не на проверке в коде.
+create table if not exists shark_task_claims (
+  id         bigint generated always as identity primary key,
+  tg_id      bigint not null references shark_users(tg_id),
+  task_key   text   not null,
+  idem       text   not null unique,
+  reward     bigint not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists shark_task_claims_tg_idx on shark_task_claims(tg_id, created_at desc);
 
 -- ---------- заказы на наборы звёзд -------------------------------------------
 --  Нужны только для оплаты через Telegram Stars: зачисление приходит вебхуком,
