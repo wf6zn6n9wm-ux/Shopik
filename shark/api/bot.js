@@ -259,13 +259,16 @@ async function handleCallback(cq) {
     if (!wd) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Заявка не найдена', show_alert: true }); return; }
     if (wd.status !== 'pending') { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Уже обработана: ' + wd.status, show_alert: true }); return; }
 
-    // Новые заявки в TON, но в базе могут висеть незакрытые грн-заявки времён
-    // старой экономики. Возвращать надо ровно ту валюту, которую списали,
-    // поэтому смотрим на заполненную колонку суммы, а не на текущий режим.
-    const isTon = wd.amount_ton != null;
-    const amt = isTon ? Number(wd.amount_ton) : Number(wd.amount_uah);
-    const cur = isTon ? 'ton' : 'uah';
-    const label = isTon ? (amt + ' TON') : (amt.toFixed(2) + ' грн');
+    // Выводов бывает только один вид — TON. Незакрытые заявки старой экономики
+    // закрывает миграция Э6; если такая всё же попалась, отказываемся вслух:
+    // вернуть гривны некуда, гривневого баланса больше нет.
+    if (wd.amount_ton == null) {
+      await tg('answerCallbackQuery', { callback_query_id: cq.id,
+        text: 'Заявка старой экономики — закройте её через миграцию', show_alert: true });
+      return;
+    }
+    const amt = Number(wd.amount_ton);
+    const label = amt + ' TON';
 
     if (kind === 'wd_ok') {
       await sbPatch('shark_withdrawals?id=eq.' + id + '&status=eq.pending', { status: 'paid', decided_at: new Date().toISOString(), decided_by: fromId });
@@ -274,7 +277,7 @@ async function handleCallback(cq) {
       await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отмечено выплаченным' });
     } else {
       // отклонение → вернуть на баланс
-      await applyLedger(wd.tg_id, cur, amt, 'withdraw_refund', 'wd:' + id, 'wd_refund:' + id, {});
+      await applyLedger(wd.tg_id, 'ton', amt, 'withdraw_refund', 'wd:' + id, 'wd_refund:' + id, {});
       await sbPatch('shark_withdrawals?id=eq.' + id + '&status=eq.pending', { status: 'rejected', decided_at: new Date().toISOString(), decided_by: fromId });
       await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n❌ ОТКЛОНЕНО, средства возвращены (' + fromId + ')' });
       await tg('sendMessage', { chat_id: wd.tg_id, text: '❌ Заявка на вывод ' + label + ' отклонена. Средства возвращены на баланс.' });

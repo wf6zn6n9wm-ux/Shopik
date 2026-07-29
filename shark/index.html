@@ -33,8 +33,7 @@
   .live .pulse{width:7px;height:7px;border-radius:50%;background:var(--danger);animation:pulse 1.2s infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
   .wallet{display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:999px;font-weight:700;font-size:15px;border:1px solid var(--line);cursor:pointer;}
-  .wallet.money{background:linear-gradient(120deg,#0f3a37,#103048);color:var(--foam);}
-  .wallet.stars{background:var(--deep2);}
+  .wallet.ton{background:linear-gradient(120deg,#0f3a37,#103048);color:var(--foam);}
   .wallet .add{width:22px;height:22px;border-radius:50%;background:var(--aqua);color:#03241f;display:grid;place-items:center;font-weight:900;}
   .spacer{flex:1;}
   .backbtn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:var(--deep2);border:1px solid var(--line);font-weight:700;font-size:14px;cursor:pointer;}
@@ -368,7 +367,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 
 /* кошельки-чипы */
 .wallet{border-radius:999px;border:1px solid var(--glass-brd);background:var(--glass-bg);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 0 1px 0 var(--glass-hi);}
-.wallet.money{background:linear-gradient(120deg,rgba(16,58,55,.6),rgba(16,48,72,.55));}
+.wallet.ton{background:linear-gradient(120deg,rgba(16,58,55,.6),rgba(16,48,72,.55));}
 .wallet .add{background:var(--grad-aqua);color:#04241f;}
 
 /* таб-бар: стекло + светящийся активный */
@@ -402,10 +401,13 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 .hero-online{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--foam);background:rgba(62,224,163,.12);border:1px solid rgba(62,224,163,.28);padding:6px 11px;border-radius:999px;white-space:nowrap;}
 .dot-live{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(62,224,163,.6);animation:ping 1.6s infinite;}
 @keyframes ping{0%{box-shadow:0 0 0 0 rgba(62,224,163,.5);}70%{box-shadow:0 0 0 7px rgba(62,224,163,0);}100%{box-shadow:0 0 0 0 rgba(62,224,163,0);}}
-.hero-bal{display:flex;align-items:baseline;gap:12px;margin:16px 0 16px;position:relative;z-index:1;}
-.hero-bal-main{display:inline-flex;align-items:center;gap:10px;font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;}
+/* Подпись под балансом — предложение, а не короткая вторая сумма, поэтому
+   она идёт своей строкой: рядом с 44-пиксельной цифрой она бы рвалась. */
+.hero-bal{display:block;margin:16px 0 16px;position:relative;z-index:1;}
+.hero-bal-main{display:flex;align-items:center;gap:10px;font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;}
+.hero-bal-main .mono{min-width:0;overflow:hidden;text-overflow:ellipsis;}
 .hero-bal-main small{font-size:15px;font-weight:700;color:var(--muted);letter-spacing:0;align-self:center;}
-.hero-bal-sub{font-size:15px;color:var(--foam);font-weight:700;opacity:.85;}
+.hero-bal-sub{margin-top:7px;font-size:12.5px;line-height:1.4;color:var(--foam);font-weight:600;opacity:.75;}
 .hero-actions{display:flex;flex-direction:column;gap:10px;position:relative;z-index:1;}
 .hero-actions .btn-primary{padding:16px;font-size:16.5px;}
 .hero-next{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);font-weight:600;justify-content:center;padding:6px;cursor:pointer;}
@@ -416,6 +418,15 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
   background:var(--grad-gold);-webkit-mask:var(--star-mask) center/contain no-repeat;mask:var(--star-mask) center/contain no-repeat;
   filter:drop-shadow(0 6px 12px rgba(255,175,60,.5));}
 :root{--star-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77 5.82 21l1.18-6.88-5-4.87 7.1-1.01z'/%3E%3C/svg%3E");}
+
+/* иконка-ромб TON. Отдельная от звезды и по форме, и по цвету: звезда теперь
+   значит ровно одно — цену кейса, и спутать её с игровым балансом нельзя. */
+:root{--ton-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 22 L2.2 8.4 L6.6 2.6 L17.4 2.6 L21.8 8.4 Z'/%3E%3C/svg%3E");}
+.ic-ton{width:42px;height:42px;display:inline-block;flex:none;
+  background:var(--grad-aqua);-webkit-mask:var(--ton-mask) center/contain no-repeat;mask:var(--ton-mask) center/contain no-repeat;
+  filter:drop-shadow(0 6px 12px rgba(47,212,196,.42));}
+.ton-ic{width:1em;height:1em;display:inline-block;vertical-align:-.12em;flex:none;
+  background:var(--grad-aqua);-webkit-mask:var(--ton-mask) center/contain no-repeat;mask:var(--ton-mask) center/contain no-repeat;}
 
 /* ---------- PVP featured на главной ---------- */
 .pvp-feat{position:relative;overflow:hidden;border-radius:var(--radius-lg);padding:18px;margin-bottom:12px;cursor:pointer;
@@ -972,6 +983,28 @@ input:focus{border-color:var(--aqua);}
 .gft-act[disabled]{opacity:.5;cursor:default;}
 .gft-soon{margin-top:9px;font-size:11.5px;color:var(--muted);line-height:1.45;}
 .gft-foot{margin:14px 2px 0;font-size:11.5px;color:var(--muted);line-height:1.5;}
+/* --- кейсы (Э6): звёзды живут только здесь --- */
+.cs-note{display:flex;gap:9px;align-items:flex-start;padding:11px 13px;margin-bottom:14px;
+  background:rgba(255,194,75,.06);border:1px solid rgba(255,194,75,.2);border-radius:14px;
+  font-size:12.5px;line-height:1.5;color:var(--muted);}
+.cs-note .an-ic{flex:none;}
+.gft-link{font-size:13px;font-weight:700;color:var(--aqua);cursor:pointer;padding:8px 12px;
+  border:1px solid var(--line);border-radius:999px;background:var(--surface);}
+.cs{position:relative;overflow:hidden;padding:14px;border-radius:18px;cursor:pointer;
+  background:var(--surface);border:1px solid var(--line);text-align:center;}
+.cs:active{transform:scale(.98);}
+.cs .cs-ic{font-size:34px;line-height:1;margin-bottom:8px;}
+.cs .cs-nm{font-size:15px;font-weight:800;}
+.cs .cs-sub{margin-top:3px;font-size:11.5px;color:var(--muted);}
+.cs .cs-px{margin-top:10px;font-size:15px;font-weight:800;color:var(--gold);}
+.cs .cs-best{margin-top:6px;font-size:11px;color:var(--muted);}
+.cs-drop{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);}
+.cs-drop:first-child{border-top:0;}
+.cs-drop .cd-e{font-size:20px;flex:none;width:26px;text-align:center;}
+.cs-drop .cd-n{flex:1;min-width:0;font-size:13.5px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cs-drop .cd-v{flex:none;font-size:13px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;}
+.cs-drop .cd-c{flex:none;width:52px;text-align:right;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;}
 .gft-err{text-align:center;padding:26px 16px;border:1px solid var(--line);border-radius:18px;}
 .gft-err p{margin:0 0 12px;font-size:13.5px;color:var(--muted);line-height:1.55;}
 .gft-ph{text-align:center;color:var(--muted);padding:34px 14px;font-size:13.5px;line-height:1.6;
@@ -1315,7 +1348,7 @@ input:focus{border-color:var(--aqua);}
 <!-- ИГРЫ / ГЛАВНАЯ -->
 <div class="screen active" id="s-home">
   <div class="home-top">
-    <div class="home-top-pill"><span class="ic-star" style="width:18px;height:18px"></span><span class="mono" data-stars>0</span></div>
+    <div class="home-top-pill"><span class="ic-ton" style="width:18px;height:18px"></span><span class="mono" data-ton>0</span></div>
     <div class="home-top-pill"><span class="dot-live"></span>&nbsp;<span id="online" class="mono">—</span></div>
     <div class="spacer"></div>
     <div class="home-profile-btn" onclick="go('profile')">🦈</div>
@@ -1326,8 +1359,8 @@ input:focus{border-color:var(--aqua);}
       <div class="hero-greet"><span class="hero-hi" id="greet">С возвращением</span><span class="hero-name" id="hero-name">Игрок</span></div>
     </div>
     <div class="hero-bal">
-      <div class="hero-bal-main"><span class="ic-star"></span><span class="mono" data-stars>0</span><small id="i-stars-lbl">звёзд</small></div>
-      <div class="hero-bal-sub"><span class="mono" data-money>0.00</span> <span id="i-uah-lbl">грн</span></div>
+      <div class="hero-bal-main"><span class="ic-ton"></span><span class="mono" data-ton>0</span><small id="i-ton-lbl">TON</small></div>
+      <div class="hero-bal-sub" id="i-hero-bal-sub">Игровой баланс · пополнение и вывод в TON</div>
     </div>
     <div class="hero-actions">
       <button class="btn-primary btn-glow" onclick="go('pvp')" id="i-play-now">Играть сейчас</button>
@@ -1361,14 +1394,14 @@ input:focus{border-color:var(--aqua);}
   </div>
 
   <div class="home-section">
-    <div class="home-section-head"><h3 id="i-home-shop-h">Магазин</h3><a onclick="go('shop')" id="i-home-shop-all">Все →</a></div>
+    <div class="home-section-head"><h3 id="i-home-shop-h">Кейсы</h3><a onclick="go('shop')" id="i-home-shop-all">Все →</a></div>
     <div class="hp-shop-grid" id="home-shop-preview"></div>
   </div>
 </div>
 
 <!-- ИГРЫ (Рулетка + Краш в одном разделе) -->
 <div class="screen" id="s-games">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet ton"><span class="ton-ic"></span><span class="mono" data-ton>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
   <h1 class="title" id="i-games-h1">Игры</h1>
   <div class="seg" id="games-seg">
     <button class="active" data-gtab="crash" onclick="setGameTab('crash')">🦈 <span id="i-crash-tab">Краш</span></button>
@@ -1379,8 +1412,8 @@ input:focus{border-color:var(--aqua);}
   <div id="game-roul">
     <p class="sub" id="i-roul-sub">Крути за звёзды — выигрывай подарки. Вывести звёзды в деньги нельзя.</p>
     <div class="roul-stage"><div class="roul-pointer"></div><div class="roul-strip" id="strip"></div></div>
-    <div class="bet-row"><span style="font-weight:700" id="i-bet-lbl2">Ставка:</span><div class="chip" data-bet="50" onclick="setBet(50)"><i class="star-ic"></i>50</div><div class="chip" data-bet="100" onclick="setBet(100)"><i class="star-ic"></i>100</div><div class="chip" data-bet="250" onclick="setBet(250)"><i class="star-ic"></i>250</div></div>
-    <button class="btn-primary" id="spin-btn" onclick="spin()">Крутить за ⭐50</button>
+    <div class="bet-row" id="roul-bets"><span style="font-weight:700" id="i-bet-lbl2">Ставка:</span></div>
+    <button class="btn-primary" id="spin-btn" onclick="spin()">Крутить</button>
     <div class="players" id="roul-players" style="margin-top:14px"></div>
   </div>
 
@@ -1409,7 +1442,7 @@ input:focus{border-color:var(--aqua);}
         </div>
       </div>
     </div>
-    <div class="bet-row"><span style="font-weight:700" id="i-bet-lbl3">Ставка:</span><div class="chip" data-cbet="50" onclick="setCBet(50)"><i class="star-ic"></i>50</div><div class="chip" data-cbet="100" onclick="setCBet(100)"><i class="star-ic"></i>100</div><div class="chip" data-cbet="250" onclick="setCBet(250)"><i class="star-ic"></i>250</div><div class="chip" data-cbet="500" onclick="setCBet(500)"><i class="star-ic"></i>500</div><div class="chip" data-cbet="1000" onclick="setCBet(1000)"><i class="star-ic"></i>1000</div></div>
+    <div class="bet-row" id="crash-bets"><span style="font-weight:700" id="i-bet-lbl3">Ставка:</span></div>
     <div class="cr-auto">
       <span class="cr-auto-lbl" id="i-auto-cashout-lbl">Авто-вывод</span>
       <div class="cr-stepper">
@@ -1420,18 +1453,20 @@ input:focus{border-color:var(--aqua);}
       </div>
       <label class="cr-switch"><input type="checkbox" id="auto-chk"><span class="cr-switch-track"></span></label>
     </div>
-    <button class="btn-primary" id="crash-btn" onclick="crashAction()">Поставить ⭐50 на след. раунд</button>
+    <button class="btn-primary" id="crash-btn" onclick="crashAction()">Поставить на след. раунд</button>
     <div class="players" id="crash-players" style="margin-top:14px"></div>
   </div>
 </div>
 
 <!-- PVP · БИТВА -->
 <div class="screen" id="s-pvp">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet ton"><span class="ton-ic"></span><span class="mono" data-ton>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
     <linearGradient id="pxGold" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffe49a"/><stop offset="1" stop-color="#ffa724"/></linearGradient>
+    <linearGradient id="pxTon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8ff5e8"/><stop offset="1" stop-color="#22b6a8"/></linearGradient>
     <linearGradient id="pxJaw" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#c7dde8"/><stop offset=".5" stop-color="#edf7fc"/><stop offset="1" stop-color="#7e9dae"/></linearGradient>
   </defs></svg>
@@ -1444,7 +1479,7 @@ input:focus{border-color:var(--aqua);}
       <div class="px-live" id="px-live"><i></i>LIVE</div>
       <div class="px-lbl" id="px-lbl">Общий банк</div>
       <div class="px-sum" id="px-sum">
-        <svg viewBox="0 0 24 24"><path fill="url(#pxGold)" d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77 5.82 21l1.18-6.88-5-4.87 7.1-1.01z"/></svg>
+        <svg viewBox="0 0 24 24"><path fill="url(#pxTon)" d="M12 22 L2.2 8.4 L6.6 2.6 L17.4 2.6 L21.8 8.4 Z"/></svg>
         <span class="mono" id="px-pot-n">0</span>
       </div>
       <div class="px-sub mono" id="px-sub">Ждём игроков</div>
@@ -1494,12 +1529,8 @@ input:focus{border-color:var(--aqua);}
 
   <!-- ставка и вход -->
   <div class="px-dock">
-    <div class="px-chips">
-      <div class="chip" data-pbet="50" onclick="setPBet(50)"><i class="star-ic"></i>50</div>
-      <div class="chip" data-pbet="100" onclick="setPBet(100)"><i class="star-ic"></i>100</div>
-      <div class="chip" data-pbet="250" onclick="setPBet(250)"><i class="star-ic"></i>250</div>
-    </div>
-    <button class="btn-primary" id="px-cta" onclick="pvpJoin()">Войти в битву · ⭐50</button>
+    <div class="px-chips" id="px-chips"></div>
+    <button class="btn-primary" id="px-cta" onclick="pvpJoin()">Войти в битву</button>
   </div>
 
   <div class="px-flash" id="px-flash"></div>
@@ -1529,10 +1560,12 @@ input:focus{border-color:var(--aqua);}
 
 <!-- МАГАЗИН -->
 <div class="screen" id="s-shop">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div><div class="wallet stars"><span>⭐</span><span class="mono" data-stars>0</span></div></div>
-  <h1 class="title" id="i-shop-h1">Магазин подарков</h1>
-  <p class="sub" id="i-shop-sub">Трать заработанные и выигранные звёзды на подарки</p>
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div><div class="gft-link" onclick="go('gifts')">🎁 <span id="i-shop-inv">Инвентарь</span></div></div>
+  <h1 class="title" id="i-shop-h1">Кейсы с подарками</h1>
+  <p class="sub" id="i-shop-sub">Открывай кейсы за Telegram Stars — внутри подарки Telegram</p>
+  <div class="cs-note"><span class="an-ic">⭐</span><span id="i-shop-note">Кейс оплачивается звёздами напрямую в Telegram. Игровой баланс TON при этом не тратится.</span></div>
   <div class="grid2" id="shop-grid"></div>
+  <p class="gft-foot" id="i-shop-foot">Выпавший подарок сразу попадёт в ваш инвентарь.</p>
 </div>
 
 <!-- ПРОФИЛЬ -->
@@ -1550,17 +1583,16 @@ input:focus{border-color:var(--aqua);}
   </div>
   <div class="stats">
     <div class="stat"><div class="sv mono" id="st-played">0</div><div class="sl" id="i-st-played-lbl">Сыграно</div></div>
-    <div class="stat"><div class="sv mono" id="st-won">0</div><div class="sl" id="i-st-won-lbl">Выиграно ⭐</div></div>
+    <div class="stat"><div class="sv mono" id="st-won">0</div><div class="sl" id="i-st-won-lbl">Выиграно TON</div></div>
     <div class="stat"><div class="sv mono" id="st-rank">—</div><div class="sl" id="i-st-rank-lbl">Место</div></div>
   </div>
 
+  <!-- один баланс: TON. Играем, пополняем и выводим одной валютой, поэтому
+       делить экран на «для игр» и «для вывода» больше нечего. -->
   <div class="panel">
-    <div class="balance-big"><div class="v mono" data-money-big>0.00</div><div class="l" id="i-bal-money-lbl">Баланс для вывода (заработок)</div><div class="conv" data-money-usdt>≈ 0.00 USDT</div></div>
-    <button class="btn-primary" onclick="openWithdraw()" id="i-withdraw-btn">Вывести деньги</button>
-  </div>
-  <div class="panel">
-    <div class="balance-big"><div class="v mono" data-stars-big>0</div><div class="l" id="i-bal-stars-lbl">Звёзды для игр</div></div>
-    <button class="btn-ghost" onclick="openBuyStars()" id="i-topup-btn">Пополнить звёзды</button>
+    <div class="balance-big"><div class="v mono" data-ton-big>0.00</div><div class="l" id="i-bal-ton-lbl">Игровой баланс</div><div class="conv" id="i-bal-ton-note">Пополнение и вывод — только TON</div></div>
+    <button class="btn-primary" onclick="openTopup()" id="i-topup-btn">Пополнить</button>
+    <button class="btn-ghost" style="margin-top:10px" onclick="openWithdraw()" id="i-withdraw-btn">Вывести</button>
   </div>
 
   <!-- вход в админку: скрыт, пока сервер не подтвердит права -->
@@ -1588,9 +1620,9 @@ input:focus{border-color:var(--aqua);}
     <div class="ref-hero-ic"><svg viewBox="0 0 24 24" fill="#04241f"><circle cx="9" cy="8" r="3.4"/><path d="M3.4 19a5.6 5.6 0 0111.2 0 .8.8 0 01-.8.8H4.2a.8.8 0 01-.8-.8z"/><circle cx="17" cy="8.6" r="2.5"/><path d="M15.6 13.5A4.6 4.6 0 0121 17.6a.8.8 0 01-.8.8h-3c.06-1.9-.6-3.6-1.6-4.9z"/></svg></div>
     <div class="ref-hero-txt">
       <h3><span id="i-ref-hero-pre">Получай</span> <span class="ref-accent" id="ref-share">10%</span> <span id="i-ref-hero-post">приглашая друзей</span></h3>
-      <p class="ref-muted" id="i-ref-hero-muted">с пополнений звёзд друзей</p>
-      <p class="ref-line"><span id="i-ref-line-pre">А также по</span> <b><i class="star-ic"></i><span id="ref-per">5</span></b> <span id="i-ref-line-post">за каждого друга</span></p>
-      <p class="ref-cap"><span id="i-ref-cap-pre">но не более</span> <span id="ref-cap">50</span> <span id="i-ref-cap-mid">⭐ в день · и +</span><span id="ref-bonus">10</span> <span id="i-ref-cap-post">грн на вывод</span></p>
+      <p class="ref-muted" id="i-ref-hero-muted">от дохода платформы с их игры — в TON</p>
+      <p class="ref-line" id="i-ref-line">Друг проиграл — вы получили долю. Друг выиграл — вы ничего не теряете.</p>
+      <p class="ref-cap"><span id="i-ref-cap-pre">И разовый бонус</span> <b><i class="ton-ic"></i><span id="ref-bonus">0.05</span></b> <span id="i-ref-cap-post">за первое пополнение друга</span></p>
     </div>
   </div>
 
@@ -1601,9 +1633,9 @@ input:focus{border-color:var(--aqua);}
   </div>
 
   <div class="panel ref-stats">
-    <div class="ref-stat-row"><span id="i-ref-earned-lbl">Всего заработано</span><b><span class="mono" id="rf-earned-uah">0.00</span> грн · <span class="mono" id="rf-earned-stars">0</span> <i class="star-ic"></i></b></div>
+    <div class="ref-stat-row"><span id="i-ref-earned-lbl">Всего заработано</span><b><span class="mono" id="rf-earned-ton">0</span> <i class="ton-ic"></i></b></div>
     <div class="ref-div"></div>
-    <div class="ref-stat-row"><span id="i-ref-today-lbl">Сегодня начислено</span><b><span class="mono" id="rf-today">0</span> / <span class="mono" id="rf-today-cap">50</span> <i class="star-ic"></i></b></div>
+    <div class="ref-stat-row"><span id="i-ref-share-lbl">Ваша доля</span><b><span class="mono" id="rf-share">10</span>%</b></div>
   </div>
 
   <div class="ref-friends-head"><span id="i-ref-friends-head">Мои рефералы</span> <span class="ref-badge" id="rf-count">0</span></div>
@@ -1682,7 +1714,7 @@ input:focus{border-color:var(--aqua);}
            oninput="admPlQuery(this.value)">
     <div class="adm-chips" id="adm-sort">
       <button data-sort="seen" class="adm-chip on" type="button" onclick="admPlSort('seen')" id="i-adm-sort-seen">Активность</button>
-      <button data-sort="stars" class="adm-chip" type="button" onclick="admPlSort('stars')" id="i-adm-sort-stars">Звёзды</button>
+      <button data-sort="ton" class="adm-chip" type="button" onclick="admPlSort('ton')" id="i-adm-sort-ton">Баланс</button>
       <button data-sort="new" class="adm-chip" type="button" onclick="admPlSort('new')" id="i-adm-sort-new">Новые</button>
       <button data-sort="played" class="adm-chip" type="button" onclick="admPlSort('played')" id="i-adm-sort-played">Партии</button>
     </div>
@@ -1703,17 +1735,17 @@ input:focus{border-color:var(--aqua);}
   </div>
   <div class="adm-pane" id="adm-pane-grant">
     <div class="adm-card adm-gr-bal">
-      <div class="agb-v"><span id="adm-gr-bal">0</span> ⭐</div>
+      <div class="agb-v"><span id="adm-gr-bal">0</span> TON</div>
       <div class="agb-l" id="i-adm-gr-bal-lbl">Ваш баланс</div>
     </div>
     <div class="adm-card">
-      <input class="adm-inp adm-amt" id="adm-gr-amt" type="text" inputmode="numeric" autocomplete="off"
+      <input class="adm-inp adm-amt" id="adm-gr-amt" type="text" inputmode="decimal" autocomplete="off"
              placeholder="0" oninput="admGrInput(this.value)">
       <div class="adm-chips" id="adm-gr-chips">
+        <button class="adm-chip" type="button" onclick="admGrAdd(1)">+1</button>
+        <button class="adm-chip" type="button" onclick="admGrAdd(5)">+5</button>
+        <button class="adm-chip" type="button" onclick="admGrAdd(25)">+25</button>
         <button class="adm-chip" type="button" onclick="admGrAdd(100)">+100</button>
-        <button class="adm-chip" type="button" onclick="admGrAdd(500)">+500</button>
-        <button class="adm-chip" type="button" onclick="admGrAdd(1000)">+1000</button>
-        <button class="adm-chip" type="button" onclick="admGrAdd(5000)">+5000</button>
         <button class="adm-chip" type="button" onclick="admGrClear()" id="i-adm-gr-clear">Сброс</button>
       </div>
       <input class="adm-inp" id="adm-gr-note" type="text" maxlength="60" autocomplete="off" placeholder="Комментарий (необязательно)">
@@ -1738,22 +1770,22 @@ input:focus{border-color:var(--aqua);}
   <div class="onb-slide active" data-onb="0">
     <div class="onb-ic">🦈</div>
     <h2 id="onb-h-0">Добро пожаловать в Shark</h2>
-    <p id="onb-p-0">Играй на звёзды и выигрывай подарки. Два разных баланса — звёзды для игр и гривны для вывода.</p>
+    <p id="onb-p-0">Одна валюта — TON. Им играешь, его пополняешь и выводишь. Никаких промежуточных балансов.</p>
   </div>
   <div class="onb-slide" data-onb="1">
     <div class="onb-ic">⚔️</div>
     <h2 id="onb-h-1">PVP — битва за банк</h2>
-    <p id="onb-p-1">Главный режим: заходи в общий раунд, скидывайся в банк звёздами. Победитель забирает всё.</p>
+    <p id="onb-p-1">Главный режим: заходи в общий раунд, скидывайся в банк в TON. Победитель забирает всё.</p>
   </div>
   <div class="onb-slide" data-onb="2">
     <div class="onb-ic">🎮</div>
-    <h2 id="onb-h-2">Игры на звёзды</h2>
-    <p id="onb-p-2">Краш и рулетка — на звёзды ради азарта и подарков. Звёзды не выводятся в деньги, тратятся внутри.</p>
+    <h2 id="onb-h-2">Игры на TON</h2>
+    <p id="onb-p-2">Краш и рулетка — множители к ставке. Выигрыш сразу на баланс, оттуда же и вывод.</p>
   </div>
   <div class="onb-slide" data-onb="3">
-    <div class="onb-ic">💰</div>
-    <h2 id="onb-h-3">Друзья = деньги</h2>
-    <p id="onb-p-3">Приглашай друзей и получай гривны на баланс — их можно вывести на карту или в USDT. Поехали!</p>
+    <div class="onb-ic">🎁</div>
+    <h2 id="onb-h-3">Подарки Telegram</h2>
+    <p id="onb-p-3">Кейсы с подарками покупаются за Telegram Stars — отдельно от игрового баланса. Подарок падает в инвентарь. Поехали!</p>
   </div>
   <div class="onb-dots" id="onb-dots"></div>
   <button class="btn-primary" id="onb-btn" onclick="onbNext()">Далее</button>
@@ -1764,7 +1796,30 @@ input:focus{border-color:var(--aqua);}
 
 <script>
 "use strict";
-var USDT_RATE=45;
+
+/* ============ ДЕНЬГИ ============
+   Одна валюта: TON. Звёзды остались ровно в одном месте — цене кейса с
+   подарком Telegram, и на балансе их не бывает.
+
+   Считаем в нанотонах целыми числами, как сервер: 0.1+0.2 в double даёт
+   0.30000000000000004, и на длинной серии ставок баланс клиента разъезжается
+   с балансом базы. Показываем — уже десятичным TON.                        */
+var NANO=1e9;
+function toNano(t){ var n=Math.round(Number(t)*NANO); return isFinite(n)?n:0; }
+function fromNano(n){ return Math.round(Number(n)||0)/NANO; }
+
+/* Хвостовые нули режем, но не грубее 4 знаков: минимальная ставка 0.1, а
+   реферальная выплата бывает 0.05 — округление до сотых обнулило бы часть
+   начислений прямо в интерфейсе. minDp дополняет нулями балансы, чтобы
+   крупная цифра не прыгала между «12» и «12.5». */
+function tonFmt(n,minDp){
+  n=Number(n); if(!isFinite(n)) n=0;
+  var neg=n<0, s=Math.abs(n).toFixed(4).replace(/0+$/,'').replace(/\.$/,'');
+  var p=s.split('.'), dp=p[1]||'';
+  while(dp.length<(minDp||0)) dp+='0';
+  return (neg?'−':'')+admGroup(p[0])+(dp?'.'+dp:'');
+}
+function tonBal(n){ return tonFmt(n,2); }
 
 function sharkSVG(){
   return '<svg viewBox="0 0 100 70" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">'
@@ -1779,9 +1834,16 @@ function sharkSVG(){
 }
 
 /* ============ СОСТОЯНИЕ ============ */
-var S={money:0,stars:0,bet:50,cbet:50,doneTasks:{},joinedContests:{},cashedThisRound:false,
-       played:0,wonStars:0,refCount:0,refEarned:0,dailyOpened:false,streakDay:3,history:[],isPro:false,
+/* Балансы держим в нанотонах (tonN), наружу отдаём десятичным TON.
+   Ставки — тоже нанотоны: их сравнивают с балансом на каждом клике. */
+var S={tonN:0,betN:0,cbetN:0,doneTasks:{},joinedContests:{},cashedThisRound:false,
+       played:0,wonTonN:0,refCount:0,refEarnedTon:0,dailyOpened:false,streakDay:3,history:[],isPro:false,
        wheelSpun:false,achievements:{},firstWithdraw:false,onboarded:false,lang:'ru',soundPref:true,isAdmin:false};
+/* Читаемые псевдонимы: в коде экранов удобнее десятичные TON. */
+Object.defineProperty(S,'ton',{get:function(){ return fromNano(this.tonN); }});
+Object.defineProperty(S,'bet',{get:function(){ return fromNano(this.betN); }});
+Object.defineProperty(S,'cbet',{get:function(){ return fromNano(this.cbetN); }});
+Object.defineProperty(S,'wonTon',{get:function(){ return fromNano(this.wonTonN); }});
 
 /* ============================================================
    ЛОКАЛИЗАЦИЯ (uk по умолчанию, ru/en) — ключевые экраны:
@@ -1792,21 +1854,20 @@ var I18N={
   uk:{
     /* PVP — новый экран (Э5) */
     px_sub_waiting:'Чекаємо гравців', px_sub_join_tpl:'Увійдіть до кінця відліку · ставка <b>{bet}</b>', px_sub_in_tpl:'Ставка <b>{stake}</b> · шанс <b class="px-mn">{pct}%</b> · заберете <b>{payout}</b>', px_sub_won_tpl:'Забрали банк із шансом <b class="px-mn">{pct}%</b>', px_sub_lost:'Ваш квиток не випав', px_players_tpl:'{n} у раунді', px_game_tpl:'Гра #{id}', px_cta_join:'Увійти в битву', px_cta_wait:'Приймаємо ставку…', px_cta_spin:'Крутимо…', px_cta_over:'Раунд завершено', px_badge_spin:'РОЗІГРАШ', px_badge_won:'БАНК ВАШ', px_badge_lost:'БАНК ПІШОВ', px_lbl_won:'Ви забрали банк', px_lbl_lost_tpl:'{name} забирає',
-    greet:'З поверненням', online_lbl:'онлайн', stars_lbl:'зірок', uah_lbl:'грн',
+    greet:'З поверненням', online_lbl:'онлайн',
     play_now:'Грати зараз', next_draw:'Найближчий розіграш', next_hour:'через 1 годину', ingame_lbl:'у грі',
     pvp_title:'Битва за банк', pvp_desc:'Заходь у спільний раунд — переможець забирає весь банк', pvp_cta:'Увійти в битву →',
-    games_title:'Ігри', games_desc:'Краш і рулетка', upgrade_title:'Апгрейд', soon:'Скоро', upgrade_desc:'Примнож зірки',
-    upgrade_toast:'Апгрейд скоро — покращення подарунків за зірки',
-    tab_home:'Ігри', tab_contests:'Розіграші', tab_leaders:'Лідери', tab_shop:'Магазин', tab_profile:'Профіль',
-    onb_h0:'Ласкаво просимо в Shark', onb_p0:'Грай на зірки і вигравай подарунки. Два різних балансу — зірки для ігор і гривні для виведення.',
-    onb_h1:'PVP — битва за банк', onb_p1:'Головний режим: заходь у спільний раунд, скидайся в банк зірками. Переможець забирає все.',
-    onb_h2:'Ігри на зірки', onb_p2:'Краш і рулетка — на зірки заради азарту й подарунків. Зірки не виводяться в гроші, витрачаються всередині.',
-    onb_h3:'Друзі = гроші', onb_p3:'Запрошуй друзів і отримуй гривні на баланс — їх можна вивести на картку або в USDT. Поїхали!',
+    games_title:'Ігри', games_desc:'Краш і рулетка', upgrade_title:'Апгрейд', soon:'Скоро', upgrade_desc:'Примнож свій TON',
+    upgrade_toast:'Апгрейд скоро — покращення подарунків',
+    tab_home:'Ігри', tab_contests:'Розіграші', tab_leaders:'Лідери', tab_shop:'Кейси', tab_profile:'Профіль',
+    onb_h0:'Ласкаво просимо в Shark', onb_p0:'Одна валюта — TON. Ним граєш, його поповнюєш і виводиш. Жодних проміжних балансів.',
+    onb_h1:'PVP — битва за банк', onb_p1:'Головний режим: заходь у спільний раунд, скидайся в банк у TON. Переможець забирає все.',
+    onb_h2:'Ігри на TON', onb_p2:'Краш і рулетка — множники до ставки. Виграш одразу на баланс, звідти ж і виведення.',
+    onb_h3:'Подарунки Telegram', onb_p3:'Кейси з подарунками купуються за Telegram Stars — окремо від ігрового балансу. Подарунок падає в інвентар. Поїхали!',
     onb_next:'Далі', onb_start:'Почати',
     pvp_pot_lbl:'Спільний банк', bet_lbl:'Ставка:',
-    st_played:'Зіграно', st_won:'Виграно ⭐', st_rank:'Місце',
-    bal_money_lbl:'Баланс для виведення (заробіток)', withdraw_btn:'Вивести гроші',
-    bal_stars_lbl:'Зірки для ігор', topup_btn:'Поповнити зірки',
+    st_played:'Зіграно', st_won:'Виграно TON', st_rank:'Місце',
+    bal_money_lbl:'Баланс для виведення (заробіток)', withdraw_btn:'Вивести', topup_btn:'Поповнити',
     friends_btn:'Друзі', history_btn:'Історія', ach_btn:'Досягнення', settings_btn:'Налаштування',
     settings_h1:'Налаштування', lang_lbl:'Мова', lang_desc:'Інтерфейс застосунку',
     sound_lbl:'Звук', sound_desc:'Ефекти в іграх', notif_lbl:'Сповіщення', notif_desc:'Розіграші та важливі події',
@@ -1816,80 +1877,53 @@ var I18N={
     pvp_waiting_players:'Чекаємо гравців…',
     pvp_in_battle:'Ви в грі · чекаємо розіграшу',
     pvp_already:'Ви вже в цьому раунді',
-    pvp_mixed_admin:'Акаунт із ручним балансом не грає в одному раунді з живими гравцями',
-    pvp_no_stars:'Недостатньо зірок — поповніть баланс', pvp_closing:'Раунд закривається — зачекайте наступний',
+    pvp_mixed_admin:'Акаунт із ручним балансом не грає в одному раунді з живими гравцями', pvp_closing:'Раунд закривається — зачекайте наступний',
     pvp_bet_error:'Помилка ставки', pvp_bet_toast:'Ставка у банку! Чекаємо розіграшу.',
     lvl_names:['Малятко','Рибка','Мисливець','Хижак','Акула','Мегалодон'], lvl_prefix:'Рівень ',
     you_word:'Ви', player_default:'Гравець',
     pvp_claim_btn:'Забрати',
     games_screen_h1:'Ігри', crash_tab_lbl:'Краш', roul_tab_lbl:'Рулетка',
-    roul_sub:'Крути за зірки — вигравай подарунки. Вивести зірки в гроші не можна.',
-    spin_btn_tpl:'Крутити за ⭐{bet}', crash_next_round_tpl:'Наступний раунд через {n}…',
-    auto_cashout_lbl:'Авто-вивід на', crash_bet_btn_tpl:'Поставити ⭐{bet} на наст. раунд',
-    crash_bet_accepted_tpl:'Ставку прийнято ⭐{bet} · чекаємо старт', crash_cashout_btn_tpl:'Забрати ⭐{amt}',
+    roul_sub:'Крути на TON — множник застосовується до ставки',
+    spin_btn_tpl:'Крутити за {bet} TON', crash_next_round_tpl:'Наступний раунд через {n}…',
+    auto_cashout_lbl:'Авто-вивід на', crash_bet_btn_tpl:'Поставити {bet} TON на наст. раунд',
+    crash_bet_accepted_tpl:'Ставку прийнято {bet} TON · чекаємо старт', crash_cashout_btn_tpl:'Забрати {amt} TON',
     crash_round_live_lbl:'Раунд триває…', crash_round_over_lbl:'Раунд закінчено', crash_waiting_lbl:'Очікування',
     crash_flying_status:'Раунд триває — забирайте вчасно!', crash_crashed_status_tpl:'Полетіла на {x}x. Новий раунд скоро…',
-    crash_missed_toast_tpl:'Не встигли! Ставка ⭐{bet} згоріла на {x}x', crash_bet_toast_auto_tpl:'Ставка ⭐{bet}, авто-вивід на {x}x',
-    crash_bet_toast_tpl:'Ставку ⭐{bet} прийнято на наступний раунд', crash_cashout_toast_tpl:'Забрали ⭐{win} на {x}x!',
-    roul_win_sheet_title_tpl:'Ви виграли ⭐{win}!', roul_win_sheet_desc_tpl:'«{prize}» (ставка ⭐{bet}, множник x{mult}). Додано на ігровий баланс.',
+    crash_missed_toast_tpl:'Не встигли! Ставка {bet} TON згоріла на {x}x', crash_bet_toast_auto_tpl:'Ставка {bet} TON, авто-вивід на {x}x',
+    crash_bet_toast_tpl:'Ставку {bet} TON прийнято на наступний раунд', crash_cashout_toast_tpl:'Забрали {win} TON на {x}x!',
     roul_recent_spins_lbl:'Останні спіни', win_col_lbl:'Виграш',
     crash_players_header_tpl:'Гравці в раунді · {n}', crash_bet_payout_lbl:'Ставка · виплата',
     contests_h1:'Розіграші', contest_tab_active:'Активні', contest_tab_yours:'Ваші',
     contest_empty_yours:'Ви поки не берете участі в жодному розіграші.<br>Перейдіть у вкладку «Активні» і натисніть «Взяти участь».',
     leaders_screen_h1:'Лідери', leaders_sub:'Щотижня топ-100 за оборотом отримують цінні призи', leaders_week_end_lbl:'До кінця тижня',
-    shop_h1:'Магазин подарунків', shop_sub:'Витрачай зароблені та виграні зірки на подарунки',
+    shop_h1:'Кейси з подарунками', shop_sub:'Відкривай кейси за Telegram Stars — усередині подарунки Telegram',
     contest_ended_lbl:'Завершено', contest_members_word:'учасників', prizes_count_tpl:'{n} призів',
     contest_joined_lbl:'Ви берете участь ✓', contest_join_btn:'Взяти участь', contest_joined_toast:'Ви берете участь у розіграші!',
-    ref_hero_pre:'Отримуй', ref_hero_post:'запрошуючи друзів', ref_hero_muted:'з поповнень зірок друзів',
-    ref_line_pre:'А також по', ref_line_post:'за кожного друга',
-    ref_cap_pre:'але не більше', ref_cap_mid:'⭐ на день · і +', ref_cap_post:'грн на виведення',
+    ref_hero_pre:'Отримуй', ref_hero_post:'запрошуючи друзів', ref_hero_muted:'від доходу платформи з їхньої гри — у TON',
+    ref_cap_pre:'І разовий бонус', ref_cap_post:'за перше поповнення друга',
     ref_invite_btn:'Запросити друзів', ref_copy_btn:'Скопіювати посилання',
     ref_earned_lbl:'Всього зароблено', ref_today_lbl:'Сьогодні нараховано', ref_friends_head:'Мої реферали',
     ref_empty:'Поки ніхто не приєднався за вашим посиланням. Поділіться ним з друзями!', ref_joined_word:'приєднався',
-    ref_share_text:'Заходь у Shark — грай на зірки і вигравай подарунки!', ref_link_copied:'Посилання скопійовано',
-    ref_demo_credited:'Реферала зараховано · +10.00 грн',
+    ref_share_text:'Заходь у Shark — ігри на TON і подарунки Telegram!', ref_link_copied:'Посилання скопійовано',
     history_sub:'Всі нарахування, виграші та виведення', history_empty:'Поки порожньо. Грайте — тут з’явиться історія.',
-    history_load_error:'Не вдалося завантажити історію.', ach_sub:'Відкривай бейджі й отримуй зірки',
+    history_load_error:'Не вдалося завантажити історію.', ach_sub:'Відкривай бейджі за свою гру',
     hist_kind_referral:'Реферал', hist_kind_bet:'Ставка', hist_kind_win:'Виграш', hist_kind_withdraw:'Виведення',
     hist_kind_withdraw_refund:'Повернення виведення', hist_kind_gift:'Подарунок', hist_kind_topup:'Поповнення', hist_kind_adjust:'Коригування',
-    hist_roul_win_title_tpl:'Рулетка: {prize}', hist_bet_sub_tpl:'Ставка ⭐{bet}',
+    hist_roul_win_title_tpl:'Рулетка: {prize}', hist_bet_sub_tpl:'Ставка {bet} TON',
     hist_crash_lose_title:'Краш: програш', hist_crash_at_tpl:'Краш на {x}x',
-    hist_crash_win_title:'Краш: забрав', hist_mult_tpl:'Множник {x}x',
-    hist_gift_buy_title_tpl:'Покупка: {name}', hist_contest_join_title:'Участь у розіграші',
-    hist_ref_new_title:'Новий реферал', hist_ref_new_sub:'Запрошено друга', hist_topup_sub:'Купівля',
-    hist_ach_title_tpl:'Досягнення: {title}', hist_ach_sub:'Нагорода',
-    hist_pvp_win_title:'PVP: перемога', hist_pvp_lose_title:'PVP: програш',
-    gift_insufficient_toast_tpl:'Не вистачає зірок на «{name}»', buy_gift_title_tpl:'Купити «{name}»?',
-    buy_gift_desc_demo_tpl:'Списано ⭐{value}. Подарунок прийде вам у Telegram.',
-    buy_gift_desc_server_tpl:'Списано ⭐{value}. Заявку надішлемо адміну — подарунок прийде вам у Telegram.',
-    buy_gift_btn_tpl:'Купити за ⭐{value}', cancel_btn:'Скасувати',
-    gift_bought_demo_toast_tpl:'«{name}» куплено!', gift_bought_server_toast_tpl:'«{name}» куплено! Подарунок надішлемо в Telegram.',
-    gift_error_no_stars:'Не вистачає зірок', gift_error_generic:'Помилка',
-    withdraw_min_demo_tpl:'Мінімум для виведення — {min} грн.',
-    withdraw_sheet_title:'Виведення грошей', withdraw_sheet_desc:'Обробляється вручну за 1–3 дні.',
-    withdraw_method_lbl:'Спосіб', withdraw_method_card:'Картка · UA (грн)',
-    withdraw_req_lbl:'Реквізити', withdraw_req_placeholder:'Адреса гаманця або номер картки',
-    withdraw_amount_lbl_tpl:'Сума в грн (доступно {avail})', withdraw_submit_btn:'Створити заявку',
-    withdraw_conv_hint_tpl:'Отримаєте ≈ {usdt} USDT (курс 1$ = {rate} грн)',
-    withdraw_err_method:'Оберіть спосіб', withdraw_err_req:'Введіть реквізити', withdraw_err_card:'Номер картки — 16 цифр',
-    withdraw_err_wallet:'Перевірте адресу гаманця', withdraw_err_min_tpl:'Мінімум {min} грн', withdraw_err_funds:'Недостатньо коштів',
-    withdraw_err_below_min:'Сума менша за мінімальну', withdraw_err_generic:'Не вдалося створити заявку',
-    withdraw_success_title_demo:'Дякуємо!', withdraw_success_desc_demo_tpl:'Заявку на {amt} грн{extra} прийнято.<br>Виведення надійде протягом 1–3 днів.',
-    withdraw_success_title_server:'Заявку прийнято!', withdraw_success_desc_server_tpl:'Виведення {amt} грн{extra} надіслано на ручну перевірку. Гроші надійдуть протягом 1–3 днів. У разі відхилення сума повернеться на баланс.',
-    topup_sheet_title:'Поповнити зірки', topup_tab_crypto:'Крипто Бот', topup_tab_stars:'Stars',
-    topup_crypto_unavailable:'Оплата криптою тимчасово недоступна.', topup_crypto_desc:'Оплата через @CryptoBot (USDT) — зарахування автоматичне.',
-    topup_stars_unavailable:'Поповнення тимчасово недоступне.', topup_stars_desc:'Оплата зірками Telegram — зарахування автоматичне.',
-    topup_demo_desc:'У реальному застосунку — оплата зірками Telegram. Тут демо-поповнення.', topup_demo_lbl:'демо',
-    topup_err_invoice:'Не вдалося створити рахунок', topup_paid_wait:'Оплату здійснено! Зараховуємо зірки…',
-    topup_failed:'Оплата не вдалася', topup_open_in_tg:'Відкрийте застосунок у Telegram для оплати',
-    topup_cb_invoice_opened_tpl:'Відкрито рахунок на {usd} USDT · чекаємо оплату…', topup_cb_paid_tpl:'Оплату отримано! +{stars} ⭐ зараховано',
-    topup_demo_credited_tpl:'+{n} ⭐ зараховано',
-    ach_unlock_toast_tpl:'🏅 Досягнення «{title}» +⭐{reward}', ok_btn:'Гаразд',
+    hist_crash_win_title:'Краш: забрав', hist_mult_tpl:'Множник {x}x', hist_contest_join_title:'Участь у розіграші',
+    hist_ref_new_title:'Новий реферал', hist_ref_new_sub:'Запрошено друга',
+    hist_pvp_win_title:'PVP: перемога', hist_pvp_lose_title:'PVP: програш', cancel_btn:'Скасувати',
+    withdraw_sheet_title:'Виведення грошей',
+    withdraw_amount_lbl_tpl:'Сума (доступно {avail} TON)', withdraw_submit_btn:'Створити заявку',
+    withdraw_err_wallet:'Перевірте адресу гаманця', withdraw_err_min_tpl:'Мінімум {min} TON', withdraw_err_funds:'Недостатньо TON на балансі', withdraw_err_generic:'Не вдалося створити заявку',
+    topup_sheet_title:'Поповнити баланс',
+    topup_err_invoice:'Не вдалося виставити рахунок', topup_open_in_tg:'Відкрийте застосунок у Telegram',
+    ach_unlock_toast_tpl:'🏅 Досягнення «{title}»', ok_btn:'Гаразд',
     ach_play10_title:'Гравець', ach_play10_desc:'Зіграй 10 разів',
-    ach_win500_title:'Зірковий', ach_win500_desc:'Виграй 500 зірок сумарно',
     ach_first_wd_title:'Перше виведення', ach_first_wd_desc:'Виведи гроші вперше',
     ach_ref3_title:'Промоутер', ach_ref3_desc:'Запроси 3 друзів',
-    hist_pvp_win_sub_tpl:'Банк ⭐{pot}', hist_pvp_lose_sub_tpl:'Переміг {name}',
+    hist_pvp_win_sub_tpl:'Банк {pot} TON', hist_pvp_lose_sub_tpl:'Переміг {name}',
     crash_cashout_error:'Помилка виводу',
     push_new_draw_title:'Новий розіграш через 1 годину', push_new_draw_sub:'6 призів · встигніть приєднатися',
     ticker_won_word:'виграв',
@@ -1901,19 +1935,18 @@ var I18N={
     adm_h1:'Адмін-панель', adm_note:'Розділ бачите лише ви. Усі дії перевіряє сервер.',
     adm_tab_stats:'Зведення', adm_tab_players:'Гравці', adm_tab_grant:'Баланс',
     adm_ph_stats:'Зведення щодо гравців і обороту', adm_ph_players:'Список гравців із пошуком',
-    adm_ph_grant:'Нарахування зірок на власний акаунт',
+    adm_ph_grant:'Нарахування TON на власний акаунт',
     /* Зведення (Е3) */
     adm_refresh:'Оновити', adm_updated_tpl:'Дані на {time}', adm_err:'Не вдалося завантажити дані',
     adm_retry:'Повторити', adm_no_server:'Доступно лише всередині Telegram',
     adm_capped_tpl:'Показано останні {n} записів — обіг може бути неповним',
     adm_g_players:'Гравці', adm_g_balances:'На балансах', adm_g_flow:'Обіг за 7 днів',
-    adm_s_total:'усього', adm_s_active24:'активні за добу', adm_s_new24:'нові за добу', adm_s_new7:'нові за тиждень',
-    adm_s_stars_held:'Зірок на руках', adm_s_money_held:'Гривень на руках', adm_s_pending_wd:'Заявки на виведення',
+    adm_s_total:'усього', adm_s_active24:'активні за добу', adm_s_new24:'нові за добу', adm_s_new7:'нові за тиждень', adm_s_pending_wd:'Заявки на виведення',
     adm_s_bets:'Поставлено', adm_s_wins:'Виграно', adm_s_rake:'Залишилось дому',
-    adm_s_topups:'Поповнення', adm_s_grants:'Нараховано вручну', adm_s_gifts:'Витрачено на подарунки',
+    adm_s_topups:'Поповнення', adm_s_grants:'Нараховано вручну',
     /* Список гравців (Е4) */
     adm_pl_search_ph:"Ім'я, нік або id",
-    adm_sort_seen:'Активність', adm_sort_stars:'Зірки', adm_sort_new:'Нові', adm_sort_played:'Партії',
+    adm_sort_seen:'Активність', adm_sort_new:'Нові', adm_sort_played:'Партії',
     adm_pl_total_tpl:'Усього гравців: {n}', adm_pl_found_tpl:'Знайдено: {n}',
     adm_pl_empty:'Нікого не знайшли', adm_pl_more_tpl:'Показати ще ({n})',
     adm_pl_games_tpl:'{n} партій', adm_tag_admin:'адмін', adm_tag_banned:'бан',
@@ -1921,10 +1954,10 @@ var I18N={
     /* Нарахування зірок (Е5) */
     adm_gr_bal_lbl:'Ваш баланс', adm_gr_clear:'Скинути', adm_gr_note_ph:'Коментар (необов’язково)',
     adm_gr_credit:'Нарахувати', adm_gr_debit:'Списати',
-    adm_gr_credit_tpl:'Нарахувати {n} ⭐', adm_gr_debit_tpl:'Списати {n} ⭐',
-    adm_gr_ok_tpl:'Нараховано {n} ⭐', adm_gr_ok_minus_tpl:'Списано {n} ⭐',
-    adm_gr_err_amount:'Введіть суму від 1 до 1 000 000',
-    adm_gr_err_funds:'Недостатньо зірок на балансі',
+    adm_gr_credit_tpl:'Нарахувати {n} TON', adm_gr_debit_tpl:'Списати {n} TON',
+    adm_gr_ok_tpl:'Нараховано {n} TON', adm_gr_ok_minus_tpl:'Списано {n} TON',
+    adm_gr_err_amount:'Введіть суму від 0.1 до 1000 TON',
+    adm_gr_err_funds:'Недостатньо TON на балансі',
     adm_gr_err_target:'Нарахування доступне лише на ваш акаунт',
     myid_lbl:'Ваш ID', myid_desc:'Номер акаунта — натисніть, щоб скопіювати', myid_copied:'ID скопійовано',
     adm_gr_hint:'Нарахування проходить через той самий леджер, що й будь-який інший рух коштів, і видно в історії. Тільки на ваш акаунт.',
@@ -1945,26 +1978,65 @@ var I18N={
     adm_gf_cnt_tpl:'Чекають видачі: {n}', adm_gf_empty:'Немає подарунків для видачі',
     adm_gf_mark_sending:'Взяв у роботу', adm_gf_mark_sent:'Надіслано',
     adm_gf_marked_sending:'Позначено «надсилаємо»', adm_gf_marked_sent:'Позначено надісланим',
-    adm_gf_err:'Не вдалося змінити статус'
+    adm_gf_err:'Не вдалося змінити статус',
+    ton_lbl:'TON',
+    hero_bal_sub:'Ігровий баланс · поповнення і виведення в TON',
+    bal_ton_lbl:'Ігровий баланс',
+    bal_ton_note:'Поповнення і виведення — тільки TON',
+    pvp_no_ton:'Недостатньо TON — поповніть баланс',
+    roul_result_title_tpl:'Випало {mult}',
+    roul_result_desc_tpl:'«{prize}» · ставка {bet} TON → виграш {win} TON',
+    shop_note:'Кейс оплачується зірками напряму в Telegram. Ігровий баланс TON при цьому не витрачається.',
+    shop_foot:'Подарунок, що випав, одразу потрапить до вашого інвентаря.',
+    shop_inv:'Інвентар',
+    cs_drops_tpl:'{n} подарунків',
+    cs_best_tpl:'до {e} {n} ⭐',
+    cs_empty:'Кейси поки недоступні',
+    cs_sheet_desc:'Що може випасти і з якою ймовірністю:',
+    cs_buy_btn_tpl:'Відкрити за {n} ⭐',
+    cs_err_invoice:'Не вдалося виставити рахунок',
+    cs_failed:'Оплату не завершено',
+    cs_opening:'Відкриваємо кейс…',
+    cs_opening_desc:'Чекаємо підтвердження оплати від Telegram',
+    cs_slow:'Оплата обробляється — подарунок з’явиться в інвентарі',
+    cs_won_desc_tpl:'Цінність {n} ⭐. Подарунок уже в інвентарі — надішлемо вручну.',
+    cs_to_inventory:'До інвентаря',
+    ref_line:'Друг програв — ви отримали частку. Друг виграв — ви нічого не втрачаєте.',
+    ref_share_lbl:'Ваша частка',
+    ach_win10_title:'Перші 10 TON',
+    ach_win10_desc:'Виграти 10 TON сумарно',
+    topup_desc_tpl:'Оплата через @CryptoBot у TON. Мінімум {min} TON.',
+    topup_unavailable:'Поповнення тимчасово недоступне',
+    topup_invoice_opened_tpl:'Відкрито рахунок на {amount} TON · чекаємо оплату…',
+    topup_paid_tpl:'Оплату отримано! +{amount} TON',
+    withdraw_sheet_desc_tpl:'Виплата ручна — протягом {hours} годин.',
+    withdraw_wallet_lbl:'Адреса гаманця TON',
+    withdraw_wallet_ph:'UQ… або EQ…',
+    withdraw_min_hint_tpl:'Мінімум {min} TON',
+    withdraw_success_title:'Заявку створено',
+    withdraw_success_desc_tpl:'{amt} TON виплатимо протягом {hours} годин.',
+    adm_s_ton_held:'TON на руках',
+    adm_s_ton_pending:'Заморожено у виведеннях',
+    adm_s_referral:'Виплачено рефералам',
+    adm_sort_ton:'Баланс'
   },
   ru:{
     /* PVP — новый экран (Э5) */
     px_sub_waiting:'Ждём игроков', px_sub_join_tpl:'Войдите до конца отсчёта · ставка <b>{bet}</b>', px_sub_in_tpl:'Ставка <b>{stake}</b> · шанс <b class="px-mn">{pct}%</b> · заберёте <b>{payout}</b>', px_sub_won_tpl:'Забрали банк с шансом <b class="px-mn">{pct}%</b>', px_sub_lost:'Ваш билет не выпал', px_players_tpl:'{n} в раунде', px_game_tpl:'Игра #{id}', px_cta_join:'Войти в битву', px_cta_wait:'Принимаем ставку…', px_cta_spin:'Крутим…', px_cta_over:'Раунд завершён', px_badge_spin:'РОЗЫГРЫШ', px_badge_won:'БАНК ВАШ', px_badge_lost:'БАНК УШЁЛ', px_lbl_won:'Вы забрали банк', px_lbl_lost_tpl:'{name} забирает',
-    greet:'С возвращением', online_lbl:'онлайн', stars_lbl:'звёзд', uah_lbl:'грн',
+    greet:'С возвращением', online_lbl:'онлайн',
     play_now:'Играть сейчас', next_draw:'Ближайший розыгрыш', next_hour:'через 1 час', ingame_lbl:'в игре',
     pvp_title:'Битва за банк', pvp_desc:'Заходи в общий раунд — победитель забирает весь банк', pvp_cta:'Войти в битву →',
-    games_title:'Игры', games_desc:'Краш и рулетка', upgrade_title:'Апгрейд', soon:'Скоро', upgrade_desc:'Множь звёзды',
-    upgrade_toast:'Апгрейд скоро — улучшение подарков за звёзды',
-    tab_home:'Игры', tab_contests:'Конкурсы', tab_leaders:'Лидеры', tab_shop:'Магазин', tab_profile:'Профиль',
-    onb_h0:'Добро пожаловать в Shark', onb_p0:'Играй на звёзды и выигрывай подарки. Два разных баланса — звёзды для игр и гривны для вывода.',
-    onb_h1:'PVP — битва за банк', onb_p1:'Главный режим: заходи в общий раунд, скидывайся в банк звёздами. Победитель забирает всё.',
-    onb_h2:'Игры на звёзды', onb_p2:'Краш и рулетка — на звёзды ради азарта и подарков. Звёзды не выводятся в деньги, тратятся внутри.',
-    onb_h3:'Друзья = деньги', onb_p3:'Приглашай друзей и получай гривны на баланс — их можно вывести на карту или в USDT. Поехали!',
+    games_title:'Игры', games_desc:'Краш и рулетка', upgrade_title:'Апгрейд', soon:'Скоро', upgrade_desc:'Множь свой TON',
+    upgrade_toast:'Апгрейд скоро — улучшение подарков',
+    tab_home:'Игры', tab_contests:'Конкурсы', tab_leaders:'Лидеры', tab_shop:'Кейсы', tab_profile:'Профиль',
+    onb_h0:'Добро пожаловать в Shark', onb_p0:'Одна валюта — TON. Им играешь, его пополняешь и выводишь. Никаких промежуточных балансов.',
+    onb_h1:'PVP — битва за банк', onb_p1:'Главный режим: заходи в общий раунд, скидывайся в банк в TON. Победитель забирает всё.',
+    onb_h2:'Игры на TON', onb_p2:'Краш и рулетка — множители к ставке. Выигрыш сразу на баланс, оттуда же и вывод.',
+    onb_h3:'Подарки Telegram', onb_p3:'Кейсы с подарками покупаются за Telegram Stars — отдельно от игрового баланса. Подарок падает в инвентарь. Поехали!',
     onb_next:'Далее', onb_start:'Начать',
     pvp_pot_lbl:'Общий банк', bet_lbl:'Ставка:',
-    st_played:'Сыграно', st_won:'Выиграно ⭐', st_rank:'Место',
-    bal_money_lbl:'Баланс для вывода (заработок)', withdraw_btn:'Вывести деньги',
-    bal_stars_lbl:'Звёзды для игр', topup_btn:'Пополнить звёзды',
+    st_played:'Сыграно', st_won:'Выиграно TON', st_rank:'Место',
+    bal_money_lbl:'Баланс для вывода (заработок)', withdraw_btn:'Вывести', topup_btn:'Пополнить',
     friends_btn:'Друзья', history_btn:'История', ach_btn:'Достижения', settings_btn:'Настройки',
     settings_h1:'Настройки', lang_lbl:'Язык', lang_desc:'Интерфейс приложения',
     sound_lbl:'Звук', sound_desc:'Эффекты в играх', notif_lbl:'Уведомления', notif_desc:'Розыгрыши и важные события',
@@ -1974,80 +2046,53 @@ var I18N={
     pvp_waiting_players:'Ждём игроков…',
     pvp_in_battle:'Вы в игре · ждём розыгрыша',
     pvp_already:'Вы уже в этом раунде',
-    pvp_mixed_admin:'Аккаунт с ручным балансом не играет в одном раунде с живыми игроками',
-    pvp_no_stars:'Недостаточно звёзд — пополните баланс', pvp_closing:'Раунд закрывается — подождите следующий',
+    pvp_mixed_admin:'Аккаунт с ручным балансом не играет в одном раунде с живыми игроками', pvp_closing:'Раунд закрывается — подождите следующий',
     pvp_bet_error:'Ошибка ставки', pvp_bet_toast:'Ставка в банке! Ждём розыгрыша.',
     lvl_names:['Малёк','Рыбёшка','Охотник','Хищник','Акула','Мегалодон'], lvl_prefix:'Уровень ',
     you_word:'Вы', player_default:'Игрок',
     pvp_claim_btn:'Забрать',
     games_screen_h1:'Игры', crash_tab_lbl:'Краш', roul_tab_lbl:'Рулетка',
-    roul_sub:'Крути за звёзды — выигрывай подарки. Вывести звёзды в деньги нельзя.',
-    spin_btn_tpl:'Крутить за ⭐{bet}', crash_next_round_tpl:'Следующий раунд через {n}…',
-    auto_cashout_lbl:'Авто-вывод на', crash_bet_btn_tpl:'Поставить ⭐{bet} на след. раунд',
-    crash_bet_accepted_tpl:'Ставка принята ⭐{bet} · ждём старт', crash_cashout_btn_tpl:'Забрать ⭐{amt}',
+    roul_sub:'Крути на TON — множитель применяется к ставке',
+    spin_btn_tpl:'Крутить за {bet} TON', crash_next_round_tpl:'Следующий раунд через {n}…',
+    auto_cashout_lbl:'Авто-вывод на', crash_bet_btn_tpl:'Поставить {bet} TON на след. раунд',
+    crash_bet_accepted_tpl:'Ставка принята {bet} TON · ждём старт', crash_cashout_btn_tpl:'Забрать {amt} TON',
     crash_round_live_lbl:'Раунд идёт…', crash_round_over_lbl:'Раунд окончен', crash_waiting_lbl:'Ожидание',
     crash_flying_status:'Раунд идёт — забирайте вовремя!', crash_crashed_status_tpl:'Улетела на {x}x. Новый раунд скоро…',
-    crash_missed_toast_tpl:'Не успели! Ставка ⭐{bet} сгорела на {x}x', crash_bet_toast_auto_tpl:'Ставка ⭐{bet}, авто-вывод на {x}x',
-    crash_bet_toast_tpl:'Ставка ⭐{bet} принята на следующий раунд', crash_cashout_toast_tpl:'Забрали ⭐{win} на {x}x!',
-    roul_win_sheet_title_tpl:'Вы выиграли ⭐{win}!', roul_win_sheet_desc_tpl:'«{prize}» (ставка ⭐{bet}, множитель x{mult}). Добавлено на игровой баланс.',
+    crash_missed_toast_tpl:'Не успели! Ставка {bet} TON сгорела на {x}x', crash_bet_toast_auto_tpl:'Ставка {bet} TON, авто-вывод на {x}x',
+    crash_bet_toast_tpl:'Ставка {bet} TON принята на следующий раунд', crash_cashout_toast_tpl:'Забрали {win} TON на {x}x!',
     roul_recent_spins_lbl:'Последние спины', win_col_lbl:'Выигрыш',
     crash_players_header_tpl:'Игроки в раунде · {n}', crash_bet_payout_lbl:'Ставка · выплата',
     contests_h1:'Розыгрыши', contest_tab_active:'Активные', contest_tab_yours:'Ваши',
     contest_empty_yours:'Вы пока не участвуете ни в одном розыгрыше.<br>Зайдите во вкладку «Активные» и нажмите «Участвовать».',
     leaders_screen_h1:'Лидеры', leaders_sub:'Каждую неделю топ-100 по обороту получают ценные призы', leaders_week_end_lbl:'До конца недели',
-    shop_h1:'Магазин подарков', shop_sub:'Трать заработанные и выигранные звёзды на подарки',
+    shop_h1:'Кейсы с подарками', shop_sub:'Открывай кейсы за Telegram Stars — внутри подарки Telegram',
     contest_ended_lbl:'Завершён', contest_members_word:'участников', prizes_count_tpl:'{n} призов',
     contest_joined_lbl:'Вы участвуете ✓', contest_join_btn:'Участвовать', contest_joined_toast:'Вы участвуете в розыгрыше!',
-    ref_hero_pre:'Получай', ref_hero_post:'приглашая друзей', ref_hero_muted:'с пополнений звёзд друзей',
-    ref_line_pre:'А также по', ref_line_post:'за каждого друга',
-    ref_cap_pre:'но не более', ref_cap_mid:'⭐ в день · и +', ref_cap_post:'грн на вывод',
+    ref_hero_pre:'Получай', ref_hero_post:'приглашая друзей', ref_hero_muted:'от дохода платформы с их игры — в TON',
+    ref_cap_pre:'И разовый бонус', ref_cap_post:'за первое пополнение друга',
     ref_invite_btn:'Пригласить друзей', ref_copy_btn:'Скопировать ссылку',
     ref_earned_lbl:'Всего заработано', ref_today_lbl:'Сегодня начислено', ref_friends_head:'Мои рефералы',
     ref_empty:'Пока никто не присоединился по вашей ссылке. Поделитесь ей с друзьями!', ref_joined_word:'присоединился',
-    ref_share_text:'Заходи в Shark — играй на звёзды и выигрывай подарки!', ref_link_copied:'Ссылка скопирована',
-    ref_demo_credited:'Реферал засчитан · +10.00 грн',
+    ref_share_text:'Заходи в Shark — игры на TON и подарки Telegram!', ref_link_copied:'Ссылка скопирована',
     history_sub:'Все начисления, выигрыши и выводы', history_empty:'Пока пусто. Играйте — здесь появится история.',
-    history_load_error:'Не удалось загрузить историю.', ach_sub:'Открывай бейджи и получай звёзды',
+    history_load_error:'Не удалось загрузить историю.', ach_sub:'Открывай бейджи за свою игру',
     hist_kind_referral:'Реферал', hist_kind_bet:'Ставка', hist_kind_win:'Выигрыш', hist_kind_withdraw:'Вывод',
     hist_kind_withdraw_refund:'Возврат вывода', hist_kind_gift:'Подарок', hist_kind_topup:'Пополнение', hist_kind_adjust:'Коррекция',
-    hist_roul_win_title_tpl:'Рулетка: {prize}', hist_bet_sub_tpl:'Ставка ⭐{bet}',
+    hist_roul_win_title_tpl:'Рулетка: {prize}', hist_bet_sub_tpl:'Ставка {bet} TON',
     hist_crash_lose_title:'Краш: проигрыш', hist_crash_at_tpl:'Краш на {x}x',
-    hist_crash_win_title:'Краш: забрал', hist_mult_tpl:'Множитель {x}x',
-    hist_gift_buy_title_tpl:'Покупка: {name}', hist_contest_join_title:'Участие в розыгрыше',
-    hist_ref_new_title:'Новый реферал', hist_ref_new_sub:'Приглашён друг', hist_topup_sub:'Покупка',
-    hist_ach_title_tpl:'Достижение: {title}', hist_ach_sub:'Награда',
-    hist_pvp_win_title:'PVP: победа', hist_pvp_lose_title:'PVP: проигрыш',
-    gift_insufficient_toast_tpl:'Не хватает звёзд на «{name}»', buy_gift_title_tpl:'Купить «{name}»?',
-    buy_gift_desc_demo_tpl:'Спишется ⭐{value}. Подарок придёт вам в Telegram.',
-    buy_gift_desc_server_tpl:'Спишется ⭐{value}. Заявка уйдёт админу — подарок придёт вам в Telegram.',
-    buy_gift_btn_tpl:'Купить за ⭐{value}', cancel_btn:'Отмена',
-    gift_bought_demo_toast_tpl:'«{name}» куплен!', gift_bought_server_toast_tpl:'«{name}» куплен! Подарок пришлём в Telegram.',
-    gift_error_no_stars:'Не хватает звёзд', gift_error_generic:'Ошибка',
-    withdraw_min_demo_tpl:'Минимум для вывода — {min} грн.',
-    withdraw_sheet_title:'Вывод денег', withdraw_sheet_desc:'Обрабатывается вручную за 1–3 дня.',
-    withdraw_method_lbl:'Способ', withdraw_method_card:'Карта · UA (грн)',
-    withdraw_req_lbl:'Реквизиты', withdraw_req_placeholder:'Адрес кошелька или номер карты',
-    withdraw_amount_lbl_tpl:'Сумма в грн (доступно {avail})', withdraw_submit_btn:'Создать заявку',
-    withdraw_conv_hint_tpl:'Получите ≈ {usdt} USDT (курс 1$ = {rate} грн)',
-    withdraw_err_method:'Выберите способ', withdraw_err_req:'Введите реквизиты', withdraw_err_card:'Номер карты — 16 цифр',
-    withdraw_err_wallet:'Проверьте адрес кошелька', withdraw_err_min_tpl:'Минимум {min} грн', withdraw_err_funds:'Недостаточно средств',
-    withdraw_err_below_min:'Сумма меньше минимальной', withdraw_err_generic:'Не удалось создать заявку',
-    withdraw_success_title_demo:'Спасибо!', withdraw_success_desc_demo_tpl:'Заявка на {amt} грн{extra} принята.<br>Вывод поступит в течение 1–3 дней.',
-    withdraw_success_title_server:'Заявка принята!', withdraw_success_desc_server_tpl:'Вывод {amt} грн{extra} отправлен на ручную проверку. Деньги придут в течение 1–3 дней. При отклонении сумма вернётся на баланс.',
-    topup_sheet_title:'Пополнить звёзды', topup_tab_crypto:'Крипто Бот', topup_tab_stars:'Stars',
-    topup_crypto_unavailable:'Оплата криптой временно недоступна.', topup_crypto_desc:'Оплата через @CryptoBot (USDT) — зачисление автоматически.',
-    topup_stars_unavailable:'Пополнение временно недоступно.', topup_stars_desc:'Оплата звёздами Telegram — зачисление автоматически.',
-    topup_demo_desc:'В реальном приложении — оплата звёздами Telegram. Здесь демо-пополнение.', topup_demo_lbl:'демо',
-    topup_err_invoice:'Не удалось создать счёт', topup_paid_wait:'Оплата прошла! Зачисляем звёзды…',
-    topup_failed:'Оплата не удалась', topup_open_in_tg:'Откройте приложение в Telegram для оплаты',
-    topup_cb_invoice_opened_tpl:'Открыт счёт на {usd} USDT · ждём оплату…', topup_cb_paid_tpl:'Оплата получена! +{stars} ⭐ зачислено',
-    topup_demo_credited_tpl:'+{n} ⭐ зачислено',
-    ach_unlock_toast_tpl:'🏅 Достижение «{title}» +⭐{reward}', ok_btn:'Ок',
+    hist_crash_win_title:'Краш: забрал', hist_mult_tpl:'Множитель {x}x', hist_contest_join_title:'Участие в розыгрыше',
+    hist_ref_new_title:'Новый реферал', hist_ref_new_sub:'Приглашён друг',
+    hist_pvp_win_title:'PVP: победа', hist_pvp_lose_title:'PVP: проигрыш', cancel_btn:'Отмена',
+    withdraw_sheet_title:'Вывод денег',
+    withdraw_amount_lbl_tpl:'Сумма (доступно {avail} TON)', withdraw_submit_btn:'Создать заявку',
+    withdraw_err_wallet:'Проверьте адрес кошелька', withdraw_err_min_tpl:'Минимум {min} TON', withdraw_err_funds:'Недостаточно TON на балансе', withdraw_err_generic:'Не удалось создать заявку',
+    topup_sheet_title:'Пополнить баланс',
+    topup_err_invoice:'Не удалось выставить счёт', topup_open_in_tg:'Откройте приложение в Telegram',
+    ach_unlock_toast_tpl:'🏅 Достижение «{title}»', ok_btn:'Ок',
     ach_play10_title:'Игрок', ach_play10_desc:'Сыграй 10 раз',
-    ach_win500_title:'Звёздный', ach_win500_desc:'Выиграй 500 звёзд суммарно',
     ach_first_wd_title:'Первый вывод', ach_first_wd_desc:'Выведи деньги впервые',
     ach_ref3_title:'Промоутер', ach_ref3_desc:'Пригласи 3 друзей',
-    hist_pvp_win_sub_tpl:'Банк ⭐{pot}', hist_pvp_lose_sub_tpl:'Победил {name}',
+    hist_pvp_win_sub_tpl:'Банк {pot} TON', hist_pvp_lose_sub_tpl:'Победил {name}',
     crash_cashout_error:'Ошибка вывода',
     push_new_draw_title:'Новый розыгрыш через 1 час', push_new_draw_sub:'6 призов · успейте присоединиться',
     ticker_won_word:'выиграл',
@@ -2059,19 +2104,18 @@ var I18N={
     adm_h1:'Админ-панель', adm_note:'Раздел виден только вам. Все действия проверяет сервер.',
     adm_tab_stats:'Сводка', adm_tab_players:'Игроки', adm_tab_grant:'Баланс',
     adm_ph_stats:'Сводка по игрокам и обороту', adm_ph_players:'Список игроков с поиском',
-    adm_ph_grant:'Начисление звёзд на свой аккаунт',
+    adm_ph_grant:'Начисление TON на свой аккаунт',
     /* Сводка (Э3) */
     adm_refresh:'Обновить', adm_updated_tpl:'Данные на {time}', adm_err:'Не удалось загрузить данные',
     adm_retry:'Повторить', adm_no_server:'Доступно только внутри Telegram',
     adm_capped_tpl:'Показаны последние {n} записей — оборот может быть неполным',
     adm_g_players:'Игроки', adm_g_balances:'На балансах', adm_g_flow:'Оборот за 7 дней',
-    adm_s_total:'всего', adm_s_active24:'активны за сутки', adm_s_new24:'новые за сутки', adm_s_new7:'новые за неделю',
-    adm_s_stars_held:'Звёзд на руках', adm_s_money_held:'Гривен на руках', adm_s_pending_wd:'Заявки на вывод',
+    adm_s_total:'всего', adm_s_active24:'активны за сутки', adm_s_new24:'новые за сутки', adm_s_new7:'новые за неделю', adm_s_pending_wd:'Заявки на вывод',
     adm_s_bets:'Поставлено', adm_s_wins:'Выиграно', adm_s_rake:'Осталось дому',
-    adm_s_topups:'Пополнения', adm_s_grants:'Начислено вручную', adm_s_gifts:'Потрачено на подарки',
+    adm_s_topups:'Пополнения', adm_s_grants:'Начислено вручную',
     /* Список игроков (Э4) */
     adm_pl_search_ph:'Имя, ник или id',
-    adm_sort_seen:'Активность', adm_sort_stars:'Звёзды', adm_sort_new:'Новые', adm_sort_played:'Партии',
+    adm_sort_seen:'Активность', adm_sort_new:'Новые', adm_sort_played:'Партии',
     adm_pl_total_tpl:'Всего игроков: {n}', adm_pl_found_tpl:'Найдено: {n}',
     adm_pl_empty:'Никого не нашли', adm_pl_more_tpl:'Показать ещё ({n})',
     adm_pl_games_tpl:'{n} партий', adm_tag_admin:'админ', adm_tag_banned:'бан',
@@ -2079,10 +2123,10 @@ var I18N={
     /* Начисление звёзд (Э5) */
     adm_gr_bal_lbl:'Ваш баланс', adm_gr_clear:'Сброс', adm_gr_note_ph:'Комментарий (необязательно)',
     adm_gr_credit:'Начислить', adm_gr_debit:'Списать',
-    adm_gr_credit_tpl:'Начислить {n} ⭐', adm_gr_debit_tpl:'Списать {n} ⭐',
-    adm_gr_ok_tpl:'Начислено {n} ⭐', adm_gr_ok_minus_tpl:'Списано {n} ⭐',
-    adm_gr_err_amount:'Введите сумму от 1 до 1 000 000',
-    adm_gr_err_funds:'Недостаточно звёзд на балансе',
+    adm_gr_credit_tpl:'Начислить {n} TON', adm_gr_debit_tpl:'Списать {n} TON',
+    adm_gr_ok_tpl:'Начислено {n} TON', adm_gr_ok_minus_tpl:'Списано {n} TON',
+    adm_gr_err_amount:'Введите сумму от 0.1 до 1000 TON',
+    adm_gr_err_funds:'Недостаточно TON на балансе',
     adm_gr_err_target:'Начисление доступно только на ваш аккаунт',
     myid_lbl:'Ваш ID', myid_desc:'Номер аккаунта — нажмите, чтобы скопировать', myid_copied:'ID скопирован',
     adm_gr_hint:'Начисление идёт через тот же леджер, что и любое движение средств, и видно в истории. Только на ваш аккаунт.',
@@ -2103,26 +2147,65 @@ var I18N={
     adm_gf_cnt_tpl:'Ждут выдачи: {n}', adm_gf_empty:'Нет подарков к выдаче',
     adm_gf_mark_sending:'Взял в работу', adm_gf_mark_sent:'Отправлен',
     adm_gf_marked_sending:'Отмечено «отправляем»', adm_gf_marked_sent:'Отмечено отправленным',
-    adm_gf_err:'Не удалось изменить статус'
+    adm_gf_err:'Не удалось изменить статус',
+    ton_lbl:'TON',
+    hero_bal_sub:'Игровой баланс · пополнение и вывод в TON',
+    bal_ton_lbl:'Игровой баланс',
+    bal_ton_note:'Пополнение и вывод — только TON',
+    pvp_no_ton:'Недостаточно TON — пополните баланс',
+    roul_result_title_tpl:'Выпало {mult}',
+    roul_result_desc_tpl:'«{prize}» · ставка {bet} TON → выигрыш {win} TON',
+    shop_note:'Кейс оплачивается звёздами напрямую в Telegram. Игровой баланс TON при этом не тратится.',
+    shop_foot:'Выпавший подарок сразу попадёт в ваш инвентарь.',
+    shop_inv:'Инвентарь',
+    cs_drops_tpl:'{n} подарков',
+    cs_best_tpl:'до {e} {n} ⭐',
+    cs_empty:'Кейсы пока недоступны',
+    cs_sheet_desc:'Что может выпасть и с какой вероятностью:',
+    cs_buy_btn_tpl:'Открыть за {n} ⭐',
+    cs_err_invoice:'Не удалось выставить счёт',
+    cs_failed:'Оплата не прошла',
+    cs_opening:'Открываем кейс…',
+    cs_opening_desc:'Ждём подтверждение оплаты от Telegram',
+    cs_slow:'Оплата обрабатывается — подарок появится в инвентаре',
+    cs_won_desc_tpl:'Ценность {n} ⭐. Подарок уже в инвентаре — отправим вручную.',
+    cs_to_inventory:'В инвентарь',
+    ref_line:'Друг проиграл — вы получили долю. Друг выиграл — вы ничего не теряете.',
+    ref_share_lbl:'Ваша доля',
+    ach_win10_title:'Первые 10 TON',
+    ach_win10_desc:'Выиграть 10 TON суммарно',
+    topup_desc_tpl:'Оплата через @CryptoBot в TON. Минимум {min} TON.',
+    topup_unavailable:'Пополнение временно недоступно',
+    topup_invoice_opened_tpl:'Открыт счёт на {amount} TON · ждём оплату…',
+    topup_paid_tpl:'Оплата получена! +{amount} TON',
+    withdraw_sheet_desc_tpl:'Выплата ручная — в течение {hours} часов.',
+    withdraw_wallet_lbl:'Адрес кошелька TON',
+    withdraw_wallet_ph:'UQ… или EQ…',
+    withdraw_min_hint_tpl:'Минимум {min} TON',
+    withdraw_success_title:'Заявка создана',
+    withdraw_success_desc_tpl:'{amt} TON выплатим в течение {hours} часов.',
+    adm_s_ton_held:'TON на руках',
+    adm_s_ton_pending:'Заморожено в выводах',
+    adm_s_referral:'Выплачено рефералам',
+    adm_sort_ton:'Баланс'
   },
   en:{
     /* PVP — новый экран (Э5) */
     px_sub_waiting:'Waiting for players', px_sub_join_tpl:'Join before the timer ends · bet <b>{bet}</b>', px_sub_in_tpl:'Bet <b>{stake}</b> · chance <b class="px-mn">{pct}%</b> · you take <b>{payout}</b>', px_sub_won_tpl:'Took the pot at <b class="px-mn">{pct}%</b>', px_sub_lost:'Your ticket didn\'t come up', px_players_tpl:'{n} in the round', px_game_tpl:'Game #{id}', px_cta_join:'Enter the battle', px_cta_wait:'Placing bet…', px_cta_spin:'Spinning…', px_cta_over:'Round over', px_badge_spin:'DRAW', px_badge_won:'POT IS YOURS', px_badge_lost:'POT IS GONE', px_lbl_won:'You took the pot', px_lbl_lost_tpl:'{name} takes it',
-    greet:'Welcome back', online_lbl:'online', stars_lbl:'stars', uah_lbl:'UAH',
+    greet:'Welcome back', online_lbl:'online',
     play_now:'Play now', next_draw:'Next draw', next_hour:'in 1 hour', ingame_lbl:'playing',
     pvp_title:'Battle for the pot', pvp_desc:'Join a shared round — the winner takes the whole pot', pvp_cta:'Enter the battle →',
-    games_title:'Games', games_desc:'Crash and roulette', upgrade_title:'Upgrade', soon:'Soon', upgrade_desc:'Multiply your stars',
-    upgrade_toast:'Upgrade coming soon — improve gifts with stars',
-    tab_home:'Games', tab_contests:'Contests', tab_leaders:'Leaders', tab_shop:'Shop', tab_profile:'Profile',
-    onb_h0:'Welcome to Shark', onb_p0:'Play with stars and win gifts. Two separate balances — stars for games and UAH for withdrawal.',
-    onb_h1:'PVP — battle for the pot', onb_p1:'The main mode: join a shared round, throw stars into the pot. The winner takes it all.',
-    onb_h2:'Games for stars', onb_p2:'Crash and roulette — for the thrill and gifts. Stars can\'t be withdrawn as money, only spent inside.',
-    onb_h3:'Friends = money', onb_p3:'Invite friends and earn UAH — withdrawable to card or USDT. Let\'s go!',
+    games_title:'Games', games_desc:'Crash and roulette', upgrade_title:'Upgrade', soon:'Soon', upgrade_desc:'Multiply your TON',
+    upgrade_toast:'Upgrade coming soon — improve your gifts',
+    tab_home:'Games', tab_contests:'Contests', tab_leaders:'Leaders', tab_shop:'Cases', tab_profile:'Profile',
+    onb_h0:'Welcome to Shark', onb_p0:'One currency — TON. You play with it, top it up and withdraw it. No intermediate balances.',
+    onb_h1:'PVP — battle for the pot', onb_p1:'The main mode: join a shared round, throw TON into the pot. The winner takes it all.',
+    onb_h2:'Games for TON', onb_p2:'Crash and roulette — multipliers on your bet. Winnings land on your balance, and that is what you withdraw.',
+    onb_h3:'Telegram gifts', onb_p3:'Gift cases are bought with Telegram Stars — separate from your game balance. The gift lands in your inventory. Let’s go!',
     onb_next:'Next', onb_start:'Start',
     pvp_pot_lbl:'Shared pot', bet_lbl:'Bet:',
-    st_played:'Played', st_won:'Won ⭐', st_rank:'Rank',
-    bal_money_lbl:'Withdrawable balance (earnings)', withdraw_btn:'Withdraw money',
-    bal_stars_lbl:'Stars for games', topup_btn:'Top up stars',
+    st_played:'Played', st_won:'Won TON', st_rank:'Rank',
+    bal_money_lbl:'Withdrawable balance (earnings)', withdraw_btn:'Withdraw', topup_btn:'Top up',
     friends_btn:'Friends', history_btn:'History', ach_btn:'Achievements', settings_btn:'Settings',
     settings_h1:'Settings', lang_lbl:'Language', lang_desc:'App interface',
     sound_lbl:'Sound', sound_desc:'In-game effects', notif_lbl:'Notifications', notif_desc:'Draws and important events',
@@ -2132,80 +2215,53 @@ var I18N={
     pvp_waiting_players:'Waiting for players…',
     pvp_in_battle:'You\'re in · waiting for the draw',
     pvp_already:'You are already in this round',
-    pvp_mixed_admin:'An account with a manually credited balance does not share a round with live players',
-    pvp_no_stars:'Not enough stars — top up your balance', pvp_closing:'Round is closing — wait for the next one',
+    pvp_mixed_admin:'An account with a manually credited balance does not share a round with live players', pvp_closing:'Round is closing — wait for the next one',
     pvp_bet_error:'Bet error', pvp_bet_toast:'Bet placed! Waiting for the draw.',
     lvl_names:['Fry','Minnow','Hunter','Predator','Shark','Megalodon'], lvl_prefix:'Level ',
     you_word:'You', player_default:'Player',
     pvp_claim_btn:'Claim',
     games_screen_h1:'Games', crash_tab_lbl:'Crash', roul_tab_lbl:'Roulette',
-    roul_sub:'Spin for stars — win gifts. Stars cannot be withdrawn as money.',
-    spin_btn_tpl:'Spin for ⭐{bet}', crash_next_round_tpl:'Next round in {n}…',
-    auto_cashout_lbl:'Auto cash out at', crash_bet_btn_tpl:'Bet ⭐{bet} on next round',
-    crash_bet_accepted_tpl:'Bet placed ⭐{bet} · waiting to start', crash_cashout_btn_tpl:'Cash out ⭐{amt}',
+    roul_sub:'Spin for TON — the multiplier applies to your bet',
+    spin_btn_tpl:'Spin for {bet} TON', crash_next_round_tpl:'Next round in {n}…',
+    auto_cashout_lbl:'Auto cash out at', crash_bet_btn_tpl:'Bet {bet} TON on the next round',
+    crash_bet_accepted_tpl:'Bet accepted {bet} TON · waiting for launch', crash_cashout_btn_tpl:'Take {amt} TON',
     crash_round_live_lbl:'Round in progress…', crash_round_over_lbl:'Round over', crash_waiting_lbl:'Waiting',
     crash_flying_status:'Round in progress — cash out in time!', crash_crashed_status_tpl:'Crashed at {x}x. New round soon…',
-    crash_missed_toast_tpl:'Too slow! Bet ⭐{bet} lost at {x}x', crash_bet_toast_auto_tpl:'Bet ⭐{bet}, auto cash out at {x}x',
-    crash_bet_toast_tpl:'Bet ⭐{bet} placed for next round', crash_cashout_toast_tpl:'Cashed out ⭐{win} at {x}x!',
-    roul_win_sheet_title_tpl:'You won ⭐{win}!', roul_win_sheet_desc_tpl:'"{prize}" (bet ⭐{bet}, multiplier x{mult}). Added to your game balance.',
+    crash_missed_toast_tpl:'Too late! Your {bet} TON bet burned at {x}x', crash_bet_toast_auto_tpl:'Bet {bet} TON, auto cash-out at {x}x',
+    crash_bet_toast_tpl:'Bet {bet} TON accepted for the next round', crash_cashout_toast_tpl:'Took {win} TON at {x}x!',
     roul_recent_spins_lbl:'Recent spins', win_col_lbl:'Win',
     crash_players_header_tpl:'Players in round · {n}', crash_bet_payout_lbl:'Bet · payout',
     contests_h1:'Draws', contest_tab_active:'Active', contest_tab_yours:'Yours',
     contest_empty_yours:'You\'re not in any draw yet.<br>Go to the "Active" tab and press "Join".',
     leaders_screen_h1:'Leaders', leaders_sub:'Every week the top 100 by turnover get valuable prizes', leaders_week_end_lbl:'Until end of week',
-    shop_h1:'Gift shop', shop_sub:'Spend earned and won stars on gifts',
+    shop_h1:'Gift cases', shop_sub:'Open cases with Telegram Stars — Telegram gifts inside',
     contest_ended_lbl:'Ended', contest_members_word:'participants', prizes_count_tpl:'{n} prizes',
     contest_joined_lbl:'You\'re in ✓', contest_join_btn:'Join', contest_joined_toast:'You joined the draw!',
-    ref_hero_pre:'Earn', ref_hero_post:'by inviting friends', ref_hero_muted:'from your friends\' star top-ups',
-    ref_line_pre:'Plus', ref_line_post:'for every friend',
-    ref_cap_pre:'up to', ref_cap_mid:'⭐ per day · plus +', ref_cap_post:'UAH withdrawable',
+    ref_hero_pre:'Earn', ref_hero_post:'by inviting friends', ref_hero_muted:'of the platform revenue from their play — in TON',
+    ref_cap_pre:'Plus a one-off bonus of', ref_cap_post:'for your friend’s first top-up',
     ref_invite_btn:'Invite friends', ref_copy_btn:'Copy link',
     ref_earned_lbl:'Total earned', ref_today_lbl:'Earned today', ref_friends_head:'My referrals',
     ref_empty:'No one has joined your link yet. Share it with friends!', ref_joined_word:'joined',
-    ref_share_text:'Join Shark — play with stars and win gifts!', ref_link_copied:'Link copied',
-    ref_demo_credited:'Referral credited · +10.00 UAH',
+    ref_share_text:'Join Shark — TON games and Telegram gifts!', ref_link_copied:'Link copied',
     history_sub:'All credits, wins and withdrawals', history_empty:'Nothing here yet. Play — your history will show up here.',
-    history_load_error:'Could not load history.', ach_sub:'Unlock badges and earn stars',
+    history_load_error:'Could not load history.', ach_sub:'Unlock badges for how you play',
     hist_kind_referral:'Referral', hist_kind_bet:'Bet', hist_kind_win:'Win', hist_kind_withdraw:'Withdrawal',
     hist_kind_withdraw_refund:'Withdrawal refund', hist_kind_gift:'Gift', hist_kind_topup:'Top-up', hist_kind_adjust:'Adjustment',
-    hist_roul_win_title_tpl:'Roulette: {prize}', hist_bet_sub_tpl:'Bet ⭐{bet}',
+    hist_roul_win_title_tpl:'Roulette: {prize}', hist_bet_sub_tpl:'Bet {bet} TON',
     hist_crash_lose_title:'Crash: loss', hist_crash_at_tpl:'Crashed at {x}x',
-    hist_crash_win_title:'Crash: cashed out', hist_mult_tpl:'Multiplier {x}x',
-    hist_gift_buy_title_tpl:'Purchase: {name}', hist_contest_join_title:'Contest entry',
-    hist_ref_new_title:'New referral', hist_ref_new_sub:'Friend invited', hist_topup_sub:'Purchase',
-    hist_ach_title_tpl:'Achievement: {title}', hist_ach_sub:'Reward',
-    hist_pvp_win_title:'PVP: win', hist_pvp_lose_title:'PVP: loss',
-    gift_insufficient_toast_tpl:'Not enough stars for "{name}"', buy_gift_title_tpl:'Buy "{name}"?',
-    buy_gift_desc_demo_tpl:'⭐{value} will be deducted. The gift will arrive in Telegram.',
-    buy_gift_desc_server_tpl:'⭐{value} will be deducted. The request goes to the admin — the gift will arrive in Telegram.',
-    buy_gift_btn_tpl:'Buy for ⭐{value}', cancel_btn:'Cancel',
-    gift_bought_demo_toast_tpl:'"{name}" purchased!', gift_bought_server_toast_tpl:'"{name}" purchased! We\'ll send the gift on Telegram.',
-    gift_error_no_stars:'Not enough stars', gift_error_generic:'Error',
-    withdraw_min_demo_tpl:'Minimum withdrawal — {min} UAH.',
-    withdraw_sheet_title:'Withdraw money', withdraw_sheet_desc:'Processed manually within 1–3 days.',
-    withdraw_method_lbl:'Method', withdraw_method_card:'Card · UA (UAH)',
-    withdraw_req_lbl:'Details', withdraw_req_placeholder:'Wallet address or card number',
-    withdraw_amount_lbl_tpl:'Amount in UAH (available {avail})', withdraw_submit_btn:'Submit request',
-    withdraw_conv_hint_tpl:'You will receive ≈ {usdt} USDT (rate 1$ = {rate} UAH)',
-    withdraw_err_method:'Choose a method', withdraw_err_req:'Enter your details', withdraw_err_card:'Card number must be 16 digits',
-    withdraw_err_wallet:'Check the wallet address', withdraw_err_min_tpl:'Minimum {min} UAH', withdraw_err_funds:'Insufficient funds',
-    withdraw_err_below_min:'Amount is below the minimum', withdraw_err_generic:'Could not submit the request',
-    withdraw_success_title_demo:'Thank you!', withdraw_success_desc_demo_tpl:'Your request for {amt} UAH{extra} has been accepted.<br>The payout will arrive within 1–3 days.',
-    withdraw_success_title_server:'Request accepted!', withdraw_success_desc_server_tpl:'Your withdrawal of {amt} UAH{extra} was sent for manual review. Funds will arrive within 1–3 days. If declined, the amount will be refunded to your balance.',
-    topup_sheet_title:'Top up stars', topup_tab_crypto:'Crypto Bot', topup_tab_stars:'Stars',
-    topup_crypto_unavailable:'Crypto payment is temporarily unavailable.', topup_crypto_desc:'Pay via @CryptoBot (USDT) — credited automatically.',
-    topup_stars_unavailable:'Top-up is temporarily unavailable.', topup_stars_desc:'Pay with Telegram Stars — credited automatically.',
-    topup_demo_desc:'In the real app this is paid with Telegram Stars. This is a demo top-up.', topup_demo_lbl:'demo',
-    topup_err_invoice:'Could not create an invoice', topup_paid_wait:'Payment received! Crediting stars…',
-    topup_failed:'Payment failed', topup_open_in_tg:'Open the app in Telegram to pay',
-    topup_cb_invoice_opened_tpl:'Invoice opened for {usd} USDT · waiting for payment…', topup_cb_paid_tpl:'Payment received! +{stars} ⭐ credited',
-    topup_demo_credited_tpl:'+{n} ⭐ credited',
-    ach_unlock_toast_tpl:'🏅 Achievement "{title}" +⭐{reward}', ok_btn:'OK',
+    hist_crash_win_title:'Crash: cashed out', hist_mult_tpl:'Multiplier {x}x', hist_contest_join_title:'Contest entry',
+    hist_ref_new_title:'New referral', hist_ref_new_sub:'Friend invited',
+    hist_pvp_win_title:'PVP: win', hist_pvp_lose_title:'PVP: loss', cancel_btn:'Cancel',
+    withdraw_sheet_title:'Withdraw money',
+    withdraw_amount_lbl_tpl:'Amount (available {avail} TON)', withdraw_submit_btn:'Submit request',
+    withdraw_err_wallet:'Check the wallet address', withdraw_err_min_tpl:'Minimum {min} TON', withdraw_err_funds:'Not enough TON on your balance', withdraw_err_generic:'Could not create the request',
+    topup_sheet_title:'Top up balance',
+    topup_err_invoice:'Could not create the invoice', topup_open_in_tg:'Open the app inside Telegram',
+    ach_unlock_toast_tpl:'🏅 Achievement “{title}”', ok_btn:'OK',
     ach_play10_title:'Player', ach_play10_desc:'Play 10 times',
-    ach_win500_title:'Star player', ach_win500_desc:'Win 500 stars in total',
     ach_first_wd_title:'First withdrawal', ach_first_wd_desc:'Withdraw money for the first time',
     ach_ref3_title:'Promoter', ach_ref3_desc:'Invite 3 friends',
-    hist_pvp_win_sub_tpl:'Pot ⭐{pot}', hist_pvp_lose_sub_tpl:'{name} won',
+    hist_pvp_win_sub_tpl:'Pot {pot} TON', hist_pvp_lose_sub_tpl:'{name} won',
     crash_cashout_error:'Cash out error',
     push_new_draw_title:'New draw in 1 hour', push_new_draw_sub:'6 prizes · join in time',
     ticker_won_word:'won',
@@ -2217,19 +2273,18 @@ var I18N={
     adm_h1:'Admin panel', adm_note:'Only you can see this section. Every action is checked server-side.',
     adm_tab_stats:'Overview', adm_tab_players:'Players', adm_tab_grant:'Balance',
     adm_ph_stats:'Overview of players and turnover', adm_ph_players:'Player list with search',
-    adm_ph_grant:'Credit stars to your own account',
+    adm_ph_grant:'Crediting TON to your own account',
     /* Overview (stage 3) */
     adm_refresh:'Refresh', adm_updated_tpl:'As of {time}', adm_err:'Could not load the data',
     adm_retry:'Try again', adm_no_server:'Available inside Telegram only',
     adm_capped_tpl:'Showing the latest {n} records — turnover may be incomplete',
     adm_g_players:'Players', adm_g_balances:'Held balances', adm_g_flow:'Turnover, 7 days',
-    adm_s_total:'total', adm_s_active24:'active in 24h', adm_s_new24:'new in 24h', adm_s_new7:'new in 7 days',
-    adm_s_stars_held:'Stars held', adm_s_money_held:'UAH held', adm_s_pending_wd:'Withdrawals pending',
+    adm_s_total:'total', adm_s_active24:'active in 24h', adm_s_new24:'new in 24h', adm_s_new7:'new in 7 days', adm_s_pending_wd:'Withdrawals pending',
     adm_s_bets:'Wagered', adm_s_wins:'Won', adm_s_rake:'House keeps',
-    adm_s_topups:'Top-ups', adm_s_grants:'Credited manually', adm_s_gifts:'Spent on gifts',
+    adm_s_topups:'Top-ups', adm_s_grants:'Credited manually',
     /* Player list (stage 4) */
     adm_pl_search_ph:'Name, username or id',
-    adm_sort_seen:'Activity', adm_sort_stars:'Stars', adm_sort_new:'Newest', adm_sort_played:'Rounds',
+    adm_sort_seen:'Activity', adm_sort_new:'Newest', adm_sort_played:'Rounds',
     adm_pl_total_tpl:'Players: {n}', adm_pl_found_tpl:'Found: {n}',
     adm_pl_empty:'Nobody found', adm_pl_more_tpl:'Show more ({n})',
     adm_pl_games_tpl:'{n} rounds', adm_tag_admin:'admin', adm_tag_banned:'ban',
@@ -2237,10 +2292,10 @@ var I18N={
     /* Crediting stars (stage 5) */
     adm_gr_bal_lbl:'Your balance', adm_gr_clear:'Clear', adm_gr_note_ph:'Note (optional)',
     adm_gr_credit:'Credit', adm_gr_debit:'Deduct',
-    adm_gr_credit_tpl:'Credit {n} ⭐', adm_gr_debit_tpl:'Deduct {n} ⭐',
-    adm_gr_ok_tpl:'Credited {n} ⭐', adm_gr_ok_minus_tpl:'Deducted {n} ⭐',
-    adm_gr_err_amount:'Enter an amount between 1 and 1,000,000',
-    adm_gr_err_funds:'Not enough stars on the balance',
+    adm_gr_credit_tpl:'Credit {n} TON', adm_gr_debit_tpl:'Deduct {n} TON',
+    adm_gr_ok_tpl:'Credited {n} TON', adm_gr_ok_minus_tpl:'Deducted {n} TON',
+    adm_gr_err_amount:'Enter an amount between 0.1 and 1000 TON',
+    adm_gr_err_funds:'Not enough TON on the balance',
     adm_gr_err_target:'Crediting works on your own account only',
     myid_lbl:'Your ID', myid_desc:'Account number — tap to copy', myid_copied:'ID copied',
     adm_gr_hint:'The credit goes through the same ledger as any other movement of funds and shows up in history. Your own account only.',
@@ -2261,7 +2316,47 @@ var I18N={
     adm_gf_cnt_tpl:'Awaiting delivery: {n}', adm_gf_empty:'Nothing to deliver',
     adm_gf_mark_sending:'Working on it', adm_gf_mark_sent:'Sent',
     adm_gf_marked_sending:'Marked as sending', adm_gf_marked_sent:'Marked as sent',
-    adm_gf_err:'Could not change the status'
+    adm_gf_err:'Could not change the status',
+    ton_lbl:'TON',
+    hero_bal_sub:'Game balance · top up and withdraw in TON',
+    bal_ton_lbl:'Game balance',
+    bal_ton_note:'Top-ups and withdrawals — TON only',
+    pvp_no_ton:'Not enough TON — top up your balance',
+    roul_result_title_tpl:'Landed on {mult}',
+    roul_result_desc_tpl:'“{prize}” · bet {bet} TON → win {win} TON',
+    shop_note:'The case is paid with Stars directly in Telegram. Your TON game balance is not touched.',
+    shop_foot:'The gift you get lands in your inventory right away.',
+    shop_inv:'Inventory',
+    cs_drops_tpl:'{n} gifts',
+    cs_best_tpl:'up to {e} {n} ⭐',
+    cs_empty:'No cases available yet',
+    cs_sheet_desc:'What can drop and with what chance:',
+    cs_buy_btn_tpl:'Open for {n} ⭐',
+    cs_err_invoice:'Could not create the invoice',
+    cs_failed:'Payment did not go through',
+    cs_opening:'Opening the case…',
+    cs_opening_desc:'Waiting for Telegram to confirm the payment',
+    cs_slow:'Payment is processing — the gift will appear in your inventory',
+    cs_won_desc_tpl:'Worth {n} ⭐. The gift is in your inventory — we will send it manually.',
+    cs_to_inventory:'To inventory',
+    ref_line:'Your friend loses — you get a share. Your friend wins — you lose nothing.',
+    ref_share_lbl:'Your share',
+    ach_win10_title:'First 10 TON',
+    ach_win10_desc:'Win 10 TON in total',
+    topup_desc_tpl:'Paid via @CryptoBot in TON. Minimum {min} TON.',
+    topup_unavailable:'Top-ups are temporarily unavailable',
+    topup_invoice_opened_tpl:'Invoice for {amount} TON opened · waiting for payment…',
+    topup_paid_tpl:'Payment received! +{amount} TON',
+    withdraw_sheet_desc_tpl:'Payouts are manual — within {hours} hours.',
+    withdraw_wallet_lbl:'TON wallet address',
+    withdraw_wallet_ph:'UQ… or EQ…',
+    withdraw_min_hint_tpl:'Minimum {min} TON',
+    withdraw_success_title:'Request created',
+    withdraw_success_desc_tpl:'{amt} TON will be paid out within {hours} hours.',
+    adm_s_ton_held:'TON held by players',
+    adm_s_ton_pending:'Frozen in withdrawals',
+    adm_s_referral:'Paid to referrers',
+    adm_sort_ton:'Balance'
   }
 };
 var LANG_KEY='shark_lang_v1';
@@ -2281,7 +2376,7 @@ function tf(key,vars){ return t(key).replace(/\{(\w+)\}/g,function(_,k){return (
 function setLangSaved(l){ try{ localStorage.setItem(LANG_KEY,l); }catch(e){} }
 function applyI18n(){
   var map={
-    greet:'greet', 'i-online-lbl':'online_lbl', 'i-stars-lbl':'stars_lbl', 'i-uah-lbl':'uah_lbl',
+    greet:'greet', 'i-online-lbl':'online_lbl', 'i-ton-lbl':'ton_lbl', 'i-hero-bal-sub':'hero_bal_sub',
     'i-play-now':'play_now', 'i-next-draw':'next_draw', 'i-next-hour':'next_hour', 'i-ingame-lbl':'ingame_lbl',
     'i-pvp-title':'pvp_title', 'i-pvp-desc':'pvp_desc', 'i-pvp-cta':'pvp_cta',
     'i-games-title':'games_title', 'i-games-desc':'games_desc',
@@ -2291,8 +2386,8 @@ function applyI18n(){
     'onb-h-2':'onb_h2', 'onb-p-2':'onb_p2', 'onb-h-3':'onb_h3', 'onb-p-3':'onb_p3',
     'px-lbl':'pvp_pot_lbl',
     'i-st-played-lbl':'st_played', 'i-st-won-lbl':'st_won', 'i-st-rank-lbl':'st_rank',
-    'i-bal-money-lbl':'bal_money_lbl', 'i-withdraw-btn':'withdraw_btn',
-    'i-bal-stars-lbl':'bal_stars_lbl', 'i-topup-btn':'topup_btn',
+    'i-bal-ton-lbl':'bal_ton_lbl', 'i-bal-ton-note':'bal_ton_note',
+    'i-withdraw-btn':'withdraw_btn', 'i-topup-btn':'topup_btn',
     'i-gifts-btn':'gifts_btn',
     'i-friends-btn':'friends_btn', 'i-history-btn':'history_btn', 'i-ach-btn':'ach_btn', 'i-settings-btn':'settings_btn',
     'i-settings-h1':'settings_h1', 'i-lang-lbl':'lang_lbl', 'i-lang-desc':'lang_desc',
@@ -2304,13 +2399,15 @@ function applyI18n(){
     'i-contests-h1':'contests_h1', 'i-contest-tab-active':'contest_tab_active', 'i-contest-tab-yours':'contest_tab_yours',
     'i-contest-tab-history':'history_btn',
     'i-leaders-h1':'leaders_screen_h1', 'i-leaders-sub':'leaders_sub', 'i-leaders-week-end':'leaders_week_end_lbl',
-    'i-shop-h1':'shop_h1', 'i-shop-sub':'shop_sub',
+    'i-shop-h1':'shop_h1', 'i-shop-sub':'shop_sub', 'i-shop-note':'shop_note',
+    'i-shop-foot':'shop_foot', 'i-shop-inv':'shop_inv',
     'i-home-contests-h':'contests_h1', 'i-home-contests-all':'see_all_lbl',
     'i-home-leaders-h':'leaders_screen_h1', 'i-home-leaders-all':'see_all_lbl',
-    'i-home-shop-h':'shop_h1', 'i-home-shop-all':'see_all_lbl',
+    'i-home-shop-h':'tab_shop', 'i-home-shop-all':'see_all_lbl',
     'i-ref-hero-pre':'ref_hero_pre', 'i-ref-hero-post':'ref_hero_post', 'i-ref-hero-muted':'ref_hero_muted',
-    'i-ref-line-pre':'ref_line_pre', 'i-ref-line-post':'ref_line_post',
-    'i-ref-cap-pre':'ref_cap_pre', 'i-ref-cap-mid':'ref_cap_mid', 'i-ref-cap-post':'ref_cap_post',
+    'i-ref-line':'ref_line',
+    'i-ref-cap-pre':'ref_cap_pre', 'i-ref-cap-post':'ref_cap_post',
+    'i-ref-share-lbl':'ref_share_lbl',
     'i-ref-invite-btn':'ref_invite_btn', 'i-ref-copy-btn':'ref_copy_btn',
     'i-ref-earned-lbl':'ref_earned_lbl', 'i-ref-today-lbl':'ref_today_lbl', 'i-ref-friends-head':'ref_friends_head',
     'i-refs-h1':'friends_btn', 'i-history-h1':'history_btn', 'i-history-sub':'history_sub',
@@ -2328,7 +2425,7 @@ function applyI18n(){
     'i-gft-f-all':'gft_f_all', 'i-gft-f-held':'gft_f_held', 'i-gft-f-sent':'gft_f_sent',
     'i-adm-ph-stats':'adm_ph_stats', 'i-adm-ph-players':'adm_ph_players', 'i-adm-ph-grant':'adm_ph_grant',
     'i-adm-refresh':'adm_refresh',
-    'i-adm-sort-seen':'adm_sort_seen', 'i-adm-sort-stars':'adm_sort_stars',
+    'i-adm-sort-seen':'adm_sort_seen', 'i-adm-sort-ton':'adm_sort_ton',
     'i-adm-sort-new':'adm_sort_new', 'i-adm-sort-played':'adm_sort_played',
     'i-myid-lbl':'myid_lbl', 'i-myid-desc':'myid_desc',
     'i-adm-gr-bal-lbl':'adm_gr_bal_lbl', 'i-adm-gr-clear':'adm_gr_clear', 'i-adm-gr-hint':'adm_gr_hint'
@@ -2355,23 +2452,29 @@ function applyI18n(){
   if(typeof GFT!=='undefined' && GFT && GFT.loaded) gftRender();
 }
 
+/* Рулетка — множители к ставке, а не фиксированные призы: ставка теперь
+   дробная (от 0.1 TON), и «приз 300» при ставке 0.1 не имел бы смысла.
+   Таблица приезжает с сервера (catalog.roulette); здесь — то же, что в
+   схеме по умолчанию, чтобы лента рисовалась до первого ответа. */
 var ROUL_PRIZES=[
-  {emoji:"🫧",name:"Пузырь",value:5,color:"#16236b",weight:30},
-  {emoji:"🌊",name:"Волна",value:10,color:"#1d3a6b",weight:24},
-  {emoji:"🐚",name:"Ракушка",value:20,color:"#3a5f6b",weight:18},
-  {emoji:"🐠",name:"Рыбка",value:40,color:"#0a5f6b",weight:12},
-  {emoji:"🪸",name:"Коралл",value:60,color:"#b5541f",weight:8},
-  {emoji:"⚓",name:"Якорь",value:90,color:"#5a2f7a",weight:5},
-  {emoji:"🦈",name:"Акула",value:150,color:"#7a1f3a",weight:2.5},
-  {emoji:"💎",name:"Жемчуг",value:300,color:"#7a1f3a",weight:0.5}
+  {emoji:"🫧",name:"Пузырь",mult:0.2,color:"#16236b",weight:34},
+  {emoji:"🌊",name:"Волна",mult:0.4,color:"#1d3a6b",weight:24},
+  {emoji:"🐚",name:"Ракушка",mult:0.8,color:"#3a5f6b",weight:18},
+  {emoji:"🐠",name:"Рыбка",mult:1.5,color:"#0a5f6b",weight:10},
+  {emoji:"🪸",name:"Коралл",mult:2,color:"#b5541f",weight:7},
+  {emoji:"⚓",name:"Якорь",mult:3,color:"#5a2f7a",weight:4},
+  {emoji:"🦈",name:"Акула",mult:5,color:"#7a1f3a",weight:2.4},
+  {emoji:"💎",name:"Жемчуг",mult:20,color:"#7a1f3a",weight:0.6}
 ];
+/* Цвет ячейки ленты — по силе множителя, чтобы серверная таблица без поля
+   color не приезжала бесцветной. */
+function roulColor(p){
+  if(p.color) return p.color;
+  var m=Number(p.mult)||0;
+  return m>=10?"#7a1f3a":m>=3?"#5a2f7a":m>=2?"#b5541f":m>=1?"#0a5f6b":m>=0.5?"#3a5f6b":"#1d3a6b";
+}
+function multLbl(m){ return '×'+(Number(m)%1?Number(m).toFixed(1):Number(m)); }
 
-var SHOP=[
-  {emoji:"🦈",name:"Shark NFT",value:500},{emoji:"🐚",name:"Ракушка",value:331},
-  {emoji:"🪸",name:"Коралл",value:344},{emoji:"🌊",name:"Волна",value:360},
-  {emoji:"🐠",name:"Рыбка",value:334},{emoji:"⚓",name:"Якорь",value:356},
-  {emoji:"💎",name:"Жемчуг",value:600},{emoji:"🔱",name:"Трезубец",value:358}
-];
 
 /* реальные фото вместо эмодзи — спрайт-лист (см. assets/avatars.png), 7×3 ячейки по 128px */
 /* файл спрайта 2688×900 (реальные аватарки в верхней полосе 2688×128,
@@ -2434,10 +2537,11 @@ function pvpMyStake(st){
   return 0;
 }
 
+/* s — выиграно TON за неделю */
 var LEADERS=[
-  {n:"Dogindfox",s:48720,a:"manta"},{n:"cakt0_ymep",s:41355,a:"tiger"},
-  {n:"WritePl",s:38900,a:"owl"},{n:"molodoywq",s:25160,a:"turtle"},
-  {n:"Facesed",s:19980,a:"tarantula"},{n:"taracashka42",s:15040,a:"monkey"}
+  {n:"Dogindfox",s:487.2,a:"manta"},{n:"cakt0_ymep",s:413.55,a:"tiger"},
+  {n:"WritePl",s:389,a:"owl"},{n:"molodoywq",s:251.6,a:"turtle"},
+  {n:"Facesed",s:199.8,a:"tarantula"},{n:"taracashka42",s:150.4,a:"monkey"}
 ];
 
 var BOT_NAMES=["ota_try","Faceless","molodoywq","cakt0_ymep","sea_wolf","krd_777","blue_fin","reef_king","aqua_max","tide_88","kraken_x","pearl","marlin","orca_pro","WritePl","deep_one"];
@@ -2453,8 +2557,7 @@ var REF_FRIENDS=[
 var STREAK_REWARDS=[10,15,20,30,50,75,150]; // звёзды за день 1..7
 
 /* ============ УТИЛИТЫ ============ */
-function money(n){return Number(n).toFixed(2);}
-function usdt(n){return (Number(n)/USDT_RATE).toFixed(2);}
+
 function $(s,r){return (r||document).querySelector(s);}
 function $all(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));}
 function rint(a,b){return a+Math.floor(Math.random()*(b-a+1));}
@@ -2659,8 +2762,10 @@ function admTab(name){
 }
 
 /* ---- Начисление звёзд себе ---- */
-var ADM_GR_MAX=1000000;
-var admGr={amount:0,busy:false,key:''};
+/* Тот же потолок, что на сервере (ADMIN_GRANT_MAX_TON): кнопка не должна
+   предлагать сумму, которую сервер отклонит. */
+var ADM_GR_MAX=1000;
+var admGr={amountN:0,busy:false,key:''};
 
 /* Ключ идемпотентности живёт до успешного начисления: повтор после обрыва
    связи не удвоит баланс (сервер узнает тот же ключ), а осознанное повторное
@@ -2669,29 +2774,38 @@ function admGrKey(){
   if(!admGr.key) admGr.key=String(Date.now())+'.'+Math.random().toString(36).slice(2,8);
   return admGr.key;
 }
+/* Сумма в TON — дробная. Нормализуем ввод, но не переписываем строку на
+   каждый символ: иначе «0.» стёрлось бы раньше, чем игрок дописал десятые. */
 function admGrInput(v){
-  var digits=String(v||'').replace(/[^\d]/g,'').slice(0,7);
-  admGr.amount=Number(digits||0);
+  var raw=String(v==null?'':v).replace(',','.').replace(/[^\d.]/g,'');
+  var p=raw.split('.');
+  if(p.length>2) raw=p[0]+'.'+p.slice(1).join('');
+  var dot=raw.indexOf('.');
+  if(dot>=0) raw=raw.slice(0,dot+1)+raw.slice(dot+1,dot+10);   // не мельче нанотона
+  var n=Number(raw||0);
+  if(!isFinite(n)||n<0) n=0;
+  if(n>ADM_GR_MAX){ n=ADM_GR_MAX; raw=String(ADM_GR_MAX); }
+  admGr.amountN=toNano(n);
   admGr.key='';                                  // сумма изменилась — это уже другое намерение
   var f=document.getElementById('adm-gr-amt');
-  if(f && f.value!==digits) f.value=digits;
+  if(f && f.value!==raw) f.value=raw;
   admGrSync();
 }
 function admGrAdd(n){
-  admGrInput(String(Math.min(admGr.amount+n,ADM_GR_MAX)));
+  admGrInput(String(Math.min(fromNano(admGr.amountN)+n,ADM_GR_MAX)));
 }
 function admGrClear(){ admGrInput(''); }
 
 function admGrSync(){
-  var b=document.getElementById('adm-gr-bal'); if(b) b.textContent=admNum(S.stars);
-  var n=admGr.amount, has=n>0, enough=(S.stars>=n);
+  var b=document.getElementById('adm-gr-bal'); if(b) b.textContent=tonFmt(S.ton);
+  var nN=admGr.amountN, has=nN>0, enough=(S.tonN>=nN), lbl=tonFmt(fromNano(nN));
   var p=document.getElementById('adm-gr-plus'), m=document.getElementById('adm-gr-minus');
   if(p){
-    p.textContent=has?tf('adm_gr_credit_tpl',{n:admNum(n)}):t('adm_gr_credit');
+    p.textContent=has?tf('adm_gr_credit_tpl',{n:lbl}):t('adm_gr_credit');
     p.disabled=!has||admGr.busy;
   }
   if(m){
-    m.textContent=has?tf('adm_gr_debit_tpl',{n:admNum(n)}):t('adm_gr_debit');
+    m.textContent=has?tf('adm_gr_debit_tpl',{n:lbl}):t('adm_gr_debit');
     // списать больше, чем есть, нельзя — сервер это отклонит, не даём и нажать
     m.disabled=!has||!enough||admGr.busy;
   }
@@ -2699,16 +2813,16 @@ function admGrSync(){
 
 async function admGrant(sign){
   if(admGr.busy) return;
-  var n=admGr.amount;
-  if(!(n>0)||n>ADM_GR_MAX){ toast(t('adm_gr_err_amount')); return; }
-  if(sign<0 && S.stars<n){ toast(t('adm_gr_err_funds')); return; }
+  var nN=admGr.amountN, n=fromNano(nN);
+  if(!(nN>0)||nN>toNano(ADM_GR_MAX)){ toast(t('adm_gr_err_amount')); return; }
+  if(sign<0 && S.tonN<nN){ toast(t('adm_gr_err_funds')); return; }
   if(!SERVER){ toast(t('adm_no_server')); return; }
 
   var noteEl=document.getElementById('adm-gr-note');
   admGr.busy=true; admGrSync();
   var r=null;
   try{
-    r=await api('admin_grant',{currency:'stars',amount:sign*n,key:admGrKey(),note:noteEl?noteEl.value:''});
+    r=await api('admin_grant',{amount:sign*n,key:admGrKey(),note:noteEl?noteEl.value:''});
   }catch(e){ r=null; }
   admGr.busy=false;
 
@@ -2716,13 +2830,13 @@ async function admGrant(sign){
   if(!r||!r.ok){ toast(admGrErr(r&&r.reason)); admGrSync(); return; }
 
   admGr.key='';                                  // начисление прошло — следующее будет новым
-  if(r.user) applyUser(r.user); else S.stars=Number(r.balance||S.stars);
+  if(r.user) applyUser(r.user); else S.tonN=toNano(r.balance!=null?r.balance:S.ton);
   syncBalances();
   admStats.data=null;                            // сводка устарела: цифры сдвинулись
   admPl.loaded=false;                            // и своя строка в списке игроков тоже
   if(noteEl) noteEl.value='';
   admGrInput('');
-  toast(tf(sign<0?'adm_gr_ok_minus_tpl':'adm_gr_ok_tpl',{n:admNum(n)}));
+  toast(tf(sign<0?'adm_gr_ok_minus_tpl':'adm_gr_ok_tpl',{n:tonFmt(n)}));
 }
 
 function admGrErr(reason){
@@ -2925,9 +3039,9 @@ function admRenderPlayers(){
       +avDiv('adm-av',key,38)
       +'<div class="adm-pl-t"><div class="adm-pl-n">'+(admEsc(p.name)||('id '+admEsc(p.tg_id)))+tags+'</div>'
       +'<div class="adm-pl-m">'+meta+'</div></div>'
-      +'<div class="adm-pl-r"><div class="adm-pl-s">'+admNum(p.stars)+' ⭐</div>'
-      // гривны показываем только когда они есть — иначе строка «0.00» шумит в каждом ряду
-      +(p.money>0?'<div class="adm-pl-w mny">'+admMoney(p.money)+' '+t('uah_lbl')+'</div>':'')
+      +'<div class="adm-pl-r"><div class="adm-pl-s">'+tonFmt(p.ton)+' TON</div>'
+      // выигранное показываем, только когда оно есть — иначе ноль шумит в каждом ряду
+      +(p.wonTon>0?'<div class="adm-pl-w mny">+'+tonFmt(p.wonTon)+'</div>':'')
       +'<div class="adm-pl-w">'+admAgo(p.lastSeen)+'</div></div>'
       +'</div>';
   }).join('');
@@ -2955,11 +3069,6 @@ function admGroup(str){
 function admNum(n){                   // звёзды и счётчики — целые
   n=Math.round(Number(n)||0);
   return (n<0?'\u2212':'')+admGroup(String(Math.abs(n)));
-}
-function admMoney(n){                 // гривны — разряды и всегда две копейки
-  n=Number(n)||0;
-  var q=Math.abs(n).toFixed(2).split('.');
-  return (n<0?'\u2212':'')+admGroup(q[0])+'.'+q[1];
 }
 /* Имя и ник игрока задаёт сам игрок в Telegram. В админке они попадают в
    разметку, поэтому экранируем: иначе чужое имя вида <img onerror=...>
@@ -3027,7 +3136,7 @@ function admRenderStats(){
 
   function kpi(v,l){ return '<div class="adm-kpi"><div class="ak-v">'+v+'</div><div class="ak-l">'+l+'</div></div>'; }
   function row(l,v,cls){ return '<div class="adm-row'+(cls?' '+cls:'')+'"><span>'+l+'</span><b>'+v+'</b></div>'; }
-  var st=function(n){ return admNum(n)+ADM_TSEP+'⭐'; };
+  var st=function(n){ return tonFmt(n)+ADM_TSEP+'TON'; };
 
   var h='';
   h+='<div class="adm-card"><h4>'+t('adm_g_players')+'</h4><div class="adm-kpis">'
@@ -3038,8 +3147,8 @@ function admRenderStats(){
     +'</div></div>';
 
   h+='<div class="adm-card"><h4>'+t('adm_g_balances')+'</h4>'
-    +row(t('adm_s_stars_held'),st(s.starsHeld))
-    +row(t('adm_s_money_held'),admMoney(s.moneyHeld)+ADM_TSEP+t('uah_lbl'))
+    +row(t('adm_s_ton_held'),st(s.tonHeld))
+    +row(t('adm_s_ton_pending'),st(s.tonPendingWithdraw))
     +row(t('adm_s_pending_wd'),admNum(s.pendingWithdrawals),s.pendingWithdrawals>0?'warn':'')
     +'</div>';
 
@@ -3049,7 +3158,7 @@ function admRenderStats(){
     +row(t('adm_s_rake'),st(s.rake7d),'hi')
     +row(t('adm_s_topups'),st(s.topups7d))
     +row(t('adm_s_grants'),st(s.grants7d))
-    +row(t('adm_s_gifts'),st(s.giftsSpent7d));
+    +row(t('adm_s_referral'),st(s.referral7d));
   if(s.scan&&s.scan.capped) h+='<p class="adm-note-sm">'+tf('adm_capped_tpl',{n:admNum(s.scan.cap)})+'</p>';
   h+='</div>';
 
@@ -3077,15 +3186,12 @@ function setGameTab(t){
 
 /* ============ БАЛАНСЫ / ПРОФИЛЬ ============ */
 function syncBalances(){
-  $all('[data-money]').forEach(function(e){e.textContent=money(S.money);});
-  $all('[data-stars]').forEach(function(e){e.textContent=S.stars;});
-  var mb=$('[data-money-big]'); if(mb) mb.innerHTML=money(S.money)+' <span style="font-size:20px;color:var(--aqua)">'+t('uah_lbl')+'</span>';
-  var mu=$('[data-money-usdt]'); if(mu) mu.textContent='≈ '+usdt(S.money)+' USDT';
-  var sb=$('[data-stars-big]'); if(sb) sb.innerHTML=S.stars+' <span style="font-size:20px;color:var(--gold)">⭐</span>';
+  $all('[data-ton]').forEach(function(e){e.textContent=tonFmt(S.ton);});
+  var tb=$('[data-ton-big]'); if(tb) tb.innerHTML=tonBal(S.ton)+' <span style="font-size:20px;color:var(--aqua)">TON</span>';
 }
 function levelInfo(){
   // уровень от суммарной активности
-  var xp=S.played*10+S.wonStars/10+Object.keys(S.doneTasks).length*15;
+  var xp=S.played*10+S.wonTon*2+Object.keys(S.doneTasks).length*15;
   var lvl=Math.max(1,Math.floor(xp/100)+1);
   var names=(I18N[L]&&I18N[L].lvl_names)||I18N.uk.lvl_names;
   var name=names[Math.min(lvl-1,names.length-1)];
@@ -3096,7 +3202,7 @@ function renderProfile(){
   var pn=document.getElementById('prof-lvl'); if(pn) pn.textContent=t('lvl_prefix')+li.lvl+' · '+li.name;
   var lb=document.getElementById('lvlbar'); if(lb) lb.style.width=Math.max(li.prog,6)+'%';
   var sp=document.getElementById('st-played'); if(sp) sp.textContent=S.played;
-  var sw=document.getElementById('st-won'); if(sw) sw.textContent=S.wonStars;
+  var sw=document.getElementById('st-won'); if(sw) sw.textContent=tonFmt(S.wonTon);
   var sr=document.getElementById('st-rank'); if(sr) sr.textContent='100+';
 }
 
@@ -3116,7 +3222,8 @@ function buildTicker(){
   var items=[];
   for(var i=0;i<10;i++){
     var b=randBot(); var p=ROUL_PRIZES[rint(0,ROUL_PRIZES.length-1)];
-    items.push('<span>'+b.a+' '+b.n+' '+t('ticker_won_word')+' '+p.emoji+' <span class="g">+⭐'+p.value+'</span></span>');
+    var stake=BETS[rint(0,BETS.length-1)];
+    items.push('<span>'+b.a+' '+b.n+' '+t('ticker_won_word')+' '+p.emoji+' <span class="g">+'+tonFmt(fromNano(Math.round(toNano(stake)*p.mult)))+' TON</span></span>');
   }
   var html=items.join('')+items.join(''); // дублируем для бесшовной прокрутки
   document.getElementById('ticker').innerHTML=html;
@@ -3125,40 +3232,18 @@ function buildTicker(){
 /* ============ РУЛЕТКА ============ */
 var spinning=false,stripPrizes=[];
 function pickWeighted(){var total=0,i;for(i=0;i<ROUL_PRIZES.length;i++)total+=ROUL_PRIZES[i].weight;var r=Math.random()*total;for(i=0;i<ROUL_PRIZES.length;i++){r-=ROUL_PRIZES[i].weight;if(r<=0)return ROUL_PRIZES[i];}return ROUL_PRIZES[0];}
-function buildStrip(){var strip=document.getElementById('strip');strip.innerHTML='';stripPrizes=[];for(var i=0;i<50;i++){var p=pickWeighted();stripPrizes.push(p);var it=document.createElement('div');it.className='roul-item';it.style.background=p.color;it.innerHTML=p.emoji+'<small>⭐'+p.value+'</small>';strip.appendChild(it);}}
-function setBet(v){S.bet=v;$all('[data-bet]').forEach(function(c){c.classList.toggle('active',Number(c.getAttribute('data-bet'))===v);});document.getElementById('spin-btn').textContent=tf('spin_btn_tpl',{bet:v});}
-function spin(){
-  if(spinning)return; if(S.stars<S.bet){toast(t('pvp_no_stars'));return;}
-  spinning=true;S.stars-=S.bet;S.played++;syncBalances();buildStrip();
-  beep(440,0.05,0.04,'square');
-  var strip=document.getElementById('strip');var stage=$('.roul-stage');var itemW=100;
-  var target=30+Math.floor(Math.random()*8);var offset=target*itemW-(stage.clientWidth/2)+(itemW/2);
-  strip.style.transition='none';strip.style.transform='translateX(0px)';void strip.offsetWidth;
-  strip.style.transition='transform 3.2s cubic-bezier(.12,.7,.12,1)';strip.style.transform='translateX(-'+offset+'px)';
-  var btn=document.getElementById('spin-btn');btn.disabled=true;
-  // звук-трещотка во время кручения
-  var clk=setInterval(function(){beep(900,0.015,0.015,'square');},90);
-  setTimeout(function(){clearInterval(clk);},3100);
-  setTimeout(function(){
-    var base=stripPrizes[target]||ROUL_PRIZES[0];
-    var betMult=S.bet/50;                                  // 50→x1, 100→x2, 250→x5
-    var winVal=Math.round(base.value*betMult);
-    var prize={emoji:base.emoji,name:base.name,value:winVal};
-    S.stars+=winVal;S.wonStars+=winVal;syncBalances();
-    beep(660,0.12,0.06,'triangle');vibrate(25);
-    spinning=false;btn.disabled=false;
-    logOp('🎰',tf('hist_roul_win_title_tpl',{prize:prize.name}),tf('hist_bet_sub_tpl',{bet:S.bet}),'+⭐'+winVal,'star');
-    pushMyRoulRow(prize);
-    checkAchievements();
-    if(winVal>S.bet) celebrate({n:40});
-    showSheet('<div class="result-emoji">'+prize.emoji+'</div><h3 style="text-align:center">'+tf('roul_win_sheet_title_tpl',{win:winVal})+'</h3><p class="muted" style="text-align:center">'+tf('roul_win_sheet_desc_tpl',{prize:prize.name,bet:S.bet,mult:betMult})+'</p><button class="btn-primary" onclick="closeSheet()">'+t('pvp_claim_btn')+'</button>');
-  },3300);
+function buildStrip(){var strip=document.getElementById('strip');if(!strip)return;strip.innerHTML='';stripPrizes=[];for(var i=0;i<50;i++){var p=pickWeighted();stripPrizes.push(p);var it=document.createElement('div');it.className='roul-item';it.style.background=roulColor(p);it.innerHTML=p.emoji+'<small>'+multLbl(p.mult)+'</small>';strip.appendChild(it);}}
+function setBet(v){
+  S.betN=toNano(v);
+  $all('[data-bet]').forEach(function(c){ c.classList.toggle('active',toNano(c.getAttribute('data-bet'))===S.betN); });
+  var b=document.getElementById('spin-btn'); if(b) b.textContent=tf('spin_btn_tpl',{bet:tonFmt(v)});
 }
 function pushMyRoulRow(prize){
   var box=document.getElementById('roul-players');if(!box)return;
   if(!box.querySelector('.ph')) box.innerHTML='<div class="ph"><span>'+t('roul_recent_spins_lbl')+'</span><span>'+t('win_col_lbl')+'</span></div>';
   var row=document.createElement('div');row.className='prow';
-  row.innerHTML='<div class="av">🙂</div><div class="nm"><b style="color:var(--aqua)">'+t('you_word')+'</b></div><div class="st win">'+prize.emoji+' +⭐'+prize.value+'</div>';
+  var cls=Number(prize.win)>=Number(prize.bet)?'win':'lose';
+  row.innerHTML='<div class="av">🙂</div><div class="nm"><b style="color:var(--aqua)">'+t('you_word')+'</b></div><div class="st '+cls+'">'+prize.emoji+' '+multLbl(prize.mult)+' · '+tonFmt(prize.win)+'</div>';
   var header=box.querySelector('.ph');
   if(header.nextSibling)box.insertBefore(row,header.nextSibling);else box.appendChild(row);
   while(box.querySelectorAll('.prow').length>6)box.removeChild(box.lastChild);
@@ -3166,7 +3251,7 @@ function pushMyRoulRow(prize){
 var roulFeedTimer=null;
 function startRoulFeed(){var box=document.getElementById('roul-players');if(!box.querySelector('.ph')){box.innerHTML='<div class="ph"><span>'+t('roul_recent_spins_lbl')+'</span><span>'+t('win_col_lbl')+'</span></div>';for(var i=0;i<5;i++)pushRoulRow();}stopRoulFeed();roulFeedTimer=setInterval(pushRoulRow,rint(1800,3200));}
 function stopRoulFeed(){if(roulFeedTimer){clearInterval(roulFeedTimer);roulFeedTimer=null;}}
-function pushRoulRow(){var box=document.getElementById('roul-players');if(!box)return;var b=randBot();var p=pickWeighted();var row=document.createElement('div');row.className='prow';row.innerHTML=avDiv('av',b.a,28)+'<div class="nm">'+b.n+'</div><div class="st win">'+p.emoji+' +⭐'+p.value+'</div>';var header=box.querySelector('.ph');if(header.nextSibling)box.insertBefore(row,header.nextSibling);else box.appendChild(row);while(box.querySelectorAll('.prow').length>6)box.removeChild(box.lastChild);}
+function pushRoulRow(){var box=document.getElementById('roul-players');if(!box)return;var b=randBot();var p=pickWeighted();var stake=BETS[rint(0,BETS.length-1)];var win=Math.round(toNano(stake)*p.mult)/NANO;var row=document.createElement('div');row.className='prow';row.innerHTML=avDiv('av',b.a,28)+'<div class="nm">'+b.n+'</div><div class="st '+(p.mult>=1?'win':'lose')+'">'+p.emoji+' '+multLbl(p.mult)+' · '+tonFmt(win)+'</div>';var header=box.querySelector('.ph');if(header.nextSibling)box.insertBefore(row,header.nextSibling);else box.appendChild(row);while(box.querySelectorAll('.prow').length>6)box.removeChild(box.lastChild);}
 
 /* ============ КРАШ ============ */
 var crashPhase='waiting',crashRAF=null,crashMult=1,crashTarget=0,crashT0=0,crashCountdown=5,crashCdTimer=null,crashBots=[],crashLoopActive=false,iJoined=false;
@@ -3211,7 +3296,14 @@ function vibrate(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e
 /* «живые» соперники для краша (боты ставят каждый раунд) */
 var CRASH_NAMES=['Никита','ARMIN','Джастон','Amir','XU','Данёк','sea_wolf','Влад','kraken_x','Максим','reef_king','Артём','SELL FIZ','tide_88','Оля','marlin','Санёк','deep_one','Женя','orca_pro','Дима','blue_fin','Илья','pearl','Тимур','aqua_max'];
 var CRASH_AV=["manta","giraffe","frog","starfish","jellyfish","tarantula","butterfly1","nudibranch1","owl","tiger","orbspider","snail","turtle","arowana","monkey","cuttlefish","morayeel","crab","bluejay","jumpingspider","greennudi"];
-var CRASH_BETS=[50,100,150,200,250,300,500];
+/* Ставки ботов в ленте краша — косметика, но масштаб должен совпадать с
+   реальными: список выводим из серверного BETS, иначе рядом с «0.1 TON»
+   висело бы «500». */
+function crashBetSample(){
+  var b=BETS.slice(), out=b.slice();
+  b.forEach(function(v){ out.push(v*2); out.push(v*5); });
+  return out;
+}
 function crashBot(){ return { n:CRASH_NAMES[rint(0,CRASH_NAMES.length-1)], a:CRASH_AV[rint(0,CRASH_AV.length-1)] }; }
 function renderCrashHistory(){
   var box=document.getElementById('crash-history'); if(!box) return;
@@ -3222,11 +3314,15 @@ function renderCrashHistory(){
     p.textContent=m.toFixed(2)+'x'; box.appendChild(p);
   });
 }
-function setCBet(v){S.cbet=v;$all('[data-cbet]').forEach(function(c){c.classList.toggle('active',Number(c.getAttribute('data-cbet'))===v);});updateCrashBtn();}
+function setCBet(v){
+  S.cbetN=toNano(v);
+  $all('[data-cbet]').forEach(function(c){ c.classList.toggle('active',toNano(c.getAttribute('data-cbet'))===S.cbetN); });
+  updateCrashBtn();
+}
 function updateCrashBtn(){var btn=document.getElementById('crash-btn');if(!btn)return;
   var cashing=false;
-  if(crashPhase==='waiting'){btn.textContent=iJoined?tf('crash_bet_accepted_tpl',{bet:S.cbet}):tf('crash_bet_btn_tpl',{bet:S.cbet});btn.disabled=iJoined;}
-  else if(crashPhase==='flying'){if(iJoined&&!S.cashedThisRound){btn.textContent=tf('crash_cashout_btn_tpl',{amt:Math.floor(S.cbet*crashMult)});btn.disabled=false;cashing=true;}else{btn.textContent=t('crash_round_live_lbl');btn.disabled=true;}}
+  if(crashPhase==='waiting'){btn.textContent=iJoined?tf('crash_bet_accepted_tpl',{bet:tonFmt(S.cbet)}):tf('crash_bet_btn_tpl',{bet:tonFmt(S.cbet)});btn.disabled=iJoined;}
+  else if(crashPhase==='flying'){if(iJoined&&!S.cashedThisRound){btn.textContent=tf('crash_cashout_btn_tpl',{amt:tonFmt(fromNano(Math.floor(S.cbetN*crashMult)))});btn.disabled=false;cashing=true;}else{btn.textContent=t('crash_round_live_lbl');btn.disabled=true;}}
   else{btn.textContent=t('crash_round_over_lbl');btn.disabled=true;}
   btn.classList.toggle('cr-btn-cash',cashing);}
 function startCrashLoop(){if(crashLoopActive)return;crashLoopActive=true;beginWaiting();}
@@ -3235,7 +3331,7 @@ function beginWaiting(){
   if(!crashLoopActive)return;
   crashPhase='waiting';crashMult=1;S.cashedThisRound=false;iJoined=false;crashCountdown=5;crashBots=[];crParticles=[];
   var n=rint(3,8);
-  for(var i=0;i<n;i++){crashBots.push({id:i,bot:crashBot(),bet:CRASH_BETS[rint(0,CRASH_BETS.length-1)],cashAt:+(1.2+Math.random()*Math.random()*9).toFixed(2),status:'live',taken:0});}
+  for(var i=0;i<n;i++){crashBots.push({id:i,bot:crashBot(),bet:(function(){var q=crashBetSample();return q[rint(0,q.length-1)];})(),cashAt:+(1.2+Math.random()*Math.random()*9).toFixed(2),status:'live',taken:0});}
   renderCrashPlayers();
   var mEl=document.getElementById('mult'); if(mEl){mEl.textContent=t('crash_waiting_lbl');mEl.className='crash-mult mc-aqua';}
   resetSharkPos();
@@ -3263,7 +3359,7 @@ function setupCanvas(){
 }
 function beginFlying(){
   if(!crashLoopActive)return;
-  if(!crashBots.length){var n=rint(3,8);for(var k=0;k<n;k++){crashBots.push({id:k,bot:crashBot(),bet:CRASH_BETS[rint(0,CRASH_BETS.length-1)],cashAt:+(1.2+Math.random()*Math.random()*9).toFixed(2),status:'live',taken:0});}}
+  if(!crashBots.length){var n=rint(3,8);for(var k=0;k<n;k++){crashBots.push({id:k,bot:crashBot(),bet:(function(){var q=crashBetSample();return q[rint(0,q.length-1)];})(),cashAt:+(1.2+Math.random()*Math.random()*9).toFixed(2),status:'live',taken:0});}}
   crashPhase='flying';crashT0=performance.now();crashTarget=+(1.2+Math.random()*Math.random()*12).toFixed(2);crParticles=[];
   var st=document.getElementById('crash-status'); if(st)st.innerHTML=t('crash_flying_status');
   crSetPhase('flying',t('cr_phase_live'));
@@ -3361,7 +3457,7 @@ function crashTick(now){
     setTimeout(function(){if(sh)sh.style.transition='';},520);
     crashBots.forEach(function(p2){if(p2.status==='live')p2.status='lose';});
     renderCrashPlayers();
-    if(iJoined&&!S.cashedThisRound){toast(tf('crash_missed_toast_tpl',{bet:S.cbet,x:crashTarget.toFixed(2)}));logOp('💥',t('hist_crash_lose_title'),tf('hist_crash_at_tpl',{x:crashTarget.toFixed(2)}),'−⭐'+S.cbet,'minus');}
+    if(iJoined&&!S.cashedThisRound){toast(tf('crash_missed_toast_tpl',{bet:tonFmt(S.cbet),x:crashTarget.toFixed(2)}));logOp('💥',t('hist_crash_lose_title'),tf('hist_crash_at_tpl',{x:crashTarget.toFixed(2)}),'−'+tonFmt(S.cbet)+' TON','minus');}
     var st2=document.getElementById('crash-status');if(st2)st2.innerHTML=tf('crash_crashed_status_tpl',{x:'<b>'+crashTarget.toFixed(2)+'</b>'});
     updateCrashBtn();
     setTimeout(beginWaiting,2600);
@@ -3369,47 +3465,63 @@ function crashTick(now){
   }
   crashRAF=requestAnimationFrame(crashTick);
 }
-function crashAction(){
-  if(crashPhase==='waiting'){if(iJoined)return;if(S.stars<S.cbet){toast(t('pvp_no_stars'));return;}
-    var chk=document.getElementById('auto-chk'); autoCash=chk?chk.checked:false;
-    var am=parseFloat((document.getElementById('auto-mult')||{}).value||'2'); autoMult=(am&&am>1)?am:2;
-    S.stars-=S.cbet;S.played++;syncBalances();iJoined=true;beep(520,0.06,0.05,'triangle');crashBots.unshift({id:'me',bot:{n:t('you_word'),a:'🙂'},bet:S.cbet,cashAt:autoCash?autoMult:999,status:'live',taken:0,me:true});renderCrashPlayers();updateCrashBtn();toast(autoCash?tf('crash_bet_toast_auto_tpl',{bet:S.cbet,x:autoMult.toFixed(2)}):tf('crash_bet_toast_tpl',{bet:S.cbet}));checkAchievements();}
-  else if(crashPhase==='flying'&&iJoined&&!S.cashedThisRound){var win=Math.floor(S.cbet*crashMult);S.stars+=win;S.wonStars+=Math.max(win-S.cbet,0);S.cashedThisRound=true;syncBalances();beep(780,0.12,0.06,'triangle');vibrate(30);var me=crashBots.filter(function(p){return p.me;})[0];if(me){me.status='win';me.taken=win;me.cashAt=crashMult;}renderCrashPlayers();updateCrashBtn();logOp('🚀',t('hist_crash_win_title'),tf('hist_mult_tpl',{x:crashMult.toFixed(2)}),'+⭐'+win,'star');celebrate({n:44});toast(tf('crash_cashout_toast_tpl',{win:win,x:crashMult.toFixed(2)}));}}
 function renderCrashPlayers(){
   var box=document.getElementById('crash-players');if(!box)return;
   var html='<div class="ph"><span>'+tf('crash_players_header_tpl',{n:crashBots.length})+'</span><span>'+t('crash_bet_payout_lbl')+'</span></div>';
   crashBots.forEach(function(p){
     var cls,mul,pay;
-    if(p.status==='win'){ cls='win'; mul='×'+p.cashAt.toFixed(2); pay='<span class="cpay win">+'+p.taken+'</span>'; }
+    if(p.status==='win'){ cls='win'; mul='×'+p.cashAt.toFixed(2); pay='<span class="cpay win">+'+tonFmt(p.taken)+'</span>'; }
     else if(p.status==='lose'){ cls='lose'; mul='💥'; pay='<span class="cpay lose">—</span>'; }
-    else { cls='live'; var cm=(crashPhase==='flying')?crashMult:1; mul='×'+cm.toFixed(2); pay='<span class="cpay">'+Math.floor(p.bet*cm)+'</span>'; }
+    else { cls='live'; var cm=(crashPhase==='flying')?crashMult:1; mul='×'+cm.toFixed(2);
+           pay='<span class="cpay">'+tonFmt(fromNano(Math.floor(toNano(p.bet)*cm)))+'</span>'; }
     html+='<div class="crow '+cls+'">'+avDiv('cav',p.bot.a,44)
       +'<div class="cinfo"><div class="cnm">'+(p.me?'<b>'+t('you_word')+'</b>':p.bot.n)+'</div>'
-      +'<div class="cbet"><i class="star-ic"></i>'+p.bet+' <span class="cmul">'+mul+'</span></div></div>'
-      +'<div class="cpaywrap"><i class="star-ic"></i>'+pay+'</div></div>';
+      +'<div class="cbet"><i class="ton-ic"></i>'+tonFmt(p.bet)+' <span class="cmul">'+mul+'</span></div></div>'
+      +'<div class="cpaywrap"><i class="ton-ic"></i>'+pay+'</div></div>';
   });
   box.innerHTML=html;
 }
 function resetSharkPos(){var sh=document.getElementById('cshark');if(sh){sh.innerHTML=sharkSVG();sh.style.transition='';sh.style.left='18px';sh.style.top='auto';sh.style.bottom='14px';sh.style.transform='scaleX(-1) rotate(-12deg)';sh.style.filter='';}var cv=document.getElementById('crash-canvas');if(cv){var ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);}}
 
 /* ============ МАГАЗИН ============ */
-function shopRarity(v){ return v>=550?'legendary':(v>=450?'epic':(v>=380?'rare':'common')); }
-function shopRarityLbl(r){ var m={common:t('rarity_common'),rare:t('rarity_rare'),epic:t('rarity_epic'),legendary:t('rarity_legendary')}; return m[r]||r; }
-function shopCardHTML(it){
-  var r=shopRarity(it.value);
-  return '<div class="rarity '+r+'">'+shopRarityLbl(r)+'</div><div class="ic">'+it.emoji+'</div><div class="nm">'+it.name+'</div><div class="px">⭐ '+it.value+'</div>';
+/* ============ КЕЙСЫ С ПОДАРКАМИ ============
+   Единственное место, где остались звёзды. Кейс оплачивается счётом в XTR
+   напрямую в Telegram: звёздного баланса нет, и списывать с игрового TON
+   здесь нечего. Каталог задаёт сервер (catalog.cases). */
+var CASES=[];
+function rarityLbl(r){ var m={common:t('rarity_common'),rare:t('rarity_rare'),epic:t('rarity_epic'),legendary:t('rarity_legendary')}; return m[r]||r; }
+function caseCardHTML(c){
+  var best=(c.drops||[]).reduce(function(a,d){ return (!a||d.value>a.value)?d:a; },null);
+  return '<div class="cs-ic">'+admEsc(c.emoji||'📦')+'</div>'
+    +'<div class="cs-nm">'+admEsc(c.name)+'</div>'
+    +'<div class="cs-sub">'+tf('cs_drops_tpl',{n:(c.drops||[]).length})+'</div>'
+    +'<div class="cs-px">'+admNum(c.price)+' ⭐</div>'
+    +(best?'<div class="cs-best">'+tf('cs_best_tpl',{e:admEsc(best.emoji),n:admNum(best.value)})+'</div>':'');
 }
-function renderShop(){var g=document.getElementById('shop-grid');g.innerHTML='';SHOP.forEach(function(it){var el=document.createElement('div');el.className='pill';el.innerHTML=shopCardHTML(it);el.onclick=function(){buyGift(it);};g.appendChild(el);});}
+function renderShop(){
+  var g=document.getElementById('shop-grid'); if(!g) return; g.innerHTML='';
+  if(!CASES.length){ g.innerHTML='<div class="gft-ph" style="grid-column:1/-1"><span class="gp-ic">📦</span>'+t('cs_empty')+'</div>'; return; }
+  CASES.forEach(function(c){
+    var el=document.createElement('div'); el.className='cs';
+    el.innerHTML=caseCardHTML(c);
+    el.onclick=function(){ openCase(c); };
+    g.appendChild(el);
+  });
+}
 function renderHomeShopPreview(){
   var g=document.getElementById('home-shop-preview'); if(!g) return; g.innerHTML='';
-  SHOP.slice(0,3).forEach(function(it){var el=document.createElement('div');el.className='pill';el.innerHTML=shopCardHTML(it);el.onclick=function(){go('shop');};g.appendChild(el);});
+  CASES.slice(0,3).forEach(function(c){
+    var el=document.createElement('div'); el.className='cs';
+    el.innerHTML=caseCardHTML(c); el.onclick=function(){ go('shop'); };
+    g.appendChild(el);
+  });
 }
 function renderHomeLeadersPreview(){
   var g=document.getElementById('home-leaders-preview'); if(!g) return; g.innerHTML='';
   var medals=['🥇','🥈','🥉'];
   LEADERS.slice(0,3).forEach(function(l,i){
     var el=document.createElement('div'); el.className='hp-lcard'; el.onclick=function(){go('leaders');};
-    el.innerHTML='<div class="medal">'+medals[i]+'</div>'+avDiv('av',l.a,40)+'<b>'+l.n+'</b><div class="sc">⭐ '+l.s.toLocaleString('ru')+'</div>';
+    el.innerHTML='<div class="medal">'+medals[i]+'</div>'+avDiv('av',l.a,40)+'<b>'+l.n+'</b><div class="sc"><i class="ton-ic"></i> '+tonFmt(l.s)+'</div>';
     g.appendChild(el);
   });
 }
@@ -3429,7 +3541,6 @@ function renderHomeContestPreview(){
   box.appendChild(el);
 }
 function renderHomePreviews(){ renderHomeContestPreview(); renderHomeLeadersPreview(); renderHomeShopPreview(); }
-function buyGift(it){if(S.stars<it.value){toast(tf('gift_insufficient_toast_tpl',{name:it.name}));return;}showSheet('<div class="result-emoji">'+it.emoji+'</div><h3 style="text-align:center">'+tf('buy_gift_title_tpl',{name:it.name})+'</h3><p class="muted" style="text-align:center">'+tf('buy_gift_desc_demo_tpl',{value:it.value})+'</p><button class="btn-primary" id="confirm-gift">'+tf('buy_gift_btn_tpl',{value:it.value})+'</button><button class="btn-ghost" style="margin-top:8px" onclick="closeSheet()">'+t('cancel_btn')+'</button>');var cg=document.getElementById('confirm-gift');if(cg)cg.onclick=function(){S.stars-=it.value;syncBalances();closeSheet();logOp(it.emoji,tf('hist_gift_buy_title_tpl',{name:it.name}),t('shop_h1'),'−⭐'+it.value,'minus');toast(it.emoji+' '+tf('gift_bought_demo_toast_tpl',{name:it.name}));};}
 
 /* ============ ЛИДЕРЫ ============ */
 var leaderCdTimer=null;
@@ -3460,20 +3571,20 @@ function renderLeaders(){
     var medals=['🥇','🥈','🥉'];
     top3.forEach(function(l,i){
       var slot=document.createElement('div'); slot.className='podium-slot p'+(i+1);
-      slot.innerHTML='<div class="rk">#'+(i+1)+'</div><div class="medal">'+medals[i]+'</div>'+avDiv('av',l.a,i===0?64:52)+'<div class="nm">'+l.n+'</div><div class="sc">⭐ '+l.s.toLocaleString('ru')+'</div>';
+      slot.innerHTML='<div class="rk">#'+(i+1)+'</div><div class="medal">'+medals[i]+'</div>'+avDiv('av',l.a,i===0?64:52)+'<div class="nm">'+l.n+'</div><div class="sc"><i class="ton-ic"></i> '+tonFmt(l.s)+'</div>';
       pod.appendChild(slot);
     });
     box.appendChild(pod);
   }
-  rest.forEach(function(l,i){var el=document.createElement('div');el.className='leader';el.innerHTML='<div class="rk">'+(i+4)+'</div>'+avDiv('av',l.a,38)+'<div class="nm">'+l.n+'</div><div class="sc">⭐ '+l.s.toLocaleString('ru')+'</div>';box.appendChild(el);});
-  var you=document.createElement('div');you.className='leader you';you.innerHTML='<div class="rk">100+</div><div class="av">🙂</div><div class="nm">'+t('you_word')+'</div><div class="sc">⭐ '+S.stars.toLocaleString('ru')+'</div>';box.appendChild(you);
+  rest.forEach(function(l,i){var el=document.createElement('div');el.className='leader';el.innerHTML='<div class="rk">'+(i+4)+'</div>'+avDiv('av',l.a,38)+'<div class="nm">'+l.n+'</div><div class="sc"><i class="ton-ic"></i> '+tonFmt(l.s)+'</div>';box.appendChild(el);});
+  var you=document.createElement('div');you.className='leader you';you.innerHTML='<div class="rk">100+</div><div class="av">🙂</div><div class="nm">'+t('you_word')+'</div><div class="sc"><i class="ton-ic"></i> '+tonFmt(S.wonTon)+'</div>';box.appendChild(you);
 }
 
 /* ============ КОНКУРСЫ ============ */
-var ACTIVE_CONTESTS=[{id:1,prizesN:6,members:4263,timer:"11ч 57м",prizes:[{e:"🦈",v:"1 126"},{e:"🐚",v:"708"},{e:"🪸",v:"530"}]},{id:2,prizesN:9,members:644,timer:"3ч 26м",prizes:[{e:"🌊",v:"1 320"},{e:"🐠",v:"748"},{e:"⚓",v:"474"}]}];
-var HISTORY_CONTESTS=[{id:91,prizesN:6,members:5210,won:false,date:"вчера",prizes:[{e:"💎",v:"2 000"},{e:"🦈",v:"900"},{e:"🐚",v:"500"}]},{id:92,prizesN:3,members:1880,won:true,date:"3 дня назад",prizes:[{e:"🪸",v:"640"},{e:"🐠",v:"320"},{e:"⚓",v:"180"}]}];
+var ACTIVE_CONTESTS=[{id:1,prizesN:6,members:4263,timer:"11ч 57м",prizes:[{e:"🦈",v:25},{e:"🐚",v:10},{e:"🪸",v:5}]},{id:2,prizesN:9,members:644,timer:"3ч 26м",prizes:[{e:"🌊",v:15},{e:"🐠",v:7.5},{e:"⚓",v:3}]}];
+var HISTORY_CONTESTS=[{id:91,prizesN:6,members:5210,won:false,date:"вчера",prizes:[{e:"💎",v:50},{e:"🦈",v:20},{e:"🐚",v:10}]},{id:92,prizesN:3,members:1880,won:true,date:"3 дня назад",prizes:[{e:"🪸",v:12},{e:"🐠",v:6},{e:"⚓",v:3}]}];
 function setContestTab(tab){$all('#contest-seg button').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-ctab')===tab);});var body=document.getElementById('contest-body');body.innerHTML='';if(tab==='active'){ACTIVE_CONTESTS.forEach(function(c){body.appendChild(contestCard(c,'active'));});}else if(tab==='yours'){var joined=ACTIVE_CONTESTS.filter(function(c){return S.joinedContests[c.id];});if(!joined.length){body.innerHTML='<div class="empty">'+t('contest_empty_yours')+'</div>';}else joined.forEach(function(c){body.appendChild(contestCard(c,'yours'));});}else{HISTORY_CONTESTS.forEach(function(c){body.appendChild(contestCard(c,'history'));});}}
-function contestCard(c,mode){var el=document.createElement('div');el.className='contest';var right=mode==='history'?('<div class="timer" style="background:'+(c.won?'#2fd4c4':'#2a3a4a')+';color:'+(c.won?'#03241f':'#cfeef0')+'">'+(c.won?t('win_col_lbl'):t('contest_ended_lbl'))+'</div>'):('<div class="timer">'+c.timer+'</div>');var sub=mode==='history'?(c.date+' · '+c.members.toLocaleString('ru')+' '+t('contest_members_word')):(c.members.toLocaleString('ru')+' '+t('contest_members_word'));var prizes='<div class="prizes">'+c.prizes.map(function(p){return '<div class="prize"><div class="ic">'+p.e+'</div><div class="v">⭐'+p.v+'</div></div>';}).join('')+'</div>';var progress=mode==='active'?('<div class="contest-progress"><div class="cp-row"><span>'+t('contest_tab_active')+'</span><span>'+contestProgress(c)+'%</span></div><div class="cp-bar"><i style="width:'+contestProgress(c)+'%"></i></div></div>'):'';var btn='';if(mode==='active'){var joined=!!S.joinedContests[c.id];btn='<button class="btn-ghost" style="margin-top:12px" '+(joined?'disabled':'')+' id="cbtn-'+c.id+'">'+(joined?t('contest_joined_lbl'):t('contest_join_btn'))+'</button>';}else if(mode==='yours'){btn='<div style="margin-top:12px;color:var(--aqua);font-weight:700;text-align:center">'+t('contest_joined_lbl')+'</div>';}el.innerHTML='<div class="ch"><div><b style="font-size:17px">'+tf('prizes_count_tpl',{n:c.prizesN})+'</b><div style="color:var(--muted);font-size:13px">'+sub+'</div></div>'+right+'</div>'+prizes+progress+btn;if(mode==='active'){var b=el.querySelector('#cbtn-'+c.id);if(b&&!S.joinedContests[c.id])b.onclick=function(){S.joinedContests[c.id]=true;logOp('🏆',t('hist_contest_join_title'),tf('prizes_count_tpl',{n:c.prizesN}),'','');toast(t('contest_joined_toast'));setContestTab('active');};}return el;}
+function contestCard(c,mode){var el=document.createElement('div');el.className='contest';var right=mode==='history'?('<div class="timer" style="background:'+(c.won?'#2fd4c4':'#2a3a4a')+';color:'+(c.won?'#03241f':'#cfeef0')+'">'+(c.won?t('win_col_lbl'):t('contest_ended_lbl'))+'</div>'):('<div class="timer">'+c.timer+'</div>');var sub=mode==='history'?(c.date+' · '+c.members.toLocaleString('ru')+' '+t('contest_members_word')):(c.members.toLocaleString('ru')+' '+t('contest_members_word'));var prizes='<div class="prizes">'+c.prizes.map(function(p){return '<div class="prize"><div class="ic">'+p.e+'</div><div class="v">'+tonFmt(p.v)+' TON</div></div>';}).join('')+'</div>';var progress=mode==='active'?('<div class="contest-progress"><div class="cp-row"><span>'+t('contest_tab_active')+'</span><span>'+contestProgress(c)+'%</span></div><div class="cp-bar"><i style="width:'+contestProgress(c)+'%"></i></div></div>'):'';var btn='';if(mode==='active'){var joined=!!S.joinedContests[c.id];btn='<button class="btn-ghost" style="margin-top:12px" '+(joined?'disabled':'')+' id="cbtn-'+c.id+'">'+(joined?t('contest_joined_lbl'):t('contest_join_btn'))+'</button>';}else if(mode==='yours'){btn='<div style="margin-top:12px;color:var(--aqua);font-weight:700;text-align:center">'+t('contest_joined_lbl')+'</div>';}el.innerHTML='<div class="ch"><div><b style="font-size:17px">'+tf('prizes_count_tpl',{n:c.prizesN})+'</b><div style="color:var(--muted);font-size:13px">'+sub+'</div></div>'+right+'</div>'+prizes+progress+btn;if(mode==='active'){var b=el.querySelector('#cbtn-'+c.id);if(b&&!S.joinedContests[c.id])b.onclick=function(){S.joinedContests[c.id]=true;logOp('🏆',t('hist_contest_join_title'),tf('prizes_count_tpl',{n:c.prizesN}),'','');toast(t('contest_joined_toast'));setContestTab('active');};}return el;}
 
 /* ============ РЕФЕРАЛЫ ============ */
 function refSet(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
@@ -3484,12 +3595,16 @@ function renderRefFriends(list){
     return '<div class="histrow"><div class="hi">'+(f.av||'🙂')+'</div><div class="hb"><b>'+f.name+'</b><p>'+t('ref_joined_word')+'</p></div></div>';
   }).join('');
 }
-function renderRefs(){ // демо
-  refSet('rf-count',REF_FRIENDS.length+S.refCount);
-  var earned=REF_FRIENDS.reduce(function(a,b){return a+b.earned;},0)+S.refEarned;
-  refSet('rf-earned-uah',money(earned)); refSet('rf-earned-stars','0');
-  refSet('rf-today','0'); refSet('rf-today-cap','50');
-  renderRefFriends(REF_FRIENDS.map(function(f){return {name:f.n,av:f.a};}));
+/* Цифры реферальной программы приходят с сервера (state.referrals). Считать
+   их на клиенте нечем: доля берётся от рейка, а рейк знает только сервер. */
+function renderRefs(){
+  refSet('rf-count',REF.count||0);
+  refSet('rf-earned-ton',tonFmt(REF.earnedTon||0));
+  refSet('rf-share',REF.sharePct!=null?REF.sharePct:10);
+  refSet('ref-share',(REF.sharePct!=null?REF.sharePct:10)+'%');
+  refSet('ref-bonus',tonFmt(REF.bonusTon||0));
+  renderRefFriends(REF.friends||[]);
+  setRefLink();
 }
 /* Показываем tg_id из ответа СЕРВЕРА (publicUser.tg_id), а не из initDataUnsafe:
    именно это число сервер сверяет со списком админов, поэтому только оно и
@@ -3508,7 +3623,13 @@ function copyMyId(){
   toast(t('myid_copied'));
 }
 function copyRef(){var i=document.getElementById('ref-link');try{i.select();document.execCommand('copy');}catch(e){}toast(t('ref_link_copied'));}
-function invite(){S.refCount++;S.refEarned+=10;S.money+=10;syncBalances();logOp('👥',t('hist_ref_new_title'),t('hist_ref_new_sub'),'+10.00 грн','plus');checkAchievements();toast(t('ref_demo_credited'));if(document.getElementById('s-refs').classList.contains('active'))renderRefs();}
+function invite(){
+  var link=REFLINK;
+  if(!link){ toast(t('adm_no_server')); return; }
+  if(TGAPP && TGAPP.openTelegramLink){
+    TGAPP.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(link)+'&text='+encodeURIComponent(t('ref_share_text')));
+  } else copyRef();
+}
 
 /* ============ ИСТОРИЯ ============ */
 function renderHistory(){
@@ -3517,17 +3638,95 @@ function renderHistory(){
   S.history.forEach(function(h){var el=document.createElement('div');el.className='histrow';var v=h.val?'<div class="hv '+(h.cls||'')+'">'+h.val+'</div>':'';el.innerHTML='<div class="hi">'+h.icon+'</div><div class="hb"><b>'+h.title+'</b><p>'+h.sub+'</p></div>'+v;box.appendChild(el);});
 }
 
-/* ============ ПРОФИЛЬ: ВЫВОД / ПОПОЛНЕНИЕ ============ */
-var wMethod=null;
-function openWithdraw(){if(S.money<100){toast(tf('withdraw_min_demo_tpl',{min:100}));return;}wMethod=null;showSheet('<h3>'+t('withdraw_sheet_title')+'</h3><p class="muted">'+t('withdraw_sheet_desc')+'</p><label>'+t('withdraw_method_lbl')+'</label><div class="methods" id="wm"><div class="method" data-m="card_ua">'+t('withdraw_method_card')+'</div><div class="method" data-m="usdt_trc20">USDT · TRC-20</div><div class="method" data-m="usdt_ton">USDT · TON</div><div class="method" data-m="usdt_bep20">USDT · BEP-20</div></div><label>'+t('withdraw_req_lbl')+'</label><input id="w-req" class="mono" placeholder="'+t('withdraw_req_placeholder')+'"><label>'+tf('withdraw_amount_lbl_tpl',{avail:money(S.money)})+'</label><input id="w-amt" class="mono" inputmode="decimal" placeholder="0.00"><div class="conv-hint" id="conv-hint"></div><button class="btn-primary" style="margin-top:14px" id="do-withdraw">'+t('withdraw_submit_btn')+'</button>');$all('#wm .method').forEach(function(m){m.onclick=function(){$all('#wm .method').forEach(function(x){x.classList.remove('active');});m.classList.add('active');wMethod=m.getAttribute('data-m');updateConvHint();};});var amt=document.getElementById('w-amt');if(amt)amt.oninput=updateConvHint;var dw=document.getElementById('do-withdraw');if(dw)dw.onclick=doWithdraw;}
-function updateConvHint(){var hint=document.getElementById('conv-hint');if(!hint)return;var amt=parseFloat((document.getElementById('w-amt').value||'').replace(',','.'));if(wMethod&&wMethod.indexOf('usdt')===0&&amt>0){hint.textContent=tf('withdraw_conv_hint_tpl',{usdt:(amt/USDT_RATE).toFixed(2),rate:USDT_RATE});}else{hint.textContent='';}}
-function doWithdraw(){var req=(document.getElementById('w-req').value||'').trim();var amt=parseFloat((document.getElementById('w-amt').value||'').replace(',','.'));if(!wMethod)return toast(t('withdraw_err_method'));if(!req)return toast(t('withdraw_err_req'));
-  // проверка формата
-  if(wMethod==='card_ua'){ var digits=req.replace(/\s|-/g,''); if(!/^\d{16}$/.test(digits)) return toast(t('withdraw_err_card')); }
-  else { if(req.length<20) return toast(t('withdraw_err_wallet')); }
-  if(!amt||amt<100)return toast(tf('withdraw_err_min_tpl',{min:100}));if(amt>S.money)return toast(t('withdraw_err_funds'));S.money-=amt;S.firstWithdraw=true;syncBalances();closeSheet();var extra=(wMethod.indexOf('usdt')===0)?(' (≈'+(amt/USDT_RATE).toFixed(2)+' USDT)'):'';logOp('💸',t('hist_kind_withdraw'),wMethod.replace('_',' ').toUpperCase(),'−'+money(amt)+' грн','minus');checkAchievements();showSheet('<div class="result-emoji">✅</div><h3 style="text-align:center">'+t('withdraw_success_title_demo')+'</h3><p class="muted" style="text-align:center">'+tf('withdraw_success_desc_demo_tpl',{amt:money(amt),extra:extra})+'</p><button class="btn-primary" onclick="closeSheet()">'+t('ok_btn')+'</button>');}
-function openBuyStars(){showSheet('<h3>'+t('topup_sheet_title')+'</h3><p class="muted">'+t('topup_demo_desc')+'</p><div class="grid2" style="margin-top:8px"><div class="pill" data-add="100"><div class="ic">⭐</div><div class="nm">100</div><div class="px">'+t('topup_demo_lbl')+'</div></div><div class="pill" data-add="500"><div class="ic">⭐</div><div class="nm">500</div><div class="px">'+t('topup_demo_lbl')+'</div></div><div class="pill" data-add="1000"><div class="ic">⭐</div><div class="nm">1 000</div><div class="px">'+t('topup_demo_lbl')+'</div></div><div class="pill" data-add="5000"><div class="ic">⭐</div><div class="nm">5 000</div><div class="px">'+t('topup_demo_lbl')+'</div></div></div>');$all('[data-add]').forEach(function(p){p.onclick=function(){addStars(Number(p.getAttribute('data-add')));};});}
-function addStars(n){S.stars+=n;syncBalances();closeSheet();logOp('⭐',t('hist_kind_topup'),t('hist_topup_sub'),'+⭐'+n,'star');toast(tf('topup_demo_credited_tpl',{n:n}));renderLeaders();}
+/* ============ ПРОФИЛЬ: ПОПОЛНЕНИЕ / ВЫВОД ============
+   Обе операции — только TON. Пополнение идёт счётом @CryptoBot, вывод —
+   заявкой на ручную выплату. Промежуточных валют, конвертаций и курсов нет:
+   сколько положил, тем и играешь, то же и выводишь. */
+
+/* ---- Пополнение ---- */
+function openTopup(){
+  if(!SERVER){ toast(t('adm_no_server')); return; }
+  var body;
+  if(!TOPUPS.length){ body='<p class="muted">'+t('topup_unavailable')+'</p>'; }
+  else{
+    body='<p class="muted">'+tf('topup_desc_tpl',{min:tonFmt(MIN_TOPUP)})+'</p><div class="grid2" style="margin-top:10px">'
+      +TOPUPS.map(function(v){
+        return '<div class="pill" data-topup="'+v+'"><div class="ic"><i class="ton-ic" style="width:26px;height:26px"></i></div>'
+          +'<div class="nm">'+tonFmt(v)+'</div><div class="px">TON</div></div>';
+      }).join('')+'</div>';
+  }
+  showSheet('<h3>'+t('topup_sheet_title')+'</h3>'+body);
+  $all('[data-topup]').forEach(function(el){
+    el.onclick=function(){ topupTon(Number(el.getAttribute('data-topup'))); };
+  });
+}
+
+var cbPollTimer=null;
+function stopCbPoll(){ if(cbPollTimer){ clearInterval(cbPollTimer); cbPollTimer=null; } }
+
+async function topupTon(amount){
+  var r=null;
+  try{ r=await api('create_cryptobot_invoice',{amount:amount}); }catch(e){}
+  if(!r||!r.ok){ toast(r&&r.reason==='not_configured'?t('topup_unavailable'):t('topup_err_invoice')); return; }
+  if(TGAPP && TGAPP.openTelegramLink && r.payUrl){ TGAPP.openTelegramLink(r.payUrl); }
+  else if(r.payUrl){ window.open(r.payUrl,'_blank'); }
+  toast(tf('topup_invoice_opened_tpl',{amount:tonFmt(r.amount||amount)}));
+
+  /* Опрашиваем счёт сами: вебхука у @CryptoBot для нас нет, а игрок должен
+     увидеть баланс сразу после оплаты, не перезагружая приложение. */
+  stopCbPoll();
+  var tries=0;
+  cbPollTimer=setInterval(async function(){
+    tries++;
+    if(tries>60){ stopCbPoll(); return; }              // ~5 минут опроса
+    var st=null;
+    try{ st=await api('cryptobot_check',{invoiceId:r.invoiceId}); }catch(e){ return; }
+    if(st&&st.ok&&st.status==='paid'&&st.credited){
+      stopCbPoll(); closeSheet(); applyUser(st.user);
+      celebrate({n:36});
+      toast(tf('topup_paid_tpl',{amount:tonFmt(st.amount)}));
+    }
+  },5000);
+}
+
+/* ---- Вывод ---- */
+function openWithdraw(){
+  if(!SERVER){ toast(t('adm_no_server')); return; }
+  if(S.tonN<toNano(MIN_WD)){ toast(tf('withdraw_err_min_tpl',{min:tonFmt(MIN_WD)})); return; }
+  showSheet('<h3>'+t('withdraw_sheet_title')+'</h3>'
+    +'<p class="muted">'+tf('withdraw_sheet_desc_tpl',{hours:WD_HOURS})+'</p>'
+    +'<label>'+t('withdraw_wallet_lbl')+'</label>'
+    +'<input id="w-req" class="mono" autocomplete="off" placeholder="'+t('withdraw_wallet_ph')+'">'
+    +'<label>'+tf('withdraw_amount_lbl_tpl',{avail:tonFmt(S.ton)})+'</label>'
+    +'<input id="w-amt" class="mono" inputmode="decimal" autocomplete="off" placeholder="'+tonFmt(MIN_WD)+'">'
+    +'<div class="conv-hint" id="conv-hint">'+tf('withdraw_min_hint_tpl',{min:tonFmt(MIN_WD)})+'</div>'
+    +'<button class="btn-primary" style="margin-top:14px" id="do-withdraw">'+t('withdraw_submit_btn')+'</button>');
+  var amt=document.getElementById('w-amt');
+  if(amt) amt.oninput=function(){
+    var h=document.getElementById('conv-hint'); if(!h) return;
+    var v=toNano(String(this.value||'').replace(',','.'));
+    h.textContent = v>toNano(S.ton) ? t('withdraw_err_funds')
+                  : v && v<toNano(MIN_WD) ? tf('withdraw_err_min_tpl',{min:tonFmt(MIN_WD)})
+                  : tf('withdraw_min_hint_tpl',{min:tonFmt(MIN_WD)});
+  };
+  var dw=document.getElementById('do-withdraw'); if(dw) dw.onclick=doWithdraw;
+}
+
+async function doWithdraw(){
+  var req=(document.getElementById('w-req').value||'').trim();
+  var amtN=toNano(String((document.getElementById('w-amt').value||'')).replace(',','.'));
+  if(!req) return toast(t('withdraw_err_wallet'));
+  if(!amtN || amtN<toNano(MIN_WD)) return toast(tf('withdraw_err_min_tpl',{min:tonFmt(MIN_WD)}));
+  if(amtN>S.tonN) return toast(t('withdraw_err_funds'));
+  var btn=document.getElementById('do-withdraw'); if(btn) btn.disabled=true;
+  var r=null;
+  try{ r=await api('withdraw_create',{address:req,amount:fromNano(amtN)}); }catch(e){}
+  if(!r||!r.ok){ if(btn) btn.disabled=false; toast(wdErr(r&&r.reason)); return; }
+  applyUser(r.user); closeSheet();
+  showSheet('<div class="result-emoji">✅</div><h3 style="text-align:center">'+t('withdraw_success_title')+'</h3>'
+    +'<p class="muted" style="text-align:center">'+tf('withdraw_success_desc_tpl',{amt:tonFmt(r.amount),hours:r.hours||WD_HOURS})+'</p>'
+    +'<button class="btn-primary" onclick="closeSheet()">'+t('ok_btn')+'</button>');
+}
 
 /* ============ МОДАЛКА / TOAST ============ */
 function showSheet(html){document.getElementById('sheet').innerHTML=html;document.getElementById('ov').classList.add('open');}
@@ -3560,18 +3759,20 @@ function onbNext(){
 }
 
 /* ============ ДОСТИЖЕНИЯ ============ */
+/* Достижения — бейджи, а не валюта. Начислять за них TON нельзя: деньги
+   двигает только сервер через леджер, а достижения считаются на клиенте и
+   любое локальное начисление немедленно разошлось бы с балансом в базе. */
 var ACHIEVEMENTS=[
-  {id:'play10',ic:'🎮',titleKey:'ach_play10_title',descKey:'ach_play10_desc',reward:50,check:function(){return S.played>=10;}},
-  {id:'win500',ic:'⭐',titleKey:'ach_win500_title',descKey:'ach_win500_desc',reward:100,check:function(){return S.wonStars>=500;}},
-  {id:'first_wd',ic:'💸',titleKey:'ach_first_wd_title',descKey:'ach_first_wd_desc',reward:30,check:function(){return S.firstWithdraw;}},
-  {id:'ref3',ic:'👥',titleKey:'ach_ref3_title',descKey:'ach_ref3_desc',reward:80,check:function(){return S.refCount>=3;}}
+  {id:'play10',ic:'🎮',titleKey:'ach_play10_title',descKey:'ach_play10_desc',check:function(){return S.played>=10;}},
+  {id:'win10',ic:'💎',titleKey:'ach_win10_title',descKey:'ach_win10_desc',check:function(){return S.wonTonN>=toNano(10);}},
+  {id:'first_wd',ic:'💸',titleKey:'ach_first_wd_title',descKey:'ach_first_wd_desc',check:function(){return S.firstWithdraw;}},
+  {id:'ref3',ic:'👥',titleKey:'ach_ref3_title',descKey:'ach_ref3_desc',check:function(){return S.refCount>=3;}}
 ];
 function checkAchievements(){
   ACHIEVEMENTS.forEach(function(a){
     if(!S.achievements[a.id] && a.check()){
-      S.achievements[a.id]=true; S.stars+=a.reward; syncBalances();
-      logOp('🏅',tf('hist_ach_title_tpl',{title:t(a.titleKey)}),t('hist_ach_sub'),'+⭐'+a.reward,'star');
-      toast(tf('ach_unlock_toast_tpl',{title:t(a.titleKey),reward:a.reward}));
+      S.achievements[a.id]=true;
+      toast(tf('ach_unlock_toast_tpl',{title:t(a.titleKey)}));
     }
   });
   if(document.getElementById('s-ach').classList.contains('active')) renderAch();
@@ -3581,7 +3782,8 @@ function renderAch(){
   ACHIEVEMENTS.forEach(function(a){
     var done=!!S.achievements[a.id];
     var el=document.createElement('div'); el.className='ach '+(done?'unlocked':'locked');
-    el.innerHTML='<div class="ai">'+a.ic+'</div><div class="ab"><b>'+t(a.titleKey)+'</b><p>'+t(a.descKey)+'</p></div><div class="areward">'+(done?'✓ +⭐'+a.reward:'+⭐'+a.reward)+'</div>';
+    el.innerHTML='<div class="ai">'+a.ic+'</div><div class="ab"><b>'+t(a.titleKey)+'</b><p>'+t(a.descKey)+'</p></div>'
+      +'<div class="areward">'+(done?'✓':'—')+'</div>';
     box.appendChild(el);
   });
 }
@@ -3596,10 +3798,12 @@ function setLang(l){
 function toggleSound(){ soundOn=!soundOn; S.soundPref=soundOn; document.getElementById('sound-switch').classList.toggle('on',soundOn); if(soundOn) beep(520,0.08,0.05); }
 
 /* ============ PVP · СТАВКА ============ */
-var pbet=50;
+/* Ставка PVP — в нанотонах (pbetN), десятичный pbet держим для отрисовки.
+   Значение выставит setPBet() из серверного списка ставок. */
+var pbetN=0, pbet=0;
 function setPBet(v){
-  pbet=v;
-  $all('[data-pbet]').forEach(function(c){ c.classList.toggle('active',Number(c.getAttribute('data-pbet'))===v); });
+  pbetN=toNano(v); pbet=fromNano(pbetN);
+  $all('[data-pbet]').forEach(function(c){ c.classList.toggle('active',toNano(c.getAttribute('data-pbet'))===pbetN); });
   pxCta();
 }
 window.setPBet=setPBet;
@@ -3765,7 +3969,7 @@ function pxCta(){
   else if(pxBusy()){ txt=t('px_cta_spin'); dis=true; }
   else if(PXR.pending){ txt=t('px_cta_wait'); dis=true; }
   else if(PXR.joined){ txt=t('pvp_in_battle'); dis=true; }
-  else txt=t('px_cta_join')+' · ⭐'+pbet;
+  else txt=t('px_cta_join')+' · '+pxNum(pbet)+' TON';
   if(b.textContent!==txt) b.textContent=txt;
   if(b.disabled!==dis) b.disabled=dis;
   b.classList.toggle('btn-ghost',dis);
@@ -3850,11 +4054,11 @@ function pxOutcome(st){
          карточку-победителя дольше нужного */
       if(rl){ var rr=rl.getBoundingClientRect(); celebrate({n:40,y:rr.top+rr.height*0.58}); }
       beep(660,0.12,0.06,'triangle');
-      logOp('🏆',t('hist_pvp_win_title'),tf('hist_pvp_win_sub_tpl',{pot:took}),'+⭐'+payout,'star');
+      logOp('🏆',t('hist_pvp_win_title'),tf('hist_pvp_win_sub_tpl',{pot:tonFmt(took)}),'+'+tonFmt(payout)+' TON','plus');
     } else if(PXR.joined){
       beep(150,0.22,0.05,'sine');
       logOp('💀',t('hist_pvp_lose_title'),tf('hist_pvp_lose_sub_tpl',{name:PXR.outcome.name}),
-            '−⭐'+pxMyStake(),'minus');
+            '−'+tonFmt(pxMyStake())+' TON','minus');
     }
   },PX_BEAT);
 
@@ -3962,31 +4166,9 @@ function pxLeave(){
 /* ---- демо-раунд вне Telegram: собираем ответ той же формы, что и сервер,
        и прогоняем через ту же машину состояний ---- */
 var pxDemoT=null;
-function pvpJoin(){
-  if(pxBusy()||PXR.joined||PXR.pending) return;
-  if(S.stars<pbet){ toast(t('pvp_no_stars')); return; }
-  S.stars-=pbet; S.played++; syncBalances();
-  var players=[{name:t('you_word'),av:'🙂',stake:pbet,me:true}],i,n=2+Math.floor(Math.random()*3);
-  for(i=0;i<n;i++){ var b=randBot();
-    players.push({name:b.n,av:b.a,stake:[50,100,250][rint(0,2)]*(Math.random()<0.15?4:1),me:false}); }
-  var pot=0; for(i=0;i<players.length;i++) pot+=players[i].stake;
-  var roll=Math.random(),acc=0,wi=players.length-1;
-  for(i=0;i<players.length;i++){ acc+=players[i].stake/pot; if(roll<=acc){ wi=i; break; } }
-  var id=PXR.id+1, secs=PVP_DEMO_S;
-  pxApply({id:id,status:'countdown',secondsLeft:secs,pot:pot,players:players,iJoined:true});
-  toast(t('pvp_bet_toast')); pxHaptic('medium');
-  clearTimeout(pxDemoT);
-  pxDemoT=setTimeout(function(){
-    var mine=players[wi].me, payout=Math.floor(pot*0.95);
-    if(mine) PXR.pendingUser={money:S.money,stars:S.stars+payout,played:S.played,wonStars:S.wonStars};
-    pxApply({id:id,status:'done',pot:pot,players:players,winnerIdx:wi,
-             iJoined:true,iWon:mine,myPayout:mine?payout:0,rake:0.05});
-  },secs*1000);
-}
-var PVP_DEMO_S=15;
-window.pvpJoin=pvpJoin;
-
-function pxNum(n){ n=Math.round(n); return n>=1000?n.toLocaleString('ru').replace(/ /g,' '):String(n); }
+/* Банк и ставки на экране PVP — TON. Округлять до целого больше нельзя:
+   ставка 0.1 превратилась бы в ноль, а банк — в неверную сумму. */
+function pxNum(n){ return tonFmt(n); }
 
 function pxMakeCard(){
   var d=document.createElement('div');
@@ -4145,7 +4327,7 @@ function pxPaint(d,pid,i){
     d._a.style.opacity='';
     d._n.textContent=p.me?t('you_word'):p.name;
     d._p.textContent=Math.round(p.tf*100)+'%';
-    d._s.textContent='★ '+pxNum(p.stake);
+    d._s.textContent=pxNum(p.stake);
   } else {
     d._e.style.background='rgba(255,255,255,.05)';
     d._w.style.background='none';
@@ -4270,7 +4452,7 @@ function init(){
 init();
 
 window.go=go;window.spin=spin;window.setBet=setBet;window.crashAction=crashAction;window.setCBet=setCBet;
-window.openWithdraw=openWithdraw;window.openBuyStars=openBuyStars;window.invite=invite;window.closeSheet=closeSheet;
+window.openWithdraw=openWithdraw;window.openTopup=openTopup;window.invite=invite;window.closeSheet=closeSheet;
 window.toast=toast;window.setContestTab=setContestTab;window.copyRef=copyRef;
 window.setGameTab=setGameTab;
 window.onbNext=onbNext;window.showOnboarding=showOnboarding;window.setLang=setLang;window.toggleSound=toggleSound;
@@ -4285,7 +4467,12 @@ var BOT_USERNAME='Shark_game_app_bot';
 var API_URL='/api/shark';
 var TGAPP=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
 var INIT=TGAPP?(TGAPP.initData||''):'';
-var SERVER=false, ME={}, CFG={usdt_rate:USDT_RATE,min_withdraw:100}, REF={count:0,earned:0}, REFLINK='', PACKS={}, CRYPTO_PACKS={};
+var SERVER=false, ME={}, CFG={}, REF={count:0,earnedTon:0,sharePct:10,bonusTon:0}, REFLINK='';
+/* Номиналы ставок, пополнений и лимиты задаёт сервер (catalog/config).
+   Здесь — те же значения, что в схеме по умолчанию: экран должен нарисоваться
+   до первого ответа, но клиентские числа ни на что не влияют — сервер всё
+   равно принимает только свой список. */
+var BETS=[0.1,0.5,1], MIN_BET=0.1, TOPUPS=[1,5,10,25], MIN_TOPUP=0.5, MIN_WD=1, WD_HOURS=24;
 
 async function api(action,params){
   var r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -4295,59 +4482,115 @@ async function api(action,params){
 function applyUser(u){
   if(!u) return;
   if(u.tg_id){ S.tgId=u.tg_id; syncMyId(); }   // PVP: стабильное лицо + показ id в настройках
-  S.money=u.money; S.stars=u.stars; S.played=u.played; S.wonStars=u.wonStars;
+  S.tonN=toNano(u.ton); S.wonTonN=toNano(u.wonTon); S.played=u.played;
   syncBalances(); renderProfile(); renderLeaders();
   if(typeof admGr!=='undefined' && admGr) admGrSync();
 }
 function setRefLink(){ var i=document.getElementById('ref-link'); if(i&&REFLINK) i.value=REFLINK; }
+/* Сервер отдаёт только хвост «?start=ref_…»: имя бота из токена не выводится,
+   поэтому его подставляет клиент. Собираем ссылку в одном месте — иначе один
+   из двух путей загрузки рано или поздно забудет префикс. */
+function setRefLinkFrom(st){
+  if(st&&st.refLink) REFLINK='https://t.me/'+BOT_USERNAME+st.refLink;
+  setRefLink();
+}
 function wdErr(reason){
-  var m={below_min:t('withdraw_err_below_min'),no_money:t('withdraw_err_funds'),bad_card:t('withdraw_err_card'),
-    bad_wallet:t('withdraw_err_wallet'),bad_method:t('withdraw_err_method'),no_requisites:t('withdraw_err_req')};
+  var m={below_min:tf('withdraw_err_min_tpl',{min:tonFmt(MIN_WD)}),
+         no_funds:t('withdraw_err_funds'), bad_wallet:t('withdraw_err_wallet')};
   return m[reason]||t('withdraw_err_generic');
+}
+/* Всё, что связано с деньгами, берём из ответа сервера и ничего не достраиваем
+   локально: список ставок, пороги, таблица рулетки и каталог кейсов — его
+   зона ответственности, клиент только рисует. */
+function applyCatalog(st){
+  var c=(st&&st.catalog)||{}, cfg=(st&&st.config)||{};
+  if(Array.isArray(c.bets)&&c.bets.length) BETS=c.bets.slice();
+  if(c.minBet>0) MIN_BET=Number(c.minBet);
+  if(Array.isArray(c.topups)&&c.topups.length) TOPUPS=c.topups.slice();
+  if(c.minTopup>0) MIN_TOPUP=Number(c.minTopup);
+  if(cfg.minWithdrawTon>0) MIN_WD=Number(cfg.minWithdrawTon);
+  if(cfg.withdrawHours>0) WD_HOURS=Number(cfg.withdrawHours);
+  if(Array.isArray(c.roulette)&&c.roulette.length) ROUL_PRIZES=c.roulette;
+  if(Array.isArray(c.cases)) CASES=c.cases;
+  CFG=cfg;
+  renderBetChips(); renderShop(); renderHomeShopPreview();
 }
 async function refreshState(){
   if(!SERVER) return;
   try{
     var st=await api('state');
-    if(st&&st.ok){ ME=st.user; REF=st.referrals||REF; applyUser(st.user);
+    if(st&&st.ok){
+      ME=st.user; REF=st.referrals||REF; setRefLinkFrom(st);
+      applyCatalog(st); applyUser(st.user);
       S.isAdmin=!!st.isAdmin; syncAdminEntry();
-      if(st.catalog&&st.catalog.packs) PACKS=st.catalog.packs;
-      if(st.catalog&&st.catalog.cryptoPacks) CRYPTO_PACKS=st.catalog.cryptoPacks; }
+    }
   }catch(e){}
 }
-var HIST_ICONS={referral:'👥',bet:'🎮',win:'🏆',withdraw:'💸',withdraw_refund:'↩️',gift:'🎁',topup:'⭐',adjust:'⚙️'};
+
+/* Чипы ставок строим из серверного списка: номиналы задаёт схема, и держать
+   их вторым списком в разметке — гарантированный способ разойтись. */
+function renderBetChips(){
+  var rows=[{box:'roul-bets',attr:'data-bet',fn:'setBet'},
+            {box:'crash-bets',attr:'data-cbet',fn:'setCBet'},
+            {box:'px-chips',attr:'data-pbet',fn:'setPBet'}];
+  rows.forEach(function(r){
+    var box=document.getElementById(r.box); if(!box) return;
+    $all('['+r.attr+']',box).forEach(function(el){ el.parentNode.removeChild(el); });
+    BETS.forEach(function(v){
+      var c=document.createElement('div');
+      c.className='chip'; c.setAttribute(r.attr,v);
+      c.innerHTML='<i class="ton-ic"></i>'+tonFmt(v);
+      c.onclick=function(){ window[r.fn](v); };
+      box.appendChild(c);
+    });
+  });
+  // ставка по умолчанию — минимальная из списка
+  setBet(BETS[0]); setCBet(BETS[0]); setPBet(BETS[0]);
+}
+var HIST_ICONS={referral:'👥',bet:'🎮',win:'🏆',withdraw:'💸',withdraw_refund:'↩️',gift:'🎁',topup:'💎',adjust:'⚙️'};
 async function loadHistory(){
   var box=document.getElementById('history-list'); skeletonRows(box,6);
-  var r=await api('history');
+  var r=null;
+  try{ r=await api('history'); }catch(e){}
   if(!r||!r.ok){ if(box) box.innerHTML='<div class="empty">'+t('history_load_error')+'</div>'; return; }
   S.history=(r.history||[]).map(function(h){
-    var amt=Number(h.amount), sign=amt>=0?'+':'−', abs=Math.abs(amt);
-    var val=h.currency==='stars'?(sign+'⭐'+abs):(sign+abs.toFixed(2)+' '+t('uah_lbl'));
+    var amt=Number(h.amount), sign=amt>=0?'+':'−';
+    /* В леджере остались строки старой экономики (грн, звёзды) — их не
+       переписывают. Показываем их валютой как есть, чтобы история не врала,
+       но всё новое приходит только в TON. */
+    var cur=h.currency==='ton'?' TON':h.currency==='stars'?' ⭐':h.currency==='uah'?' UAH':'';
+    var val=sign+(h.currency==='stars'?admNum(Math.abs(amt)):tonFmt(Math.abs(amt)))+cur;
     return {icon:HIST_ICONS[h.kind]||'•',title:t('hist_kind_'+h.kind),sub:h.sub,val:val,cls:h.cls,t:h.t};
   });
   renderHistory();
 }
 
-/* ---- сохраняем оригиналы (демо) и переопределяем на серверные версии ---- */
-var _spin=spin, _crashAction=crashAction,
-    _buyGift=buyGift, _doWithdraw=doWithdraw, _invite=invite, _renderRefs=renderRefs,
-    _openBuyStars=openBuyStars, _openWithdraw=openWithdraw, _checkAchievements=checkAchievements,
-    _pvpJoin=pvpJoin;
+/* ---- Игровые действия. Реализация одна и требует сервера: локальной
+   экономики больше нет, поэтому вне Telegram ставку делать нечем. ---- */
 
-spin=async function(){
-  if(!SERVER) return _spin();
+function spin(){
   if(spinning) return;
-  if(S.stars<S.bet){ toast(t('pvp_no_stars')); return; }
-  spinning=true; var btn=document.getElementById('spin-btn'); btn.disabled=true;
-  var r=await api('game_bet',{game:'roulette',bet:S.bet});
-  if(!r.ok){ spinning=false; btn.disabled=false; toast(r.reason==='no_stars'?t('pvp_no_stars'):t('pvp_bet_error')); return; }
-  applyUser(r.user);
+  if(!SERVER){ toast(t('adm_no_server')); return; }
+  if(S.tonN<S.betN){ toast(t('pvp_no_ton')); return; }
+  spinning=true;
+  var btn=document.getElementById('spin-btn'); if(btn) btn.disabled=true;
+  doSpin(btn);
+}
+async function doSpin(btn){
+  var r=null;
+  try{ r=await api('game_bet',{game:'roulette',bet:S.bet}); }catch(e){}
+  if(!r||!r.ok){
+    spinning=false; if(btn) btn.disabled=false;
+    toast(r&&r.reason==='no_funds'?t('pvp_no_ton'):t('pvp_bet_error')); return;
+  }
+  applyUser(r.user); S.played++;
+  var stake=S.bet;
   buildStrip();
   var target=30+Math.floor(Math.random()*8);
   var srv=ROUL_PRIZES[r.prizeIndex]||ROUL_PRIZES[0];
   stripPrizes[target]=srv;
   var strip=document.getElementById('strip'), items=strip.children;
-  if(items[target]){ items[target].style.background=srv.color||'#0a5f6b'; items[target].innerHTML=srv.emoji+'<small>⭐'+srv.value+'</small>'; }
+  if(items[target]){ items[target].style.background=roulColor(srv); items[target].innerHTML=srv.emoji+'<small>'+multLbl(srv.mult)+'</small>'; }
   var stage=$('.roul-stage'), itemW=100, offset=target*itemW-(stage.clientWidth/2)+(itemW/2);
   strip.style.transition='none'; strip.style.transform='translateX(0px)'; void strip.offsetWidth;
   strip.style.transition='transform 3.2s cubic-bezier(.12,.7,.12,1)'; strip.style.transform='translateX(-'+offset+'px)';
@@ -4355,47 +4598,55 @@ spin=async function(){
   var clk=setInterval(function(){beep(900,0.015,0.015,'square');},90);
   setTimeout(function(){clearInterval(clk);},3100);
   setTimeout(function(){
-    spinning=false; btn.disabled=false; var p=r.prize;
+    spinning=false; if(btn) btn.disabled=false; var p=r.prize;
     beep(660,0.12,0.06,'triangle'); vibrate(25);
-    pushMyRoulRow({emoji:p.emoji,name:p.name,value:p.value});
-    if(p.value>S.bet) celebrate({n:40});
-    showSheet('<div class="result-emoji">'+p.emoji+'</div><h3 style="text-align:center">'+tf('roul_win_sheet_title_tpl',{win:p.value})+'</h3><p class="muted" style="text-align:center">'+tf('roul_win_sheet_desc_tpl',{prize:p.name,bet:S.bet,mult:p.betMult})+'</p><button class="btn-primary" onclick="closeSheet()">'+t('pvp_claim_btn')+'</button>');
+    pushMyRoulRow({emoji:p.emoji,name:p.name,mult:p.mult,win:p.win,bet:stake});
+    checkAchievements();
+    if(toNano(p.win)>toNano(stake)) celebrate({n:40});
+    showSheet('<div class="result-emoji">'+p.emoji+'</div>'
+      +'<h3 style="text-align:center">'+tf('roul_result_title_tpl',{mult:multLbl(p.mult)})+'</h3>'
+      +'<p class="muted" style="text-align:center">'+tf('roul_result_desc_tpl',{prize:p.name,bet:tonFmt(stake),win:tonFmt(p.win)})+'</p>'
+      +'<button class="btn-primary" onclick="closeSheet()">'+t('pvp_claim_btn')+'</button>');
   },3300);
-};
+}
+window.spin=spin;
 
-crashAction=async function(){
-  if(!SERVER) return _crashAction();
+async function crashAction(){
+  if(!SERVER){ toast(t('adm_no_server')); return; }
   if(crashPhase==='waiting'){
     if(iJoined) return;
-    if(S.stars<S.cbet){ toast(t('pvp_no_stars')); return; }
+    if(S.tonN<S.cbetN){ toast(t('pvp_no_ton')); return; }
     var chk=document.getElementById('auto-chk'); autoCash=chk?chk.checked:false;
     var am=parseFloat((document.getElementById('auto-mult')||{}).value||'2'); autoMult=(am&&am>1)?am:2;
-    var r=await api('crash_bet',{bet:S.cbet,autoMult:autoCash?autoMult:null});
-    if(!r.ok){ toast(r.reason==='no_stars'?t('pvp_no_stars'):t('pvp_bet_error')); return; }
-    window._crashRound=r.roundId; applyUser(r.user); iJoined=true;
+    var r=null;
+    try{ r=await api('crash_bet',{bet:S.cbet,autoMult:autoCash?autoMult:null}); }catch(e){}
+    if(!r||!r.ok){ toast(r&&r.reason==='no_funds'?t('pvp_no_ton'):t('pvp_bet_error')); return; }
+    window._crashRound=r.roundId; applyUser(r.user); S.played++; iJoined=true;
     beep(520,0.06,0.05,'triangle');
     crashBots.unshift({id:'me',bot:{n:t('you_word'),a:'🙂'},bet:S.cbet,cashAt:autoCash?autoMult:999,status:'live',taken:0,me:true});
     renderCrashPlayers(); updateCrashBtn();
-    toast(autoCash?tf('crash_bet_toast_auto_tpl',{bet:S.cbet,x:autoMult.toFixed(2)}):tf('crash_bet_toast_tpl',{bet:S.cbet}));
+    toast(autoCash?tf('crash_bet_toast_auto_tpl',{bet:tonFmt(S.cbet),x:autoMult.toFixed(2)}):tf('crash_bet_toast_tpl',{bet:tonFmt(S.cbet)}));
   } else if(crashPhase==='flying' && iJoined && !S.cashedThisRound){
     S.cashedThisRound=true;               // синхронно — защита от повторного клика/авто
-    var r=await api('crash_cashout',{roundId:window._crashRound});
-    if(!r.ok){ S.cashedThisRound=false; toast(t('crash_cashout_error')); return; }
+    var r2=null;
+    try{ r2=await api('crash_cashout',{roundId:window._crashRound}); }catch(e){}
+    if(!r2||!r2.ok){ S.cashedThisRound=false; toast(t('crash_cashout_error')); return; }
     var me=crashBots.filter(function(p){return p.me;})[0];
-    if(r.busted){
-      applyUser(r.user);
+    if(r2.busted){
+      applyUser(r2.user);
       if(me){ me.status='lose'; }
       renderCrashPlayers(); updateCrashBtn();
-      toast(tf('crash_missed_toast_tpl',{bet:S.cbet,x:Number(r.crashPoint).toFixed(2)}));
+      toast(tf('crash_missed_toast_tpl',{bet:tonFmt(S.cbet),x:Number(r2.crashPoint).toFixed(2)}));
     } else {
-      applyUser(r.user);
+      applyUser(r2.user);
       beep(780,0.12,0.06,'triangle'); vibrate(30);
-      if(me){ me.status='win'; me.taken=r.win; me.cashAt=r.mult; }
+      if(me){ me.status='win'; me.taken=r2.win; me.cashAt=r2.mult; }
       renderCrashPlayers(); updateCrashBtn();
-      celebrate({n:44}); toast(tf('crash_cashout_toast_tpl',{win:r.win,x:Number(r.mult).toFixed(2)}));
+      celebrate({n:44}); toast(tf('crash_cashout_toast_tpl',{win:tonFmt(r2.win),x:Number(r2.mult).toFixed(2)}));
     }
   }
-};
+}
+window.crashAction=crashAction;
 
 /* PVP: поллинг общего раунда. Серверные вызовы прежние (pvp_state / pvp_join),
    меняется только то, куда уходит ответ — в машину состояний нового экрана. */
@@ -4436,10 +4687,10 @@ function stopPvpPoll(){
   if(pvpPollTimer){ clearTimeout(pvpPollTimer); pvpPollTimer=null; }
 }
 
-pvpJoin=async function(){
-  if(!SERVER) return _pvpJoin();
+async function pvpJoin(){
+  if(!SERVER){ toast(t('adm_no_server')); return; }
   if(pxBusy()||PXR.joined||PXR.pending) return;   /* pending закрывает окно между тапами */
-  if(S.stars<pbet){ toast(t('pvp_no_stars')); return; }
+  if(S.tonN<pbetN){ toast(t('pvp_no_ton')); return; }
   PXR.pending=true; pxCta();
   var r;
   try{ r=await api('pvp_join',{bet:pbet}); }
@@ -4447,146 +4698,79 @@ pvpJoin=async function(){
   PXR.pending=false;
   if(!r||!r.ok){
     if(r&&r.reason==='already_joined'){ toast(t('pvp_already')); if(r.round) pxApply(r.round); }
-    else { toast(!r?t('pvp_bet_error'):r.reason==='no_stars'?t('pvp_no_stars')
+    else { toast(!r?t('pvp_bet_error'):r.reason==='no_funds'?t('pvp_no_ton')
             :r.reason==='round_closed'?t('pvp_closing')
             :r.reason==='round_mixed_admin'?t('pvp_mixed_admin')
             :r.reason==='round_mixed'?t('pvp_closing'):t('pvp_bet_error')); pxCta(); }
     return;
   }
   if(r.user) applyUser(r.user);
+  S.played++;
   if(r.round) pxApply(r.round);
   pxHaptic('medium');
   toast(t('pvp_bet_toast'));
-};
-
-buyGift=function(it){
-  if(!SERVER) return _buyGift(it);
-  if(S.stars<it.value){ toast(tf('gift_insufficient_toast_tpl',{name:it.name})); return; }
-  showSheet('<div class="result-emoji">'+it.emoji+'</div><h3 style="text-align:center">'+tf('buy_gift_title_tpl',{name:it.name})+'</h3><p class="muted" style="text-align:center">'+tf('buy_gift_desc_server_tpl',{value:it.value})+'</p><button class="btn-primary" id="confirm-gift">'+tf('buy_gift_btn_tpl',{value:it.value})+'</button><button class="btn-ghost" style="margin-top:8px" onclick="closeSheet()">'+t('cancel_btn')+'</button>');
-  var cg=document.getElementById('confirm-gift'); if(cg) cg.onclick=async function(){
-    cg.disabled=true;
-    var r=await api('buy_gift',{name:it.name});
-    if(!r.ok){ toast(r.reason==='no_stars'?t('gift_error_no_stars'):t('gift_error_generic')); closeSheet(); return; }
-    applyUser(r.user); closeSheet(); toast(it.emoji+' '+tf('gift_bought_server_toast_tpl',{name:it.name}));
-  };
-};
-
-openWithdraw=function(){
-  if(SERVER && S.money<CFG.min_withdraw){ toast(tf('withdraw_min_demo_tpl',{min:CFG.min_withdraw})); return; }
-  return _openWithdraw();
-};
-doWithdraw=async function(){
-  if(!SERVER) return _doWithdraw();
-  var req=(document.getElementById('w-req').value||'').trim();
-  var amt=parseFloat((document.getElementById('w-amt').value||'').replace(',','.'));
-  if(!wMethod) return toast(t('withdraw_err_method'));
-  if(!req) return toast(t('withdraw_err_req'));
-  if(wMethod==='card_ua'){ var digits=req.replace(/\s|-/g,''); if(!/^\d{16}$/.test(digits)) return toast(t('withdraw_err_card')); }
-  else { if(req.length<20) return toast(t('withdraw_err_wallet')); }
-  if(!amt||amt<CFG.min_withdraw) return toast(tf('withdraw_err_min_tpl',{min:CFG.min_withdraw}));
-  if(amt>S.money) return toast(t('withdraw_err_funds'));
-  var r=await api('withdraw_create',{method:wMethod,requisites:req,amount:amt});
-  if(!r.ok){ toast(wdErr(r.reason)); return; }
-  applyUser(r.user); closeSheet();
-  var extra=r.usdt?(' (≈'+Number(r.usdt).toFixed(2)+' USDT)'):'';
-  showSheet('<div class="result-emoji">✅</div><h3 style="text-align:center">'+t('withdraw_success_title_server')+'</h3><p class="muted" style="text-align:center">'+tf('withdraw_success_desc_server_tpl',{amt:money(r.amount),extra:extra})+'</p><button class="btn-primary" onclick="closeSheet()">'+t('ok_btn')+'</button>');
-};
-
-invite=function(){
-  if(!SERVER) return _invite();
-  var link=REFLINK;
-  if(TGAPP && link && TGAPP.openTelegramLink){
-    TGAPP.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(link)+'&text='+encodeURIComponent(t('ref_share_text')));
-  } else copyRef();
-};
-renderRefs=function(){
-  if(!SERVER) return _renderRefs();
-  refSet('rf-count',REF.count||0);
-  refSet('rf-earned-uah',money(REF.earnedUah||0));
-  refSet('rf-earned-stars',REF.earnedStars||0);
-  refSet('rf-today',REF.todayStars||0);
-  refSet('rf-today-cap',REF.capStars||50);
-  refSet('ref-share',(REF.sharePct||10)+'%');
-  refSet('ref-per',REF.perFriend||5);
-  refSet('ref-cap',REF.capStars||50);
-  refSet('ref-bonus',REF.bonusUah||10);
-  renderRefFriends(REF.friends||[]);
-  setRefLink();
-};
-/* ---- Пополнение звёзд: вкладки «Крипто Бот» / «Stars» ---- */
-var topupTab='crypto';
-function renderTopupSheet(){
-  var starsKeys=Object.keys(PACKS), cryptoKeys=Object.keys(CRYPTO_PACKS);
-  var tabs='<div class="seg" id="topup-seg" style="margin-top:4px">'
-    +'<button class="'+(topupTab==='crypto'?'active':'')+'" onclick="setTopupTab(\'crypto\')">🤖 '+t('topup_tab_crypto')+'</button>'
-    +'<button class="'+(topupTab==='stars'?'active':'')+'" onclick="setTopupTab(\'stars\')">⭐ '+t('topup_tab_stars')+'</button>'
-    +'</div>';
-  var body;
-  if(topupTab==='crypto'){
-    if(!cryptoKeys.length){ body='<p class="muted">'+t('topup_crypto_unavailable')+'</p>'; }
-    else{
-      body='<p class="muted">'+t('topup_crypto_desc')+'</p><div class="grid2" style="margin-top:10px">';
-      cryptoKeys.forEach(function(k){ var p=CRYPTO_PACKS[k];
-        body+='<div class="pill" data-cbpack="'+k+'"><div class="ic">⭐</div><div class="nm">'+p.stars+'</div><div class="px">'+p.usd+' USDT</div></div>'; });
-      body+='</div>';
-    }
-  } else {
-    if(!starsKeys.length){ body='<p class="muted">'+t('topup_stars_unavailable')+'</p>'; }
-    else{
-      body='<p class="muted">'+t('topup_stars_desc')+'</p><div class="grid2" style="margin-top:10px">';
-      starsKeys.forEach(function(k){ var p=PACKS[k];
-        body+='<div class="pill" data-pack="'+k+'"><div class="ic">⭐</div><div class="nm">'+p.stars+'</div><div class="px">'+p.price+' ★ Telegram</div></div>'; });
-      body+='</div>';
-    }
-  }
-  showSheet('<h3>'+t('topup_sheet_title')+'</h3>'+tabs+body);
-  $all('[data-pack]').forEach(function(el){ el.onclick=function(){ buyStars(el.getAttribute('data-pack')); }; });
-  $all('[data-cbpack]').forEach(function(el){ el.onclick=function(){ buyStarsCrypto(el.getAttribute('data-cbpack')); }; });
 }
-function setTopupTab(t){ topupTab=t; renderTopupSheet(); }
-window.setTopupTab=setTopupTab;
+window.pvpJoin=pvpJoin;
 
-openBuyStars=function(){
-  if(!SERVER) return _openBuyStars();
-  renderTopupSheet();
-};
-async function buyStars(pack){
-  var r=await api('create_stars_invoice',{pack:pack});
-  if(!r||!r.ok){ toast(t('topup_err_invoice')); return; }
-  if(TGAPP && TGAPP.openInvoice){
-    TGAPP.openInvoice(r.link, function(status){
-      if(status==='paid'){ closeSheet(); toast(t('topup_paid_wait')); setTimeout(refreshState,1600); }
-      else if(status==='failed'){ toast(t('topup_failed')); }
-    });
-  } else { toast(t('topup_open_in_tg')); }
+/* ---- Кейсы: счёт в Telegram Stars, без звёздного баланса ----
+   Заказ заводится ДО оплаты и хранит исход, поэтому подобрать выпадение,
+   увидев плательщика, нельзя. Клиенту сразу приходит только хэш seed —
+   сам seed раскрывается после оплаты, и выпадение можно пересчитать. */
+async function openCase(c){
+  if(!SERVER){ toast(t('adm_no_server')); return; }
+  var drops=(c.drops||[]).map(function(d){
+    return '<div class="cs-drop"><span class="cd-e">'+admEsc(d.emoji)+'</span>'
+      +'<span class="cd-n">'+admEsc(d.name)+'</span>'
+      +'<span class="cd-v">'+admNum(d.value)+' ⭐</span>'
+      +'<span class="cd-c">'+d.chance+'%</span></div>';
+  }).join('');
+  showSheet('<div class="result-emoji">'+admEsc(c.emoji||'📦')+'</div>'
+    +'<h3 style="text-align:center">'+admEsc(c.name)+'</h3>'
+    +'<p class="muted" style="text-align:center">'+t('cs_sheet_desc')+'</p>'
+    +'<div style="margin:12px 0">'+drops+'</div>'
+    +'<button class="btn-primary" id="cs-buy">'+tf('cs_buy_btn_tpl',{n:admNum(c.price)})+'</button>'
+    +'<button class="btn-ghost" style="margin-top:8px" onclick="closeSheet()">'+t('cancel_btn')+'</button>');
+  var b=document.getElementById('cs-buy');
+  if(b) b.onclick=function(){ b.disabled=true; buyCase(c,b); };
 }
-window.buyStars=buyStars;
 
-var cbPollTimer=null;
-function stopCbPoll(){ if(cbPollTimer){ clearInterval(cbPollTimer); cbPollTimer=null; } }
-async function buyStarsCrypto(pack){
-  var r=await api('create_cryptobot_invoice',{pack:pack});
-  if(!r||!r.ok){ toast(r&&r.reason==='not_configured'?t('topup_crypto_unavailable'):t('topup_err_invoice')); return; }
-  if(TGAPP && TGAPP.openTelegramLink && r.payUrl){ TGAPP.openTelegramLink(r.payUrl); }
-  else if(r.payUrl){ window.open(r.payUrl,'_blank'); }
-  toast(tf('topup_cb_invoice_opened_tpl',{usd:r.usd}));
-  stopCbPoll();
+async function buyCase(c,btn){
+  var r=null;
+  try{ r=await api('case_open',{'case':c.key}); }catch(e){}
+  if(!r||!r.ok){ if(btn) btn.disabled=false; toast(t('cs_err_invoice')); return; }
+  if(!(TGAPP&&TGAPP.openInvoice)){ if(btn) btn.disabled=false; toast(t('topup_open_in_tg')); return; }
+  TGAPP.openInvoice(r.link,function(status){
+    if(status==='paid'){ pollCase(r.orderId); }
+    else { if(btn) btn.disabled=false; if(status==='failed') toast(t('cs_failed')); }
+  });
+}
+
+/* Исход подтверждает вебхук Telegram в api/bot.js, поэтому ждём, пока заказ
+   станет paid, а не рисуем выигрыш по факту нажатия «оплатить». */
+var csPollTimer=null;
+function stopCsPoll(){ if(csPollTimer){ clearInterval(csPollTimer); csPollTimer=null; } }
+function pollCase(orderId){
+  showSheet('<div class="result-emoji">⏳</div><h3 style="text-align:center">'+t('cs_opening')+'</h3>'
+    +'<p class="muted" style="text-align:center">'+t('cs_opening_desc')+'</p>');
+  stopCsPoll();
   var tries=0;
-  cbPollTimer=setInterval(async function(){
+  csPollTimer=setInterval(async function(){
     tries++;
-    if(tries>60){ stopCbPoll(); return; }              // ~5 минут опроса
-    var st=await api('cryptobot_check',{invoiceId:r.invoiceId});
-    if(st&&st.ok&&st.status==='paid'&&st.credited){
-      stopCbPoll(); closeSheet(); applyUser(st.user);
-      celebrate({n:36});
-      toast(tf('topup_cb_paid_tpl',{stars:r.stars}));
-    }
-  },5000);
+    if(tries>40){ stopCsPoll(); closeSheet(); toast(t('cs_slow')); return; }
+    var r=null;
+    try{ r=await api('case_result',{orderId:orderId}); }catch(e){ return; }
+    if(!r||!r.ok||r.status!=='paid'||!r.gift) return;
+    stopCsPoll();
+    celebrate({n:44}); vibrate(30);
+    showSheet('<div class="result-emoji">'+admEsc(r.gift.emoji)+'</div>'
+      +'<h3 style="text-align:center">'+admEsc(r.gift.name)+'</h3>'
+      +'<p class="muted" style="text-align:center">'+tf('cs_won_desc_tpl',{n:admNum(r.gift.value)})+'</p>'
+      +'<button class="btn-primary" onclick="closeSheet();go(\'gifts\')">'+t('cs_to_inventory')+'</button>'
+      +'<button class="btn-ghost" style="margin-top:8px" onclick="closeSheet()">'+t('ok_btn')+'</button>');
+  },2000);
 }
-window.buyStarsCrypto=buyStarsCrypto;
-/* достижения и квесты пока не заведены на сервер — в серверном режиме не
-   начисляем звёзды локально, чтобы не расходиться с балансом на бэкенде */
-checkAchievements=function(){ if(SERVER) return; return _checkAchievements(); };
+window.openCase=openCase;
+
 
 /* обёртка навигации: подгружаем серверные данные при открытии экранов */
 var __goServer=go;
@@ -4606,7 +4790,8 @@ window.admTab=admTab; window.admLoadStats=admLoadStats;
 window.admPlQuery=admPlQuery; window.admPlSort=admPlSort; window.admPlLoad=admPlLoad;
 window.copyMyId=copyMyId;
 window.admGrInput=admGrInput; window.admGrAdd=admGrAdd; window.admGrClear=admGrClear; window.admGrant=admGrant;
-window.openBuyStars=openBuyStars; window.pvpJoin=pvpJoin; window.go=go;
+window.openTopup=openTopup; window.pvpJoin=pvpJoin; window.go=go;
+window.setBet=setBet; window.setCBet=setCBet; window.spin=spin;
 
 /* ---- старт: аутентификация в Telegram и загрузка состояния ---- */
 async function boot(){
@@ -4615,12 +4800,10 @@ async function boot(){
   try{
     var st=await api('state');
     if(!st||!st.ok){ return; }          // бэкенд не настроен/ошибка — демо-режим
-    SERVER=true; ME=st.user; CFG=st.config||CFG; REF=st.referrals||REF;
+    SERVER=true; ME=st.user; REF=st.referrals||REF;
     S.isAdmin=!!st.isAdmin; syncAdminEntry();
-    if(st.catalog&&st.catalog.packs) PACKS=st.catalog.packs;
-    if(st.catalog&&st.catalog.cryptoPacks) CRYPTO_PACKS=st.catalog.cryptoPacks;
-    USDT_RATE=CFG.usdt_rate||USDT_RATE;
-    if(st.refLink) REFLINK='https://t.me/'+BOT_USERNAME+st.refLink;
+    applyCatalog(st);
+    setRefLinkFrom(st);
     if(ME.first_name){ var pn=document.getElementById('prof-name'); if(pn) pn.textContent=ME.first_name; var hn=document.getElementById('hero-name'); if(hn) hn.textContent=ME.first_name; }
     applyUser(st.user); renderPush(); setRefLink();
   }catch(e){}
@@ -4673,23 +4856,24 @@ function tweenNum(from,to,dur,step){
   function fr(ts){ if(t0===null)t0=ts; var p=Math.min((ts-t0)/dur,1); var e=1-Math.pow(1-p,3); step(from+(to-from)*e); if(p<1) requestAnimationFrame(fr); }
   requestAnimationFrame(fr);
 }
-function setNumEls(sel,val,isMoney){
+/* Считаем и сравниваем в нанотонах: шаг «изменилось» для TON — 1 нанотон,
+   а не «единица», иначе ставка 0.1 не считалась бы изменением и не подсвечивалась. */
+function setTonEls(sel,val,fmt){
+  var valN=toNano(val);
   $all(sel).forEach(function(el){
-    var cur=parseFloat(el.getAttribute('data-cur'));
-    if(isNaN(cur)) cur=0;
-    if(cur===val){ el.textContent=isMoney?money(val):val; return; }
-    el.setAttribute('data-cur',val);
-    tweenNum(cur,val,600,function(v){ el.textContent=isMoney?money(v):Math.round(v); });
-    if(Math.abs(val-cur)>=(isMoney?0.001:1)){ el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+    var curN=parseInt(el.getAttribute('data-cur'),10);
+    if(isNaN(curN)) curN=0;
+    if(curN===valN){ el.textContent=fmt(val); return; }
+    el.setAttribute('data-cur',valN);
+    tweenNum(fromNano(curN),val,600,function(v){ el.textContent=fmt(v); });
+    if(curN!==valN){ el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   });
 }
 /* переопределяем syncBalances на живые (count-up) числа */
 syncBalances=function(){
-  setNumEls('[data-money]', Number(S.money), true);
-  setNumEls('[data-stars]', Number(S.stars), false);
-  var mb=$('[data-money-big]'); if(mb) mb.innerHTML=money(S.money)+' <span style="font-size:20px;color:var(--aqua)">'+t('uah_lbl')+'</span>';
-  var mu=$('[data-money-usdt]'); if(mu) mu.textContent='≈ '+usdt(S.money)+' USDT';
-  var sb=$('[data-stars-big]'); if(sb) sb.innerHTML=S.stars+' <span style="font-size:20px;color:var(--gold)">⭐</span>';
+  setTonEls('[data-ton]', S.ton, tonFmt);
+  var tb=$('[data-ton-big]');
+  if(tb) tb.innerHTML=tonBal(S.ton)+' <span style="font-size:20px;color:var(--aqua)">TON</span>';
 };
 syncBalances();
 
@@ -4728,7 +4912,9 @@ syncBalances();
 (function(){
   var cv=document.getElementById('bubbles'); if(!cv||prefersReduced()) return;
   var ctx=cv.getContext('2d'), dpr=Math.min(window.devicePixelRatio||1,2), W=0,H=0, bs=[], raf=null, vis=true;
-  function resize(){ W=cv.clientWidth=window.innerWidth; H=cv.clientHeight=window.innerHeight; cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
+  /* clientWidth/clientHeight — только для чтения: присваивание здесь молча
+     роняло весь фон в strict mode. Размер задаём атрибутами canvas. */
+  function resize(){ W=window.innerWidth; H=window.innerHeight; cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
   function mk(y){ var r=2+Math.random()*7; return {x:Math.random()*W, y:y===undefined?H+Math.random()*H:y, r:r, sp:6+Math.random()*16+r, drift:(Math.random()-.5)*10, ph:Math.random()*6.28, a:.05+Math.random()*.18}; }
   function init(){ resize(); bs=[]; var n=Math.round(Math.min(34, W/16)); for(var i=0;i<n;i++) bs.push(mk(Math.random()*H)); }
   var last=null;

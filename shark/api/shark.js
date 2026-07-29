@@ -160,13 +160,6 @@ function giftPublic(g) {
   };
 }
 
-const SHOP = [
-  { emoji: '🦈', name: 'Shark NFT', value: 500 }, { emoji: '🐚', name: 'Ракушка', value: 331 },
-  { emoji: '🪸', name: 'Коралл',   value: 344 }, { emoji: '🌊', name: 'Волна',   value: 360 },
-  { emoji: '🐠', name: 'Рыбка',    value: 334 }, { emoji: '⚓', name: 'Якорь',   value: 356 },
-  { emoji: '💎', name: 'Жемчуг',   value: 600 }, { emoji: '🔱', name: 'Трезубец', value: 358 }
-];
-const BET_OPTIONS = [50, 100, 250];          // историческое (звёзды), уходит вместе с игрой на звёздах
 
 // ============================================================
 //  💎 TON — единственная игровая валюта
@@ -495,7 +488,7 @@ module.exports = async (req, res) => {
           sharePct: REF_PCT, bonusTon: Number(CFG.referral_bonus_ton), friends
         },
         catalog: {
-          roulette: ROUL_PRIZES, shop: SHOP,
+          roulette: ROUL_PRIZES,
           cases: Object.keys(CASES).map((k) => casePublic(CASES[k])),
           bets: TON_BETS, minBet: fromNano(TON_MIN_BET_NANO),
           topups: TON_TOPUPS, minTopup: Number(CFG.min_topup_ton),
@@ -699,18 +692,6 @@ module.exports = async (req, res) => {
       await settleGameRevenue(user, betNanoVal, winNano, 'ref_rev:crash:' + roundId, { game: 'crash', mult: cashMult });
       const fresh = await freshUser();
       json(res, 200, { ok: true, busted: false, mult: cashMult, win: fromNano(winNano), crashPoint, seed: round.server_seed, user: publicUser(fresh) });
-      return;
-    }
-
-    // ---------------------------------------------------------
-    //  BUY_GIFT — купить подарок за звёзды
-    // ---------------------------------------------------------
-    if (action === 'buy_gift') {
-      // Покупка за звёзды с баланса больше невозможна: баланса в звёздах нет.
-      // Подарки переезжают в кейсы, которые оплачиваются счётом в Stars в
-      // момент покупки — это Э4. Отвечаем честной причиной, а не «не хватает
-      // звёзд»: молчаливо неработающий экран хуже, чем явно закрытый.
-      json(res, 200, { ok: false, reason: 'moved_to_cases' });
       return;
     }
 
@@ -946,32 +927,38 @@ module.exports = async (req, res) => {
         sbCount('shark_withdrawals?select=id&status=eq.pending')
       ]);
 
-      // суммы балансов — считаем на месте, ограниченной выборкой (без изменения схемы)
-      const bal = await sbGet('shark_users?select=stars_balance,money_balance&limit=' + ADMIN_SCAN);
-      let starsHeld = 0, moneyHeld = 0;
-      bal.forEach((u) => { starsHeld += Number(u.stars_balance || 0); moneyHeld += Number(u.money_balance || 0); });
+      // Суммы балансов — на месте, ограниченной выборкой (без изменения схемы).
+      // Складываем в нанотонах: 20 000 десятичных балансов в double дали бы
+      // расхождение с базой уже в третьем знаке.
+      const bal = await sbGet('shark_users?select=ton_balance&limit=' + ADMIN_SCAN);
+      let heldNano = 0;
+      bal.forEach((u) => { heldNano += toNano(u.ton_balance); });
 
-      // оборот за 7 дней: складываем леджер по (валюта, вид операции)
-      const led = await sbGet('shark_ledger?created_at=gte.' + d7 + '&select=currency,amount,kind&order=created_at.desc&limit=' + ADMIN_SCAN);
+      // Оборот за 7 дней: только TON. Строки старой экономики в леджере
+      // остались, но в сводку не идут — иначе гривны сложились бы с тонами.
+      const led = await sbGet('shark_ledger?created_at=gte.' + d7 + '&currency=eq.ton&select=amount,kind&order=created_at.desc&limit=' + ADMIN_SCAN);
       const flow = {};
-      led.forEach((l) => {
-        const k = (l.currency === 'stars' ? 's:' : 'm:') + (l.kind || 'adjust');
-        flow[k] = (flow[k] || 0) + Number(l.amount || 0);
-      });
-      const bets7d = Math.round(-(flow['s:bet'] || 0));      // ставки уходят минусом
-      const wins7d = Math.round(flow['s:win'] || 0);
+      led.forEach((l) => { const k = l.kind || 'adjust'; flow[k] = (flow[k] || 0) + toNano(l.amount); });
+      const betsNano = -(flow.bet || 0);                      // ставки уходят минусом
+      const winsNano = flow.win || 0;
+
+      // Ожидающие выплаты — это уже списанные деньги, но ещё наш долг
+      const wd = await sbGet('shark_withdrawals?status=eq.pending&select=amount_ton&limit=' + ADMIN_SCAN);
+      let pendingNano = 0;
+      wd.forEach((w) => { pendingNano += toNano(w.amount_ton); });
 
       json(res, 200, {
         ok: true,
         stats: {
           users, new24h, new7d, active24h, pendingWithdrawals,
-          starsHeld: Math.round(starsHeld),
-          moneyHeld: Math.round(moneyHeld * 100) / 100,
-          bets7d, wins7d,
-          rake7d: bets7d - wins7d,                            // что осталось «дому»
-          topups7d: Math.round(flow['s:topup'] || 0),
-          grants7d: Math.round(flow['s:adjust'] || 0),         // ручные начисления
-          giftsSpent7d: Math.round(-(flow['s:gift'] || 0)),
+          tonHeld: fromNano(heldNano),
+          tonPendingWithdraw: fromNano(pendingNano),
+          bets7d: fromNano(betsNano),
+          wins7d: fromNano(winsNano),
+          rake7d: fromNano(betsNano - winsNano),              // что осталось «дому»
+          topups7d: fromNano(flow.topup || 0),
+          grants7d: fromNano(flow.adjust || 0),               // ручные начисления
+          referral7d: fromNano(flow.referral || 0),           // выплачено рефералам
           // прозрачность выборки: если упёрлись в потолок — цифра неполная
           scan: { cap: ADMIN_SCAN, users: bal.length, ledger: led.length, capped: bal.length >= ADMIN_SCAN || led.length >= ADMIN_SCAN }
         }
@@ -987,7 +974,7 @@ module.exports = async (req, res) => {
       const q = String(body.q || '').trim().slice(0, 60);
       const limit = Math.min(Math.max(Number(body.limit) || 30, 1), 100);
       const offset = Math.max(Number(body.offset) || 0, 0);
-      const sort = body.sort === 'stars' ? 'stars_balance.desc'
+      const sort = body.sort === 'ton' ? 'ton_balance.desc'
         : body.sort === 'new' ? 'created_at.desc'
           : body.sort === 'played' ? 'played.desc'
             : 'last_seen.desc';
@@ -1002,7 +989,7 @@ module.exports = async (req, res) => {
           filter = '&or=(first_name.ilike.' + like + ',username.ilike.' + like + ')';
         }
       }
-      const base = 'shark_users?select=tg_id,username,first_name,lang,stars_balance,money_balance,played,won_stars,banned,created_at,last_seen' + filter;
+      const base = 'shark_users?select=tg_id,username,first_name,lang,ton_balance,won_ton,played,banned,created_at,last_seen' + filter;
       const total = await sbCount(base);
       const rows = await sbGet(base + '&order=' + sort + '&limit=' + limit + '&offset=' + offset);
       const adm = panelIds();
@@ -1014,10 +1001,9 @@ module.exports = async (req, res) => {
           name: u.first_name || '',
           username: u.username || '',
           lang: u.lang || 'ru',
-          stars: Number(u.stars_balance || 0),
-          money: Number(u.money_balance || 0),
+          ton: Number(u.ton_balance || 0),
+          wonTon: Number(u.won_ton || 0),
           played: Number(u.played || 0),
-          wonStars: Number(u.won_stars || 0),
           banned: !!u.banned,
           isAdmin: adm.includes(Number(u.tg_id)),
           createdAt: u.created_at,
@@ -1417,12 +1403,13 @@ function adminIds() {
 function panelIds() {
   return (env('ADMIN_PANEL_IDS') || '').split(',').map((s) => s.trim()).filter(Boolean).map(Number);
 }
+// Наружу отдаём ровно одну валюту. Старые money/stars убраны намеренно:
+// пока они приходили, любой экран мог их случайно показать.
 function publicUser(u) {
   return {
     tg_id: u.tg_id, username: u.username, first_name: u.first_name, lang: u.lang,
     ton: Number(u.ton_balance || 0), wonTon: Number(u.won_ton || 0),
-    money: Number(u.money_balance), stars: Number(u.stars_balance),
-    played: Number(u.played || 0), wonStars: Number(u.won_stars || 0),
+    played: Number(u.played || 0),
     refCode: u.ref_code
   };
 }
