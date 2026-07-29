@@ -124,6 +124,42 @@ function casePublic(c) {
   };
 }
 
+// ---------------------------------------------------------------------------
+//  ИНВЕНТАРЬ ПОДАРКОВ
+//
+//  Жизненный цикл записи: held → sending → sent. Промежуточное `sending`
+//  существует не ради красоты — выдача ручная, и между «админ взял в работу»
+//  и «подарок ушёл» проходит время, за которое игрок успевает открыть экран.
+//  Без этого состояния ему пришлось бы гадать, забыли о нём или нет.
+//
+//  Переходы описаны таблицей, а не разбросаны по коду: когда появится
+//  автоматическая отправка, добавится источник перехода, а не новая ветка
+//  в трёх местах. Назад подарок не откатывается — отправленное не отзывают.
+const GIFT_FLOW = { held: ['sending', 'sent'], sending: ['sent'], sent: [] };
+function giftCanGo(from, to) { return (GIFT_FLOW[from] || []).includes(to); }
+
+//  Что игрок сможет делать с подарком. Сейчас всё выключено: отправку делает
+//  админ вручную, обмена и коллекций ещё нет. Флаги приходят с сервера, а не
+//  зашиты в клиент, чтобы включение функции было релизом сервера, а не сборкой
+//  приложения — и чтобы старый клиент не показывал кнопку, которой нет.
+const GIFT_FEATURES = { send: false, exchange: false, collect: false };
+
+function giftPublic(g) {
+  const c = CASES[g.case_key];
+  return {
+    id: g.id,
+    name: g.name,
+    emoji: g.emoji,
+    value: Number(g.star_value || 0),
+    rarity: g.rarity || 'common',
+    status: g.status,
+    caseKey: g.case_key,
+    caseName: c ? c.name : null,
+    at: g.created_at,
+    sentAt: g.sent_at
+  };
+}
+
 const SHOP = [
   { emoji: '🦈', name: 'Shark NFT', value: 500 }, { emoji: '🐚', name: 'Ракушка', value: 331 },
   { emoji: '🪸', name: 'Коралл',   value: 344 }, { emoji: '🌊', name: 'Волна',   value: 360 },
@@ -861,15 +897,25 @@ module.exports = async (req, res) => {
     //  GIFTS — инвентарь подарков пользователя
     // ---------------------------------------------------------
     if (action === 'gifts') {
-      const rows = await sbGet('shark_gifts?tg_id=eq.' + me.id + '&order=created_at.desc&limit=100&select=id,name,emoji,star_value,rarity,status,case_key,created_at,sent_at');
+      const rows = await sbGet('shark_gifts?tg_id=eq.' + me.id + '&order=created_at.desc&limit=200&select=id,name,emoji,star_value,rarity,status,case_key,created_at,sent_at');
+      const gifts = rows.map(giftPublic);
+      // Счётчики считаем здесь, а не на клиенте: список обрезан лимитом, и
+      // клиентская сумма по видимым карточкам врала бы у активного игрока.
+      const counts = { total: gifts.length, held: 0, sending: 0, sent: 0 };
+      let waiting = 0;
+      for (const g of gifts) {
+        if (counts[g.status] != null) counts[g.status]++;
+        if (g.status !== 'sent') waiting++;
+      }
       json(res, 200, {
         ok: true,
-        gifts: rows.map((g) => ({
-          id: g.id, name: g.name, emoji: g.emoji, value: Number(g.star_value || 0),
-          rarity: g.rarity || 'common', status: g.status, caseKey: g.case_key,
-          at: g.created_at, sentAt: g.sent_at
-        })),
-        totalValue: rows.reduce((a, g) => a + Number(g.star_value || 0), 0)
+        gifts,
+        counts,
+        waiting,
+        features: GIFT_FEATURES,
+        totalValue: gifts.reduce((a, g) => a + g.value, 0),
+        // ценность того, что ещё у нас на руках — это и есть наш долг игроку
+        pendingValue: gifts.reduce((a, g) => a + (g.status === 'sent' ? 0 : g.value), 0)
       });
       return;
     }
@@ -982,6 +1028,91 @@ module.exports = async (req, res) => {
     }
 
     // ---------------------------------------------------------
+    //  ADMIN_GIFTS — очередь ручной выдачи подарков
+    //  По умолчанию показываем только невыданные: это рабочий список, а не
+    //  архив. Архив доступен явным фильтром, чтобы можно было проверить,
+    //  что именно и когда ушло игроку.
+    // ---------------------------------------------------------
+    if (action === 'admin_gifts') {
+      if (!IS_ADMIN) { json(res, 200, { ok: false, reason: 'forbidden' }); return; }
+      const limit = Math.min(Math.max(Number(body.limit) || 30, 1), 100);
+      const offset = Math.max(Number(body.offset) || 0, 0);
+      // pending — held + sending: всё, что ещё должно уйти игроку
+      const scope = body.scope === 'sent' ? 'sent' : body.scope === 'all' ? 'all' : 'pending';
+      const filter = scope === 'sent' ? '&status=eq.sent'
+        : scope === 'all' ? ''
+          : '&status=in.(held,sending)';
+      // невыданные — по возрастанию: первым разбираем то, что ждёт дольше всех
+      const order = scope === 'pending' ? 'created_at.asc' : 'created_at.desc';
+
+      const base = 'shark_gifts?select=id,tg_id,name,emoji,star_value,rarity,status,case_key,created_at,sent_at' + filter;
+      const total = await sbCount(base);
+      const rows = await sbGet(base + '&order=' + order + '&limit=' + limit + '&offset=' + offset);
+      const pending = await sbCount('shark_gifts?select=id&status=in.(held,sending)');
+
+      // одним запросом на всю страницу, а не по игроку на карточку
+      const ids = Array.from(new Set(rows.map((g) => Number(g.tg_id)).filter(Boolean)));
+      const owners = ids.length
+        ? await sbGet('shark_users?tg_id=in.(' + ids.join(',') + ')&select=tg_id,username,first_name')
+        : [];
+      const byId = {};
+      for (const u of owners) byId[Number(u.tg_id)] = u;
+
+      json(res, 200, {
+        ok: true, total, pending, limit, offset, scope,
+        gifts: rows.map((g) => {
+          const u = byId[Number(g.tg_id)];
+          return Object.assign(giftPublic(g), {
+            tg_id: Number(g.tg_id),
+            player: (u && u.first_name) || '',
+            username: (u && u.username) || ''
+          });
+        })
+      });
+      return;
+    }
+
+    // ---------------------------------------------------------
+    //  ADMIN_GIFT_STATUS — отметить ход ручной выдачи
+    //  Переход делаем условным PATCH'ем по текущему статусу: если админ успел
+    //  нажать «отправлен» из бота, второе нажатие из панели не перезапишет
+    //  время выдачи и не пошлёт игроку второе уведомление.
+    // ---------------------------------------------------------
+    if (action === 'admin_gift_status') {
+      if (!IS_ADMIN) { json(res, 200, { ok: false, reason: 'forbidden' }); return; }
+      const id = Number(body.id);
+      const to = String(body.status || '');
+      if (!id) { json(res, 200, { ok: false, reason: 'bad_id' }); return; }
+      if (!GIFT_FLOW[to]) { json(res, 200, { ok: false, reason: 'bad_status' }); return; }
+
+      const cur = await sbGet('shark_gifts?id=eq.' + id + '&select=*');
+      const g = cur[0];
+      if (!g) { json(res, 200, { ok: false, reason: 'no_gift' }); return; }
+      if (g.status === to) { json(res, 200, { ok: true, gift: giftPublic(g), changed: false }); return; }
+      if (!giftCanGo(g.status, to)) { json(res, 200, { ok: false, reason: 'bad_transition', status: g.status }); return; }
+
+      const patch = { status: to, sent_by: Number(me.id) };
+      if (to === 'sent') patch.sent_at = new Date().toISOString();
+      const upd = await sb('shark_gifts?id=eq.' + id + '&status=eq.' + g.status, {
+        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
+        body: JSON.stringify(patch)
+      });
+      const row = Array.isArray(upd.data) ? upd.data[0] : null;
+      // фильтр не совпал — статус увели из-под нас; отдаём то, что стало
+      if (!row) {
+        const now = await sbGet('shark_gifts?id=eq.' + id + '&select=*');
+        json(res, 200, now[0]
+          ? { ok: true, gift: giftPublic(now[0]), changed: false }
+          : { ok: false, reason: 'no_gift' });
+        return;
+      }
+
+      if (to === 'sent') await notifyGiftSent(row);
+      json(res, 200, { ok: true, gift: giftPublic(row), changed: true });
+      return;
+    }
+
+    // ---------------------------------------------------------
     //  ADMIN_GRANT — ручное начисление ⭐ на админский аккаунт
     //  Только звёзды и только админам: грн — выводимые деньги, их нельзя
     //  Начисляется TON — единственная валюта приложения. Чужой баланс из
@@ -1016,6 +1147,18 @@ module.exports = async (req, res) => {
     json(res, 200, { ok: false, reason: 'unknown_action' });
 
     // ===== вложенные хелперы, которым нужен доступ к sb/me =====
+
+    // Сообщить игроку, что подарок ушёл. Объявлено function, а не const:
+    // хелперы живут ниже обработчиков, и стрелка в const попала бы в мёртвую
+    // зону — ровно та ошибка, что однажды уронила PVP.
+    async function notifyGiftSent(g) {
+      if (!BOT || !g || !g.tg_id) return;
+      const c = CASES[g.case_key];
+      await tgNotify(BOT, g.tg_id,
+        '🎁 Подарок отправлен!\n\n' + (g.emoji || '') + ' ' + g.name +
+        (c ? '\nКейс «' + c.name + '»' : '') +
+        '\n\nЗаберите его в чате с Telegram.');
+    }
 
     // Заплатить пригласившему долю от ДОХОДА ПЛАТФОРМЫ, который принёс
     // приглашённый игрок. Источник выплаты — рейк, а не депозит: платим из

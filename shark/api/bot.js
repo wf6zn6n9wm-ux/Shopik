@@ -150,6 +150,10 @@ const CASES = {
     { emoji: '🔱', name: 'Трезубец', value: 10000, weight: 0.3 }] }
 };
 const CASE_RARITY = ['common', 'common', 'rare', 'epic', 'legendary', 'legendary'];
+// Жизненный цикл подарка — копия из api/shark.js: бот и API отмечают выдачу
+// независимо, и разойтись эти таблицы не должны. Совпадение проверяет тест.
+const GIFT_FLOW = { held: ['sending', 'sent'], sending: ['sent'], sent: [] };
+function giftCanGo(from, to) { return (GIFT_FLOW[from] || []).includes(to); }
 function caseRoll(seed, drops) {
   const roll = parseInt(crypto.createHash('sha256').update('case:' + seed).digest('hex').slice(0, 8), 16) / 0xffffffff;
   const total = drops.reduce((a, d) => a + d.weight, 0);
@@ -213,12 +217,24 @@ async function handleCasePayment(msg) {
 
   await tg('sendMessage', { chat_id: uid,
     text: '🎁 Кейс «' + c.name + '» открыт!\n\n' + d.emoji + ' ' + d.name + ' · ' + d.value + ' ⭐\n\nПодарок в вашем инвентаре — отправим вручную в ближайшее время.' });
-  // Выдача ручная, как и выплаты: бот сообщает админу, что отправить и кому
+  // Выдача ручная, как и выплаты: бот сообщает админу, что отправить и кому,
+  // и даёт кнопку отметить выдачу — чтобы статус в инвентаре игрока обновился
+  // там же, где админ реально работает, а не только в панели.
   for (const id of adminIds()) {
     await tg('sendMessage', { chat_id: id,
       text: '🎁 Кейс «' + c.name + '» · ' + (msg.from.first_name || 'user') + ' (id ' + uid + ')\n'
-        + d.emoji + ' ' + d.name + ' · ' + d.value + ' ⭐\n\nОтправьте подарок вручную.' });
+        + d.emoji + ' ' + d.name + ' · ' + d.value + ' ⭐\n\nОтправьте подарок вручную.',
+      reply_markup: giftDecisionKb(gift.id) });
   }
+}
+
+// Кнопки на карточке подарка. «В работе» — необязательный шаг: он нужен, когда
+// выдача занимает время и игрок иначе не понимает, помнят о нём или нет.
+function giftDecisionKb(id) {
+  return { inline_keyboard: [[
+    { text: '📤 В работе', callback_data: 'gf_go:' + id },
+    { text: '✅ Отправлен', callback_data: 'gf_ok:' + id }
+  ]] };
 }
 
 function startKb() {
@@ -229,7 +245,7 @@ function startKb() {
 async function handleCallback(cq) {
   const data = cq.data || '';
   const fromId = cq.from && cq.from.id;
-  const m = data.match(/^(wd_ok|wd_no):(\d+)$/);
+  const m = data.match(/^(wd_ok|wd_no|gf_go|gf_ok):(\d+)$/);
   if (!m) { await tg('answerCallbackQuery', { callback_query_id: cq.id }); return; }
   if (!isAdmin(fromId)) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Нет прав', show_alert: true }); return; }
   const kind = m[1], id = Number(m[2]);
@@ -264,6 +280,39 @@ async function handleCallback(cq) {
       await tg('sendMessage', { chat_id: wd.tg_id, text: '❌ Заявка на вывод ' + label + ' отклонена. Средства возвращены на баланс.' });
       await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отклонено, возврат сделан' });
     }
+    return;
+  }
+
+  if (kind === 'gf_go' || kind === 'gf_ok') {
+    const to = kind === 'gf_ok' ? 'sent' : 'sending';
+    const rows = await sbGet('shark_gifts?id=eq.' + id + '&select=*');
+    const g = rows[0];
+    if (!g) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Подарок не найден', show_alert: true }); return; }
+    if (g.status === to) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Уже отмечено' }); return; }
+    if (!giftCanGo(g.status, to)) {
+      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Подарок уже выдан', show_alert: true }); return;
+    }
+
+    // Тот же условный PATCH, что и в панели: два админа (или админ и панель)
+    // могут нажать одновременно, и выиграть должен ровно один — иначе игрок
+    // получит два уведомления об одной отправке.
+    const patch = { status: to, sent_by: fromId };
+    if (to === 'sent') patch.sent_at = new Date().toISOString();
+    const done = await sbPatchReturn('shark_gifts?id=eq.' + id + '&status=eq.' + g.status, patch);
+    if (!Array.isArray(done) || !done[0]) {
+      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Статус уже изменён', show_alert: true }); return;
+    }
+
+    const mark = to === 'sent' ? '✅ ОТПРАВЛЕН (' + fromId + ')' : '📤 В РАБОТЕ (' + fromId + ')';
+    await tg('editMessageText', {
+      chat_id: chatId, message_id: msgId, text: origText + '\n\n' + mark,
+      reply_markup: to === 'sent' ? undefined : giftDecisionKb(id)
+    });
+    if (to === 'sent') {
+      await tg('sendMessage', { chat_id: g.tg_id,
+        text: '🎁 Подарок отправлен!\n\n' + (g.emoji || '') + ' ' + g.name + '\n\nЗаберите его в чате с Telegram.' });
+    }
+    await tg('answerCallbackQuery', { callback_query_id: cq.id, text: to === 'sent' ? 'Отмечено отправленным' : 'Отмечено в работе' });
     return;
   }
 }

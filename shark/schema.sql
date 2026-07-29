@@ -124,16 +124,10 @@ create index if not exists shark_bets_tg_idx on shark_bets(tg_id, created_at des
 alter table shark_bets add column if not exists bet_nano    bigint not null default 0;
 alter table shark_bets add column if not exists payout_nano bigint not null default 0;
 
--- ---------- покупки подарков -------------------------------------------------
-create table if not exists shark_gifts (
-  id         bigint generated always as identity primary key,
-  tg_id      bigint not null references shark_users(tg_id),
-  name       text not null,
-  emoji      text,
-  cost_stars bigint not null,
-  status     text not null default 'pending',           -- pending | sent
-  created_at timestamptz not null default now()
-);
+-- Подарки жили здесь же во времена звёздного магазина. Таблица не удалена, а
+-- переехала ниже, к кейсам, и там же доращивается до нового вида: определение
+-- обязано быть ровно одно, иначе `create table if not exists` тихо оставит
+-- старую форму и вставка подарка упадёт на первом же оплаченном кейсе.
 
 -- ---------- PVP: общие раунды-джекпот (несколько живых игроков) --------------
 -- Один активный раунд за раз: игроки скидываются в общий банк, по таймеру
@@ -238,6 +232,34 @@ create table if not exists shark_gifts (
 );
 create index if not exists shark_gifts_tg_idx on shark_gifts(tg_id, created_at desc);
 create index if not exists shark_gifts_status_idx on shark_gifts(status, created_at desc);
+
+-- Доращивание базы, где таблица осталась со времён звёздного магазина
+-- (id, tg_id, name, emoji, cost_stars, status pending|sent). `create table if
+-- not exists` там ничего не сделал, поэтому недостающее добавляем явно.
+alter table shark_gifts add column if not exists order_id   bigint references shark_case_orders(id);
+alter table shark_gifts add column if not exists case_key   text;
+alter table shark_gifts add column if not exists star_value integer not null default 0;
+alter table shark_gifts add column if not exists rarity     text;
+alter table shark_gifts add column if not exists sent_at    timestamptz;
+-- Старая cost_stars была not null, а новые вставки её не заполняют. На чистой
+-- базе колонки нет вовсе, поэтому трогаем её только если она действительно есть.
+do $$ begin
+  if exists (select 1 from information_schema.columns
+             where table_name = 'shark_gifts' and column_name = 'cost_stars') then
+    alter table shark_gifts alter column cost_stars drop not null;
+    alter table shark_gifts alter column cost_stars set default 0;
+    update shark_gifts set star_value = cost_stars
+     where star_value = 0 and cost_stars is not null;
+  end if;
+end $$;
+update shark_gifts set status = 'held' where status = 'pending';
+alter table shark_gifts alter column status set default 'held';
+do $$ begin
+  alter table shark_gifts add constraint shark_gifts_status_chk
+    check (status in ('held','sending','sent'));
+exception when duplicate_object then null; end $$;
+-- кто именно отметил выдачу: ручные действия должны быть именными
+alter table shark_gifts add column if not exists sent_by bigint;
 
 -- ============================================================================
 --  Атомарное движение средств: пишет строку леджера и обновляет кэш баланса
