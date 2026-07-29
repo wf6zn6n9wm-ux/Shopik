@@ -39,19 +39,14 @@ async function applyLedger(tg_id, currency, amount, kind, ref, idem, meta) {
   });
   return { ok: r.ok };
 }
-// ставки и банк хранятся в нанотонах (целые), в базу уходит десятичный TON
-const NANO = 1e9;
-function nanoToDb(nano) {
-  const neg = nano < 0, a = Math.abs(Math.round(nano));
-  const whole = Math.floor(a / NANO), frac = String(a % NANO).padStart(9, '0').replace(/0+$/, '');
-  return (neg ? '-' : '') + whole + (frac ? '.' + frac : '');
-}
-async function bumpPlayed(tg_id, playedInc, wonNanoInc) {
-  const u = await sbGet('shark_users?tg_id=eq.' + tg_id + '&select=played,won_ton');
+// Ставки и банк — целые ⭐, поэтому никаких преобразований на границе с базой.
+function starInt(v) { const n = Math.floor(Number(v)); return Number.isFinite(n) ? n : 0; }
+async function bumpPlayed(tg_id, playedInc, wonInc) {
+  const u = await sbGet('shark_users?tg_id=eq.' + tg_id + '&select=played,won_stars');
   if (!u[0]) return;
   const patch = {};
   if (playedInc) patch.played = Number(u[0].played || 0) + playedInc;
-  if (wonNanoInc) patch.won_ton = nanoToDb(Math.round(Number(u[0].won_ton || 0) * NANO) + wonNanoInc);
+  if (wonInc) patch.won_stars = starInt(u[0].won_stars) + wonInc;
   if (Object.keys(patch).length) await sbReq('shark_users?tg_id=eq.' + tg_id, 'PATCH', patch, 'return=minimal');
 }
 function winnerIndex(seed, bets, pot) {
@@ -85,8 +80,8 @@ async function resolveRound(round, stale) {
     const payout = Math.floor(pot * (1 - Number(r.rake)));
     winner = { name: w.name, av: w.av, tg_id: w.tg_id, stake: Number(w.stake), pct: Math.round((w.stake / pot) * 1000) / 10, payout };
     if (w.tg_id) {
-      await applyLedger(w.tg_id, 'ton', nanoToDb(payout), 'win', 'pvp:' + r.id, 'pvp_win:' + r.id, { pot: pot / NANO });
-      await bumpPlayed(w.tg_id, 0, Math.max(payout - Number(w.stake), 0));
+      await applyLedger(w.tg_id, 'stars', payout, 'win', 'pvp:' + r.id, 'pvp_win:' + r.id, { pot });
+      await bumpPlayed(w.tg_id, 0, Math.max(payout - starInt(w.stake), 0));
     }
   }
   for (const b of bets) { if (b.tg_id) await bumpPlayed(b.tg_id, 1, 0); }
@@ -106,10 +101,10 @@ async function resolveRound(round, stale) {
         for (const b of real) {
           const inviter = refOf[b.tg_id];
           if (!inviter) continue;
-          const mine = Math.floor(held * Number(b.stake) / pot);
+          const mine = Math.floor(held * starInt(b.stake) / pot);
           const cut = Math.floor(mine * pct / 100);
           if (cut > 0 && cut <= mine) {
-            await applyLedger(inviter, 'ton', nanoToDb(cut), 'referral', 'revenue:' + b.tg_id,
+            await applyLedger(inviter, 'stars', cut, 'referral', 'revenue:' + b.tg_id,
               'ref_rev:pvp:' + r.id + ':' + b.tg_id, { from: b.tg_id, game: 'pvp', round: r.id, pct });
           }
         }

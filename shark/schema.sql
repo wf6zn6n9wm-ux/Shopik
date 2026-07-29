@@ -4,14 +4,15 @@
 --  Применить один раз: Supabase → SQL Editor → вставить этот файл → Run.
 --
 --  Принципы:
---   • Одна игровая валюта: ton (💎). Ей играют, её пополняют и выводят.
---   • Telegram Stars (⭐) НЕ хранятся на балансе вообще: кейс с подарком
---     покупается счётом в XTR в момент покупки, звёзды проходят насквозь.
---     Поэтому нет и не может быть операции stars → деньги.
---   • uah и stars остаются в проверке валют леджера только ради истории:
+--   • Одна игровая валюта: stars (⭐). Ей играют, её покупают наборами.
+--     Дробных звёзд не бывает — все суммы целые.
+--   • Валюты ton/uah остаются в проверке леджера только ради истории:
 --     старые строки переписывать нельзя. Новых начислений в них не бывает —
---     shark_apply_ledger() принимает только ton.
---   • Баланс = кэш в shark_users.ton_balance, а СМЫСЛ хранится
+--     shark_apply_ledger() принимает только stars.
+--   • Обратного обмена звёзд на деньги в схеме нет и быть не может: заявка
+--     на получение выигрыша (shark_claims) только резервирует звёзды, а что
+--     именно выдано — решает человек за пределами приложения.
+--   • Баланс = кэш в shark_users.stars_balance, а СМЫСЛ хранится
 --     в леджере shark_ledger. Любое движение средств идёт через функцию
 --     shark_apply_ledger(), которая атомарно пишет строку леджера и обновляет
 --     кэш баланса. Идемпотентность — по уникальному ключу idem (двойное
@@ -27,8 +28,8 @@ create table if not exists shark_users (
   username       text,
   first_name     text,
   lang           text    not null default 'ru',
-  ton_balance    numeric(20,9) not null default 0,   -- 💎 TON: единственная валюта — ей играют, её выводят
-  won_ton        numeric(20,9) not null default 0,   -- суммарно выиграно TON (профиль, лидеры)
+  stars_balance  bigint  not null default 0,          -- ⭐ игровой баланс
+  won_stars      bigint  not null default 0,          -- суммарно выиграно ⭐ (профиль, лидеры)
   ref_code       text    unique,                       -- код этого юзера для приглашений
   ref_by         bigint  references shark_users(tg_id),-- кто пригласил
   banned         boolean not null default false,
@@ -36,17 +37,17 @@ create table if not exists shark_users (
   created_at     timestamptz not null default now(),
   last_seen      timestamptz not null default now()
 );
--- переход на TON-экономику для БД, созданных раньше
-alter table shark_users add column if not exists ton_balance numeric(20,9) not null default 0;
-alter table shark_users add column if not exists won_ton     numeric(20,9) not null default 0;
+-- для БД, созданных раньше
+alter table shark_users add column if not exists stars_balance bigint not null default 0;
+alter table shark_users add column if not exists won_stars     bigint not null default 0;
 
 -- ---------- леджер (источник истины по движению средств) ---------------------
 create table if not exists shark_ledger (
   id         bigint generated always as identity primary key,
   tg_id      bigint not null references shark_users(tg_id),
-  currency   text   not null check (currency in ('ton','uah','stars')),
+  currency   text   not null check (currency in ('stars','ton','uah')),
   amount     numeric(20,9) not null,                   -- + начисление, − списание
-  kind       text   not null,                          -- referral|bet|win|withdraw|withdraw_refund|gift|topup|adjust
+  kind       text   not null,                          -- referral|bet|win|claim_hold|claim_return|gift|topup|adjust
   ref        text,                                     -- ссылка на сущность (id вывода/раунда)
   idem       text   unique,                            -- ключ идемпотентности (может быть null для «всегда уникальных»)
   meta       jsonb  not null default '{}',
@@ -61,26 +62,53 @@ alter table shark_ledger alter column amount        type numeric(20,9);
 alter table shark_ledger alter column balance_after type numeric(20,9);
 alter table shark_ledger drop constraint if exists shark_ledger_currency_check;
 alter table shark_ledger add  constraint shark_ledger_currency_check
-  check (currency in ('ton','uah','stars'));
+  check (currency in ('stars','ton','uah'));
 
--- ---------- заявки на вывод (ручное подтверждение) ---------------------------
-create table if not exists shark_withdrawals (
+-- ---------- заявки на получение выигрыша -------------------------------------
+--  Что именно выдано по заявке, приложение не знает и не решает: оно только
+--  фиксирует обращение и показывает статус. Выдачу делает человек в боте.
+--
+--  Звёзды при создании заявки РЕЗЕРВИРУЮТСЯ (списываются с баланса строкой
+--  claim_hold), а не «обмениваются»: иначе один и тот же выигрыш можно было бы
+--  предъявить дважды, пока заявка на рассмотрении. Отказ возвращает резерв
+--  строкой claim_return.
+create table if not exists shark_claims (
   id          bigint generated always as identity primary key,
   tg_id       bigint not null references shark_users(tg_id),
-  method      text   not null default 'ton',            -- всегда ton
-  requisites  text   not null,                          -- адрес кошелька TON
-  amount_ton  numeric(20,9) not null,                   -- сумма вывода в TON
-  status      text   not null default 'pending'         -- pending | approved | rejected | paid
-              check (status in ('pending','approved','rejected','paid')),
-  admin_note  text,
-  admin_msg_id bigint,                                  -- id сообщения-карточки у админа (чтобы отредактировать кнопки)
+  stars       bigint not null,                         -- сколько ⭐ зарезервировано
+  note        text,                                    -- комментарий игрока
+  status      text   not null default 'new'            -- new | in_review | done | rejected
+              check (status in ('new','in_review','done','rejected')),
+  admin_msg_id bigint,                                 -- карточка у админа
   created_at  timestamptz not null default now(),
   decided_at  timestamptz,
   decided_by  bigint
 );
-create index if not exists shark_wd_status_idx on shark_withdrawals(status, created_at desc);
--- переход на TON для БД, созданных раньше
-alter table shark_withdrawals add column if not exists amount_ton numeric(20,9);
+create index if not exists shark_claims_tg_idx on shark_claims(tg_id, created_at desc);
+create index if not exists shark_claims_status_idx on shark_claims(status, created_at desc);
+-- Одна открытая заявка на игрока: две параллельные путают и игрока, и того,
+-- кто их разбирает. Частичный уникальный индекс — самая надёжная защита.
+create unique index if not exists shark_claims_one_open_idx
+  on shark_claims(tg_id) where status in ('new','in_review');
+
+-- ---------- заказы на наборы звёзд -------------------------------------------
+--  Нужны только для оплаты через Telegram Stars: зачисление приходит вебхуком,
+--  и по charge_id надо понять, за какой набор заплатили. Оплата через
+--  @CryptoBot заказа не требует — там всё есть в payload инвойса.
+create table if not exists shark_topups (
+  id         bigint generated always as identity primary key,
+  tg_id      bigint not null references shark_users(tg_id),
+  pack_key   text   not null,
+  stars      bigint not null,                          -- сколько зачислим
+  method     text   not null default 'xtr',            -- xtr | ton | usdt
+  price      numeric(14,2) not null,                   -- цена в выбранном способе
+  status     text   not null default 'pending'         -- pending | paid | failed | refunded
+             check (status in ('pending','paid','failed','refunded')),
+  charge_id  text   unique,                            -- telegram_payment_charge_id
+  created_at timestamptz not null default now(),
+  paid_at    timestamptz
+);
+create index if not exists shark_topups_tg_idx on shark_topups(tg_id, created_at desc);
 
 -- ---------- рефералы ---------------------------------------------------------
 create table if not exists shark_referrals (
@@ -96,8 +124,8 @@ create table if not exists shark_bets (
   id          bigint generated always as identity primary key,
   tg_id       bigint not null references shark_users(tg_id),
   game        text   not null,                          -- roulette | crash | pvp
-  bet_nano    bigint not null default 0,                -- ставка в нанотонах
-  payout_nano bigint not null default 0,                -- выплата в нанотонах (0 = проигрыш)
+  bet_stars   bigint not null default 0,                -- вход в игру, ⭐
+  payout      bigint not null default 0,                -- выплата, ⭐ (0 = проигрыш)
   detail      jsonb  not null default '{}',             -- {prize, mult, crash_point, ...}
   -- provably-fair (для краша): сервер фиксирует seed заранее
   server_seed text,
@@ -108,12 +136,9 @@ create table if not exists shark_bets (
   created_at  timestamptz not null default now()
 );
 create index if not exists shark_bets_tg_idx on shark_bets(tg_id, created_at desc);
--- Переход на TON. Отдельные колонки, а не переиспользование bet_stars/payout:
--- держать в поле с именем «stars» нанотоны — ровно тот вид двусмысленности,
--- который через полгода приводит к неверным отчётам. Старые колонки со своим
--- прежним смыслом остаются в уже существующих базах до миграции Э6.
-alter table shark_bets add column if not exists bet_nano    bigint not null default 0;
-alter table shark_bets add column if not exists payout_nano bigint not null default 0;
+-- для БД, созданных раньше
+alter table shark_bets add column if not exists bet_stars bigint not null default 0;
+alter table shark_bets add column if not exists payout    bigint not null default 0;
 
 -- Подарки жили здесь же во времена звёздного магазина. Таблица не удалена, а
 -- переехала ниже, к кейсам, и там же доращивается до нового вида: определение
@@ -161,25 +186,21 @@ create table if not exists shark_config (
   check (id = 1)
 );
 insert into shark_config(id, data) values (1, '{
-  "min_withdraw_ton": 1,
-  "min_topup_ton": 0.5,
-  "withdraw_hours": 24,
-  "ton_bets": [0.1, 0.5, 1],
-  "ton_topups": [1, 5, 10, 25],
+  "star_bets": [25, 50, 100],
+  "claim_min_stars": 500,
+  "claim_hours": 24,
   "referral_share_percent": 10,
-  "referral_bonus_ton": 0.05
+  "referral_bonus_stars": 50
 }') on conflict (id) do nothing;
--- для БД, заведённых до перехода на TON: досыпать новые ключи, старые не трогая
+-- для БД, заведённых раньше: досыпать новые ключи, старые не трогая
 update shark_config set data = jsonb_build_object(
-    'min_withdraw_ton',   1,
-    'min_topup_ton',      0.5,
-    'withdraw_hours',     24,
-    'ton_bets',           '[0.1, 0.5, 1]'::jsonb,
-    'ton_topups',         '[1, 5, 10, 25]'::jsonb,
-    'referral_bonus_ton', 0.05,
+    'star_bets',        '[25, 50, 100]'::jsonb,
+    'claim_min_stars',  500,
+    'claim_hours',      24,
+    'referral_bonus_stars', 50,
     'referral_share_percent', 10
   ) || data
- where id = 1 and not (data ? 'min_withdraw_ton');
+ where id = 1 and not (data ? 'star_bets');
 
 -- ---------- кейсы с подарками (за Telegram Stars) ---------------------------
 --  Звёзды НЕ хранятся на балансе: кейс покупается счётом в XTR в момент
@@ -272,27 +293,30 @@ as $$
 declare
   v_balance numeric;
 begin
-  -- Единственная валюта, которую можно двигать, — ton. Строки 'uah'/'stars'
-  -- в леджере остались историей и читаются, но создать новую нельзя: это и
-  -- есть техническая гарантия, что связи «звёзды → деньги» не существует.
-  if p_currency <> 'ton' then
-    raise exception 'currency % is read-only history; only ton can move', p_currency;
+  -- Единственная валюта, которую можно двигать, — stars. Строки 'ton'/'uah'
+  -- в леджере остались историей и читаются, но создать новую нельзя.
+  if p_currency <> 'stars' then
+    raise exception 'currency % is read-only history; only stars can move', p_currency;
+  end if;
+  -- дробных звёзд не бывает: 0.5 ⭐ в базе — это уже расхождение с Telegram
+  if p_amount <> trunc(p_amount) then
+    raise exception 'stars must be whole, got %', p_amount;
   end if;
 
   -- идемпотентность: если такой idem уже есть — вернуть текущий баланс, не двигая
   if p_idem is not null then
     if exists (select 1 from shark_ledger where idem = p_idem) then
-      select ton_balance into v_balance from shark_users where tg_id = p_tg;
+      select stars_balance into v_balance from shark_users where tg_id = p_tg;
       return v_balance;
     end if;
   end if;
 
   -- блокируем строку пользователя и обновляем баланс
   update shark_users
-     set ton_balance = ton_balance + p_amount,
+     set stars_balance = stars_balance + p_amount::bigint,
          last_seen = now()
    where tg_id = p_tg
-  returning ton_balance into v_balance;
+  returning stars_balance into v_balance;
 
   if v_balance is null then
     raise exception 'user % not found', p_tg;

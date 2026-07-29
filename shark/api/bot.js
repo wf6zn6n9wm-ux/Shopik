@@ -3,9 +3,9 @@
 // Делает:
 //   • /start [ref_xxx] → регистрирует пользователя, привязывает реферала,
 //     показывает кнопку «🦈 Открыть Shark» (WebApp)
-//   • callback_query от АДМИНА → подтверждение/отклонение заявок на вывод:
-//       wd_ok / wd_no — выплату админ делает вручную; при отклонении деньги
-//                        возвращаются на баланс пользователя
+//   • callback_query от АДМИНА → разбор заявок на получение выигрыша:
+//       cl_ok / cl_no — выдачу админ делает вручную; при отклонении
+//                        зарезервированные звёзды возвращаются игроку
 //   • successful_payment → оплата кейса за Telegram Stars: определяет
 //     выпадение по заранее зафиксированному seed, кладёт подарок в инвентарь
 //     и сообщает админу, что отправить вручную. Если выдать не вышло —
@@ -169,14 +169,56 @@ async function refundStars(uid, chargeId, why) {
   await tg('sendMessage', { chat_id: uid, text: '↩️ Не удалось открыть кейс, звёзды возвращены.' + (why ? '\n' + why : '') });
 }
 
-async function handleCasePayment(msg) {
+// Оплата звёздами приходит в один и тот же вебхук и для кейсов, и для наборов
+// звёзд. Различаем по payload: {order} — кейс, {topup} — набор.
+async function handleStarPayment(msg) {
+  const sp = msg.successful_payment;
+  let pl = {}; try { pl = JSON.parse((sp && sp.invoice_payload) || '{}'); } catch (e) {}
+  if (pl.topup) return handleTopupPayment(msg, pl);
+  return handleCasePayment(msg, pl);
+}
+
+// Набор звёзд, оплаченный Telegram Stars. Идемпотентность — по charge_id:
+// Telegram шлёт вебхуки с ретраями, второй раз зачислять нельзя.
+async function handleTopupPayment(msg, pl) {
+  const sp = msg.successful_payment;
+  const chargeId = sp && sp.telegram_payment_charge_id;
+  const uid = msg.from && msg.from.id;
+  if (!chargeId || !uid) return;
+  const orderId = Number(pl.topup);
+  if (!orderId) { await refundStars(uid, chargeId, 'Заказ не найден.'); return; }
+
+  // застолбить заказ фильтром по status=pending — выиграет ровно один вызов
+  const claim = await sbPatchReturn(
+    'shark_topups?id=eq.' + orderId + '&tg_id=eq.' + uid + '&status=eq.pending',
+    { status: 'paid', charge_id: chargeId, paid_at: new Date().toISOString() });
+  const order = Array.isArray(claim) && claim[0];
+  if (!order) {
+    const ex = await sbGet('shark_topups?id=eq.' + orderId + '&select=id,charge_id');
+    if (ex[0] && ex[0].charge_id === chargeId) return;      // тот же платёж, всё сделано
+    await refundStars(uid, chargeId, 'Заказ уже закрыт.');
+    return;
+  }
+
+  const stars = Math.floor(Number(order.stars) || 0);
+  const cr = await applyLedger(uid, 'stars', stars, 'topup', 'pack:' + order.pack_key,
+    'xtr_pay:' + chargeId, { stars, paid: order.price, method: 'xtr' });
+  if (!cr.ok) {
+    await sbPatch('shark_topups?id=eq.' + orderId, { status: 'refunded' });
+    await refundStars(uid, chargeId, 'Не удалось зачислить.');
+    return;
+  }
+  await tg('sendMessage', { chat_id: uid,
+    text: '⭐ ' + stars + ' зачислено на игровой баланс. Удачи!' });
+}
+
+async function handleCasePayment(msg, pl) {
   const sp = msg.successful_payment;
   const chargeId = sp && sp.telegram_payment_charge_id;
   const uid = (msg.from && msg.from.id);
   if (!chargeId || !uid) return;
 
-  let pl = {}; try { pl = JSON.parse(sp.invoice_payload || '{}'); } catch (e) {}
-  const orderId = Number(pl.order);
+  const orderId = Number(pl && pl.order);
   if (!orderId) { await refundStars(uid, chargeId, 'Заказ не найден.'); return; }
 
   // Идемпотентность: charge_id уникален в таблице, поэтому повторный вебхук
@@ -245,7 +287,7 @@ function startKb() {
 async function handleCallback(cq) {
   const data = cq.data || '';
   const fromId = cq.from && cq.from.id;
-  const m = data.match(/^(wd_ok|wd_no|gf_go|gf_ok):(\d+)$/);
+  const m = data.match(/^(cl_ok|cl_no|gf_go|gf_ok):(\d+)$/);
   if (!m) { await tg('answerCallbackQuery', { callback_query_id: cq.id }); return; }
   if (!isAdmin(fromId)) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Нет прав', show_alert: true }); return; }
   const kind = m[1], id = Number(m[2]);
@@ -253,35 +295,39 @@ async function handleCallback(cq) {
   const msgId = cq.message && cq.message.message_id;
   const origText = (cq.message && cq.message.text) || '';
 
-  if (kind === 'wd_ok' || kind === 'wd_no') {
-    const rows = await sbGet('shark_withdrawals?id=eq.' + id + '&select=*');
-    const wd = rows[0];
-    if (!wd) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Заявка не найдена', show_alert: true }); return; }
-    if (wd.status !== 'pending') { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Уже обработана: ' + wd.status, show_alert: true }); return; }
-
-    // Выводов бывает только один вид — TON. Незакрытые заявки старой экономики
-    // закрывает миграция Э6; если такая всё же попалась, отказываемся вслух:
-    // вернуть гривны некуда, гривневого баланса больше нет.
-    if (wd.amount_ton == null) {
-      await tg('answerCallbackQuery', { callback_query_id: cq.id,
-        text: 'Заявка старой экономики — закройте её через миграцию', show_alert: true });
-      return;
+  if (kind === 'cl_ok' || kind === 'cl_no') {
+    const rows = await sbGet('shark_claims?id=eq.' + id + '&select=*');
+    const cl = rows[0];
+    if (!cl) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Заявка не найдена', show_alert: true }); return; }
+    if (cl.status !== 'new' && cl.status !== 'in_review') {
+      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Уже обработана: ' + cl.status, show_alert: true }); return;
     }
-    const amt = Number(wd.amount_ton);
-    const label = amt + ' TON';
+    const stars = Math.floor(Number(cl.stars) || 0);
 
-    if (kind === 'wd_ok') {
-      await sbPatch('shark_withdrawals?id=eq.' + id + '&status=eq.pending', { status: 'paid', decided_at: new Date().toISOString(), decided_by: fromId });
-      await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n✅ ВЫПЛАЧЕНО (' + fromId + ')' });
-      await tg('sendMessage', { chat_id: wd.tg_id, text: '✅ Вывод ' + label + ' отправлен. Спасибо!' });
-      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отмечено выплаченным' });
+    // Условный PATCH по текущему статусу: две одновременные отметки не должны
+    // ни выдать дважды, ни вернуть резерв дважды.
+    const to = kind === 'cl_ok' ? 'done' : 'rejected';
+    const done = await sbPatchReturn(
+      'shark_claims?id=eq.' + id + '&status=in.(new,in_review)',
+      { status: to, decided_at: new Date().toISOString(), decided_by: fromId });
+    if (!Array.isArray(done) || !done[0]) {
+      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Статус уже изменён', show_alert: true }); return;
+    }
+
+    if (kind === 'cl_ok') {
+      // Звёзды были зарезервированы при создании заявки и здесь окончательно
+      // уходят с баланса: выдачу вы сделали вручную, вне приложения.
+      await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n✅ ВЫДАНО (' + fromId + ')' });
+      await tg('sendMessage', { chat_id: cl.tg_id,
+        text: '✅ Заявка #' + id + ' закрыта — выигрыш выдан.\n\nСпасибо, что играете в Shark!' });
+      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отмечено выданным' });
     } else {
-      // отклонение → вернуть на баланс
-      await applyLedger(wd.tg_id, 'ton', amt, 'withdraw_refund', 'wd:' + id, 'wd_refund:' + id, {});
-      await sbPatch('shark_withdrawals?id=eq.' + id + '&status=eq.pending', { status: 'rejected', decided_at: new Date().toISOString(), decided_by: fromId });
-      await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n❌ ОТКЛОНЕНО, средства возвращены (' + fromId + ')' });
-      await tg('sendMessage', { chat_id: wd.tg_id, text: '❌ Заявка на вывод ' + label + ' отклонена. Средства возвращены на баланс.' });
-      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отклонено, возврат сделан' });
+      // отказ → резерв возвращается на игровой баланс
+      await applyLedger(cl.tg_id, 'stars', stars, 'claim_return', 'claim:' + id, 'claim_return:' + id, {});
+      await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n❌ ОТКЛОНЕНО, звёзды возвращены (' + fromId + ')' });
+      await tg('sendMessage', { chat_id: cl.tg_id,
+        text: '❌ Заявка #' + id + ' отклонена. ' + stars + ' ⭐ вернулись на игровой баланс.' });
+      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отклонено, звёзды возвращены' });
     }
     return;
   }
@@ -353,7 +399,7 @@ module.exports = async (req, res) => {
     // Оплата Telegram Stars: покупка кейса. Баланса в звёздах нет — платёж
     // сразу превращается в подарок в инвентаре.
     if (msg && msg.successful_payment) {
-      await handleCasePayment(msg);
+      await handleStarPayment(msg);
       res.status(200).json({ ok: true }); return;
     }
 
@@ -362,6 +408,22 @@ module.exports = async (req, res) => {
       if (text === '/start' || text.indexOf('/start ') === 0) {
         const startParam = text.indexOf('/start ') === 0 ? text.slice(7).trim() : null;
         await ensureUser(msg.from, startParam);
+        // Приложение отправляет игрока сюда по кнопке «Забрать выигрыш».
+        // Заявка уже создана, бот подтверждает приём и напоминает срок —
+        // ничего не выдаёт и ничего не считает.
+        const cm = startParam && startParam.match(/^claim_(\d+)$/);
+        if (cm) {
+          const rows = await sbGet('shark_claims?id=eq.' + Number(cm[1]) + '&tg_id=eq.' + msg.from.id + '&select=id,stars,status');
+          const cl = rows[0];
+          if (cl) {
+            await sbPatch('shark_claims?id=eq.' + cl.id + '&status=eq.new', { status: 'in_review' });
+            await tg('sendMessage', { chat_id: msg.chat.id,
+              text: '🏆 Заявка #' + cl.id + ' принята.\n\n'
+                + '⭐ ' + Math.floor(Number(cl.stars) || 0) + '\n\n'
+                + 'Мы разберём её вручную и напишем здесь же. Статус видно в приложении.' });
+            res.status(200).json({ ok: true }); return;
+          }
+        }
         await tg('sendMessage', { chat_id: msg.chat.id, text: WELCOME, reply_markup: startKb() });
       } else if (text === '/app') {
         await tg('sendMessage', { chat_id: msg.chat.id, text: 'Открыть приложение:', reply_markup: startKb() });

@@ -498,7 +498,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 #bubbles{transform:translate(calc(var(--tiltx) * 2px),calc(var(--tilty) * 2px));}
 .hero-card{transform:perspective(820px) rotateY(calc(var(--tiltx) * 0.5deg)) rotateX(calc(var(--tilty) * -0.5deg));transition:transform .25s ease-out;transform-style:preserve-3d;}
 
-/* краш: список игроков в стиле Aviator (отдельные карточки, зелёные при выводе) */
+/* краш: список игроков (отдельные карточки, зелёные когда забрали) */
 #crash-players{background:none;border:0;box-shadow:none;overflow:visible;-webkit-backdrop-filter:none;backdrop-filter:none;}
 #crash-players .ph{border:0;padding:4px 4px 8px;}
 .crow{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:8px;border-radius:16px;
@@ -587,7 +587,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 #game-crash .chip{background:var(--glass-bg);border:1px solid var(--glass-brd);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:10px 13px;}
 #game-crash .chip.active{background:var(--grad-gold);color:#2a1a00;border-color:transparent;box-shadow:0 0 0 1px rgba(255,207,92,.4),0 8px 20px -8px rgba(255,175,60,.55);}
 
-/* авто-вывод: свитч + степпер вместо чекбокса */
+/* авто-забор: свитч + степпер вместо чекбокса */
 .cr-auto{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 4px;padding:12px 14px;
   background:var(--glass-bg);border:1px solid var(--glass-brd);border-radius:16px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
 .cr-auto-lbl{font-size:14px;font-weight:700;color:var(--text);}
@@ -605,7 +605,7 @@ h1.title{font-size:30px;font-weight:800;letter-spacing:-.03em;text-wrap:balance;
 .cr-step-inp:focus{outline:none;}
 .cr-step-x{color:var(--muted);font-size:13px;font-weight:700;margin-left:-6px;}
 
-/* кнопка ставки/вывода — самая красивая в приложении */
+/* главная кнопка игры — самая заметная в приложении */
 #crash-btn{font-size:17px;padding:17px;letter-spacing:.01em;}
 #crash-btn.cr-btn-cash{background:var(--grad-gold);color:#2a1a00;box-shadow:var(--glow-gold),inset 0 1px 0 rgba(255,255,255,.4);
   animation:crCashPulse 1.5s ease-in-out infinite;}
@@ -1005,6 +1005,35 @@ input:focus{border-color:var(--aqua);}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cs-drop .cd-v{flex:none;font-size:13px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;}
 .cs-drop .cd-c{flex:none;width:52px;text-align:right;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;}
+/* --- заявки на выигрыш --- */
+.cl-hint{margin:10px 2px 0;font-size:11.5px;line-height:1.45;color:var(--muted);text-align:center;}
+.cl{display:flex;gap:11px;align-items:center;padding:12px;margin-bottom:9px;
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;}
+.cl-t{flex:1;min-width:0;}
+.cl-n{font-size:14.5px;font-weight:800;}
+.cl-m{margin-top:3px;font-size:11.5px;color:var(--muted);line-height:1.4;}
+.cl-st{flex:none;padding:3px 9px;border-radius:8px;font-size:10.5px;font-weight:800;
+  letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;}
+.cl-st.s-new{background:rgba(127,163,181,.16);color:#a8c6d4;}
+.cl-st.s-in_review{background:rgba(255,194,75,.16);color:var(--gold);}
+.cl-st.s-done{background:rgba(47,212,196,.14);color:var(--aqua);}
+.cl-st.s-rejected{background:rgba(255,110,110,.14);color:#ff8e8e;}
+/* --- наборы звёзд: товар с ценой, а не калькулятор --- */
+.pk{padding:13px;border-radius:18px;background:var(--surface);border:1px solid var(--line);}
+.pk+.pk{margin-top:9px;}
+.pk-top{display:flex;gap:11px;align-items:center;}
+.pk-ic{font-size:28px;flex:none;width:40px;text-align:center;}
+.pk-t{flex:1;min-width:0;}
+.pk-n{font-size:15px;font-weight:800;}
+.pk-s{margin-top:2px;font-size:13px;font-weight:800;color:var(--gold);}
+.pk-pay{display:flex;gap:7px;margin-top:11px;}
+.pk-btn{flex:1;border:1px solid var(--line);background:var(--deep2);color:var(--text);
+  font:inherit;font-size:12.5px;font-weight:700;padding:9px 6px;border-radius:11px;cursor:pointer;
+  display:flex;flex-direction:column;gap:2px;align-items:center;}
+.pk-btn:active{transform:scale(.97);}
+.pk-btn b{font-size:13px;}
+.pk-btn span{font-size:10.5px;color:var(--muted);font-weight:700;}
+.pk-btn[disabled]{opacity:.45;cursor:default;}
 .gft-err{text-align:center;padding:26px 16px;border:1px solid var(--line);border-radius:18px;}
 .gft-err p{margin:0 0 12px;font-size:13.5px;color:var(--muted);line-height:1.55;}
 .gft-ph{text-align:center;color:var(--muted);padding:34px 14px;font-size:13.5px;line-height:1.6;
@@ -1348,7 +1377,7 @@ input:focus{border-color:var(--aqua);}
 <!-- ИГРЫ / ГЛАВНАЯ -->
 <div class="screen active" id="s-home">
   <div class="home-top">
-    <div class="home-top-pill"><span class="ic-ton" style="width:18px;height:18px"></span><span class="mono" data-ton>0</span></div>
+    <div class="home-top-pill"><span class="ic-star" style="width:18px;height:18px"></span><span class="mono" data-stars>0</span></div>
     <div class="home-top-pill"><span class="dot-live"></span>&nbsp;<span id="online" class="mono">—</span></div>
     <div class="spacer"></div>
     <div class="home-profile-btn" onclick="go('profile')">🦈</div>
@@ -1359,8 +1388,8 @@ input:focus{border-color:var(--aqua);}
       <div class="hero-greet"><span class="hero-hi" id="greet">С возвращением</span><span class="hero-name" id="hero-name">Игрок</span></div>
     </div>
     <div class="hero-bal">
-      <div class="hero-bal-main"><span class="ic-ton"></span><span class="mono" data-ton>0</span><small id="i-ton-lbl">TON</small></div>
-      <div class="hero-bal-sub" id="i-hero-bal-sub">Игровой баланс · пополнение и вывод в TON</div>
+      <div class="hero-bal-main"><span class="ic-star"></span><span class="mono" data-stars>0</span><small id="i-stars-lbl">звёзд</small></div>
+      <div class="hero-bal-sub" id="i-hero-bal-sub">Игровой баланс</div>
     </div>
     <div class="hero-actions">
       <button class="btn-primary btn-glow" onclick="go('pvp')" id="i-play-now">Играть сейчас</button>
@@ -1370,8 +1399,8 @@ input:focus{border-color:var(--aqua);}
 
   <div class="pvp-feat" onclick="go('pvp')">
     <div class="pf-top"><span class="pf-badge">PVP · LIVE</span><span class="hero-online" style="margin-left:auto"><span class="dot-live"></span><span id="pvp-online" class="mono">—</span>&nbsp;<span id="i-ingame-lbl">в игре</span></span></div>
-    <h2 id="i-pvp-title">Битва за банк</h2>
-    <p id="i-pvp-desc">Заходи в общий раунд — победитель забирает весь банк</p>
+    <h2 id="i-pvp-title">Битва за фонд</h2>
+    <p id="i-pvp-desc">Заходи в общий раунд — победитель забирает весь фонд</p>
     <div class="pf-cta" id="i-pvp-cta">Войти в битву →</div>
     <svg class="pf-swords" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="sw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe49a"/><stop offset="1" stop-color="#ff9f2e"/></linearGradient></defs><g stroke="url(#sw)" stroke-width="3.5" stroke-linecap="round"><path d="M13 51 L45 19"/><path d="M51 51 L19 19"/></g><g fill="url(#sw)"><circle cx="45" cy="19" r="3.4"/><circle cx="19" cy="19" r="3.4"/><path d="M11 49l4 4-3 1-2-2z"/><path d="M53 49l-4 4 3 1 2-2z"/></g></svg>
   </div>
@@ -1384,7 +1413,7 @@ input:focus{border-color:var(--aqua);}
   </div>
 
   <div class="home-section">
-    <div class="home-section-head"><h3 id="i-home-contests-h">Розыгрыши</h3><a onclick="go('contests')" id="i-home-contests-all">Все →</a></div>
+    <div class="home-section-head"><h3 id="i-home-contests-h">Турниры</h3><a onclick="go('contests')" id="i-home-contests-all">Все →</a></div>
     <div id="home-contest-preview"></div>
   </div>
 
@@ -1401,7 +1430,7 @@ input:focus{border-color:var(--aqua);}
 
 <!-- ИГРЫ (Рулетка + Краш в одном разделе) -->
 <div class="screen" id="s-games">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet ton"><span class="ton-ic"></span><span class="mono" data-ton>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet ton"><span class="star-ic"></span><span class="mono" data-stars>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
   <h1 class="title" id="i-games-h1">Игры</h1>
   <div class="seg" id="games-seg">
     <button class="active" data-gtab="crash" onclick="setGameTab('crash')">🦈 <span id="i-crash-tab">Краш</span></button>
@@ -1444,7 +1473,7 @@ input:focus{border-color:var(--aqua);}
     </div>
     <div class="bet-row" id="crash-bets"><span style="font-weight:700" id="i-bet-lbl3">Ставка:</span></div>
     <div class="cr-auto">
-      <span class="cr-auto-lbl" id="i-auto-cashout-lbl">Авто-вывод</span>
+      <span class="cr-auto-lbl" id="i-auto-cashout-lbl">Авто-забор</span>
       <div class="cr-stepper">
         <button type="button" class="cr-step-btn" onclick="crStepAutoMult(-0.1)">−</button>
         <input id="auto-mult" class="mono cr-step-inp" inputmode="decimal" placeholder="2.00" value="2.00">
@@ -1460,7 +1489,7 @@ input:focus{border-color:var(--aqua);}
 
 <!-- PVP · БИТВА -->
 <div class="screen" id="s-pvp">
-  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet ton"><span class="ton-ic"></span><span class="mono" data-ton>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
+  <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="live"><span class="pulse"></span>LIVE</div><div class="spacer"></div><div class="wallet ton"><span class="star-ic"></span><span class="mono" data-stars>0</span><span class="add" onclick="event.stopPropagation();go('profile')">+</span></div></div>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
     <linearGradient id="pxGold" x1="0" y1="0" x2="0" y2="1">
@@ -1477,7 +1506,7 @@ input:focus{border-color:var(--aqua);}
     <svg class="px-shk" viewBox="0 0 230 92" aria-hidden="true"><g><path d="M10 52 C34 26 80 17 122 23 C144 26 160 34 172 44 L198 24 L192 47 L222 53 L191 60 L196 84 L170 58 C157 68 138 76 116 78 C76 82 32 72 10 52 Z"/><path d="M88 22 L97 2 L116 19 Z"/><path d="M98 64 L88 88 L118 71 Z"/><circle cx="30" cy="46" r="3.4" fill="#02080c"/></g></svg>
     <div class="px-z">
       <div class="px-live" id="px-live"><i></i>LIVE</div>
-      <div class="px-lbl" id="px-lbl">Общий банк</div>
+      <div class="px-lbl" id="px-lbl">Общий призовой фонд</div>
       <div class="px-sum" id="px-sum">
         <svg viewBox="0 0 24 24"><path fill="url(#pxTon)" d="M12 22 L2.2 8.4 L6.6 2.6 L17.4 2.6 L21.8 8.4 Z"/></svg>
         <span class="mono" id="px-pot-n">0</span>
@@ -1540,7 +1569,7 @@ input:focus{border-color:var(--aqua);}
 <!-- КОНКУРСЫ -->
 <div class="screen" id="s-contests">
   <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
-  <h1 class="title" id="i-contests-h1">Розыгрыши</h1>
+  <h1 class="title" id="i-contests-h1">Турниры</h1>
   <div class="seg" id="contest-seg">
     <button class="active" data-ctab="active" onclick="setContestTab('active')" id="i-contest-tab-active">Активные</button>
     <button data-ctab="yours" onclick="setContestTab('yours')" id="i-contest-tab-yours">Ваши</button>
@@ -1563,7 +1592,7 @@ input:focus{border-color:var(--aqua);}
   <div class="topbar"><div class="backbtn" onclick="go('home')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div><div class="gft-link" onclick="go('gifts')">🎁 <span id="i-shop-inv">Инвентарь</span></div></div>
   <h1 class="title" id="i-shop-h1">Кейсы с подарками</h1>
   <p class="sub" id="i-shop-sub">Открывай кейсы за Telegram Stars — внутри подарки Telegram</p>
-  <div class="cs-note"><span class="an-ic">⭐</span><span id="i-shop-note">Кейс оплачивается звёздами напрямую в Telegram. Игровой баланс TON при этом не тратится.</span></div>
+  <div class="cs-note"><span class="an-ic">🎁</span><span id="i-shop-note">Внутри кейса — подарок Telegram. Он попадёт в ваш инвентарь.</span></div>
   <div class="grid2" id="shop-grid"></div>
   <p class="gft-foot" id="i-shop-foot">Выпавший подарок сразу попадёт в ваш инвентарь.</p>
 </div>
@@ -1583,16 +1612,15 @@ input:focus{border-color:var(--aqua);}
   </div>
   <div class="stats">
     <div class="stat"><div class="sv mono" id="st-played">0</div><div class="sl" id="i-st-played-lbl">Сыграно</div></div>
-    <div class="stat"><div class="sv mono" id="st-won">0</div><div class="sl" id="i-st-won-lbl">Выиграно TON</div></div>
+    <div class="stat"><div class="sv mono" id="st-won">0</div><div class="sl" id="i-st-won-lbl">Выиграно ⭐</div></div>
     <div class="stat"><div class="sv mono" id="st-rank">—</div><div class="sl" id="i-st-rank-lbl">Место</div></div>
   </div>
 
-  <!-- один баланс: TON. Играем, пополняем и выводим одной валютой, поэтому
-       делить экран на «для игр» и «для вывода» больше нечего. -->
   <div class="panel">
-    <div class="balance-big"><div class="v mono" data-ton-big>0.00</div><div class="l" id="i-bal-ton-lbl">Игровой баланс</div><div class="conv" id="i-bal-ton-note">Пополнение и вывод — только TON</div></div>
-    <button class="btn-primary" onclick="openTopup()" id="i-topup-btn">Пополнить</button>
-    <button class="btn-ghost" style="margin-top:10px" onclick="openWithdraw()" id="i-withdraw-btn">Вывести</button>
+    <div class="balance-big"><div class="v mono" data-stars-big>0</div><div class="l" id="i-bal-stars-lbl">Игровой баланс</div></div>
+    <button class="btn-primary" onclick="openTopup()" id="i-topup-btn">Получить звёзды</button>
+    <button class="btn-ghost" style="margin-top:10px" onclick="openClaim()" id="i-claim-btn">Забрать выигрыш</button>
+    <p class="cl-hint" id="i-claim-hint">Заявку принимает бот, разбираем вручную.</p>
   </div>
 
   <!-- вход в админку: скрыт, пока сервер не подтвердит права -->
@@ -1604,6 +1632,7 @@ input:focus{border-color:var(--aqua);}
 
   <div class="menu-grid">
     <div class="menu-card" onclick="go('gifts')"><div class="mc-ic">🎁</div><span id="i-gifts-btn">Подарки</span></div>
+    <div class="menu-card" onclick="go('claims')"><div class="mc-ic">🏆</div><span id="i-claims-btn">Заявки</span></div>
     <div class="menu-card" onclick="go('refs')"><div class="mc-ic">👥</div><span id="i-friends-btn">Друзья</span></div>
     <div class="menu-card" onclick="go('history')"><div class="mc-ic">📜</div><span id="i-history-btn">История</span></div>
     <div class="menu-card" onclick="go('ach')"><div class="mc-ic">🏅</div><span id="i-ach-btn">Достижения</span></div>
@@ -1620,9 +1649,9 @@ input:focus{border-color:var(--aqua);}
     <div class="ref-hero-ic"><svg viewBox="0 0 24 24" fill="#04241f"><circle cx="9" cy="8" r="3.4"/><path d="M3.4 19a5.6 5.6 0 0111.2 0 .8.8 0 01-.8.8H4.2a.8.8 0 01-.8-.8z"/><circle cx="17" cy="8.6" r="2.5"/><path d="M15.6 13.5A4.6 4.6 0 0121 17.6a.8.8 0 01-.8.8h-3c.06-1.9-.6-3.6-1.6-4.9z"/></svg></div>
     <div class="ref-hero-txt">
       <h3><span id="i-ref-hero-pre">Получай</span> <span class="ref-accent" id="ref-share">10%</span> <span id="i-ref-hero-post">приглашая друзей</span></h3>
-      <p class="ref-muted" id="i-ref-hero-muted">от дохода платформы с их игры — в TON</p>
+      <p class="ref-muted" id="i-ref-hero-muted">звёздами за их игру</p>
       <p class="ref-line" id="i-ref-line">Друг проиграл — вы получили долю. Друг выиграл — вы ничего не теряете.</p>
-      <p class="ref-cap"><span id="i-ref-cap-pre">И разовый бонус</span> <b><i class="ton-ic"></i><span id="ref-bonus">0.05</span></b> <span id="i-ref-cap-post">за первое пополнение друга</span></p>
+      <p class="ref-cap"><span id="i-ref-cap-pre">И разовый бонус</span> <b><i class="star-ic"></i><span id="ref-bonus">0.05</span></b> <span id="i-ref-cap-post">за первое пополнение друга</span></p>
     </div>
   </div>
 
@@ -1633,7 +1662,7 @@ input:focus{border-color:var(--aqua);}
   </div>
 
   <div class="panel ref-stats">
-    <div class="ref-stat-row"><span id="i-ref-earned-lbl">Всего заработано</span><b><span class="mono" id="rf-earned-ton">0</span> <i class="ton-ic"></i></b></div>
+    <div class="ref-stat-row"><span id="i-ref-earned-lbl">Всего заработано</span><b><span class="mono" id="rf-earned-stars">0</span> <i class="star-ic"></i></b></div>
     <div class="ref-div"></div>
     <div class="ref-stat-row"><span id="i-ref-share-lbl">Ваша доля</span><b><span class="mono" id="rf-share">10</span>%</b></div>
   </div>
@@ -1646,8 +1675,17 @@ input:focus{border-color:var(--aqua);}
 <div class="screen" id="s-history">
   <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
   <h1 class="title" id="i-history-h1">История</h1>
-  <p class="sub" id="i-history-sub">Все начисления, выигрыши и выводы</p>
+  <p class="sub" id="i-history-sub">Начисления, выигрыши и заявки</p>
   <div id="history-list"></div>
+</div>
+
+<!-- ЗАЯВКИ НА ВЫИГРЫШ -->
+<div class="screen" id="s-claims">
+  <div class="topbar"><div class="backbtn" onclick="go('profile')">‹ <span class="i-back">Назад</span></div><div class="spacer"></div></div>
+  <h1 class="title" id="i-claims-h1">Мои заявки</h1>
+  <p class="sub" id="i-claims-sub">Статус обращений за выигрышем</p>
+  <div id="claims-list"></div>
+  <p class="gft-foot" id="i-claims-foot">Каждую заявку разбирает человек. Ответ придёт в чат с ботом.</p>
 </div>
 
 <!-- ИНВЕНТАРЬ ПОДАРКОВ (Э5) -->
@@ -1666,7 +1704,7 @@ input:focus{border-color:var(--aqua);}
 
   <div id="gft-list"></div>
   <p class="gft-foot" id="i-gft-foot">Подарки отправляем вручную — обычно в течение суток после открытия кейса.</p>
-  <p class="gft-foot" id="i-gft-roadmap">Отправка друзьям, обмен и коллекции появятся позже.</p>
+  <p class="gft-foot" id="i-gft-roadmap">Отправка друзьям и коллекции появятся позже.</p>
 </div>
 
 <!-- ДОСТИЖЕНИЯ -->
@@ -1714,7 +1752,7 @@ input:focus{border-color:var(--aqua);}
            oninput="admPlQuery(this.value)">
     <div class="adm-chips" id="adm-sort">
       <button data-sort="seen" class="adm-chip on" type="button" onclick="admPlSort('seen')" id="i-adm-sort-seen">Активность</button>
-      <button data-sort="ton" class="adm-chip" type="button" onclick="admPlSort('ton')" id="i-adm-sort-ton">Баланс</button>
+      <button data-sort="stars" class="adm-chip" type="button" onclick="admPlSort('stars')" id="i-adm-sort-stars">Баланс</button>
       <button data-sort="new" class="adm-chip" type="button" onclick="admPlSort('new')" id="i-adm-sort-new">Новые</button>
       <button data-sort="played" class="adm-chip" type="button" onclick="admPlSort('played')" id="i-adm-sort-played">Партии</button>
     </div>
@@ -1735,7 +1773,7 @@ input:focus{border-color:var(--aqua);}
   </div>
   <div class="adm-pane" id="adm-pane-grant">
     <div class="adm-card adm-gr-bal">
-      <div class="agb-v"><span id="adm-gr-bal">0</span> TON</div>
+      <div class="agb-v"><span id="adm-gr-bal">0</span> ⭐</div>
       <div class="agb-l" id="i-adm-gr-bal-lbl">Ваш баланс</div>
     </div>
     <div class="adm-card">
@@ -1759,7 +1797,7 @@ input:focus{border-color:var(--aqua);}
 <!-- TABBAR -->
 <div class="tabbar">
   <div class="tab active" data-tab="home" onclick="go('home')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 6H7a5 5 0 00-5 5v2.5A3.5 3.5 0 008.4 15l.5-1h6.2l.5 1a3.5 3.5 0 006.4-1.5V11a5 5 0 00-5-5zM8.5 9.5V11H10v1.4H8.5V14H7.1v-1.6H5.6V11h1.5V9.5zm7.4.4a1 1 0 110 2 1 1 0 010-2zm1.6 2a1 1 0 110 2 1 1 0 010-2z"/></svg><span id="tab-home">Игры</span></div>
-  <div class="tab" data-tab="contests" onclick="go('contests')"><span class="dot">2</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9V6.8A2.4 2.4 0 108.6 6H4v3h7zm2 0h7V6h-4.6A2.4 2.4 0 1013 6.8V9zM5 11v8a1 1 0 001 1h5v-9H5zm8 0v9h5a1 1 0 001-1v-8h-6z"/></svg><span id="tab-contests">Конкурсы</span></div>
+  <div class="tab" data-tab="contests" onclick="go('contests')"><span class="dot">2</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9V6.8A2.4 2.4 0 108.6 6H4v3h7zm2 0h7V6h-4.6A2.4 2.4 0 1013 6.8V9zM5 11v8a1 1 0 001 1h5v-9H5zm8 0v9h5a1 1 0 001-1v-8h-6z"/></svg><span id="tab-contests">Турниры</span></div>
   <div class="tab" data-tab="leaders" onclick="go('leaders')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v2a4 4 0 01-4.4 4A5 5 0 0113 13.6V16h2a3 3 0 013 3v2H6v-2a3 3 0 013-3h2v-2.4A5 5 0 018.4 11 4 4 0 014 7V5h3V3zm-1 4v-.5H6V7a2 2 0 001 1.7A6 6 0 016 7zm12 0a6 6 0 01-1 1.7A2 2 0 0018 7v-.5h.01z"/></svg><span id="tab-leaders">Лидеры</span></div>
   <div class="tab" data-tab="shop" onclick="go('shop')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 7a3.5 3.5 0 017 0h2.2l1 12.8a1 1 0 01-1 1.1H6.3a1 1 0 01-1-1.1L6.3 7h2.2zm2 0h3a1.5 1.5 0 00-3 0z"/></svg><span id="tab-shop">Магазин</span></div>
   <div class="tab" data-tab="profile" onclick="go('profile')"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7.5" r="4.2"/><path d="M4 20.2a8 8 0 0116 0 .9.9 0 01-.9.8H4.9a.9.9 0 01-.9-.8z"/></svg><span id="tab-profile">Профиль</span></div>
@@ -1770,22 +1808,22 @@ input:focus{border-color:var(--aqua);}
   <div class="onb-slide active" data-onb="0">
     <div class="onb-ic">🦈</div>
     <h2 id="onb-h-0">Добро пожаловать в Shark</h2>
-    <p id="onb-p-0">Одна валюта — TON. Им играешь, его пополняешь и выводишь. Никаких промежуточных балансов.</p>
+    <p id="onb-p-0">Играй на звёзды, собирай подарки Telegram и поднимайся в лидерах.</p>
   </div>
   <div class="onb-slide" data-onb="1">
     <div class="onb-ic">⚔️</div>
-    <h2 id="onb-h-1">PVP — битва за банк</h2>
-    <p id="onb-p-1">Главный режим: заходи в общий раунд, скидывайся в банк в TON. Победитель забирает всё.</p>
+    <h2 id="onb-h-1">PVP — битва за фонд</h2>
+    <p id="onb-p-1">Главный режим: заходи в общий раунд вместе с другими. Победитель забирает всё.</p>
   </div>
   <div class="onb-slide" data-onb="2">
     <div class="onb-ic">🎮</div>
-    <h2 id="onb-h-2">Игры на TON</h2>
-    <p id="onb-p-2">Краш и рулетка — множители к ставке. Выигрыш сразу на баланс, оттуда же и вывод.</p>
+    <h2 id="onb-h-2">Игры на звёзды</h2>
+    <p id="onb-p-2">Краш и колесо призов — множители к твоему входу. Выигрыш сразу на игровой баланс.</p>
   </div>
   <div class="onb-slide" data-onb="3">
     <div class="onb-ic">🎁</div>
     <h2 id="onb-h-3">Подарки Telegram</h2>
-    <p id="onb-p-3">Кейсы с подарками покупаются за Telegram Stars — отдельно от игрового баланса. Подарок падает в инвентарь. Поехали!</p>
+    <p id="onb-p-3">Выигрыш можно забрать: оставь заявку, её разберёт бот и напишет тебе. Поехали!</p>
   </div>
   <div class="onb-dots" id="onb-dots"></div>
   <button class="btn-primary" id="onb-btn" onclick="onbNext()">Далее</button>
@@ -1798,28 +1836,17 @@ input:focus{border-color:var(--aqua);}
 "use strict";
 
 /* ============ ДЕНЬГИ ============
-   Одна валюта: TON. Звёзды остались ровно в одном месте — цене кейса с
-   подарком Telegram, и на балансе их не бывает.
-
-   Считаем в нанотонах целыми числами, как сервер: 0.1+0.2 в double даёт
-   0.30000000000000004, и на длинной серии ставок баланс клиента разъезжается
-   с балансом базы. Показываем — уже десятичным TON.                        */
-var NANO=1e9;
-function toNano(t){ var n=Math.round(Number(t)*NANO); return isFinite(n)?n:0; }
-function fromNano(n){ return Math.round(Number(n)||0)/NANO; }
-
-/* Хвостовые нули режем, но не грубее 4 знаков: минимальная ставка 0.1, а
-   реферальная выплата бывает 0.05 — округление до сотых обнулило бы часть
-   начислений прямо в интерфейсе. minDp дополняет нулями балансы, чтобы
-   крупная цифра не прыгала между «12» и «12.5». */
-function tonFmt(n,minDp){
-  n=Number(n); if(!isFinite(n)) n=0;
-  var neg=n<0, s=Math.abs(n).toFixed(4).replace(/0+$/,'').replace(/\.$/,'');
-  var p=s.split('.'), dp=p[1]||'';
-  while(dp.length<(minDp||0)) dp+='0';
-  return (neg?'−':'')+admGroup(p[0])+(dp?'.'+dp:'');
+   Одна игровая валюта — ⭐. Звёзды целые: дробных не бывает, поэтому весь
+   счёт — обычные целые числа, без округлений на границе с сервером.
+   Пополнение возможно разными способами оплаты, но зачисляется всегда одно и
+   то же — звёзды из выбранного набора. Пересчёта на клиенте нет вообще: у
+   набора просто три цены, как у товара, а не курс.                        */
+function starInt(v){ var n=Math.floor(Number(v)); return isFinite(n)?n:0; }
+/* Разряды тонким пробелом: 12 500 читается, 12500 — нет. */
+function starFmt(n){
+  n=starInt(n);
+  return (n<0?'\u2212':'')+admGroup(String(Math.abs(n)));
 }
-function tonBal(n){ return tonFmt(n,2); }
 
 function sharkSVG(){
   return '<svg viewBox="0 0 100 70" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">'
@@ -1834,16 +1861,9 @@ function sharkSVG(){
 }
 
 /* ============ СОСТОЯНИЕ ============ */
-/* Балансы держим в нанотонах (tonN), наружу отдаём десятичным TON.
-   Ставки — тоже нанотоны: их сравнивают с балансом на каждом клике. */
-var S={tonN:0,betN:0,cbetN:0,doneTasks:{},joinedContests:{},cashedThisRound:false,
-       played:0,wonTonN:0,refCount:0,refEarnedTon:0,dailyOpened:false,streakDay:3,history:[],isPro:false,
-       wheelSpun:false,achievements:{},firstWithdraw:false,onboarded:false,lang:'ru',soundPref:true,isAdmin:false};
-/* Читаемые псевдонимы: в коде экранов удобнее десятичные TON. */
-Object.defineProperty(S,'ton',{get:function(){ return fromNano(this.tonN); }});
-Object.defineProperty(S,'bet',{get:function(){ return fromNano(this.betN); }});
-Object.defineProperty(S,'cbet',{get:function(){ return fromNano(this.cbetN); }});
-Object.defineProperty(S,'wonTon',{get:function(){ return fromNano(this.wonTonN); }});
+var S={stars:0,bet:0,cbet:0,doneTasks:{},joinedContests:{},cashedThisRound:false,
+       played:0,wonStars:0,refCount:0,dailyOpened:false,streakDay:3,history:[],isPro:false,
+       wheelSpun:false,achievements:{},firstClaim:false,onboarded:false,lang:'ru',soundPref:true,isAdmin:false};
 
 /* ============================================================
    ЛОКАЛИЗАЦИЯ (uk по умолчанию, ru/en) — ключевые экраны:
@@ -1853,95 +1873,91 @@ Object.defineProperty(S,'wonTon',{get:function(){ return fromNano(this.wonTonN);
 var I18N={
   uk:{
     /* PVP — новый экран (Э5) */
-    px_sub_waiting:'Чекаємо гравців', px_sub_join_tpl:'Увійдіть до кінця відліку · ставка <b>{bet}</b>', px_sub_in_tpl:'Ставка <b>{stake}</b> · шанс <b class="px-mn">{pct}%</b> · заберете <b>{payout}</b>', px_sub_won_tpl:'Забрали банк із шансом <b class="px-mn">{pct}%</b>', px_sub_lost:'Ваш квиток не випав', px_players_tpl:'{n} у раунді', px_game_tpl:'Гра #{id}', px_cta_join:'Увійти в битву', px_cta_wait:'Приймаємо ставку…', px_cta_spin:'Крутимо…', px_cta_over:'Раунд завершено', px_badge_spin:'РОЗІГРАШ', px_badge_won:'БАНК ВАШ', px_badge_lost:'БАНК ПІШОВ', px_lbl_won:'Ви забрали банк', px_lbl_lost_tpl:'{name} забирає',
+    px_sub_waiting:'Чекаємо гравців', px_sub_join_tpl:'Увійдіть до кінця відліку · вхід <b>{bet}</b>', px_sub_in_tpl:'Ваш вхід <b>{stake}</b> · шанс <b class="px-mn">{pct}%</b> · заберете <b>{payout}</b>', px_sub_won_tpl:'Забрали фонд із шансом <b class="px-mn">{pct}%</b>', px_sub_lost:'Ваш квиток не випав', px_players_tpl:'{n} у раунді', px_game_tpl:'Гра #{id}', px_cta_join:'Увійти в битву', px_cta_wait:'Заходимо…', px_cta_spin:'Крутимо…', px_cta_over:'Раунд завершено', px_badge_spin:'ВИЗНАЧАЄМО', px_badge_won:'ФОНД ВАШ', px_badge_lost:'ФОНД ПІШОВ', px_lbl_won:'Ви забрали фонд', px_lbl_lost_tpl:'{name} забирає',
     greet:'З поверненням', online_lbl:'онлайн',
-    play_now:'Грати зараз', next_draw:'Найближчий розіграш', next_hour:'через 1 годину', ingame_lbl:'у грі',
-    pvp_title:'Битва за банк', pvp_desc:'Заходь у спільний раунд — переможець забирає весь банк', pvp_cta:'Увійти в битву →',
-    games_title:'Ігри', games_desc:'Краш і рулетка', upgrade_title:'Апгрейд', soon:'Скоро', upgrade_desc:'Примнож свій TON',
+    play_now:'Грати зараз', next_draw:'Найближчий турнір', next_hour:'через 1 годину', ingame_lbl:'у грі',
+    pvp_title:'Битва за фонд', pvp_desc:'Заходь у спільний раунд — переможець забирає весь фонд', pvp_cta:'Увійти в битву →',
+    games_title:'Ігри', games_desc:'Краш і рулетка', upgrade_title:'Апгрейд', soon:'Скоро', upgrade_desc:'Примнож свої зірки',
     upgrade_toast:'Апгрейд скоро — покращення подарунків',
-    tab_home:'Ігри', tab_contests:'Розіграші', tab_leaders:'Лідери', tab_shop:'Кейси', tab_profile:'Профіль',
-    onb_h0:'Ласкаво просимо в Shark', onb_p0:'Одна валюта — TON. Ним граєш, його поповнюєш і виводиш. Жодних проміжних балансів.',
-    onb_h1:'PVP — битва за банк', onb_p1:'Головний режим: заходь у спільний раунд, скидайся в банк у TON. Переможець забирає все.',
-    onb_h2:'Ігри на TON', onb_p2:'Краш і рулетка — множники до ставки. Виграш одразу на баланс, звідти ж і виведення.',
-    onb_h3:'Подарунки Telegram', onb_p3:'Кейси з подарунками купуються за Telegram Stars — окремо від ігрового балансу. Подарунок падає в інвентар. Поїхали!',
+    tab_home:'Ігри', tab_contests:'Турніри', tab_leaders:'Лідери', tab_shop:'Кейси', tab_profile:'Профіль',
+    onb_h0:'Ласкаво просимо в Shark', onb_p0:'Грай на зірки, збирай подарунки Telegram і піднімайся в лідерах.',
+    onb_h1:'PVP — битва за фонд', onb_p1:'Головний режим: заходь у спільний раунд разом з іншими. Переможець забирає все.',
+    onb_h2:'Ігри на зірки', onb_p2:'Краш і колесо призів — множники до твого входу. Виграш одразу на баланс.',
+    onb_h3:'Подарунки Telegram', onb_p3:'Виграш можна забрати: залиш заявку, її розбере бот і напише тобі. Поїхали!',
     onb_next:'Далі', onb_start:'Почати',
-    pvp_pot_lbl:'Спільний банк', bet_lbl:'Ставка:',
-    st_played:'Зіграно', st_won:'Виграно TON', st_rank:'Місце',
-    bal_money_lbl:'Баланс для виведення (заробіток)', withdraw_btn:'Вивести', topup_btn:'Поповнити',
+    pvp_pot_lbl:'Спільний призовий фонд', bet_lbl:'Вхід:',
+    st_played:'Зіграно', st_won:'Виграно ⭐', st_rank:'Місце', topup_btn:'Отримати зірки',
     friends_btn:'Друзі', history_btn:'Історія', ach_btn:'Досягнення', settings_btn:'Налаштування',
     settings_h1:'Налаштування', lang_lbl:'Мова', lang_desc:'Інтерфейс застосунку',
-    sound_lbl:'Звук', sound_desc:'Ефекти в іграх', notif_lbl:'Сповіщення', notif_desc:'Розіграші та важливі події',
+    sound_lbl:'Звук', sound_desc:'Ефекти в іграх', notif_lbl:'Сповіщення', notif_desc:'Турніри та важливі події',
     howworks_lbl:'Як це працює', howworks_desc:'Показати навчання знову',
     support_lbl:'Підтримка', support_desc:'Зв\'язатися з нами', support_toast:'Підтримка: @SharkSupport',
     back:'Назад',
     pvp_waiting_players:'Чекаємо гравців…',
-    pvp_in_battle:'Ви в грі · чекаємо розіграшу',
+    pvp_in_battle:'Ви в грі · чекаємо підсумків',
     pvp_already:'Ви вже в цьому раунді',
     pvp_mixed_admin:'Акаунт із ручним балансом не грає в одному раунді з живими гравцями', pvp_closing:'Раунд закривається — зачекайте наступний',
-    pvp_bet_error:'Помилка ставки', pvp_bet_toast:'Ставка у банку! Чекаємо розіграшу.',
+    pvp_bet_error:'Не вдалося зайти', pvp_bet_toast:'Ви в раунді! Чекаємо підсумків.',
     lvl_names:['Малятко','Рибка','Мисливець','Хижак','Акула','Мегалодон'], lvl_prefix:'Рівень ',
     you_word:'Ви', player_default:'Гравець',
     pvp_claim_btn:'Забрати',
-    games_screen_h1:'Ігри', crash_tab_lbl:'Краш', roul_tab_lbl:'Рулетка',
-    roul_sub:'Крути на TON — множник застосовується до ставки',
-    spin_btn_tpl:'Крутити за {bet} TON', crash_next_round_tpl:'Наступний раунд через {n}…',
-    auto_cashout_lbl:'Авто-вивід на', crash_bet_btn_tpl:'Поставити {bet} TON на наст. раунд',
-    crash_bet_accepted_tpl:'Ставку прийнято {bet} TON · чекаємо старт', crash_cashout_btn_tpl:'Забрати {amt} TON',
+    games_screen_h1:'Ігри', crash_tab_lbl:'Краш', roul_tab_lbl:'Колесо',
+    roul_sub:'Колесо призів — множник до входу',
+    spin_btn_tpl:'Крутити за {bet} ⭐', crash_next_round_tpl:'Наступний раунд через {n}…',
+    auto_cashout_lbl:'Авто-забір на', crash_bet_btn_tpl:'Грати за {bet} ⭐',
+    crash_bet_accepted_tpl:'Прийнято {bet} ⭐ · чекаємо старт', crash_cashout_btn_tpl:'Забрати {amt} ⭐',
     crash_round_live_lbl:'Раунд триває…', crash_round_over_lbl:'Раунд закінчено', crash_waiting_lbl:'Очікування',
     crash_flying_status:'Раунд триває — забирайте вчасно!', crash_crashed_status_tpl:'Полетіла на {x}x. Новий раунд скоро…',
-    crash_missed_toast_tpl:'Не встигли! Ставка {bet} TON згоріла на {x}x', crash_bet_toast_auto_tpl:'Ставка {bet} TON, авто-вивід на {x}x',
-    crash_bet_toast_tpl:'Ставку {bet} TON прийнято на наступний раунд', crash_cashout_toast_tpl:'Забрали {win} TON на {x}x!',
+    crash_missed_toast_tpl:'Не встигли! {bet} ⭐ згоріли на {x}x', crash_bet_toast_auto_tpl:'Вхід {bet} ⭐, авто-забір на {x}x',
+    crash_bet_toast_tpl:'Вхід {bet} ⭐ прийнято', crash_cashout_toast_tpl:'Забрали {win} ⭐ на {x}x!',
     roul_recent_spins_lbl:'Останні спіни', win_col_lbl:'Виграш',
-    crash_players_header_tpl:'Гравці в раунді · {n}', crash_bet_payout_lbl:'Ставка · виплата',
-    contests_h1:'Розіграші', contest_tab_active:'Активні', contest_tab_yours:'Ваші',
-    contest_empty_yours:'Ви поки не берете участі в жодному розіграші.<br>Перейдіть у вкладку «Активні» і натисніть «Взяти участь».',
+    crash_players_header_tpl:'Гравці в раунді · {n}', crash_bet_payout_lbl:'Вхід · виграш',
+    contests_h1:'Турніри', contest_tab_active:'Активні', contest_tab_yours:'Ваші',
+    contest_empty_yours:'Ви поки не берете участі в жодному турнірі.<br>Перейдіть у вкладку «Активні» і натисніть «Взяти участь».',
     leaders_screen_h1:'Лідери', leaders_sub:'Щотижня топ-100 за оборотом отримують цінні призи', leaders_week_end_lbl:'До кінця тижня',
     shop_h1:'Кейси з подарунками', shop_sub:'Відкривай кейси за Telegram Stars — усередині подарунки Telegram',
     contest_ended_lbl:'Завершено', contest_members_word:'учасників', prizes_count_tpl:'{n} призів',
-    contest_joined_lbl:'Ви берете участь ✓', contest_join_btn:'Взяти участь', contest_joined_toast:'Ви берете участь у розіграші!',
-    ref_hero_pre:'Отримуй', ref_hero_post:'запрошуючи друзів', ref_hero_muted:'від доходу платформи з їхньої гри — у TON',
-    ref_cap_pre:'І разовий бонус', ref_cap_post:'за перше поповнення друга',
+    contest_joined_lbl:'Ви берете участь ✓', contest_join_btn:'Взяти участь', contest_joined_toast:'Ви в турнірі!',
+    ref_hero_pre:'Отримуй', ref_hero_post:'запрошуючи друзів', ref_hero_muted:'зірками за їхню гру',
+    ref_cap_pre:'І разовий бонус',
     ref_invite_btn:'Запросити друзів', ref_copy_btn:'Скопіювати посилання',
     ref_earned_lbl:'Всього зароблено', ref_today_lbl:'Сьогодні нараховано', ref_friends_head:'Мої реферали',
     ref_empty:'Поки ніхто не приєднався за вашим посиланням. Поділіться ним з друзями!', ref_joined_word:'приєднався',
-    ref_share_text:'Заходь у Shark — ігри на TON і подарунки Telegram!', ref_link_copied:'Посилання скопійовано',
-    history_sub:'Всі нарахування, виграші та виведення', history_empty:'Поки порожньо. Грайте — тут з’явиться історія.',
+    ref_share_text:'Заходь у Shark — ігри на зірки і подарунки Telegram!', ref_link_copied:'Посилання скопійовано',
+    history_sub:'Нарахування, виграші та заявки', history_empty:'Поки порожньо. Грайте — тут з’явиться історія.',
     history_load_error:'Не вдалося завантажити історію.', ach_sub:'Відкривай бейджі за свою гру',
-    hist_kind_referral:'Реферал', hist_kind_bet:'Ставка', hist_kind_win:'Виграш', hist_kind_withdraw:'Виведення',
-    hist_kind_withdraw_refund:'Повернення виведення', hist_kind_gift:'Подарунок', hist_kind_topup:'Поповнення', hist_kind_adjust:'Коригування',
-    hist_roul_win_title_tpl:'Рулетка: {prize}', hist_bet_sub_tpl:'Ставка {bet} TON',
+    hist_kind_referral:'Реферал', hist_kind_bet:'Вхід у гру', hist_kind_win:'Виграш', hist_kind_withdraw:'Заявка на виграш',
+    hist_kind_withdraw_refund:'Заявку скасовано', hist_kind_gift:'Подарунок', hist_kind_topup:'Поповнення', hist_kind_adjust:'Коригування',
+    hist_roul_win_title_tpl:'Рулетка: {prize}', hist_bet_sub_tpl:'Вхід {bet} ⭐',
     hist_crash_lose_title:'Краш: програш', hist_crash_at_tpl:'Краш на {x}x',
-    hist_crash_win_title:'Краш: забрав', hist_mult_tpl:'Множник {x}x', hist_contest_join_title:'Участь у розіграші',
+    hist_crash_win_title:'Краш: забрав', hist_mult_tpl:'Множник {x}x', hist_contest_join_title:'Участь у турнірі',
     hist_ref_new_title:'Новий реферал', hist_ref_new_sub:'Запрошено друга',
     hist_pvp_win_title:'PVP: перемога', hist_pvp_lose_title:'PVP: програш', cancel_btn:'Скасувати',
-    withdraw_sheet_title:'Виведення грошей',
-    withdraw_amount_lbl_tpl:'Сума (доступно {avail} TON)', withdraw_submit_btn:'Створити заявку',
-    withdraw_err_wallet:'Перевірте адресу гаманця', withdraw_err_min_tpl:'Мінімум {min} TON', withdraw_err_funds:'Недостатньо TON на балансі', withdraw_err_generic:'Не вдалося створити заявку',
-    topup_sheet_title:'Поповнити баланс',
-    topup_err_invoice:'Не вдалося виставити рахунок', topup_open_in_tg:'Відкрийте застосунок у Telegram',
+    topup_sheet_title:'Отримати зірки',
+    topup_err_invoice:'Не вдалося відкрити оплату', topup_open_in_tg:'Відкрийте застосунок у Telegram',
     ach_unlock_toast_tpl:'🏅 Досягнення «{title}»', ok_btn:'Гаразд',
     ach_play10_title:'Гравець', ach_play10_desc:'Зіграй 10 разів',
-    ach_first_wd_title:'Перше виведення', ach_first_wd_desc:'Виведи гроші вперше',
+    ach_first_wd_title:'Перша заявка', ach_first_wd_desc:'Залишити заявку на виграш',
     ach_ref3_title:'Промоутер', ach_ref3_desc:'Запроси 3 друзів',
-    hist_pvp_win_sub_tpl:'Банк {pot} TON', hist_pvp_lose_sub_tpl:'Переміг {name}',
-    crash_cashout_error:'Помилка виводу',
-    push_new_draw_title:'Новий розіграш через 1 годину', push_new_draw_sub:'6 призів · встигніть приєднатися',
+    hist_pvp_win_sub_tpl:'Фонд {pot} ⭐', hist_pvp_lose_sub_tpl:'Переміг {name}',
+    crash_cashout_error:'Не вдалося забрати',
+    push_new_draw_title:'Новий турнір через 1 годину', push_new_draw_sub:'6 призів · встигніть приєднатися',
     ticker_won_word:'виграв',
     cr_phase_live:'Раунд триває', cr_phase_over:'Раунд завершено',
-    see_all_lbl:'Всі →', home_contest_empty:'Поки немає активних розіграшів',
+    see_all_lbl:'Всі →', home_contest_empty:'Поки немає активних турнірів',
     rarity_common:'Звичайний', rarity_rare:'Рідкісний', rarity_epic:'Епічний', rarity_legendary:'Легендарний',
     /* Адмін-панель (Е2) */
     adm_entry_lbl:'Адмін-панель', adm_entry_desc:'Службовий розділ',
     adm_h1:'Адмін-панель', adm_note:'Розділ бачите лише ви. Усі дії перевіряє сервер.',
     adm_tab_stats:'Зведення', adm_tab_players:'Гравці', adm_tab_grant:'Баланс',
     adm_ph_stats:'Зведення щодо гравців і обороту', adm_ph_players:'Список гравців із пошуком',
-    adm_ph_grant:'Нарахування TON на власний акаунт',
+    adm_ph_grant:'Нарахування ⭐ на власний акаунт',
     /* Зведення (Е3) */
     adm_refresh:'Оновити', adm_updated_tpl:'Дані на {time}', adm_err:'Не вдалося завантажити дані',
     adm_retry:'Повторити', adm_no_server:'Доступно лише всередині Telegram',
     adm_capped_tpl:'Показано останні {n} записів — обіг може бути неповним',
     adm_g_players:'Гравці', adm_g_balances:'На балансах', adm_g_flow:'Обіг за 7 днів',
-    adm_s_total:'усього', adm_s_active24:'активні за добу', adm_s_new24:'нові за добу', adm_s_new7:'нові за тиждень', adm_s_pending_wd:'Заявки на виведення',
+    adm_s_total:'усього', adm_s_active24:'активні за добу', adm_s_new24:'нові за добу', adm_s_new7:'нові за тиждень', adm_s_pending_wd:'Відкриті заявки',
     adm_s_bets:'Поставлено', adm_s_wins:'Виграно', adm_s_rake:'Залишилось дому',
     adm_s_topups:'Поповнення', adm_s_grants:'Нараховано вручну',
     /* Список гравців (Е4) */
@@ -1954,10 +1970,10 @@ var I18N={
     /* Нарахування зірок (Е5) */
     adm_gr_bal_lbl:'Ваш баланс', adm_gr_clear:'Скинути', adm_gr_note_ph:'Коментар (необов’язково)',
     adm_gr_credit:'Нарахувати', adm_gr_debit:'Списати',
-    adm_gr_credit_tpl:'Нарахувати {n} TON', adm_gr_debit_tpl:'Списати {n} TON',
-    adm_gr_ok_tpl:'Нараховано {n} TON', adm_gr_ok_minus_tpl:'Списано {n} TON',
-    adm_gr_err_amount:'Введіть суму від 0.1 до 1000 TON',
-    adm_gr_err_funds:'Недостатньо TON на балансі',
+    adm_gr_credit_tpl:'Нарахувати {n} ⭐', adm_gr_debit_tpl:'Списати {n} ⭐',
+    adm_gr_ok_tpl:'Нараховано {n} ⭐', adm_gr_ok_minus_tpl:'Списано {n} ⭐',
+    adm_gr_err_amount:'Введіть від 1 до 100 000 ⭐',
+    adm_gr_err_funds:'Недостатньо зірок',
     adm_gr_err_target:'Нарахування доступне лише на ваш акаунт',
     myid_lbl:'Ваш ID', myid_desc:'Номер акаунта — натисніть, щоб скопіювати', myid_copied:'ID скопійовано',
     adm_gr_hint:'Нарахування проходить через той самий леджер, що й будь-який інший рух коштів, і видно в історії. Тільки на ваш акаунт.',
@@ -1971,22 +1987,18 @@ var I18N={
     gft_empty_filter:'Тут порожньо. Спробуйте інший фільтр.',
     gft_err:'Не вдалося завантажити інвентар',
     gft_foot:'Подарунки надсилаємо вручну — зазвичай протягом доби після відкриття кейса.',
-    gft_roadmap:'Надсилання друзям, обмін і колекції з’являться пізніше.',
-    gft_soon:'Функція ще не працює', gft_act_send:'Надіслати', gft_act_exchange:'Обміняти', gft_act_collect:'У колекцію',
+    gft_roadmap:'Надсилання друзям і колекції з’являться пізніше.',
+    gft_soon:'Функція ще не працює', gft_act_send:'Надіслати', gft_act_exchange:'На інший', gft_act_collect:'У колекцію',
     /* Черга видачі в адмінці (Е5) */
     adm_tab_gifts:'Подарунки', adm_gf_pending:'До видачі', adm_gf_sent:'Видані', adm_gf_all:'Усі',
     adm_gf_cnt_tpl:'Чекають видачі: {n}', adm_gf_empty:'Немає подарунків для видачі',
     adm_gf_mark_sending:'Взяв у роботу', adm_gf_mark_sent:'Надіслано',
     adm_gf_marked_sending:'Позначено «надсилаємо»', adm_gf_marked_sent:'Позначено надісланим',
     adm_gf_err:'Не вдалося змінити статус',
-    ton_lbl:'TON',
-    hero_bal_sub:'Ігровий баланс · поповнення і виведення в TON',
-    bal_ton_lbl:'Ігровий баланс',
-    bal_ton_note:'Поповнення і виведення — тільки TON',
-    pvp_no_ton:'Недостатньо TON — поповніть баланс',
+    hero_bal_sub:'Ігровий баланс',
     roul_result_title_tpl:'Випало {mult}',
-    roul_result_desc_tpl:'«{prize}» · ставка {bet} TON → виграш {win} TON',
-    shop_note:'Кейс оплачується зірками напряму в Telegram. Ігровий баланс TON при цьому не витрачається.',
+    roul_result_desc_tpl:'«{prize}» · вхід {bet} ⭐ → виграш {win} ⭐',
+    shop_note:'Усередині кейса — подарунок Telegram. Він потрапить до вашого інвентаря.',
     shop_foot:'Подарунок, що випав, одразу потрапить до вашого інвентаря.',
     shop_inv:'Інвентар',
     cs_drops_tpl:'{n} подарунків',
@@ -2001,116 +2013,139 @@ var I18N={
     cs_slow:'Оплата обробляється — подарунок з’явиться в інвентарі',
     cs_won_desc_tpl:'Цінність {n} ⭐. Подарунок уже в інвентарі — надішлемо вручну.',
     cs_to_inventory:'До інвентаря',
-    ref_line:'Друг програв — ви отримали частку. Друг виграв — ви нічого не втрачаєте.',
-    ref_share_lbl:'Ваша частка',
-    ach_win10_title:'Перші 10 TON',
-    ach_win10_desc:'Виграти 10 TON сумарно',
-    topup_desc_tpl:'Оплата через @CryptoBot у TON. Мінімум {min} TON.',
-    topup_unavailable:'Поповнення тимчасово недоступне',
-    topup_invoice_opened_tpl:'Відкрито рахунок на {amount} TON · чекаємо оплату…',
-    topup_paid_tpl:'Оплату отримано! +{amount} TON',
-    withdraw_sheet_desc_tpl:'Виплата ручна — протягом {hours} годин.',
-    withdraw_wallet_lbl:'Адреса гаманця TON',
-    withdraw_wallet_ph:'UQ… або EQ…',
-    withdraw_min_hint_tpl:'Мінімум {min} TON',
-    withdraw_success_title:'Заявку створено',
-    withdraw_success_desc_tpl:'{amt} TON виплатимо протягом {hours} годин.',
-    adm_s_ton_held:'TON на руках',
-    adm_s_ton_pending:'Заморожено у виведеннях',
-    adm_s_referral:'Виплачено рефералам',
-    adm_sort_ton:'Баланс'
+    ach_win10_title:'Перші 10 000 ⭐',
+    ach_win10_desc:'Виграти 10 000 ⭐ сумарно',
+    topup_unavailable:'Набори тимчасово недоступні',
+    adm_s_ton_held:'Зірок на руках',
+    adm_s_ton_pending:'Зарезервовано в заявках',
+    adm_sort_ton:'Баланс',
+    stars_lbl:'зірок',
+    bal_stars_lbl:'Ігровий баланс',
+    pvp_no_stars:'Недостатньо зірок',
+    topup_desc:'Оберіть набір і спосіб оплати. На баланс зарахуються зірки з набору.',
+    pay_xtr:'Telegram',
+    pay_ton:'TON',
+    pay_usdt:'USDT',
+    topup_paid_wait:'Чекаємо підтвердження оплати…',
+    topup_failed:'Оплату не завершено',
+    topup_credited_tpl:'Зараховано {n} ⭐',
+    claim_btn:'Забрати виграш',
+    claim_hint:'Заявку приймає бот, розбираємо вручну.',
+    claim_sheet_title:'Забрати виграш',
+    claim_sheet_desc_tpl:'Заявку приймає наш бот. Жодних автоматичних видач: людина перегляне її і напише вам протягом {hours} годин.',
+    claim_amount_lbl_tpl:'Скільки ⭐ (є {avail})',
+    claim_note_lbl:'Коментар',
+    claim_note_ph:'Необов’язково',
+    claim_min_hint_tpl:'Мінімум {n} ⭐',
+    claim_err_min_tpl:'Мінімум {n} ⭐',
+    claim_err_funds:'Стільки зірок немає на балансі',
+    claim_err_open:'Одна заявка вже на розгляді — дочекайтеся відповіді',
+    claim_err_generic:'Не вдалося створити заявку',
+    claim_ok_title:'Заявку створено',
+    claim_ok_desc_tpl:'Заявка #{id} на {n} ⭐ пішла до бота. Відповідь буде там же протягом {hours} годин.',
+    claim_ok_btn:'Мої заявки',
+    claims_h1:'Мої заявки',
+    claims_sub:'Статус звернень за виграшем',
+    claims_foot:'Кожну заявку розбирає людина. Відповідь прийде в чат із ботом.',
+    claims_empty:'Заявок поки немає',
+    claims_err:'Не вдалося завантажити заявки',
+    claims_id_tpl:'Заявка #{id}',
+    claim_st_new:'прийнято',
+    claim_st_in_review:'на розгляді',
+    claim_st_done:'видано',
+    claim_st_rejected:'відхилено',
+    claims_btn:'Заявки',
+    hist_kind_claim_hold:'Заявка на виграш',
+    hist_kind_claim_return:'Зірки повернено',
+    px_pot_lbl:'Спільний призовий фонд'
   },
   ru:{
     /* PVP — новый экран (Э5) */
-    px_sub_waiting:'Ждём игроков', px_sub_join_tpl:'Войдите до конца отсчёта · ставка <b>{bet}</b>', px_sub_in_tpl:'Ставка <b>{stake}</b> · шанс <b class="px-mn">{pct}%</b> · заберёте <b>{payout}</b>', px_sub_won_tpl:'Забрали банк с шансом <b class="px-mn">{pct}%</b>', px_sub_lost:'Ваш билет не выпал', px_players_tpl:'{n} в раунде', px_game_tpl:'Игра #{id}', px_cta_join:'Войти в битву', px_cta_wait:'Принимаем ставку…', px_cta_spin:'Крутим…', px_cta_over:'Раунд завершён', px_badge_spin:'РОЗЫГРЫШ', px_badge_won:'БАНК ВАШ', px_badge_lost:'БАНК УШЁЛ', px_lbl_won:'Вы забрали банк', px_lbl_lost_tpl:'{name} забирает',
+    px_sub_waiting:'Ждём игроков', px_sub_join_tpl:'Войдите до конца отсчёта · вход <b>{bet}</b>', px_sub_in_tpl:'Ваш вход <b>{stake}</b> · шанс <b class="px-mn">{pct}%</b> · заберёте <b>{payout}</b>', px_sub_won_tpl:'Забрали фонд с шансом <b class="px-mn">{pct}%</b>', px_sub_lost:'Ваш билет не выпал', px_players_tpl:'{n} в раунде', px_game_tpl:'Игра #{id}', px_cta_join:'Войти в битву', px_cta_wait:'Заходим…', px_cta_spin:'Крутим…', px_cta_over:'Раунд завершён', px_badge_spin:'ОПРЕДЕЛЯЕМ', px_badge_won:'ФОНД ВАШ', px_badge_lost:'ФОНД УШЁЛ', px_lbl_won:'Вы забрали фонд', px_lbl_lost_tpl:'{name} забирает',
     greet:'С возвращением', online_lbl:'онлайн',
-    play_now:'Играть сейчас', next_draw:'Ближайший розыгрыш', next_hour:'через 1 час', ingame_lbl:'в игре',
-    pvp_title:'Битва за банк', pvp_desc:'Заходи в общий раунд — победитель забирает весь банк', pvp_cta:'Войти в битву →',
-    games_title:'Игры', games_desc:'Краш и рулетка', upgrade_title:'Апгрейд', soon:'Скоро', upgrade_desc:'Множь свой TON',
+    play_now:'Играть сейчас', next_draw:'Ближайший турнир', next_hour:'через 1 час', ingame_lbl:'в игре',
+    pvp_title:'Битва за фонд', pvp_desc:'Заходи в общий раунд — победитель забирает весь фонд', pvp_cta:'Войти в битву →',
+    games_title:'Игры', games_desc:'Краш и рулетка', upgrade_title:'Апгрейд', soon:'Скоро', upgrade_desc:'Множь свои звёзды',
     upgrade_toast:'Апгрейд скоро — улучшение подарков',
-    tab_home:'Игры', tab_contests:'Конкурсы', tab_leaders:'Лидеры', tab_shop:'Кейсы', tab_profile:'Профиль',
-    onb_h0:'Добро пожаловать в Shark', onb_p0:'Одна валюта — TON. Им играешь, его пополняешь и выводишь. Никаких промежуточных балансов.',
-    onb_h1:'PVP — битва за банк', onb_p1:'Главный режим: заходи в общий раунд, скидывайся в банк в TON. Победитель забирает всё.',
-    onb_h2:'Игры на TON', onb_p2:'Краш и рулетка — множители к ставке. Выигрыш сразу на баланс, оттуда же и вывод.',
-    onb_h3:'Подарки Telegram', onb_p3:'Кейсы с подарками покупаются за Telegram Stars — отдельно от игрового баланса. Подарок падает в инвентарь. Поехали!',
+    tab_home:'Игры', tab_contests:'Турниры', tab_leaders:'Лидеры', tab_shop:'Кейсы', tab_profile:'Профиль',
+    onb_h0:'Добро пожаловать в Shark', onb_p0:'Играй на звёзды, собирай подарки Telegram и поднимайся в лидерах.',
+    onb_h1:'PVP — битва за фонд', onb_p1:'Главный режим: заходи в общий раунд вместе с другими. Победитель забирает всё.',
+    onb_h2:'Игры на звёзды', onb_p2:'Краш и колесо призов — множители к твоему входу. Выигрыш сразу на баланс.',
+    onb_h3:'Подарки Telegram', onb_p3:'Выигрыш можно забрать: оставь заявку, её разберёт бот и напишет тебе. Поехали!',
     onb_next:'Далее', onb_start:'Начать',
-    pvp_pot_lbl:'Общий банк', bet_lbl:'Ставка:',
-    st_played:'Сыграно', st_won:'Выиграно TON', st_rank:'Место',
-    bal_money_lbl:'Баланс для вывода (заработок)', withdraw_btn:'Вывести', topup_btn:'Пополнить',
+    pvp_pot_lbl:'Общий призовой фонд', bet_lbl:'Вход:',
+    st_played:'Сыграно', st_won:'Выиграно ⭐', st_rank:'Место', topup_btn:'Получить звёзды',
     friends_btn:'Друзья', history_btn:'История', ach_btn:'Достижения', settings_btn:'Настройки',
     settings_h1:'Настройки', lang_lbl:'Язык', lang_desc:'Интерфейс приложения',
-    sound_lbl:'Звук', sound_desc:'Эффекты в играх', notif_lbl:'Уведомления', notif_desc:'Розыгрыши и важные события',
+    sound_lbl:'Звук', sound_desc:'Эффекты в играх', notif_lbl:'Уведомления', notif_desc:'Турниры и важные события',
     howworks_lbl:'Как это работает', howworks_desc:'Показать обучение снова',
     support_lbl:'Поддержка', support_desc:'Связаться с нами', support_toast:'Поддержка: @SharkSupport',
     back:'Назад',
     pvp_waiting_players:'Ждём игроков…',
-    pvp_in_battle:'Вы в игре · ждём розыгрыша',
+    pvp_in_battle:'Вы в игре · ждём итогов',
     pvp_already:'Вы уже в этом раунде',
     pvp_mixed_admin:'Аккаунт с ручным балансом не играет в одном раунде с живыми игроками', pvp_closing:'Раунд закрывается — подождите следующий',
-    pvp_bet_error:'Ошибка ставки', pvp_bet_toast:'Ставка в банке! Ждём розыгрыша.',
+    pvp_bet_error:'Не удалось зайти', pvp_bet_toast:'Вы в раунде! Ждём итогов.',
     lvl_names:['Малёк','Рыбёшка','Охотник','Хищник','Акула','Мегалодон'], lvl_prefix:'Уровень ',
     you_word:'Вы', player_default:'Игрок',
     pvp_claim_btn:'Забрать',
-    games_screen_h1:'Игры', crash_tab_lbl:'Краш', roul_tab_lbl:'Рулетка',
-    roul_sub:'Крути на TON — множитель применяется к ставке',
-    spin_btn_tpl:'Крутить за {bet} TON', crash_next_round_tpl:'Следующий раунд через {n}…',
-    auto_cashout_lbl:'Авто-вывод на', crash_bet_btn_tpl:'Поставить {bet} TON на след. раунд',
-    crash_bet_accepted_tpl:'Ставка принята {bet} TON · ждём старт', crash_cashout_btn_tpl:'Забрать {amt} TON',
+    games_screen_h1:'Игры', crash_tab_lbl:'Краш', roul_tab_lbl:'Колесо',
+    roul_sub:'Колесо призов — множитель к входу',
+    spin_btn_tpl:'Крутить за {bet} ⭐', crash_next_round_tpl:'Следующий раунд через {n}…',
+    auto_cashout_lbl:'Авто-забор на', crash_bet_btn_tpl:'Играть за {bet} ⭐',
+    crash_bet_accepted_tpl:'Принято {bet} ⭐ · ждём старт', crash_cashout_btn_tpl:'Забрать {amt} ⭐',
     crash_round_live_lbl:'Раунд идёт…', crash_round_over_lbl:'Раунд окончен', crash_waiting_lbl:'Ожидание',
     crash_flying_status:'Раунд идёт — забирайте вовремя!', crash_crashed_status_tpl:'Улетела на {x}x. Новый раунд скоро…',
-    crash_missed_toast_tpl:'Не успели! Ставка {bet} TON сгорела на {x}x', crash_bet_toast_auto_tpl:'Ставка {bet} TON, авто-вывод на {x}x',
-    crash_bet_toast_tpl:'Ставка {bet} TON принята на следующий раунд', crash_cashout_toast_tpl:'Забрали {win} TON на {x}x!',
+    crash_missed_toast_tpl:'Не успели! {bet} ⭐ сгорели на {x}x', crash_bet_toast_auto_tpl:'Вход {bet} ⭐, авто-забор на {x}x',
+    crash_bet_toast_tpl:'Вход {bet} ⭐ принят', crash_cashout_toast_tpl:'Забрали {win} ⭐ на {x}x!',
     roul_recent_spins_lbl:'Последние спины', win_col_lbl:'Выигрыш',
-    crash_players_header_tpl:'Игроки в раунде · {n}', crash_bet_payout_lbl:'Ставка · выплата',
-    contests_h1:'Розыгрыши', contest_tab_active:'Активные', contest_tab_yours:'Ваши',
-    contest_empty_yours:'Вы пока не участвуете ни в одном розыгрыше.<br>Зайдите во вкладку «Активные» и нажмите «Участвовать».',
+    crash_players_header_tpl:'Игроки в раунде · {n}', crash_bet_payout_lbl:'Вход · выигрыш',
+    contests_h1:'Турниры', contest_tab_active:'Активные', contest_tab_yours:'Ваши',
+    contest_empty_yours:'Вы пока не участвуете ни в одном турнире.<br>Зайдите во вкладку «Активные» и нажмите «Участвовать».',
     leaders_screen_h1:'Лидеры', leaders_sub:'Каждую неделю топ-100 по обороту получают ценные призы', leaders_week_end_lbl:'До конца недели',
     shop_h1:'Кейсы с подарками', shop_sub:'Открывай кейсы за Telegram Stars — внутри подарки Telegram',
     contest_ended_lbl:'Завершён', contest_members_word:'участников', prizes_count_tpl:'{n} призов',
-    contest_joined_lbl:'Вы участвуете ✓', contest_join_btn:'Участвовать', contest_joined_toast:'Вы участвуете в розыгрыше!',
-    ref_hero_pre:'Получай', ref_hero_post:'приглашая друзей', ref_hero_muted:'от дохода платформы с их игры — в TON',
-    ref_cap_pre:'И разовый бонус', ref_cap_post:'за первое пополнение друга',
+    contest_joined_lbl:'Вы участвуете ✓', contest_join_btn:'Участвовать', contest_joined_toast:'Вы в турнире!',
+    ref_hero_pre:'Получай', ref_hero_post:'приглашая друзей', ref_hero_muted:'звёздами за их игру',
+    ref_cap_pre:'И разовый бонус',
     ref_invite_btn:'Пригласить друзей', ref_copy_btn:'Скопировать ссылку',
     ref_earned_lbl:'Всего заработано', ref_today_lbl:'Сегодня начислено', ref_friends_head:'Мои рефералы',
     ref_empty:'Пока никто не присоединился по вашей ссылке. Поделитесь ей с друзьями!', ref_joined_word:'присоединился',
-    ref_share_text:'Заходи в Shark — игры на TON и подарки Telegram!', ref_link_copied:'Ссылка скопирована',
-    history_sub:'Все начисления, выигрыши и выводы', history_empty:'Пока пусто. Играйте — здесь появится история.',
+    ref_share_text:'Заходи в Shark — игры на звёзды и подарки Telegram!', ref_link_copied:'Ссылка скопирована',
+    history_sub:'Начисления, выигрыши и заявки', history_empty:'Пока пусто. Играйте — здесь появится история.',
     history_load_error:'Не удалось загрузить историю.', ach_sub:'Открывай бейджи за свою игру',
-    hist_kind_referral:'Реферал', hist_kind_bet:'Ставка', hist_kind_win:'Выигрыш', hist_kind_withdraw:'Вывод',
-    hist_kind_withdraw_refund:'Возврат вывода', hist_kind_gift:'Подарок', hist_kind_topup:'Пополнение', hist_kind_adjust:'Коррекция',
-    hist_roul_win_title_tpl:'Рулетка: {prize}', hist_bet_sub_tpl:'Ставка {bet} TON',
+    hist_kind_referral:'Реферал', hist_kind_bet:'Вход в игру', hist_kind_win:'Выигрыш', hist_kind_withdraw:'Заявка на выигрыш',
+    hist_kind_withdraw_refund:'Заявка отменена', hist_kind_gift:'Подарок', hist_kind_topup:'Пополнение', hist_kind_adjust:'Коррекция',
+    hist_roul_win_title_tpl:'Рулетка: {prize}', hist_bet_sub_tpl:'Вход {bet} ⭐',
     hist_crash_lose_title:'Краш: проигрыш', hist_crash_at_tpl:'Краш на {x}x',
-    hist_crash_win_title:'Краш: забрал', hist_mult_tpl:'Множитель {x}x', hist_contest_join_title:'Участие в розыгрыше',
+    hist_crash_win_title:'Краш: забрал', hist_mult_tpl:'Множитель {x}x', hist_contest_join_title:'Участие в турнире',
     hist_ref_new_title:'Новый реферал', hist_ref_new_sub:'Приглашён друг',
     hist_pvp_win_title:'PVP: победа', hist_pvp_lose_title:'PVP: проигрыш', cancel_btn:'Отмена',
-    withdraw_sheet_title:'Вывод денег',
-    withdraw_amount_lbl_tpl:'Сумма (доступно {avail} TON)', withdraw_submit_btn:'Создать заявку',
-    withdraw_err_wallet:'Проверьте адрес кошелька', withdraw_err_min_tpl:'Минимум {min} TON', withdraw_err_funds:'Недостаточно TON на балансе', withdraw_err_generic:'Не удалось создать заявку',
-    topup_sheet_title:'Пополнить баланс',
-    topup_err_invoice:'Не удалось выставить счёт', topup_open_in_tg:'Откройте приложение в Telegram',
+    topup_sheet_title:'Получить звёзды',
+    topup_err_invoice:'Не удалось открыть оплату', topup_open_in_tg:'Откройте приложение в Telegram',
     ach_unlock_toast_tpl:'🏅 Достижение «{title}»', ok_btn:'Ок',
     ach_play10_title:'Игрок', ach_play10_desc:'Сыграй 10 раз',
-    ach_first_wd_title:'Первый вывод', ach_first_wd_desc:'Выведи деньги впервые',
+    ach_first_wd_title:'Первая заявка', ach_first_wd_desc:'Оставить заявку на выигрыш',
     ach_ref3_title:'Промоутер', ach_ref3_desc:'Пригласи 3 друзей',
-    hist_pvp_win_sub_tpl:'Банк {pot} TON', hist_pvp_lose_sub_tpl:'Победил {name}',
-    crash_cashout_error:'Ошибка вывода',
-    push_new_draw_title:'Новый розыгрыш через 1 час', push_new_draw_sub:'6 призов · успейте присоединиться',
+    hist_pvp_win_sub_tpl:'Фонд {pot} ⭐', hist_pvp_lose_sub_tpl:'Победил {name}',
+    crash_cashout_error:'Не удалось забрать',
+    push_new_draw_title:'Новый турнир через 1 час', push_new_draw_sub:'6 призов · успейте присоединиться',
     ticker_won_word:'выиграл',
     cr_phase_live:'Раунд идёт', cr_phase_over:'Раунд завершён',
-    see_all_lbl:'Все →', home_contest_empty:'Пока нет активных розыгрышей',
+    see_all_lbl:'Все →', home_contest_empty:'Пока нет активных турниров',
     rarity_common:'Обычный', rarity_rare:'Редкий', rarity_epic:'Эпический', rarity_legendary:'Легендарный',
     /* Админ-панель (Э2) */
     adm_entry_lbl:'Админ-панель', adm_entry_desc:'Служебный раздел',
     adm_h1:'Админ-панель', adm_note:'Раздел виден только вам. Все действия проверяет сервер.',
     adm_tab_stats:'Сводка', adm_tab_players:'Игроки', adm_tab_grant:'Баланс',
     adm_ph_stats:'Сводка по игрокам и обороту', adm_ph_players:'Список игроков с поиском',
-    adm_ph_grant:'Начисление TON на свой аккаунт',
+    adm_ph_grant:'Начисление ⭐ на свой аккаунт',
     /* Сводка (Э3) */
     adm_refresh:'Обновить', adm_updated_tpl:'Данные на {time}', adm_err:'Не удалось загрузить данные',
     adm_retry:'Повторить', adm_no_server:'Доступно только внутри Telegram',
     adm_capped_tpl:'Показаны последние {n} записей — оборот может быть неполным',
     adm_g_players:'Игроки', adm_g_balances:'На балансах', adm_g_flow:'Оборот за 7 дней',
-    adm_s_total:'всего', adm_s_active24:'активны за сутки', adm_s_new24:'новые за сутки', adm_s_new7:'новые за неделю', adm_s_pending_wd:'Заявки на вывод',
+    adm_s_total:'всего', adm_s_active24:'активны за сутки', adm_s_new24:'новые за сутки', adm_s_new7:'новые за неделю', adm_s_pending_wd:'Открытые заявки',
     adm_s_bets:'Поставлено', adm_s_wins:'Выиграно', adm_s_rake:'Осталось дому',
     adm_s_topups:'Пополнения', adm_s_grants:'Начислено вручную',
     /* Список игроков (Э4) */
@@ -2123,10 +2158,10 @@ var I18N={
     /* Начисление звёзд (Э5) */
     adm_gr_bal_lbl:'Ваш баланс', adm_gr_clear:'Сброс', adm_gr_note_ph:'Комментарий (необязательно)',
     adm_gr_credit:'Начислить', adm_gr_debit:'Списать',
-    adm_gr_credit_tpl:'Начислить {n} TON', adm_gr_debit_tpl:'Списать {n} TON',
-    adm_gr_ok_tpl:'Начислено {n} TON', adm_gr_ok_minus_tpl:'Списано {n} TON',
-    adm_gr_err_amount:'Введите сумму от 0.1 до 1000 TON',
-    adm_gr_err_funds:'Недостаточно TON на балансе',
+    adm_gr_credit_tpl:'Начислить {n} ⭐', adm_gr_debit_tpl:'Списать {n} ⭐',
+    adm_gr_ok_tpl:'Начислено {n} ⭐', adm_gr_ok_minus_tpl:'Списано {n} ⭐',
+    adm_gr_err_amount:'Введите от 1 до 100 000 ⭐',
+    adm_gr_err_funds:'Недостаточно звёзд',
     adm_gr_err_target:'Начисление доступно только на ваш аккаунт',
     myid_lbl:'Ваш ID', myid_desc:'Номер аккаунта — нажмите, чтобы скопировать', myid_copied:'ID скопирован',
     adm_gr_hint:'Начисление идёт через тот же леджер, что и любое движение средств, и видно в истории. Только на ваш аккаунт.',
@@ -2140,22 +2175,18 @@ var I18N={
     gft_empty_filter:'Здесь пусто. Попробуйте другой фильтр.',
     gft_err:'Не удалось загрузить инвентарь',
     gft_foot:'Подарки отправляем вручную — обычно в течение суток после открытия кейса.',
-    gft_roadmap:'Отправка друзьям, обмен и коллекции появятся позже.',
-    gft_soon:'Функция пока не работает', gft_act_send:'Отправить', gft_act_exchange:'Обменять', gft_act_collect:'В коллекцию',
+    gft_roadmap:'Отправка друзьям и коллекции появятся позже.',
+    gft_soon:'Функция пока не работает', gft_act_send:'Отправить', gft_act_exchange:'На другой', gft_act_collect:'В коллекцию',
     /* Очередь выдачи в админке (Э5) */
     adm_tab_gifts:'Подарки', adm_gf_pending:'К выдаче', adm_gf_sent:'Выданные', adm_gf_all:'Все',
     adm_gf_cnt_tpl:'Ждут выдачи: {n}', adm_gf_empty:'Нет подарков к выдаче',
     adm_gf_mark_sending:'Взял в работу', adm_gf_mark_sent:'Отправлен',
     adm_gf_marked_sending:'Отмечено «отправляем»', adm_gf_marked_sent:'Отмечено отправленным',
     adm_gf_err:'Не удалось изменить статус',
-    ton_lbl:'TON',
-    hero_bal_sub:'Игровой баланс · пополнение и вывод в TON',
-    bal_ton_lbl:'Игровой баланс',
-    bal_ton_note:'Пополнение и вывод — только TON',
-    pvp_no_ton:'Недостаточно TON — пополните баланс',
+    hero_bal_sub:'Игровой баланс',
     roul_result_title_tpl:'Выпало {mult}',
-    roul_result_desc_tpl:'«{prize}» · ставка {bet} TON → выигрыш {win} TON',
-    shop_note:'Кейс оплачивается звёздами напрямую в Telegram. Игровой баланс TON при этом не тратится.',
+    roul_result_desc_tpl:'«{prize}» · вход {bet} ⭐ → выигрыш {win} ⭐',
+    shop_note:'Внутри кейса — подарок Telegram. Он попадёт в ваш инвентарь.',
     shop_foot:'Выпавший подарок сразу попадёт в ваш инвентарь.',
     shop_inv:'Инвентарь',
     cs_drops_tpl:'{n} подарков',
@@ -2170,116 +2201,139 @@ var I18N={
     cs_slow:'Оплата обрабатывается — подарок появится в инвентаре',
     cs_won_desc_tpl:'Ценность {n} ⭐. Подарок уже в инвентаре — отправим вручную.',
     cs_to_inventory:'В инвентарь',
-    ref_line:'Друг проиграл — вы получили долю. Друг выиграл — вы ничего не теряете.',
-    ref_share_lbl:'Ваша доля',
-    ach_win10_title:'Первые 10 TON',
-    ach_win10_desc:'Выиграть 10 TON суммарно',
-    topup_desc_tpl:'Оплата через @CryptoBot в TON. Минимум {min} TON.',
-    topup_unavailable:'Пополнение временно недоступно',
-    topup_invoice_opened_tpl:'Открыт счёт на {amount} TON · ждём оплату…',
-    topup_paid_tpl:'Оплата получена! +{amount} TON',
-    withdraw_sheet_desc_tpl:'Выплата ручная — в течение {hours} часов.',
-    withdraw_wallet_lbl:'Адрес кошелька TON',
-    withdraw_wallet_ph:'UQ… или EQ…',
-    withdraw_min_hint_tpl:'Минимум {min} TON',
-    withdraw_success_title:'Заявка создана',
-    withdraw_success_desc_tpl:'{amt} TON выплатим в течение {hours} часов.',
-    adm_s_ton_held:'TON на руках',
-    adm_s_ton_pending:'Заморожено в выводах',
-    adm_s_referral:'Выплачено рефералам',
-    adm_sort_ton:'Баланс'
+    ach_win10_title:'Первые 10 000 ⭐',
+    ach_win10_desc:'Выиграть 10 000 ⭐ суммарно',
+    topup_unavailable:'Наборы временно недоступны',
+    adm_s_ton_held:'Звёзд на руках',
+    adm_s_ton_pending:'Зарезервировано в заявках',
+    adm_sort_ton:'Баланс',
+    stars_lbl:'звёзд',
+    bal_stars_lbl:'Игровой баланс',
+    pvp_no_stars:'Недостаточно звёзд',
+    topup_desc:'Выберите набор и способ оплаты. На баланс зачислятся звёзды из набора.',
+    pay_xtr:'Telegram',
+    pay_ton:'TON',
+    pay_usdt:'USDT',
+    topup_paid_wait:'Ждём подтверждение оплаты…',
+    topup_failed:'Оплата не прошла',
+    topup_credited_tpl:'Зачислено {n} ⭐',
+    claim_btn:'Забрать выигрыш',
+    claim_hint:'Заявку принимает бот, разбираем вручную.',
+    claim_sheet_title:'Забрать выигрыш',
+    claim_sheet_desc_tpl:'Заявку принимает наш бот. Никаких автоматических выдач: человек посмотрит её и напишет вам в течение {hours} часов.',
+    claim_amount_lbl_tpl:'Сколько ⭐ (есть {avail})',
+    claim_note_lbl:'Комментарий',
+    claim_note_ph:'Необязательно',
+    claim_min_hint_tpl:'Минимум {n} ⭐',
+    claim_err_min_tpl:'Минимум {n} ⭐',
+    claim_err_funds:'Столько звёзд нет на балансе',
+    claim_err_open:'Одна заявка уже на рассмотрении — дождитесь ответа',
+    claim_err_generic:'Не удалось создать заявку',
+    claim_ok_title:'Заявка создана',
+    claim_ok_desc_tpl:'Заявка #{id} на {n} ⭐ ушла боту. Ответ будет там же в течение {hours} часов.',
+    claim_ok_btn:'Мои заявки',
+    claims_h1:'Мои заявки',
+    claims_sub:'Статус обращений за выигрышем',
+    claims_foot:'Каждую заявку разбирает человек. Ответ придёт в чат с ботом.',
+    claims_empty:'Заявок пока нет',
+    claims_err:'Не удалось загрузить заявки',
+    claims_id_tpl:'Заявка #{id}',
+    claim_st_new:'принята',
+    claim_st_in_review:'на рассмотрении',
+    claim_st_done:'выдано',
+    claim_st_rejected:'отклонена',
+    claims_btn:'Заявки',
+    hist_kind_claim_hold:'Заявка на выигрыш',
+    hist_kind_claim_return:'Звёзды вернулись',
+    px_pot_lbl:'Общий призовой фонд'
   },
   en:{
     /* PVP — новый экран (Э5) */
-    px_sub_waiting:'Waiting for players', px_sub_join_tpl:'Join before the timer ends · bet <b>{bet}</b>', px_sub_in_tpl:'Bet <b>{stake}</b> · chance <b class="px-mn">{pct}%</b> · you take <b>{payout}</b>', px_sub_won_tpl:'Took the pot at <b class="px-mn">{pct}%</b>', px_sub_lost:'Your ticket didn\'t come up', px_players_tpl:'{n} in the round', px_game_tpl:'Game #{id}', px_cta_join:'Enter the battle', px_cta_wait:'Placing bet…', px_cta_spin:'Spinning…', px_cta_over:'Round over', px_badge_spin:'DRAW', px_badge_won:'POT IS YOURS', px_badge_lost:'POT IS GONE', px_lbl_won:'You took the pot', px_lbl_lost_tpl:'{name} takes it',
+    px_sub_waiting:'Waiting for players', px_sub_join_tpl:'Join before the timer ends · entry <b>{bet}</b>', px_sub_in_tpl:'Your entry <b>{stake}</b> · chance <b class="px-mn">{pct}%</b> · you take <b>{payout}</b>', px_sub_won_tpl:'Took the pool at <b class="px-mn">{pct}%</b>', px_sub_lost:'Your ticket didn\'t come up', px_players_tpl:'{n} in the round', px_game_tpl:'Game #{id}', px_cta_join:'Enter the battle', px_cta_wait:'Joining…', px_cta_spin:'Spinning…', px_cta_over:'Round over', px_badge_spin:'PICKING', px_badge_won:'POOL IS YOURS', px_badge_lost:'POOL IS GONE', px_lbl_won:'You took the pool', px_lbl_lost_tpl:'{name} takes it',
     greet:'Welcome back', online_lbl:'online',
-    play_now:'Play now', next_draw:'Next draw', next_hour:'in 1 hour', ingame_lbl:'playing',
-    pvp_title:'Battle for the pot', pvp_desc:'Join a shared round — the winner takes the whole pot', pvp_cta:'Enter the battle →',
-    games_title:'Games', games_desc:'Crash and roulette', upgrade_title:'Upgrade', soon:'Soon', upgrade_desc:'Multiply your TON',
+    play_now:'Play now', next_draw:'Next tournament', next_hour:'in 1 hour', ingame_lbl:'playing',
+    pvp_title:'Battle for the pool', pvp_desc:'Join a shared round — the winner takes the whole pool', pvp_cta:'Enter the battle →',
+    games_title:'Games', games_desc:'Crash and roulette', upgrade_title:'Upgrade', soon:'Soon', upgrade_desc:'Multiply your stars',
     upgrade_toast:'Upgrade coming soon — improve your gifts',
     tab_home:'Games', tab_contests:'Contests', tab_leaders:'Leaders', tab_shop:'Cases', tab_profile:'Profile',
-    onb_h0:'Welcome to Shark', onb_p0:'One currency — TON. You play with it, top it up and withdraw it. No intermediate balances.',
-    onb_h1:'PVP — battle for the pot', onb_p1:'The main mode: join a shared round, throw TON into the pot. The winner takes it all.',
-    onb_h2:'Games for TON', onb_p2:'Crash and roulette — multipliers on your bet. Winnings land on your balance, and that is what you withdraw.',
-    onb_h3:'Telegram gifts', onb_p3:'Gift cases are bought with Telegram Stars — separate from your game balance. The gift lands in your inventory. Let’s go!',
+    onb_h0:'Welcome to Shark', onb_p0:'Play with stars, collect Telegram gifts and climb the leaderboard.',
+    onb_h1:'PVP — battle for the pool', onb_p1:'The main mode: join a shared round with others. The winner takes it all.',
+    onb_h2:'Star games', onb_p2:'Crash and the prize wheel — multipliers on your entry. Winnings land on your balance.',
+    onb_h3:'Telegram gifts', onb_p3:'You can claim your winnings: leave a request, the bot handles it and writes back. Let’s go!',
     onb_next:'Next', onb_start:'Start',
-    pvp_pot_lbl:'Shared pot', bet_lbl:'Bet:',
-    st_played:'Played', st_won:'Won TON', st_rank:'Rank',
-    bal_money_lbl:'Withdrawable balance (earnings)', withdraw_btn:'Withdraw', topup_btn:'Top up',
+    pvp_pot_lbl:'Shared prize pool', bet_lbl:'Entry:',
+    st_played:'Played', st_won:'Won ⭐', st_rank:'Rank', topup_btn:'Get stars',
     friends_btn:'Friends', history_btn:'History', ach_btn:'Achievements', settings_btn:'Settings',
     settings_h1:'Settings', lang_lbl:'Language', lang_desc:'App interface',
-    sound_lbl:'Sound', sound_desc:'In-game effects', notif_lbl:'Notifications', notif_desc:'Draws and important events',
+    sound_lbl:'Sound', sound_desc:'In-game effects', notif_lbl:'Notifications', notif_desc:'Tournaments and key events',
     howworks_lbl:'How it works', howworks_desc:'Show the tutorial again',
     support_lbl:'Support', support_desc:'Contact us', support_toast:'Support: @SharkSupport',
     back:'Back',
     pvp_waiting_players:'Waiting for players…',
-    pvp_in_battle:'You\'re in · waiting for the draw',
+    pvp_in_battle:'You are in · waiting for results',
     pvp_already:'You are already in this round',
     pvp_mixed_admin:'An account with a manually credited balance does not share a round with live players', pvp_closing:'Round is closing — wait for the next one',
-    pvp_bet_error:'Bet error', pvp_bet_toast:'Bet placed! Waiting for the draw.',
+    pvp_bet_error:'Could not join', pvp_bet_toast:'You are in the round! Waiting for results.',
     lvl_names:['Fry','Minnow','Hunter','Predator','Shark','Megalodon'], lvl_prefix:'Level ',
     you_word:'You', player_default:'Player',
     pvp_claim_btn:'Claim',
-    games_screen_h1:'Games', crash_tab_lbl:'Crash', roul_tab_lbl:'Roulette',
-    roul_sub:'Spin for TON — the multiplier applies to your bet',
-    spin_btn_tpl:'Spin for {bet} TON', crash_next_round_tpl:'Next round in {n}…',
-    auto_cashout_lbl:'Auto cash out at', crash_bet_btn_tpl:'Bet {bet} TON on the next round',
-    crash_bet_accepted_tpl:'Bet accepted {bet} TON · waiting for launch', crash_cashout_btn_tpl:'Take {amt} TON',
+    games_screen_h1:'Games', crash_tab_lbl:'Crash', roul_tab_lbl:'Wheel',
+    roul_sub:'Prize wheel — a multiplier on your entry',
+    spin_btn_tpl:'Spin for {bet} ⭐', crash_next_round_tpl:'Next round in {n}…',
+    auto_cashout_lbl:'Auto-take at', crash_bet_btn_tpl:'Play for {bet} ⭐',
+    crash_bet_accepted_tpl:'Accepted {bet} ⭐ · waiting for launch', crash_cashout_btn_tpl:'Take {amt} ⭐',
     crash_round_live_lbl:'Round in progress…', crash_round_over_lbl:'Round over', crash_waiting_lbl:'Waiting',
     crash_flying_status:'Round in progress — cash out in time!', crash_crashed_status_tpl:'Crashed at {x}x. New round soon…',
-    crash_missed_toast_tpl:'Too late! Your {bet} TON bet burned at {x}x', crash_bet_toast_auto_tpl:'Bet {bet} TON, auto cash-out at {x}x',
-    crash_bet_toast_tpl:'Bet {bet} TON accepted for the next round', crash_cashout_toast_tpl:'Took {win} TON at {x}x!',
+    crash_missed_toast_tpl:'Too late! {bet} ⭐ burned at {x}x', crash_bet_toast_auto_tpl:'Entry {bet} ⭐, auto-take at {x}x',
+    crash_bet_toast_tpl:'Entry {bet} ⭐ accepted', crash_cashout_toast_tpl:'Took {win} ⭐ at {x}x!',
     roul_recent_spins_lbl:'Recent spins', win_col_lbl:'Win',
-    crash_players_header_tpl:'Players in round · {n}', crash_bet_payout_lbl:'Bet · payout',
-    contests_h1:'Draws', contest_tab_active:'Active', contest_tab_yours:'Yours',
-    contest_empty_yours:'You\'re not in any draw yet.<br>Go to the "Active" tab and press "Join".',
+    crash_players_header_tpl:'Players in round · {n}', crash_bet_payout_lbl:'Entry · win',
+    contests_h1:'Tournaments', contest_tab_active:'Active', contest_tab_yours:'Yours',
+    contest_empty_yours:'You are not in any tournament yet.<br>Open the “Active” tab and tap “Join”.',
     leaders_screen_h1:'Leaders', leaders_sub:'Every week the top 100 by turnover get valuable prizes', leaders_week_end_lbl:'Until end of week',
     shop_h1:'Gift cases', shop_sub:'Open cases with Telegram Stars — Telegram gifts inside',
     contest_ended_lbl:'Ended', contest_members_word:'participants', prizes_count_tpl:'{n} prizes',
-    contest_joined_lbl:'You\'re in ✓', contest_join_btn:'Join', contest_joined_toast:'You joined the draw!',
-    ref_hero_pre:'Earn', ref_hero_post:'by inviting friends', ref_hero_muted:'of the platform revenue from their play — in TON',
-    ref_cap_pre:'Plus a one-off bonus of', ref_cap_post:'for your friend’s first top-up',
+    contest_joined_lbl:'You\'re in ✓', contest_join_btn:'Join', contest_joined_toast:'You are in the tournament!',
+    ref_hero_pre:'Earn', ref_hero_post:'by inviting friends', ref_hero_muted:'in stars from their play',
+    ref_cap_pre:'Plus a one-off bonus of',
     ref_invite_btn:'Invite friends', ref_copy_btn:'Copy link',
     ref_earned_lbl:'Total earned', ref_today_lbl:'Earned today', ref_friends_head:'My referrals',
     ref_empty:'No one has joined your link yet. Share it with friends!', ref_joined_word:'joined',
-    ref_share_text:'Join Shark — TON games and Telegram gifts!', ref_link_copied:'Link copied',
-    history_sub:'All credits, wins and withdrawals', history_empty:'Nothing here yet. Play — your history will show up here.',
+    ref_share_text:'Join Shark — star games and Telegram gifts!', ref_link_copied:'Link copied',
+    history_sub:'Credits, wins and requests', history_empty:'Nothing here yet. Play — your history will show up here.',
     history_load_error:'Could not load history.', ach_sub:'Unlock badges for how you play',
-    hist_kind_referral:'Referral', hist_kind_bet:'Bet', hist_kind_win:'Win', hist_kind_withdraw:'Withdrawal',
-    hist_kind_withdraw_refund:'Withdrawal refund', hist_kind_gift:'Gift', hist_kind_topup:'Top-up', hist_kind_adjust:'Adjustment',
-    hist_roul_win_title_tpl:'Roulette: {prize}', hist_bet_sub_tpl:'Bet {bet} TON',
+    hist_kind_referral:'Referral', hist_kind_bet:'Game entry', hist_kind_win:'Win', hist_kind_withdraw:'Winnings request',
+    hist_kind_withdraw_refund:'Request cancelled', hist_kind_gift:'Gift', hist_kind_topup:'Top-up', hist_kind_adjust:'Adjustment',
+    hist_roul_win_title_tpl:'Roulette: {prize}', hist_bet_sub_tpl:'Entry {bet} ⭐',
     hist_crash_lose_title:'Crash: loss', hist_crash_at_tpl:'Crashed at {x}x',
-    hist_crash_win_title:'Crash: cashed out', hist_mult_tpl:'Multiplier {x}x', hist_contest_join_title:'Contest entry',
+    hist_crash_win_title:'Crash: cashed out', hist_mult_tpl:'Multiplier {x}x', hist_contest_join_title:'Tournament entry',
     hist_ref_new_title:'New referral', hist_ref_new_sub:'Friend invited',
     hist_pvp_win_title:'PVP: win', hist_pvp_lose_title:'PVP: loss', cancel_btn:'Cancel',
-    withdraw_sheet_title:'Withdraw money',
-    withdraw_amount_lbl_tpl:'Amount (available {avail} TON)', withdraw_submit_btn:'Submit request',
-    withdraw_err_wallet:'Check the wallet address', withdraw_err_min_tpl:'Minimum {min} TON', withdraw_err_funds:'Not enough TON on your balance', withdraw_err_generic:'Could not create the request',
-    topup_sheet_title:'Top up balance',
-    topup_err_invoice:'Could not create the invoice', topup_open_in_tg:'Open the app inside Telegram',
+    topup_sheet_title:'Get stars',
+    topup_err_invoice:'Could not open the payment', topup_open_in_tg:'Open the app inside Telegram',
     ach_unlock_toast_tpl:'🏅 Achievement “{title}”', ok_btn:'OK',
     ach_play10_title:'Player', ach_play10_desc:'Play 10 times',
-    ach_first_wd_title:'First withdrawal', ach_first_wd_desc:'Withdraw money for the first time',
+    ach_first_wd_title:'First request', ach_first_wd_desc:'Submit a request for your winnings',
     ach_ref3_title:'Promoter', ach_ref3_desc:'Invite 3 friends',
-    hist_pvp_win_sub_tpl:'Pot {pot} TON', hist_pvp_lose_sub_tpl:'{name} won',
-    crash_cashout_error:'Cash out error',
-    push_new_draw_title:'New draw in 1 hour', push_new_draw_sub:'6 prizes · join in time',
+    hist_pvp_win_sub_tpl:'Pool {pot} ⭐', hist_pvp_lose_sub_tpl:'{name} won',
+    crash_cashout_error:'Could not take the win',
+    push_new_draw_title:'New tournament in 1 hour', push_new_draw_sub:'6 prizes · join in time',
     ticker_won_word:'won',
     cr_phase_live:'Round live', cr_phase_over:'Round over',
-    see_all_lbl:'All →', home_contest_empty:'No active draws right now',
+    see_all_lbl:'All →', home_contest_empty:'No active tournaments yet',
     rarity_common:'Common', rarity_rare:'Rare', rarity_epic:'Epic', rarity_legendary:'Legendary',
     /* Admin panel (stage 2) */
     adm_entry_lbl:'Admin panel', adm_entry_desc:'Internal section',
     adm_h1:'Admin panel', adm_note:'Only you can see this section. Every action is checked server-side.',
     adm_tab_stats:'Overview', adm_tab_players:'Players', adm_tab_grant:'Balance',
     adm_ph_stats:'Overview of players and turnover', adm_ph_players:'Player list with search',
-    adm_ph_grant:'Crediting TON to your own account',
+    adm_ph_grant:'Crediting ⭐ to your own account',
     /* Overview (stage 3) */
     adm_refresh:'Refresh', adm_updated_tpl:'As of {time}', adm_err:'Could not load the data',
     adm_retry:'Try again', adm_no_server:'Available inside Telegram only',
     adm_capped_tpl:'Showing the latest {n} records — turnover may be incomplete',
     adm_g_players:'Players', adm_g_balances:'Held balances', adm_g_flow:'Turnover, 7 days',
-    adm_s_total:'total', adm_s_active24:'active in 24h', adm_s_new24:'new in 24h', adm_s_new7:'new in 7 days', adm_s_pending_wd:'Withdrawals pending',
+    adm_s_total:'total', adm_s_active24:'active in 24h', adm_s_new24:'new in 24h', adm_s_new7:'new in 7 days', adm_s_pending_wd:'Open requests',
     adm_s_bets:'Wagered', adm_s_wins:'Won', adm_s_rake:'House keeps',
     adm_s_topups:'Top-ups', adm_s_grants:'Credited manually',
     /* Player list (stage 4) */
@@ -2292,10 +2346,10 @@ var I18N={
     /* Crediting stars (stage 5) */
     adm_gr_bal_lbl:'Your balance', adm_gr_clear:'Clear', adm_gr_note_ph:'Note (optional)',
     adm_gr_credit:'Credit', adm_gr_debit:'Deduct',
-    adm_gr_credit_tpl:'Credit {n} TON', adm_gr_debit_tpl:'Deduct {n} TON',
-    adm_gr_ok_tpl:'Credited {n} TON', adm_gr_ok_minus_tpl:'Deducted {n} TON',
-    adm_gr_err_amount:'Enter an amount between 0.1 and 1000 TON',
-    adm_gr_err_funds:'Not enough TON on the balance',
+    adm_gr_credit_tpl:'Credit {n} ⭐', adm_gr_debit_tpl:'Deduct {n} ⭐',
+    adm_gr_ok_tpl:'Credited {n} ⭐', adm_gr_ok_minus_tpl:'Deducted {n} ⭐',
+    adm_gr_err_amount:'Enter between 1 and 100,000 ⭐',
+    adm_gr_err_funds:'Not enough stars',
     adm_gr_err_target:'Crediting works on your own account only',
     myid_lbl:'Your ID', myid_desc:'Account number — tap to copy', myid_copied:'ID copied',
     adm_gr_hint:'The credit goes through the same ledger as any other movement of funds and shows up in history. Your own account only.',
@@ -2309,22 +2363,18 @@ var I18N={
     gft_empty_filter:'Nothing here. Try another filter.',
     gft_err:'Could not load the inventory',
     gft_foot:'Gifts are sent manually — usually within a day after the case is opened.',
-    gft_roadmap:'Sending to friends, swapping and collections are coming later.',
-    gft_soon:'Not available yet', gft_act_send:'Send', gft_act_exchange:'Swap', gft_act_collect:'Collect',
+    gft_roadmap:'Sending to friends and collections are coming later.',
+    gft_soon:'Not available yet', gft_act_send:'Send', gft_act_exchange:'Swap for another', gft_act_collect:'Collect',
     /* Delivery queue in the admin panel (E5) */
     adm_tab_gifts:'Gifts', adm_gf_pending:'To deliver', adm_gf_sent:'Delivered', adm_gf_all:'All',
     adm_gf_cnt_tpl:'Awaiting delivery: {n}', adm_gf_empty:'Nothing to deliver',
     adm_gf_mark_sending:'Working on it', adm_gf_mark_sent:'Sent',
     adm_gf_marked_sending:'Marked as sending', adm_gf_marked_sent:'Marked as sent',
     adm_gf_err:'Could not change the status',
-    ton_lbl:'TON',
-    hero_bal_sub:'Game balance · top up and withdraw in TON',
-    bal_ton_lbl:'Game balance',
-    bal_ton_note:'Top-ups and withdrawals — TON only',
-    pvp_no_ton:'Not enough TON — top up your balance',
+    hero_bal_sub:'Game balance',
     roul_result_title_tpl:'Landed on {mult}',
-    roul_result_desc_tpl:'“{prize}” · bet {bet} TON → win {win} TON',
-    shop_note:'The case is paid with Stars directly in Telegram. Your TON game balance is not touched.',
+    roul_result_desc_tpl:'“{prize}” · entry {bet} ⭐ → win {win} ⭐',
+    shop_note:'Inside the case is a Telegram gift. It lands in your inventory.',
     shop_foot:'The gift you get lands in your inventory right away.',
     shop_inv:'Inventory',
     cs_drops_tpl:'{n} gifts',
@@ -2339,24 +2389,51 @@ var I18N={
     cs_slow:'Payment is processing — the gift will appear in your inventory',
     cs_won_desc_tpl:'Worth {n} ⭐. The gift is in your inventory — we will send it manually.',
     cs_to_inventory:'To inventory',
-    ref_line:'Your friend loses — you get a share. Your friend wins — you lose nothing.',
-    ref_share_lbl:'Your share',
-    ach_win10_title:'First 10 TON',
-    ach_win10_desc:'Win 10 TON in total',
-    topup_desc_tpl:'Paid via @CryptoBot in TON. Minimum {min} TON.',
-    topup_unavailable:'Top-ups are temporarily unavailable',
-    topup_invoice_opened_tpl:'Invoice for {amount} TON opened · waiting for payment…',
-    topup_paid_tpl:'Payment received! +{amount} TON',
-    withdraw_sheet_desc_tpl:'Payouts are manual — within {hours} hours.',
-    withdraw_wallet_lbl:'TON wallet address',
-    withdraw_wallet_ph:'UQ… or EQ…',
-    withdraw_min_hint_tpl:'Minimum {min} TON',
-    withdraw_success_title:'Request created',
-    withdraw_success_desc_tpl:'{amt} TON will be paid out within {hours} hours.',
-    adm_s_ton_held:'TON held by players',
-    adm_s_ton_pending:'Frozen in withdrawals',
-    adm_s_referral:'Paid to referrers',
-    adm_sort_ton:'Balance'
+    ach_win10_title:'First 10,000 ⭐',
+    ach_win10_desc:'Win 10,000 ⭐ in total',
+    topup_unavailable:'Bundles are temporarily unavailable',
+    adm_s_ton_held:'Stars held by players',
+    adm_s_ton_pending:'Reserved in requests',
+    adm_sort_ton:'Balance',
+    stars_lbl:'stars',
+    bal_stars_lbl:'Game balance',
+    pvp_no_stars:'Not enough stars',
+    topup_desc:'Pick a bundle and how to pay. The stars from the bundle land on your balance.',
+    pay_xtr:'Telegram',
+    pay_ton:'TON',
+    pay_usdt:'USDT',
+    topup_paid_wait:'Waiting for the payment to confirm…',
+    topup_failed:'Payment did not go through',
+    topup_credited_tpl:'{n} ⭐ credited',
+    claim_btn:'Claim winnings',
+    claim_hint:'The bot takes your request, we handle it by hand.',
+    claim_sheet_title:'Claim winnings',
+    claim_sheet_desc_tpl:'Our bot takes the request. Nothing is issued automatically: a person reviews it and replies within {hours} hours.',
+    claim_amount_lbl_tpl:'How many ⭐ (you have {avail})',
+    claim_note_lbl:'Comment',
+    claim_note_ph:'Optional',
+    claim_min_hint_tpl:'Minimum {n} ⭐',
+    claim_err_min_tpl:'Minimum {n} ⭐',
+    claim_err_funds:'You do not have that many stars',
+    claim_err_open:'One request is already under review — wait for the reply',
+    claim_err_generic:'Could not create the request',
+    claim_ok_title:'Request created',
+    claim_ok_desc_tpl:'Request #{id} for {n} ⭐ went to the bot. The reply comes there within {hours} hours.',
+    claim_ok_btn:'My requests',
+    claims_h1:'My requests',
+    claims_sub:'Status of your winnings requests',
+    claims_foot:'Every request is handled by a person. The reply arrives in the bot chat.',
+    claims_empty:'No requests yet',
+    claims_err:'Could not load the requests',
+    claims_id_tpl:'Request #{id}',
+    claim_st_new:'received',
+    claim_st_in_review:'in review',
+    claim_st_done:'issued',
+    claim_st_rejected:'declined',
+    claims_btn:'Requests',
+    hist_kind_claim_hold:'Winnings request',
+    hist_kind_claim_return:'Stars returned',
+    px_pot_lbl:'Shared prize pool'
   }
 };
 var LANG_KEY='shark_lang_v1';
@@ -2376,7 +2453,7 @@ function tf(key,vars){ return t(key).replace(/\{(\w+)\}/g,function(_,k){return (
 function setLangSaved(l){ try{ localStorage.setItem(LANG_KEY,l); }catch(e){} }
 function applyI18n(){
   var map={
-    greet:'greet', 'i-online-lbl':'online_lbl', 'i-ton-lbl':'ton_lbl', 'i-hero-bal-sub':'hero_bal_sub',
+    greet:'greet', 'i-online-lbl':'online_lbl', 'i-stars-lbl':'stars_lbl', 'i-hero-bal-sub':'hero_bal_sub',
     'i-play-now':'play_now', 'i-next-draw':'next_draw', 'i-next-hour':'next_hour', 'i-ingame-lbl':'ingame_lbl',
     'i-pvp-title':'pvp_title', 'i-pvp-desc':'pvp_desc', 'i-pvp-cta':'pvp_cta',
     'i-games-title':'games_title', 'i-games-desc':'games_desc',
@@ -2386,8 +2463,10 @@ function applyI18n(){
     'onb-h-2':'onb_h2', 'onb-p-2':'onb_p2', 'onb-h-3':'onb_h3', 'onb-p-3':'onb_p3',
     'px-lbl':'pvp_pot_lbl',
     'i-st-played-lbl':'st_played', 'i-st-won-lbl':'st_won', 'i-st-rank-lbl':'st_rank',
-    'i-bal-ton-lbl':'bal_ton_lbl', 'i-bal-ton-note':'bal_ton_note',
-    'i-withdraw-btn':'withdraw_btn', 'i-topup-btn':'topup_btn',
+    'i-bal-stars-lbl':'bal_stars_lbl', 'i-topup-btn':'topup_btn',
+    'i-claim-btn':'claim_btn', 'i-claim-hint':'claim_hint',
+    'i-claims-h1':'claims_h1', 'i-claims-sub':'claims_sub', 'i-claims-foot':'claims_foot',
+    'i-claims-btn':'claims_btn',
     'i-gifts-btn':'gifts_btn',
     'i-friends-btn':'friends_btn', 'i-history-btn':'history_btn', 'i-ach-btn':'ach_btn', 'i-settings-btn':'settings_btn',
     'i-settings-h1':'settings_h1', 'i-lang-lbl':'lang_lbl', 'i-lang-desc':'lang_desc',
@@ -2405,9 +2484,7 @@ function applyI18n(){
     'i-home-leaders-h':'leaders_screen_h1', 'i-home-leaders-all':'see_all_lbl',
     'i-home-shop-h':'tab_shop', 'i-home-shop-all':'see_all_lbl',
     'i-ref-hero-pre':'ref_hero_pre', 'i-ref-hero-post':'ref_hero_post', 'i-ref-hero-muted':'ref_hero_muted',
-    'i-ref-line':'ref_line',
-    'i-ref-cap-pre':'ref_cap_pre', 'i-ref-cap-post':'ref_cap_post',
-    'i-ref-share-lbl':'ref_share_lbl',
+    'i-ref-cap-pre':'ref_cap_pre',
     'i-ref-invite-btn':'ref_invite_btn', 'i-ref-copy-btn':'ref_copy_btn',
     'i-ref-earned-lbl':'ref_earned_lbl', 'i-ref-today-lbl':'ref_today_lbl', 'i-ref-friends-head':'ref_friends_head',
     'i-refs-h1':'friends_btn', 'i-history-h1':'history_btn', 'i-history-sub':'history_sub',
@@ -2425,7 +2502,7 @@ function applyI18n(){
     'i-gft-f-all':'gft_f_all', 'i-gft-f-held':'gft_f_held', 'i-gft-f-sent':'gft_f_sent',
     'i-adm-ph-stats':'adm_ph_stats', 'i-adm-ph-players':'adm_ph_players', 'i-adm-ph-grant':'adm_ph_grant',
     'i-adm-refresh':'adm_refresh',
-    'i-adm-sort-seen':'adm_sort_seen', 'i-adm-sort-ton':'adm_sort_ton',
+    'i-adm-sort-seen':'adm_sort_seen', 'i-adm-sort-stars':'adm_sort_ton',
     'i-adm-sort-new':'adm_sort_new', 'i-adm-sort-played':'adm_sort_played',
     'i-myid-lbl':'myid_lbl', 'i-myid-desc':'myid_desc',
     'i-adm-gr-bal-lbl':'adm_gr_bal_lbl', 'i-adm-gr-clear':'adm_gr_clear', 'i-adm-gr-hint':'adm_gr_hint'
@@ -2586,6 +2663,7 @@ function go(name){
   if(name==='leaders'){ startLeaderCountdown(); } else { stopLeaderCountdown(); }
   if(name==='admin') admTab(admTabCur);
   if(name==='gifts') gftLoad();
+  if(name==='claims') loadClaims();
 }
 
 /* ============ ИНВЕНТАРЬ ПОДАРКОВ (Э5) ============ */
@@ -2785,20 +2863,20 @@ function admGrInput(v){
   var n=Number(raw||0);
   if(!isFinite(n)||n<0) n=0;
   if(n>ADM_GR_MAX){ n=ADM_GR_MAX; raw=String(ADM_GR_MAX); }
-  admGr.amountN=toNano(n);
+  admGr.amountN=starInt(n);
   admGr.key='';                                  // сумма изменилась — это уже другое намерение
   var f=document.getElementById('adm-gr-amt');
   if(f && f.value!==raw) f.value=raw;
   admGrSync();
 }
 function admGrAdd(n){
-  admGrInput(String(Math.min(fromNano(admGr.amountN)+n,ADM_GR_MAX)));
+  admGrInput(String(Math.min(starInt(admGr.amountN)+n,ADM_GR_MAX)));
 }
 function admGrClear(){ admGrInput(''); }
 
 function admGrSync(){
-  var b=document.getElementById('adm-gr-bal'); if(b) b.textContent=tonFmt(S.ton);
-  var nN=admGr.amountN, has=nN>0, enough=(S.tonN>=nN), lbl=tonFmt(fromNano(nN));
+  var b=document.getElementById('adm-gr-bal'); if(b) b.textContent=starFmt(S.stars);
+  var nN=admGr.amountN, has=nN>0, enough=(S.stars>=nN), lbl=starFmt(starInt(nN));
   var p=document.getElementById('adm-gr-plus'), m=document.getElementById('adm-gr-minus');
   if(p){
     p.textContent=has?tf('adm_gr_credit_tpl',{n:lbl}):t('adm_gr_credit');
@@ -2813,9 +2891,9 @@ function admGrSync(){
 
 async function admGrant(sign){
   if(admGr.busy) return;
-  var nN=admGr.amountN, n=fromNano(nN);
-  if(!(nN>0)||nN>toNano(ADM_GR_MAX)){ toast(t('adm_gr_err_amount')); return; }
-  if(sign<0 && S.tonN<nN){ toast(t('adm_gr_err_funds')); return; }
+  var nN=admGr.amountN, n=starInt(nN);
+  if(!(nN>0)||nN>starInt(ADM_GR_MAX)){ toast(t('adm_gr_err_amount')); return; }
+  if(sign<0 && S.stars<nN){ toast(t('adm_gr_err_funds')); return; }
   if(!SERVER){ toast(t('adm_no_server')); return; }
 
   var noteEl=document.getElementById('adm-gr-note');
@@ -2830,13 +2908,13 @@ async function admGrant(sign){
   if(!r||!r.ok){ toast(admGrErr(r&&r.reason)); admGrSync(); return; }
 
   admGr.key='';                                  // начисление прошло — следующее будет новым
-  if(r.user) applyUser(r.user); else S.tonN=toNano(r.balance!=null?r.balance:S.ton);
+  if(r.user) applyUser(r.user); else S.stars=starInt(r.balance!=null?r.balance:S.stars);
   syncBalances();
   admStats.data=null;                            // сводка устарела: цифры сдвинулись
   admPl.loaded=false;                            // и своя строка в списке игроков тоже
   if(noteEl) noteEl.value='';
   admGrInput('');
-  toast(tf(sign<0?'adm_gr_ok_minus_tpl':'adm_gr_ok_tpl',{n:tonFmt(n)}));
+  toast(tf(sign<0?'adm_gr_ok_minus_tpl':'adm_gr_ok_tpl',{n:starFmt(n)}));
 }
 
 function admGrErr(reason){
@@ -3039,9 +3117,9 @@ function admRenderPlayers(){
       +avDiv('adm-av',key,38)
       +'<div class="adm-pl-t"><div class="adm-pl-n">'+(admEsc(p.name)||('id '+admEsc(p.tg_id)))+tags+'</div>'
       +'<div class="adm-pl-m">'+meta+'</div></div>'
-      +'<div class="adm-pl-r"><div class="adm-pl-s">'+tonFmt(p.ton)+' TON</div>'
+      +'<div class="adm-pl-r"><div class="adm-pl-s">'+starFmt(p.ton)+' TON</div>'
       // выигранное показываем, только когда оно есть — иначе ноль шумит в каждом ряду
-      +(p.wonTon>0?'<div class="adm-pl-w mny">+'+tonFmt(p.wonTon)+'</div>':'')
+      +(p.wonTon>0?'<div class="adm-pl-w mny">+'+starFmt(p.wonTon)+'</div>':'')
       +'<div class="adm-pl-w">'+admAgo(p.lastSeen)+'</div></div>'
       +'</div>';
   }).join('');
@@ -3136,7 +3214,7 @@ function admRenderStats(){
 
   function kpi(v,l){ return '<div class="adm-kpi"><div class="ak-v">'+v+'</div><div class="ak-l">'+l+'</div></div>'; }
   function row(l,v,cls){ return '<div class="adm-row'+(cls?' '+cls:'')+'"><span>'+l+'</span><b>'+v+'</b></div>'; }
-  var st=function(n){ return tonFmt(n)+ADM_TSEP+'TON'; };
+  var st=function(n){ return starFmt(n)+ADM_TSEP+'TON'; };
 
   var h='';
   h+='<div class="adm-card"><h4>'+t('adm_g_players')+'</h4><div class="adm-kpis">'
@@ -3157,8 +3235,7 @@ function admRenderStats(){
     +row(t('adm_s_wins'),st(s.wins7d))
     +row(t('adm_s_rake'),st(s.rake7d),'hi')
     +row(t('adm_s_topups'),st(s.topups7d))
-    +row(t('adm_s_grants'),st(s.grants7d))
-    +row(t('adm_s_referral'),st(s.referral7d));
+    +row(t('adm_s_grants'),st(s.grants7d));
   if(s.scan&&s.scan.capped) h+='<p class="adm-note-sm">'+tf('adm_capped_tpl',{n:admNum(s.scan.cap)})+'</p>';
   h+='</div>';
 
@@ -3186,12 +3263,12 @@ function setGameTab(t){
 
 /* ============ БАЛАНСЫ / ПРОФИЛЬ ============ */
 function syncBalances(){
-  $all('[data-ton]').forEach(function(e){e.textContent=tonFmt(S.ton);});
-  var tb=$('[data-ton-big]'); if(tb) tb.innerHTML=tonBal(S.ton)+' <span style="font-size:20px;color:var(--aqua)">TON</span>';
+  $all('[data-stars]').forEach(function(e){e.textContent=starFmt(S.stars);});
+  var tb=$('[data-stars-big]'); if(tb) tb.innerHTML=starFmt(S.stars)+' <i class="star-ic" style="width:24px;height:24px"></i>';
 }
 function levelInfo(){
   // уровень от суммарной активности
-  var xp=S.played*10+S.wonTon*2+Object.keys(S.doneTasks).length*15;
+  var xp=S.played*10+S.wonStars/50+Object.keys(S.doneTasks).length*15;
   var lvl=Math.max(1,Math.floor(xp/100)+1);
   var names=(I18N[L]&&I18N[L].lvl_names)||I18N.uk.lvl_names;
   var name=names[Math.min(lvl-1,names.length-1)];
@@ -3202,7 +3279,7 @@ function renderProfile(){
   var pn=document.getElementById('prof-lvl'); if(pn) pn.textContent=t('lvl_prefix')+li.lvl+' · '+li.name;
   var lb=document.getElementById('lvlbar'); if(lb) lb.style.width=Math.max(li.prog,6)+'%';
   var sp=document.getElementById('st-played'); if(sp) sp.textContent=S.played;
-  var sw=document.getElementById('st-won'); if(sw) sw.textContent=tonFmt(S.wonTon);
+  var sw=document.getElementById('st-won'); if(sw) sw.textContent=starFmt(S.wonStars);
   var sr=document.getElementById('st-rank'); if(sr) sr.textContent='100+';
 }
 
@@ -3223,7 +3300,7 @@ function buildTicker(){
   for(var i=0;i<10;i++){
     var b=randBot(); var p=ROUL_PRIZES[rint(0,ROUL_PRIZES.length-1)];
     var stake=BETS[rint(0,BETS.length-1)];
-    items.push('<span>'+b.a+' '+b.n+' '+t('ticker_won_word')+' '+p.emoji+' <span class="g">+'+tonFmt(fromNano(Math.round(toNano(stake)*p.mult)))+' TON</span></span>');
+    items.push('<span>'+b.a+' '+b.n+' '+t('ticker_won_word')+' '+p.emoji+' <span class="g">+'+starFmt(Math.floor(stake*p.mult))+' <i class="star-ic"></i></span></span>');
   }
   var html=items.join('')+items.join(''); // дублируем для бесшовной прокрутки
   document.getElementById('ticker').innerHTML=html;
@@ -3234,16 +3311,16 @@ var spinning=false,stripPrizes=[];
 function pickWeighted(){var total=0,i;for(i=0;i<ROUL_PRIZES.length;i++)total+=ROUL_PRIZES[i].weight;var r=Math.random()*total;for(i=0;i<ROUL_PRIZES.length;i++){r-=ROUL_PRIZES[i].weight;if(r<=0)return ROUL_PRIZES[i];}return ROUL_PRIZES[0];}
 function buildStrip(){var strip=document.getElementById('strip');if(!strip)return;strip.innerHTML='';stripPrizes=[];for(var i=0;i<50;i++){var p=pickWeighted();stripPrizes.push(p);var it=document.createElement('div');it.className='roul-item';it.style.background=roulColor(p);it.innerHTML=p.emoji+'<small>'+multLbl(p.mult)+'</small>';strip.appendChild(it);}}
 function setBet(v){
-  S.betN=toNano(v);
-  $all('[data-bet]').forEach(function(c){ c.classList.toggle('active',toNano(c.getAttribute('data-bet'))===S.betN); });
-  var b=document.getElementById('spin-btn'); if(b) b.textContent=tf('spin_btn_tpl',{bet:tonFmt(v)});
+  S.bet=starInt(v);
+  $all('[data-bet]').forEach(function(c){ c.classList.toggle('active',starInt(c.getAttribute('data-bet'))===S.bet); });
+  var b=document.getElementById('spin-btn'); if(b) b.textContent=tf('spin_btn_tpl',{bet:starFmt(v)});
 }
 function pushMyRoulRow(prize){
   var box=document.getElementById('roul-players');if(!box)return;
   if(!box.querySelector('.ph')) box.innerHTML='<div class="ph"><span>'+t('roul_recent_spins_lbl')+'</span><span>'+t('win_col_lbl')+'</span></div>';
   var row=document.createElement('div');row.className='prow';
   var cls=Number(prize.win)>=Number(prize.bet)?'win':'lose';
-  row.innerHTML='<div class="av">🙂</div><div class="nm"><b style="color:var(--aqua)">'+t('you_word')+'</b></div><div class="st '+cls+'">'+prize.emoji+' '+multLbl(prize.mult)+' · '+tonFmt(prize.win)+'</div>';
+  row.innerHTML='<div class="av">🙂</div><div class="nm"><b style="color:var(--aqua)">'+t('you_word')+'</b></div><div class="st '+cls+'">'+prize.emoji+' '+multLbl(prize.mult)+' · '+starFmt(prize.win)+'</div>';
   var header=box.querySelector('.ph');
   if(header.nextSibling)box.insertBefore(row,header.nextSibling);else box.appendChild(row);
   while(box.querySelectorAll('.prow').length>6)box.removeChild(box.lastChild);
@@ -3251,7 +3328,7 @@ function pushMyRoulRow(prize){
 var roulFeedTimer=null;
 function startRoulFeed(){var box=document.getElementById('roul-players');if(!box.querySelector('.ph')){box.innerHTML='<div class="ph"><span>'+t('roul_recent_spins_lbl')+'</span><span>'+t('win_col_lbl')+'</span></div>';for(var i=0;i<5;i++)pushRoulRow();}stopRoulFeed();roulFeedTimer=setInterval(pushRoulRow,rint(1800,3200));}
 function stopRoulFeed(){if(roulFeedTimer){clearInterval(roulFeedTimer);roulFeedTimer=null;}}
-function pushRoulRow(){var box=document.getElementById('roul-players');if(!box)return;var b=randBot();var p=pickWeighted();var stake=BETS[rint(0,BETS.length-1)];var win=Math.round(toNano(stake)*p.mult)/NANO;var row=document.createElement('div');row.className='prow';row.innerHTML=avDiv('av',b.a,28)+'<div class="nm">'+b.n+'</div><div class="st '+(p.mult>=1?'win':'lose')+'">'+p.emoji+' '+multLbl(p.mult)+' · '+tonFmt(win)+'</div>';var header=box.querySelector('.ph');if(header.nextSibling)box.insertBefore(row,header.nextSibling);else box.appendChild(row);while(box.querySelectorAll('.prow').length>6)box.removeChild(box.lastChild);}
+function pushRoulRow(){var box=document.getElementById('roul-players');if(!box)return;var b=randBot();var p=pickWeighted();var stake=BETS[rint(0,BETS.length-1)];var win=Math.floor(stake*p.mult);var row=document.createElement('div');row.className='prow';row.innerHTML=avDiv('av',b.a,28)+'<div class="nm">'+b.n+'</div><div class="st '+(p.mult>=1?'win':'lose')+'">'+p.emoji+' '+multLbl(p.mult)+' · '+starFmt(win)+'</div>';var header=box.querySelector('.ph');if(header.nextSibling)box.insertBefore(row,header.nextSibling);else box.appendChild(row);while(box.querySelectorAll('.prow').length>6)box.removeChild(box.lastChild);}
 
 /* ============ КРАШ ============ */
 var crashPhase='waiting',crashRAF=null,crashMult=1,crashTarget=0,crashT0=0,crashCountdown=5,crashCdTimer=null,crashBots=[],crashLoopActive=false,iJoined=false;
@@ -3297,7 +3374,7 @@ function vibrate(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e
 var CRASH_NAMES=['Никита','ARMIN','Джастон','Amir','XU','Данёк','sea_wolf','Влад','kraken_x','Максим','reef_king','Артём','SELL FIZ','tide_88','Оля','marlin','Санёк','deep_one','Женя','orca_pro','Дима','blue_fin','Илья','pearl','Тимур','aqua_max'];
 var CRASH_AV=["manta","giraffe","frog","starfish","jellyfish","tarantula","butterfly1","nudibranch1","owl","tiger","orbspider","snail","turtle","arowana","monkey","cuttlefish","morayeel","crab","bluejay","jumpingspider","greennudi"];
 /* Ставки ботов в ленте краша — косметика, но масштаб должен совпадать с
-   реальными: список выводим из серверного BETS, иначе рядом с «0.1 TON»
+   реальными: список берём из серверного BETS, иначе рядом с «25 ⭐»
    висело бы «500». */
 function crashBetSample(){
   var b=BETS.slice(), out=b.slice();
@@ -3315,14 +3392,14 @@ function renderCrashHistory(){
   });
 }
 function setCBet(v){
-  S.cbetN=toNano(v);
-  $all('[data-cbet]').forEach(function(c){ c.classList.toggle('active',toNano(c.getAttribute('data-cbet'))===S.cbetN); });
+  S.cbet=starInt(v);
+  $all('[data-cbet]').forEach(function(c){ c.classList.toggle('active',starInt(c.getAttribute('data-cbet'))===S.cbet); });
   updateCrashBtn();
 }
 function updateCrashBtn(){var btn=document.getElementById('crash-btn');if(!btn)return;
   var cashing=false;
-  if(crashPhase==='waiting'){btn.textContent=iJoined?tf('crash_bet_accepted_tpl',{bet:tonFmt(S.cbet)}):tf('crash_bet_btn_tpl',{bet:tonFmt(S.cbet)});btn.disabled=iJoined;}
-  else if(crashPhase==='flying'){if(iJoined&&!S.cashedThisRound){btn.textContent=tf('crash_cashout_btn_tpl',{amt:tonFmt(fromNano(Math.floor(S.cbetN*crashMult)))});btn.disabled=false;cashing=true;}else{btn.textContent=t('crash_round_live_lbl');btn.disabled=true;}}
+  if(crashPhase==='waiting'){btn.textContent=iJoined?tf('crash_bet_accepted_tpl',{bet:starFmt(S.cbet)}):tf('crash_bet_btn_tpl',{bet:starFmt(S.cbet)});btn.disabled=iJoined;}
+  else if(crashPhase==='flying'){if(iJoined&&!S.cashedThisRound){btn.textContent=tf('crash_cashout_btn_tpl',{amt:starFmt(Math.floor(S.cbet*crashMult))});btn.disabled=false;cashing=true;}else{btn.textContent=t('crash_round_live_lbl');btn.disabled=true;}}
   else{btn.textContent=t('crash_round_over_lbl');btn.disabled=true;}
   btn.classList.toggle('cr-btn-cash',cashing);}
 function startCrashLoop(){if(crashLoopActive)return;crashLoopActive=true;beginWaiting();}
@@ -3439,7 +3516,7 @@ function crashTick(now){
   var tickKey=Math.floor(crashMult*5);
   if(tickKey!==crashTick._lastTick){ crashTick._lastTick=tickKey; beep(300+crashMult*40,0.03,0.025,'square'); }
 
-  // авто-вывод
+  // авто-забор
   if(iJoined && !S.cashedThisRound && autoCash && crashMult>=autoMult){ crashAction(); }
 
   if(crashMult>=crashTarget){
@@ -3457,7 +3534,7 @@ function crashTick(now){
     setTimeout(function(){if(sh)sh.style.transition='';},520);
     crashBots.forEach(function(p2){if(p2.status==='live')p2.status='lose';});
     renderCrashPlayers();
-    if(iJoined&&!S.cashedThisRound){toast(tf('crash_missed_toast_tpl',{bet:tonFmt(S.cbet),x:crashTarget.toFixed(2)}));logOp('💥',t('hist_crash_lose_title'),tf('hist_crash_at_tpl',{x:crashTarget.toFixed(2)}),'−'+tonFmt(S.cbet)+' TON','minus');}
+    if(iJoined&&!S.cashedThisRound){toast(tf('crash_missed_toast_tpl',{bet:starFmt(S.cbet),x:crashTarget.toFixed(2)}));logOp('💥',t('hist_crash_lose_title'),tf('hist_crash_at_tpl',{x:crashTarget.toFixed(2)}),'−'+starFmt(S.cbet)+' TON','minus');}
     var st2=document.getElementById('crash-status');if(st2)st2.innerHTML=tf('crash_crashed_status_tpl',{x:'<b>'+crashTarget.toFixed(2)+'</b>'});
     updateCrashBtn();
     setTimeout(beginWaiting,2600);
@@ -3470,14 +3547,14 @@ function renderCrashPlayers(){
   var html='<div class="ph"><span>'+tf('crash_players_header_tpl',{n:crashBots.length})+'</span><span>'+t('crash_bet_payout_lbl')+'</span></div>';
   crashBots.forEach(function(p){
     var cls,mul,pay;
-    if(p.status==='win'){ cls='win'; mul='×'+p.cashAt.toFixed(2); pay='<span class="cpay win">+'+tonFmt(p.taken)+'</span>'; }
+    if(p.status==='win'){ cls='win'; mul='×'+p.cashAt.toFixed(2); pay='<span class="cpay win">+'+starFmt(p.taken)+'</span>'; }
     else if(p.status==='lose'){ cls='lose'; mul='💥'; pay='<span class="cpay lose">—</span>'; }
     else { cls='live'; var cm=(crashPhase==='flying')?crashMult:1; mul='×'+cm.toFixed(2);
-           pay='<span class="cpay">'+tonFmt(fromNano(Math.floor(toNano(p.bet)*cm)))+'</span>'; }
+           pay='<span class="cpay">'+starFmt(Math.floor(p.bet*cm))+'</span>'; }
     html+='<div class="crow '+cls+'">'+avDiv('cav',p.bot.a,44)
       +'<div class="cinfo"><div class="cnm">'+(p.me?'<b>'+t('you_word')+'</b>':p.bot.n)+'</div>'
-      +'<div class="cbet"><i class="ton-ic"></i>'+tonFmt(p.bet)+' <span class="cmul">'+mul+'</span></div></div>'
-      +'<div class="cpaywrap"><i class="ton-ic"></i>'+pay+'</div></div>';
+      +'<div class="cbet"><i class="star-ic"></i>'+starFmt(p.bet)+' <span class="cmul">'+mul+'</span></div></div>'
+      +'<div class="cpaywrap"><i class="star-ic"></i>'+pay+'</div></div>';
   });
   box.innerHTML=html;
 }
@@ -3521,7 +3598,7 @@ function renderHomeLeadersPreview(){
   var medals=['🥇','🥈','🥉'];
   LEADERS.slice(0,3).forEach(function(l,i){
     var el=document.createElement('div'); el.className='hp-lcard'; el.onclick=function(){go('leaders');};
-    el.innerHTML='<div class="medal">'+medals[i]+'</div>'+avDiv('av',l.a,40)+'<b>'+l.n+'</b><div class="sc"><i class="ton-ic"></i> '+tonFmt(l.s)+'</div>';
+    el.innerHTML='<div class="medal">'+medals[i]+'</div>'+avDiv('av',l.a,40)+'<b>'+l.n+'</b><div class="sc"><i class="star-ic"></i> '+starFmt(l.s)+'</div>';
     g.appendChild(el);
   });
 }
@@ -3571,20 +3648,20 @@ function renderLeaders(){
     var medals=['🥇','🥈','🥉'];
     top3.forEach(function(l,i){
       var slot=document.createElement('div'); slot.className='podium-slot p'+(i+1);
-      slot.innerHTML='<div class="rk">#'+(i+1)+'</div><div class="medal">'+medals[i]+'</div>'+avDiv('av',l.a,i===0?64:52)+'<div class="nm">'+l.n+'</div><div class="sc"><i class="ton-ic"></i> '+tonFmt(l.s)+'</div>';
+      slot.innerHTML='<div class="rk">#'+(i+1)+'</div><div class="medal">'+medals[i]+'</div>'+avDiv('av',l.a,i===0?64:52)+'<div class="nm">'+l.n+'</div><div class="sc"><i class="star-ic"></i> '+starFmt(l.s)+'</div>';
       pod.appendChild(slot);
     });
     box.appendChild(pod);
   }
-  rest.forEach(function(l,i){var el=document.createElement('div');el.className='leader';el.innerHTML='<div class="rk">'+(i+4)+'</div>'+avDiv('av',l.a,38)+'<div class="nm">'+l.n+'</div><div class="sc"><i class="ton-ic"></i> '+tonFmt(l.s)+'</div>';box.appendChild(el);});
-  var you=document.createElement('div');you.className='leader you';you.innerHTML='<div class="rk">100+</div><div class="av">🙂</div><div class="nm">'+t('you_word')+'</div><div class="sc"><i class="ton-ic"></i> '+tonFmt(S.wonTon)+'</div>';box.appendChild(you);
+  rest.forEach(function(l,i){var el=document.createElement('div');el.className='leader';el.innerHTML='<div class="rk">'+(i+4)+'</div>'+avDiv('av',l.a,38)+'<div class="nm">'+l.n+'</div><div class="sc"><i class="star-ic"></i> '+starFmt(l.s)+'</div>';box.appendChild(el);});
+  var you=document.createElement('div');you.className='leader you';you.innerHTML='<div class="rk">100+</div><div class="av">🙂</div><div class="nm">'+t('you_word')+'</div><div class="sc"><i class="star-ic"></i> '+starFmt(S.wonStars)+'</div>';box.appendChild(you);
 }
 
 /* ============ КОНКУРСЫ ============ */
 var ACTIVE_CONTESTS=[{id:1,prizesN:6,members:4263,timer:"11ч 57м",prizes:[{e:"🦈",v:25},{e:"🐚",v:10},{e:"🪸",v:5}]},{id:2,prizesN:9,members:644,timer:"3ч 26м",prizes:[{e:"🌊",v:15},{e:"🐠",v:7.5},{e:"⚓",v:3}]}];
 var HISTORY_CONTESTS=[{id:91,prizesN:6,members:5210,won:false,date:"вчера",prizes:[{e:"💎",v:50},{e:"🦈",v:20},{e:"🐚",v:10}]},{id:92,prizesN:3,members:1880,won:true,date:"3 дня назад",prizes:[{e:"🪸",v:12},{e:"🐠",v:6},{e:"⚓",v:3}]}];
 function setContestTab(tab){$all('#contest-seg button').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-ctab')===tab);});var body=document.getElementById('contest-body');body.innerHTML='';if(tab==='active'){ACTIVE_CONTESTS.forEach(function(c){body.appendChild(contestCard(c,'active'));});}else if(tab==='yours'){var joined=ACTIVE_CONTESTS.filter(function(c){return S.joinedContests[c.id];});if(!joined.length){body.innerHTML='<div class="empty">'+t('contest_empty_yours')+'</div>';}else joined.forEach(function(c){body.appendChild(contestCard(c,'yours'));});}else{HISTORY_CONTESTS.forEach(function(c){body.appendChild(contestCard(c,'history'));});}}
-function contestCard(c,mode){var el=document.createElement('div');el.className='contest';var right=mode==='history'?('<div class="timer" style="background:'+(c.won?'#2fd4c4':'#2a3a4a')+';color:'+(c.won?'#03241f':'#cfeef0')+'">'+(c.won?t('win_col_lbl'):t('contest_ended_lbl'))+'</div>'):('<div class="timer">'+c.timer+'</div>');var sub=mode==='history'?(c.date+' · '+c.members.toLocaleString('ru')+' '+t('contest_members_word')):(c.members.toLocaleString('ru')+' '+t('contest_members_word'));var prizes='<div class="prizes">'+c.prizes.map(function(p){return '<div class="prize"><div class="ic">'+p.e+'</div><div class="v">'+tonFmt(p.v)+' TON</div></div>';}).join('')+'</div>';var progress=mode==='active'?('<div class="contest-progress"><div class="cp-row"><span>'+t('contest_tab_active')+'</span><span>'+contestProgress(c)+'%</span></div><div class="cp-bar"><i style="width:'+contestProgress(c)+'%"></i></div></div>'):'';var btn='';if(mode==='active'){var joined=!!S.joinedContests[c.id];btn='<button class="btn-ghost" style="margin-top:12px" '+(joined?'disabled':'')+' id="cbtn-'+c.id+'">'+(joined?t('contest_joined_lbl'):t('contest_join_btn'))+'</button>';}else if(mode==='yours'){btn='<div style="margin-top:12px;color:var(--aqua);font-weight:700;text-align:center">'+t('contest_joined_lbl')+'</div>';}el.innerHTML='<div class="ch"><div><b style="font-size:17px">'+tf('prizes_count_tpl',{n:c.prizesN})+'</b><div style="color:var(--muted);font-size:13px">'+sub+'</div></div>'+right+'</div>'+prizes+progress+btn;if(mode==='active'){var b=el.querySelector('#cbtn-'+c.id);if(b&&!S.joinedContests[c.id])b.onclick=function(){S.joinedContests[c.id]=true;logOp('🏆',t('hist_contest_join_title'),tf('prizes_count_tpl',{n:c.prizesN}),'','');toast(t('contest_joined_toast'));setContestTab('active');};}return el;}
+function contestCard(c,mode){var el=document.createElement('div');el.className='contest';var right=mode==='history'?('<div class="timer" style="background:'+(c.won?'#2fd4c4':'#2a3a4a')+';color:'+(c.won?'#03241f':'#cfeef0')+'">'+(c.won?t('win_col_lbl'):t('contest_ended_lbl'))+'</div>'):('<div class="timer">'+c.timer+'</div>');var sub=mode==='history'?(c.date+' · '+c.members.toLocaleString('ru')+' '+t('contest_members_word')):(c.members.toLocaleString('ru')+' '+t('contest_members_word'));var prizes='<div class="prizes">'+c.prizes.map(function(p){return '<div class="prize"><div class="ic">'+p.e+'</div><div class="v">'+starFmt(p.v)+' TON</div></div>';}).join('')+'</div>';var progress=mode==='active'?('<div class="contest-progress"><div class="cp-row"><span>'+t('contest_tab_active')+'</span><span>'+contestProgress(c)+'%</span></div><div class="cp-bar"><i style="width:'+contestProgress(c)+'%"></i></div></div>'):'';var btn='';if(mode==='active'){var joined=!!S.joinedContests[c.id];btn='<button class="btn-ghost" style="margin-top:12px" '+(joined?'disabled':'')+' id="cbtn-'+c.id+'">'+(joined?t('contest_joined_lbl'):t('contest_join_btn'))+'</button>';}else if(mode==='yours'){btn='<div style="margin-top:12px;color:var(--aqua);font-weight:700;text-align:center">'+t('contest_joined_lbl')+'</div>';}el.innerHTML='<div class="ch"><div><b style="font-size:17px">'+tf('prizes_count_tpl',{n:c.prizesN})+'</b><div style="color:var(--muted);font-size:13px">'+sub+'</div></div>'+right+'</div>'+prizes+progress+btn;if(mode==='active'){var b=el.querySelector('#cbtn-'+c.id);if(b&&!S.joinedContests[c.id])b.onclick=function(){S.joinedContests[c.id]=true;logOp('🏆',t('hist_contest_join_title'),tf('prizes_count_tpl',{n:c.prizesN}),'','');toast(t('contest_joined_toast'));setContestTab('active');};}return el;}
 
 /* ============ РЕФЕРАЛЫ ============ */
 function refSet(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
@@ -3599,10 +3676,10 @@ function renderRefFriends(list){
    их на клиенте нечем: доля берётся от рейка, а рейк знает только сервер. */
 function renderRefs(){
   refSet('rf-count',REF.count||0);
-  refSet('rf-earned-ton',tonFmt(REF.earnedTon||0));
+  refSet('rf-earned-stars',starFmt(REF.earnedStars||0));
   refSet('rf-share',REF.sharePct!=null?REF.sharePct:10);
   refSet('ref-share',(REF.sharePct!=null?REF.sharePct:10)+'%');
-  refSet('ref-bonus',tonFmt(REF.bonusTon||0));
+  refSet('ref-bonus',starFmt(REF.bonusStars||0));
   renderRefFriends(REF.friends||[]);
   setRefLink();
 }
@@ -3638,94 +3715,168 @@ function renderHistory(){
   S.history.forEach(function(h){var el=document.createElement('div');el.className='histrow';var v=h.val?'<div class="hv '+(h.cls||'')+'">'+h.val+'</div>':'';el.innerHTML='<div class="hi">'+h.icon+'</div><div class="hb"><b>'+h.title+'</b><p>'+h.sub+'</p></div>'+v;box.appendChild(el);});
 }
 
-/* ============ ПРОФИЛЬ: ПОПОЛНЕНИЕ / ВЫВОД ============
-   Обе операции — только TON. Пополнение идёт счётом @CryptoBot, вывод —
-   заявкой на ручную выплату. Промежуточных валют, конвертаций и курсов нет:
-   сколько положил, тем и играешь, то же и выводишь. */
+/* ============ ПРОФИЛЬ: ЗВЁЗДЫ И ЗАЯВКИ ============ */
 
-/* ---- Пополнение ---- */
+/* ---- Получить звёзды ----
+   Показываем НАБОРЫ с ценой в каждом способе оплаты. Ни поля «сколько
+   внести», ни курса: у набора просто три цены, как у товара, и что бы игрок
+   ни выбрал, на баланс приходит одно и то же число звёзд. */
 function openTopup(){
   if(!SERVER){ toast(t('adm_no_server')); return; }
-  var body;
-  if(!TOPUPS.length){ body='<p class="muted">'+t('topup_unavailable')+'</p>'; }
-  else{
-    body='<p class="muted">'+tf('topup_desc_tpl',{min:tonFmt(MIN_TOPUP)})+'</p><div class="grid2" style="margin-top:10px">'
-      +TOPUPS.map(function(v){
-        return '<div class="pill" data-topup="'+v+'"><div class="ic"><i class="ton-ic" style="width:26px;height:26px"></i></div>'
-          +'<div class="nm">'+tonFmt(v)+'</div><div class="px">TON</div></div>';
-      }).join('')+'</div>';
-  }
-  showSheet('<h3>'+t('topup_sheet_title')+'</h3>'+body);
-  $all('[data-topup]').forEach(function(el){
-    el.onclick=function(){ topupTon(Number(el.getAttribute('data-topup'))); };
+  if(!PACKS.length){ showSheet('<h3>'+t('topup_sheet_title')+'</h3><p class="muted">'+t('topup_unavailable')+'</p>'); return; }
+
+  var LBL={xtr:t('pay_xtr'),ton:t('pay_ton'),usdt:t('pay_usdt')};
+  var body=PACKS.map(function(p){
+    var pay=PAY_METHODS.map(function(m){
+      var price=p.price&&p.price[m];
+      if(price==null) return '';
+      return '<button class="pk-btn" type="button" data-pk="'+admEsc(p.key)+'" data-pm="'+m+'">'
+        +'<b>'+admEsc(String(price))+'</b><span>'+LBL[m]+'</span></button>';
+    }).join('');
+    return '<div class="pk"><div class="pk-top">'
+      +'<div class="pk-ic">'+admEsc(p.emoji||'⭐')+'</div>'
+      +'<div class="pk-t"><div class="pk-n">'+admEsc(p.name)+'</div>'
+      +'<div class="pk-s">'+starFmt(p.stars)+' <i class="star-ic"></i></div></div>'
+      +'</div><div class="pk-pay">'+pay+'</div></div>';
+  }).join('');
+
+  showSheet('<h3>'+t('topup_sheet_title')+'</h3><p class="muted">'+t('topup_desc')+'</p>'
+    +'<div style="margin-top:10px">'+body+'</div>');
+  $all('[data-pk]').forEach(function(el){
+    el.onclick=function(){
+      $all('[data-pk]').forEach(function(x){ x.disabled=true; });
+      buyPack(el.getAttribute('data-pk'), el.getAttribute('data-pm'));
+    };
   });
 }
 
 var cbPollTimer=null;
 function stopCbPoll(){ if(cbPollTimer){ clearInterval(cbPollTimer); cbPollTimer=null; } }
 
-async function topupTon(amount){
+async function buyPack(key,method){
   var r=null;
-  try{ r=await api('create_cryptobot_invoice',{amount:amount}); }catch(e){}
-  if(!r||!r.ok){ toast(r&&r.reason==='not_configured'?t('topup_unavailable'):t('topup_err_invoice')); return; }
+  try{ r=await api('topup_start',{pack:key,method:method}); }catch(e){}
+  if(!r||!r.ok){
+    $all('[data-pk]').forEach(function(x){ x.disabled=false; });
+    toast(r&&r.reason==='not_configured'?t('topup_unavailable'):t('topup_err_invoice'));
+    return;
+  }
+  /* Звёзды Telegram: счёт открывается внутри клиента, зачисляет бот вебхуком. */
+  if(r.method==='xtr'){
+    if(!(TGAPP&&TGAPP.openInvoice)){ toast(t('topup_open_in_tg')); return; }
+    TGAPP.openInvoice(r.link,function(status){
+      if(status==='paid'){ closeSheet(); toast(t('topup_paid_wait')); setTimeout(refreshState,1800); }
+      else { $all('[data-pk]').forEach(function(x){ x.disabled=false; });
+             if(status==='failed') toast(t('topup_failed')); }
+    });
+    return;
+  }
+  /* @CryptoBot: счёт открывается в Telegram, статус опрашиваем сами. */
   if(TGAPP && TGAPP.openTelegramLink && r.payUrl){ TGAPP.openTelegramLink(r.payUrl); }
   else if(r.payUrl){ window.open(r.payUrl,'_blank'); }
-  toast(tf('topup_invoice_opened_tpl',{amount:tonFmt(r.amount||amount)}));
-
-  /* Опрашиваем счёт сами: вебхука у @CryptoBot для нас нет, а игрок должен
-     увидеть баланс сразу после оплаты, не перезагружая приложение. */
+  toast(t('topup_paid_wait'));
   stopCbPoll();
   var tries=0;
   cbPollTimer=setInterval(async function(){
     tries++;
     if(tries>60){ stopCbPoll(); return; }              // ~5 минут опроса
     var st=null;
-    try{ st=await api('cryptobot_check',{invoiceId:r.invoiceId}); }catch(e){ return; }
+    try{ st=await api('topup_check',{invoiceId:r.invoiceId}); }catch(e){ return; }
     if(st&&st.ok&&st.status==='paid'&&st.credited){
       stopCbPoll(); closeSheet(); applyUser(st.user);
       celebrate({n:36});
-      toast(tf('topup_paid_tpl',{amount:tonFmt(st.amount)}));
+      toast(tf('topup_credited_tpl',{n:starFmt(st.stars)}));
     }
   },5000);
 }
 
-/* ---- Вывод ---- */
-function openWithdraw(){
+/* ---- Забрать выигрыш ----
+   Здесь ничего не выдаётся и ничем не обменивается. Экран объясняет, что
+   будет дальше, создаёт заявку и уводит игрока в бота, где её разбирает
+   человек. Приложение потом показывает только статус. */
+function openClaim(){
   if(!SERVER){ toast(t('adm_no_server')); return; }
-  if(S.tonN<toNano(MIN_WD)){ toast(tf('withdraw_err_min_tpl',{min:tonFmt(MIN_WD)})); return; }
-  showSheet('<h3>'+t('withdraw_sheet_title')+'</h3>'
-    +'<p class="muted">'+tf('withdraw_sheet_desc_tpl',{hours:WD_HOURS})+'</p>'
-    +'<label>'+t('withdraw_wallet_lbl')+'</label>'
-    +'<input id="w-req" class="mono" autocomplete="off" placeholder="'+t('withdraw_wallet_ph')+'">'
-    +'<label>'+tf('withdraw_amount_lbl_tpl',{avail:tonFmt(S.ton)})+'</label>'
-    +'<input id="w-amt" class="mono" inputmode="decimal" autocomplete="off" placeholder="'+tonFmt(MIN_WD)+'">'
-    +'<div class="conv-hint" id="conv-hint">'+tf('withdraw_min_hint_tpl',{min:tonFmt(MIN_WD)})+'</div>'
-    +'<button class="btn-primary" style="margin-top:14px" id="do-withdraw">'+t('withdraw_submit_btn')+'</button>');
-  var amt=document.getElementById('w-amt');
-  if(amt) amt.oninput=function(){
-    var h=document.getElementById('conv-hint'); if(!h) return;
-    var v=toNano(String(this.value||'').replace(',','.'));
-    h.textContent = v>toNano(S.ton) ? t('withdraw_err_funds')
-                  : v && v<toNano(MIN_WD) ? tf('withdraw_err_min_tpl',{min:tonFmt(MIN_WD)})
-                  : tf('withdraw_min_hint_tpl',{min:tonFmt(MIN_WD)});
-  };
-  var dw=document.getElementById('do-withdraw'); if(dw) dw.onclick=doWithdraw;
+  if(S.stars<CLAIM_MIN){ toast(tf('claim_err_min_tpl',{n:starFmt(CLAIM_MIN)})); return; }
+  showSheet('<div class="result-emoji">🏆</div>'
+    +'<h3 style="text-align:center">'+t('claim_sheet_title')+'</h3>'
+    +'<p class="muted" style="text-align:center">'+tf('claim_sheet_desc_tpl',{hours:CLAIM_HOURS})+'</p>'
+    +'<label>'+tf('claim_amount_lbl_tpl',{avail:starFmt(S.stars)})+'</label>'
+    +'<input id="cl-amt" class="mono" inputmode="numeric" autocomplete="off" value="'+starInt(S.stars)+'">'
+    +'<label>'+t('claim_note_lbl')+'</label>'
+    +'<input id="cl-note" autocomplete="off" placeholder="'+t('claim_note_ph')+'">'
+    +'<div class="conv-hint">'+tf('claim_min_hint_tpl',{n:starFmt(CLAIM_MIN)})+'</div>'
+    +'<button class="btn-primary" style="margin-top:14px" id="cl-go">'+t('claim_btn')+'</button>');
+  var go=document.getElementById('cl-go'); if(go) go.onclick=sendClaim;
 }
 
-async function doWithdraw(){
-  var req=(document.getElementById('w-req').value||'').trim();
-  var amtN=toNano(String((document.getElementById('w-amt').value||'')).replace(',','.'));
-  if(!req) return toast(t('withdraw_err_wallet'));
-  if(!amtN || amtN<toNano(MIN_WD)) return toast(tf('withdraw_err_min_tpl',{min:tonFmt(MIN_WD)}));
-  if(amtN>S.tonN) return toast(t('withdraw_err_funds'));
-  var btn=document.getElementById('do-withdraw'); if(btn) btn.disabled=true;
+async function sendClaim(){
+  var amount=starInt(String((document.getElementById('cl-amt')||{}).value||'').replace(/[^\d]/g,''));
+  var note=String((document.getElementById('cl-note')||{}).value||'').slice(0,200);
+  if(!amount||amount<CLAIM_MIN) return toast(tf('claim_err_min_tpl',{n:starFmt(CLAIM_MIN)}));
+  if(amount>S.stars) return toast(t('claim_err_funds'));
+  var btn=document.getElementById('cl-go'); if(btn) btn.disabled=true;
   var r=null;
-  try{ r=await api('withdraw_create',{address:req,amount:fromNano(amtN)}); }catch(e){}
-  if(!r||!r.ok){ if(btn) btn.disabled=false; toast(wdErr(r&&r.reason)); return; }
-  applyUser(r.user); closeSheet();
-  showSheet('<div class="result-emoji">✅</div><h3 style="text-align:center">'+t('withdraw_success_title')+'</h3>'
-    +'<p class="muted" style="text-align:center">'+tf('withdraw_success_desc_tpl',{amt:tonFmt(r.amount),hours:r.hours||WD_HOURS})+'</p>'
-    +'<button class="btn-primary" onclick="closeSheet()">'+t('ok_btn')+'</button>');
+  try{ r=await api('claim_create',{amount:amount,note:note}); }catch(e){}
+  if(!r||!r.ok){
+    if(btn) btn.disabled=false;
+    toast(r&&r.reason==='already_open'?t('claim_err_open')
+        : r&&r.reason==='below_min'?tf('claim_err_min_tpl',{n:starFmt(r.min)})
+        : r&&r.reason==='no_funds'?t('claim_err_funds'):t('claim_err_generic'));
+    return;
+  }
+  applyUser(r.user); S.firstClaim=true; closeSheet();
+  /* Уводим в бота: заявку принимает и разбирает он, приложение — только статус. */
+  if(TGAPP && TGAPP.openTelegramLink && r.botLink) TGAPP.openTelegramLink(r.botLink);
+  showSheet('<div class="result-emoji">🤖</div>'
+    +'<h3 style="text-align:center">'+t('claim_ok_title')+'</h3>'
+    +'<p class="muted" style="text-align:center">'+tf('claim_ok_desc_tpl',{id:r.id,n:starFmt(r.stars),hours:r.hours||CLAIM_HOURS})+'</p>'
+    +'<button class="btn-primary" onclick="closeSheet();go(\'claims\')">'+t('claim_ok_btn')+'</button>');
+}
+
+/* ---- Статус и история заявок ---- */
+var CLAIMS={rows:[],loaded:false,busy:false,seq:0};
+async function loadClaims(){
+  var box=document.getElementById('claims-list'); if(!box) return;
+  if(!SERVER){ box.innerHTML='<div class="gft-ph"><span class="gp-ic">🤖</span>'+t('adm_no_server')+'</div>'; return; }
+  if(CLAIMS.busy) return;
+  if(!CLAIMS.loaded) skeletonRows(box,3);
+  CLAIMS.busy=true;
+  var my=++CLAIMS.seq, r=null;
+  try{ r=await api('claims'); }catch(e){}
+  CLAIMS.busy=false;
+  if(my!==CLAIMS.seq) return;
+  if(!r||!r.ok){
+    if(!CLAIMS.loaded) box.innerHTML='<div class="gft-err"><p>'+t('claims_err')+'</p>'
+      +'<button class="btn-ghost" type="button" onclick="loadClaims()">'+t('adm_retry')+'</button></div>';
+    else toast(t('claims_err'));
+    return;
+  }
+  if(r.minStars>0) CLAIM_MIN=starInt(r.minStars);
+  if(r.hours>0) CLAIM_HOURS=starInt(r.hours);
+  CLAIMS.rows=r.claims||[]; CLAIMS.loaded=true;
+  renderClaims();
+}
+
+/* Статус приходит с сервера строкой; незнакомое значение (сервер новее
+   клиента) показываем как «принята», а не пустотой. */
+function claimStatusKey(x){ return (x==='in_review'||x==='done'||x==='rejected')?x:'new'; }
+
+function renderClaims(){
+  var box=document.getElementById('claims-list'); if(!box) return;
+  if(!CLAIMS.rows.length){
+    box.innerHTML='<div class="gft-ph"><span class="gp-ic">🏆</span>'+t('claims_empty')+'</div>';
+    return;
+  }
+  box.innerHTML=CLAIMS.rows.map(function(c){
+    var st=claimStatusKey(c.status);
+    var meta=[tf('claims_id_tpl',{id:c.id}), gftDate(st==='new'||st==='in_review'?c.at:(c.decidedAt||c.at))];
+    if(c.note) meta.push(admEsc(c.note));
+    return '<div class="cl">'
+      +'<div class="cl-t"><div class="cl-n">'+starFmt(c.stars)+' <i class="star-ic"></i></div>'
+      +'<div class="cl-m">'+meta.join(' · ')+'</div></div>'
+      +'<span class="cl-st s-'+st+'">'+t('claim_st_'+st)+'</span>'
+      +'</div>';
+  }).join('');
 }
 
 /* ============ МОДАЛКА / TOAST ============ */
@@ -3764,7 +3915,7 @@ function onbNext(){
    любое локальное начисление немедленно разошлось бы с балансом в базе. */
 var ACHIEVEMENTS=[
   {id:'play10',ic:'🎮',titleKey:'ach_play10_title',descKey:'ach_play10_desc',check:function(){return S.played>=10;}},
-  {id:'win10',ic:'💎',titleKey:'ach_win10_title',descKey:'ach_win10_desc',check:function(){return S.wonTonN>=toNano(10);}},
+  {id:'win10',ic:'💎',titleKey:'ach_win10_title',descKey:'ach_win10_desc',check:function(){return S.wonStars>=starInt(10);}},
   {id:'first_wd',ic:'💸',titleKey:'ach_first_wd_title',descKey:'ach_first_wd_desc',check:function(){return S.firstWithdraw;}},
   {id:'ref3',ic:'👥',titleKey:'ach_ref3_title',descKey:'ach_ref3_desc',check:function(){return S.refCount>=3;}}
 ];
@@ -3798,12 +3949,12 @@ function setLang(l){
 function toggleSound(){ soundOn=!soundOn; S.soundPref=soundOn; document.getElementById('sound-switch').classList.toggle('on',soundOn); if(soundOn) beep(520,0.08,0.05); }
 
 /* ============ PVP · СТАВКА ============ */
-/* Ставка PVP — в нанотонах (pbetN), десятичный pbet держим для отрисовки.
+/* Ставка PVP — в нанотонах (pbet), десятичный pbet держим для отрисовки.
    Значение выставит setPBet() из серверного списка ставок. */
-var pbetN=0, pbet=0;
+var pbet=0, pbet=0;
 function setPBet(v){
-  pbetN=toNano(v); pbet=fromNano(pbetN);
-  $all('[data-pbet]').forEach(function(c){ c.classList.toggle('active',toNano(c.getAttribute('data-pbet'))===pbetN); });
+  pbet=starInt(v); pbet=starInt(pbet);
+  $all('[data-pbet]').forEach(function(c){ c.classList.toggle('active',starInt(c.getAttribute('data-pbet'))===pbet); });
   pxCta();
 }
 window.setPBet=setPBet;
@@ -4054,11 +4205,11 @@ function pxOutcome(st){
          карточку-победителя дольше нужного */
       if(rl){ var rr=rl.getBoundingClientRect(); celebrate({n:40,y:rr.top+rr.height*0.58}); }
       beep(660,0.12,0.06,'triangle');
-      logOp('🏆',t('hist_pvp_win_title'),tf('hist_pvp_win_sub_tpl',{pot:tonFmt(took)}),'+'+tonFmt(payout)+' TON','plus');
+      logOp('🏆',t('hist_pvp_win_title'),tf('hist_pvp_win_sub_tpl',{pot:starFmt(took)}),'+'+starFmt(payout)+' TON','plus');
     } else if(PXR.joined){
       beep(150,0.22,0.05,'sine');
       logOp('💀',t('hist_pvp_lose_title'),tf('hist_pvp_lose_sub_tpl',{name:PXR.outcome.name}),
-            '−'+tonFmt(pxMyStake())+' TON','minus');
+            '−'+starFmt(pxMyStake())+' TON','minus');
     }
   },PX_BEAT);
 
@@ -4168,7 +4319,7 @@ function pxLeave(){
 var pxDemoT=null;
 /* Банк и ставки на экране PVP — TON. Округлять до целого больше нельзя:
    ставка 0.1 превратилась бы в ноль, а банк — в неверную сумму. */
-function pxNum(n){ return tonFmt(n); }
+function pxNum(n){ return starFmt(n); }
 
 function pxMakeCard(){
   var d=document.createElement('div');
@@ -4452,7 +4603,7 @@ function init(){
 init();
 
 window.go=go;window.spin=spin;window.setBet=setBet;window.crashAction=crashAction;window.setCBet=setCBet;
-window.openWithdraw=openWithdraw;window.openTopup=openTopup;window.invite=invite;window.closeSheet=closeSheet;
+window.openClaim=openClaim;window.openTopup=openTopup;window.invite=invite;window.closeSheet=closeSheet;
 window.toast=toast;window.setContestTab=setContestTab;window.copyRef=copyRef;
 window.setGameTab=setGameTab;
 window.onbNext=onbNext;window.showOnboarding=showOnboarding;window.setLang=setLang;window.toggleSound=toggleSound;
@@ -4467,12 +4618,13 @@ var BOT_USERNAME='Shark_game_app_bot';
 var API_URL='/api/shark';
 var TGAPP=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
 var INIT=TGAPP?(TGAPP.initData||''):'';
-var SERVER=false, ME={}, CFG={}, REF={count:0,earnedTon:0,sharePct:10,bonusTon:0}, REFLINK='';
-/* Номиналы ставок, пополнений и лимиты задаёт сервер (catalog/config).
+var SERVER=false, ME={}, CFG={}, REF={count:0,earnedStars:0,sharePct:10,bonusStars:0}, REFLINK='';
+/* Номиналы входа, наборы звёзд и пороги задаёт сервер (catalog/config).
    Здесь — те же значения, что в схеме по умолчанию: экран должен нарисоваться
    до первого ответа, но клиентские числа ни на что не влияют — сервер всё
    равно принимает только свой список. */
-var BETS=[0.1,0.5,1], MIN_BET=0.1, TOPUPS=[1,5,10,25], MIN_TOPUP=0.5, MIN_WD=1, WD_HOURS=24;
+var BETS=[25,50,100], MIN_BET=10, PACKS=[], PAY_METHODS=['xtr','ton','usdt'];
+var CLAIM_MIN=500, CLAIM_HOURS=24;
 
 async function api(action,params){
   var r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -4482,7 +4634,7 @@ async function api(action,params){
 function applyUser(u){
   if(!u) return;
   if(u.tg_id){ S.tgId=u.tg_id; syncMyId(); }   // PVP: стабильное лицо + показ id в настройках
-  S.tonN=toNano(u.ton); S.wonTonN=toNano(u.wonTon); S.played=u.played;
+  S.stars=starInt(u.stars); S.wonStars=starInt(u.wonStars); S.played=u.played;
   syncBalances(); renderProfile(); renderLeaders();
   if(typeof admGr!=='undefined' && admGr) admGrSync();
 }
@@ -4494,22 +4646,18 @@ function setRefLinkFrom(st){
   if(st&&st.refLink) REFLINK='https://t.me/'+BOT_USERNAME+st.refLink;
   setRefLink();
 }
-function wdErr(reason){
-  var m={below_min:tf('withdraw_err_min_tpl',{min:tonFmt(MIN_WD)}),
-         no_funds:t('withdraw_err_funds'), bad_wallet:t('withdraw_err_wallet')};
-  return m[reason]||t('withdraw_err_generic');
-}
+
 /* Всё, что связано с деньгами, берём из ответа сервера и ничего не достраиваем
    локально: список ставок, пороги, таблица рулетки и каталог кейсов — его
    зона ответственности, клиент только рисует. */
 function applyCatalog(st){
   var c=(st&&st.catalog)||{}, cfg=(st&&st.config)||{};
   if(Array.isArray(c.bets)&&c.bets.length) BETS=c.bets.slice();
-  if(c.minBet>0) MIN_BET=Number(c.minBet);
-  if(Array.isArray(c.topups)&&c.topups.length) TOPUPS=c.topups.slice();
-  if(c.minTopup>0) MIN_TOPUP=Number(c.minTopup);
-  if(cfg.minWithdrawTon>0) MIN_WD=Number(cfg.minWithdrawTon);
-  if(cfg.withdrawHours>0) WD_HOURS=Number(cfg.withdrawHours);
+  if(c.minBet>0) MIN_BET=starInt(c.minBet);
+  if(Array.isArray(c.packs)) PACKS=c.packs;
+  if(Array.isArray(c.payMethods)&&c.payMethods.length) PAY_METHODS=c.payMethods.slice();
+  if(cfg.claimMinStars>0) CLAIM_MIN=starInt(cfg.claimMinStars);
+  if(cfg.claimHours>0) CLAIM_HOURS=starInt(cfg.claimHours);
   if(Array.isArray(c.roulette)&&c.roulette.length) ROUL_PRIZES=c.roulette;
   if(Array.isArray(c.cases)) CASES=c.cases;
   CFG=cfg;
@@ -4539,7 +4687,7 @@ function renderBetChips(){
     BETS.forEach(function(v){
       var c=document.createElement('div');
       c.className='chip'; c.setAttribute(r.attr,v);
-      c.innerHTML='<i class="ton-ic"></i>'+tonFmt(v);
+      c.innerHTML='<i class="star-ic"></i>'+starFmt(v);
       c.onclick=function(){ window[r.fn](v); };
       box.appendChild(c);
     });
@@ -4547,7 +4695,7 @@ function renderBetChips(){
   // ставка по умолчанию — минимальная из списка
   setBet(BETS[0]); setCBet(BETS[0]); setPBet(BETS[0]);
 }
-var HIST_ICONS={referral:'👥',bet:'🎮',win:'🏆',withdraw:'💸',withdraw_refund:'↩️',gift:'🎁',topup:'💎',adjust:'⚙️'};
+var HIST_ICONS={referral:'👥',bet:'🎮',win:'🏆',claim_hold:'🏆',claim_return:'↩️',withdraw:'🏆',withdraw_refund:'↩️',gift:'🎁',topup:'⭐',adjust:'⚙️'};
 async function loadHistory(){
   var box=document.getElementById('history-list'); skeletonRows(box,6);
   var r=null;
@@ -4559,7 +4707,7 @@ async function loadHistory(){
        переписывают. Показываем их валютой как есть, чтобы история не врала,
        но всё новое приходит только в TON. */
     var cur=h.currency==='ton'?' TON':h.currency==='stars'?' ⭐':h.currency==='uah'?' UAH':'';
-    var val=sign+(h.currency==='stars'?admNum(Math.abs(amt)):tonFmt(Math.abs(amt)))+cur;
+    var val=sign+(h.currency==='stars'?admNum(Math.abs(amt)):starFmt(Math.abs(amt)))+cur;
     return {icon:HIST_ICONS[h.kind]||'•',title:t('hist_kind_'+h.kind),sub:h.sub,val:val,cls:h.cls,t:h.t};
   });
   renderHistory();
@@ -4571,7 +4719,7 @@ async function loadHistory(){
 function spin(){
   if(spinning) return;
   if(!SERVER){ toast(t('adm_no_server')); return; }
-  if(S.tonN<S.betN){ toast(t('pvp_no_ton')); return; }
+  if(S.stars<S.bet){ toast(t('pvp_no_stars')); return; }
   spinning=true;
   var btn=document.getElementById('spin-btn'); if(btn) btn.disabled=true;
   doSpin(btn);
@@ -4581,7 +4729,7 @@ async function doSpin(btn){
   try{ r=await api('game_bet',{game:'roulette',bet:S.bet}); }catch(e){}
   if(!r||!r.ok){
     spinning=false; if(btn) btn.disabled=false;
-    toast(r&&r.reason==='no_funds'?t('pvp_no_ton'):t('pvp_bet_error')); return;
+    toast(r&&r.reason==='no_funds'?t('pvp_no_stars'):t('pvp_bet_error')); return;
   }
   applyUser(r.user); S.played++;
   var stake=S.bet;
@@ -4602,10 +4750,10 @@ async function doSpin(btn){
     beep(660,0.12,0.06,'triangle'); vibrate(25);
     pushMyRoulRow({emoji:p.emoji,name:p.name,mult:p.mult,win:p.win,bet:stake});
     checkAchievements();
-    if(toNano(p.win)>toNano(stake)) celebrate({n:40});
+    if(starInt(p.win)>starInt(stake)) celebrate({n:40});
     showSheet('<div class="result-emoji">'+p.emoji+'</div>'
       +'<h3 style="text-align:center">'+tf('roul_result_title_tpl',{mult:multLbl(p.mult)})+'</h3>'
-      +'<p class="muted" style="text-align:center">'+tf('roul_result_desc_tpl',{prize:p.name,bet:tonFmt(stake),win:tonFmt(p.win)})+'</p>'
+      +'<p class="muted" style="text-align:center">'+tf('roul_result_desc_tpl',{prize:p.name,bet:starFmt(stake),win:starFmt(p.win)})+'</p>'
       +'<button class="btn-primary" onclick="closeSheet()">'+t('pvp_claim_btn')+'</button>');
   },3300);
 }
@@ -4615,17 +4763,17 @@ async function crashAction(){
   if(!SERVER){ toast(t('adm_no_server')); return; }
   if(crashPhase==='waiting'){
     if(iJoined) return;
-    if(S.tonN<S.cbetN){ toast(t('pvp_no_ton')); return; }
+    if(S.stars<S.cbet){ toast(t('pvp_no_stars')); return; }
     var chk=document.getElementById('auto-chk'); autoCash=chk?chk.checked:false;
     var am=parseFloat((document.getElementById('auto-mult')||{}).value||'2'); autoMult=(am&&am>1)?am:2;
     var r=null;
     try{ r=await api('crash_bet',{bet:S.cbet,autoMult:autoCash?autoMult:null}); }catch(e){}
-    if(!r||!r.ok){ toast(r&&r.reason==='no_funds'?t('pvp_no_ton'):t('pvp_bet_error')); return; }
+    if(!r||!r.ok){ toast(r&&r.reason==='no_funds'?t('pvp_no_stars'):t('pvp_bet_error')); return; }
     window._crashRound=r.roundId; applyUser(r.user); S.played++; iJoined=true;
     beep(520,0.06,0.05,'triangle');
     crashBots.unshift({id:'me',bot:{n:t('you_word'),a:'🙂'},bet:S.cbet,cashAt:autoCash?autoMult:999,status:'live',taken:0,me:true});
     renderCrashPlayers(); updateCrashBtn();
-    toast(autoCash?tf('crash_bet_toast_auto_tpl',{bet:tonFmt(S.cbet),x:autoMult.toFixed(2)}):tf('crash_bet_toast_tpl',{bet:tonFmt(S.cbet)}));
+    toast(autoCash?tf('crash_bet_toast_auto_tpl',{bet:starFmt(S.cbet),x:autoMult.toFixed(2)}):tf('crash_bet_toast_tpl',{bet:starFmt(S.cbet)}));
   } else if(crashPhase==='flying' && iJoined && !S.cashedThisRound){
     S.cashedThisRound=true;               // синхронно — защита от повторного клика/авто
     var r2=null;
@@ -4636,13 +4784,13 @@ async function crashAction(){
       applyUser(r2.user);
       if(me){ me.status='lose'; }
       renderCrashPlayers(); updateCrashBtn();
-      toast(tf('crash_missed_toast_tpl',{bet:tonFmt(S.cbet),x:Number(r2.crashPoint).toFixed(2)}));
+      toast(tf('crash_missed_toast_tpl',{bet:starFmt(S.cbet),x:Number(r2.crashPoint).toFixed(2)}));
     } else {
       applyUser(r2.user);
       beep(780,0.12,0.06,'triangle'); vibrate(30);
       if(me){ me.status='win'; me.taken=r2.win; me.cashAt=r2.mult; }
       renderCrashPlayers(); updateCrashBtn();
-      celebrate({n:44}); toast(tf('crash_cashout_toast_tpl',{win:tonFmt(r2.win),x:Number(r2.mult).toFixed(2)}));
+      celebrate({n:44}); toast(tf('crash_cashout_toast_tpl',{win:starFmt(r2.win),x:Number(r2.mult).toFixed(2)}));
     }
   }
 }
@@ -4690,7 +4838,7 @@ function stopPvpPoll(){
 async function pvpJoin(){
   if(!SERVER){ toast(t('adm_no_server')); return; }
   if(pxBusy()||PXR.joined||PXR.pending) return;   /* pending закрывает окно между тапами */
-  if(S.tonN<pbetN){ toast(t('pvp_no_ton')); return; }
+  if(S.stars<pbet){ toast(t('pvp_no_stars')); return; }
   PXR.pending=true; pxCta();
   var r;
   try{ r=await api('pvp_join',{bet:pbet}); }
@@ -4698,7 +4846,7 @@ async function pvpJoin(){
   PXR.pending=false;
   if(!r||!r.ok){
     if(r&&r.reason==='already_joined'){ toast(t('pvp_already')); if(r.round) pxApply(r.round); }
-    else { toast(!r?t('pvp_bet_error'):r.reason==='no_funds'?t('pvp_no_ton')
+    else { toast(!r?t('pvp_bet_error'):r.reason==='no_funds'?t('pvp_no_stars')
             :r.reason==='round_closed'?t('pvp_closing')
             :r.reason==='round_mixed_admin'?t('pvp_mixed_admin')
             :r.reason==='round_mixed'?t('pvp_closing'):t('pvp_bet_error')); pxCta(); }
@@ -4785,7 +4933,8 @@ go=function(name){
 
 /* экспорт переопределённых функций (inline-onclick берут их из window) */
 window.spin=spin;
-window.crashAction=crashAction; window.openWithdraw=openWithdraw; window.invite=invite;
+window.crashAction=crashAction; window.openClaim=openClaim; window.invite=invite;
+window.loadClaims=loadClaims; window.sendClaim=sendClaim;
 window.admTab=admTab; window.admLoadStats=admLoadStats;
 window.admPlQuery=admPlQuery; window.admPlSort=admPlSort; window.admPlLoad=admPlLoad;
 window.copyMyId=copyMyId;
@@ -4858,22 +5007,22 @@ function tweenNum(from,to,dur,step){
 }
 /* Считаем и сравниваем в нанотонах: шаг «изменилось» для TON — 1 нанотон,
    а не «единица», иначе ставка 0.1 не считалась бы изменением и не подсвечивалась. */
-function setTonEls(sel,val,fmt){
-  var valN=toNano(val);
+function setStarEls(sel,val,fmt){
+  var valN=starInt(val);
   $all(sel).forEach(function(el){
     var curN=parseInt(el.getAttribute('data-cur'),10);
     if(isNaN(curN)) curN=0;
     if(curN===valN){ el.textContent=fmt(val); return; }
     el.setAttribute('data-cur',valN);
-    tweenNum(fromNano(curN),val,600,function(v){ el.textContent=fmt(v); });
+    tweenNum(starInt(curN),val,600,function(v){ el.textContent=fmt(v); });
     if(curN!==valN){ el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   });
 }
 /* переопределяем syncBalances на живые (count-up) числа */
 syncBalances=function(){
-  setTonEls('[data-ton]', S.ton, tonFmt);
-  var tb=$('[data-ton-big]');
-  if(tb) tb.innerHTML=tonBal(S.ton)+' <span style="font-size:20px;color:var(--aqua)">TON</span>';
+  setStarEls('[data-stars]', S.stars, starFmt);
+  var tb=$('[data-stars-big]');
+  if(tb) tb.innerHTML=starFmt(S.stars)+' <i class="star-ic" style="width:24px;height:24px"></i>';
 };
 syncBalances();
 
