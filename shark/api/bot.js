@@ -3,10 +3,13 @@
 // Делает:
 //   • /start [ref_xxx] → регистрирует пользователя, привязывает реферала,
 //     показывает кнопку «🦈 Открыть Shark» (WebApp)
-//   • callback_query от АДМИНА → подтверждение/отклонение заявок на вывод:
-//       wd_ok / wd_no — выплату админ делает вручную; при отклонении деньги
-//                        возвращаются на баланс пользователя
-//   • successful_payment → задел под оплату Telegram Stars (пополнение)
+//   • callback_query от АДМИНА → разбор заявок на получение выигрыша:
+//       cl_ok / cl_no — выдачу админ делает вручную; при отклонении
+//                        зарезервированные звёзды возвращаются игроку
+//   • successful_payment → оплата кейса за Telegram Stars: определяет
+//     выпадение по заранее зафиксированному seed, кладёт подарок в инвентарь
+//     и сообщает админу, что отправить вручную. Если выдать не вышло —
+//     возвращает звёзды через refundStarPayment.
 //
 // Разовая привязка вебхука: открыть GET https://<домен>/api/bot?setup=1
 //
@@ -15,6 +18,7 @@
 //   SHARK_SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SERVICE_ROLE_KEY,
 //   SHARK_ADMIN_IDS, SHARK_APP_URL — URL Mini App (по умолчанию домен ниже).
 
+const crypto = require('crypto');
 function env(name) { return process.env['SHARK_' + name] || process.env[name] || ''; }
 // адрес Mini App (можно переопределить переменной SHARK_APP_URL)
 const DEFAULT_APP_URL = 'https://shopik-rjov.vercel.app/';
@@ -28,17 +32,12 @@ function adminIds() {
 }
 function isAdmin(id) { return adminIds().includes(Number(id)); }
 
-// Пакеты звёзд — те же, что в api/shark.js (сколько игровых звёзд зачислять)
-const STAR_PACKS = {
-  s100:  { stars: 100 },  s550:  { stars: 550 },
-  s1150: { stars: 1150 }, s6000: { stars: 6000 }
-};
 
 const WELCOME =
   '🦈 Добро пожаловать в Shark!\n\n' +
-  '💰 Задания — реальные деньги (грн / USDT)\n' +
-  '🎮 Игры на звёзды — краш, рулетка, колесо\n' +
-  '🎁 Ежедневные кейсы и бонусы\n\n' +
+  '⭐ Игры на звёзды — PVP, краш, рулетка\n' +
+  '🎁 Кейсы с подарками Telegram\n' +
+  '👥 Приглашай друзей и получай долю с их игры\n\n' +
   'Жми кнопку ниже, чтобы начать 👇';
 
 async function tg(method, payload) {
@@ -67,6 +66,22 @@ async function sbPatch(path, row) {
     method: 'PATCH', headers: Object.assign({}, sbHeaders(), { Prefer: 'return=minimal' }), body: JSON.stringify(row)
   });
 }
+// PATCH/INSERT с возвратом строк: нужны, когда важно узнать, СКОЛЬКО строк
+// подошло под фильтр. На этом держится защита от повторного вебхука оплаты.
+async function sbPatchReturn(path, row) {
+  const URL = env('SUPABASE_URL'); if (!URL) return [];
+  const r = await fetch(URL + '/rest/v1/' + path, {
+    method: 'PATCH', headers: Object.assign({}, sbHeaders(), { Prefer: 'return=representation' }), body: JSON.stringify(row)
+  });
+  const t = await r.text(); try { return t ? JSON.parse(t) : []; } catch (e) { return []; }
+}
+async function sbInsertReturn(path, row) {
+  const URL = env('SUPABASE_URL'); if (!URL) return [];
+  const r = await fetch(URL + '/rest/v1/' + path, {
+    method: 'POST', headers: Object.assign({}, sbHeaders(), { Prefer: 'return=representation' }), body: JSON.stringify(row)
+  });
+  const t = await r.text(); try { return t ? JSON.parse(t) : []; } catch (e) { return []; }
+}
 async function applyLedger(tg_id, currency, amount, kind, ref, idem, meta) {
   const URL = env('SUPABASE_URL'); if (!URL) return { ok: false };
   const r = await fetch(URL + '/rest/v1/rpc/shark_apply_ledger', {
@@ -76,22 +91,6 @@ async function applyLedger(tg_id, currency, amount, kind, ref, idem, meta) {
   return { ok: r.ok, status: r.status };
 }
 // начислить пригласившему звёзды за друга с суточным лимитом (idempotent)
-async function awardRefStars(inviterTg, want, idemKey) {
-  const ex = await sbGet('shark_ledger?idem=eq.' + encodeURIComponent(idemKey) + '&select=id&limit=1');
-  if (ex[0]) return 0;
-  const cfg = await sbGet('shark_config?id=eq.1&select=data');
-  const cap = (cfg[0] && cfg[0].data && cfg[0].data.ref_stars_daily_cap) || 50;
-  const inv = await sbGet('shark_users?tg_id=eq.' + inviterTg + '&select=ref_day,ref_stars_today');
-  if (!inv[0]) return 0;
-  const today = new Date().toISOString().slice(0, 10);
-  const todayCount = (inv[0].ref_day === today) ? Number(inv[0].ref_stars_today || 0) : 0;
-  const give = Math.min(Number(want), Math.max(0, cap - todayCount));
-  if (give <= 0) return 0;
-  const r = await applyLedger(inviterTg, 'stars', give, 'referral', 'friend', idemKey, {});
-  if (!r.ok) return 0;
-  await sbPatch('shark_users?tg_id=eq.' + inviterTg, { ref_day: today, ref_stars_today: todayCount + give });
-  return give;
-}
 
 async function ensureUser(from, startParam) {
   const rows = await sbGet('shark_users?tg_id=eq.' + from.id + '&select=tg_id');
@@ -115,14 +114,169 @@ async function ensureUser(from, startParam) {
       method: 'POST', headers: Object.assign({}, sbHeaders(), { Prefer: 'return=minimal,resolution=ignore-duplicates' }),
       body: JSON.stringify({ inviter_tg: refBy, invited_tg: from.id })
     });
-    const cfg = await sbGet('shark_config?id=eq.1&select=data');
-    const bonus = (cfg[0] && cfg[0].data && cfg[0].data.referral_bonus) || 10;
-    const perFriend = (cfg[0] && cfg[0].data && cfg[0].data.ref_stars_per_friend) || 5;
-    await applyLedger(refBy, 'uah', bonus, 'referral', 'signup:' + from.id, 'ref_signup:' + from.id, { invited: from.id });
-    const gs = await awardRefStars(refBy, perFriend, 'refstars_signup:' + from.id);
-    await tg('sendMessage', { chat_id: refBy, text: '👥 Новый друг по вашей ссылке! +' + bonus.toFixed(2) + ' грн' + (gs > 0 ? ' и +' + gs + ' ⭐' : '') });
+    // Бонус платится не за переход по ссылке, а за первое пополнение друга —
+    // иначе регистрация одноразовых аккаунтов сама по себе приносит деньги.
+    // Начисляет payReferrer() в api/shark.js при подтверждении оплаты.
+    await tg('sendMessage', { chat_id: refBy, text: '👥 Новый друг по вашей ссылке! Бонус придёт, когда он пополнит баланс.' });
   }
   return true;
+}
+
+// Каталог кейсов дублируется здесь намеренно: вебхук оплаты приходит в этот
+// файл, а не в api/shark.js, и тянуть общий модуль через границу serverless-
+// функций дороже, чем держать таблицу в двух местах. Тест сверяет их на
+// идентичность, поэтому разойтись молча они не могут.
+const CASES = {
+  reef: { name: 'Риф', price: 50, drops: [
+    { emoji: '🫧', name: 'Пузырь',   value: 15,   weight: 55  },
+    { emoji: '🌊', name: 'Волна',    value: 25,   weight: 25  },
+    { emoji: '🐚', name: 'Ракушка',  value: 50,   weight: 13  },
+    { emoji: '🐠', name: 'Рыбка',    value: 100,  weight: 5   },
+    { emoji: '🪸', name: 'Коралл',   value: 500,  weight: 1.7 },
+    { emoji: '⚓', name: 'Якорь',    value: 1000, weight: 0.3 }] },
+  deep: { name: 'Глубина', price: 150, drops: [
+    { emoji: '🌊', name: 'Волна',    value: 25,   weight: 42  },
+    { emoji: '🐚', name: 'Ракушка',  value: 50,   weight: 28  },
+    { emoji: '🐠', name: 'Рыбка',    value: 100,  weight: 18  },
+    { emoji: '🪸', name: 'Коралл',   value: 200,  weight: 8   },
+    { emoji: '⚓', name: 'Якорь',    value: 1000, weight: 3.4 },
+    { emoji: '🦈', name: 'Акула',    value: 2500, weight: 0.6 }] },
+  abyss: { name: 'Бездна', price: 500, drops: [
+    { emoji: '🐠', name: 'Рыбка',    value: 100,   weight: 36  },
+    { emoji: '🪸', name: 'Коралл',   value: 200,   weight: 32  },
+    { emoji: '⚓', name: 'Якорь',    value: 500,   weight: 21  },
+    { emoji: '🦈', name: 'Акула',    value: 1000,  weight: 8   },
+    { emoji: '💎', name: 'Жемчуг',   value: 2500,  weight: 2.5 },
+    { emoji: '🔱', name: 'Трезубец', value: 10000, weight: 0.3 }] }
+};
+const CASE_RARITY = ['common', 'common', 'rare', 'epic', 'legendary', 'legendary'];
+// Жизненный цикл подарка — копия из api/shark.js: бот и API отмечают выдачу
+// независимо, и разойтись эти таблицы не должны. Совпадение проверяет тест.
+const GIFT_FLOW = { held: ['sending', 'sent'], sending: ['sent'], sent: [] };
+function giftCanGo(from, to) { return (GIFT_FLOW[from] || []).includes(to); }
+function caseRoll(seed, drops) {
+  const roll = parseInt(crypto.createHash('sha256').update('case:' + seed).digest('hex').slice(0, 8), 16) / 0xffffffff;
+  const total = drops.reduce((a, d) => a + d.weight, 0);
+  let acc = 0;
+  for (let i = 0; i < drops.length; i++) { acc += drops[i].weight / total; if (roll <= acc) return i; }
+  return drops.length - 1;
+}
+
+// Вернуть звёзды, если выдать подарок не вышло. Игрок заплатил — значит либо
+// получает подарок, либо получает деньги обратно. Третьего быть не должно.
+async function refundStars(uid, chargeId, why) {
+  await tg('refundStarPayment', { user_id: uid, telegram_payment_charge_id: chargeId });
+  await tg('sendMessage', { chat_id: uid, text: '↩️ Не удалось открыть кейс, звёзды возвращены.' + (why ? '\n' + why : '') });
+}
+
+// Оплата звёздами приходит в один и тот же вебхук и для кейсов, и для наборов
+// звёзд. Различаем по payload: {order} — кейс, {topup} — набор.
+async function handleStarPayment(msg) {
+  const sp = msg.successful_payment;
+  let pl = {}; try { pl = JSON.parse((sp && sp.invoice_payload) || '{}'); } catch (e) {}
+  if (pl.topup) return handleTopupPayment(msg, pl);
+  return handleCasePayment(msg, pl);
+}
+
+// Набор звёзд, оплаченный Telegram Stars. Идемпотентность — по charge_id:
+// Telegram шлёт вебхуки с ретраями, второй раз зачислять нельзя.
+async function handleTopupPayment(msg, pl) {
+  const sp = msg.successful_payment;
+  const chargeId = sp && sp.telegram_payment_charge_id;
+  const uid = msg.from && msg.from.id;
+  if (!chargeId || !uid) return;
+  const orderId = Number(pl.topup);
+  if (!orderId) { await refundStars(uid, chargeId, 'Заказ не найден.'); return; }
+
+  // застолбить заказ фильтром по status=pending — выиграет ровно один вызов
+  const claim = await sbPatchReturn(
+    'shark_topups?id=eq.' + orderId + '&tg_id=eq.' + uid + '&status=eq.pending',
+    { status: 'paid', charge_id: chargeId, paid_at: new Date().toISOString() });
+  const order = Array.isArray(claim) && claim[0];
+  if (!order) {
+    const ex = await sbGet('shark_topups?id=eq.' + orderId + '&select=id,charge_id');
+    if (ex[0] && ex[0].charge_id === chargeId) return;      // тот же платёж, всё сделано
+    await refundStars(uid, chargeId, 'Заказ уже закрыт.');
+    return;
+  }
+
+  const stars = Math.floor(Number(order.stars) || 0);
+  const cr = await applyLedger(uid, 'stars', stars, 'topup', 'pack:' + order.pack_key,
+    'xtr_pay:' + chargeId, { stars, paid: order.price, method: 'xtr' });
+  if (!cr.ok) {
+    await sbPatch('shark_topups?id=eq.' + orderId, { status: 'refunded' });
+    await refundStars(uid, chargeId, 'Не удалось зачислить.');
+    return;
+  }
+  await tg('sendMessage', { chat_id: uid,
+    text: '⭐ ' + stars + ' зачислено на игровой баланс. Удачи!' });
+}
+
+async function handleCasePayment(msg, pl) {
+  const sp = msg.successful_payment;
+  const chargeId = sp && sp.telegram_payment_charge_id;
+  const uid = (msg.from && msg.from.id);
+  if (!chargeId || !uid) return;
+
+  const orderId = Number(pl && pl.order);
+  if (!orderId) { await refundStars(uid, chargeId, 'Заказ не найден.'); return; }
+
+  // Идемпотентность: charge_id уникален в таблице, поэтому повторный вебхук
+  // (Telegram шлёт их с ретраями) не создаст второй подарок. Застолбить заказ
+  // пытаемся ДО выдачи, фильтром по status=pending — выиграет ровно один вызов.
+  const claim = await sbPatchReturn(
+    'shark_case_orders?id=eq.' + orderId + '&tg_id=eq.' + uid + '&status=eq.pending',
+    { status: 'paid', charge_id: chargeId, paid_at: new Date().toISOString() });
+  const order = Array.isArray(claim) && claim[0];
+  if (!order) {
+    // либо уже обработан (повтор вебхука), либо заказ чужой/несуществующий
+    const ex = await sbGet('shark_case_orders?id=eq.' + orderId + '&select=id,charge_id,status');
+    if (ex[0] && ex[0].charge_id === chargeId) return;       // тот же платёж, всё уже сделано
+    await refundStars(uid, chargeId, 'Заказ уже закрыт.');
+    return;
+  }
+
+  const c = CASES[order.case_key];
+  if (!c) {
+    await sbPatch('shark_case_orders?id=eq.' + orderId, { status: 'refunded' });
+    await refundStars(uid, chargeId, 'Кейс недоступен.');
+    return;
+  }
+
+  const idx = caseRoll(order.seed, c.drops);
+  const d = c.drops[idx];
+  const gi = await sbInsertReturn('shark_gifts', {
+    tg_id: uid, order_id: orderId, case_key: order.case_key,
+    name: d.name, emoji: d.emoji, star_value: d.value, rarity: CASE_RARITY[idx] || 'common'
+  });
+  const gift = Array.isArray(gi) && gi[0];
+  if (!gift) {
+    await sbPatch('shark_case_orders?id=eq.' + orderId, { status: 'refunded' });
+    await refundStars(uid, chargeId, 'Не удалось записать подарок.');
+    return;
+  }
+  await sbPatch('shark_case_orders?id=eq.' + orderId, { gift_id: gift.id });
+
+  await tg('sendMessage', { chat_id: uid,
+    text: '🎁 Кейс «' + c.name + '» открыт!\n\n' + d.emoji + ' ' + d.name + ' · ' + d.value + ' ⭐\n\nПодарок в вашем инвентаре — отправим вручную в ближайшее время.' });
+  // Выдача ручная, как и выплаты: бот сообщает админу, что отправить и кому,
+  // и даёт кнопку отметить выдачу — чтобы статус в инвентаре игрока обновился
+  // там же, где админ реально работает, а не только в панели.
+  for (const id of adminIds()) {
+    await tg('sendMessage', { chat_id: id,
+      text: '🎁 Кейс «' + c.name + '» · ' + (msg.from.first_name || 'user') + ' (id ' + uid + ')\n'
+        + d.emoji + ' ' + d.name + ' · ' + d.value + ' ⭐\n\nОтправьте подарок вручную.',
+      reply_markup: giftDecisionKb(gift.id) });
+  }
+}
+
+// Кнопки на карточке подарка. «В работе» — необязательный шаг: он нужен, когда
+// выдача занимает время и игрок иначе не понимает, помнят о нём или нет.
+function giftDecisionKb(id) {
+  return { inline_keyboard: [[
+    { text: '📤 В работе', callback_data: 'gf_go:' + id },
+    { text: '✅ Отправлен', callback_data: 'gf_ok:' + id }
+  ]] };
 }
 
 function startKb() {
@@ -133,7 +287,7 @@ function startKb() {
 async function handleCallback(cq) {
   const data = cq.data || '';
   const fromId = cq.from && cq.from.id;
-  const m = data.match(/^(wd_ok|wd_no):(\d+)$/);
+  const m = data.match(/^(cl_ok|cl_no|gf_go|gf_ok):(\d+)$/);
   if (!m) { await tg('answerCallbackQuery', { callback_query_id: cq.id }); return; }
   if (!isAdmin(fromId)) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Нет прав', show_alert: true }); return; }
   const kind = m[1], id = Number(m[2]);
@@ -141,25 +295,73 @@ async function handleCallback(cq) {
   const msgId = cq.message && cq.message.message_id;
   const origText = (cq.message && cq.message.text) || '';
 
-  if (kind === 'wd_ok' || kind === 'wd_no') {
-    const rows = await sbGet('shark_withdrawals?id=eq.' + id + '&select=*');
-    const wd = rows[0];
-    if (!wd) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Заявка не найдена', show_alert: true }); return; }
-    if (wd.status !== 'pending') { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Уже обработана: ' + wd.status, show_alert: true }); return; }
-
-    if (kind === 'wd_ok') {
-      await sbPatch('shark_withdrawals?id=eq.' + id + '&status=eq.pending', { status: 'paid', decided_at: new Date().toISOString(), decided_by: fromId });
-      await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n✅ ВЫПЛАЧЕНО (' + fromId + ')' });
-      await tg('sendMessage', { chat_id: wd.tg_id, text: '✅ Вывод ' + Number(wd.amount_uah).toFixed(2) + ' грн отправлен. Спасибо!' });
-      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отмечено выплаченным' });
-    } else {
-      // отклонение → вернуть деньги на баланс
-      await applyLedger(wd.tg_id, 'uah', Number(wd.amount_uah), 'withdraw_refund', 'wd:' + id, 'wd_refund:' + id, {});
-      await sbPatch('shark_withdrawals?id=eq.' + id + '&status=eq.pending', { status: 'rejected', decided_at: new Date().toISOString(), decided_by: fromId });
-      await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n❌ ОТКЛОНЕНО, деньги возвращены (' + fromId + ')' });
-      await tg('sendMessage', { chat_id: wd.tg_id, text: '❌ Заявка на вывод ' + Number(wd.amount_uah).toFixed(2) + ' грн отклонена. Деньги возвращены на баланс.' });
-      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отклонено, возврат сделан' });
+  if (kind === 'cl_ok' || kind === 'cl_no') {
+    const rows = await sbGet('shark_claims?id=eq.' + id + '&select=*');
+    const cl = rows[0];
+    if (!cl) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Заявка не найдена', show_alert: true }); return; }
+    if (cl.status !== 'new' && cl.status !== 'in_review') {
+      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Уже обработана: ' + cl.status, show_alert: true }); return;
     }
+    const stars = Math.floor(Number(cl.stars) || 0);
+
+    // Условный PATCH по текущему статусу: две одновременные отметки не должны
+    // ни выдать дважды, ни вернуть резерв дважды.
+    const to = kind === 'cl_ok' ? 'done' : 'rejected';
+    const done = await sbPatchReturn(
+      'shark_claims?id=eq.' + id + '&status=in.(new,in_review)',
+      { status: to, decided_at: new Date().toISOString(), decided_by: fromId });
+    if (!Array.isArray(done) || !done[0]) {
+      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Статус уже изменён', show_alert: true }); return;
+    }
+
+    if (kind === 'cl_ok') {
+      // Звёзды были зарезервированы при создании заявки и здесь окончательно
+      // уходят с баланса: выдачу вы сделали вручную, вне приложения.
+      await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n✅ ВЫДАНО (' + fromId + ')' });
+      await tg('sendMessage', { chat_id: cl.tg_id,
+        text: '✅ Заявка #' + id + ' закрыта — выигрыш выдан.\n\nСпасибо, что играете в Shark!' });
+      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отмечено выданным' });
+    } else {
+      // отказ → резерв возвращается на игровой баланс
+      await applyLedger(cl.tg_id, 'stars', stars, 'claim_return', 'claim:' + id, 'claim_return:' + id, {});
+      await tg('editMessageText', { chat_id: chatId, message_id: msgId, text: origText + '\n\n❌ ОТКЛОНЕНО, звёзды возвращены (' + fromId + ')' });
+      await tg('sendMessage', { chat_id: cl.tg_id,
+        text: '❌ Заявка #' + id + ' отклонена. ' + stars + ' ⭐ вернулись на игровой баланс.' });
+      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Отклонено, звёзды возвращены' });
+    }
+    return;
+  }
+
+  if (kind === 'gf_go' || kind === 'gf_ok') {
+    const to = kind === 'gf_ok' ? 'sent' : 'sending';
+    const rows = await sbGet('shark_gifts?id=eq.' + id + '&select=*');
+    const g = rows[0];
+    if (!g) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Подарок не найден', show_alert: true }); return; }
+    if (g.status === to) { await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Уже отмечено' }); return; }
+    if (!giftCanGo(g.status, to)) {
+      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Подарок уже выдан', show_alert: true }); return;
+    }
+
+    // Тот же условный PATCH, что и в панели: два админа (или админ и панель)
+    // могут нажать одновременно, и выиграть должен ровно один — иначе игрок
+    // получит два уведомления об одной отправке.
+    const patch = { status: to, sent_by: fromId };
+    if (to === 'sent') patch.sent_at = new Date().toISOString();
+    const done = await sbPatchReturn('shark_gifts?id=eq.' + id + '&status=eq.' + g.status, patch);
+    if (!Array.isArray(done) || !done[0]) {
+      await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Статус уже изменён', show_alert: true }); return;
+    }
+
+    const mark = to === 'sent' ? '✅ ОТПРАВЛЕН (' + fromId + ')' : '📤 В РАБОТЕ (' + fromId + ')';
+    await tg('editMessageText', {
+      chat_id: chatId, message_id: msgId, text: origText + '\n\n' + mark,
+      reply_markup: to === 'sent' ? undefined : giftDecisionKb(id)
+    });
+    if (to === 'sent') {
+      await tg('sendMessage', { chat_id: g.tg_id,
+        text: '🎁 Подарок отправлен!\n\n' + (g.emoji || '') + ' ' + g.name + '\n\nЗаберите его в чате с Telegram.' });
+    }
+    await tg('answerCallbackQuery', { callback_query_id: cq.id, text: to === 'sent' ? 'Отмечено отправленным' : 'Отмечено в работе' });
     return;
   }
 }
@@ -194,30 +396,10 @@ module.exports = async (req, res) => {
 
     const msg = update.message;
 
-    // Telegram Stars: успешная оплата → зачисляем игровые звёзды (idempotent)
+    // Оплата Telegram Stars: покупка кейса. Баланса в звёздах нет — платёж
+    // сразу превращается в подарок в инвентаре.
     if (msg && msg.successful_payment) {
-      const sp = msg.successful_payment;
-      let pl = {}; try { pl = JSON.parse(sp.invoice_payload || '{}'); } catch (e) {}
-      const pack = STAR_PACKS[pl.pack];
-      const uid = pl.tg || (msg.from && msg.from.id);
-      if (pack && uid) {
-        const r = await applyLedger(uid, 'stars', pack.stars, 'topup', 'stars', 'pay:' + sp.telegram_payment_charge_id, { price: sp.total_amount });
-        if (r.ok) {
-          await tg('sendMessage', { chat_id: uid, text: '✅ Зачислено ' + pack.stars + ' ⭐. Удачной игры!' });
-          // 10% с пополнения — пригласившему (в звёздах), без суточного лимита
-          const u = await sbGet('shark_users?tg_id=eq.' + uid + '&select=ref_by');
-          const refBy = u[0] && u[0].ref_by;
-          if (refBy) {
-            const cfg = await sbGet('shark_config?id=eq.1&select=data');
-            const share = (cfg[0] && cfg[0].data && cfg[0].data.referral_share) || 0.10;
-            const s = Math.floor(pack.stars * share);
-            if (s > 0) {
-              const rr = await applyLedger(refBy, 'stars', s, 'referral', 'topup:' + uid, 'reftop:' + sp.telegram_payment_charge_id, { from: uid });
-              if (rr.ok) await tg('sendMessage', { chat_id: refBy, text: '💜 Ваш друг пополнил баланс — вам +' + s + ' ⭐ (' + Math.round(share * 100) + '%)' });
-            }
-          }
-        }
-      }
+      await handleStarPayment(msg);
       res.status(200).json({ ok: true }); return;
     }
 
@@ -226,6 +408,22 @@ module.exports = async (req, res) => {
       if (text === '/start' || text.indexOf('/start ') === 0) {
         const startParam = text.indexOf('/start ') === 0 ? text.slice(7).trim() : null;
         await ensureUser(msg.from, startParam);
+        // Приложение отправляет игрока сюда по кнопке «Забрать выигрыш».
+        // Заявка уже создана, бот подтверждает приём и напоминает срок —
+        // ничего не выдаёт и ничего не считает.
+        const cm = startParam && startParam.match(/^claim_(\d+)$/);
+        if (cm) {
+          const rows = await sbGet('shark_claims?id=eq.' + Number(cm[1]) + '&tg_id=eq.' + msg.from.id + '&select=id,stars,status');
+          const cl = rows[0];
+          if (cl) {
+            await sbPatch('shark_claims?id=eq.' + cl.id + '&status=eq.new', { status: 'in_review' });
+            await tg('sendMessage', { chat_id: msg.chat.id,
+              text: '🏆 Заявка #' + cl.id + ' принята.\n\n'
+                + '⭐ ' + Math.floor(Number(cl.stars) || 0) + '\n\n'
+                + 'Мы разберём её вручную и напишем здесь же. Статус видно в приложении.' });
+            res.status(200).json({ ok: true }); return;
+          }
+        }
         await tg('sendMessage', { chat_id: msg.chat.id, text: WELCOME, reply_markup: startKb() });
       } else if (text === '/app') {
         await tg('sendMessage', { chat_id: msg.chat.id, text: 'Открыть приложение:', reply_markup: startKb() });
