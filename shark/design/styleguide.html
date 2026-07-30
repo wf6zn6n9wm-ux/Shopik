@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shark — дизайн-система</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+/* Стили самой витрины. В приложение НЕ едут — это страница для просмотра
+   системы, а не её реализация. Всё, что показано ниже как компонент, живёт
+   в блоке «компоненты» и переносится в index.html как есть. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;background:var(--bg);}
+body{
+  color:var(--text);font-family:var(--font);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  font-size:var(--fs-body);line-height:var(--lh-body);
+  padding:var(--s-6) var(--gutter) var(--s-12);
+  max-width:760px;margin-inline:auto;
+}
+.sg-h{font-size:var(--fs-display);line-height:var(--lh-display);letter-spacing:var(--ls-display);
+  font-weight:var(--fw-black);margin:0 0 var(--s-2);}
+.sg-lead{color:var(--text-2);margin:0 0 var(--s-10);max-width:52ch;}
+.sg-sec{margin:0 0 var(--s-12);}
+.sg-sec > h2{font-size:var(--fs-h2);line-height:var(--lh-h2);letter-spacing:var(--ls-h2);
+  font-weight:var(--fw-bold);margin:0 0 var(--s-2);}
+.sg-sec > p{color:var(--text-2);font-size:var(--fs-sm);margin:0 0 var(--s-5);max-width:56ch;}
+.sg-sub{font-size:var(--fs-micro);line-height:var(--lh-micro);letter-spacing:var(--ls-micro);
+  text-transform:uppercase;color:var(--text-3);font-weight:var(--fw-semi);
+  margin:var(--s-6) 0 var(--s-3);}
+.sg-grid{display:grid;gap:var(--s-3);grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+.sg-row{display:flex;flex-wrap:wrap;gap:var(--s-3);align-items:center;}
+.sg-note{font-size:var(--fs-caption);color:var(--text-3);margin-top:var(--s-3);max-width:56ch;}
+.sg-swatch{border-radius:var(--r-md);border:1px solid var(--line);overflow:hidden;}
+.sg-swatch .box{height:64px;}
+.sg-swatch .meta{padding:var(--s-2) var(--s-3);background:var(--surface);}
+.sg-swatch .n{font-size:var(--fs-caption);font-weight:var(--fw-semi);}
+.sg-swatch .v{font-size:var(--fs-micro);color:var(--text-3);font-family:var(--font-mono);}
+.sg-spec{width:100%;border-collapse:collapse;font-size:var(--fs-sm);}
+.sg-spec th,.sg-spec td{text-align:left;padding:var(--s-2) var(--s-3);border-bottom:1px solid var(--line);vertical-align:middle;}
+.sg-spec th{font-size:var(--fs-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--text-3);font-weight:var(--fw-semi);}
+.sg-spec td.mono,.sg-spec td .mono{font-family:var(--font-mono);color:var(--text-2);}
+.sg-frame{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:var(--s-5);box-shadow:var(--elev-1),var(--hairline);}
+.sg-frame + .sg-frame{margin-top:var(--s-3);}
+.sg-label{font-size:var(--fs-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
+  color:var(--text-3);font-weight:var(--fw-semi);display:block;margin-bottom:var(--s-2);}
+
+/* =========================================================================
+   КОМПОНЕНТЫ СИСТЕМЫ — этот блок переносится в index.html
+   ========================================================================= */
+
+/* ---- Кнопки -------------------------------------------------------------
+   Три уровня: главное действие, второстепенное, разрушительное. Больше не
+   заводим: четвёртый уровень никто не сможет отличить от третьего. */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:var(--s-2);
+  height:var(--btn-h);min-width:var(--touch);padding:0 var(--s-5);
+  border:1px solid transparent;border-radius:var(--r-md);
+  font-family:inherit;font-size:var(--fs-body);font-weight:var(--fw-bold);
+  cursor:pointer;user-select:none;position:relative;
+  transition:background var(--t-instant) var(--ease-out),
+             border-color var(--t-instant) var(--ease-out),
+             color var(--t-instant) var(--ease-out),
+             transform var(--t-instant) var(--ease-out);
+}
+.btn:active:not(:disabled){transform:scale(var(--press-scale));}
+.btn:focus-visible{outline:none;box-shadow:var(--focus-ring);}
+.btn:disabled{cursor:default;opacity:.4;}
+.btn--sm{height:var(--btn-h-sm);padding:0 var(--s-4);font-size:var(--fs-sm);border-radius:var(--r-sm);}
+.btn--lg{height:var(--btn-h-lg);font-size:var(--fs-h3);}
+.btn--block{display:flex;width:100%;}
+
+.btn--primary{background:var(--accent);color:var(--text-accent);box-shadow:var(--hairline);}
+.btn--primary:hover:not(:disabled){background:var(--accent-hi);}
+.btn--primary:active:not(:disabled){background:var(--accent-lo);}
+
+.btn--secondary{background:var(--surface-2);color:var(--text);border-color:var(--line-2);}
+.btn--secondary:hover:not(:disabled){background:var(--surface-3);border-color:var(--line-2);}
+.btn--secondary:active:not(:disabled){background:var(--surface-3);}
+
+.btn--danger{background:transparent;color:var(--danger);border-color:var(--danger-soft);}
+.btn--danger:hover:not(:disabled){background:var(--danger-soft);}
+
+/* Загрузка: ширину держим, текст прячем — иначе кнопка прыгает и палец
+   промахивается по соседнему элементу. */
+.btn.is-loading{color:transparent;pointer-events:none;}
+.btn.is-loading::after{
+  content:"";position:absolute;width:18px;height:18px;border-radius:50%;
+  border:2px solid currentColor;border-top-color:transparent;color:var(--text-accent);
+  animation:sgSpin .7s linear infinite;
+}
+.btn--secondary.is-loading::after,.btn--danger.is-loading::after{color:var(--text-2);}
+@keyframes sgSpin{to{transform:rotate(360deg);}}
+
+/* ---- Чипы и сегменты ---------------------------------------------------- */
+.chip{
+  display:inline-flex;align-items:center;gap:var(--s-2);height:var(--chip-h);
+  padding:0 var(--s-4);border-radius:var(--r-pill);
+  background:var(--surface-2);border:1px solid var(--line);
+  color:var(--text-2);font-size:var(--fs-sm);font-weight:var(--fw-semi);
+  cursor:pointer;user-select:none;
+  transition:background var(--t-fast) var(--ease-out),color var(--t-fast) var(--ease-out),
+             border-color var(--t-fast) var(--ease-out),transform var(--t-instant) var(--ease-out);
+}
+.chip:active{transform:scale(var(--press-scale));}
+.chip:focus-visible{outline:none;box-shadow:var(--focus-ring);}
+.chip.is-active{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);}
+.chip:disabled,.chip.is-disabled{opacity:.4;cursor:default;}
+
+.seg{display:inline-flex;padding:3px;gap:2px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:var(--r-md);}
+.seg button{
+  height:34px;padding:0 var(--s-4);border:0;border-radius:11px;background:transparent;
+  color:var(--text-2);font-family:inherit;font-size:var(--fs-sm);font-weight:var(--fw-semi);cursor:pointer;
+  transition:background var(--t-fast) var(--ease-out),color var(--t-fast) var(--ease-out);
+}
+.seg button.is-active{background:var(--surface-3);color:var(--text);}
+
+/* ---- Поля ввода --------------------------------------------------------- */
+.field{
+  width:100%;height:var(--input-h);padding:0 var(--s-4);
+  background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);
+  color:var(--text);font-family:inherit;font-size:var(--fs-body);
+  transition:border-color var(--t-fast) var(--ease-out),background var(--t-fast) var(--ease-out);
+}
+.field::placeholder{color:var(--text-3);}
+.field:hover{border-color:var(--line-2);}
+.field:focus{outline:none;border-color:var(--accent-line);background:var(--surface);}
+.field:disabled{opacity:.4;cursor:default;}
+.field.is-error{border-color:var(--danger);}
+.field-msg{display:block;margin-top:var(--s-2);font-size:var(--fs-caption);color:var(--text-3);}
+.field-msg.is-error{color:var(--danger);}
+
+/* ---- Карточки и строки -------------------------------------------------- */
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:var(--card-pad);box-shadow:var(--elev-1),var(--hairline);
+}
+.card--tap{cursor:pointer;transition:background var(--t-fast) var(--ease-out),
+  border-color var(--t-fast) var(--ease-out),transform var(--t-instant) var(--ease-out);}
+.card--tap:hover{background:var(--surface-2);border-color:var(--line-2);}
+.card--tap:active{transform:scale(.985);background:var(--surface-2);}
+
+.row{
+  display:flex;align-items:center;gap:var(--s-3);
+  padding:var(--s-3) var(--card-pad);background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-md);
+}
+.row + .row{margin-top:var(--s-2);}
+.row-b{flex:1;min-width:0;}
+.row-t{font-size:var(--fs-sm);font-weight:var(--fw-semi);}
+.row-s{font-size:var(--fs-caption);color:var(--text-3);margin-top:2px;}
+
+/* ---- Плашки статусов ---------------------------------------------------- */
+.tag{
+  display:inline-flex;align-items:center;gap:6px;padding:4px var(--s-2);
+  border-radius:var(--r-xs);font-size:var(--fs-micro);line-height:var(--lh-micro);
+  letter-spacing:var(--ls-micro);text-transform:uppercase;font-weight:var(--fw-bold);
+}
+.tag--neutral{background:var(--surface-3);color:var(--text-2);}
+.tag--success{background:var(--success-soft);color:var(--success);}
+.tag--danger {background:var(--danger-soft);color:var(--danger);}
+.tag--warning{background:var(--warning-soft);color:var(--warning);}
+.tag--info   {background:var(--info-soft);color:var(--info);}
+
+/* ---- Сумма в звёздах ----------------------------------------------------
+   Единственное место, где живёт золотой. Цифры табличные, иначе баланс
+   дёргается при каждом изменении. */
+.amount{display:inline-flex;align-items:baseline;gap:6px;color:var(--star);
+  font-weight:var(--fw-black);font-variant-numeric:tabular-nums;}
+.amount--lg{font-size:var(--fs-display);line-height:var(--lh-display);letter-spacing:var(--ls-display);}
+.amount--md{font-size:var(--fs-h2);line-height:var(--lh-h2);letter-spacing:var(--ls-h2);}
+.amount--sm{font-size:var(--fs-sm);}
+.amount .star{width:1em;height:1em;flex:none;background:var(--star);align-self:center;
+  -webkit-mask:var(--star-mask) center/contain no-repeat;mask:var(--star-mask) center/contain no-repeat;}
+
+/* ---- Состояния данных ---------------------------------------------------
+   Скелет, пусто и ошибка — часть системы, а не «потом дорисуем». Экран без
+   них в проде показывает пустоту и читается как поломка. */
+.skeleton{background:var(--surface-2);border-radius:var(--r-sm);position:relative;overflow:hidden;}
+.skeleton::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);
+  animation:sgShimmer 1.4s ease-in-out infinite;}
+@keyframes sgShimmer{to{transform:translateX(100%);}}
+
+.state{
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--s-2);
+  padding:var(--s-8) var(--s-5);border:1px dashed var(--line-2);border-radius:var(--r-lg);
+  color:var(--text-3);
+}
+.state-ic{font-size:28px;line-height:1;}
+.state-t{font-size:var(--fs-sm);font-weight:var(--fw-semi);color:var(--text-2);}
+.state-d{font-size:var(--fs-caption);max-width:34ch;}
+
+/* витрина: сетка примеров состояний */
+.sg-states{display:grid;gap:var(--s-4);grid-template-columns:repeat(auto-fill,minmax(190px,1fr));}
+.sg-state-cell{display:flex;flex-direction:column;gap:var(--s-2);}
+.sg-motion{height:44px;border-radius:var(--r-sm);background:var(--accent-soft);
+  border:1px solid var(--accent-line);display:flex;align-items:center;padding:0 var(--s-3);
+  font-size:var(--fs-caption);color:var(--accent);font-family:var(--font-mono);}
+.sg-scale-bar{background:var(--accent-soft);border:1px solid var(--accent-line);
+  border-radius:var(--r-xs);height:20px;}
+</style>
+</head>
+<body>
+
+<h1 class="sg-h">Shark — дизайн-система</h1>
+<p class="sg-lead">Тёмная тема, один акцент, золотой только у звёзд. Значения — из
+<code>design/tokens.css</code>: страница подключает тот же файл, поэтому показывает
+систему, а не её описание.</p>
+
+<!-- ==================== ПОВЕРХНОСТИ ==================== -->
+<section class="sg-sec">
+  <h2>Поверхности</h2>
+  <p>Пять ступеней от фона страницы до нажатого состояния. Слои различаются
+  светлотой и волосяной линией, а не тенью: тень в тёмной теме почти не видна.</p>
+  <div class="sg-grid">
+    <div class="sg-swatch"><div class="box" style="background:var(--bg)"></div>
+      <div class="meta"><div class="n">--bg</div><div class="v">#0A0C0F · страница</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--bg-elev)"></div>
+      <div class="meta"><div class="n">--bg-elev</div><div class="v">#0E1114 · шапка, таб-бар</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--surface)"></div>
+      <div class="meta"><div class="n">--surface</div><div class="v">#14181D · карточка</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--surface-2)"></div>
+      <div class="meta"><div class="n">--surface-2</div><div class="v">#191E24 · вложенное</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--surface-3)"></div>
+      <div class="meta"><div class="n">--surface-3</div><div class="v">#20262E · нажатие</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--line)"></div>
+      <div class="meta"><div class="n">--line</div><div class="v">#232A32 · граница</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--line-2)"></div>
+      <div class="meta"><div class="n">--line-2</div><div class="v">#2E3641 · разделитель</div></div></div>
+  </div>
+</section>
+
+<!-- ==================== ЦВЕТ ==================== -->
+<section class="sg-sec">
+  <h2>Цвет</h2>
+  <p>Акцент — только главное действие и активное состояние навигации. Золотой —
+  только рядом со звездой. Цвета состояний используются с мягкой подложкой, а не
+  заливкой в полный тон.</p>
+
+  <div class="sg-sub">Текст</div>
+  <div class="sg-grid">
+    <div class="sg-swatch"><div class="box" style="background:var(--text)"></div>
+      <div class="meta"><div class="n">--text</div><div class="v">#F4F6F8 · основное</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--text-2)"></div>
+      <div class="meta"><div class="n">--text-2</div><div class="v">#9AA5B1 · вторичное</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--text-3)"></div>
+      <div class="meta"><div class="n">--text-3</div><div class="v">#667080 · подсказки</div></div></div>
+  </div>
+
+  <div class="sg-sub">Акцент и валюта</div>
+  <div class="sg-grid">
+    <div class="sg-swatch"><div class="box" style="background:var(--accent)"></div>
+      <div class="meta"><div class="n">--accent</div><div class="v">#2BD4C0</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--accent-hi)"></div>
+      <div class="meta"><div class="n">--accent-hi</div><div class="v">#45E3D0 · наведение</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--accent-lo)"></div>
+      <div class="meta"><div class="n">--accent-lo</div><div class="v">#1FB3A2 · нажатие</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--star)"></div>
+      <div class="meta"><div class="n">--star</div><div class="v">#F7C14B · только ⭐</div></div></div>
+  </div>
+
+  <div class="sg-sub">Состояния</div>
+  <div class="sg-grid">
+    <div class="sg-swatch"><div class="box" style="background:var(--success)"></div>
+      <div class="meta"><div class="n">--success</div><div class="v">#3ECF8E</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--danger)"></div>
+      <div class="meta"><div class="n">--danger</div><div class="v">#F2555F</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--warning)"></div>
+      <div class="meta"><div class="n">--warning</div><div class="v">#E9A93C</div></div></div>
+    <div class="sg-swatch"><div class="box" style="background:var(--info)"></div>
+      <div class="meta"><div class="n">--info</div><div class="v">#5B9DF9</div></div></div>
+  </div>
+</section>
+
+<!-- ==================== ТИПОГРАФИКА ==================== -->
+<section class="sg-sec">
+  <h2>Типографика</h2>
+  <p>Системный шрифт: свой веб-шрифт означал бы внешний запрос, а Mini App должен
+  открываться мгновенно. Отрицательный трекинг — только от 20px и выше.</p>
+  <div class="sg-frame">
+    <div style="font-size:var(--fs-display);line-height:var(--lh-display);letter-spacing:var(--ls-display);font-weight:var(--fw-black)">Display · 32/800</div>
+    <div style="font-size:var(--fs-h1);line-height:var(--lh-h1);letter-spacing:var(--ls-h1);font-weight:var(--fw-black);margin-top:var(--s-3)">Заголовок 1 · 26/800</div>
+    <div style="font-size:var(--fs-h2);line-height:var(--lh-h2);letter-spacing:var(--ls-h2);font-weight:var(--fw-bold);margin-top:var(--s-3)">Заголовок 2 · 20/700</div>
+    <div style="font-size:var(--fs-h3);line-height:var(--lh-h3);letter-spacing:var(--ls-h3);font-weight:var(--fw-bold);margin-top:var(--s-3)">Заголовок 3 · 16/700</div>
+    <div style="font-size:var(--fs-body);line-height:var(--lh-body);margin-top:var(--s-3)">Основной текст · 14/400. Столько текста помещается в строку на телефоне при боковом поле 16.</div>
+    <div style="font-size:var(--fs-sm);line-height:var(--lh-sm);color:var(--text-2);margin-top:var(--s-2)">Мелкий · 13/400 — подписи под заголовками</div>
+    <div style="font-size:var(--fs-caption);line-height:var(--lh-caption);color:var(--text-3);margin-top:var(--s-2)">Сноска · 12/400 — пояснения и даты</div>
+    <div style="font-size:var(--fs-micro);line-height:var(--lh-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--text-3);font-weight:var(--fw-semi);margin-top:var(--s-3)">Метка · 11/600 капслок</div>
+  </div>
+  <p class="sg-note">Суммы всегда табличными цифрами (<code>tabular-nums</code>) —
+  иначе баланс дёргается по ширине при каждом изменении.</p>
+</section>
+
+<!-- ==================== СКРУГЛЕНИЯ И ОТСТУПЫ ==================== -->
+<section class="sg-sec">
+  <h2>Скругления, сетка, иконки</h2>
+  <div class="sg-sub">Скругления</div>
+  <div class="sg-row">
+    <div style="width:70px;height:56px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-xs);display:grid;place-items:center;font-size:var(--fs-caption);color:var(--text-3)">8</div>
+    <div style="width:70px;height:56px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);display:grid;place-items:center;font-size:var(--fs-caption);color:var(--text-3)">12</div>
+    <div style="width:70px;height:56px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);display:grid;place-items:center;font-size:var(--fs-caption);color:var(--text-3)">14</div>
+    <div style="width:70px;height:56px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-lg);display:grid;place-items:center;font-size:var(--fs-caption);color:var(--text-3)">18</div>
+    <div style="width:70px;height:56px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-xl);display:grid;place-items:center;font-size:var(--fs-caption);color:var(--text-3)">22</div>
+  </div>
+
+  <div class="sg-sub">Отступы · шаг 4</div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div class="sg-scale-bar" style="width:4px"></div>
+    <div class="sg-scale-bar" style="width:8px"></div>
+    <div class="sg-scale-bar" style="width:12px"></div>
+    <div class="sg-scale-bar" style="width:16px"></div>
+    <div class="sg-scale-bar" style="width:20px"></div>
+    <div class="sg-scale-bar" style="width:24px"></div>
+    <div class="sg-scale-bar" style="width:32px"></div>
+    <div class="sg-scale-bar" style="width:40px"></div>
+    <div class="sg-scale-bar" style="width:48px"></div>
+  </div>
+  <p class="sg-note">Боковое поле экрана 16, между карточками 12, между смысловыми
+  блоками 28. Ширина контента не превышает 480 — это телефонный интерфейс.</p>
+
+  <div class="sg-sub">Иконки и зона касания</div>
+  <table class="sg-spec">
+    <tr><th>Токен</th><th>Размер</th><th>Где</th></tr>
+    <tr><td class="mono">--ic-sm</td><td class="mono">16</td><td>внутри плашки, рядом с мелким текстом</td></tr>
+    <tr><td class="mono">--ic-md</td><td class="mono">20</td><td>в строке списка, в кнопке</td></tr>
+    <tr><td class="mono">--ic-lg</td><td class="mono">24</td><td>таб-бар, шапка</td></tr>
+    <tr><td class="mono">--ic-xl</td><td class="mono">32</td><td>иллюстрация в пустом состоянии</td></tr>
+    <tr><td class="mono">--touch</td><td class="mono">44</td><td>минимальная зона нажатия — всегда</td></tr>
+  </table>
+</section>
+
+<!-- ==================== КНОПКИ ==================== -->
+<section class="sg-sec">
+  <h2>Кнопки</h2>
+  <p>Три уровня. Главное действие на экране — ровно одно, и оно единственное
+  красится акцентом.</p>
+
+  <div class="sg-sub">Главное действие</div>
+  <div class="sg-states">
+    <div class="sg-state-cell"><span class="sg-label">default</span><button class="btn btn--primary">Играть</button></div>
+    <div class="sg-state-cell"><span class="sg-label">hover</span><button class="btn btn--primary" style="background:var(--accent-hi)">Играть</button></div>
+    <div class="sg-state-cell"><span class="sg-label">pressed</span><button class="btn btn--primary" style="background:var(--accent-lo);transform:scale(.97)">Играть</button></div>
+    <div class="sg-state-cell"><span class="sg-label">focus</span><button class="btn btn--primary" style="box-shadow:var(--focus-ring)">Играть</button></div>
+    <div class="sg-state-cell"><span class="sg-label">loading</span><button class="btn btn--primary is-loading">Играть</button></div>
+    <div class="sg-state-cell"><span class="sg-label">disabled</span><button class="btn btn--primary" disabled>Играть</button></div>
+  </div>
+
+  <div class="sg-sub">Второстепенное</div>
+  <div class="sg-states">
+    <div class="sg-state-cell"><span class="sg-label">default</span><button class="btn btn--secondary">Подробнее</button></div>
+    <div class="sg-state-cell"><span class="sg-label">hover</span><button class="btn btn--secondary" style="background:var(--surface-3);border-color:var(--line-2)">Подробнее</button></div>
+    <div class="sg-state-cell"><span class="sg-label">pressed</span><button class="btn btn--secondary" style="background:var(--surface-3);transform:scale(.97)">Подробнее</button></div>
+    <div class="sg-state-cell"><span class="sg-label">loading</span><button class="btn btn--secondary is-loading">Подробнее</button></div>
+    <div class="sg-state-cell"><span class="sg-label">disabled</span><button class="btn btn--secondary" disabled>Подробнее</button></div>
+  </div>
+
+  <div class="sg-sub">Разрушительное · размеры · во всю ширину</div>
+  <div class="sg-row" style="margin-bottom:var(--s-3)">
+    <button class="btn btn--danger">Отменить заявку</button>
+    <button class="btn btn--primary btn--sm">Мелкая</button>
+    <button class="btn btn--primary btn--lg">Крупная</button>
+  </div>
+  <button class="btn btn--primary btn--block btn--lg">Забрать выигрыш</button>
+  <p class="sg-note">Наведение существует только в десктопном Telegram. На телефоне
+  видно default и pressed, поэтому нажатие обязано читаться само по себе —
+  им занимается уменьшение масштаба, а не изменение цвета.</p>
+</section>
+
+<!-- ==================== ЧИПЫ, СЕГМЕНТЫ, ПОЛЯ ==================== -->
+<section class="sg-sec">
+  <h2>Выбор и ввод</h2>
+
+  <div class="sg-sub">Чипы</div>
+  <div class="sg-row">
+    <button class="chip">25</button>
+    <button class="chip is-active">50</button>
+    <button class="chip">100</button>
+    <button class="chip is-disabled" disabled>250</button>
+  </div>
+
+  <div class="sg-sub">Сегменты</div>
+  <div class="seg">
+    <button class="is-active">Активные</button>
+    <button>Мои</button>
+    <button>История</button>
+  </div>
+
+  <div class="sg-sub">Поля</div>
+  <div class="sg-states">
+    <div class="sg-state-cell"><span class="sg-label">default</span><input class="field" placeholder="Комментарий"></div>
+    <div class="sg-state-cell"><span class="sg-label">заполнено</span><input class="field" value="1 200"></div>
+    <div class="sg-state-cell"><span class="sg-label">focus</span><input class="field" value="1 200" style="border-color:var(--accent-line);background:var(--surface)"></div>
+    <div class="sg-state-cell"><span class="sg-label">error</span><input class="field is-error" value="20">
+      <span class="field-msg is-error">Минимум 500 ⭐</span></div>
+    <div class="sg-state-cell"><span class="sg-label">disabled</span><input class="field" value="1 200" disabled></div>
+  </div>
+</section>
+
+<!-- ==================== КАРТОЧКИ И СТРОКИ ==================== -->
+<section class="sg-sec">
+  <h2>Карточки и строки</h2>
+  <div class="card card--tap" style="margin-bottom:var(--s-3)">
+    <div style="font-size:var(--fs-h3);font-weight:var(--fw-bold)">Турнир недели</div>
+    <div style="font-size:var(--fs-caption);color:var(--text-3);margin-top:2px">4 263 участника · осталось 11ч 57м</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:var(--s-4)">
+      <span class="amount amount--md">1 250 <i class="star"></i></span>
+      <span class="tag tag--info">Идёт</span>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-b"><div class="row-t">Заявка #7</div><div class="row-s">Сегодня, 14:20</div></div>
+    <span class="amount amount--sm">1 200 <i class="star"></i></span>
+    <span class="tag tag--warning">На рассмотрении</span>
+  </div>
+  <div class="row">
+    <div class="row-b"><div class="row-t">Заявка #6</div><div class="row-s">Вчера, 09:05</div></div>
+    <span class="amount amount--sm">800 <i class="star"></i></span>
+    <span class="tag tag--success">Выдано</span>
+  </div>
+  <div class="row">
+    <div class="row-b"><div class="row-t">Заявка #5</div><div class="row-s">28 июля · дубль</div></div>
+    <span class="amount amount--sm">500 <i class="star"></i></span>
+    <span class="tag tag--danger">Отклонена</span>
+  </div>
+</section>
+
+<!-- ==================== СОСТОЯНИЯ ДАННЫХ ==================== -->
+<section class="sg-sec">
+  <h2>Состояния данных</h2>
+  <p>Загрузка, пусто и ошибка спроектированы наравне с обычным видом. Экран, у
+  которого их нет, в проде показывает пустоту — и это читается как поломка.</p>
+
+  <div class="sg-sub">Загрузка</div>
+  <div class="card">
+    <div class="skeleton" style="height:16px;width:45%"></div>
+    <div class="skeleton" style="height:12px;width:70%;margin-top:10px"></div>
+    <div class="skeleton" style="height:12px;width:30%;margin-top:8px"></div>
+  </div>
+
+  <div class="sg-sub">Пусто</div>
+  <div class="state">
+    <div class="state-ic">🎁</div>
+    <div class="state-t">Подарков пока нет</div>
+    <div class="state-d">Откройте кейс — выпадет подарок Telegram.</div>
+  </div>
+
+  <div class="sg-sub">Ошибка</div>
+  <div class="state" style="border-color:var(--danger-soft)">
+    <div class="state-ic">⚠️</div>
+    <div class="state-t" style="color:var(--danger)">Не удалось загрузить</div>
+    <div class="state-d">Проверьте связь и попробуйте ещё раз.</div>
+    <button class="btn btn--secondary btn--sm" style="margin-top:var(--s-2)">Повторить</button>
+  </div>
+
+  <div class="sg-sub">Успех</div>
+  <div class="card" style="border-color:var(--success-soft);display:flex;align-items:center;gap:var(--s-3)">
+    <span class="tag tag--success">Готово</span>
+    <div class="row-b"><div class="row-t">Награда зачислена</div>
+      <div class="row-s">Задание «Зайдите в Shark»</div></div>
+    <span class="amount amount--sm">+5 <i class="star"></i></span>
+  </div>
+</section>
+
+<!-- ==================== АНИМАЦИИ ==================== -->
+<section class="sg-sec">
+  <h2>Анимации</h2>
+  <p>Короткие и однонаправленные. Всё, что появляется, использует ease-out; всё,
+  что перемещается, — ease-in-out. Пружина только там, где уместна радость:
+  начисление награды, выпадение подарка.</p>
+  <table class="sg-spec">
+    <tr><th>Токен</th><th>Длительность</th><th>Где</th></tr>
+    <tr><td class="mono">--t-instant</td><td class="mono">90ms</td><td>нажатие, смена цвета</td></tr>
+    <tr><td class="mono">--t-fast</td><td class="mono">140ms</td><td>чипы, переключатели</td></tr>
+    <tr><td class="mono">--t-base</td><td class="mono">200ms</td><td>появление блока</td></tr>
+    <tr><td class="mono">--t-slow</td><td class="mono">320ms</td><td>переход между экранами</td></tr>
+    <tr><td class="mono">--t-sheet</td><td class="mono">420ms</td><td>выезд шторки</td></tr>
+  </table>
+  <div class="sg-sub">Кривые</div>
+  <div style="display:flex;flex-direction:column;gap:var(--s-2)">
+    <div class="sg-motion">--ease-out · cubic-bezier(.16, 1, .30, 1)</div>
+    <div class="sg-motion">--ease-in-out · cubic-bezier(.65, 0, .35, 1)</div>
+    <div class="sg-motion">--ease-spring · cubic-bezier(.34, 1.56, .64, 1)</div>
+  </div>
+  <p class="sg-note">При <code>prefers-reduced-motion</code> все длительности
+  становятся 1мс, а масштаб нажатия — 1. Интерфейс остаётся тем же, просто без движения.</p>
+</section>
+
+<!-- ==================== ОГРАНИЧЕНИЯ ==================== -->
+<section class="sg-sec">
+  <h2>Продуктовые ограничения</h2>
+  <p>Держатся не эстетикой, а требованиями. Редизайн их не отменяет.</p>
+  <table class="sg-spec">
+    <tr><th>Правило</th><th>Что это значит для макета</th></tr>
+    <tr><td>Нет экрана выплат</td><td>нет поля адреса, нет выбора валюты, нет кнопки «отправить средства». Экран заявок — только статус и история</td></tr>
+    <tr><td>Нет слов «вывод», «обмен», «курс», «конвертация»</td><td>кнопка называется «Забрать выигрыш»; проверяется тестом во всех трёх локалях</td></tr>
+    <tr><td>Нет денежной ценности подарков</td><td>в сводке инвентаря — число подарков, ожидающих отправки, а не сумма в ⭐</td></tr>
+    <tr><td>Золотой только у звёзд</td><td>золотая кнопка или заголовок ломают правило: увидел золото — речь о балансе</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

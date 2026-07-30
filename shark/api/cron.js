@@ -39,12 +39,14 @@ async function applyLedger(tg_id, currency, amount, kind, ref, idem, meta) {
   });
   return { ok: r.ok };
 }
+// Ставки и банк — целые ⭐, поэтому никаких преобразований на границе с базой.
+function starInt(v) { const n = Math.floor(Number(v)); return Number.isFinite(n) ? n : 0; }
 async function bumpPlayed(tg_id, playedInc, wonInc) {
   const u = await sbGet('shark_users?tg_id=eq.' + tg_id + '&select=played,won_stars');
   if (!u[0]) return;
   const patch = {};
   if (playedInc) patch.played = Number(u[0].played || 0) + playedInc;
-  if (wonInc) patch.won_stars = Number(u[0].won_stars || 0) + wonInc;
+  if (wonInc) patch.won_stars = starInt(u[0].won_stars) + wonInc;
   if (Object.keys(patch).length) await sbReq('shark_users?tg_id=eq.' + tg_id, 'PATCH', patch, 'return=minimal');
 }
 function winnerIndex(seed, bets, pot) {
@@ -79,10 +81,35 @@ async function resolveRound(round, stale) {
     winner = { name: w.name, av: w.av, tg_id: w.tg_id, stake: Number(w.stake), pct: Math.round((w.stake / pot) * 1000) / 10, payout };
     if (w.tg_id) {
       await applyLedger(w.tg_id, 'stars', payout, 'win', 'pvp:' + r.id, 'pvp_win:' + r.id, { pot });
-      await bumpPlayed(w.tg_id, 0, Math.max(payout - Number(w.stake), 0));
+      await bumpPlayed(w.tg_id, 0, Math.max(payout - starInt(w.stake), 0));
     }
   }
   for (const b of bets) { if (b.tg_id) await bumpPlayed(b.tg_id, 1, 0); }
+
+  // Реферальные выплаты — те же правила, что в api/shark.js: доля от
+  // ПОТРАЧЕННОГО игроком, а не от рейка. Если бы cron их не делал, раунды,
+  // дорешанные им, молча теряли бы начисления рефереру.
+  if (pot > 0) {
+    const real = bets.filter((b) => b.tg_id);
+    if (real.length) {
+      const cfg = await sbGet('shark_config?id=eq.1&select=data');
+      const pct = Math.min(100, Math.max(0, Number((cfg[0] && cfg[0].data && cfg[0].data.referral_share_percent)) || 0));
+      if (pct > 0) {
+        const us = await sbGet('shark_users?tg_id=in.(' + real.map((b) => b.tg_id).join(',') + ')&select=tg_id,ref_by');
+        const refOf = {}; us.forEach((u) => { if (u.ref_by) refOf[u.tg_id] = u.ref_by; });
+        for (const b of real) {
+          const inviter = refOf[b.tg_id];
+          if (!inviter) continue;
+          const mine = starInt(b.stake);
+          const cut = Math.floor(mine * pct / 100);
+          if (cut > 0) {
+            await applyLedger(inviter, 'stars', cut, 'referral', 'spent:' + b.tg_id,
+              'ref_rev:pvp:' + r.id + ':' + b.tg_id, { from: b.tg_id, game: 'pvp', round: r.id, pct });
+          }
+        }
+      }
+    }
+  }
   await sbReq('shark_pvp_rounds?id=eq.' + r.id, 'PATCH', { status: 'done', pot, winner, resolved_at: new Date().toISOString() }, 'return=minimal');
   return true;
 }
