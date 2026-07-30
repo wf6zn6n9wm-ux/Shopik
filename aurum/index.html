@@ -1,0 +1,1097 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#050505" />
+<title>AURUM — Cloud Mining Reactor</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+
+<!-- ============================================================
+     AURUM · DESIGN SYSTEM (v1)
+     ------------------------------------------------------------
+     A premium FinTech Telegram Mini App — a virtual cloud data-center
+     where the user watches a mining reactor work. Not gambling; a
+     living, technological, $10-20M-feeling product.
+
+     PALETTE   Dark OLED base #050505. Black + gold, glassmorphism,
+               soft blur, dynamic glow. Green only for positive deltas.
+     TYPE      Sora (display / big numbers), Manrope (UI), tabular nums.
+     RADII     8 / 16 / 22 / 28 / 999
+     SPACING   4pt grid, generous breathing room (20-28px gutters)
+     MOTION    60fps, transform/opacity only, spring & ease-out,
+               ambient orbit + rotating rings + particle system.
+     ============================================================ -->
+<style>
+  :root{
+    /* base */
+    --bg:#050505; --bg-2:#0a0a0c; --ink:#f5f5f7; --ink-dim:#a9a9b2;
+    --ink-mute:#6a6a72; --ink-faint:#3a3a40;
+    /* gold spectrum */
+    --gold:#f3c765; --gold-hi:#ffe6a6; --gold-deep:#c9982f; --gold-1:#e7b84f;
+    --gold-glow:rgba(243,199,101,.55); --gold-soft:rgba(243,199,101,.14);
+    /* semantic */
+    --pos:#46e0a0; --neg:#ff6b6b; --info:#59b4ff;
+    /* glass */
+    --glass:rgba(255,255,255,.045); --glass-2:rgba(255,255,255,.07);
+    --stroke:rgba(255,255,255,.08); --stroke-2:rgba(255,255,255,.14);
+    --stroke-gold:rgba(243,199,101,.32);
+    /* geometry */
+    --r-sm:12px; --r-md:18px; --r-lg:24px; --r-xl:30px; --r-pill:999px;
+    --shell:480px;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);height:100%;}
+  body{
+    color:var(--ink);
+    font-family:'Manrope',ui-sans-serif,-apple-system,'SF Pro Text','Segoe UI',Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  #root{max-width:var(--shell);margin-inline:auto;min-height:100vh;position:relative;isolation:isolate;}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:-.02em;}
+  .display{font-family:'Sora',ui-sans-serif,sans-serif;}
+  button{font-family:inherit;color:inherit;border:0;background:none;cursor:pointer;}
+  ::-webkit-scrollbar{width:0;height:0;}
+
+  /* ---------- ambient background ---------- */
+  .ambient{position:fixed;inset:0;z-index:-2;overflow:hidden;pointer-events:none;background:var(--bg);}
+  .ambient::before{content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(60% 40% at 50% -6%, rgba(243,199,101,.10), transparent 60%),
+      radial-gradient(45% 30% at 88% 12%, rgba(243,199,101,.06), transparent 60%),
+      radial-gradient(70% 50% at 50% 108%, rgba(201,152,47,.07), transparent 60%);}
+  .orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;animation:drift 18s ease-in-out infinite;}
+  .orb.a{width:280px;height:280px;left:-80px;top:8%;background:radial-gradient(circle,rgba(243,199,101,.20),transparent 70%);}
+  .orb.b{width:320px;height:320px;right:-120px;top:44%;background:radial-gradient(circle,rgba(201,152,47,.16),transparent 70%);animation-delay:-6s;}
+  .grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.035;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  @keyframes drift{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(20px,-24px,0)}}
+
+  /* ---------- app shell ---------- */
+  .app{min-height:100vh;padding-top:calc(var(--safe-top) + 8px);}
+  .appbar{position:sticky;top:0;z-index:40;padding:calc(var(--safe-top) + 10px) 20px 12px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:linear-gradient(180deg,rgba(5,5,5,.92) 55%,rgba(5,5,5,0));backdrop-filter:blur(12px);}
+  .idpill{display:flex;align-items:center;gap:10px;padding:5px 12px 5px 5px;border-radius:var(--r-pill);
+    background:var(--glass);border:1px solid var(--stroke);}
+  .avatar{width:34px;height:34px;border-radius:50%;background:
+    conic-gradient(from 210deg,var(--gold-deep),var(--gold-hi),var(--gold-deep));
+    display:grid;place-items:center;color:#1a1406;font-weight:800;font-size:14px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.4) inset, 0 4px 14px rgba(243,199,101,.28);}
+  .idpill .nm{font-weight:700;font-size:13.5px;line-height:1;}
+  .idpill .lv{font-size:10.5px;color:var(--gold);font-weight:700;margin-top:3px;letter-spacing:.04em;}
+  .bar-actions{display:flex;align-items:center;gap:9px;}
+  .balpill{display:flex;align-items:center;gap:7px;padding:8px 13px;border-radius:var(--r-pill);
+    background:linear-gradient(180deg,rgba(243,199,101,.16),rgba(243,199,101,.05));
+    border:1px solid var(--stroke-gold);box-shadow:0 0 18px rgba(243,199,101,.10);}
+  .balpill b{font-weight:800;font-size:14px;}
+  .iconbtn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
+    background:var(--glass);border:1px solid var(--stroke);position:relative;transition:.18s;}
+  .iconbtn:active{transform:scale(.92);}
+  .dot{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--gold);
+    box-shadow:0 0 8px var(--gold);}
+
+  .screen{padding:6px 20px 128px;animation:screenIn .42s cubic-bezier(.16,1,.3,1);}
+  @keyframes screenIn{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:none}}
+  .sec-title{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:26px 2px 14px;}
+  .sec-title.first{margin-top:8px;}
+  .sec-sub{color:var(--ink-dim);font-size:13px;margin:-8px 2px 16px;}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);}
+
+  /* ---------- glass primitives ---------- */
+  .card{background:var(--glass);border:1px solid var(--stroke);border-radius:var(--r-lg);
+    backdrop-filter:blur(14px);position:relative;overflow:hidden;}
+  .card.glow{box-shadow:0 18px 50px -24px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.02) inset;}
+  .card .sheen{position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(160deg,rgba(255,255,255,.06),transparent 42%);}
+
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:var(--r-pill);
+    background:var(--glass);border:1px solid var(--stroke);font-size:12.5px;font-weight:700;color:var(--ink-dim);}
+  .chip.gold{color:var(--gold);border-color:var(--stroke-gold);
+    background:linear-gradient(180deg,rgba(243,199,101,.14),rgba(243,199,101,.03));}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:9px;height:54px;border-radius:var(--r-md);
+    font-weight:800;font-size:15px;transition:transform .16s, box-shadow .2s;position:relative;overflow:hidden;}
+  .btn:active{transform:scale(.975);}
+  .btn.primary{color:#160f00;
+    background:linear-gradient(180deg,var(--gold-hi),var(--gold) 45%,var(--gold-deep));
+    box-shadow:0 10px 30px -8px rgba(243,199,101,.5), 0 0 0 1px rgba(255,255,255,.18) inset;}
+  .btn.primary::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+    transform:skewX(-20deg);animation:sweep 3.6s ease-in-out infinite;}
+  @keyframes sweep{0%,60%{left:-60%}100%{left:130%}}
+  .btn.ghost{background:var(--glass);border:1px solid var(--stroke-2);color:var(--ink);}
+
+  /* ---------- reactor ---------- */
+  .reactor-wrap{display:flex;flex-direction:column;align-items:center;margin:14px 0 6px;}
+  .reactor{position:relative;width:min(80vw,326px);aspect-ratio:1;display:grid;place-items:center;}
+  .reactor canvas{position:absolute;inset:0;width:100%;height:100%;}
+  .reactor svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+  .r-spin-a{animation:spin 26s linear infinite;transform-origin:150px 150px;}
+  .r-spin-b{animation:spin 16s linear infinite reverse;transform-origin:150px 150px;}
+  .r-spin-c{animation:spin 40s linear infinite;transform-origin:150px 150px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .core{position:relative;z-index:3;width:60%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;
+    background:radial-gradient(circle at 50% 38%,rgba(243,199,101,.14),rgba(10,10,12,.86) 62%);
+    border:1px solid rgba(243,199,101,.18);
+    box-shadow:0 0 60px rgba(243,199,101,.18), inset 0 0 40px rgba(0,0,0,.7);
+    backdrop-filter:blur(6px);}
+  .core-glow{position:absolute;width:78%;aspect-ratio:1;border-radius:50%;z-index:2;
+    background:radial-gradient(circle,var(--gold-glow),transparent 66%);filter:blur(26px);
+    animation:breathe 4.2s ease-in-out infinite;}
+  @keyframes breathe{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:.95;transform:scale(1.06)}}
+  .core .lbl{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-mute);font-weight:700;}
+  .core .payout{font-family:'Sora';font-weight:800;font-size:27px;margin:6px 0 2px;
+    background:linear-gradient(180deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .core .cd{font-family:'Sora';font-weight:800;font-size:46px;line-height:1;
+    text-shadow:0 0 26px rgba(243,199,101,.45);}
+  .core .cd small{font-size:22px;color:var(--ink-dim);}
+  .core .micro{margin-top:9px;font-size:11px;color:var(--ink-dim);font-weight:700;letter-spacing:.02em;}
+  .core .micro b{color:var(--gold);}
+
+  .float-plus{position:absolute;z-index:5;left:50%;top:34%;transform:translateX(-50%);
+    font-family:'Sora';font-weight:800;font-size:20px;color:var(--gold-hi);pointer-events:none;
+    text-shadow:0 0 18px var(--gold-glow);animation:floatUp 1.5s cubic-bezier(.2,.7,.2,1) forwards;}
+  @keyframes floatUp{0%{opacity:0;transform:translate(-50%,4px) scale(.8)}
+    18%{opacity:1}100%{opacity:0;transform:translate(-50%,-70px) scale(1.05)}}
+
+  .hero-balance{text-align:center;margin:2px 0 2px;}
+  .hero-balance .cap{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:700;}
+  .hero-balance .val{font-family:'Sora';font-weight:800;font-size:40px;line-height:1.05;margin-top:4px;
+    display:inline-flex;align-items:baseline;gap:8px;}
+  .hero-balance .val .st{font-size:24px;color:var(--gold);filter:drop-shadow(0 0 10px var(--gold-glow));}
+  .hero-balance .rate{margin-top:8px;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;
+    color:var(--pos);font-weight:700;}
+
+  /* stat strip */
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px;}
+  .stat{padding:14px 12px;border-radius:var(--r-md);background:var(--glass);border:1px solid var(--stroke);
+    text-align:center;}
+  .stat .k{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);font-weight:700;}
+  .stat .v{font-family:'Sora';font-weight:700;font-size:18px;margin-top:6px;}
+  .stat .v .u{font-size:11px;color:var(--ink-dim);font-weight:600;margin-left:2px;}
+
+  /* quick actions */
+  .qa{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:20px;}
+  .qa button{display:flex;flex-direction:column;align-items:center;gap:9px;padding:16px 6px;
+    border-radius:var(--r-md);background:var(--glass);border:1px solid var(--stroke);transition:.18s;}
+  .qa button:active{transform:translateY(2px) scale(.97);background:var(--glass-2);}
+  .qa .ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;
+    background:linear-gradient(180deg,rgba(243,199,101,.16),rgba(243,199,101,.04));
+    border:1px solid var(--stroke-gold);color:var(--gold);}
+  .qa .t{font-size:11.5px;font-weight:700;color:var(--ink-dim);}
+
+  .dual{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-top:14px;}
+
+  /* generic list card */
+  .row{display:flex;align-items:center;gap:14px;padding:15px 16px;}
+  .row + .row{border-top:1px solid var(--stroke);}
+  .row .lead{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;flex:0 0 auto;
+    background:var(--glass-2);border:1px solid var(--stroke);color:var(--gold);}
+  .row .body{flex:1;min-width:0;}
+  .row .body .t{font-weight:700;font-size:14.5px;}
+  .row .body .s{font-size:12px;color:var(--ink-dim);margin-top:2px;}
+  .row .val{font-weight:800;font-family:'Sora';font-size:15px;text-align:right;white-space:nowrap;}
+
+  /* progress bar */
+  .bar{height:7px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;position:relative;}
+  .bar > i{position:absolute;inset:0;transform-origin:left;border-radius:99px;
+    background:linear-gradient(90deg,var(--gold-deep),var(--gold),var(--gold-hi));
+    box-shadow:0 0 14px rgba(243,199,101,.4);}
+  .bar.shim > i::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
+    animation:barshim 2.2s linear infinite;}
+  @keyframes barshim{from{transform:translateX(-100%)}to{transform:translateX(220%)}}
+
+  /* mining cards */
+  .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+  .mine{padding:16px;border-radius:var(--r-lg);background:var(--glass);border:1px solid var(--stroke);
+    position:relative;overflow:hidden;transition:.2s;}
+  .mine:active{transform:scale(.985);}
+  .mine .halo{position:absolute;width:120px;height:120px;border-radius:50%;top:-46px;right:-40px;
+    background:radial-gradient(circle,var(--gold-soft),transparent 70%);filter:blur(8px);}
+  .mine .emo{font-size:26px;filter:drop-shadow(0 6px 14px rgba(243,199,101,.3));}
+  .mine .nm{font-weight:800;font-size:15px;margin-top:12px;}
+  .mine .lv{font-size:11.5px;color:var(--gold);font-weight:700;margin-top:3px;}
+  .mine .eff{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-dim);
+    font-weight:700;margin:14px 0 6px;}
+  .mine .up{margin-top:14px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    gap:7px;font-weight:800;font-size:13px;background:linear-gradient(180deg,rgba(243,199,101,.16),rgba(243,199,101,.04));
+    border:1px solid var(--stroke-gold);color:var(--gold);}
+
+  /* boost cards */
+  .boost{display:flex;align-items:center;gap:15px;padding:16px;border-radius:var(--r-lg);
+    background:var(--glass);border:1px solid var(--stroke);position:relative;overflow:hidden;}
+  .boost + .boost{margin-top:12px;}
+  .boost .orbwrap{width:60px;height:60px;flex:0 0 auto;border-radius:18px;display:grid;place-items:center;position:relative;
+    background:radial-gradient(circle at 50% 40%,rgba(243,199,101,.22),rgba(10,10,12,.7));
+    border:1px solid var(--stroke-gold);font-size:26px;overflow:hidden;}
+  .boost .orbwrap::after{content:"";position:absolute;inset:-2px;border-radius:inherit;
+    background:conic-gradient(from 0deg,transparent,var(--gold-glow),transparent 40%);
+    animation:spin 3.4s linear infinite;opacity:.5;mix-blend-mode:screen;}
+  .boost .meta{flex:1;min-width:0;}
+  .boost .meta .t{font-weight:800;font-size:15.5px;}
+  .boost .meta .d{font-size:12px;color:var(--ink-dim);margin-top:3px;}
+  .boost .meta .mult{display:inline-block;margin-top:9px;font-size:11px;font-weight:800;color:var(--gold);
+    padding:4px 9px;border-radius:99px;background:rgba(243,199,101,.1);border:1px solid var(--stroke-gold);}
+  .boost .go{width:46px;height:46px;flex:0 0 auto;border-radius:14px;display:grid;place-items:center;
+    background:linear-gradient(180deg,var(--gold-hi),var(--gold-deep));color:#160f00;
+    box-shadow:0 8px 20px -6px rgba(243,199,101,.5);}
+
+  /* segmented */
+  .seg{display:flex;gap:4px;padding:4px;border-radius:var(--r-pill);background:var(--glass);
+    border:1px solid var(--stroke);margin:4px 0 18px;overflow-x:auto;}
+  .seg button{flex:1;white-space:nowrap;padding:9px 12px;border-radius:var(--r-pill);font-size:12.5px;
+    font-weight:700;color:var(--ink-dim);transition:.2s;}
+  .seg button.on{color:#160f00;background:linear-gradient(180deg,var(--gold-hi),var(--gold-deep));
+    box-shadow:0 6px 16px -6px rgba(243,199,101,.5);}
+
+  /* reward calendar */
+  .cal{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .day{aspect-ratio:.82;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:5px;background:var(--glass);border:1px solid var(--stroke);position:relative;}
+  .day .d{font-size:10px;color:var(--ink-mute);font-weight:700;letter-spacing:.06em;}
+  .day .g{font-size:22px;}
+  .day .a{font-size:11px;font-weight:800;color:var(--gold);}
+  .day.done{background:linear-gradient(180deg,rgba(70,224,160,.12),transparent);border-color:rgba(70,224,160,.3);}
+  .day.done .a{color:var(--pos);}
+  .day.today{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold), 0 0 22px rgba(243,199,101,.28);}
+  .day.locked{opacity:.45;}
+
+  /* wheel */
+  .wheel-stage{display:grid;place-items:center;margin:8px 0 4px;position:relative;}
+  .wheel{width:min(84vw,340px);aspect-ratio:1;position:relative;}
+  .wheel svg{width:100%;height:100%;transition:none;filter:drop-shadow(0 20px 50px rgba(0,0,0,.7));}
+  .wheel-hub{position:absolute;left:50%;top:50%;width:74px;height:74px;transform:translate(-50%,-50%);
+    border-radius:50%;display:grid;place-items:center;z-index:3;
+    background:radial-gradient(circle at 50% 35%,var(--gold-hi),var(--gold-deep));
+    border:3px solid #150f02;box-shadow:0 0 30px var(--gold-glow), inset 0 -6px 12px rgba(0,0,0,.4);
+    color:#160f00;font-weight:800;font-size:12px;}
+  .wheel-ptr{position:absolute;left:50%;top:-6px;transform:translateX(-50%);z-index:4;
+    width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;
+    border-top:26px solid var(--gold-hi);filter:drop-shadow(0 3px 6px rgba(0,0,0,.6));}
+  .confetti-c{position:fixed;inset:0;z-index:60;pointer-events:none;}
+
+  /* leaderboard */
+  .lead-row{display:flex;align-items:center;gap:13px;padding:13px 15px;border-radius:var(--r-md);
+    background:var(--glass);border:1px solid var(--stroke);margin-bottom:10px;}
+  .lead-row.me{border-color:var(--stroke-gold);background:linear-gradient(180deg,rgba(243,199,101,.1),transparent);}
+  .lead-row .rk{width:30px;text-align:center;font-family:'Sora';font-weight:800;font-size:16px;color:var(--ink-mute);}
+  .lead-row.top1 .rk{color:#ffd76a;} .lead-row.top2 .rk{color:#d9dbe3;} .lead-row.top3 .rk{color:#e0a06a;}
+  .lead-row .av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#160f00;
+    background:linear-gradient(180deg,var(--gold-hi),var(--gold-deep));}
+  .lead-row .who{flex:1;min-width:0;font-weight:700;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lead-row .amt{font-family:'Sora';font-weight:800;font-size:14.5px;display:flex;align-items:center;gap:5px;}
+  .podium{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:end;margin-bottom:8px;}
+  .pod{border-radius:var(--r-lg);padding:16px 8px 14px;text-align:center;background:var(--glass);border:1px solid var(--stroke);}
+  .pod.first{background:linear-gradient(180deg,rgba(243,199,101,.16),transparent);border-color:var(--stroke-gold);transform:translateY(-8px);}
+  .pod .pav{width:52px;height:52px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;font-weight:800;color:#160f00;
+    background:linear-gradient(180deg,var(--gold-hi),var(--gold-deep));box-shadow:0 8px 22px -8px var(--gold-glow);}
+  .pod .pn{font-weight:700;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pod .pa{font-family:'Sora';font-weight:800;font-size:13px;color:var(--gold);margin-top:4px;}
+  .pod .crown{font-size:16px;margin-bottom:2px;}
+
+  /* wallet chart */
+  .chartcard{padding:18px 16px 10px;}
+  .chart{width:100%;height:132px;display:block;overflow:visible;}
+  .tx .row .val.pos{color:var(--pos);} .tx .row .val.neg{color:var(--ink);}
+
+  /* profile */
+  .pcard{padding:24px 20px;border-radius:var(--r-xl);text-align:center;position:relative;overflow:hidden;
+    background:linear-gradient(160deg,rgba(243,199,101,.14),rgba(255,255,255,.03) 45%,rgba(255,255,255,.02));
+    border:1px solid var(--stroke-gold);box-shadow:0 24px 60px -30px rgba(243,199,101,.35);}
+  .pcard .pbig{width:84px;height:84px;border-radius:50%;margin:0 auto;display:grid;place-items:center;
+    font-family:'Sora';font-weight:800;font-size:30px;color:#160f00;
+    background:conic-gradient(from 200deg,var(--gold-deep),var(--gold-hi),var(--gold-deep));
+    box-shadow:0 0 0 3px rgba(0,0,0,.35) inset, 0 14px 34px -12px var(--gold-glow);}
+  .pcard .pname{font-family:'Sora';font-weight:800;font-size:22px;margin-top:14px;}
+  .pcard .ptag{font-size:12.5px;color:var(--ink-dim);margin-top:4px;}
+  .xpwrap{margin-top:18px;}
+  .xpmeta{display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:var(--ink-dim);margin-bottom:7px;}
+  .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;}
+  .badge{aspect-ratio:1;border-radius:16px;display:grid;place-items:center;font-size:26px;
+    background:var(--glass);border:1px solid var(--stroke);position:relative;}
+  .badge.lock{opacity:.4;font-size:20px;}
+  .badge.hot{border-color:var(--stroke-gold);box-shadow:0 0 20px rgba(243,199,101,.2);}
+
+  /* bottom nav */
+  .nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:var(--shell);z-index:50;
+    padding:10px 16px calc(12px + var(--safe-bottom));
+    background:linear-gradient(0deg,rgba(5,5,5,.96) 60%,rgba(5,5,5,0));}
+  .nav-inner{display:flex;align-items:flex-end;justify-content:space-between;
+    background:rgba(14,14,16,.72);backdrop-filter:blur(18px);border:1px solid var(--stroke);
+    border-radius:26px;padding:9px 10px;box-shadow:0 18px 44px -18px rgba(0,0,0,.9);}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;color:var(--ink-mute);
+    transition:.2s;position:relative;}
+  .tab .tl{font-size:10px;font-weight:700;letter-spacing:.01em;}
+  .tab.on{color:var(--gold);}
+  .tab.on svg{filter:drop-shadow(0 0 10px var(--gold-glow));}
+  .tab.center{flex:0 0 auto;margin:-24px 4px 0;}
+  .tab.center .cc{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;
+    background:linear-gradient(180deg,var(--gold-hi),var(--gold) 50%,var(--gold-deep));color:#160f00;
+    box-shadow:0 12px 30px -8px var(--gold-glow), 0 0 0 6px rgba(5,5,5,.9);border:1px solid rgba(255,255,255,.3);}
+  .tab.center .tl{color:var(--gold);margin-top:2px;}
+
+  /* toasts */
+  .toasts{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--safe-top) + 10px);z-index:70;
+    width:min(92%,var(--shell));display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+  .toast{display:flex;align-items:center;gap:13px;padding:13px 15px;border-radius:var(--r-md);
+    background:rgba(18,18,20,.7);backdrop-filter:blur(20px);border:1px solid var(--stroke-2);
+    box-shadow:0 16px 40px -16px rgba(0,0,0,.9), 0 0 22px rgba(243,199,101,.1);
+    animation:toastIn .5s cubic-bezier(.16,1,.3,1);}
+  .toast.out{animation:toastOut .4s ease forwards;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-18px) scale(.96)}to{opacity:1;transform:none}}
+  @keyframes toastOut{to{opacity:0;transform:translateY(-14px) scale(.97)}}
+  .toast .ti{width:38px;height:38px;border-radius:12px;flex:0 0 auto;display:grid;place-items:center;font-size:19px;
+    background:linear-gradient(180deg,rgba(243,199,101,.2),rgba(243,199,101,.05));border:1px solid var(--stroke-gold);
+    box-shadow:0 0 16px rgba(243,199,101,.18);}
+  .toast .tt{font-weight:800;font-size:13.5px;} .toast .ts{font-size:11.5px;color:var(--ink-dim);margin-top:2px;}
+
+  .empty-hint{padding:16px;border-radius:var(--r-md);background:var(--glass);border:1px dashed var(--stroke-2);
+    color:var(--ink-dim);font-size:12.5px;text-align:center;}
+  .divider{height:1px;background:var(--stroke);margin:20px 0;}
+  .ripple{position:absolute;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;
+    background:radial-gradient(circle,rgba(243,199,101,.5),transparent 70%);animation:ripple .6s ease-out forwards;}
+  @keyframes ripple{from{width:0;height:0;opacity:.7}to{width:280px;height:280px;opacity:0}}
+</style>
+</head>
+<body>
+<div class="ambient"><div class="orb a"></div><div class="orb b"></div></div>
+<div class="grain"></div>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback, createContext, useContext } = React;
+
+/* ───────────────────────── Telegram ───────────────────────── */
+const TG = (window.Telegram && window.Telegram.WebApp) || null;
+if (TG){ try{ TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor('#050505');
+  TG.setBackgroundColor && TG.setBackgroundColor('#050505'); }catch(e){} }
+const haptic = (type='light') => { try{
+  const h = TG && TG.HapticFeedback; if(!h) return;
+  if(type==='success'||type==='error'||type==='warning') h.notificationOccurred(type);
+  else h.impactOccurred(type);
+}catch(e){} };
+const TG_USER = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
+
+/* ───────────────────────── format ───────────────────────── */
+const fmt = (n, d=2) => {
+  const neg = n<0; n=Math.abs(n);
+  const s = n.toLocaleString('ru-RU',{minimumFractionDigits:d,maximumFractionDigits:d});
+  return (neg?'−':'')+s;
+};
+const fmtInt = n => Math.round(n).toLocaleString('ru-RU');
+const compact = n => n>=1e6 ? (n/1e6).toFixed(1)+'M' : n>=1e3 ? (n/1e3).toFixed(1)+'k' : Math.round(n);
+
+/* ───────────────────────── icons ───────────────────────── */
+const I = ({d, size=22, fill='none', sw=1.8}) =>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor"
+       strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">{d}</svg>;
+const Ic = {
+  reactor:<I d={<><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M18.8 5.2l-2.1 2.1M7.3 16.7l-2.1 2.1"/></>}/>,
+  chip:<I d={<><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 1.5V4M14 1.5V4M10 20v2.5M14 20v2.5M1.5 10H4M1.5 14H4M20 10h2.5M20 14h2.5"/></>}/>,
+  bolt:<I d={<path d="M13 2 4.5 13.5H11l-1 8.5L18.5 10.5H12z" fill="currentColor" stroke="none"/>}/>,
+  bars:<I d={<><path d="M5 20V11M12 20V4M19 20v-6"/></>} sw={2.2}/>,
+  user:<I d={<><circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></>}/>,
+  wallet:<I d={<><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M16 12h2"/><path d="M3 9h13a2 2 0 0 1 2 2"/></>}/>,
+  wheel:<I d={<><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M6 6l12 12M18 6 6 18"/></>}/>,
+  target:<I d={<><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="12" cy="12" r="1" fill="currentColor"/></>}/>,
+  bell:<I d={<><path d="M18 8a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14 18 8Z"/><path d="M10.5 19a2 2 0 0 0 3 0"/></>}/>,
+  plus:<I d={<path d="M12 5v14M5 12h14"/>} sw={2.4}/>,
+  up:<I d={<path d="M12 19V6M6 11l6-6 6 6"/>} sw={2.2}/>,
+  down:<I d={<path d="M12 5v13M6 12l6 6 6-6"/>} sw={2.2}/>,
+  star:<I d={<path d="M12 3.2l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.9 6.7 19.6l1.2-6L3.4 9.5l6-.7z" fill="currentColor" stroke="none"/>}/>,
+  chev:<I d={<path d="M9 6l6 6-6 6"/>} sw={2}/>,
+  check:<I d={<path d="M4 12.5l5 5 11-11"/>} sw={2.4}/>,
+  flame:<I d={<path d="M12 22c4 0 7-2.7 7-6.5 0-4-3-6-3-9 0 0-2 1.5-2.5 4C11 8 10 5 8 3.5c0 3-3 4.5-3 9C5 19.3 8 22 12 22Z"/>}/>,
+  gift:<I d={<><rect x="3.5" y="9" width="17" height="11" rx="2"/><path d="M12 9v11M3.5 13h17M12 9C9 9 7 4 12 4s3 5 0 5Z"/></>}/>,
+  copy:<I d={<><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></>}/>,
+  shield:<I d={<path d="M12 2.5 20 5.5V11c0 5-3.5 8.5-8 10.5C7.5 19.5 4 16 4 11V5.5z"/>}/>,
+};
+
+/* ───────────────────────── economy engine ───────────────────────── */
+const CYCLE = 10;              // seconds between payouts
+const START_BAL = 12480.42;
+const STAKED = 25000;
+const YIELD = 1.0;             // % / day on stake
+const HASH = 1.284;            // PH/s
+// visible session rate (per second) — tuned to feel alive but premium
+const RATE = STAKED*(YIELD/100)/86400 + 0.061;
+const PAYOUT = RATE*CYCLE;
+
+const AppCtx = createContext(null);
+const useApp = () => useContext(AppCtx);
+
+/* balance registry — updated via refs @60fps without React re-render */
+function useEngine(){
+  const bal = useRef(START_BAL);
+  const nodes = useRef(new Set());     // balance text nodes
+  const rateNodes = useRef(new Set());
+  const cdRef = useRef(null);          // {sec, ring, plus}
+  const [toasts, setToasts] = useState([]);
+  const toastId = useRef(0);
+
+  const pushToast = useCallback((t)=>{
+    const id = ++toastId.current;
+    setToasts(x=>[...x,{...t,id}]);
+    setTimeout(()=>setToasts(x=>x.map(o=>o.id===id?{...o,out:true}:o)),3200);
+    setTimeout(()=>setToasts(x=>x.filter(o=>o.id!==id)),3700);
+  },[]);
+
+  const register = useCallback((el)=>{ if(!el) return; nodes.current.add(el);
+    return ()=>nodes.current.delete(el); },[]);
+  const registerRate = useCallback((el)=>{ if(!el) return; rateNodes.current.add(el);
+    return ()=>rateNodes.current.delete(el); },[]);
+
+  const writeBal = () => {
+    const s = fmt(bal.current,2);
+    nodes.current.forEach(n=>{ if(n.dataset.compact) n.textContent = fmt(bal.current,2); else n.textContent = s; });
+  };
+
+  useEffect(()=>{
+    let raf, last=performance.now(), acc=0, cycleT=0;
+    const loop = (now)=>{
+      const dt=Math.min(.05,(now-last)/1000); last=now;
+      bal.current += RATE*dt; acc+=dt; cycleT+=dt;
+      if(acc>=1/12){ writeBal(); acc=0; }
+      // countdown ring
+      const c=cdRef.current;
+      if(c){
+        const left=Math.max(0,CYCLE-cycleT);
+        const frac=cycleT/CYCLE;
+        if(c.sec) c.sec.textContent=Math.ceil(left);
+        if(c.ring) c.ring.style.strokeDashoffset=String(c.circ*frac);
+      }
+      if(cycleT>=CYCLE){
+        cycleT=0;
+        // payout event
+        if(c && c.plus){ c.plus.classList.remove('go'); void c.plus.offsetWidth; c.plus.classList.add('go'); }
+        haptic('success');
+        pushToast({icon:'⚡',t:`Начисление +${fmt(PAYOUT,2)} ★`,s:'Reactor · автоматический payout'});
+      }
+      raf=requestAnimationFrame(loop);
+    };
+    raf=requestAnimationFrame(loop);
+    return ()=>cancelAnimationFrame(raf);
+  },[]);
+
+  return { bal, register, registerRate, cdRef, toasts, setToasts, pushToast, RATE, PAYOUT };
+}
+
+/* live balance text */
+function Bal({d=2,cls=''}){
+  const { register } = useApp();
+  const ref=useRef(null);
+  useEffect(()=>register(ref.current),[register]);
+  return <span ref={ref} className={'num '+cls}>{fmt(START_BAL,d)}</span>;
+}
+
+/* ───────────────────────── Reactor ───────────────────────── */
+function ParticleField(){
+  const cv=useRef(null);
+  useEffect(()=>{
+    const c=cv.current, ctx=c.getContext('2d');
+    let raf, W,H, parts=[], dpr=Math.min(2,window.devicePixelRatio||1);
+    const size=()=>{ const r=c.getBoundingClientRect(); W=c.width=r.width*dpr; H=c.height=r.height*dpr; };
+    size();
+    const N=46, cx=()=>W/2, cy=()=>H/2;
+    for(let i=0;i<N;i++){
+      const rad=(0.30+Math.random()*0.17)*Math.min(W,H)/2;
+      parts.push({a:Math.random()*Math.PI*2, r:rad, sp:(0.15+Math.random()*0.5)*(Math.random()<.5?1:-1),
+        s:(0.6+Math.random()*1.7)*dpr, o:0.25+Math.random()*0.6});
+    }
+    const loop=()=>{
+      ctx.clearRect(0,0,W,H);
+      for(const p of parts){
+        p.a+=p.sp*0.006;
+        const x=cx()+Math.cos(p.a)*p.r, y=cy()+Math.sin(p.a)*p.r*0.98;
+        ctx.beginPath();
+        ctx.arc(x,y,p.s,0,Math.PI*2);
+        ctx.fillStyle=`rgba(243,199,101,${p.o})`;
+        ctx.shadowColor='rgba(243,199,101,0.9)'; ctx.shadowBlur=8*dpr;
+        ctx.fill();
+      }
+      raf=requestAnimationFrame(loop);
+    };
+    loop();
+    window.addEventListener('resize',size);
+    return ()=>{cancelAnimationFrame(raf);window.removeEventListener('resize',size);};
+  },[]);
+  return <canvas ref={cv}/>;
+}
+
+function Reactor(){
+  const { cdRef, PAYOUT } = useApp();
+  const secRef=useRef(null), ringRef=useRef(null), plusRef=useRef(null);
+  const R=140, circ=2*Math.PI*R;
+  useEffect(()=>{ cdRef.current={sec:secRef.current,ring:ringRef.current,plus:plusRef.current,circ}; },[]);
+  return (
+    <div className="reactor">
+      <ParticleField/>
+      <div className="core-glow"></div>
+      <svg viewBox="0 0 300 300">
+        <defs>
+          <linearGradient id="gGold" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#ffe6a6"/><stop offset=".5" stopColor="#f3c765"/><stop offset="1" stopColor="#c9982f"/>
+          </linearGradient>
+          <filter id="glow"><feGaussianBlur stdDeviation="3.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        {/* faint track */}
+        <circle cx="150" cy="150" r={R} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="10"/>
+        {/* progress countdown */}
+        <circle ref={ringRef} cx="150" cy="150" r={R} fill="none" stroke="url(#gGold)" strokeWidth="10"
+          strokeLinecap="round" filter="url(#glow)"
+          strokeDasharray={circ} strokeDashoffset="0" transform="rotate(-90 150 150)"/>
+        {/* rotating dashed rings */}
+        <g className="r-spin-a"><circle cx="150" cy="150" r="120" fill="none" stroke="rgba(243,199,101,.5)"
+          strokeWidth="2" strokeDasharray="3 15" strokeLinecap="round"/></g>
+        <g className="r-spin-b"><circle cx="150" cy="150" r="104" fill="none" stroke="rgba(243,199,101,.25)"
+          strokeWidth="6" strokeDasharray="30 220" strokeLinecap="round"/></g>
+        <g className="r-spin-c">{Array.from({length:60}).map((_,i)=>{
+          const a=(i/60)*Math.PI*2, r1=88, r2=i%5===0?80:84;
+          return <line key={i} x1={150+Math.cos(a)*r1} y1={150+Math.sin(a)*r1}
+            x2={150+Math.cos(a)*r2} y2={150+Math.sin(a)*r2}
+            stroke="rgba(243,199,101,.35)" strokeWidth={i%5===0?1.6:0.8}/>;
+        })}</g>
+      </svg>
+      <div className="float-plus" ref={plusRef}>+{fmt(PAYOUT,2)} ★</div>
+      <div className="core">
+        <div className="lbl">Next payout</div>
+        <div className="payout num">+{fmt(PAYOUT,2)} ★</div>
+        <div className="cd num"><span ref={secRef}>10</span><small>s</small></div>
+        <div className="micro">HASH <b>{HASH} PH/s</b> · UP <b>99.98%</b></div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── Screens ───────────────────────── */
+function ReactorScreen({go}){
+  const { PAYOUT } = useApp();
+  return (
+    <div className="screen">
+      <div style={{display:'flex',gap:10,justifyContent:'center',marginTop:2}}>
+        <span className="chip gold">{Ic.up} +{YIELD.toFixed(2)}% / день</span>
+        <span className="chip">На вкладе <b style={{color:'var(--gold)',marginLeft:4}}>{fmtInt(STAKED)}</b> ★</span>
+      </div>
+
+      <div className="reactor-wrap"><Reactor/></div>
+
+      <div className="hero-balance">
+        <div className="cap">Баланс реактора</div>
+        <div className="val display"><Bal/><span className="st">★</span></div>
+        <div className="rate">{Ic.up} +{fmt(RATE,3)} ★ / сек · растёт в реальном времени</div>
+      </div>
+
+      <div className="stat-row">
+        <div className="stat"><div className="k">Yield</div><div className="v num">+1.00<span className="u">%/д</span></div></div>
+        <div className="stat"><div className="k">Hash rate</div><div className="v num">{HASH}<span className="u">PH/s</span></div></div>
+        <div className="stat"><div className="k">Uptime</div><div className="v num">99.98<span className="u">%</span></div></div>
+      </div>
+
+      <div className="qa">
+        <button onClick={()=>{haptic();go('wallet');}}><span className="ic">{Ic.plus}</span><span className="t">Пополнить</span></button>
+        <button onClick={()=>{haptic();go('wheel');}}><span className="ic">{Ic.wheel}</span><span className="t">Ролл</span></button>
+        <button onClick={()=>{haptic();go('missions');}}><span className="ic">{Ic.target}</span><span className="t">Задания</span></button>
+        <button onClick={()=>{haptic();go('boost');}}><span className="ic">{Ic.bolt}</span><span className="t">Буст</span></button>
+      </div>
+
+      <div className="dual">
+        <button className="btn primary" onClick={()=>{haptic('medium');go('wallet');}}>{Ic.plus} Пополнить</button>
+        <button className="btn ghost" onClick={()=>{haptic();go('wallet');}}>{Ic.up} Вывести</button>
+      </div>
+
+      <div className="sec-title">Инфраструктура</div>
+      <div className="sec-sub">Ваш виртуальный дата-центр работает 24/7</div>
+      <div className="card glow"><div className="sheen"></div>
+        {[['⚙️','ASIC ферма','7 уровень · 42 TH/s','98%'],
+          ['🖥️','GPU кластер','5 уровень · 18 TH/s','91%'],
+          ['🔆','Solar farm','3 уровень · зелёная энергия','76%']].map((r,i)=>(
+          <div className="row" key={i} onClick={()=>{haptic();go('mining');}}>
+            <div className="lead" style={{fontSize:20}}>{r[0]}</div>
+            <div className="body"><div className="t">{r[1]}</div><div className="s">{r[2]}</div></div>
+            <div className="val" style={{color:'var(--pos)'}}>{r[3]}</div>
+          </div>
+        ))}
+      </div>
+      <button className="btn ghost" style={{marginTop:14}} onClick={()=>{haptic();go('mining');}}>
+        Открыть майнинг-ферму {Ic.chev}</button>
+    </div>
+  );
+}
+
+function MiningScreen(){
+  const farms=[
+    {e:'⚙️',n:'ASIC',lv:7,eff:98,rate:'42 TH/s'},
+    {e:'🖥️',n:'GPU Cluster',lv:5,eff:91,rate:'18 TH/s'},
+    {e:'🔌',n:'Power Grid',lv:6,eff:88,rate:'12 MW'},
+    {e:'❄️',n:'Cooling',lv:4,eff:82,rate:'−18°C'},
+    {e:'🔆',n:'Solar Farm',lv:3,eff:76,rate:'4 MW'},
+    {e:'🧠',n:'AI Optimization',lv:2,eff:64,rate:'+9% eff'},
+  ];
+  return (
+    <div className="screen">
+      <div className="sec-title first">Майнинг-ферма</div>
+      <div className="sec-sub">Виртуальная инфраструктура · улучшайте узлы, растите доходность</div>
+      <div className="card" style={{padding:16,marginBottom:18}}><div className="sheen"></div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div><div className="eyebrow">Суммарная мощность</div>
+            <div className="display num" style={{fontSize:26,marginTop:6}}>1.284 <span style={{fontSize:14,color:'var(--ink-dim)'}}>PH/s</span></div></div>
+          <span className="chip gold">{Ic.flame} +12% сегодня</span>
+        </div>
+      </div>
+      <div className="mgrid">
+        {farms.map((f,i)=>(
+          <div className="mine" key={i} onClick={()=>haptic('medium')}>
+            <div className="halo"></div>
+            <div className="emo">{f.e}</div>
+            <div className="nm">{f.n}</div>
+            <div className="lv">Уровень {f.lv} · {f.rate}</div>
+            <div className="eff"><span>Эффективность</span><span style={{color:'var(--gold)'}}>{f.eff}%</span></div>
+            <div className="bar shim"><i style={{transform:`scaleX(${f.eff/100})`}}></i></div>
+            <div className="up">{Ic.up} Улучшить</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BoostScreen(){
+  const boosts=[
+    {e:'⚡',n:'Turbo',d:'Мгновенный разгон доходности на 2 часа',m:'×2.0'},
+    {e:'🚀',n:'Quantum Boost',d:'Квантовое ускорение хеш-рейта',m:'×3.5'},
+    {e:'🤖',n:'AI Optimizer',d:'Нейросеть оптимизирует нагрузку',m:'+18%'},
+    {e:'🔋',n:'Battery Backup',d:'Работа реактора без простоев ночью',m:'24/7'},
+    {e:'🛰',n:'Satellite Node',d:'Спутниковый узел — глобальный аплинк',m:'×1.8'},
+  ];
+  return (
+    <div className="screen">
+      <div className="sec-title first">Ускорители</div>
+      <div className="sec-sub">Активируйте бусты — реактор ускорится, доходность вырастет</div>
+      <div style={{marginTop:6}}>
+        {boosts.map((b,i)=>(
+          <div className="boost" key={i}>
+            <div className="orbwrap">{b.e}</div>
+            <div className="meta"><div className="t">{b.n}</div><div className="d">{b.d}</div>
+              <span className="mult">{b.m} буст</span></div>
+            <button className="go" onClick={()=>haptic('medium')}>{Ic.bolt}</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MissionsScreen(){
+  const [tab,setTab]=useState('daily');
+  const days=[['ПН','⭐','+50','done'],['ВТ','⭐','+75','done'],['СР','💎','+120','today'],
+    ['ЧТ','⚡','+150',''],['ПТ','🎁','+200','locked'],['СБ','🔥','+300','locked'],
+    ['ВС','👑','+500','locked'],['','🏆','JACKPOT','locked']];
+  const tasks={
+    daily:[['⚡','Собрать 5 начислений','3 / 5','+40 ★'],['🎡','Крутануть колесо','0 / 1','+25 ★'],
+      ['👥','Пригласить друга','0 / 1','+150 ★']],
+    weekly:[['📈','Достичь 1.5 PH/s','1.28 / 1.5','+400 ★'],['⚙️','Улучшить 3 узла','1 / 3','+250 ★'],
+      ['🔥','Держать стрик 7 дней','3 / 7','+700 ★']],
+    achievements:[['🥇','Первый payout','Получено','+100 ★'],['💎','Баланс 10 000 ★','Получено','+500 ★'],
+      ['🚀','Активировать Quantum Boost','Не выполнено','+800 ★']],
+    referral:[['🎁','1 друг','1 / 1','+150 ★'],['🎁','5 друзей','1 / 5','+900 ★'],['🎁','25 друзей','1 / 25','+5000 ★']],
+  };
+  return (
+    <div className="screen">
+      <div className="sec-title first">Задания</div>
+      <div className="sec-sub">Выполняйте цели — забирайте звёзды и множители</div>
+      <div className="seg">
+        {[['daily','Ежедневные'],['weekly','Weekly'],['achievements','Achievements'],['referral','Referral']].map(([k,l])=>(
+          <button key={k} className={tab===k?'on':''} onClick={()=>{haptic();setTab(k);}}>{l}</button>
+        ))}
+      </div>
+      {tab==='daily' && <>
+        <div className="eyebrow" style={{margin:'0 2px 12px'}}>Календарь наград · неделя</div>
+        <div className="cal">
+          {days.map((d,i)=>(
+            <div className={'day '+(d[3]||'')} key={i}>
+              {d[0] && <div className="d">{d[0]}</div>}
+              <div className="g">{d[1]}</div>
+              <div className="a">{d[2]}</div>
+              {d[3]==='done' && <div style={{position:'absolute',top:6,right:6,color:'var(--pos)'}}>{Ic.check}</div>}
+            </div>
+          ))}
+        </div>
+        <div className="divider"></div>
+      </>}
+      <div className="card"><div className="sheen"></div>
+        {tasks[tab].map((t,i)=>(
+          <div className="row" key={i}>
+            <div className="lead" style={{fontSize:19}}>{t[0]}</div>
+            <div className="body"><div className="t">{t[1]}</div>
+              <div className="s">{t[2]}</div>
+              <div className="bar" style={{marginTop:8}}><i style={{transform:`scaleX(${prog(t[2])})`}}></i></div>
+            </div>
+            <div className="val" style={{color:'var(--gold)'}}>{t[3]}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function prog(s){
+  const m=String(s).match(/([\d.]+)\s*\/\s*([\d.]+)/);
+  if(m) return Math.min(1,parseFloat(m[1])/parseFloat(m[2]));
+  return /получ|выполнен/i.test(s)?1:0.35;
+}
+
+/* Lucky Wheel with spin physics + confetti */
+function WheelScreen(){
+  const seg=[{l:'×2',c:'#f3c765'},{l:'+50',c:'#1a1a1e'},{l:'×5',c:'#e7b84f'},{l:'+10',c:'#1a1a1e'},
+    {l:'JACK',c:'#ffe6a6'},{l:'+25',c:'#1a1a1e'},{l:'×3',c:'#c9982f'},{l:'+5',c:'#1a1a1e'}];
+  const N=seg.length, step=360/N;
+  const [rot,setRot]=useState(0);
+  const [spinning,setSpin]=useState(false);
+  const svgRef=useRef(null), confRef=useRef(null);
+  const { pushToast }=useApp();
+
+  const spin=()=>{
+    if(spinning) return; setSpin(true); haptic('medium');
+    const idx=Math.floor(Math.random()*N);
+    const target=360*6 + (360 - idx*step - step/2);
+    const final=rot - (rot%360) + target;
+    if(svgRef.current){
+      svgRef.current.style.transition='transform 4.4s cubic-bezier(.15,.9,.2,1)';
+      svgRef.current.style.transform=`rotate(${final}deg)`;
+    }
+    setRot(final);
+    setTimeout(()=>{ setSpin(false); haptic('success');
+      pushToast({icon:'🎉',t:`Выигрыш ${seg[idx].l}!`,s:'Lucky Wheel · награда зачислена'});
+      confetti(confRef.current);
+    },4500);
+  };
+  return (
+    <div className="screen">
+      <div className="sec-title first">Lucky Wheel</div>
+      <div className="sec-sub">Крутите колесо удачи — множители, звёзды и джекпот</div>
+      <div className="wheel-stage">
+        <div className="wheel">
+          <div className="wheel-ptr"></div>
+          <svg ref={svgRef} viewBox="0 0 200 200">
+            <defs><radialGradient id="wg"><stop offset="0" stopColor="#141416"/><stop offset="1" stopColor="#0a0a0c"/></radialGradient></defs>
+            <circle cx="100" cy="100" r="99" fill="url(#wg)" stroke="rgba(243,199,101,.4)" strokeWidth="2"/>
+            {seg.map((s,i)=>{
+              const a0=(i*step-90)*Math.PI/180, a1=((i+1)*step-90)*Math.PI/180;
+              const x0=100+96*Math.cos(a0), y0=100+96*Math.sin(a0);
+              const x1=100+96*Math.cos(a1), y1=100+96*Math.sin(a1);
+              const mid=((i+0.5)*step-90)*Math.PI/180;
+              const tx=100+62*Math.cos(mid), ty=100+62*Math.sin(mid);
+              const dark=s.c==='#1a1a1e';
+              return <g key={i}>
+                <path d={`M100 100 L${x0} ${y0} A96 96 0 0 1 ${x1} ${y1} Z`} fill={s.c}
+                  stroke="rgba(0,0,0,.5)" strokeWidth="1"/>
+                <text x={tx} y={ty} fill={dark?'#f3c765':'#160f00'} fontSize="13" fontWeight="800"
+                  fontFamily="Sora" textAnchor="middle" dominantBaseline="middle"
+                  transform={`rotate(${(i+0.5)*step} ${tx} ${ty})`}>{s.l}</text>
+              </g>;
+            })}
+            {Array.from({length:N}).map((_,i)=>{
+              const a=(i*step-90)*Math.PI/180;
+              return <circle key={i} cx={100+96*Math.cos(a)} cy={100+96*Math.sin(a)} r="2.4" fill="#ffe6a6"/>;
+            })}
+          </svg>
+          <div className="wheel-hub">SPIN</div>
+        </div>
+      </div>
+      <button className="btn primary" style={{marginTop:20}} disabled={spinning} onClick={spin}>
+        {spinning?'Крутится…':'Крутить · 1 попытка'}</button>
+      <div className="card" style={{marginTop:14,padding:'14px 16px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <div><div className="eyebrow">Бесплатных прокрутов</div>
+          <div className="display num" style={{fontSize:20,marginTop:4}}>1 <span style={{fontSize:12,color:'var(--ink-dim)'}}>/ день</span></div></div>
+        <span className="chip gold">{Ic.gift} +1 за друга</span>
+      </div>
+      <canvas ref={confRef} className="confetti-c"></canvas>
+    </div>
+  );
+}
+function confetti(canvas){
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d'), dpr=Math.min(2,window.devicePixelRatio||1);
+  canvas.width=innerWidth*dpr; canvas.height=innerHeight*dpr;
+  const cols=['#f3c765','#ffe6a6','#c9982f','#ffffff'];
+  const P=Array.from({length:130},()=>({x:innerWidth*dpr/2,y:innerHeight*dpr*0.32,
+    vx:(Math.random()-.5)*16*dpr,vy:(Math.random()*-14-6)*dpr,
+    g:0.4*dpr,s:(3+Math.random()*5)*dpr,c:cols[Math.floor(Math.random()*4)],
+    r:Math.random()*6,vr:(Math.random()-.5)*.4,life:1}));
+  let raf,t=0;
+  const loop=()=>{ t++; ctx.clearRect(0,0,canvas.width,canvas.height);
+    P.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; p.life-=0.006;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r); ctx.globalAlpha=Math.max(0,p.life);
+      ctx.fillStyle=p.c; ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6); ctx.restore(); });
+    if(t<180) raf=requestAnimationFrame(loop); else ctx.clearRect(0,0,canvas.width,canvas.height);
+  };
+  loop();
+}
+
+function LeaderboardScreen(){
+  const [tab,setTab]=useState('today');
+  const data={
+    today:[['Ali Ahmed',142795],['Паук',64391],['Антоха',43650],['Samira VI',38117],['Nexus',26422],
+      ['Фирюза',25794],['Vadim',14883],['RaGNaReK',12671],['Nova_77',11651],['Вы',9420]],
+    week:[['Nexus',512040],['Ali Ahmed',498220],['Samira VI',377100],['Паук',210500],['Вы',188300]],
+    month:[['Ali Ahmed',1842795],['Nexus',1512040],['Samira VI',990117],['Вы',740300]],
+    friends:[['Максим',88420],['Вы',9420],['Дима',7100],['Артур',3200]],
+    country:[['🇷🇺 Россия',18420950],['🇰🇿 Казахстан',9910500],['🇺🇦 Украина',7204100],['🇺🇿 Узбекистан',4102300]],
+  };
+  const rows=data[tab];
+  const isCountry=tab==='country';
+  const top3=rows.slice(0,3);
+  return (
+    <div className="screen">
+      <div className="sec-title first" style={{textAlign:'center'}}>Лидеры</div>
+      <div className="sec-sub" style={{textAlign:'center'}}>Топ майнеров по балансу реактора</div>
+      <div className="seg">
+        {[['today','Today'],['week','Week'],['month','Month'],['friends','Friends'],['country','Country']].map(([k,l])=>(
+          <button key={k} className={tab===k?'on':''} onClick={()=>{haptic();setTab(k);}}>{l}</button>
+        ))}
+      </div>
+      {!isCountry && top3.length===3 &&
+        <div className="podium">
+          {[top3[1],top3[0],top3[2]].map((r,i)=>{
+            const first=i===1;
+            return <div className={'pod'+(first?' first':'')} key={i}>
+              <div className="crown">{first?'👑':i===0?'🥈':'🥉'}</div>
+              <div className="pav">{r[0][0]}</div>
+              <div className="pn">{r[0]}</div>
+              <div className="pa num">{compact(r[1])} ★</div>
+            </div>;
+          })}
+        </div>}
+      <div style={{marginTop:isCountry?4:14}}>
+        {rows.map((r,i)=>(
+          <div className={'lead-row'+(r[0]==='Вы'?' me':'')+(i===0?' top1':i===1?' top2':i===2?' top3':'')} key={i}>
+            <div className="rk">{i+1}</div>
+            <div className="av">{isCountry?r[0].slice(0,2):r[0][0]}</div>
+            <div className="who">{r[0]}</div>
+            <div className="amt num">{fmtInt(r[1])} {Ic.star}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WalletScreen(){
+  const [tab,setTab]=useState('overview');
+  const tx=[['⚡','Payout реактора','сегодня 01:22','+0.71',1],['🎡','Lucky Wheel ×2','сегодня 00:40','+50.00',1],
+    ['↑','Пополнение · TON','вчера 22:10','+2 500',1],['👥','Реферал · Максим','вчера 18:03','+150',1],
+    ['↓','Вывод · Stars','2 дня назад','−1 200',0]];
+  return (
+    <div className="screen">
+      <div className="sec-title first">Кошелёк</div>
+      <div className="card glow" style={{padding:22,textAlign:'center',marginBottom:16}}><div className="sheen"></div>
+        <div className="eyebrow">Доступный баланс</div>
+        <div className="display num" style={{fontSize:38,margin:'8px 0 4px'}}><Bal/> <span style={{color:'var(--gold)',fontSize:24}}>★</span></div>
+        <div className="rate" style={{color:'var(--pos)',fontSize:12.5,fontWeight:700}}>≈ {fmt(START_BAL*0.013,2)} $ · +1.00% / день</div>
+        <div className="dual" style={{marginTop:18}}>
+          <button className="btn primary" onClick={()=>haptic('medium')}>{Ic.plus} Пополнить</button>
+          <button className="btn ghost" onClick={()=>haptic('medium')}>{Ic.up} Вывести</button>
+        </div>
+      </div>
+      <div className="seg">
+        {[['overview','Обзор'],['history','История'],['stats','Статистика']].map(([k,l])=>(
+          <button key={k} className={tab===k?'on':''} onClick={()=>{haptic();setTab(k);}}>{l}</button>
+        ))}
+      </div>
+      {tab!=='history' && <div className="card chartcard" style={{marginBottom:14}}><div className="sheen"></div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+          <div className="eyebrow">Доходность · 14 дней</div><span className="chip gold" style={{fontSize:11}}>{Ic.up} +18.4%</span></div>
+        <YieldChart/>
+      </div>}
+      {tab==='stats' && <div className="stat-row" style={{marginTop:0}}>
+        <div className="stat"><div className="k">Всего добыто</div><div className="v num">48.2k</div></div>
+        <div className="stat"><div className="k">Выведено</div><div className="v num">12.1k</div></div>
+        <div className="stat"><div className="k">Рефералы</div><div className="v num">+3.4k</div></div>
+      </div>}
+      {tab!=='stats' && <div className="card tx"><div className="sheen"></div>
+        {tx.map((t,i)=>(
+          <div className="row" key={i}>
+            <div className="lead" style={{fontSize:18}}>{t[0]}</div>
+            <div className="body"><div className="t">{t[1]}</div><div className="s">{t[2]}</div></div>
+            <div className={'val '+(t[4]?'pos':'neg')}>{t[3]} ★</div>
+          </div>
+        ))}
+      </div>}
+    </div>
+  );
+}
+function YieldChart(){
+  const pts=[8,10,9,13,12,16,15,19,18,24,22,28,31,36];
+  const W=300,H=120,max=Math.max(...pts),min=Math.min(...pts);
+  const X=i=>i/(pts.length-1)*W, Y=v=>H-((v-min)/(max-min))*H*0.86-8;
+  const line=pts.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)} ${Y(v).toFixed(1)}`).join(' ');
+  const area=`${line} L${W} ${H} L0 ${H} Z`;
+  return <svg className="chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+    <defs><linearGradient id="ca" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stopColor="rgba(243,199,101,.35)"/><stop offset="1" stopColor="rgba(243,199,101,0)"/></linearGradient></defs>
+    <path d={area} fill="url(#ca)"/>
+    <path d={line} fill="none" stroke="url(#gGold)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
+      style={{filter:'drop-shadow(0 0 6px rgba(243,199,101,.5))'}}/>
+    <circle cx={X(pts.length-1)} cy={Y(pts[pts.length-1])} r="4" fill="#ffe6a6"/>
+  </svg>;
+}
+
+function ProfileScreen({go}){
+  const name=(TG_USER && (TG_USER.first_name||TG_USER.username)) || 'Менеджер';
+  const badges=['🥇','💎','🚀','🔥','⚙️','🛰','🔒','🔒'];
+  return (
+    <div className="screen">
+      <div className="pcard">
+        <div className="pbig">{name[0].toUpperCase()}</div>
+        <div className="pname">{name}</div>
+        <div className="ptag">#REACTOR-7 · Elite Miner</div>
+        <div className="xpwrap">
+          <div className="xpmeta"><span>Уровень 12</span><span>3 240 / 5 000 XP</span></div>
+          <div className="bar shim"><i style={{transform:'scaleX(0.648)'}}></i></div>
+        </div>
+      </div>
+
+      <div className="stat-row">
+        <div className="stat"><div className="k">Mining power</div><div className="v num">1.28<span className="u">PH/s</span></div></div>
+        <div className="stat"><div className="k">Рефералы</div><div className="v num">14</div></div>
+        <div className="stat"><div className="k">Стрик</div><div className="v num">3<span className="u">дня</span></div></div>
+      </div>
+
+      <div className="sec-title">Достижения</div>
+      <div className="badges">
+        {badges.map((b,i)=>(
+          <div className={'badge'+(b==='🔒'?' lock':i<3?' hot':'')} key={i}>{b}</div>
+        ))}
+      </div>
+
+      <div className="sec-title">Реферальная программа</div>
+      <div className="card" style={{padding:18}}><div className="sheen"></div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div><div className="eyebrow">Заработано с друзей</div>
+            <div className="display num" style={{fontSize:24,marginTop:6}}>3 420 <span style={{fontSize:13,color:'var(--gold)'}}>★</span></div></div>
+          <span className="chip gold">+10% с депозитов</span>
+        </div>
+        <button className="btn primary" style={{marginTop:16}} onClick={()=>haptic('medium')}>{Ic.copy} Скопировать ссылку</button>
+      </div>
+
+      <div className="sec-title">Настройки</div>
+      <div className="card"><div className="sheen"></div>
+        {[['🔔','Уведомления','вкл','notifications'],['🛡','Безопасность','2FA',null],['🌐','Язык','Русский',null]].map((r,i)=>(
+          <div className="row" key={i} onClick={()=>{haptic(); r[3]&&go(r[3]);}}>
+            <div className="lead" style={{fontSize:18}}>{r[0]}</div>
+            <div className="body"><div className="t">{r[1]}</div></div>
+            <div className="val" style={{color:'var(--ink-dim)',fontWeight:600,fontSize:13,display:'flex',alignItems:'center',gap:6}}>{r[2]} {Ic.chev}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NotificationsScreen(){
+  const list=[
+    ['⚡','Начисление получено','+0.71 ★ зачислено на баланс','2 мин назад','hot'],
+    ['🎉','Выигрыш в Lucky Wheel','Множитель ×2 · +50 ★','14 мин назад','hot'],
+    ['👥','Новый реферал','Максим присоединился по вашей ссылке','1 ч назад',''],
+    ['🚀','Quantum Boost доступен','Активируйте ускоритель ×3.5','3 ч назад',''],
+    ['🏆','Достижение разблокировано','«Баланс 10 000 ★» · +500 ★','вчера',''],
+    ['📈','Дневной отчёт','Доходность выросла на 18.4%','вчера',''],
+  ];
+  return (
+    <div className="screen">
+      <div className="sec-title first">Уведомления</div>
+      <div className="sec-sub">Живая лента событий вашего реактора</div>
+      {list.map((n,i)=>(
+        <div className="toast" key={i} style={{position:'relative',animation:`toastIn .5s ${i*0.06}s both cubic-bezier(.16,1,.3,1)`,marginBottom:11,pointerEvents:'auto'}}>
+          <div className="ti">{n[0]}</div>
+          <div style={{flex:1}}>
+            <div className="tt">{n[1]}</div>
+            <div className="ts">{n[2]}</div>
+          </div>
+          <div style={{fontSize:10.5,color:'var(--ink-mute)',fontWeight:700,whiteSpace:'nowrap',alignSelf:'flex-start'}}>{n[3]}</div>
+          {n[4]==='hot' && <div className="dot" style={{position:'absolute',top:14,right:14}}></div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ───────────────────────── Toasts layer ───────────────────────── */
+function ToastLayer(){
+  const { toasts }=useApp();
+  return <div className="toasts">
+    {toasts.map(t=>(
+      <div className={'toast'+(t.out?' out':'')} key={t.id}>
+        <div className="ti">{t.icon}</div>
+        <div style={{flex:1}}><div className="tt">{t.t}</div><div className="ts">{t.s}</div></div>
+      </div>
+    ))}
+  </div>;
+}
+
+/* ───────────────────────── Nav ───────────────────────── */
+function Nav({tab,go}){
+  const tabs=[['reactor','Реактор',Ic.reactor],['mining','Ферма',Ic.chip],
+    ['boost','Буст',Ic.bolt,'center'],['top','Топ',Ic.bars],['profile','Профиль',Ic.user]];
+  return <div className="nav"><div className="nav-inner">
+    {tabs.map(([k,l,ic,center])=>{
+      const on=tab===k || (k==='reactor'&&['wallet','wheel','missions','notifications'].includes(tab));
+      if(center) return <button key={k} className={'tab center'+(tab===k?' on':'')}
+        onClick={()=>{haptic('medium');go(k);}}>
+        <div className="cc">{Ic.bolt}</div><span className="tl">{l}</span></button>;
+      return <button key={k} className={'tab'+(on?' on':'')} onClick={()=>{haptic();go(k);}}>
+        {ic}<span className="tl">{l}</span></button>;
+    })}
+  </div></div>;
+}
+
+/* ───────────────────────── App ───────────────────────── */
+function App(){
+  const engine=useEngine();
+  const [tab,setTab]=useState('reactor');
+  const go=useCallback((t)=>{ setTab(t); window.scrollTo({top:0,behavior:'smooth'}); },[]);
+  const name=(TG_USER && (TG_USER.first_name||TG_USER.username)) || 'Менеджер';
+
+  const screens={
+    reactor:<ReactorScreen go={go}/>, mining:<MiningScreen/>, boost:<BoostScreen/>,
+    missions:<MissionsScreen/>, wheel:<WheelScreen/>, top:<LeaderboardScreen/>,
+    wallet:<WalletScreen/>, profile:<ProfileScreen go={go}/>, notifications:<NotificationsScreen/>,
+  };
+
+  return (
+    <AppCtx.Provider value={engine}>
+      <div className="app">
+        <div className="appbar">
+          <div className="idpill">
+            <div className="avatar">{name[0].toUpperCase()}</div>
+            <div><div className="nm">{name}</div><div className="lv">LVL 12 · ELITE</div></div>
+          </div>
+          <div className="bar-actions">
+            <button className="balpill" onClick={()=>{haptic();go('wallet');}}>
+              {Ic.star}<b className="num"><Bal/></b></button>
+            <button className="iconbtn" onClick={()=>{haptic();go('notifications');}}>{Ic.bell}<span className="dot"></span></button>
+          </div>
+        </div>
+        <div key={tab}>{screens[tab]}</div>
+        <ToastLayer/>
+        <Nav tab={tab} go={go}/>
+      </div>
+    </AppCtx.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
