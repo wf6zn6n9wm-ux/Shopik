@@ -312,13 +312,78 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 .bcard.on .ic{background:rgba(228,192,120,.16);border-color:rgba(228,192,120,.4);}
 
 .btn-buy{
-  flex:0 0 auto;height:56px;border-radius:18px;
+  flex:0 0 auto;width:100%;height:56px;border-radius:18px;
   display:flex;align-items:center;justify-content:center;gap:8px;
   font-size:15.5px;font-weight:600;letter-spacing:-.01em;color:#150F04;
   background:linear-gradient(168deg,#F2DFB0 0%,var(--gold) 46%,#CDA862 100%);
   transition:transform .16s;
 }
 .btn-buy:active{transform:scale(.98);}
+
+/* ─────────── шторка «Вывести» ─────────── */
+.sheet-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.sheet-hd .t{font-size:21px;font-weight:600;letter-spacing:-.02em;}
+.sheet-x{
+  width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  background:rgba(255,255,255,.05);color:var(--ink-2);transition:transform .16s;
+}
+.sheet-x:active{transform:scale(.9);}
+.wbody{flex:1 1 auto;min-height:0;overflow-y:auto;}
+
+.wmet{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.wmet button{
+  display:flex;align-items:center;gap:10px;height:54px;padding:0 12px;
+  border-radius:16px;background:#0E0E10;border:1px solid var(--line);
+  transition:border-color .22s,background .22s;
+}
+.wmet .nm{flex:1;text-align:left;font-size:15px;font-weight:600;color:var(--ink-2);transition:color .22s;}
+.wmet .rd{
+  width:21px;height:21px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+  border:1.5px solid #34343B;color:transparent;transition:.22s;
+}
+.wmet button.on{border-color:var(--gold);background:linear-gradient(168deg,rgba(228,192,120,.15),rgba(228,192,120,.04));}
+.wmet button.on .nm{color:var(--ink);}
+.wmet button.on .rd{border-color:transparent;background:var(--gold);color:#150F04;}
+
+.wf{
+  display:flex;align-items:center;gap:8px;height:56px;padding:0 8px 0 14px;
+  border-radius:16px;background:#0E0E10;border:1px solid var(--line);
+  transition:border-color .22s;
+}
+.wf:focus-within{border-color:rgba(228,192,120,.45);}
+.wf .at{color:var(--ink-3);font-size:15px;font-weight:500;flex:0 0 auto;}
+.wf input{
+  flex:1;min-width:0;width:100%;background:none;border:0;outline:none;color:var(--ink);
+  font-family:inherit;font-size:15px;font-weight:500;letter-spacing:-.01em;
+}
+.wf input::placeholder{color:#54545B;font-weight:450;}
+.wf input:read-only{color:var(--ink-2);}
+.mini-btn{
+  flex:0 0 auto;padding:8px 12px;border-radius:11px;font-size:12.5px;font-weight:700;
+  color:var(--gold);border:1px solid rgba(228,192,120,.28);background:rgba(228,192,120,.07);
+  transition:transform .16s;
+}
+.mini-btn:active{transform:scale(.94);}
+
+.wlab{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:16px 0 8px;font-size:13px;color:var(--ink-2);
+}
+.wlab .av{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-3);}
+.wlab .av b{color:var(--ink-2);font-weight:600;}
+
+.wconv{display:grid;grid-template-columns:1fr 46px 1fr;gap:8px;}
+.wswap{
+  height:56px;border-radius:16px;display:grid;place-items:center;color:var(--gold);
+  border:1px solid rgba(228,192,120,.28);background:rgba(228,192,120,.07);
+  transition:transform .3s cubic-bezier(.2,0,0,1);
+}
+.wswap.flip{transform:rotate(180deg);}
+
+.wnotes{display:flex;justify-content:space-between;gap:10px;margin-top:9px;font-size:12px;color:var(--ink-3);}
+.whint{flex:0 0 auto;margin-top:10px;text-align:center;font-size:12.5px;color:#C98F6F;min-height:16px;}
+.btn-buy[disabled]{background:#141416;color:#55555C;box-shadow:none;}
+.btn-buy[disabled]:active{transform:none;}
 
 /* подтверждение покупки — карточка «Доходность» коротко вспыхивает золотом */
 @keyframes yieldPulse{
@@ -439,7 +504,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
         <span class="cc"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg></span>
         Пополнить
       </button>
-      <button class="act ghost" data-h="medium">
+      <button class="act ghost" id="btnWithdraw">
         <span class="cc"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/></svg></span>
         Вывести
       </button>
@@ -536,6 +601,93 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
       <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#150F04"/></svg>
       <span id="buyPrice" class="num">5000</span>
     </button>
+  </div>
+</div>
+
+<!-- ═══ шторка «Вывести» ═══ -->
+<div class="sheet-wrap" id="wdSheet" aria-hidden="true">
+  <div class="sheet-bd" id="wdBd"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="wdTitle">
+    <div class="sheet-top" id="wdTop">
+      <div class="grab"></div>
+      <div class="sheet-hd">
+        <span class="t" id="wdTitle">Вывести</span>
+        <button class="sheet-x" id="wdX" aria-label="Закрыть">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="wbody">
+      <div class="wmet">
+        <button id="mStars" class="on">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+          <span class="nm">Stars</span>
+          <span class="rd"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        </button>
+        <button id="mTon">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0098EA"/><path d="M7.4 9.1h9.2L12 17.4z" fill="#fff"/><path d="M12 9.1v8.3" stroke="#0098EA" stroke-width="1.1"/></svg>
+          <span class="nm">TON</span>
+          <span class="rd"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        </button>
+      </div>
+
+      <!-- Stars -->
+      <div id="wStars">
+        <div class="wf" style="margin-top:12px">
+          <span class="at">@</span>
+          <input id="wUser" type="text" autocomplete="off" spellcheck="false" placeholder="Telegram username">
+          <button class="mini-btn" id="wMe">Мне</button>
+        </div>
+        <div class="wlab">
+          <span>Сумма</span>
+          <span class="av">Доступно: <b class="num wAvail">0</b>
+            <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+            <button class="mini-btn wMax">Макс</button>
+          </span>
+        </div>
+        <div class="wf">
+          <input id="wAmt" type="text" inputmode="decimal" autocomplete="off" value="50">
+          <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+        </div>
+        <div class="wnotes"><span>Мин 50</span><span></span></div>
+      </div>
+
+      <!-- TON -->
+      <div id="wTon" hidden>
+        <div class="wf" style="margin-top:12px">
+          <input id="wWallet" type="text" autocomplete="off" spellcheck="false" placeholder="TON-кошелёк получателя">
+        </div>
+        <div class="wlab"><span id="wL1">Введите сумму</span><span id="wL2">Получите</span></div>
+        <div class="wconv">
+          <div class="wf">
+            <input id="wAmtT" type="text" inputmode="decimal" autocomplete="off" value="50">
+            <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+          </div>
+          <button class="wswap" id="wSwap" aria-label="Поменять направление">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-4-4M20 15H4l4 4"/></svg>
+          </button>
+          <div class="wf">
+            <input id="wGet" type="text" inputmode="decimal" autocomplete="off" value="0.45" readonly>
+            <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0098EA"/><path d="M7.4 9.1h9.2L12 17.4z" fill="#fff"/><path d="M12 9.1v8.3" stroke="#0098EA" stroke-width="1.1"/></svg>
+          </div>
+        </div>
+        <div class="wnotes">
+          <span>Мин 50</span>
+          <span>Комиссия 5 <svg width="11" height="11" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg></span>
+        </div>
+        <div class="wlab" style="justify-content:flex-end;margin-bottom:0">
+          <span class="av">Доступно: <b class="num wAvail">0</b>
+            <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+            <button class="mini-btn wMax">Макс</button>
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="whint" id="wdHint"></div>
+    <button class="btn-buy" id="wdGo">Вывести</button>
   </div>
 </div>
 
@@ -809,6 +961,157 @@ document.querySelectorAll('.tab').forEach(function(tab){
 });
 
 /* ══════════════════════════════════════════════════════
+   Общая механика шторок: показ, скрытие, свайп вниз.
+   Свайп вешаем только на шапку, чтобы не конфликтовать
+   с прокруткой содержимого.
+   ══════════════════════════════════════════════════════ */
+function makeSheet(wrapId, topId, opts){
+  opts = opts || {};
+  var wrap=document.getElementById(wrapId), sheet=wrap.querySelector('.sheet'),
+      top=document.getElementById(topId), bd=wrap.querySelector('.sheet-bd'), open=false;
+
+  function show(){
+    if(open) return; open=true;
+    wrap.classList.add('on'); wrap.setAttribute('aria-hidden','false');
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ wrap.classList.add('in'); }); });
+    if(opts.onShow) opts.onShow();
+  }
+  function hide(){
+    if(!open) return; open=false;
+    wrap.classList.remove('in'); wrap.setAttribute('aria-hidden','true');
+    sheet.style.transform='';
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    setTimeout(function(){ if(!open) wrap.classList.remove('on'); },440);
+  }
+
+  bd.addEventListener('click',hide);
+  addEventListener('keydown',function(e){ if(e.key==='Escape' && open) hide(); });
+
+  var y0=null, dy=0;
+  top.addEventListener('touchstart',function(e){
+    y0=e.touches[0].clientY; dy=0; sheet.style.transition='none';
+  },{passive:true});
+  top.addEventListener('touchmove',function(e){
+    if(y0===null) return;
+    dy=e.touches[0].clientY-y0;
+    if(dy>0) sheet.style.transform='translate(-50%,'+dy+'px)';
+  },{passive:true});
+  top.addEventListener('touchend',function(){
+    if(y0===null) return;
+    sheet.style.transition='';
+    if(dy>90) hide(); else sheet.style.transform='';
+    y0=null; dy=0;
+  });
+
+  return { show:show, hide:hide, isOpen:function(){ return open; } };
+}
+
+/* ══════════════════════════════════════════════════════
+   ВЫВОД СРЕДСТВ
+   ══════════════════════════════════════════════════════ */
+(function withdraw(){
+  var MIN=50, FEE_TON=5, RATE=0.01;   // 1 ★ = 0.01 TON, комиссия только для TON
+
+  var mStars=document.getElementById('mStars'), mTon=document.getElementById('mTon'),
+      bStars=document.getElementById('wStars'), bTon=document.getElementById('wTon'),
+      user=document.getElementById('wUser'), wallet=document.getElementById('wWallet'),
+      amt=document.getElementById('wAmt'), amtT=document.getElementById('wAmtT'),
+      get=document.getElementById('wGet'), swap=document.getElementById('wSwap'),
+      L1=document.getElementById('wL1'), L2=document.getElementById('wL2'),
+      hint=document.getElementById('wdHint'), go=document.getElementById('wdGo');
+
+  var mode='stars', dir='fwd';   // fwd: вводим звёзды → получаем TON
+
+  var sheet=makeSheet('wdSheet','wdTop',{ onShow:function(){ sync(); } });
+  document.getElementById('wdX').addEventListener('click',sheet.hide);
+
+  function avail(){ return Math.floor(bal); }
+  function num(v){ v=parseFloat(String(v).replace(',','.')); return isFinite(v)?v:0; }
+  function amountStars(){
+    if(mode==='stars') return num(amt.value);
+    return dir==='fwd' ? num(amtT.value) : num(get.value)/RATE + FEE_TON;
+  }
+
+  /* пересчёт полей конвертации и состояния кнопки */
+  function sync(){
+    document.querySelectorAll('.wAvail').forEach(function(e){ e.textContent=avail().toLocaleString('ru-RU'); });
+
+    if(mode==='ton'){
+      if(dir==='fwd'){
+        var net=Math.max(0,num(amtT.value)-FEE_TON);
+        get.value=(net*RATE).toFixed(2);
+      }else{
+        amtT.value=Math.max(0,Math.round((num(get.value)/RATE+FEE_TON)*100)/100);
+      }
+    }
+
+    var a=amountStars(), msg='';
+    if(mode==='stars' && !user.value.trim()) msg='Укажите Telegram username';
+    else if(mode==='ton' && !wallet.value.trim()) msg='Укажите TON-кошелёк';
+    else if(!a) msg='Введите сумму';
+    else if(a<MIN) msg='Минимальная сумма вывода — '+MIN+' ★';
+    else if(a>avail()) msg='Недостаточно звёзд на балансе';
+
+    hint.textContent=msg;
+    go.disabled=!!msg;
+  }
+
+  function setMode(m){
+    if(mode===m) return;
+    haptic('light'); mode=m;
+    mStars.classList.toggle('on',m==='stars');
+    mTon.classList.toggle('on',m==='ton');
+    bStars.hidden=m!=='stars'; bTon.hidden=m!=='ton';
+    sync();
+  }
+  mStars.addEventListener('click',function(){ setMode('stars'); });
+  mTon.addEventListener('click',function(){ setMode('ton'); });
+
+  /* обмен направления: что вводим, а что считается */
+  swap.addEventListener('click',function(){
+    haptic('light');
+    dir = dir==='fwd' ? 'rev' : 'fwd';
+    swap.classList.toggle('flip',dir==='rev');
+    amtT.readOnly = dir!=='fwd';
+    get.readOnly  = dir==='fwd';
+    L1.textContent = dir==='fwd' ? 'Введите сумму' : 'Получите';
+    L2.textContent = dir==='fwd' ? 'Получите' : 'Введите сумму';
+    sync();
+  });
+
+  document.getElementById('wMe').addEventListener('click',function(){
+    haptic('light');
+    var u=(TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || null;
+    user.value=(u && u.username) || 'starshash';
+    sync();
+  });
+  document.querySelectorAll('.wMax').forEach(function(b){
+    b.addEventListener('click',function(){
+      haptic('light');
+      var v=avail();
+      if(mode==='stars') amt.value=v;
+      else { dir='fwd'; swap.classList.remove('flip'); amtT.readOnly=false; get.readOnly=true;
+             L1.textContent='Введите сумму'; L2.textContent='Получите'; amtT.value=v; }
+      sync();
+    });
+  });
+
+  [user,wallet,amt,amtT,get].forEach(function(el){ el.addEventListener('input',sync); });
+
+  go.addEventListener('click',function(){
+    if(go.disabled) return;
+    var a=amountStars();
+    bal -= a;                       // баланс уменьшается — видимое подтверждение
+    haptic('success');
+    sheet.hide();
+  });
+
+  document.getElementById('btnWithdraw').addEventListener('click',function(){
+    haptic('medium'); amt.value=MIN; amtT.value=MIN; sheet.show();
+  });
+})();
+
+/* ══════════════════════════════════════════════════════
    МАГАЗИН БУСТОВ — шторка снизу
    ══════════════════════════════════════════════════════ */
 (function boostShop(){
@@ -819,13 +1122,12 @@ document.querySelectorAll('.tab').forEach(function(tab){
   var STAR='<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>';
   var BOLT='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 2.5 5 13.5h5.5l-.9 8 8.4-11h-5.5z"/></svg>';
 
-  var wrap=document.getElementById('boostSheet'), bd=document.getElementById('boostBd'),
-      sheet=wrap.querySelector('.sheet'), top=document.getElementById('sheetTop'),
-      grid=document.getElementById('bgrid'), buyBtn=document.getElementById('buyBtn'),
+  var grid=document.getElementById('bgrid'), buyBtn=document.getElementById('buyBtn'),
       buyPrice=document.getElementById('buyPrice'),
       yieldVal=document.getElementById('yieldVal'), yieldCard=document.getElementById('yieldCard');
 
-  var sel=BOOSTS.length-1, open=false, yieldPct=1.00;
+  var sheet=makeSheet('boostSheet','sheetTop');
+  var sel=BOOSTS.length-1, yieldPct=1.00;
 
   BOOSTS.forEach(function(b,i){
     var el=document.createElement('button');
@@ -845,45 +1147,14 @@ document.querySelectorAll('.tab').forEach(function(tab){
   });
   buyPrice.textContent=BOOSTS[sel].price;
 
-  function show(){
-    if(open) return; open=true;
-    wrap.classList.add('on'); wrap.setAttribute('aria-hidden','false');
-    requestAnimationFrame(function(){ requestAnimationFrame(function(){ wrap.classList.add('in'); }); });
-  }
-  function hide(){
-    if(!open) return; open=false;
-    wrap.classList.remove('in'); wrap.setAttribute('aria-hidden','true');
-    sheet.style.transform='';
-    setTimeout(function(){ if(!open) wrap.classList.remove('on'); },440);
-  }
-
-  document.getElementById('btnBoost').addEventListener('click',function(){ haptic('medium'); show(); });
-  bd.addEventListener('click',hide);
-  addEventListener('keydown',function(e){ if(e.key==='Escape') hide(); });
+  document.getElementById('btnBoost').addEventListener('click',function(){ haptic('medium'); sheet.show(); });
 
   buyBtn.addEventListener('click',function(){
     haptic('success');
     yieldPct += BOOSTS[sel].p;
     yieldVal.textContent='+'+yieldPct.toFixed(2)+'%';
     yieldCard.classList.remove('pulse'); void yieldCard.offsetWidth; yieldCard.classList.add('pulse');
-    hide();
-  });
-
-  /* свайп вниз по шапке — закрыть. Сетка при этом остаётся прокручиваемой. */
-  var y0=null, dy=0;
-  top.addEventListener('touchstart',function(e){
-    y0=e.touches[0].clientY; dy=0; sheet.style.transition='none';
-  },{passive:true});
-  top.addEventListener('touchmove',function(e){
-    if(y0===null) return;
-    dy=e.touches[0].clientY-y0;
-    if(dy>0) sheet.style.transform='translate(-50%,'+dy+'px)';
-  },{passive:true});
-  top.addEventListener('touchend',function(){
-    if(y0===null) return;
-    sheet.style.transition='';
-    if(dy>90) hide(); else sheet.style.transform='';
-    y0=null; dy=0;
+    sheet.hide();
   });
 })();
 
