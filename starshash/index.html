@@ -30,6 +30,7 @@
   --ink-3:#6B6B70;
 
   --pad:22px;
+  --gap:clamp(8px,1.5vh,12px);
   --r-card:26px;
   --r-sm:20px;
   --shell:440px;
@@ -38,7 +39,7 @@
   --sab:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{margin:0;padding:0;background:var(--bg);}
+html,body{margin:0;padding:0;background:var(--bg);height:100%;overflow:hidden;}
 body{
   color:var(--ink);
   font-family:system-ui,-apple-system,"SF Pro Display","SF Pro Text",Roboto,"Helvetica Neue",sans-serif;
@@ -51,15 +52,19 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 /* фон — космос, почти незаметный */
 #bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;}
 
+/* Экран целиком помещается во вьюпорт: колонка ровно в 100dvh,
+   вертикальные размеры на vh — прокрутки нет ни на одном телефоне. */
 #app{
   position:relative;z-index:1;
   max-width:var(--shell);margin-inline:auto;
-  padding:calc(var(--sat) + 14px) var(--pad) calc(126px + var(--sab));
-  min-height:100vh;
+  height:100vh;height:100dvh;
+  display:flex;flex-direction:column;
+  padding:calc(var(--sat) + 10px) var(--pad) calc(var(--sab) + 10px);
+  overflow:hidden;
 }
 
 /* ─────────── верхняя панель ─────────── */
-.top{display:flex;align-items:center;gap:10px;height:48px;}
+.top{display:flex;align-items:center;gap:10px;flex:0 0 auto;height:clamp(42px,5.9vh,48px);}
 .brand{display:flex;align-items:center;gap:9px;margin-right:auto;}
 .brand .wm{font-size:19px;font-weight:600;letter-spacing:-.015em;}
 .brand .wm i{font-style:normal;color:var(--gold);}
@@ -93,17 +98,18 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 }
 
 /* ─────────── герой: баланс ─────────── */
-.hero{text-align:center;padding:30px 0 26px;}
+.hero{flex:0 0 auto;text-align:center;padding:clamp(6px,2.1vh,26px) 0 clamp(4px,1.3vh,16px);}
 .hero .cap{
   font-size:10.5px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-3);
 }
 .hero .big{
-  margin-top:12px;display:flex;align-items:center;justify-content:center;gap:12px;
-  font-size:clamp(40px,12.2vw,54px);font-weight:200;letter-spacing:-.035em;line-height:1;
+  margin-top:clamp(6px,1.4vh,12px);display:flex;align-items:center;justify-content:center;gap:12px;
+  font-size:clamp(31px,min(12.2vw,5.7vh),54px);font-weight:200;letter-spacing:-.035em;line-height:1;
 }
-.hero .big .st{filter:drop-shadow(0 0 14px rgba(228,192,120,.45));flex:0 0 auto;}
+.hero .big .st{filter:drop-shadow(0 0 14px rgba(228,192,120,.45));flex:0 0 auto;
+  width:clamp(24px,7vw,38px);height:auto;}
 .hero .sub{
-  margin-top:14px;font-size:14px;font-weight:500;color:var(--ink-2);
+  margin-top:clamp(7px,1.6vh,14px);font-size:14px;font-weight:500;color:var(--ink-2);
   display:flex;align-items:center;justify-content:center;gap:7px;
 }
 .hero .sub b{color:var(--gold);font-weight:600;}
@@ -113,20 +119,25 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);position:relative;}
 
 /* ─────────── главный блок: таймер + кольцо ─────────── */
-.earn{display:flex;align-items:center;gap:12px;padding:24px 22px;min-height:196px;}
+/* главный блок забирает весь свободный запас по высоте */
+.earn{
+  flex:1 1 auto;display:flex;align-items:center;gap:12px;
+  padding:clamp(13px,2.3vh,24px) 22px;min-height:clamp(116px,20vh,212px);
+}
 .earn .left{flex:1;min-width:0;}
 .earn .l1{font-size:13.5px;color:var(--ink-2);font-weight:450;white-space:nowrap;}
 .earn .l2{
-  margin-top:9px;display:flex;align-items:center;gap:7px;
-  font-size:29px;font-weight:300;letter-spacing:-.025em;color:var(--gold);line-height:1;
+  margin-top:clamp(5px,1.1vh,9px);display:flex;align-items:center;gap:7px;
+  font-size:clamp(22px,min(7.4vw,3.5vh),29px);font-weight:300;letter-spacing:-.025em;color:var(--gold);line-height:1;
 }
 .earn .l2 .per{font-size:14px;color:var(--ink-2);font-weight:450;letter-spacing:0;white-space:nowrap;}
-.earn .l3{margin-top:24px;font-size:13px;color:var(--ink-2);font-weight:450;line-height:1.35;white-space:nowrap;}
+.earn .l3{margin-top:clamp(10px,2.6vh,24px);font-size:13px;color:var(--ink-2);font-weight:450;line-height:1.35;white-space:nowrap;}
 .earn .l4{
-  margin-top:8px;font-size:42px;font-weight:200;letter-spacing:-.03em;line-height:1;
+  margin-top:clamp(4px,1vh,8px);font-size:clamp(31px,min(10.6vw,5vh),42px);
+  font-weight:200;letter-spacing:-.03em;line-height:1;
 }
-.earn .l5{margin-top:6px;font-size:13px;color:var(--ink-3);font-weight:450;}
-.ring-wrap{position:relative;width:clamp(108px,30vw,132px);aspect-ratio:1;flex:0 0 auto;}
+.earn .l5{margin-top:clamp(3px,.7vh,6px);font-size:13px;color:var(--ink-3);font-weight:450;}
+.ring-wrap{position:relative;width:clamp(94px,min(30vw,16.5vh),132px);aspect-ratio:1;flex:0 0 auto;}
 .ring-wrap canvas{position:absolute;inset:0;width:100%;height:100%;}
 .ring-star{
   position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
@@ -134,8 +145,12 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 }
 
 /* ─────────── две карточки статистики ─────────── */
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
-.stat{padding:17px 16px 14px;border-radius:var(--r-sm);}
+/* карточки статистики не сжимаем — иначе режется подпись; дефицит забирают кнопки */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:0 0 auto;}
+.stat{
+  display:flex;flex-direction:column;min-height:0;overflow:hidden;
+  padding:clamp(11px,1.9vh,17px) 16px clamp(9px,1.5vh,14px);border-radius:var(--r-sm);
+}
 .stat .hd{display:flex;align-items:center;gap:10px;}
 .stat .ic{
   width:34px;height:34px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
@@ -143,17 +158,20 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 }
 .stat .nm{font-size:13.5px;color:var(--ink-2);font-weight:450;}
 .stat .v{
-  margin-top:15px;font-size:27px;font-weight:250;letter-spacing:-.03em;line-height:1;
+  margin-top:clamp(8px,1.6vh,15px);font-size:clamp(22px,min(6.8vw,3.2vh),27px);
+  font-weight:250;letter-spacing:-.03em;line-height:1;
   display:flex;align-items:baseline;gap:6px;
 }
 .stat .v .u{font-size:13px;color:var(--ink-2);font-weight:450;letter-spacing:0;}
-.stat .cap{margin-top:7px;font-size:12px;color:var(--ink-3);font-weight:450;}
-.spark{display:block;width:100%;height:26px;margin-top:11px;overflow:visible;}
+.stat .cap{margin-top:clamp(4px,.9vh,7px);font-size:12px;color:var(--ink-3);font-weight:450;}
+/* спарклайн — единственное, что сжимается при нехватке высоты; цифры не двигаются */
+.spark{display:block;width:100%;flex:1 1 auto;min-height:14px;max-height:26px;
+  margin-top:clamp(6px,1.2vh,11px);overflow:visible;}
 
 /* ─────────── две большие кнопки ─────────── */
-.acts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:0 1 auto;min-height:0;}
 .act{
-  height:62px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;gap:11px;
+  height:clamp(44px,7.1vh,62px);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;gap:11px;
   font-size:15.5px;font-weight:550;letter-spacing:-.01em;transition:transform .16s;
   position:relative;overflow:hidden;
 }
@@ -175,10 +193,10 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 .act.ghost .cc{background:rgba(255,255,255,.05);color:var(--ink);}
 
 /* ─────────── три малых действия ─────────── */
-.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px;}
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;flex:0 1 auto;min-height:0;}
 .mini button{
-  height:92px;border-radius:var(--r-sm);background:var(--card);border:1px solid var(--line);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;
+  height:clamp(54px,10.4vh,92px);border-radius:var(--r-sm);background:var(--card);border:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(6px,1.3vh,11px);
   transition:transform .16s,border-color .2s;
 }
 .mini button:active{transform:scale(.97);}
@@ -187,22 +205,22 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 
 /* ─────────── нижняя навигация ─────────── */
 .nav{
-  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--sab));
-  width:calc(100% - var(--pad)*2);max-width:calc(var(--shell) - var(--pad)*2);z-index:20;
+  flex:0 0 auto;margin-top:var(--gap);
   background:rgba(9,9,9,.86);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
   border:1px solid var(--line);border-radius:34px;
-  display:flex;align-items:center;justify-content:space-between;padding:11px 12px 9px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:clamp(8px,1.3vh,11px) 12px clamp(6px,1.1vh,9px);
   box-shadow:0 20px 50px -20px rgba(0,0,0,.9);
 }
 .tab{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0;
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,.8vh,6px);padding:clamp(2px,.5vh,4px) 0;
   color:#5C5C61;transition:color .22s;
 }
 .tab .tl{font-size:10.5px;font-weight:500;letter-spacing:-.005em;}
 .tab.on{color:var(--gold);}
 .tab.center{flex:0 0 auto;gap:5px;}
 .tab.center .ring{
-  width:52px;height:52px;border-radius:50%;display:grid;place-items:center;
+  width:clamp(44px,7vh,52px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;
   border:1.5px solid var(--gold);background:#0A0A0A;
   box-shadow:0 0 22px rgba(228,192,120,.28),inset 0 0 16px rgba(228,192,120,.10);
   transition:box-shadow .3s;
@@ -211,11 +229,14 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 .tab.center.on .bar{opacity:1;box-shadow:0 0 8px var(--gold-glow);}
 
 /* ─────────── прочие вкладки ─────────── */
-.page{display:none;animation:pin .34s cubic-bezier(.2,0,0,1);}
-.page.on{display:block;}
+.page{display:none;}
+.page.on{
+  display:flex;flex-direction:column;flex:1 1 auto;min-height:0;gap:var(--gap);
+  animation:pin .34s cubic-bezier(.2,0,0,1);
+}
 @keyframes pin{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 .soon{
-  margin-top:56px;text-align:center;padding:52px 26px;border-radius:var(--r-card);
+  margin:auto 0;text-align:center;padding:52px 26px;border-radius:var(--r-card);
   background:var(--card);border:1px solid var(--line);
 }
 .soon .ic{
@@ -224,6 +245,18 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 }
 .soon h3{margin:0;font-size:20px;font-weight:300;letter-spacing:-.02em;}
 .soon p{margin:9px 0 0;font-size:13.5px;color:var(--ink-3);font-weight:450;}
+
+/* На низких экранах спарклайн — первое, чем жертвуем: это украшение,
+   а цифры и кнопки должны остаться в полном размере. */
+@media (max-height:700px){ .spark{display:none;} }
+
+/* Очень низкий экран (ландшафт, сплит-вью): контент не режем — отдаём прокрутку */
+@media (max-height:520px){
+  html,body{overflow:auto;}
+  #app{height:auto;min-height:100dvh;overflow:visible;}
+  .page.on{flex:0 0 auto;}
+  .earn{flex:0 0 auto;}
+}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 </style>
@@ -371,8 +404,6 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8.5" r="4"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></svg></span>
     <h3>Профиль</h3><p>Раздел откроется в следующем обновлении</p></div></div>
 
-</div>
-
 <!-- ═══ нижняя навигация ═══ -->
 <nav class="nav" id="nav">
   <button class="tab" data-p="games">
@@ -405,6 +436,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     <span class="tl">Профиль</span>
   </button>
 </nav>
+
+</div>
 
 <script>
 (function(){
