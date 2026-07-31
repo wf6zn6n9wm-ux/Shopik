@@ -169,9 +169,14 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   margin-top:clamp(6px,1.2vh,11px);overflow:visible;}
 
 /* ─────────── две большие кнопки ─────────── */
-.acts{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:0 1 auto;min-height:0;}
+/* Высота задаётся контейнеру, а не кнопке: при нехватке места flex сжимает
+   ряд вместе с содержимым, и вертикальные зазоры остаются одинаковыми. */
+.acts{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  flex:0 1 auto;height:clamp(44px,7.1vh,62px);min-height:0;
+}
 .act{
-  height:clamp(44px,7.1vh,62px);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;gap:11px;
+  height:100%;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;gap:11px;
   font-size:15.5px;font-weight:550;letter-spacing:-.01em;transition:transform .16s;
   position:relative;overflow:hidden;
 }
@@ -193,9 +198,12 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 .act.ghost .cc{background:rgba(255,255,255,.05);color:var(--ink);}
 
 /* ─────────── три малых действия ─────────── */
-.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;flex:0 1 auto;min-height:0;}
+.mini{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+  flex:0 1 auto;height:clamp(54px,10.4vh,92px);min-height:0;
+}
 .mini button{
-  height:clamp(54px,10.4vh,92px);border-radius:var(--r-sm);background:var(--card);border:1px solid var(--line);
+  height:100%;border-radius:var(--r-sm);background:var(--card);border:1px solid var(--line);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(6px,1.3vh,11px);
   transition:transform .16s,border-color .2s;
 }
