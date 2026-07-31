@@ -385,6 +385,37 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 .btn-buy[disabled]{background:#141416;color:#55555C;box-shadow:none;}
 .btn-buy[disabled]:active{transform:none;}
 
+/* ─────────── шторка «Калькулятор» ─────────── */
+.cper{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.cper button{
+  height:44px;border-radius:14px;background:#0E0E10;border:1px solid var(--line);
+  font-size:13.5px;font-weight:600;color:var(--ink-2);
+  transition:border-color .22s,color .22s,background .22s,transform .16s;
+}
+.cper button:active{transform:scale(.96);}
+.cper button.on{
+  border-color:var(--gold);color:var(--gold);
+  background:linear-gradient(168deg,rgba(228,192,120,.15),rgba(228,192,120,.04));
+}
+.cres{
+  margin-top:16px;padding:17px 16px 14px;border-radius:18px;
+  background:linear-gradient(168deg,rgba(228,192,120,.10),rgba(255,255,255,.015));
+  border:1px solid rgba(228,192,120,.20);
+}
+.cres .k{font-size:12px;color:var(--ink-3);}
+.cres .big{
+  margin-top:7px;display:flex;align-items:center;gap:8px;line-height:1;
+  font-size:clamp(24px,7.2vw,32px);font-weight:250;letter-spacing:-.03em;color:var(--gold-hi);
+}
+.cchart{display:block;width:100%;height:66px;margin-top:12px;overflow:visible;}
+.cres .rows{
+  margin-top:12px;padding-top:11px;border-top:1px solid rgba(228,192,120,.15);
+  display:flex;flex-direction:column;gap:9px;
+}
+.crow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;}
+.crow span{color:var(--ink-3);}
+.crow b{font-weight:600;color:var(--ink);letter-spacing:-.01em;}
+
 /* подтверждение покупки — карточка «Доходность» коротко вспыхивает золотом */
 @keyframes yieldPulse{
   0%{box-shadow:0 0 0 0 rgba(228,192,120,0);}
@@ -511,7 +542,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     </div>
 
     <div class="mini">
-      <button data-h="light">
+      <button id="btnCalc">
         <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#E6E6EA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8"/>
           <path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" stroke-width="2.2"/>
@@ -688,6 +719,66 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 
     <div class="whint" id="wdHint"></div>
     <button class="btn-buy" id="wdGo">Вывести</button>
+  </div>
+</div>
+
+<!-- ═══ шторка «Калькулятор» ═══ -->
+<div class="sheet-wrap" id="calcSheet" aria-hidden="true">
+  <div class="sheet-bd"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="calcTitle">
+    <div class="sheet-top" id="calcTop">
+      <div class="grab"></div>
+      <div class="sheet-hd">
+        <span class="t" id="calcTitle">Калькулятор</span>
+        <button class="sheet-x" id="calcX" aria-label="Закрыть">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="wbody">
+      <div class="wlab" style="margin-top:0">
+        <span>Сумма вклада</span>
+        <span class="av"><button class="mini-btn" id="cMine">Мой баланс</button></span>
+      </div>
+      <div class="wf">
+        <input id="cAmt" type="text" inputmode="decimal" autocomplete="off" value="12480">
+        <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+      </div>
+
+      <div class="wlab">
+        <span>Срок</span>
+        <span class="av">Доходность&nbsp;<b id="cRate">+1.00%</b>&nbsp;в день</span>
+      </div>
+      <div class="cper" id="cPer">
+        <button data-d="7">7 дн</button>
+        <button data-d="30" class="on">30 дн</button>
+        <button data-d="90">90 дн</button>
+        <button data-d="365">1 год</button>
+      </div>
+
+      <div class="cres">
+        <div class="k" id="cResK">Доход за 30 дней</div>
+        <div class="big"><span class="num" id="cProfit">0</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#F7E7C4"/></svg>
+        </div>
+        <svg class="cchart" viewBox="0 0 300 66" preserveAspectRatio="none" aria-hidden="true">
+          <defs><linearGradient id="cgrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="rgba(228,192,120,.34)"/>
+            <stop offset="1" stop-color="rgba(228,192,120,0)"/>
+          </linearGradient></defs>
+          <polygon id="cArea" fill="url(#cgrad)" points=""/>
+          <polyline id="cLine" fill="none" stroke="#E4C078" stroke-width="1.8"
+                    stroke-linecap="round" stroke-linejoin="round" points=""/>
+        </svg>
+        <div class="rows">
+          <div class="crow"><span>Итоговый баланс</span><b class="num" id="cTotal">0 ★</b></div>
+          <div class="crow"><span>В среднем в день</span><b class="num" id="cPerDay">0 ★</b></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-buy" id="calcDone">Готово</button>
   </div>
 </div>
 
@@ -895,6 +986,7 @@ var Ring = (function(){
 var CYCLE = 3;              // сек до начисления
 var RATE  = 0.82 / CYCLE;   // ★ в секунду
 var bal   = 12480.42;
+var YIELD_PCT = 1.00;       // % в день; растёт от купленных бустов
 
 var heroBal = document.getElementById('heroBal'),
     pillBal = document.getElementById('pillBal'),
@@ -1005,6 +1097,78 @@ function makeSheet(wrapId, topId, opts){
 
   return { show:show, hide:hide, isOpen:function(){ return open; } };
 }
+
+/* ══════════════════════════════════════════════════════
+   КАЛЬКУЛЯТОР ДОХОДНОСТИ
+   Считаем простым процентом: доход = сумма × p × дней.
+   Так работает сам движок начислений — RATE постоянная и не
+   зависит от баланса, то есть проценты не капитализируются.
+   Сложный процент дал бы и расхождение с реальным начислением,
+   и нереальные числа на длинном сроке (за год при +6%/день —
+   триллионы), что для финтех-продукта выглядит как обман.
+   ══════════════════════════════════════════════════════ */
+(function calculator(){
+  var PERIODS={7:'7 дней',30:'30 дней',90:'90 дней',365:'год'};
+
+  var amt=document.getElementById('cAmt'), per=document.getElementById('cPer'),
+      rate=document.getElementById('cRate'), resK=document.getElementById('cResK'),
+      profitEl=document.getElementById('cProfit'), totalEl=document.getElementById('cTotal'),
+      dayEl=document.getElementById('cPerDay'),
+      line=document.getElementById('cLine'), area=document.getElementById('cArea');
+
+  var days=30;
+  var sheet=makeSheet('calcSheet','calcTop',{ onShow:calc });
+  document.getElementById('calcX').addEventListener('click',sheet.hide);
+  document.getElementById('calcDone').addEventListener('click',function(){ haptic('light'); sheet.hide(); });
+
+  function toNum(v){ v=parseFloat(String(v).replace(/\s/g,'').replace(',','.')); return isFinite(v)&&v>0?v:0; }
+
+  /* крупные суммы сокращаем, иначе строка вылезает за карточку */
+  function big(n){
+    if(n>=1e9) return fmt(n/1e9)+' млрд';
+    if(n>=1e6) return fmt(n/1e6)+' млн';
+    return fmt(n);
+  }
+
+  function curve(a,perDay,W,H){
+    var N=44, pts=[], span=perDay*days || 1;
+    for(var i=0;i<=N;i++){
+      var grown=perDay*days*i/N;
+      pts.push((i/N*W).toFixed(1)+','+(H-3-grown/span*(H-8)).toFixed(1));
+    }
+    return pts;
+  }
+
+  function calc(){
+    var a=toNum(amt.value), perDay=a*(YIELD_PCT/100);
+    rate.textContent='+'+YIELD_PCT.toFixed(2)+'%';
+    resK.textContent='Доход за '+PERIODS[days];
+
+    var profit=perDay*days, total=a+profit;
+    profitEl.textContent='+'+big(profit);
+    totalEl.textContent=big(total)+' ★';
+    dayEl.textContent=(a?'~'+big(perDay):'0.00')+' ★';
+
+    var pts=curve(a,perDay||1,300,66);
+    line.setAttribute('points',pts.join(' '));
+    area.setAttribute('points','0,66 '+pts.join(' ')+' 300,66');
+  }
+
+  per.addEventListener('click',function(e){
+    var btn=e.target.closest('button'); if(!btn) return;
+    haptic('light');
+    per.querySelectorAll('button').forEach(function(b){ b.classList.remove('on'); });
+    btn.classList.add('on'); days=+btn.dataset.d; calc();
+  });
+  amt.addEventListener('input',calc);
+  document.getElementById('cMine').addEventListener('click',function(){
+    haptic('light'); amt.value=Math.floor(bal); calc();
+  });
+
+  document.getElementById('btnCalc').addEventListener('click',function(){
+    haptic('medium'); amt.value=Math.floor(bal); sheet.show();
+  });
+})();
 
 /* ══════════════════════════════════════════════════════
    ВЫВОД СРЕДСТВ
@@ -1127,7 +1291,7 @@ function makeSheet(wrapId, topId, opts){
       yieldVal=document.getElementById('yieldVal'), yieldCard=document.getElementById('yieldCard');
 
   var sheet=makeSheet('boostSheet','sheetTop');
-  var sel=BOOSTS.length-1, yieldPct=1.00;
+  var sel=BOOSTS.length-1;
 
   BOOSTS.forEach(function(b,i){
     var el=document.createElement('button');
@@ -1151,8 +1315,8 @@ function makeSheet(wrapId, topId, opts){
 
   buyBtn.addEventListener('click',function(){
     haptic('success');
-    yieldPct += BOOSTS[sel].p;
-    yieldVal.textContent='+'+yieldPct.toFixed(2)+'%';
+    YIELD_PCT += BOOSTS[sel].p;
+    yieldVal.textContent='+'+YIELD_PCT.toFixed(2)+'%';
     yieldCard.classList.remove('pulse'); void yieldCard.offsetWidth; yieldCard.classList.add('pulse');
     sheet.hide();
   });
