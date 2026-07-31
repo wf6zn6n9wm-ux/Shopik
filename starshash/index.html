@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#000000" />
+<title>StarsHash</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+/* ══════════════════════════════════════════════════════════════
+   StarsHash — Ultra Premium / OLED Black / Luxury FinTech
+   Архитектура повторяет референс. Улучшено только исполнение:
+   тёплое шампанское-золото вместо жёлтого, объёмное мягкое
+   свечение кольца, «космический» почти незаметный фон.
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#000000;
+  --card:#090909;
+  --line:#1A1A1A;
+  --line-2:#242424;
+
+  /* тёплое золото — без оранжевого, без лимонного */
+  --gold:#E4C078;
+  --gold-hi:#F7E7C4;
+  --gold-deep:#B08D4A;
+  --gold-glow:rgba(228,192,120,.55);
+
+  --ink:#FFFFFF;
+  --ink-2:#9A9A9F;
+  --ink-3:#6B6B70;
+
+  --pad:22px;
+  --r-card:26px;
+  --r-sm:20px;
+  --shell:440px;
+
+  --sat:env(safe-area-inset-top,0px);
+  --sab:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:var(--bg);}
+body{
+  color:var(--ink);
+  font-family:system-ui,-apple-system,"SF Pro Display","SF Pro Text",Roboto,"Helvetica Neue",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;}
+
+/* фон — космос, почти незаметный */
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+
+#app{
+  position:relative;z-index:1;
+  max-width:var(--shell);margin-inline:auto;
+  padding:calc(var(--sat) + 14px) var(--pad) calc(126px + var(--sab));
+  min-height:100vh;
+}
+
+/* ─────────── верхняя панель ─────────── */
+.top{display:flex;align-items:center;gap:10px;height:48px;}
+.brand{display:flex;align-items:center;gap:9px;margin-right:auto;}
+.brand .wm{font-size:19px;font-weight:600;letter-spacing:-.015em;}
+.brand .wm i{font-style:normal;color:var(--gold);}
+.bal-pill{
+  display:flex;align-items:center;gap:8px;height:42px;padding:0 6px 0 13px;
+  border-radius:999px;background:var(--card);border:1px solid var(--line);
+}
+.bal-pill .v{font-size:14.5px;font-weight:500;letter-spacing:-.01em;}
+.bal-pill .add{
+  width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(228,192,120,.10);color:var(--gold);transition:transform .18s,background .18s;
+}
+.bell{
+  position:relative;width:42px;height:42px;border-radius:50%;flex:0 0 auto;
+  display:grid;place-items:center;background:var(--card);border:1px solid var(--line);
+  transition:transform .18s;
+}
+.bell .dot{
+  position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;
+  background:var(--gold);box-shadow:0 0 7px var(--gold-glow);
+}
+.bal-pill .v{white-space:nowrap;}
+/* компактные телефоны: верхняя панель должна помещаться в одну строку */
+@media (max-width:384px){
+  :root{--pad:17px;}
+  .brand{gap:7px;} .brand svg{width:23px;height:23px;} .brand .wm{font-size:17px;}
+  .top{gap:8px;}
+  .bal-pill{height:39px;padding:0 5px 0 11px;gap:6px;}
+  .bal-pill .v{font-size:13.5px;} .bal-pill .add{width:28px;height:28px;}
+  .bell{width:39px;height:39px;}
+}
+
+/* ─────────── герой: баланс ─────────── */
+.hero{text-align:center;padding:30px 0 26px;}
+.hero .cap{
+  font-size:10.5px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-3);
+}
+.hero .big{
+  margin-top:12px;display:flex;align-items:center;justify-content:center;gap:12px;
+  font-size:clamp(40px,12.2vw,54px);font-weight:200;letter-spacing:-.035em;line-height:1;
+}
+.hero .big .st{filter:drop-shadow(0 0 14px rgba(228,192,120,.45));flex:0 0 auto;}
+.hero .sub{
+  margin-top:14px;font-size:14px;font-weight:500;color:var(--ink-2);
+  display:flex;align-items:center;justify-content:center;gap:7px;
+}
+.hero .sub b{color:var(--gold);font-weight:600;}
+.hero .sub .sl{color:#3A3A3E;}
+
+/* ─────────── общая карточка ─────────── */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);position:relative;}
+
+/* ─────────── главный блок: таймер + кольцо ─────────── */
+.earn{display:flex;align-items:center;gap:12px;padding:24px 22px;min-height:196px;}
+.earn .left{flex:1;min-width:0;}
+.earn .l1{font-size:13.5px;color:var(--ink-2);font-weight:450;white-space:nowrap;}
+.earn .l2{
+  margin-top:9px;display:flex;align-items:center;gap:7px;
+  font-size:29px;font-weight:300;letter-spacing:-.025em;color:var(--gold);line-height:1;
+}
+.earn .l2 .per{font-size:14px;color:var(--ink-2);font-weight:450;letter-spacing:0;white-space:nowrap;}
+.earn .l3{margin-top:24px;font-size:13px;color:var(--ink-2);font-weight:450;line-height:1.35;white-space:nowrap;}
+.earn .l4{
+  margin-top:8px;font-size:42px;font-weight:200;letter-spacing:-.03em;line-height:1;
+}
+.earn .l5{margin-top:6px;font-size:13px;color:var(--ink-3);font-weight:450;}
+.ring-wrap{position:relative;width:clamp(108px,30vw,132px);aspect-ratio:1;flex:0 0 auto;}
+.ring-wrap canvas{position:absolute;inset:0;width:100%;height:100%;}
+.ring-star{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  filter:drop-shadow(0 0 16px rgba(228,192,120,.5));
+}
+
+/* ─────────── две карточки статистики ─────────── */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+.stat{padding:17px 16px 14px;border-radius:var(--r-sm);}
+.stat .hd{display:flex;align-items:center;gap:10px;}
+.stat .ic{
+  width:34px;height:34px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+  background:rgba(228,192,120,.09);color:var(--gold);
+}
+.stat .nm{font-size:13.5px;color:var(--ink-2);font-weight:450;}
+.stat .v{
+  margin-top:15px;font-size:27px;font-weight:250;letter-spacing:-.03em;line-height:1;
+  display:flex;align-items:baseline;gap:6px;
+}
+.stat .v .u{font-size:13px;color:var(--ink-2);font-weight:450;letter-spacing:0;}
+.stat .cap{margin-top:7px;font-size:12px;color:var(--ink-3);font-weight:450;}
+.spark{display:block;width:100%;height:26px;margin-top:11px;overflow:visible;}
+
+/* ─────────── две большие кнопки ─────────── */
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+.act{
+  height:62px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;gap:11px;
+  font-size:15.5px;font-weight:550;letter-spacing:-.01em;transition:transform .16s;
+  position:relative;overflow:hidden;
+}
+.act:active{transform:scale(.975);}
+.act .cc{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;}
+.act.fill{
+  color:#150F04;
+  background:linear-gradient(168deg,#F2DFB0 0%,var(--gold) 46%,#CDA862 100%);
+}
+.act.fill .cc{background:#0B0A08;color:var(--gold-hi);}
+/* очень мягкий перелив золота — без «казино» */
+.act.fill::after{
+  content:"";position:absolute;top:-60%;left:-70%;width:45%;height:220%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.30),transparent);
+  transform:rotate(14deg);animation:sheen 5.5s cubic-bezier(.5,0,.5,1) infinite;
+}
+@keyframes sheen{0%,72%{left:-70%}100%{left:150%}}
+.act.ghost{background:var(--card);border:1px solid var(--line);color:var(--ink);}
+.act.ghost .cc{background:rgba(255,255,255,.05);color:var(--ink);}
+
+/* ─────────── три малых действия ─────────── */
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px;}
+.mini button{
+  height:92px;border-radius:var(--r-sm);background:var(--card);border:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;
+  transition:transform .16s,border-color .2s;
+}
+.mini button:active{transform:scale(.97);}
+.mini .t{font-size:12.5px;color:var(--ink-2);font-weight:450;}
+.mini .gold{color:var(--gold);filter:drop-shadow(0 0 10px rgba(228,192,120,.35));}
+
+/* ─────────── нижняя навигация ─────────── */
+.nav{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--sab));
+  width:calc(100% - var(--pad)*2);max-width:calc(var(--shell) - var(--pad)*2);z-index:20;
+  background:rgba(9,9,9,.86);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  border:1px solid var(--line);border-radius:34px;
+  display:flex;align-items:center;justify-content:space-between;padding:11px 12px 9px;
+  box-shadow:0 20px 50px -20px rgba(0,0,0,.9);
+}
+.tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0;
+  color:#5C5C61;transition:color .22s;
+}
+.tab .tl{font-size:10.5px;font-weight:500;letter-spacing:-.005em;}
+.tab.on{color:var(--gold);}
+.tab.center{flex:0 0 auto;gap:5px;}
+.tab.center .ring{
+  width:52px;height:52px;border-radius:50%;display:grid;place-items:center;
+  border:1.5px solid var(--gold);background:#0A0A0A;
+  box-shadow:0 0 22px rgba(228,192,120,.28),inset 0 0 16px rgba(228,192,120,.10);
+  transition:box-shadow .3s;
+}
+.tab.center .bar{width:26px;height:2px;border-radius:2px;background:var(--gold);opacity:0;transition:opacity .25s;}
+.tab.center.on .bar{opacity:1;box-shadow:0 0 8px var(--gold-glow);}
+
+/* ─────────── прочие вкладки ─────────── */
+.page{display:none;animation:pin .34s cubic-bezier(.2,0,0,1);}
+.page.on{display:block;}
+@keyframes pin{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.soon{
+  margin-top:56px;text-align:center;padding:52px 26px;border-radius:var(--r-card);
+  background:var(--card);border:1px solid var(--line);
+}
+.soon .ic{
+  width:60px;height:60px;border-radius:50%;margin:0 auto 20px;display:grid;place-items:center;
+  background:rgba(228,192,120,.08);color:var(--gold);
+}
+.soon h3{margin:0;font-size:20px;font-weight:300;letter-spacing:-.02em;}
+.soon p{margin:9px 0 0;font-size:13.5px;color:var(--ink-3);font-weight:450;}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<div id="app">
+
+  <!-- ═══ верхняя панель ═══ -->
+  <div class="top">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 1.4c.5 3.9 1.9 6.4 3.5 7.6 1.1.9 3.1 1.6 7.1 3-4 1.4-6 2.1-7.1 3-1.6 1.2-3 3.7-3.5 7.6-.5-3.9-1.9-6.4-3.5-7.6-1.1-.9-3.1-1.6-7.1-3 4-1.4 6-2.1 7.1-3C10.1 7.8 11.5 5.3 12 1.4Z" fill="#E4C078"/>
+      </svg>
+      <span class="wm">Stars<i>Hash</i></span>
+    </div>
+    <div class="bal-pill">
+      <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+      <span class="v num" id="pillBal">12 480.42</span>
+      <button class="add" id="btnAdd" aria-label="Пополнить">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+      </button>
+    </div>
+    <button class="bell" id="btnBell" aria-label="Уведомления">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C9C9CE" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8.5a6 6 0 1 0-12 0c0 5.5-2.2 7-2.2 7h16.4S18 14 18 8.5Z"/><path d="M10.4 19.2a2 2 0 0 0 3.2 0"/>
+      </svg>
+      <span class="dot"></span>
+    </button>
+  </div>
+
+  <!-- ═══ ЗАРАБОТОК ═══ -->
+  <div class="page on" id="p-earn">
+
+    <div class="hero">
+      <div class="cap">Баланс</div>
+      <div class="big">
+        <span class="num" id="heroBal">12 480.42</span>
+        <svg class="st" width="38" height="38" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+      </div>
+      <div class="sub">
+        <b>+0.82</b>
+        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+        <span class="sl">/</span><span>сейчас</span>
+      </div>
+    </div>
+
+    <div class="card earn">
+      <div class="left">
+        <div class="l1">Зарабатываешь звезды</div>
+        <div class="l2">
+          <span>+0.82</span>
+          <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+          <span class="per">/ сейчас</span>
+        </div>
+        <div class="l3">Следующее начисление через</div>
+        <div class="l4 num" id="cdText">00:03</div>
+        <div class="l5">сек</div>
+      </div>
+      <div class="ring-wrap">
+        <canvas id="ring"></canvas>
+        <svg class="ring-star" width="38" height="38" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="card stat">
+        <div class="hd">
+          <span class="ic">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16.5 9.5 11l3.5 3.5L20 7.5"/><path d="M15.5 7.5H20V12"/></svg>
+          </span>
+          <span class="nm">Доходность</span>
+        </div>
+        <div class="v"><span class="num">+1.00%</span></div>
+        <div class="cap">в день</div>
+        <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none" aria-hidden="true">
+          <polyline id="sp1" fill="none" stroke="#E4C078" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="card stat">
+        <div class="hd">
+          <span class="ic">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 10v4M9.5 6.5v11M14.5 8.5v7M19 11v2"/></svg>
+          </span>
+          <span class="nm">Мощность</span>
+        </div>
+        <div class="v"><span class="num">1.284</span><span class="u">PH/s</span></div>
+        <div class="cap">hash rate</div>
+        <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none" aria-hidden="true">
+          <polyline id="sp2" fill="none" stroke="#E4C078" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="acts">
+      <button class="act fill" data-h="medium">
+        <span class="cc"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg></span>
+        Пополнить
+      </button>
+      <button class="act ghost" data-h="medium">
+        <span class="cc"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/></svg></span>
+        Вывести
+      </button>
+    </div>
+
+    <div class="mini">
+      <button data-h="light">
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#E6E6EA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8"/>
+          <path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" stroke-width="2.2"/>
+        </svg>
+        <span class="t">Калькулятор</span>
+      </button>
+      <button data-h="light">
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#E6E6EA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="8.5" width="18" height="12.5" rx="2.5"/><path d="M3 12.5h18M12 8.5V21"/>
+          <path d="M12 8.5C9.2 8.5 7 3.2 12 3.2s2.8 5.3 0 5.3Z"/>
+        </svg>
+        <span class="t">Бонусы</span>
+      </button>
+      <button data-h="light">
+        <svg class="gold" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#E4C078" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13.5 2.5 5 13.5h5.5l-.9 8 8.4-11h-5.5z"/>
+        </svg>
+        <span class="t">Буст</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ прочие вкладки ═══ -->
+  <div class="page" id="p-games"><div class="soon">
+    <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="10.5" rx="4.5"/><path d="M7 10.5v3M5.5 12h3M15.5 11.5h.01M18 13.5h.01"/></svg></span>
+    <h3>Игры</h3><p>Раздел откроется в следующем обновлении</p></div></div>
+
+  <div class="page" id="p-tasks"><div class="soon">
+    <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="15" height="17.5" rx="3"/><path d="M9 3.5h6v2.6H9z"/><path d="M8.5 11h7M8.5 15h4.5"/></svg></span>
+    <h3>Задания</h3><p>Раздел откроется в следующем обновлении</p></div></div>
+
+  <div class="page" id="p-top"><div class="soon">
+    <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20v-7M12 20V5M19 20v-4.5"/></svg></span>
+    <h3>Топ</h3><p>Раздел откроется в следующем обновлении</p></div></div>
+
+  <div class="page" id="p-me"><div class="soon">
+    <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8.5" r="4"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></svg></span>
+    <h3>Профиль</h3><p>Раздел откроется в следующем обновлении</p></div></div>
+
+</div>
+
+<!-- ═══ нижняя навигация ═══ -->
+<nav class="nav" id="nav">
+  <button class="tab" data-p="games">
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 7H7a5 5 0 0 0 0 10h10a5 5 0 0 0 0-10Zm-7.2 6H8.6v1.2a.9.9 0 1 1-1.8 0V13H5.6a.9.9 0 0 1 0-1.8h1.2V10a.9.9 0 1 1 1.8 0v1.2h1.2a.9.9 0 0 1 0 1.8Zm5.7-1.4a1.05 1.05 0 1 1 0-2.1 1.05 1.05 0 0 1 0 2.1Zm2.4 3a1.05 1.05 0 1 1 0-2.1 1.05 1.05 0 0 1 0 2.1Z"/></svg>
+    <span class="tl">Игры</span>
+  </button>
+
+  <button class="tab" data-p="tasks">
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="4.5" y="3.5" width="15" height="17.5" rx="3"/><path d="M9.2 3.5h5.6v2.4H9.2z" fill="currentColor" stroke="none"/><path d="M8.6 11.5h6.8M8.6 15.4h4.4"/>
+    </svg>
+    <span class="tl">Задания</span>
+  </button>
+
+  <button class="tab center on" data-p="earn">
+    <span class="ring">
+      <svg width="25" height="25" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+    </span>
+    <span class="tl">Заработок</span>
+    <span class="bar"></span>
+  </button>
+
+  <button class="tab" data-p="top">
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3.6" y="13" width="3.6" height="7.4" rx="1.4"/><rect x="10.2" y="4.6" width="3.6" height="15.8" rx="1.4"/><rect x="16.8" y="9.4" width="3.6" height="11" rx="1.4"/></svg>
+    <span class="tl">Топ</span>
+  </button>
+
+  <button class="tab" data-p="me">
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4.1"/><path d="M12 13.6c-4.1 0-7.4 2.7-7.4 6 0 .5.4.8.9.8h13c.5 0 .9-.3.9-.8 0-3.3-3.3-6-7.4-6Z"/></svg>
+    <span class="tl">Профиль</span>
+  </button>
+</nav>
+
+<script>
+(function(){
+"use strict";
+
+/* ─── Telegram ─── */
+var TG = (window.Telegram && window.Telegram.WebApp) || null;
+if (TG){ try{
+  TG.ready(); TG.expand();
+  TG.setHeaderColor && TG.setHeaderColor('#000000');
+  TG.setBackgroundColor && TG.setBackgroundColor('#000000');
+}catch(e){} }
+function haptic(kind){
+  try{
+    var h = TG && TG.HapticFeedback; if(!h) return;
+    if(kind==='success'||kind==='error'||kind==='warning') h.notificationOccurred(kind);
+    else h.impactOccurred(kind||'light');
+  }catch(e){}
+}
+
+var REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var DPR = Math.min(2, window.devicePixelRatio || 1);
+
+/* ══════════════════════════════════════════════════════
+   ФОН — космическое золотое свечение, туманность, частицы.
+   Статика печётся один раз в offscreen, каждый кадр —
+   только блит + частицы. Дёшево и стабильно 60 FPS.
+   ══════════════════════════════════════════════════════ */
+(function background(){
+  var cv = document.getElementById('bg'), ctx = cv.getContext('2d');
+  var W=0,H=0, off=document.createElement('canvas'), octx=off.getContext('2d'), motes=[];
+
+  function bake(){
+    off.width=W; off.height=H; octx.clearRect(0,0,W,H);
+
+    // мягкая туманность
+    var neb = octx.createRadialGradient(W*0.5,H*0.16,0, W*0.5,H*0.16, W*0.95);
+    neb.addColorStop(0,   'rgba(228,192,120,0.085)');
+    neb.addColorStop(0.42,'rgba(176,141,74,0.030)');
+    neb.addColorStop(1,   'rgba(0,0,0,0)');
+    octx.fillStyle=neb; octx.fillRect(0,0,W,H);
+
+    var neb2 = octx.createRadialGradient(W*0.88,H*0.72,0, W*0.88,H*0.72, W*0.72);
+    neb2.addColorStop(0,'rgba(228,192,120,0.045)');
+    neb2.addColorStop(1,'rgba(0,0,0,0)');
+    octx.fillStyle=neb2; octx.fillRect(0,0,W,H);
+
+    // лимб планеты — дуга света у верхней трети
+    var cx=W*0.5, cy=H*0.30 + W*1.15, r=W*1.15;
+    octx.save();
+    octx.globalCompositeOperation='lighter';
+    for(var i=0;i<4;i++){
+      var lw = [1.2, 5, 16, 46][i] * DPR;
+      var al = [0.55, 0.20, 0.085, 0.038][i];
+      var g = octx.createLinearGradient(0,0,W,0);
+      g.addColorStop(0,   'rgba(228,192,120,0)');
+      g.addColorStop(0.18,'rgba(228,192,120,'+(al*0.5)+')');
+      g.addColorStop(0.52,'rgba(247,231,196,'+al+')');
+      g.addColorStop(0.86,'rgba(228,192,120,'+(al*0.42)+')');
+      g.addColorStop(1,   'rgba(228,192,120,0)');
+      octx.strokeStyle=g; octx.lineWidth=lw;
+      octx.beginPath(); octx.arc(cx,cy,r,Math.PI*1.14,Math.PI*1.86); octx.stroke();
+    }
+    octx.restore();
+
+    // затемнение диска планеты под лимбом — чтобы низ не светился
+    octx.save();
+    octx.globalCompositeOperation='destination-out';
+    var dg=octx.createRadialGradient(cx,cy,r*0.986, cx,cy,r*0.90);
+    dg.addColorStop(0,'rgba(0,0,0,0)'); dg.addColorStop(1,'rgba(0,0,0,0.85)');
+    octx.fillStyle=dg; octx.beginPath(); octx.arc(cx,cy,r,0,6.2832); octx.fill();
+    octx.restore();
+  }
+
+  function size(){
+    W = Math.round(innerWidth*DPR); H = Math.round(innerHeight*DPR);
+    cv.width=W; cv.height=H; bake();
+    motes=[]; var n = Math.round(innerWidth/13);
+    for(var i=0;i<n;i++) motes.push({
+      x:Math.random(), y:Math.random(), r:(0.4+Math.random()*1.25)*DPR,
+      o:0.10+Math.random()*0.34, sp:0.000018+Math.random()*0.000055, ph:Math.random()*6.283
+    });
+  }
+
+  function frame(t){
+    ctx.clearRect(0,0,W,H);
+    ctx.drawImage(off,0,0);
+    ctx.globalCompositeOperation='lighter';
+    for(var i=0;i<motes.length;i++){
+      var m=motes[i];
+      if(!REDUCE){ m.y -= m.sp; if(m.y<-0.02) m.y=1.02; }
+      var tw = 0.62 + 0.38*Math.sin(t*0.0011 + m.ph);
+      var x = (m.x + Math.sin(t*0.00007 + m.ph)*0.012)*W;
+      ctx.beginPath(); ctx.arc(x, m.y*H, m.r, 0, 6.2832);
+      ctx.fillStyle='rgba(240,220,175,'+(m.o*tw)+')'; ctx.fill();
+    }
+    ctx.globalCompositeOperation='source-over';
+    requestAnimationFrame(frame);
+  }
+
+  size(); addEventListener('resize', size);
+  requestAnimationFrame(frame);
+})();
+
+/* ══════════════════════════════════════════════════════
+   КОЛЬЦО — объёмное, мягкое, дорогое.
+   Слои: внешний бархатный ореол → тонкие направляющие →
+   трек → прогресс с переливом по дуге → раскалённая голова.
+   ══════════════════════════════════════════════════════ */
+var Ring = (function(){
+  var cv = document.getElementById('ring'), ctx = cv.getContext('2d');
+  var S=0, p=0;
+
+  function size(){
+    var r = cv.getBoundingClientRect(); if(!r.width) return;
+    S = Math.round(r.width*DPR); cv.width=S; cv.height=S;
+  }
+
+  function draw(t){
+    if(!S){ size(); if(!S) return; }
+    var c=S/2, R=S*0.375, lw=S*0.045;
+    ctx.clearRect(0,0,S,S);
+
+    // 1. бархатный ореол
+    var halo = ctx.createRadialGradient(c,c,R*0.55, c,c,R*1.62);
+    halo.addColorStop(0,'rgba(228,192,120,0.070)');
+    halo.addColorStop(0.55,'rgba(228,192,120,0.030)');
+    halo.addColorStop(1,'rgba(228,192,120,0)');
+    ctx.fillStyle=halo; ctx.fillRect(0,0,S,S);
+
+    // 2. медленно вращающиеся направляющие
+    var rot = REDUCE ? 0 : t*0.00006;
+    ctx.save(); ctx.translate(c,c); ctx.rotate(rot);
+    ctx.strokeStyle='rgba(228,192,120,0.13)'; ctx.lineWidth=1*DPR;
+    ctx.beginPath(); ctx.arc(0,0,R*1.20,0,6.2832); ctx.stroke();
+    ctx.strokeStyle='rgba(228,192,120,0.07)';
+    ctx.setLineDash([S*0.014, S*0.052]);
+    ctx.beginPath(); ctx.arc(0,0,R*1.33,0,6.2832); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // 3. трек
+    ctx.strokeStyle='rgba(255,255,255,0.045)'; ctx.lineWidth=lw; ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(c,c,R,0,6.2832); ctx.stroke();
+
+    // 4. прогресс — перелив вдоль дуги, посегментно
+    var a0=-Math.PI/2, sweep=Math.max(0.0001, p)*6.2832, N=110;
+    ctx.lineCap='round';
+    for(var i=0;i<N;i++){
+      var f0=i/N, f1=(i+1)/N;
+      if(f1*sweep < 0.0001) continue;
+      // тёплое золото: глубина → золото → светлое, к голове ярче
+      var k = f0;
+      var cr = 176 + (247-176)*k, cg = 141 + (231-141)*k, cb = 74 + (196-74)*k;
+      ctx.strokeStyle='rgba('+(cr|0)+','+(cg|0)+','+(cb|0)+',1)';
+      ctx.lineWidth=lw;
+      ctx.beginPath();
+      ctx.arc(c,c,R, a0+f0*sweep, a0+f1*sweep+0.012);
+      ctx.stroke();
+    }
+
+    // 5. мягкое свечение самой дуги (аддитивно, без «неона»)
+    ctx.save();
+    ctx.globalCompositeOperation='lighter';
+    ctx.strokeStyle='rgba(228,192,120,0.105)'; ctx.lineWidth=lw*2.0;
+    ctx.beginPath(); ctx.arc(c,c,R,a0,a0+sweep); ctx.stroke();
+    ctx.strokeStyle='rgba(228,192,120,0.045)'; ctx.lineWidth=lw*3.6;
+    ctx.beginPath(); ctx.arc(c,c,R,a0,a0+sweep); ctx.stroke();
+    ctx.restore();
+
+    // 6. раскалённая голова
+    var ha=a0+sweep, hx=c+Math.cos(ha)*R, hy=c+Math.sin(ha)*R;
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    var bloom=ctx.createRadialGradient(hx,hy,0, hx,hy,lw*2.3);
+    bloom.addColorStop(0,'rgba(255,248,232,0.62)');
+    bloom.addColorStop(0.32,'rgba(247,231,196,0.22)');
+    bloom.addColorStop(1,'rgba(228,192,120,0)');
+    ctx.fillStyle=bloom; ctx.beginPath(); ctx.arc(hx,hy,lw*2.3,0,6.2832); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle='#FFF9EE';
+    ctx.beginPath(); ctx.arc(hx,hy,lw*0.42,0,6.2832); ctx.fill();
+  }
+
+  size(); addEventListener('resize', size);
+  return { set:function(v){ p=v; }, draw:draw };
+})();
+
+/* ══════════════════════════════════════════════════════
+   ЭКОНОМИКА — баланс растёт плавно, без рывков.
+   Значения пишутся в DOM напрямую из rAF-цикла.
+   ══════════════════════════════════════════════════════ */
+var CYCLE = 3;              // сек до начисления
+var RATE  = 0.82 / CYCLE;   // ★ в секунду
+var bal   = 12480.42;
+
+var heroBal = document.getElementById('heroBal'),
+    pillBal = document.getElementById('pillBal'),
+    cdText  = document.getElementById('cdText');
+
+function fmt(n){
+  return n.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}).replace(',', '.');
+}
+
+(function loop(){
+  var last = performance.now(), acc = 0, cyc = 0;
+  function frame(now){
+    var dt = Math.min(0.05, (now-last)/1000); last = now;
+    bal += RATE*dt; acc += dt; cyc += dt;
+
+    if(acc >= 1/15){
+      var s = fmt(bal);
+      heroBal.textContent = s; pillBal.textContent = s;
+      acc = 0;
+    }
+
+    var left = Math.max(0, CYCLE - cyc);
+    cdText.textContent = '00:0' + Math.ceil(left);
+    Ring.set(cyc/CYCLE);
+
+    if(cyc >= CYCLE){ cyc = 0; haptic('success'); }
+
+    Ring.draw(now);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ─── спарклайны ─── */
+(function sparks(){
+  function build(el, seed){
+    var pts=[], v=6, r=seed;
+    for(var i=0;i<34;i++){
+      r = (r*9301+49297)%233280;
+      v += (r/233280 - 0.38)*4.4;
+      v = Math.max(2, Math.min(22, v));
+      pts.push((i/33*120).toFixed(1)+','+(24-v).toFixed(1));
+    }
+    el.setAttribute('points', pts.join(' '));
+  }
+  build(document.getElementById('sp1'), 4711);
+  build(document.getElementById('sp2'), 1289);
+})();
+
+/* ─── навигация ─── */
+var pages = { earn:'p-earn', games:'p-games', tasks:'p-tasks', top:'p-top', me:'p-me' };
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    var key = tab.dataset.p;
+    if(tab.classList.contains('on')) return;
+    haptic('light');
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
+    tab.classList.add('on');
+    for(var k in pages){
+      document.getElementById(pages[k]).classList.toggle('on', k===key);
+    }
+    scrollTo({top:0, behavior:'smooth'});
+  });
+});
+
+/* ─── тактильный отклик на действиях ─── */
+document.querySelectorAll('[data-h]').forEach(function(el){
+  el.addEventListener('click', function(){ haptic(el.dataset.h); });
+});
+document.getElementById('btnAdd').addEventListener('click', function(){ haptic('medium'); });
+document.getElementById('btnBell').addEventListener('click', function(){ haptic('light'); });
+
+})();
+</script>
+</body>
+</html>
