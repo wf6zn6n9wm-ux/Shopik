@@ -121,8 +121,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 /* ─────────── главный блок: таймер + кольцо ─────────── */
 /* главный блок забирает весь свободный запас по высоте */
 .earn{
-  flex:1 1 auto;display:flex;align-items:center;gap:12px;
-  padding:clamp(13px,2.3vh,24px) 22px;min-height:clamp(116px,20vh,212px);
+  flex:1 1 auto;display:flex;align-items:center;gap:9px;
+  padding:clamp(13px,2.3vh,24px) 10px clamp(13px,2.3vh,24px) 22px;min-height:clamp(116px,20vh,212px);
 }
 .earn .left{flex:1;min-width:0;}
 .earn .l1{font-size:13.5px;color:var(--ink-2);font-weight:450;white-space:nowrap;}
@@ -131,13 +131,13 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   font-size:clamp(22px,min(7.4vw,3.5vh),29px);font-weight:300;letter-spacing:-.025em;color:var(--gold);line-height:1;
 }
 .earn .l2 .per{font-size:14px;color:var(--ink-2);font-weight:450;letter-spacing:0;white-space:nowrap;}
-.earn .l3{margin-top:clamp(10px,2.6vh,24px);font-size:13px;color:var(--ink-2);font-weight:450;line-height:1.35;white-space:nowrap;}
+.earn .l3{margin-top:clamp(10px,2.6vh,24px);font-size:min(13px,3.0vw);color:var(--ink-2);font-weight:450;line-height:1.35;white-space:nowrap;}
 .earn .l4{
   margin-top:clamp(4px,1vh,8px);font-size:clamp(31px,min(10.6vw,5vh),42px);
   font-weight:200;letter-spacing:-.03em;line-height:1;
 }
 .earn .l5{margin-top:clamp(3px,.7vh,6px);font-size:13px;color:var(--ink-3);font-weight:450;}
-.ring-wrap{position:relative;width:clamp(94px,min(30vw,16.5vh),132px);aspect-ratio:1;flex:0 0 auto;}
+.ring-wrap{position:relative;width:clamp(92px,min(27vw,15.5vh),126px);aspect-ratio:1;flex:0 0 auto;}
 .ring-wrap canvas{position:absolute;inset:0;width:100%;height:100%;}
 .ring-star{
   position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
