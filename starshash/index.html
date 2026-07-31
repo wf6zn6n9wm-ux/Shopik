@@ -254,6 +254,80 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 .soon h3{margin:0;font-size:20px;font-weight:300;letter-spacing:-.02em;}
 .soon p{margin:9px 0 0;font-size:13.5px;color:var(--ink-3);font-weight:450;}
 
+/* ─────────── шторка «Магазин бустов» ─────────── */
+.sheet-wrap{position:fixed;inset:0;z-index:60;display:none;}
+.sheet-wrap.on{display:block;}
+.sheet-bd{
+  position:absolute;inset:0;background:rgba(0,0,0,.66);
+  backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+  opacity:0;transition:opacity .34s cubic-bezier(.2,0,0,1);
+}
+.sheet-wrap.in .sheet-bd{opacity:1;}
+.sheet{
+  position:absolute;left:50%;bottom:0;transform:translate(-50%,101%);
+  width:100%;max-width:var(--shell);max-height:88dvh;
+  display:flex;flex-direction:column;
+  background:var(--card);border:1px solid var(--line);border-bottom:0;
+  border-radius:28px 28px 0 0;
+  padding:10px 20px calc(var(--sab) + 16px);
+  box-shadow:0 -30px 80px -24px #000;
+  transition:transform .44s cubic-bezier(.2,0,0,1);
+}
+.sheet-wrap.in .sheet{transform:translate(-50%,0);}
+/* тёплый отсвет по верхней кромке — шторка «поймала» свет */
+.sheet::before{
+  content:"";position:absolute;left:12%;right:12%;top:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(228,192,120,.55),transparent);
+}
+.sheet-top{flex:0 0 auto;padding-bottom:2px;cursor:grab;}
+.grab{width:38px;height:4px;border-radius:99px;background:#2C2C31;margin:0 auto 14px;}
+.sheet-t{text-align:center;font-size:19px;font-weight:600;letter-spacing:-.02em;}
+.sheet-s{text-align:center;font-size:12.5px;color:var(--ink-3);margin-top:5px;}
+
+.bgrid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  margin:18px 0 16px;flex:1 1 auto;min-height:0;overflow-y:auto;
+  align-content:start;
+}
+.bcard{
+  background:#0E0E10;border:1px solid var(--line);border-radius:18px;
+  padding:13px 7px 12px;display:flex;flex-direction:column;align-items:center;gap:9px;
+  transition:border-color .24s,box-shadow .24s,transform .16s;
+}
+.bcard:active{transform:scale(.97);}
+.bcard .pc{font-size:17px;font-weight:300;letter-spacing:-.025em;transition:color .24s;}
+.bcard .ic{
+  width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;
+  background:rgba(228,192,120,.08);border:1px solid rgba(228,192,120,.15);color:var(--gold);
+  transition:background .24s,border-color .24s;
+}
+.bcard .fo{font-size:10.5px;color:var(--ink-3);}
+.bcard .pr{
+  display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:99px;
+  border:1px solid rgba(228,192,120,.26);color:var(--gold);
+  font-size:12px;font-weight:600;letter-spacing:-.01em;
+}
+.bcard.on{border-color:var(--gold);box-shadow:0 0 22px rgba(228,192,120,.16);}
+.bcard.on .pc{color:var(--gold);}
+.bcard.on .ic{background:rgba(228,192,120,.16);border-color:rgba(228,192,120,.4);}
+
+.btn-buy{
+  flex:0 0 auto;height:56px;border-radius:18px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-size:15.5px;font-weight:600;letter-spacing:-.01em;color:#150F04;
+  background:linear-gradient(168deg,#F2DFB0 0%,var(--gold) 46%,#CDA862 100%);
+  transition:transform .16s;
+}
+.btn-buy:active{transform:scale(.98);}
+
+/* подтверждение покупки — карточка «Доходность» коротко вспыхивает золотом */
+@keyframes yieldPulse{
+  0%{box-shadow:0 0 0 0 rgba(228,192,120,0);}
+  22%{box-shadow:0 0 26px 2px rgba(228,192,120,.34);}
+  100%{box-shadow:0 0 0 0 rgba(228,192,120,0);}
+}
+.stat.pulse{animation:yieldPulse 1.15s cubic-bezier(.2,0,0,1);}
+
 /* На низких экранах спарклайн — первое, чем жертвуем: это украшение,
    а цифры и кнопки должны остаться в полном размере. */
 @media (max-height:700px){ .spark{display:none;} }
@@ -332,14 +406,14 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     </div>
 
     <div class="stats">
-      <div class="card stat">
+      <div class="card stat" id="yieldCard">
         <div class="hd">
           <span class="ic">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16.5 9.5 11l3.5 3.5L20 7.5"/><path d="M15.5 7.5H20V12"/></svg>
           </span>
           <span class="nm">Доходность</span>
         </div>
-        <div class="v"><span class="num">+1.00%</span></div>
+        <div class="v"><span class="num" id="yieldVal">+1.00%</span></div>
         <div class="cap">в день</div>
         <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none" aria-hidden="true">
           <polyline id="sp1" fill="none" stroke="#E4C078" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -386,7 +460,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
         </svg>
         <span class="t">Бонусы</span>
       </button>
-      <button data-h="light">
+      <button id="btnBoost">
         <svg class="gold" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#E4C078" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M13.5 2.5 5 13.5h5.5l-.9 8 8.4-11h-5.5z"/>
         </svg>
@@ -445,6 +519,24 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   </button>
 </nav>
 
+</div>
+
+<!-- ═══ шторка «Магазин бустов» ═══ -->
+<div class="sheet-wrap" id="boostSheet" aria-hidden="true">
+  <div class="sheet-bd" id="boostBd"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="boostTitle">
+    <div class="sheet-top" id="sheetTop">
+      <div class="grab"></div>
+      <div class="sheet-t" id="boostTitle">Магазин бустов</div>
+      <div class="sheet-s">Постоянные</div>
+    </div>
+    <div class="bgrid" id="bgrid"></div>
+    <button class="btn-buy" id="buyBtn">
+      Купить за
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#150F04"/></svg>
+      <span id="buyPrice" class="num">5000</span>
+    </button>
+  </div>
 </div>
 
 <script>
@@ -715,6 +807,85 @@ document.querySelectorAll('.tab').forEach(function(tab){
     scrollTo({top:0, behavior:'smooth'});
   });
 });
+
+/* ══════════════════════════════════════════════════════
+   МАГАЗИН БУСТОВ — шторка снизу
+   ══════════════════════════════════════════════════════ */
+(function boostShop(){
+  var BOOSTS=[
+    {p:0.1, price:100},  {p:0.2, price:200},  {p:0.3, price:300},
+    {p:0.5, price:1000}, {p:2,   price:3000}, {p:5,   price:5000}
+  ];
+  var STAR='<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>';
+  var BOLT='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 2.5 5 13.5h5.5l-.9 8 8.4-11h-5.5z"/></svg>';
+
+  var wrap=document.getElementById('boostSheet'), bd=document.getElementById('boostBd'),
+      sheet=wrap.querySelector('.sheet'), top=document.getElementById('sheetTop'),
+      grid=document.getElementById('bgrid'), buyBtn=document.getElementById('buyBtn'),
+      buyPrice=document.getElementById('buyPrice'),
+      yieldVal=document.getElementById('yieldVal'), yieldCard=document.getElementById('yieldCard');
+
+  var sel=BOOSTS.length-1, open=false, yieldPct=1.00;
+
+  BOOSTS.forEach(function(b,i){
+    var el=document.createElement('button');
+    el.className='bcard'+(i===sel?' on':'');
+    el.innerHTML='<span class="pc num">+'+b.p+'%</span>'+
+                 '<span class="ic">'+BOLT+'</span>'+
+                 '<span class="fo">Навсегда</span>'+
+                 '<span class="pr">'+STAR+'<span class="num">'+b.price+'</span></span>';
+    el.addEventListener('click',function(){
+      if(sel===i) return;
+      haptic('light');
+      grid.children[sel].classList.remove('on');
+      sel=i; el.classList.add('on');
+      buyPrice.textContent=BOOSTS[sel].price;
+    });
+    grid.appendChild(el);
+  });
+  buyPrice.textContent=BOOSTS[sel].price;
+
+  function show(){
+    if(open) return; open=true;
+    wrap.classList.add('on'); wrap.setAttribute('aria-hidden','false');
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ wrap.classList.add('in'); }); });
+  }
+  function hide(){
+    if(!open) return; open=false;
+    wrap.classList.remove('in'); wrap.setAttribute('aria-hidden','true');
+    sheet.style.transform='';
+    setTimeout(function(){ if(!open) wrap.classList.remove('on'); },440);
+  }
+
+  document.getElementById('btnBoost').addEventListener('click',function(){ haptic('medium'); show(); });
+  bd.addEventListener('click',hide);
+  addEventListener('keydown',function(e){ if(e.key==='Escape') hide(); });
+
+  buyBtn.addEventListener('click',function(){
+    haptic('success');
+    yieldPct += BOOSTS[sel].p;
+    yieldVal.textContent='+'+yieldPct.toFixed(2)+'%';
+    yieldCard.classList.remove('pulse'); void yieldCard.offsetWidth; yieldCard.classList.add('pulse');
+    hide();
+  });
+
+  /* свайп вниз по шапке — закрыть. Сетка при этом остаётся прокручиваемой. */
+  var y0=null, dy=0;
+  top.addEventListener('touchstart',function(e){
+    y0=e.touches[0].clientY; dy=0; sheet.style.transition='none';
+  },{passive:true});
+  top.addEventListener('touchmove',function(e){
+    if(y0===null) return;
+    dy=e.touches[0].clientY-y0;
+    if(dy>0) sheet.style.transform='translate(-50%,'+dy+'px)';
+  },{passive:true});
+  top.addEventListener('touchend',function(){
+    if(y0===null) return;
+    sheet.style.transition='';
+    if(dy>90) hide(); else sheet.style.transform='';
+    y0=null; dy=0;
+  });
+})();
 
 /* ─── тактильный отклик на действиях ─── */
 document.querySelectorAll('[data-h]').forEach(function(el){
