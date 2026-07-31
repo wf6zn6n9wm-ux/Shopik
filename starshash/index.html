@@ -493,13 +493,20 @@ var DPR = Math.min(2, window.devicePixelRatio || 1);
     neb2.addColorStop(1,'rgba(0,0,0,0)');
     octx.fillStyle=neb2; octx.fillRect(0,0,W,H);
 
-    // лимб планеты — дуга света у верхней трети
-    var cx=W*0.5, cy=H*0.30 + W*1.15, r=W*1.15;
+    // Лимб планеты. Вершину дуги ставим по реальной верхней грани главной
+    // карточки — тогда свет всегда попадает в открытую зону под балансом,
+    // а «крылья» уходят вниз за карточку. Иначе дуга прячется за ней.
+    var apex = H*0.235, el = document.querySelector('.earn');
+    if(el){
+      var rr = el.getBoundingClientRect();
+      if(rr.height > 0) apex = (rr.top - 26) * DPR;
+    }
+    var cx=W*0.5, r=W*1.15, cy=apex + r;
     octx.save();
     octx.globalCompositeOperation='lighter';
     for(var i=0;i<4;i++){
       var lw = [1.2, 5, 16, 46][i] * DPR;
-      var al = [0.55, 0.20, 0.085, 0.038][i];
+      var al = [0.78, 0.32, 0.14, 0.062][i];
       var g = octx.createLinearGradient(0,0,W,0);
       g.addColorStop(0,   'rgba(228,192,120,0)');
       g.addColorStop(0.18,'rgba(228,192,120,'+(al*0.5)+')');
@@ -547,6 +554,10 @@ var DPR = Math.min(2, window.devicePixelRatio || 1);
   }
 
   size(); addEventListener('resize', size);
+  // дуга привязана к геометрии карточки — перепекаем, когда раскладка устоялась
+  requestAnimationFrame(bake);
+  addEventListener('load', bake);
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(bake);
   requestAnimationFrame(frame);
 })();
 
