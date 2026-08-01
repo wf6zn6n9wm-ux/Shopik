@@ -254,6 +254,102 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 .soon h3{margin:0;font-size:20px;font-weight:300;letter-spacing:-.02em;}
 .soon p{margin:9px 0 0;font-size:13.5px;color:var(--ink-3);font-weight:450;}
 
+/* ═══════════ РАЗДЕЛ «ИГРЫ» ═══════════ */
+.gview{display:none;}
+.gview.on{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;gap:var(--gap);}
+
+/* список игр — две карточки делят высоту поровну */
+.gcard{
+  flex:1 1 auto;min-height:0;display:flex;align-items:center;gap:15px;text-align:left;
+  padding:20px 18px;border-radius:var(--r-card);background:var(--card);border:1px solid var(--line);
+  position:relative;overflow:hidden;transition:transform .16s,border-color .22s;
+}
+.gcard:active{transform:scale(.985);}
+.gcard .halo{
+  position:absolute;width:150px;height:150px;border-radius:50%;top:-58px;right:-46px;
+  background:radial-gradient(circle,rgba(228,192,120,.13),transparent 70%);filter:blur(6px);
+}
+.gcard .gi{
+  width:54px;height:54px;flex:0 0 auto;border-radius:18px;display:grid;place-items:center;
+  background:rgba(228,192,120,.09);border:1px solid rgba(228,192,120,.18);color:var(--gold);
+}
+.gcard .gb{flex:1;min-width:0;}
+.gcard .gt{font-size:18px;font-weight:600;letter-spacing:-.02em;}
+.gcard .gd{font-size:12.5px;color:var(--ink-3);margin-top:5px;line-height:1.4;}
+.gcard .gx{color:#4A4A51;flex:0 0 auto;}
+
+/* шапка игры */
+.ghead{display:flex;align-items:center;gap:12px;flex:0 0 auto;}
+.ghead .bk{
+  width:38px;height:38px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+  background:var(--card);border:1px solid var(--line);color:var(--ink-2);transition:transform .16s;
+}
+.ghead .bk:active{transform:scale(.9);}
+.ghead .t{font-size:18px;font-weight:600;letter-spacing:-.02em;margin-right:auto;}
+.ghead .hist{display:flex;gap:5px;overflow:hidden;}
+.ghead .hist i{
+  font-style:normal;font-size:10.5px;font-weight:700;padding:4px 7px;border-radius:8px;
+  background:rgba(255,255,255,.05);color:var(--ink-3);
+}
+.ghead .hist i.hi{background:rgba(228,192,120,.13);color:var(--gold);}
+
+/* ── Краш ── */
+.cstage{
+  flex:1 1 auto;min-height:0;position:relative;border-radius:var(--r-card);
+  background:var(--card);border:1px solid var(--line);overflow:hidden;
+}
+.cstage canvas{position:absolute;inset:0;width:100%;height:100%;}
+.cmult{
+  position:absolute;left:0;right:0;top:46%;transform:translateY(-50%);text-align:center;
+  font-size:clamp(36px,12vw,54px);font-weight:200;letter-spacing:-.035em;line-height:1;
+  transition:color .25s;
+}
+.cmult.boom{color:#C97B62;}
+.cnote{
+  position:absolute;left:0;right:0;top:64%;text-align:center;
+  font-size:12.5px;color:var(--ink-3);font-weight:500;
+}
+.cnote.win{color:var(--gold);}
+
+.crow{display:flex;gap:10px;flex:0 0 auto;}
+.crow .wf{flex:1;min-width:0;}
+.cbet{display:flex;gap:8px;flex:0 0 auto;}
+.cbet button{
+  padding:0 13px;border-radius:14px;background:#0E0E10;border:1px solid var(--line);
+  font-size:13px;font-weight:700;color:var(--ink-2);transition:transform .16s;
+}
+.cbet button:active{transform:scale(.94);}
+
+/* ── ПВП ── */
+.pot{
+  flex:0 0 auto;text-align:center;padding:16px;border-radius:var(--r-card);
+  background:linear-gradient(168deg,rgba(228,192,120,.11),rgba(255,255,255,.015));
+  border:1px solid rgba(228,192,120,.2);
+}
+.pot .k{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);font-weight:700;}
+.pot .v{
+  margin-top:7px;font-size:clamp(28px,9vw,38px);font-weight:200;letter-spacing:-.03em;
+  color:var(--gold-hi);display:flex;align-items:center;justify-content:center;gap:9px;line-height:1;
+}
+.share{display:flex;height:8px;border-radius:99px;overflow:hidden;gap:2px;flex:0 0 auto;}
+.share i{display:block;transition:width .45s cubic-bezier(.2,0,0,1);}
+
+.plist{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.prow{
+  display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:16px;
+  background:var(--card);border:1px solid var(--line);transition:border-color .2s,background .2s;
+}
+.prow.me{border-color:rgba(228,192,120,.3);}
+.prow.lit{border-color:var(--gold);background:rgba(228,192,120,.09);}
+.prow.won{border-color:var(--gold);background:linear-gradient(168deg,rgba(228,192,120,.2),rgba(228,192,120,.05));}
+.prow .av{
+  width:34px;height:34px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+  font-size:13px;font-weight:700;color:#150F04;
+}
+.prow .nm{flex:1;min-width:0;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prow .st{font-size:13px;font-weight:600;color:var(--ink-2);white-space:nowrap;}
+.prow .ch{font-size:11.5px;color:var(--ink-3);width:42px;text-align:right;flex:0 0 auto;}
+
 /* ─────────── шторка «Магазин бустов» ─────────── */
 .sheet-wrap{position:fixed;inset:0;z-index:60;display:none;}
 .sheet-wrap.on{display:block;}
@@ -586,9 +682,85 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   </div>
 
   <!-- ═══ прочие вкладки ═══ -->
-  <div class="page" id="p-games"><div class="soon">
-    <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="10.5" rx="4.5"/><path d="M7 10.5v3M5.5 12h3M15.5 11.5h.01M18 13.5h.01"/></svg></span>
-    <h3>Игры</h3><p>Раздел откроется в следующем обновлении</p></div></div>
+  <div class="page" id="p-games">
+
+    <!-- список игр -->
+    <div class="gview on" id="gList">
+      <button class="gcard" id="goCrash">
+        <span class="halo"></span>
+        <span class="gi">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19c4.5 0 9-3.2 12-11"/><path d="M11 4.5h5v5"/></svg>
+        </span>
+        <span class="gb">
+          <span class="gt">Краш</span>
+          <span class="gd">Множитель растёт — успей забрать до обрыва</span>
+        </span>
+        <span class="gx"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+      </button>
+
+      <button class="gcard" id="goPvp">
+        <span class="halo"></span>
+        <span class="gi">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 3.5l13 13M18.5 3.5l-13 13"/><path d="M3.5 18.5l3 3M20.5 18.5l-3 3"/></svg>
+        </span>
+        <span class="gb">
+          <span class="gt">ПВП</span>
+          <span class="gd">Ставки в общий банк — победитель забирает всё</span>
+        </span>
+        <span class="gx"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+      </button>
+    </div>
+
+    <!-- Краш -->
+    <div class="gview" id="gCrash">
+      <div class="ghead">
+        <button class="bk" data-back aria-label="Назад"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <span class="t">Краш</span>
+        <span class="hist" id="cHist"></span>
+      </div>
+      <div class="cstage">
+        <canvas id="cCanvas"></canvas>
+        <div class="cmult num" id="cMult">1.00×</div>
+        <div class="cnote" id="cNote">Сделайте ставку</div>
+      </div>
+      <div class="crow">
+        <div class="wf">
+          <input id="cStake" type="text" inputmode="decimal" autocomplete="off" value="100">
+          <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+        </div>
+        <div class="cbet">
+          <button data-mul="0.5">½</button>
+          <button data-mul="2">×2</button>
+        </div>
+      </div>
+      <button class="btn-buy" id="cGo">Ставка</button>
+    </div>
+
+    <!-- ПВП -->
+    <div class="gview" id="gPvp">
+      <div class="ghead">
+        <button class="bk" data-back aria-label="Назад"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <span class="t">ПВП</span>
+      </div>
+      <div class="pot">
+        <div class="k">Банк раунда</div>
+        <div class="v"><span class="num" id="pPot">0</span>
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#F7E7C4"/></svg>
+        </div>
+      </div>
+      <div class="share" id="pShare"></div>
+      <div class="plist" id="pList"></div>
+      <div class="crow">
+        <div class="wf">
+          <input id="pStake" type="text" inputmode="decimal" autocomplete="off" value="100">
+          <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+        </div>
+        <div class="cbet"><button data-pmul="2">×2</button></div>
+      </div>
+      <button class="btn-buy" id="pGo">Играть</button>
+    </div>
+
+  </div>
 
   <div class="page" id="p-tasks"><div class="soon">
     <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="15" height="17.5" rx="3"/><path d="M9 3.5h6v2.6H9z"/><path d="M8.5 11h7M8.5 15h4.5"/></svg></span>
@@ -1024,6 +1196,7 @@ var heroBal = document.getElementById('heroBal'),
     pillBal = document.getElementById('pillBal'),
     cdText  = document.getElementById('cdText');
 
+function fmtInt(n){ return Math.round(n).toLocaleString('ru-RU'); }
 function fmt(n){
   return n.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}).replace(',', '.');
 }
@@ -1129,6 +1302,233 @@ function makeSheet(wrapId, topId, opts){
 
   return { show:show, hide:hide, isOpen:function(){ return open; } };
 }
+
+/* ══════════════════════════════════════════════════════
+   ИГРЫ: список, Краш, ПВП
+   ══════════════════════════════════════════════════════ */
+(function games(){
+  function num(v){ v=parseFloat(String(v).replace(/\s/g,'').replace(',','.')); return isFinite(v)&&v>0?v:0; }
+
+  var views={list:document.getElementById('gList'),crash:document.getElementById('gCrash'),
+             pvp:document.getElementById('gPvp')};
+  function view(k){
+    for(var n in views) views[n].classList.toggle('on',n===k);
+  }
+  document.querySelectorAll('#p-games [data-back]').forEach(function(b){
+    b.addEventListener('click',function(){ haptic('light'); view('list'); });
+  });
+  document.getElementById('goCrash').addEventListener('click',function(){ haptic('medium'); view('crash'); Crash.enter(); });
+  document.getElementById('goPvp').addEventListener('click',function(){ haptic('medium'); view('pvp'); Pvp.reset(); });
+
+  /* ─────────── КРАШ ───────────
+     Точка обрыва берётся до старта по формуле 0.97/(1−r): у неё
+     тяжёлый хвост, поэтому крупные множители редки, а матожидание
+     ниже ставки. Множитель растёт как 1.09^t, где t — секунды. */
+  var Crash=(function(){
+    var cv=document.getElementById('cCanvas'), ctx=cv.getContext('2d'),
+        multEl=document.getElementById('cMult'), noteEl=document.getElementById('cNote'),
+        stakeEl=document.getElementById('cStake'), goBtn=document.getElementById('cGo'),
+        histEl=document.getElementById('cHist');
+
+    var S=0,W=0,H=0, state='idle', t0=0, mult=1, crashAt=2, stake=0, raf=null, hist=[];
+
+    function size(){
+      var r=cv.getBoundingClientRect(); if(!r.width) return;
+      W=cv.width=Math.round(r.width*DPR); H=cv.height=Math.round(r.height*DPR);
+    }
+    addEventListener('resize',size);
+
+    function draw(){
+      if(!W){ size(); if(!W) return; }
+      ctx.clearRect(0,0,W,H);
+      var pad=14*DPR, tNow=state==='flying'?(performance.now()-t0)/1000:lastT;
+      var tMax=Math.max(5,tNow*1.12), mMax=Math.max(1.8,mult*1.12);
+      var X=function(t){ return pad+t/tMax*(W-pad*2); };
+      var Y=function(m){ return H-pad-(m-1)/(mMax-1)*(H-pad*2); };
+
+      // сетка
+      ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=1*DPR;
+      for(var i=1;i<4;i++){ var y=pad+(H-pad*2)*i/4;
+        ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke(); }
+
+      var N=48, pts=[];
+      for(var k=0;k<=N;k++){ var tt=tNow*k/N; pts.push([X(tt),Y(Math.pow(1.09,tt))]); }
+
+      var crashed=state==='crashed';
+      var line=crashed?'#C97B62':'#E4C078';
+      ctx.beginPath(); ctx.moveTo(pts[0][0],H-pad);
+      pts.forEach(function(p){ ctx.lineTo(p[0],p[1]); });
+      ctx.lineTo(pts[pts.length-1][0],H-pad); ctx.closePath();
+      var g=ctx.createLinearGradient(0,pad,0,H-pad);
+      g.addColorStop(0,crashed?'rgba(201,123,98,.24)':'rgba(228,192,120,.26)');
+      g.addColorStop(1,'rgba(228,192,120,0)');
+      ctx.fillStyle=g; ctx.fill();
+
+      ctx.beginPath(); pts.forEach(function(p,i){ i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]); });
+      ctx.strokeStyle=line; ctx.lineWidth=2.4*DPR; ctx.lineJoin='round'; ctx.lineCap='round';
+      ctx.shadowColor=crashed?'rgba(201,123,98,.5)':'rgba(228,192,120,.5)'; ctx.shadowBlur=10*DPR;
+      ctx.stroke(); ctx.shadowBlur=0;
+
+      var head=pts[pts.length-1];
+      ctx.beginPath(); ctx.arc(head[0],head[1],4.2*DPR,0,6.2832);
+      ctx.fillStyle=crashed?'#C97B62':'#FFF6E4'; ctx.fill();
+    }
+
+    var lastT=0;
+    function loop(){
+      var t=(performance.now()-t0)/1000; lastT=t;
+      mult=Math.pow(1.09,t);
+      if(mult>=crashAt){ mult=crashAt; bust(); return; }
+      multEl.textContent=mult.toFixed(2)+'×';
+      goBtn.textContent='Забрать '+ (stake*mult).toFixed(0) + ' ★';
+      draw();
+      raf=requestAnimationFrame(loop);
+    }
+
+    function pushHist(v,win){
+      hist.unshift({v:v,win:win}); if(hist.length>6) hist.pop();
+      histEl.innerHTML=hist.map(function(h){
+        return '<i class="'+(h.win?'hi':'')+'">'+h.v.toFixed(2)+'×</i>';
+      }).join('');
+    }
+
+    function bust(){
+      cancelAnimationFrame(raf); state='crashed';
+      multEl.textContent=crashAt.toFixed(2)+'×'; multEl.classList.add('boom');
+      noteEl.textContent='Улетел — ставка сгорела'; noteEl.classList.remove('win');
+      goBtn.textContent='Ставка'; goBtn.disabled=false;
+      pushHist(crashAt,false); haptic('error'); draw();
+    }
+
+    function cashout(){
+      cancelAnimationFrame(raf); state='crashed';
+      var win=stake*mult; bal+=win;
+      noteEl.textContent='Забрано '+fmt(win)+' ★'; noteEl.classList.add('win');
+      multEl.classList.remove('boom');
+      goBtn.textContent='Ставка'; goBtn.disabled=false;
+      pushHist(mult,true); haptic('success'); draw();
+    }
+
+    function start(){
+      var s=num(stakeEl.value);
+      if(!s){ noteEl.textContent='Введите ставку'; return; }
+      if(s>bal){ noteEl.textContent='Недостаточно звёзд'; haptic('warning'); return; }
+      stake=s; bal-=s;
+      var r=Math.random();
+      crashAt=Math.min(30,Math.max(1.01,Math.floor((0.97/(1-r))*100)/100));
+      state='flying'; t0=performance.now(); mult=1; lastT=0;
+      multEl.classList.remove('boom'); noteEl.classList.remove('win');
+      noteEl.textContent='Забери до обрыва';
+      haptic('medium'); loop();
+    }
+
+    goBtn.addEventListener('click',function(){
+      if(state==='flying') cashout(); else start();
+    });
+    document.querySelectorAll('#gCrash [data-mul]').forEach(function(b){
+      b.addEventListener('click',function(){
+        haptic('light');
+        var v=Math.max(1,Math.round(num(stakeEl.value)*parseFloat(b.dataset.mul)));
+        stakeEl.value=v;
+      });
+    });
+
+    return { enter:function(){
+      size(); state='idle'; mult=1; lastT=0;
+      multEl.textContent='1.00×'; multEl.classList.remove('boom');
+      noteEl.textContent='Сделайте ставку'; noteEl.classList.remove('win');
+      goBtn.textContent='Ставка'; goBtn.disabled=false;
+      requestAnimationFrame(function(){ size(); draw(); });
+    }};
+  })();
+
+  /* ─────────── ПВП ───────────
+     Победитель выбирается взвешенно по размеру ставки: доля в банке
+     и есть шанс. Подсветка пробегает по списку и тормозит на нём. */
+  var Pvp=(function(){
+    var potEl=document.getElementById('pPot'), shareEl=document.getElementById('pShare'),
+        listEl=document.getElementById('pList'), stakeEl=document.getElementById('pStake'),
+        goBtn=document.getElementById('pGo');
+    var NAMES=['Nexus','Samira','Паук','Vadim','Фирюза','Ragnar','Артур'];
+    var COLORS=['#E4C078','#8FA6C4','#C08A9E','#8FC4A8'];
+    var players=[], rolling=false;
+
+    function build(){
+      var picked=NAMES.slice().sort(function(){ return Math.random()-0.5; }).slice(0,3);
+      players=[{n:'Вы',me:true,s:num(stakeEl.value)}].concat(picked.map(function(n,i){
+        return {n:n,me:false,s:50+Math.round(Math.random()*450)};
+      }));
+      render();
+    }
+    function pot(){ return players.reduce(function(a,p){ return a+p.s; },0); }
+
+    function render(){
+      var P=pot()||1;
+      potEl.textContent=fmtInt(pot());
+      shareEl.innerHTML=players.map(function(p,i){
+        return '<i style="width:'+(p.s/P*100).toFixed(1)+'%;background:'+(p.me?'var(--gold)':COLORS[(i%3)+1])+'"></i>';
+      }).join('');
+      listEl.innerHTML=players.map(function(p,i){
+        return '<div class="prow'+(p.me?' me':'')+'" data-i="'+i+'">'+
+          '<span class="av" style="background:'+(p.me?'linear-gradient(180deg,#F7E7C4,#B08D4A)':COLORS[(i%3)+1])+'">'+p.n[0]+'</span>'+
+          '<span class="nm">'+p.n+'</span>'+
+          '<span class="st num">'+fmtInt(p.s)+' ★</span>'+
+          '<span class="ch num">'+(p.s/P*100).toFixed(0)+'%</span></div>';
+      }).join('');
+    }
+
+    function roll(){
+      if(rolling) return;
+      var s=num(stakeEl.value);
+      if(!s){ haptic('warning'); return; }
+      if(s>bal){ haptic('warning'); goBtn.textContent='Недостаточно звёзд';
+        setTimeout(function(){ goBtn.textContent='Играть'; },1400); return; }
+
+      players[0].s=s; render();
+      bal-=s; rolling=true; goBtn.disabled=true; goBtn.textContent='Розыгрыш…';
+      haptic('medium');
+
+      var P=pot(), r=Math.random()*P, acc=0, winner=0;
+      for(var i=0;i<players.length;i++){ acc+=players[i].s; if(r<=acc){ winner=i; break; } }
+
+      /* Подсветка идёт по времени, а не по накоплению задержек: за T мс
+         проходим ровно steps позиций с замедлением, и steps подобран так,
+         что последняя приходится на победителя. Раунд всегда одной длины. */
+      var rows=listEl.children, n=rows.length,
+          steps=n*4+winner, T=2100, t0=performance.now();
+      (function step(now){
+        var e=Math.min(1,(now-t0)/T), eased=1-Math.pow(1-e,3);
+        var i=Math.min(steps,Math.floor(eased*steps))%n;
+        for(var j=0;j<n;j++) rows[j].classList.toggle('lit',j===i);
+        if(e<1) requestAnimationFrame(step); else finish(winner,rows);
+      })(performance.now());
+    }
+
+    function finish(winner,rows){
+      for(var j=0;j<rows.length;j++) rows[j].classList.remove('lit');
+      rows[winner].classList.add('won');
+      var P=pot();
+      if(players[winner].me){ bal+=P; goBtn.textContent='Победа · +'+fmtInt(P)+' ★'; haptic('success'); }
+      else { goBtn.textContent='Выиграл '+players[winner].n; haptic('error'); }
+      setTimeout(function(){
+        rolling=false; goBtn.disabled=false; goBtn.textContent='Играть'; build();
+      },1800);
+    }
+
+    goBtn.addEventListener('click',roll);
+    stakeEl.addEventListener('input',function(){ if(!rolling){ players[0].s=num(stakeEl.value); render(); } });
+    document.querySelectorAll('#gPvp [data-pmul]').forEach(function(b){
+      b.addEventListener('click',function(){
+        if(rolling) return;
+        haptic('light');
+        stakeEl.value=Math.max(1,Math.round(num(stakeEl.value)*2));
+        players[0].s=num(stakeEl.value); render();
+      });
+    });
+
+    return { reset:function(){ if(!rolling) build(); } };
+  })();
+})();
 
 /* ══════════════════════════════════════════════════════
    КАЛЬКУЛЯТОР ДОХОДНОСТИ
