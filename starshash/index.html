@@ -397,6 +397,26 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   border-color:var(--gold);color:var(--gold);
   background:linear-gradient(168deg,rgba(228,192,120,.15),rgba(228,192,120,.04));
 }
+/* выбор буста — одна строка с горизонтальной прокруткой, чтобы не растить шторку */
+.cboost{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+.cboost button{
+  flex:0 0 auto;height:40px;padding:0 13px;border-radius:13px;white-space:nowrap;
+  background:#0E0E10;border:1px solid var(--line);
+  font-size:13px;font-weight:600;color:var(--ink-2);
+  transition:border-color .22s,color .22s,background .22s,transform .16s;
+}
+.cboost button:active{transform:scale(.95);}
+.cboost button.on{
+  border-color:var(--gold);color:var(--gold);
+  background:linear-gradient(168deg,rgba(228,192,120,.15),rgba(228,192,120,.04));
+}
+/* калькулятор плотнее прочих шторок: блоков больше, а кнопка должна
+   оставаться видимой без прокрутки на телефонах обычной высоты */
+#calcSheet .wlab{margin:12px 0 8px;}
+#calcSheet .cchart{height:54px;margin-top:10px;}
+#calcSheet .cres{margin-top:13px;}
+#calcSheet .wbody{padding-bottom:8px;}
+
 .cres{
   margin-top:16px;padding:17px 16px 14px;border-radius:18px;
   background:linear-gradient(168deg,rgba(228,192,120,.10),rgba(255,255,255,.015));
@@ -757,6 +777,9 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
         <button data-d="365">1 год</button>
       </div>
 
+      <div class="wlab"><span>С бустом</span></div>
+      <div class="cboost" id="cBoost"></div>
+
       <div class="cres">
         <div class="k" id="cResK">Доход за 30 дней</div>
         <div class="big"><span class="num" id="cProfit">0</span>
@@ -772,6 +795,9 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
                     stroke-linecap="round" stroke-linejoin="round" points=""/>
         </svg>
         <div class="rows">
+          <div class="crow" id="cGainRow" hidden>
+            <span>Прибавит буст</span><b class="num" id="cGain" style="color:var(--gold)">0 ★</b>
+          </div>
           <div class="crow"><span>Итоговый баланс</span><b class="num" id="cTotal">0 ★</b></div>
           <div class="crow"><span>В среднем в день</span><b class="num" id="cPerDay">0 ★</b></div>
         </div>
@@ -988,6 +1014,12 @@ var RATE  = 0.82 / CYCLE;   // ★ в секунду
 var bal   = 12480.42;
 var YIELD_PCT = 1.00;       // % в день; растёт от купленных бустов
 
+/* Постоянные бусты — общий источник для магазина и калькулятора */
+var BOOSTS=[
+  {p:0.2, price:100},  {p:0.4, price:200},  {p:0.6, price:300},
+  {p:1,   price:1000}, {p:4,   price:3000}, {p:6,   price:5000}
+];
+
 var heroBal = document.getElementById('heroBal'),
     pillBal = document.getElementById('pillBal'),
     cdText  = document.getElementById('cdText');
@@ -1114,9 +1146,11 @@ function makeSheet(wrapId, topId, opts){
       rate=document.getElementById('cRate'), resK=document.getElementById('cResK'),
       profitEl=document.getElementById('cProfit'), totalEl=document.getElementById('cTotal'),
       dayEl=document.getElementById('cPerDay'),
-      line=document.getElementById('cLine'), area=document.getElementById('cArea');
+      line=document.getElementById('cLine'), area=document.getElementById('cArea'),
+      boostRow=document.getElementById('cBoost'),
+      gainRow=document.getElementById('cGainRow'), gainEl=document.getElementById('cGain');
 
-  var days=30;
+  var days=30, extra=0;   // extra — процент буста, который прикидываем поверх текущего
   var sheet=makeSheet('calcSheet','calcTop',{ onShow:calc });
   document.getElementById('calcX').addEventListener('click',sheet.hide);
   document.getElementById('calcDone').addEventListener('click',function(){ haptic('light'); sheet.hide(); });
@@ -1140,8 +1174,8 @@ function makeSheet(wrapId, topId, opts){
   }
 
   function calc(){
-    var a=toNum(amt.value), perDay=a*(YIELD_PCT/100);
-    rate.textContent='+'+YIELD_PCT.toFixed(2)+'%';
+    var a=toNum(amt.value), eff=YIELD_PCT+extra, perDay=a*(eff/100);
+    rate.textContent='+'+eff.toFixed(2)+'%';
     resK.textContent='Доход за '+PERIODS[days];
 
     var profit=perDay*days, total=a+profit;
@@ -1149,10 +1183,33 @@ function makeSheet(wrapId, topId, opts){
     totalEl.textContent=big(total)+' ★';
     dayEl.textContent=(a?'~'+big(perDay):'0.00')+' ★';
 
+    /* сколько именно добавит выбранный буст — иначе выбор ни о чём не говорит */
+    gainRow.hidden = !extra || !a;
+    if(!gainRow.hidden) gainEl.textContent='+'+big(a*(extra/100)*days)+' ★';
+
     var pts=curve(a,perDay||1,300,66);
     line.setAttribute('points',pts.join(' '));
     area.setAttribute('points','0,66 '+pts.join(' ')+' 300,66');
   }
+
+  /* чипы бустов из общего списка — магазин и калькулятор не разъедутся */
+  (function buildBoosts(){
+    var mk=function(label,p,on){
+      var b=document.createElement('button');
+      b.textContent=label; b.dataset.p=p; if(on) b.className='on';
+      boostRow.appendChild(b);
+    };
+    mk('Без буста',0,true);
+    BOOSTS.forEach(function(x){ mk('+'+x.p+'%',x.p,false); });
+    boostRow.addEventListener('click',function(e){
+      var btn=e.target.closest('button'); if(!btn) return;
+      haptic('light');
+      boostRow.querySelectorAll('button').forEach(function(b){ b.classList.remove('on'); });
+      btn.classList.add('on'); extra=parseFloat(btn.dataset.p)||0; calc();
+      /* строка прокручиваемая — держим выбранный чип в поле зрения */
+      btn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+    });
+  })();
 
   per.addEventListener('click',function(e){
     var btn=e.target.closest('button'); if(!btn) return;
@@ -1279,10 +1336,6 @@ function makeSheet(wrapId, topId, opts){
    МАГАЗИН БУСТОВ — шторка снизу
    ══════════════════════════════════════════════════════ */
 (function boostShop(){
-  var BOOSTS=[
-    {p:0.1, price:100},  {p:0.2, price:200},  {p:0.3, price:300},
-    {p:0.5, price:1000}, {p:2,   price:3000}, {p:5,   price:5000}
-  ];
   var STAR='<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>';
   var BOLT='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 2.5 5 13.5h5.5l-.9 8 8.4-11h-5.5z"/></svg>';
 
