@@ -300,30 +300,116 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 
 /* ── Краш ── */
 .cstage{
-  flex:1 1 auto;min-height:0;position:relative;border-radius:var(--r-card);
-  background:var(--card);border:1px solid var(--line);overflow:hidden;
+  flex:0 0 auto;height:clamp(148px,23vh,212px);position:relative;border-radius:var(--r-card);
+  background:radial-gradient(circle at 14% 96%,rgba(228,192,120,.07),var(--card) 68%);
+  border:1px solid var(--line);overflow:hidden;
 }
 .cstage canvas{position:absolute;inset:0;width:100%;height:100%;}
 .cmult{
-  position:absolute;left:0;right:0;top:46%;transform:translateY(-50%);text-align:center;
-  font-size:clamp(36px,12vw,54px);font-weight:200;letter-spacing:-.035em;line-height:1;
-  transition:color .25s;
+  position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;
+  font-size:clamp(34px,11.5vw,50px);font-weight:200;letter-spacing:-.035em;line-height:1;
+  transition:color .25s,text-shadow .25s;z-index:3;
 }
-.cmult.boom{color:#C97B62;}
-.cnote{
-  position:absolute;left:0;right:0;top:64%;text-align:center;
-  font-size:12.5px;color:var(--ink-3);font-weight:500;
-}
-.cnote.win{color:var(--gold);}
+/* тиры множителя: одна тёплая шкала вместо разноцветной — от белого к калению */
+.cmult.t1{color:#FFFFFF;text-shadow:0 0 24px rgba(255,255,255,.18);}
+.cmult.t2{color:var(--gold);text-shadow:0 0 26px rgba(228,192,120,.45);}
+.cmult.t3{color:var(--gold-hi);text-shadow:0 0 30px rgba(247,231,196,.55);}
+.cmult.t4{color:#FFFBF2;text-shadow:0 0 38px rgba(255,238,200,.85);}
+.cmult.boom{color:#C97B62;text-shadow:0 0 28px rgba(201,123,98,.5);}
 
-.crow{display:flex;gap:10px;flex:0 0 auto;}
-.crow .wf{flex:1;min-width:0;}
-.cbet{display:flex;gap:8px;flex:0 0 auto;}
-.cbet button{
-  padding:0 13px;border-radius:14px;background:#0E0E10;border:1px solid var(--line);
-  font-size:13px;font-weight:700;color:var(--ink-2);transition:transform .16s;
+.cphase{
+  position:absolute;top:11px;left:12px;z-index:3;display:flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:99px;background:rgba(0,0,0,.4);border:1px solid var(--line);
+  font-size:10.5px;font-weight:700;color:var(--ink-3);letter-spacing:.02em;
 }
-.cbet button:active{transform:scale(.94);}
+.cphase i{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 7px var(--gold);animation:cpPulse 1.5s ease-in-out infinite;}
+@keyframes cpPulse{0%,100%{opacity:1}50%{opacity:.35}}
+.cstage.ph-crashed .cphase{color:#C97B62;border-color:rgba(201,123,98,.4);}
+.cstage.ph-crashed .cphase i{background:#C97B62;box-shadow:0 0 7px #C97B62;animation:none;}
+
+.cflash{position:absolute;inset:0;z-index:4;pointer-events:none;background:rgba(201,123,98,.34);opacity:0;}
+.cflash.go{animation:cfGo .5s ease-out;}
+@keyframes cfGo{0%{opacity:.9}100%{opacity:0}}
+.cstage.shake{animation:cShake .45s cubic-bezier(.36,.07,.19,.97);}
+@keyframes cShake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(3px)}
+  30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
+
+/* экран ожидания следующего раунда */
+.cwait{
+  position:absolute;inset:0;z-index:5;display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;background:rgba(9,9,9,.55);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+}
+.cstage.ph-waiting .cwait{display:flex;}
+.cstage.ph-waiting .cmult,.cstage.ph-waiting canvas,.cstage.ph-waiting .cphase{opacity:0;}
+.cwl{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:700;}
+.cwr{position:relative;width:82px;height:82px;}
+.cwr svg{width:100%;height:100%;transform:rotate(-90deg);}
+.cwr .tk{fill:none;stroke:rgba(255,255,255,.07);stroke-width:7;}
+.cwr .pg{fill:none;stroke:var(--gold);stroke-width:7;stroke-linecap:round;
+  stroke-dasharray:327;transition:stroke-dashoffset .95s linear;
+  filter:drop-shadow(0 0 6px rgba(228,192,120,.5));}
+.cwn{position:absolute;inset:0;display:grid;place-items:center;font-size:28px;font-weight:200;}
+
+/* быстрые ставки */
+.cchips{display:flex;gap:8px;flex:0 0 auto;overflow-x:auto;padding-bottom:2px;}
+.cchips button{
+  flex:0 0 auto;height:40px;padding:0 15px;border-radius:13px;
+  background:#0E0E10;border:1px solid var(--line);
+  font-size:13.5px;font-weight:700;color:var(--ink-2);
+  transition:border-color .22s,color .22s,background .22s,transform .16s;
+}
+.cchips button:active{transform:scale(.95);}
+.cchips button.on{
+  border-color:var(--gold);color:var(--gold);
+  background:linear-gradient(168deg,rgba(228,192,120,.15),rgba(228,192,120,.04));
+}
+
+/* авто-вывод */
+.cauto{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+.cauto .lb{font-size:13px;color:var(--ink-2);font-weight:500;margin-right:auto;}
+.cstep{
+  display:flex;align-items:center;height:40px;padding:0 3px;border-radius:13px;
+  background:#0E0E10;border:1px solid var(--line);
+}
+.cstep button{width:30px;height:100%;color:var(--gold);font-size:18px;font-weight:600;line-height:1;}
+.cstep input{
+  width:46px;background:none;border:0;outline:none;color:var(--ink);text-align:center;
+  font-family:inherit;font-size:13.5px;font-weight:600;
+}
+.cstep .x{color:var(--ink-3);font-size:12px;padding-right:5px;}
+.cswitch{position:relative;width:46px;height:27px;flex:0 0 auto;}
+.cswitch input{position:absolute;inset:0;margin:0;opacity:0;}
+.cswitch .tr{position:absolute;inset:0;border-radius:99px;background:#24242B;transition:background .25s;}
+.cswitch .tr::after{
+  content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;
+  background:#6B6B70;transition:transform .25s,background .25s;
+}
+.cswitch input:checked + .tr{background:rgba(228,192,120,.26);}
+.cswitch input:checked + .tr::after{transform:translateX(19px);background:var(--gold);}
+
+/* список игроков раунда */
+.cplayers{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.cph{
+  display:flex;justify-content:space-between;font-size:10.5px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);padding:0 4px 2px;
+}
+.cpr{
+  display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:13px;
+  background:var(--card);border:1px solid var(--line);transition:border-color .25s,background .25s,opacity .25s;
+}
+.cpr .av{
+  width:28px;height:28px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+  font-size:11.5px;font-weight:700;color:#150F04;
+}
+.cpr .nm{flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cpr .bt{font-size:12px;color:var(--ink-3);white-space:nowrap;}
+.cpr .mx{font-size:12px;font-weight:700;color:var(--ink-2);width:52px;text-align:right;flex:0 0 auto;}
+.cpr.me{border-color:rgba(228,192,120,.32);}
+.cpr.win{border-color:rgba(228,192,120,.45);background:linear-gradient(90deg,rgba(228,192,120,.13),rgba(228,192,120,.02));}
+.cpr.win .mx{color:var(--gold);}
+.cpr.lose{opacity:.42;}
+.cpr.lose .mx{color:#C97B62;}
 
 /* ── ПВП ── */
 .pot{
@@ -723,22 +809,44 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
         <span class="t">Краш</span>
         <span class="hist" id="cHist"></span>
       </div>
-      <div class="cstage">
+      <div class="cstage" id="cStage">
         <canvas id="cCanvas"></canvas>
         <div class="cmult num" id="cMult">1.00×</div>
-        <div class="cnote" id="cNote">Сделайте ставку</div>
-      </div>
-      <div class="crow">
-        <div class="wf">
-          <input id="cStake" type="text" inputmode="decimal" autocomplete="off" value="100">
-          <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+        <div class="cphase" id="cPhase"><i></i><span id="cPhaseTxt">Раунд идёт</span></div>
+        <div class="cflash" id="cFlash"></div>
+        <div class="cwait" id="cWait">
+          <div class="cwl">Следующий раунд</div>
+          <div class="cwr">
+            <svg viewBox="0 0 120 120">
+              <circle class="tk" cx="60" cy="60" r="52"/>
+              <circle class="pg" id="cWaitRing" cx="60" cy="60" r="52"/>
+            </svg>
+            <div class="cwn num" id="cWaitNum">5</div>
+          </div>
         </div>
-        <div class="cbet">
-          <button data-mul="0.5">½</button>
-          <button data-mul="2">×2</button>
-        </div>
       </div>
-      <button class="btn-buy" id="cGo">Ставка</button>
+
+      <div class="cchips" id="cChips">
+        <button data-cbet="50">50</button>
+        <button data-cbet="100" class="on">100</button>
+        <button data-cbet="250">250</button>
+        <button data-cbet="500">500</button>
+        <button data-cbet="1000">1000</button>
+      </div>
+
+      <div class="cauto">
+        <span class="lb">Авто-вывод</span>
+        <div class="cstep">
+          <button type="button" id="cAutoDn">−</button>
+          <input id="cAutoMult" class="num" inputmode="decimal" value="2.00">
+          <span class="x">×</span>
+          <button type="button" id="cAutoUp">+</button>
+        </div>
+        <label class="cswitch"><input type="checkbox" id="cAutoChk"><span class="tr"></span></label>
+      </div>
+
+      <button class="btn-buy" id="cGo">Поставить 100 ★</button>
+      <div class="cplayers" id="cPlayers"></div>
     </div>
 
     <!-- ПВП -->
@@ -1337,7 +1445,11 @@ function makeSheet(wrapId, topId, opts){
     for(var n in views) views[n].classList.toggle('on',n===k);
   }
   document.querySelectorAll('#p-games [data-back]').forEach(function(b){
-    b.addEventListener('click',function(){ haptic('light'); view('list'); });
+    b.addEventListener('click',function(){ haptic('light'); Crash.leave(); view('list'); });
+  });
+  /* уход на другую вкладку тоже должен гасить цикл раундов */
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click',function(){ if(t.dataset.p!=='games') Crash.leave(); });
   });
   document.getElementById('goCrash').addEventListener('click',function(){ haptic('medium'); view('crash'); Crash.enter(); });
   document.getElementById('goPvp').addEventListener('click',function(){ haptic('medium'); view('pvp'); Pvp.reset(); });
@@ -1348,120 +1460,235 @@ function makeSheet(wrapId, topId, opts){
      ниже ставки. Множитель растёт как 1.09^t, где t — секунды. */
   var Crash=(function(){
     var cv=document.getElementById('cCanvas'), ctx=cv.getContext('2d'),
-        multEl=document.getElementById('cMult'), noteEl=document.getElementById('cNote'),
-        stakeEl=document.getElementById('cStake'), goBtn=document.getElementById('cGo'),
-        histEl=document.getElementById('cHist');
+        stage=document.getElementById('cStage'), multEl=document.getElementById('cMult'),
+        phaseTxt=document.getElementById('cPhaseTxt'), flash=document.getElementById('cFlash'),
+        waitRing=document.getElementById('cWaitRing'), waitNum=document.getElementById('cWaitNum'),
+        chips=document.getElementById('cChips'), goBtn=document.getElementById('cGo'),
+        histEl=document.getElementById('cHist'), listEl=document.getElementById('cPlayers'),
+        autoInp=document.getElementById('cAutoMult'), autoChk=document.getElementById('cAutoChk');
 
-    var S=0,W=0,H=0, state='idle', t0=0, mult=1, crashAt=2, stake=0, raf=null, hist=[];
+    var NAMES=['Никита','ARMIN','Amir','Данёк','Влад','Максим','Артём','Оля','Санёк','Женя',
+               'Дима','Илья','Тимур','Samira','Nexus','Паук','Vadim','Ragnar'];
+    var COLORS=['#8FA6C4','#C08A9E','#8FC4A8','#C4B08F','#A79AC4'];
+    var BETS=[50,100,250,500,1000];
 
+    var phase='waiting', raf=null, cdTimer=null, mult=1, target=0, t0=0, cd=5,
+        bots=[], hist=[], stake=100, joined=false, cashed=false, live=false, autoOn=false, autoAt=2;
+
+    var W=0,H=0;
     function size(){
       var r=cv.getBoundingClientRect(); if(!r.width) return;
       W=cv.width=Math.round(r.width*DPR); H=cv.height=Math.round(r.height*DPR);
     }
     addEventListener('resize',size);
 
-    function draw(){
+    function rint(a,b){ return a+Math.floor(Math.random()*(b-a+1)); }
+    function mkBot(id){
+      return { id:id, n:NAMES[rint(0,NAMES.length-1)], c:COLORS[rint(0,COLORS.length-1)],
+               bet:BETS[rint(0,BETS.length-1)],
+               at:+(1.2+Math.random()*Math.random()*9).toFixed(2), st:'live', took:0 };
+    }
+    function tier(m){ return m<2?'t1':m<5?'t2':m<10?'t3':'t4'; }
+
+    function setPhase(p,label){
+      phase=p;
+      stage.classList.remove('ph-waiting','ph-flying','ph-crashed');
+      stage.classList.add('ph-'+p);
+      if(label) phaseTxt.textContent=label;
+    }
+
+    /* Кривая полёта: прогресс по времени, дуга вправо-вверх, у головы — звезда. */
+    function draw(dt){
       if(!W){ size(); if(!W) return; }
       ctx.clearRect(0,0,W,H);
-      var pad=14*DPR, tNow=state==='flying'?(performance.now()-t0)/1000:lastT;
-      var tMax=Math.max(5,tNow*1.12), mMax=Math.max(1.8,mult*1.12);
-      var X=function(t){ return pad+t/tMax*(W-pad*2); };
-      var Y=function(m){ return H-pad-(m-1)/(mMax-1)*(H-pad*2); };
+      var padL=16*DPR, padB=16*DPR, padT=26*DPR, padR=34*DPR;
+      var p=Math.min(dt/6,1);
 
-      // сетка
-      ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=1*DPR;
-      for(var i=1;i<4;i++){ var y=pad+(H-pad*2)*i/4;
-        ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke(); }
+      ctx.strokeStyle='rgba(255,255,255,.035)'; ctx.lineWidth=1*DPR;
+      for(var i=1;i<4;i++){ var y=padT+(H-padT-padB)*i/4;
+        ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR*0.4,y); ctx.stroke(); }
 
-      var N=48, pts=[];
-      for(var k=0;k<=N;k++){ var tt=tNow*k/N; pts.push([X(tt),Y(Math.pow(1.09,tt))]); }
+      var N=44, pts=[];
+      for(var k=0;k<=N;k++){
+        var f=(k/N)*p;
+        pts.push([padL+f*(W-padL-padR), (H-padB)-Math.pow(f,1.35)*(H-padB-padT)]);
+      }
+      var crashed=phase==='crashed';
+      var col=crashed?'#C97B62':'#E4C078';
 
-      var crashed=state==='crashed';
-      var line=crashed?'#C97B62':'#E4C078';
-      ctx.beginPath(); ctx.moveTo(pts[0][0],H-pad);
-      pts.forEach(function(p){ ctx.lineTo(p[0],p[1]); });
-      ctx.lineTo(pts[pts.length-1][0],H-pad); ctx.closePath();
-      var g=ctx.createLinearGradient(0,pad,0,H-pad);
-      g.addColorStop(0,crashed?'rgba(201,123,98,.24)':'rgba(228,192,120,.26)');
+      ctx.beginPath(); ctx.moveTo(pts[0][0],H-padB);
+      pts.forEach(function(q){ ctx.lineTo(q[0],q[1]); });
+      ctx.lineTo(pts[pts.length-1][0],H-padB); ctx.closePath();
+      var g=ctx.createLinearGradient(0,padT,0,H-padB);
+      g.addColorStop(0,crashed?'rgba(201,123,98,.26)':'rgba(228,192,120,.26)');
       g.addColorStop(1,'rgba(228,192,120,0)');
       ctx.fillStyle=g; ctx.fill();
 
-      ctx.beginPath(); pts.forEach(function(p,i){ i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]); });
-      ctx.strokeStyle=line; ctx.lineWidth=2.4*DPR; ctx.lineJoin='round'; ctx.lineCap='round';
-      ctx.shadowColor=crashed?'rgba(201,123,98,.5)':'rgba(228,192,120,.5)'; ctx.shadowBlur=10*DPR;
+      ctx.beginPath(); pts.forEach(function(q,i){ i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]); });
+      ctx.strokeStyle=col; ctx.lineWidth=2.6*DPR; ctx.lineJoin='round'; ctx.lineCap='round';
+      ctx.shadowColor=crashed?'rgba(201,123,98,.55)':'rgba(228,192,120,.55)'; ctx.shadowBlur=11*DPR;
       ctx.stroke(); ctx.shadowBlur=0;
 
       var head=pts[pts.length-1];
-      ctx.beginPath(); ctx.arc(head[0],head[1],4.2*DPR,0,6.2832);
-      ctx.fillStyle=crashed?'#C97B62':'#FFF6E4'; ctx.fill();
+      ctx.save(); ctx.translate(head[0],head[1]);
+      ctx.rotate(-0.32-Math.sin(dt*3)*0.05);
+      var R=7.2*DPR;
+      ctx.beginPath();
+      for(var a=0;a<10;a++){
+        var ang=Math.PI/5*a-Math.PI/2, rr=a%2?R*0.44:R;
+        ctx[a?'lineTo':'moveTo'](Math.cos(ang)*rr,Math.sin(ang)*rr);
+      }
+      ctx.closePath();
+      ctx.fillStyle=crashed?'#C97B62':'#FFF6E4';
+      ctx.shadowColor=crashed?'rgba(201,123,98,.8)':'rgba(247,231,196,.9)'; ctx.shadowBlur=14*DPR;
+      ctx.fill(); ctx.restore(); ctx.shadowBlur=0;
     }
 
-    var lastT=0;
-    function loop(){
-      var t=(performance.now()-t0)/1000; lastT=t;
-      mult=Math.pow(1.09,t);
-      if(mult>=crashAt){ mult=crashAt; bust(); return; }
-      multEl.textContent=mult.toFixed(2)+'×';
-      goBtn.textContent='Забрать '+ (stake*mult).toFixed(0) + ' ★';
-      draw();
-      raf=requestAnimationFrame(loop);
+    function renderPlayers(){
+      var html='<div class="cph"><span>Игроки · '+bots.length+'</span><span>Ставка · выплата</span></div>';
+      bots.forEach(function(p){
+        var cls='', mx;
+        if(p.st==='win'){ cls='win'; mx='+'+fmtInt(p.took); }
+        else if(p.st==='lose'){ cls='lose'; mx='—'; }
+        else { cls=''; mx='×'+(phase==='flying'?mult:1).toFixed(2); }
+        html+='<div class="cpr '+cls+(p.me?' me':'')+'">'+
+          '<span class="av" style="background:'+(p.me?'linear-gradient(180deg,#F7E7C4,#B08D4A)':p.c)+'">'+p.n[0]+'</span>'+
+          '<span class="nm">'+p.n+'</span>'+
+          '<span class="bt num">'+fmtInt(p.bet)+' ★</span>'+
+          '<span class="mx num">'+mx+'</span></div>';
+      });
+      listEl.innerHTML=html;
     }
 
-    function pushHist(v,win){
-      hist.unshift({v:v,win:win}); if(hist.length>6) hist.pop();
-      histEl.innerHTML=hist.map(function(h){
-        return '<i class="'+(h.win?'hi':'')+'">'+h.v.toFixed(2)+'×</i>';
+    function renderHist(){
+      histEl.innerHTML=hist.slice(0,5).map(function(v){
+        return '<i class="'+(v>=2?'hi':'')+'">'+v.toFixed(2)+'×</i>';
       }).join('');
     }
 
+    function updBtn(){
+      goBtn.classList.remove('cash');
+      if(phase==='waiting'){
+        goBtn.textContent=joined?('Ставка принята · '+fmtInt(stake)+' ★'):('Поставить '+fmtInt(stake)+' ★');
+        goBtn.disabled=joined;
+      } else if(phase==='flying'){
+        if(joined&&!cashed){ goBtn.textContent='Забрать '+fmtInt(stake*mult)+' ★'; goBtn.disabled=false; }
+        else { goBtn.textContent='Раунд идёт'; goBtn.disabled=true; }
+      } else { goBtn.textContent='Раунд окончен'; goBtn.disabled=true; }
+    }
+
+    function beginWaiting(){
+      if(!live) return;
+      mult=1; joined=false; cashed=false; cd=5; bots=[];
+      var n=rint(3,7);
+      for(var i=0;i<n;i++) bots.push(mkBot(i));
+      renderPlayers();
+      multEl.textContent='1.00×'; multEl.className='cmult num t1';
+      setPhase('waiting','Ожидание');
+      waitNum.textContent='5'; waitRing.style.strokeDashoffset='0';
+      updBtn();
+      ctx.clearRect(0,0,W,H);
+      if(cdTimer) clearInterval(cdTimer);
+      cdTimer=setInterval(function(){
+        cd--;
+        waitNum.textContent=Math.max(cd,0);
+        waitRing.style.strokeDashoffset=String(327*(1-Math.max(cd,0)/5));
+        if(cd<=0){ clearInterval(cdTimer); beginFlying(); }
+      },1000);
+    }
+
+    function beginFlying(){
+      if(!live) return;
+      setPhase('flying','Раунд идёт');
+      t0=performance.now();
+      target=+(1.2+Math.random()*Math.random()*12).toFixed(2);
+      renderPlayers(); updBtn();
+      raf=requestAnimationFrame(tick);
+    }
+
+    function tick(now){
+      if(phase!=='flying') return;
+      var dt=(now-t0)/1000;
+      mult=1+dt*dt*0.6;
+
+      if(mult>=target){ bust(); return; }
+
+      multEl.textContent=mult.toFixed(2)+'×';
+      multEl.className='cmult num '+tier(mult);
+      draw(dt);
+
+      var changed=false;
+      bots.forEach(function(p){
+        if(p.st==='live' && !p.me && mult>=p.at){ p.st='win'; p.took=Math.floor(p.bet*p.at); changed=true; }
+      });
+      if(changed) renderPlayers(); else if(Math.floor(mult*20)%4===0) renderPlayers();
+
+      if(joined&&!cashed){
+        updBtn();
+        if(autoOn && mult>=autoAt) cashout();
+      }
+      raf=requestAnimationFrame(tick);
+    }
+
     function bust(){
-      cancelAnimationFrame(raf); state='crashed';
-      multEl.textContent=crashAt.toFixed(2)+'×'; multEl.classList.add('boom');
-      noteEl.textContent='Улетел — ставка сгорела'; noteEl.classList.remove('win');
-      goBtn.textContent='Ставка'; goBtn.disabled=false;
-      pushHist(crashAt,false); haptic('error'); draw();
+      cancelAnimationFrame(raf);
+      mult=target;
+      setPhase('crashed','Улетел');
+      multEl.textContent=target.toFixed(2)+'×'; multEl.className='cmult num boom';
+      stage.classList.remove('shake'); void stage.offsetWidth; stage.classList.add('shake');
+      flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
+      draw((performance.now()-t0)/1000);
+      bots.forEach(function(p){ if(p.st==='live') p.st='lose'; });
+      renderPlayers();
+      hist.unshift(target); if(hist.length>12) hist.pop(); renderHist();
+      haptic(joined&&!cashed?'error':'warning');
+      updBtn();
+      setTimeout(beginWaiting,2600);
     }
 
     function cashout(){
-      cancelAnimationFrame(raf); state='crashed';
-      var win=stake*mult; bal+=win;
-      noteEl.textContent='Забрано '+fmt(win)+' ★'; noteEl.classList.add('win');
-      multEl.classList.remove('boom');
-      goBtn.textContent='Ставка'; goBtn.disabled=false;
-      pushHist(mult,true); haptic('success'); draw();
+      if(!joined||cashed||phase!=='flying') return;
+      cashed=true;
+      var win=Math.floor(stake*mult);
+      bal+=win;
+      var me=bots.filter(function(p){ return p.me; })[0];
+      if(me){ me.st='win'; me.took=win; me.at=mult; }
+      renderPlayers(); updBtn(); haptic('success');
     }
 
-    function start(){
-      var s=num(stakeEl.value);
-      if(!s){ noteEl.textContent='Введите ставку'; return; }
-      if(s>bal){ noteEl.textContent='Недостаточно звёзд'; haptic('warning'); return; }
-      stake=s; bal-=s;
-      var r=Math.random();
-      crashAt=Math.min(30,Math.max(1.01,Math.floor((0.97/(1-r))*100)/100));
-      state='flying'; t0=performance.now(); mult=1; lastT=0;
-      multEl.classList.remove('boom'); noteEl.classList.remove('win');
-      noteEl.textContent='Забери до обрыва';
-      haptic('medium'); loop();
+    function join(){
+      if(joined||phase!=='waiting') return;
+      if(stake>bal){ haptic('warning'); goBtn.textContent='Недостаточно звёзд';
+        setTimeout(updBtn,1400); return; }
+      autoOn=autoChk.checked;
+      var am=parseFloat(String(autoInp.value).replace(',','.'));
+      autoAt=(am&&am>1)?am:2;
+      bal-=stake; joined=true;
+      bots.unshift({id:'me',n:'Вы',me:true,bet:stake,at:autoOn?autoAt:999,st:'live',took:0});
+      renderPlayers(); updBtn(); haptic('medium');
     }
 
     goBtn.addEventListener('click',function(){
-      if(state==='flying') cashout(); else start();
+      if(phase==='waiting') join(); else if(phase==='flying') cashout();
     });
-    document.querySelectorAll('#gCrash [data-mul]').forEach(function(b){
-      b.addEventListener('click',function(){
-        haptic('light');
-        var v=Math.max(1,Math.round(num(stakeEl.value)*parseFloat(b.dataset.mul)));
-        stakeEl.value=v;
-      });
+    chips.addEventListener('click',function(e){
+      var b=e.target.closest('button'); if(!b) return;
+      haptic('light');
+      chips.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on'); stake=+b.dataset.cbet; updBtn();
     });
+    function stepAuto(d){
+      var v=parseFloat(String(autoInp.value).replace(',','.'))||2;
+      v=Math.max(1.1,Math.round((v+d)*10)/10);
+      autoInp.value=v.toFixed(2); haptic('light');
+    }
+    document.getElementById('cAutoUp').addEventListener('click',function(){ stepAuto(0.1); });
+    document.getElementById('cAutoDn').addEventListener('click',function(){ stepAuto(-0.1); });
 
-    return { enter:function(){
-      size(); state='idle'; mult=1; lastT=0;
-      multEl.textContent='1.00×'; multEl.classList.remove('boom');
-      noteEl.textContent='Сделайте ставку'; noteEl.classList.remove('win');
-      goBtn.textContent='Ставка'; goBtn.disabled=false;
-      requestAnimationFrame(function(){ size(); draw(); });
-    }};
+    return {
+      enter:function(){ if(live) return; live=true; size(); renderHist(); beginWaiting(); },
+      leave:function(){ live=false; if(raf) cancelAnimationFrame(raf); if(cdTimer) clearInterval(cdTimer); }
+    };
   })();
 
   /* ─────────── ПВП ───────────
