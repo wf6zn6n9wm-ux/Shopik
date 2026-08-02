@@ -57,7 +57,9 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 #app{
   position:relative;z-index:1;
   max-width:var(--shell);margin-inline:auto;
-  height:100vh;height:100dvh;
+  /* --appvh меряется в JS: в браузере Telegram нижняя панель перекрывает
+     страницу, и 100dvh её не вычитает — навигация уезжает под панель */
+  height:100vh;height:100dvh;height:var(--appvh,100dvh);
   display:flex;flex-direction:column;
   padding:calc(var(--sat) + 10px) var(--pad) calc(var(--sab) + 10px);
   overflow:hidden;
@@ -260,8 +262,9 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 
 /* список игр — две карточки делят высоту поровну */
 .gcard{
-  flex:1 1 auto;min-height:0;display:flex;align-items:center;gap:15px;text-align:left;
-  padding:20px 18px;border-radius:var(--r-card);background:var(--card);border:1px solid var(--line);
+  flex:0 0 auto;height:clamp(116px,17vh,160px);
+  display:flex;align-items:center;gap:15px;text-align:left;
+  padding:18px;border-radius:var(--r-card);background:var(--card);border:1px solid var(--line);
   position:relative;overflow:hidden;transition:transform .16s,border-color .22s;
 }
 .gcard:active{transform:scale(.985);}
@@ -273,7 +276,9 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   width:54px;height:54px;flex:0 0 auto;border-radius:18px;display:grid;place-items:center;
   background:rgba(228,192,120,.09);border:1px solid rgba(228,192,120,.18);color:var(--gold);
 }
-.gcard .gb{flex:1;min-width:0;}
+/* колонка: иначе вложенные span остаются строчными и название
+   слипается с описанием в одну строку */
+.gcard .gb{flex:1;min-width:0;display:flex;flex-direction:column;}
 .gcard .gt{font-size:18px;font-weight:600;letter-spacing:-.02em;}
 .gcard .gd{font-size:12.5px;color:var(--ink-3);margin-top:5px;line-height:1.4;}
 .gcard .gx{color:#4A4A51;flex:0 0 auto;}
@@ -998,6 +1003,23 @@ function haptic(kind){
     else h.impactOccurred(kind||'light');
   }catch(e){}
 }
+
+/* Реальная видимая высота. visualViewport — единственный источник, который
+   учитывает наложенные панели браузера; у Mini App приоритет за
+   viewportStableHeight. Иначе нижняя навигация уходит под панель. */
+(function viewportHeight(){
+  function apply(){
+    var h = (TG && TG.viewportStableHeight) ? TG.viewportStableHeight
+          : (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height
+          : window.innerHeight;
+    document.documentElement.style.setProperty('--appvh', Math.round(h)+'px');
+  }
+  apply();
+  addEventListener('resize',apply);
+  addEventListener('orientationchange',apply);
+  if(window.visualViewport) window.visualViewport.addEventListener('resize',apply);
+  try{ if(TG && TG.onEvent) TG.onEvent('viewportChanged',apply); }catch(e){}
+})();
 
 var REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
 var DPR = Math.min(2, window.devicePixelRatio || 1);
