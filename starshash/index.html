@@ -412,34 +412,73 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 .cpr.lose .mx{color:#C97B62;}
 
 /* ── ПВП ── */
-.pot{
-  flex:0 0 auto;text-align:center;padding:16px;border-radius:var(--r-card);
+.pxlive{
+  display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;
+  background:rgba(228,192,120,.09);border:1px solid rgba(228,192,120,.22);
+  font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--gold);
+}
+.pxlive i{width:6px;height:6px;border-radius:50%;background:var(--gold);
+  box-shadow:0 0 7px var(--gold);animation:cpPulse 1.5s ease-in-out infinite;}
+
+.pxpot{
+  flex:0 0 auto;position:relative;text-align:center;padding:13px 16px 15px;
+  border-radius:var(--r-card);overflow:hidden;
   background:linear-gradient(168deg,rgba(228,192,120,.11),rgba(255,255,255,.015));
   border:1px solid rgba(228,192,120,.2);
 }
-.pot .k{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);font-weight:700;}
-.pot .v{
-  margin-top:7px;font-size:clamp(28px,9vw,38px);font-weight:200;letter-spacing:-.03em;
-  color:var(--gold-hi);display:flex;align-items:center;justify-content:center;gap:9px;line-height:1;
+.pxpot .k{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);font-weight:700;}
+.pxpot .v{
+  margin-top:6px;display:flex;align-items:center;justify-content:center;gap:9px;line-height:1;
+  font-size:clamp(26px,8.5vw,36px);font-weight:200;letter-spacing:-.03em;color:var(--gold-hi);
 }
+.pxpot .s{margin-top:7px;font-size:12px;color:var(--ink-3);font-weight:500;}
+.pxpot .tl{position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,.05);}
+.pxpot .tl i{
+  display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold-deep),var(--gold));
+  box-shadow:0 0 8px rgba(228,192,120,.5);
+}
+
+/* лента билетов: доля игрока = доля его карточек */
+.pxreel{
+  flex:0 0 auto;position:relative;height:74px;border-radius:18px;overflow:hidden;
+  background:var(--card);border:1px solid var(--line);
+}
+.pxtrack{position:absolute;top:0;left:0;height:100%;display:flex;align-items:center;gap:8px;will-change:transform;}
+.pxc{
+  width:58px;height:58px;flex:0 0 auto;border-radius:16px;display:grid;place-items:center;
+  font-size:19px;font-weight:800;color:#150F04;border:1px solid rgba(0,0,0,.35);
+}
+.pxc.me{box-shadow:0 0 0 2px var(--gold), 0 0 16px rgba(228,192,120,.4);}
+.pxreel::before,.pxreel::after{
+  content:"";position:absolute;top:0;bottom:0;width:46px;z-index:2;pointer-events:none;
+}
+.pxreel::before{left:0;background:linear-gradient(90deg,var(--card),transparent);}
+.pxreel::after{right:0;background:linear-gradient(270deg,var(--card),transparent);}
+.pxmark{
+  position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%);z-index:3;
+  background:linear-gradient(180deg,transparent,var(--gold),transparent);
+  box-shadow:0 0 12px var(--gold-glow);
+}
+.pxreel.hit{animation:cShake .45s cubic-bezier(.36,.07,.19,.97);}
+
 .share{display:flex;height:8px;border-radius:99px;overflow:hidden;gap:2px;flex:0 0 auto;}
 .share i{display:block;transition:width .45s cubic-bezier(.2,0,0,1);}
 
-.plist{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.plist{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
 .prow{
-  display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:16px;
-  background:var(--card);border:1px solid var(--line);transition:border-color .2s,background .2s;
+  display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:14px;
+  background:var(--card);border:1px solid var(--line);transition:border-color .2s,background .2s,opacity .2s;
 }
 .prow.me{border-color:rgba(228,192,120,.3);}
-.prow.lit{border-color:var(--gold);background:rgba(228,192,120,.09);}
-.prow.won{border-color:var(--gold);background:linear-gradient(168deg,rgba(228,192,120,.2),rgba(228,192,120,.05));}
+.prow.won{border-color:var(--gold);background:linear-gradient(90deg,rgba(228,192,120,.18),rgba(228,192,120,.03));}
+.prow.out{opacity:.4;}
 .prow .av{
-  width:34px;height:34px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
-  font-size:13px;font-weight:700;color:#150F04;
+  width:30px;height:30px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+  font-size:12px;font-weight:700;color:#150F04;
 }
-.prow .nm{flex:1;min-width:0;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.prow .st{font-size:13px;font-weight:600;color:var(--ink-2);white-space:nowrap;}
-.prow .ch{font-size:11.5px;color:var(--ink-3);width:42px;text-align:right;flex:0 0 auto;}
+.prow .nm{flex:1;min-width:0;font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prow .st{font-size:12.5px;font-weight:600;color:var(--ink-2);white-space:nowrap;}
+.prow .ch{font-size:11.5px;color:var(--ink-3);width:40px;text-align:right;flex:0 0 auto;}
 
 /* ─────────── шторка «Магазин бустов» ─────────── */
 .sheet-wrap{position:fixed;inset:0;z-index:60;display:none;}
@@ -854,23 +893,34 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
       <div class="ghead">
         <button class="bk" data-back aria-label="Назад"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
         <span class="t">ПВП</span>
+        <span class="pxlive"><i></i>LIVE</span>
       </div>
-      <div class="pot">
-        <div class="k">Банк раунда</div>
+
+      <div class="pxpot">
+        <div class="k">Общий банк</div>
         <div class="v"><span class="num" id="pPot">0</span>
           <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#F7E7C4"/></svg>
         </div>
+        <div class="s" id="pSub">Ждём игроков</div>
+        <div class="tl"><i id="pTimer"></i></div>
       </div>
+
+      <div class="pxreel" id="pxReel">
+        <div class="pxtrack" id="pxTrack"></div>
+        <div class="pxmark"></div>
+      </div>
+
       <div class="share" id="pShare"></div>
       <div class="plist" id="pList"></div>
-      <div class="crow">
-        <div class="wf">
-          <input id="pStake" type="text" inputmode="decimal" autocomplete="off" value="100">
-          <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
-        </div>
-        <div class="cbet"><button data-pmul="2">×2</button></div>
+
+      <div class="cchips" id="pChips">
+        <button data-pbet="50">50</button>
+        <button data-pbet="100" class="on">100</button>
+        <button data-pbet="250">250</button>
+        <button data-pbet="500">500</button>
+        <button data-pbet="1000">1000</button>
       </div>
-      <button class="btn-buy" id="pGo">Играть</button>
+      <button class="btn-buy" id="pGo">Войти в битву · 100 ★</button>
     </div>
 
   </div>
@@ -1445,14 +1495,14 @@ function makeSheet(wrapId, topId, opts){
     for(var n in views) views[n].classList.toggle('on',n===k);
   }
   document.querySelectorAll('#p-games [data-back]').forEach(function(b){
-    b.addEventListener('click',function(){ haptic('light'); Crash.leave(); view('list'); });
+    b.addEventListener('click',function(){ haptic('light'); Crash.leave(); Pvp.leave(); view('list'); });
   });
   /* уход на другую вкладку тоже должен гасить цикл раундов */
   document.querySelectorAll('.tab').forEach(function(t){
-    t.addEventListener('click',function(){ if(t.dataset.p!=='games') Crash.leave(); });
+    t.addEventListener('click',function(){ if(t.dataset.p!=='games'){ Crash.leave(); Pvp.leave(); } });
   });
   document.getElementById('goCrash').addEventListener('click',function(){ haptic('medium'); view('crash'); Crash.enter(); });
-  document.getElementById('goPvp').addEventListener('click',function(){ haptic('medium'); view('pvp'); Pvp.reset(); });
+  document.getElementById('goPvp').addEventListener('click',function(){ haptic('medium'); view('pvp'); Pvp.enter(); });
 
   /* ─────────── КРАШ ───────────
      Точка обрыва берётся до старта по формуле 0.97/(1−r): у неё
@@ -1695,87 +1745,172 @@ function makeSheet(wrapId, topId, opts){
      Победитель выбирается взвешенно по размеру ставки: доля в банке
      и есть шанс. Подсветка пробегает по списку и тормозит на нём. */
   var Pvp=(function(){
-    var potEl=document.getElementById('pPot'), shareEl=document.getElementById('pShare'),
-        listEl=document.getElementById('pList'), stakeEl=document.getElementById('pStake'),
-        goBtn=document.getElementById('pGo');
-    var NAMES=['Nexus','Samira','Паук','Vadim','Фирюза','Ragnar','Артур'];
-    var COLORS=['#E4C078','#8FA6C4','#C08A9E','#8FC4A8'];
-    var players=[], rolling=false;
+    var potEl=document.getElementById('pPot'), subEl=document.getElementById('pSub'),
+        timerEl=document.getElementById('pTimer'), shareEl=document.getElementById('pShare'),
+        listEl=document.getElementById('pList'), chips=document.getElementById('pChips'),
+        goBtn=document.getElementById('pGo'), reel=document.getElementById('pxReel'),
+        track=document.getElementById('pxTrack');
 
-    function build(){
-      var picked=NAMES.slice().sort(function(){ return Math.random()-0.5; }).slice(0,3);
-      players=[{n:'Вы',me:true,s:num(stakeEl.value)}].concat(picked.map(function(n,i){
-        return {n:n,me:false,s:50+Math.round(Math.random()*450)};
-      }));
-      render();
-    }
+    var NAMES=['Nexus','Samira','Паук','Vadim','Фирюза','Ragnar','Артур','Максим','Илья','Оля'];
+    var COLORS=['#8FA6C4','#C08A9E','#8FC4A8','#C4B08F','#A79AC4','#C49A8F'];
+    var BETS=[50,100,250,500,1000];
+    var PITCH=66;               // ширина карточки 58 + зазор 8
+    var COLLECT=9;              // секунд на сбор состава
+
+    var players=[], tickets=[], phase='collect', stake=100, joined=false,
+        live=false, x=0, raf=null, tmr=null, left=COLLECT, botTimer=null;
+
+    function rint(a,b){ return a+Math.floor(Math.random()*(b-a+1)); }
     function pot(){ return players.reduce(function(a,p){ return a+p.s; },0); }
+
+    /* Билеты распределяются по долям: чей вклад больше — того карточек в ленте
+       больше. Победитель всё равно выбирается взвешенно отдельно, лента
+       только показывает шансы. */
+    function buildTickets(){
+      var P=pot(), n=260;
+      tickets=[];
+      for(var i=0;i<n;i++){
+        if(!players.length){ tickets.push(-1); continue; }
+        var r=Math.random()*P, acc=0, k=0;
+        for(var j=0;j<players.length;j++){ acc+=players[j].s; if(r<=acc){ k=j; break; } }
+        tickets.push(k);
+      }
+      renderTrack();
+    }
+    function renderTrack(){
+      track.innerHTML=tickets.map(function(k){
+        if(k<0) return '<span class="pxc" style="background:#17171B"></span>';
+        var p=players[k];
+        return '<span class="pxc'+(p.me?' me':'')+'" style="background:'+
+          (p.me?'linear-gradient(180deg,#F7E7C4,#B08D4A)':p.c)+'">'+p.n[0]+'</span>';
+      }).join('');
+    }
 
     function render(){
       var P=pot()||1;
       potEl.textContent=fmtInt(pot());
-      shareEl.innerHTML=players.map(function(p,i){
-        return '<i style="width:'+(p.s/P*100).toFixed(1)+'%;background:'+(p.me?'var(--gold)':COLORS[(i%3)+1])+'"></i>';
+      shareEl.innerHTML=players.map(function(p){
+        return '<i style="width:'+(p.s/P*100).toFixed(1)+'%;background:'+(p.me?'var(--gold)':p.c)+'"></i>';
       }).join('');
       listEl.innerHTML=players.map(function(p,i){
         return '<div class="prow'+(p.me?' me':'')+'" data-i="'+i+'">'+
-          '<span class="av" style="background:'+(p.me?'linear-gradient(180deg,#F7E7C4,#B08D4A)':COLORS[(i%3)+1])+'">'+p.n[0]+'</span>'+
+          '<span class="av" style="background:'+(p.me?'linear-gradient(180deg,#F7E7C4,#B08D4A)':p.c)+'">'+p.n[0]+'</span>'+
           '<span class="nm">'+p.n+'</span>'+
           '<span class="st num">'+fmtInt(p.s)+' ★</span>'+
           '<span class="ch num">'+(p.s/P*100).toFixed(0)+'%</span></div>';
       }).join('');
     }
 
-    function roll(){
-      if(rolling) return;
-      var s=num(stakeEl.value);
-      if(!s){ haptic('warning'); return; }
-      if(s>bal){ haptic('warning'); goBtn.textContent='Недостаточно звёзд';
-        setTimeout(function(){ goBtn.textContent='Играть'; },1400); return; }
+    function updBtn(){
+      if(phase!=='collect'){ goBtn.disabled=true;
+        goBtn.textContent = phase==='spin' ? 'Розыгрыш…' : goBtn.textContent; return; }
+      goBtn.disabled=joined;
+      goBtn.textContent=joined ? ('Вы в игре · '+fmtInt(stake)+' ★') : ('Войти в битву · '+fmtInt(stake)+' ★');
+    }
 
-      players[0].s=s; render();
-      bal-=s; rolling=true; goBtn.disabled=true; goBtn.textContent='Розыгрыш…';
+    /* лента медленно дрейфует, пока идёт сбор */
+    function drift(){
+      if(phase==='collect'){ x-=0.45; apply(); }
+      raf=requestAnimationFrame(drift);
+    }
+    function apply(){ track.style.transform='translateX('+x+'px)'; }
+
+    function addBot(){
+      if(phase!=='collect'||players.length>=6) return;
+      var used={}; players.forEach(function(p){ used[p.n]=1; });
+      var free=NAMES.filter(function(n){ return !used[n]; });
+      if(!free.length) return;
+      players.push({n:free[rint(0,free.length-1)], c:COLORS[players.length%COLORS.length],
+                    s:BETS[rint(0,BETS.length-1)], me:false});
+      render(); buildTickets();
+    }
+
+    function newRound(){
+      if(!live) return;
+      phase='collect'; joined=false; players=[]; left=COLLECT;
+      subEl.textContent='Ждём игроков';
+      timerEl.style.width='0%';
+      reel.classList.remove('hit');
+      var n=rint(2,3);
+      for(var i=0;i<n;i++) addBot();
+      render(); buildTickets(); updBtn();
+
+      if(botTimer) clearInterval(botTimer);
+      botTimer=setInterval(function(){ if(Math.random()<0.55) addBot(); },1900);
+
+      if(tmr) clearInterval(tmr);
+      tmr=setInterval(function(){
+        left--;
+        timerEl.style.width=((COLLECT-left)/COLLECT*100)+'%';
+        subEl.textContent = left>0 ? ('Розыгрыш через '+left+' сек') : 'Розыгрыш';
+        if(left<=0){ clearInterval(tmr); clearInterval(botTimer); spin(); }
+      },1000);
+    }
+
+    function spin(){
+      if(!live||players.length<2){ newRound(); return; }
+      phase='spin'; updBtn();
+      subEl.textContent='Крутим ленту';
       haptic('medium');
 
-      var P=pot(), r=Math.random()*P, acc=0, winner=0;
-      for(var i=0;i<players.length;i++){ acc+=players[i].s; if(r<=acc){ winner=i; break; } }
+      // победитель — взвешенно по долям
+      var P=pot(), r=Math.random()*P, acc=0, win=0;
+      for(var i=0;i<players.length;i++){ acc+=players[i].s; if(r<=acc){ win=i; break; } }
 
-      /* Подсветка идёт по времени, а не по накоплению задержек: за T мс
-         проходим ровно steps позиций с замедлением, и steps подобран так,
-         что последняя приходится на победителя. Раунд всегда одной длины. */
-      var rows=listEl.children, n=rows.length,
-          steps=n*4+winner, T=2100, t0=performance.now();
+      // подводим ленту к билету победителя: сам билет назначаем принудительно,
+      // распределение карточек остаётся честным по долям
+      var cur=Math.round(-x/PITCH);
+      var k=cur+rint(34,44);
+      tickets[k]=win; renderTrack();
+
+      var center=reel.clientWidth/2-29;
+      var from=x, to=-(k*PITCH)+center, T=4200, t0=performance.now();
+      cancelAnimationFrame(raf);
       (function step(now){
-        var e=Math.min(1,(now-t0)/T), eased=1-Math.pow(1-e,3);
-        var i=Math.min(steps,Math.floor(eased*steps))%n;
-        for(var j=0;j<n;j++) rows[j].classList.toggle('lit',j===i);
-        if(e<1) requestAnimationFrame(step); else finish(winner,rows);
+        var e=Math.min(1,(now-t0)/T), p=1-Math.pow(1-e,3.4);
+        x=from+(to-from)*p; apply();
+        if(e<1) requestAnimationFrame(step); else land(win);
       })(performance.now());
     }
 
-    function finish(winner,rows){
-      for(var j=0;j<rows.length;j++) rows[j].classList.remove('lit');
-      rows[winner].classList.add('won');
+    function land(win){
+      phase='done';
+      reel.classList.remove('hit'); void reel.offsetWidth; reel.classList.add('hit');
+      var rows=listEl.children;
+      for(var j=0;j<rows.length;j++) rows[j].classList.add(j===win?'won':'out');
       var P=pot();
-      if(players[winner].me){ bal+=P; goBtn.textContent='Победа · +'+fmtInt(P)+' ★'; haptic('success'); }
-      else { goBtn.textContent='Выиграл '+players[winner].n; haptic('error'); }
-      setTimeout(function(){
-        rolling=false; goBtn.disabled=false; goBtn.textContent='Играть'; build();
-      },1800);
+      if(players[win].me){ bal+=P; goBtn.textContent='Победа · +'+fmtInt(P)+' ★'; haptic('success');
+        subEl.textContent='Вы забрали банк'; }
+      else { goBtn.textContent='Выиграл '+players[win].n; haptic('error');
+        subEl.textContent='Победил '+players[win].n; }
+      goBtn.disabled=true;
+      raf=requestAnimationFrame(drift);
+      setTimeout(newRound,2800);
     }
 
-    goBtn.addEventListener('click',roll);
-    stakeEl.addEventListener('input',function(){ if(!rolling){ players[0].s=num(stakeEl.value); render(); } });
-    document.querySelectorAll('#gPvp [data-pmul]').forEach(function(b){
-      b.addEventListener('click',function(){
-        if(rolling) return;
-        haptic('light');
-        stakeEl.value=Math.max(1,Math.round(num(stakeEl.value)*2));
-        players[0].s=num(stakeEl.value); render();
-      });
+    function join(){
+      if(joined||phase!=='collect') return;
+      if(stake>bal){ haptic('warning'); goBtn.textContent='Недостаточно звёзд';
+        setTimeout(updBtn,1400); return; }
+      bal-=stake; joined=true;
+      players.unshift({n:'Вы',c:'var(--gold)',s:stake,me:true});
+      render(); buildTickets(); updBtn(); haptic('medium');
+      subEl.textContent='Вы в игре · ждём розыгрыша';
+    }
+
+    goBtn.addEventListener('click',join);
+    chips.addEventListener('click',function(e){
+      var b=e.target.closest('button'); if(!b||joined) return;
+      haptic('light');
+      chips.querySelectorAll('button').forEach(function(x2){ x2.classList.remove('on'); });
+      b.classList.add('on'); stake=+b.dataset.pbet; updBtn();
     });
 
-    return { reset:function(){ if(!rolling) build(); } };
+    return {
+      enter:function(){ if(live) return; live=true; x=0; apply(); newRound(); raf=requestAnimationFrame(drift); },
+      leave:function(){ live=false; if(raf) cancelAnimationFrame(raf);
+        if(tmr) clearInterval(tmr); if(botTimer) clearInterval(botTimer); }
+    };
   })();
 })();
 
