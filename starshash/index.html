@@ -57,9 +57,9 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 #app{
   position:relative;z-index:1;
   max-width:var(--shell);margin-inline:auto;
-  /* --appvh меряется в JS: в браузере Telegram нижняя панель перекрывает
-     страницу, и 100dvh её не вычитает — навигация уезжает под панель */
-  height:100vh;height:100dvh;height:var(--appvh,100dvh);
+  /* svh, а не dvh: эта единица считает вьюпорт при развёрнутых панелях
+     браузера. Поверх неё --appvh, померенный в JS. */
+  height:100vh;height:100svh;height:var(--appvh,100svh);
   display:flex;flex-direction:column;
   padding:calc(var(--sat) + 10px) var(--pad) calc(var(--sab) + 10px);
   overflow:hidden;
@@ -1166,11 +1166,19 @@ function haptic(kind){
    учитывает наложенные панели браузера; у Mini App приоритет за
    viewportStableHeight. Иначе нижняя навигация уходит под панель. */
 (function viewportHeight(){
+  /* Запущено как Mini App — тогда viewportStableHeight точен. В обычном или
+     встроенном браузере нижняя панель может перекрывать страницу, и ни один
+     веб-API её не вычитает, поэтому резервируем запас. */
+  function isMiniApp(){ return !!(TG && TG.initData && TG.initData.length); }
+  var BROWSER_BAR = 52;
+
   function apply(){
-    var h = (TG && TG.viewportStableHeight) ? TG.viewportStableHeight
-          : (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height
-          : window.innerHeight;
-    document.documentElement.style.setProperty('--appvh', Math.round(h)+'px');
+    var h = window.innerHeight;
+    if(window.visualViewport && window.visualViewport.height)
+      h = Math.min(h, window.visualViewport.height);
+    if(isMiniApp() && TG.viewportStableHeight) h = TG.viewportStableHeight;
+    else h -= BROWSER_BAR;
+    document.documentElement.style.setProperty('--appvh', Math.max(380,Math.round(h))+'px');
   }
   apply();
   addEventListener('resize',apply);
