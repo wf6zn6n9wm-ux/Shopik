@@ -734,7 +734,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
         <svg class="st" width="38" height="38" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
       </div>
       <div class="sub">
-        <b>+0.82</b>
+        <b id="heroRate">+0.82</b>
         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
         <span class="sl">/</span><span>сейчас</span>
       </div>
@@ -744,7 +744,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
       <div class="left">
         <div class="l1">Зарабатываешь звезды</div>
         <div class="l2">
-          <span>+0.82</span>
+          <span id="earnRate">+0.82</span>
           <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
           <span class="per">/ сейчас</span>
         </div>
@@ -772,14 +772,14 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
           <polyline id="sp1" fill="none" stroke="#E4C078" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div class="card stat">
+      <div class="card stat" id="powerCard">
         <div class="hd">
           <span class="ic">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 10v4M9.5 6.5v11M14.5 8.5v7M19 11v2"/></svg>
           </span>
           <span class="nm">Мощность</span>
         </div>
-        <div class="v"><span class="num">1.284</span><span class="u">PH/s</span></div>
+        <div class="v"><span class="num" id="powerVal">1.284</span><span class="u">PH/s</span></div>
         <div class="cap">hash rate</div>
         <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none" aria-hidden="true">
           <polyline id="sp2" fill="none" stroke="#E4C078" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1374,7 +1374,22 @@ var Ring = (function(){
    Значения пишутся в DOM напрямую из rAF-цикла.
    ══════════════════════════════════════════════════════ */
 var CYCLE = 3;              // сек до начисления
-var RATE  = 0.82 / CYCLE;   // ★ в секунду
+var BASE_YIELD = 1.00;      // доходность без бустов, %/день
+var BASE_PAYOUT = 0.82;     // ★ за цикл при базовой доходности
+var BASE_HASH = 1.284;      // PH/s при базовой доходности
+var RATE  = BASE_PAYOUT / CYCLE;   // ★ в секунду; пересчитывается от бустов
+
+/* Буст поднимает доходность, а вместе с ней — мощность и скорость начисления.
+   Иначе покупка меняла бы одну подпись и больше ничего. */
+function applyBoost(){
+  var mul = YIELD_PCT / BASE_YIELD;
+  RATE = BASE_PAYOUT * mul / CYCLE;
+  var pay = BASE_PAYOUT * mul;
+  var el;
+  if((el=document.getElementById('heroRate'))) el.textContent='+'+fmt(pay);
+  if((el=document.getElementById('earnRate'))) el.textContent='+'+fmt(pay);
+  if((el=document.getElementById('powerVal'))) el.textContent=(BASE_HASH*mul).toFixed(3);
+}
 var bal   = 12480.42;
 var YIELD_PCT = 1.00;       // % в день; растёт от купленных бустов
 
@@ -2166,7 +2181,10 @@ function makeSheet(wrapId, topId, opts){
     haptic('success');
     YIELD_PCT += BOOSTS[sel].p;
     yieldVal.textContent='+'+YIELD_PCT.toFixed(2)+'%';
-    yieldCard.classList.remove('pulse'); void yieldCard.offsetWidth; yieldCard.classList.add('pulse');
+    applyBoost();                       // мощность и скорость начисления тоже растут
+    [yieldCard,document.getElementById('powerCard')].forEach(function(c){
+      c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse');
+    });
     sheet.hide();
   });
 })();
