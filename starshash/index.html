@@ -1552,7 +1552,7 @@ function makeSheet(wrapId, topId, opts){
       if(!W){ size(); if(!W) return; }
       ctx.clearRect(0,0,W,H);
       var padL=16*DPR, padB=16*DPR, padT=26*DPR, padR=34*DPR;
-      var p=Math.min(dt/6,1);
+      var p=Math.min(dt/11,1);   // окно кривой под удлинившийся раунд
 
       ctx.strokeStyle='rgba(255,255,255,.035)'; ctx.lineWidth=1*DPR;
       for(var i=1;i<4;i++){ var y=padT+(H-padT-padB)*i/4;
@@ -1659,7 +1659,7 @@ function makeSheet(wrapId, topId, opts){
     function tick(now){
       if(phase!=='flying') return;
       var dt=(now-t0)/1000;
-      mult=1+dt*dt*0.6;
+      mult=1+dt*dt*0.12;   // было 0.6 — до 2x проходило 1.3 с, забрать не успеть
 
       if(mult>=target){ bust(); return; }
 
