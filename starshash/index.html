@@ -227,7 +227,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   box-shadow:0 20px 50px -20px rgba(0,0,0,.9);
 }
 .tab{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,.8vh,6px);padding:clamp(2px,.5vh,4px) 0;
+  flex:1;position:relative;   /* якорь для точки «есть что забрать» */
+  display:flex;flex-direction:column;align-items:center;gap:clamp(4px,.8vh,6px);padding:clamp(2px,.5vh,4px) 0;
   color:#5C5C61;transition:color .22s;
 }
 .tab .tl{font-size:10.5px;font-weight:500;letter-spacing:-.005em;}
@@ -965,6 +966,80 @@ button.srow:active{transform:scale(.985);}
   display:flex;align-items:center;gap:4px;
 }
 
+/* ─────────── Задания ─────────── */
+.dcard{
+  flex:0 0 auto;padding:16px 16px 16px;border-radius:var(--r-card);
+  background:linear-gradient(168deg,rgba(228,192,120,.11),rgba(255,255,255,.015));
+  border:1px solid rgba(228,192,120,.19);
+  display:flex;flex-direction:column;gap:13px;
+}
+.dhd{display:flex;align-items:baseline;gap:9px;}
+.dhd .t{font-size:15.5px;font-weight:600;letter-spacing:-.01em;}
+.dhd .st{margin-left:auto;font-size:12px;color:var(--ink-3);font-weight:600;}
+.ddays{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.dday{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:8px 0 7px;border-radius:12px;background:#0D0D0F;border:1px solid var(--line);
+  transition:border-color .22s,background .22s;
+}
+.dday .n{font-size:9.5px;font-weight:700;letter-spacing:.05em;color:var(--ink-3);text-transform:uppercase;}
+.dday .v{font-size:12.5px;font-weight:700;color:var(--ink-2);font-variant-numeric:tabular-nums;}
+.dday.now{
+  border-color:var(--gold);
+  background:linear-gradient(168deg,rgba(228,192,120,.17),rgba(228,192,120,.04));
+}
+.dday.now .n{color:var(--gold);} .dday.now .v{color:var(--gold);}
+.dday.got{border-color:rgba(228,192,120,.2);background:rgba(228,192,120,.05);}
+.dday.got .v{color:var(--gold);}
+.dday.got .n{color:var(--gold-deep);}
+
+.ptitle .cnt{
+  margin-left:auto;font-size:11px;font-weight:700;color:#150F04;
+  padding:3px 8px;border-radius:8px;background:linear-gradient(180deg,#F7E7C4,var(--gold));
+}
+.ptitle .cnt:empty{display:none;}
+.tlist{flex:0 0 auto;display:flex;flex-direction:column;gap:var(--gap);}
+.trow{
+  flex:0 0 auto;display:flex;align-items:center;gap:13px;width:100%;text-align:left;
+  padding:12px 14px;border-radius:18px;background:var(--card);border:1px solid var(--line);
+  transition:border-color .22s,opacity .22s;
+}
+.trow.ready{border-color:rgba(228,192,120,.38);background:linear-gradient(168deg,rgba(228,192,120,.08),rgba(255,255,255,.012));}
+.trow.got{opacity:.5;}
+.trow .ic{
+  width:34px;height:34px;flex:0 0 auto;border-radius:11px;display:grid;place-items:center;
+  background:rgba(228,192,120,.09);border:1px solid rgba(228,192,120,.16);color:var(--gold);
+}
+.trow .bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.trow .nm{
+  font-size:14px;font-weight:600;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;   /* строка всегда одна */
+}
+.trow .rw{font-size:12px;color:var(--gold);font-weight:600;display:flex;align-items:center;gap:4px;}
+.trow .ac{
+  flex:0 0 auto;height:32px;padding:0 13px;border-radius:11px;font-size:12.5px;font-weight:700;
+  background:#131315;border:1px solid var(--line);color:var(--ink-2);transition:transform .16s;
+}
+.trow .ac:active{transform:scale(.94);}
+.trow.ready .ac{color:#150F04;background:linear-gradient(180deg,#F7E7C4,var(--gold));border-color:transparent;}
+.trow .tick{flex:0 0 auto;color:var(--gold);display:grid;place-items:center;}
+.trow .lock{flex:0 0 auto;color:#3E3E45;display:grid;place-items:center;padding-right:4px;}
+/* на узких экранах ужимаем оправу, чтобы название не съедало многоточие */
+@media (max-width:374px){
+  .trow{gap:10px;padding:11px 12px;}
+  .trow .ic{width:30px;height:30px;border-radius:10px;}
+  .trow .nm{font-size:13.5px;}
+  .trow .ac{padding:0 10px;font-size:12px;}
+  .dday .n{font-size:9px;}
+}
+
+/* точка на вкладке, когда есть что забрать */
+.tab .tdot{
+  position:absolute;top:2px;left:calc(50% + 8px);width:7px;height:7px;border-radius:50%;
+  background:var(--gold);box-shadow:0 0 8px var(--gold-glow);display:none;
+}
+.tab.has .tdot{display:block;}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 </style>
 </head>
@@ -1262,9 +1337,27 @@ button.srow:active{transform:scale(.985);}
 
   </div>
 
-  <div class="page" id="p-tasks"><div class="soon">
-    <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="15" height="17.5" rx="3"/><path d="M9 3.5h6v2.6H9z"/><path d="M8.5 11h7M8.5 15h4.5"/></svg></span>
-    <h3 data-i18n="nav_tasks">Задания</h3><p data-i18n="soon">Раздел откроется в следующем обновлении</p></div></div>
+  <div class="page" id="p-tasks">
+    <div class="pscroll">
+
+      <div class="dcard">
+        <div class="dhd">
+          <span class="t" data-i18n="dl_title">Ежедневный вход</span>
+          <span class="st" id="dlStreak"></span>
+        </div>
+        <div class="ddays" id="dlDays"></div>
+        <button class="btn-buy" id="dlGo"></button>
+      </div>
+
+      <div class="ptitle">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5 9 17l10.5-10.5"/></svg>
+        <span data-i18n="tk_title">Задания</span>
+        <b class="cnt" id="tkCnt"></b>
+      </div>
+      <div class="tlist" id="tkList"></div>
+
+    </div>
+  </div>
 
   <div class="page" id="p-top"><div class="soon">
     <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20v-7M12 20V5M19 20v-4.5"/></svg></span>
@@ -1347,6 +1440,7 @@ button.srow:active{transform:scale(.985);}
       <rect x="4.5" y="3.5" width="15" height="17.5" rx="3"/><path d="M9.2 3.5h5.6v2.4H9.2z" fill="currentColor" stroke="none"/><path d="M8.6 11.5h6.8M8.6 15.4h4.4"/>
     </svg>
     <span class="tl" data-i18n="nav_tasks">Задания</span>
+    <i class="tdot" aria-hidden="true"></i>
   </button>
 
   <button class="tab center on" data-p="earn">
@@ -1697,7 +1791,15 @@ ru:{
  sup_write:'Написать', copy_rights:'Все права защищены',
  r_title:'Правила', r_ok:'Понятно',
  own_bet:'Своя', wb_title:'Пока вас не было', wb_sub:'намайнено за {t}',
- wb_d:'{n} д', wb_h:'{n} ч', wb_m:'{n} мин', g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
+ wb_d:'{n} д', wb_h:'{n} ч', wb_m:'{n} мин', dl_title:'Ежедневный вход', dl_streak:'серия · {n} дн', dl_streak0:'серия прервана', dl_streak_new:'серия не начата',
+ dl_take:'Забрать {n} ★', dl_done:'Уже забрано · завтра {n} ★', dl_day:'{n} дн',
+ tk_title:'Задания', tk_go:'Перейти', tk_take:'Забрать',
+ tk_sub:'Подписка на канал', tk_invite:'Пригласить друга',
+ tk_topup:'Первое пополнение', tk_boost:'Купить уровень',
+ tk_case:'Открыть кейс', tk_crash:'Сыграть в Краш',
+ tk_pvp:'Сыграть в ПВП', tk_wd:'Вывести звёзды',
+ tk_all:'Все задания выполнены', tk_got:'Начислено {n} ★',
+ g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 от цены · шансы ниже',
  k_open:'Открыть за {n} ★', k_opening:'Открываем…', k_again:'Открыть ещё · {n} ★',
  k_got:'Выпало {n} ★ · {r}', k_chance:'Шанс',
@@ -1749,7 +1851,15 @@ en:{
  sup_write:'Write to us', copy_rights:'All rights reserved',
  r_title:'Rules', r_ok:'Got it',
  own_bet:'Own', wb_title:'While you were away', wb_sub:'mined over {t}',
- wb_d:'{n} d', wb_h:'{n} h', wb_m:'{n} min', g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
+ wb_d:'{n} d', wb_h:'{n} h', wb_m:'{n} min', dl_title:'Daily check-in', dl_streak:'streak · {n} d', dl_streak0:'streak broken', dl_streak_new:'no streak yet',
+ dl_take:'Claim {n} ★', dl_done:'Claimed · tomorrow {n} ★', dl_day:'{n} d',
+ tk_title:'Tasks', tk_go:'Open', tk_take:'Claim',
+ tk_sub:'Join the channel', tk_invite:'Invite a friend',
+ tk_topup:'First top-up', tk_boost:'Buy a level',
+ tk_case:'Open a case', tk_crash:'Play Crash',
+ tk_pvp:'Play PvP', tk_wd:'Withdraw stars',
+ tk_all:'All tasks completed', tk_got:'{n} ★ credited',
+ g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
  k_range:'{a} – {b} ★', k_max:'max ×{m}', k_hero:'Top drop is ×5 the price · odds below',
  k_open:'Open for {n} ★', k_opening:'Opening…', k_again:'Open again · {n} ★',
  k_got:'You got {n} ★ · {r}', k_chance:'Chance',
@@ -1801,7 +1911,15 @@ uk:{
  sup_write:'Написати', copy_rights:'Всі права захищені',
  r_title:'Правила', r_ok:'Зрозуміло',
  own_bet:'Своя', wb_title:'Поки вас не було', wb_sub:'намайнено за {t}',
- wb_d:'{n} д', wb_h:'{n} год', wb_m:'{n} хв', g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
+ wb_d:'{n} д', wb_h:'{n} год', wb_m:'{n} хв', dl_title:'Щоденний вхід', dl_streak:'серія · {n} дн', dl_streak0:'серію перервано', dl_streak_new:'серію не розпочато',
+ dl_take:'Забрати {n} ★', dl_done:'Вже забрано · завтра {n} ★', dl_day:'{n} дн',
+ tk_title:'Завдання', tk_go:'Перейти', tk_take:'Забрати',
+ tk_sub:'Підписка на канал', tk_invite:'Запросити друга',
+ tk_topup:'Перше поповнення', tk_boost:'Купити рівень',
+ tk_case:'Відкрити кейс', tk_crash:'Зіграти в Краш',
+ tk_pvp:'Зіграти в ПВП', tk_wd:'Вивести зірки',
+ tk_all:'Усі завдання виконано', tk_got:'Нараховано {n} ★',
+ g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 від ціни · шанси нижче',
  k_open:'Відкрити за {n} ★', k_opening:'Відкриваємо…', k_again:'Відкрити ще · {n} ★',
  k_got:'Випало {n} ★ · {r}', k_chance:'Шанс',
@@ -2083,9 +2201,16 @@ var SAVED=(function(){
     if(!isFinite(b)||b<0) b=0;
     if(!isFinite(y)||y<1||y>7) y=1;
     if(!isFinite(t)||t<=0) t=0;
-    return {bal:b, y:y, seen:t};
+    var tk=(o.tk && typeof o.tk==='object') ? o.tk : {};
+    var dl=(o.dl && typeof o.dl==='object') ? o.dl : {};
+    return {bal:b, y:y, seen:t, tk:tk,
+            dl:{streak:Math.max(0,Math.min(7,+dl.streak||0)), last:String(dl.last||'')}};
   }catch(e){ return null; }
 })();
+
+/* Прогресс заданий: {id:'go'|'ready'|'got'} и серия ежедневных входов */
+var TK = SAVED ? SAVED.tk : {};
+var DL = SAVED ? SAVED.dl : {streak:0, last:''};
 
 var bal = SAVED ? SAVED.bal : 0;       // новый пользователь начинает с нуля
 var YIELD_PCT = SAVED ? SAVED.y : 1.00; // %/день; растёт от купленных бустов
@@ -2103,7 +2228,8 @@ if(SAVED && SAVED.seen && bal>0){
 }
 
 function saveState(){
-  try{ localStorage.setItem(SKEY, JSON.stringify({v:1, bal:bal, y:YIELD_PCT, seen:Date.now()})); }catch(e){}
+  try{ localStorage.setItem(SKEY, JSON.stringify({v:1, bal:bal, y:YIELD_PCT, seen:Date.now(),
+                                                   tk:TK, dl:DL})); }catch(e){}
 }
 
 /* Сколько намайнено за `sec` секунд простоя при текущем балансе и ставке */
@@ -2549,7 +2675,7 @@ function makeSheet(wrapId, topId, opts){
       autoOn=autoChk.checked;
       var am=parseFloat(String(autoInp.value).replace(',','.'));
       autoAt=(am&&am>1)?am:2;
-      bal-=stake; joined=true;
+      bal-=stake; joined=true;  Tasks.done('crash');
       bots.unshift({id:'me',n:t('you'),me:true,bet:stake,at:autoOn?autoAt:999,st:'live',took:0});
       renderPlayers(); updBtn(); haptic('medium');
     }
@@ -2785,7 +2911,7 @@ function makeSheet(wrapId, topId, opts){
       if(joined||phase!=='collect') return;
       if(stake>bal){ haptic('warning'); goBtn.textContent=t('no_stars');
         setTimeout(updBtn,1400); return; }
-      bal-=stake; joined=true;
+      bal-=stake; joined=true;  Tasks.done('pvp');
       players.unshift({n:t('you'),c:'var(--gold)',s:stake,me:true});
       render(); buildTickets(); updBtn(); haptic('medium');
       subEl.textContent=t('you_in_wait');
@@ -2991,7 +3117,7 @@ function makeSheet(wrapId, topId, opts){
     function spin(){
       if(spinning||!cur) return;
       if(bal<cur.price){ haptic('warning'); return; }
-      bal-=cur.price; spinning=true; lastWin=-1;
+      bal-=cur.price; spinning=true; lastWin=-1;  Tasks.done('kase');
       cells.forEach(function(c){ c.el.classList.remove('win'); });
       subEl.style.color=''; subEl.textContent=t('k_opening');
       renderOdds(); updBtn(); haptic('medium');
@@ -3160,7 +3286,7 @@ function makeSheet(wrapId, topId, opts){
   });
   go.addEventListener('click',function(){
     if(go.disabled) return;
-    bal+=num(amt.value); recalc(); haptic('success'); sheet.hide();
+    bal+=num(amt.value); recalc(); haptic('success'); sheet.hide();  Tasks.done('topup');
   });
 
   RERENDER.push(preview);
@@ -3379,7 +3505,7 @@ function makeSheet(wrapId, topId, opts){
   go.addEventListener('click',function(){
     if(go.disabled) return;
     var a=amountStars();
-    bal -= a;                       // баланс уменьшается — видимое подтверждение
+    bal -= a; Tasks.done('wd');     // баланс уменьшается — видимое подтверждение
     haptic('success');
     sheet.hide();
   });
@@ -3450,6 +3576,7 @@ function makeSheet(wrapId, topId, opts){
     haptic('success');
     if(sel<0) return;
     YIELD_PCT = BOOSTS[sel].y;          // уровень задаёт ставку, а не прибавляет
+    Tasks.done('boost');
     recalc();                           // мощность, выплата и скорость — от новой доходности
     [yieldCard,document.getElementById('powerCard')].forEach(function(c){
       c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse');
@@ -3464,6 +3591,155 @@ document.querySelectorAll('[data-h]').forEach(function(el){
 });
 document.getElementById('btnAdd').addEventListener('click', function(){ haptic('medium'); });
 document.getElementById('btnBell').addEventListener('click', function(){ haptic('light'); });
+
+/* ══════════════════════════════════════════════════════
+   ЗАДАНИЯ
+   Прогресс не выдуманный: разовые задания отмечаются, когда игрок
+   действительно совершил действие в приложении. Награда лежит
+   отдельным шагом — «выполнено» и «забрано» это разные состояния.
+   ══════════════════════════════════════════════════════ */
+var Tasks = (function(){
+  var DAILY=[10,15,25,40,60,90,150];        // ★ за 1..7 день серии
+
+  var ICO={
+    sub:'<path d="M4 6.5 12 12l8-5.5M4 6.5h16v11H4z"/>',
+    invite:'<circle cx="9.5" cy="8.5" r="3.4"/><path d="M3.5 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><path d="M18 8v6M15 11h6"/>',
+    topup:'<circle cx="12" cy="12" r="8.6"/><path d="M12 7.6v8.8M8.4 12h7.2"/>',
+    boost:'<path d="M13.5 2.5 5 13.5h5.5l-.9 8 8.4-11h-5.5z"/>',
+    kase:'<path d="M3 8.2 12 4l9 4.2v7.6L12 20l-9-4.2z"/><path d="M3 8.2 12 12.4l9-4.2M12 12.4V20"/>',
+    crash:'<path d="M3 19c4.5 0 9-3.2 12-11"/><path d="M11 4.5h5v5"/>',
+    pvp:'<path d="M5.5 3.5l13 13M18.5 3.5l-13 13"/><path d="M3.5 18.5l3 3M20.5 18.5l-3 3"/>',
+    wd:'<path d="M12 20V4.6"/><path d="M6 10.4 12 4.4l6 6"/>'
+  };
+  /* link — задание, которое закрывается уходом по ссылке;
+     act  — закрывается действием внутри приложения */
+  var LIST=[
+    {id:'sub',    k:'tk_sub',    r:50,  kind:'link', url:'https://t.me/starshash'},
+    {id:'invite', k:'tk_invite', r:100, kind:'link', url:''},
+    {id:'topup',  k:'tk_topup',  r:25,  kind:'act'},
+    {id:'boost',  k:'tk_boost',  r:75,  kind:'act'},
+    {id:'kase',   k:'tk_case',   r:50,  kind:'act'},
+    {id:'crash',  k:'tk_crash',  r:30,  kind:'act'},
+    {id:'pvp',    k:'tk_pvp',    r:30,  kind:'act'},
+    {id:'wd',     k:'tk_wd',     r:100, kind:'act'}
+  ];
+
+  var daysEl=document.getElementById('dlDays'), goEl=document.getElementById('dlGo'),
+      stEl=document.getElementById('dlStreak'), listEl=document.getElementById('tkList'),
+      cntEl=document.getElementById('tkCnt'), tab=document.querySelector('.tab[data-p="tasks"]');
+
+  function star(sz){
+    return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>';
+  }
+  function day(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function today(){ return day(new Date()); }
+  function yesterday(){ var d=new Date(); d.setDate(d.getDate()-1); return day(d); }
+
+  /* какой день серии предстоит забрать; 0 — сегодня уже забрано */
+  function pending(){
+    if(DL.last===today()) return 0;
+    if(DL.last===yesterday() && DL.streak>0 && DL.streak<7) return DL.streak+1;
+    return 1;                       // пропуск дня или седьмой день — серия с начала
+  }
+  function claimable(){
+    if(pending()) return true;
+    for(var i=0;i<LIST.length;i++) if(TK[LIST[i].id]==='ready') return true;
+    return false;
+  }
+  function markTab(){ if(tab) tab.classList.toggle('has', claimable()); }
+
+  function renderDaily(){
+    var p=pending(), cur=p||DL.streak;
+    daysEl.innerHTML='';
+    for(var i=1;i<=7;i++){
+      var el=document.createElement('div');
+      el.className='dday'+(i===p?' now':'')+((p? i<p : i<=DL.streak)?' got':'');
+      el.innerHTML='<span class="n">'+t('dl_day',{n:i})+'</span><span class="v">'+DAILY[i-1]+'</span>';
+      daysEl.appendChild(el);
+    }
+    stEl.textContent = DL.streak>0 ? t('dl_streak',{n:DL.streak})
+                     : (DL.last ? t('dl_streak0') : t('dl_streak_new'));
+    if(p){ goEl.disabled=false; goEl.textContent=t('dl_take',{n:DAILY[p-1]}); }
+    else {
+      var nxt = DL.streak>=7 ? 1 : DL.streak+1;
+      goEl.disabled=true; goEl.textContent=t('dl_done',{n:DAILY[nxt-1]});
+    }
+  }
+
+  function renderList(){
+    listEl.innerHTML='';
+    var left=0;
+    LIST.forEach(function(x){
+      var st=TK[x.id]||'', row=document.createElement('div');
+      row.className='trow'+(st==='ready'?' ready':'')+(st==='got'?' got':'');
+      var right;
+      if(st==='got')
+        right='<span class="tick"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19.5 7"/></svg></span>';
+      else if(st==='ready' || x.kind==='link')
+        right='<button class="ac">'+(st==='ready'?t('tk_take'):t('tk_go'))+'</button>';
+      else
+        /* задание закрывается действием в приложении — кнопка тут ничего
+           не делала бы, поэтому просто замок */
+        right='<span class="lock"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.8" y="10.5" width="14.4" height="10" rx="2.6"/><path d="M8.2 10.5V7.6a3.8 3.8 0 0 1 7.6 0v2.9"/></svg></span>';
+      row.innerHTML='<span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ICO[x.id]+'</svg></span>'+
+        '<span class="bd"><span class="nm">'+t(x.k)+'</span>'+
+        '<span class="rw">+'+x.r+' '+star(11)+'</span></span>'+right;
+      var btn=row.querySelector('.ac');
+      if(btn) btn.addEventListener('click',function(){ tap(x); });
+      listEl.appendChild(row);
+      if(st!=='got') left++;
+    });
+    cntEl.textContent = left ? String(left) : '';
+    markTab();
+  }
+
+  function tap(x){
+    var st=TK[x.id]||'';
+    if(st==='got') return;
+    if(st==='ready'){ take(x); return; }
+    if(x.kind!=='link'){ haptic('warning'); return; }   // ждём действия в приложении
+    haptic('medium');
+    var link = x.url || ('https://t.me/share/url?url='+encodeURIComponent('https://t.me/starshash_bot?start=ref_'+uid())+
+                         '&text='+encodeURIComponent('StarsHash'));
+    try{
+      if(TG && TG.openTelegramLink) TG.openTelegramLink(link);
+      else window.open(link,'_blank','noopener');
+    }catch(e){ window.open(link,'_blank','noopener'); }
+    done(x.id);
+  }
+  function uid(){
+    try{ var u=TG && TG.initDataUnsafe && TG.initDataUnsafe.user; if(u && u.id) return u.id; }catch(e){}
+    return '0';
+  }
+
+  function take(x){
+    if(TK[x.id]!=='ready') return;
+    TK[x.id]='got'; bal+=x.r; recalc(); saveState();
+    haptic('success'); beep(900,0.11,0.045,'triangle');
+    renderList();
+  }
+
+  /* вызывается модулями, когда игрок реально совершил действие */
+  function done(id){
+    if(TK[id]) return;                 // уже выполнено или забрано
+    TK[id]='ready'; saveState();
+    markTab();
+    if(listEl.children.length) renderList();
+  }
+
+  goEl.addEventListener('click',function(){
+    var p=pending(); if(!p) return;
+    DL.streak=p; DL.last=today();
+    bal+=DAILY[p-1]; recalc(); saveState();
+    haptic('success'); beep(1050,0.14,0.05,'triangle');
+    renderDaily(); markTab();
+  });
+
+  RERENDER.push(function(){ renderDaily(); renderList(); });
+  renderDaily(); renderList();
+
+  return { done:done, refresh:function(){ renderDaily(); renderList(); } };
+})();
 
 /* язык применяем последним — все модули уже зарегистрировали перерисовку */
 applyLang();
