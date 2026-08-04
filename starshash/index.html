@@ -1800,12 +1800,6 @@ button.srow:active{transform:scale(.985);}
         <button data-dp="5000">5000</button>
         <button data-dp="12480">12 480</button>
       </div>
-      <div class="wlab"><span data-i18n="d_after">Станет после пополнения</span></div>
-      <div class="cres" style="margin-top:0">
-        <div class="crow"><span data-i18n="d_balance">Баланс</span><b class="num" id="dpBal">0 ★</b></div>
-        <div class="crow" style="margin-top:9px"><span data-i18n="d_power">Мощность</span><b class="num" id="dpPow">0.000 PH/s</b></div>
-        <div class="crow" style="margin-top:9px"><span data-i18n="d_income">Доход</span><b class="num" id="dpRate">0.00 ★ / час</b></div>
-      </div>
     </div>
     <div class="whint" id="dpHint"></div>
     <button class="btn-buy" id="dpGo">Пополнить</button>
@@ -2026,8 +2020,7 @@ ru:{
  w_enter_amt:'Введите сумму', w_receive:'Получите', w_fee:'Комиссия 5%', w_fee_amt:'Удержим',
  w_need_user:'Укажите Telegram username', w_need_wallet:'Укажите TON-кошелёк',
  w_min_msg:'Минимальная сумма вывода — {n} ★', w_no_funds:'Недостаточно звёзд на балансе',
- d_title:'Пополнить', d_amount:'Сумма пополнения', d_after:'Станет после пополнения',
- d_balance:'Баланс', d_power:'Мощность', d_income:'Доход', d_go:'Пополнить на {n} ★',
+ d_title:'Пополнить', d_amount:'Сумма пополнения', d_go:'Пополнить на {n} ★',
  c_deposit:'Сумма вклада', c_my_bal:'Мой баланс', c_term:'Срок', c_rate:'Ставка доходности',
  c_current:'Текущая', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 год',
  c_p7:'7 дней', c_p30:'30 дней', c_p90:'90 дней', c_py:'год',
@@ -2097,8 +2090,7 @@ en:{
  w_enter_amt:'Enter amount', w_receive:'You receive', w_fee:'Fee 5%', w_fee_amt:'Fee',
  w_need_user:'Enter a Telegram username', w_need_wallet:'Enter a TON wallet',
  w_min_msg:'Minimum withdrawal is {n} ★', w_no_funds:'Not enough stars on balance',
- d_title:'Top up', d_amount:'Top-up amount', d_after:'After the top-up',
- d_balance:'Balance', d_power:'Power', d_income:'Income', d_go:'Top up {n} ★',
+ d_title:'Top up', d_amount:'Top-up amount', d_go:'Top up {n} ★',
  c_deposit:'Deposit amount', c_my_bal:'My balance', c_term:'Term', c_rate:'Daily rate',
  c_current:'Current', c_d7:'7 d', c_d30:'30 d', c_d90:'90 d', c_y1:'1 year',
  c_p7:'7 days', c_p30:'30 days', c_p90:'90 days', c_py:'a year',
@@ -2168,8 +2160,7 @@ uk:{
  w_enter_amt:'Введіть суму', w_receive:'Отримаєте', w_fee:'Комісія 5%', w_fee_amt:'Утримаємо',
  w_need_user:'Вкажіть Telegram username', w_need_wallet:'Вкажіть TON-гаманець',
  w_min_msg:'Мінімальна сума виведення — {n} ★', w_no_funds:'Недостатньо зірок на балансі',
- d_title:'Поповнити', d_amount:'Сума поповнення', d_after:'Стане після поповнення',
- d_balance:'Баланс', d_power:'Потужність', d_income:'Дохід', d_go:'Поповнити на {n} ★',
+ d_title:'Поповнити', d_amount:'Сума поповнення', d_go:'Поповнити на {n} ★',
  c_deposit:'Сума вкладу', c_my_bal:'Мій баланс', c_term:'Термін', c_rate:'Ставка дохідності',
  c_current:'Поточна', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 рік',
  c_p7:'7 днів', c_p30:'30 днів', c_p90:'90 днів', c_py:'рік',
@@ -3570,22 +3561,15 @@ function makeSheet(wrapId, topId, opts){
    ══════════════════════════════════════════════════════ */
 (function deposit(){
   var amt=document.getElementById('dpAmt'), chips=document.getElementById('dpChips'),
-      go=document.getElementById('dpGo'), hint=document.getElementById('dpHint'),
-      oBal=document.getElementById('dpBal'), oPow=document.getElementById('dpPow'),
-      oRate=document.getElementById('dpRate');
+      go=document.getElementById('dpGo'), hint=document.getElementById('dpHint');
 
   var sheet=makeSheet('dpSheet','dpTop',{ onShow:preview });
   document.getElementById('dpX').addEventListener('click',sheet.hide);
 
   function num(v){ v=parseFloat(String(v).replace(/\s/g,'').replace(',','.')); return isFinite(v)&&v>0?v:0; }
 
-  /* показываем, каким станет экран после пополнения — иначе непонятно,
-     что даёт конкретная сумма */
   function preview(){
-    var a=num(amt.value), next=bal+a;
-    oBal.textContent=fmt(next)+' ★';
-    oPow.textContent=(next*HASH_PER_STAR*(YIELD_PCT/BASE_YIELD)).toFixed(3)+' PH/s';
-    oRate.textContent=fmt(next*(YIELD_PCT/100)/24)+' ★ / '+t('per_hour');
+    var a=num(amt.value);
     hint.textContent = a ? '' : t('w_enter_amt');
     go.disabled=!a;
     go.textContent = a ? t('d_go',{n:fmtInt(a)}) : t('d_title');
