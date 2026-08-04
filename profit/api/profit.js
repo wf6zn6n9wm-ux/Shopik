@@ -410,8 +410,8 @@ module.exports = async (req, res) => {
       const s = split(sale, cost, salary, shop.share_pct == null ? 30 : shop.share_pct);
       members.filter((m) => Number(m.tg_id) !== me.id).forEach((o) => {
         const txt = o.role === 'owner'
-          ? '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Чистая прибыль ' + s.net + '. Ваша доля: ' + s.ownShare + '.'
-          : '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Тебе: вложенное ' + cost + ' + доля ' + s.mgrShare + ' = ' + s.mgrTotal + ' (зарплата продавцу ' + salary + ' — отдельно).';
+          ? '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Чистая прибыль ' + s.net + '. Ваша доля: ' + s.ownShare + '. К выдаче управляющей: ' + s.mgrTotal + ' (вложенное + её доля).'
+          : '💰 Продажа «' + prod[0].name + '» (' + size + ') за ' + sale + '. Тебе к получению: вложенное ' + cost + ' + доля ' + s.mgrShare + ' = ' + s.mgrTotal + '.';
         sendPush(BOT, o.tg_id, txt).catch(() => {});
       });
       res.status(200).json(await stateResponse(SHOP));
