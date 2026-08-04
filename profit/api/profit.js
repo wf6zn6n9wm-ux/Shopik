@@ -402,9 +402,8 @@ module.exports = async (req, res) => {
       const cost = n0(lot.purchase) + (lot.shipping == null ? 0 : n0(lot.shipping));
       const shop = await shopRow(SHOP);
       const salPct = shop.salary_pct == null ? 0 : shop.salary_pct;
-      // зарплату продавцу задаёт владелец (%): управляющая её не переопределяет —
-      // сервер считает сам по проценту. Владелец может внести значение вручную.
-      const salary = isOwner ? n0(body.salary) : Math.round(sale * salPct / 100);
+      // зарплата продавцу — единый % от цены продажи (задаёт владелец в настройках).
+      const salary = Math.round(sale * salPct / 100);
       await sb('profit_stock?id=eq.' + lot.id + '&shop_id=eq.' + SHOP, { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify({ qty: n0(lot.qty) - 1 }) });
       await sb('profit_sales', { method: 'POST', body: JSON.stringify({ shop_id: SHOP, product_id, name: prod[0].name, size, sale, salary, cost }) });
       const members = await shopMembers(SHOP);
