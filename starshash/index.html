@@ -936,6 +936,35 @@ button.srow:active{transform:scale(.985);}
   }
 }
 
+/* «пока вас не было» — не шторка: всплывать при каждом входе и
+   перекрывать экран было бы навязчиво */
+.wback{
+  /* снизу, а не сверху: сверху оно закрывало бы ровно тот баланс,
+     о приросте которого сообщает */
+  position:fixed;left:50%;bottom:calc(var(--sab) + 96px);transform:translate(-50%,14px);
+  z-index:70;display:none;align-items:center;gap:11px;
+  width:calc(100% - var(--pad)*2);max-width:calc(var(--shell) - var(--pad)*2);
+  padding:11px 14px;border-radius:18px;
+  background:linear-gradient(168deg,rgba(24,20,12,.97),rgba(10,10,11,.97));
+  border:1px solid rgba(228,192,120,.28);
+  box-shadow:0 14px 40px rgba(0,0,0,.6),0 0 30px rgba(228,192,120,.09);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  opacity:0;transition:opacity .32s,transform .32s cubic-bezier(.2,0,0,1);
+}
+.wback.on{display:flex;}
+.wback.show{opacity:1;transform:translate(-50%,0);}
+.wback .ic{
+  width:34px;height:34px;flex:0 0 auto;border-radius:12px;display:grid;place-items:center;
+  color:var(--gold);background:rgba(228,192,120,.1);border:1px solid rgba(228,192,120,.2);
+}
+.wback .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.wback .tx b{font-size:13.5px;font-weight:600;letter-spacing:-.01em;}
+.wback .tx i{font-style:normal;font-size:11.5px;color:var(--ink-3);}
+.wback .am{
+  flex:0 0 auto;font-size:15.5px;font-weight:700;color:var(--gold);
+  display:flex;align-items:center;gap:4px;
+}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 </style>
 </head>
@@ -1585,6 +1614,17 @@ button.srow:active{transform:scale(.985);}
   </div>
 </div>
 
+<div class="wback" id="wBack" role="status" aria-live="polite">
+  <span class="ic">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v5.4l3.4 2"/><circle cx="12" cy="12" r="8.6"/></svg>
+  </span>
+  <span class="tx">
+    <b id="wbTitle">Пока вас не было</b>
+    <i id="wbSub"></i>
+  </span>
+  <span class="am num" id="wbAmt"></span>
+</div>
+
 <script>
 (function(){
 "use strict";
@@ -1656,7 +1696,8 @@ ru:{
  sup_title:'Поддержка', sup_desc:'Ответим на любой вопрос по начислениям,<br>выводу и бустам',
  sup_write:'Написать', copy_rights:'Все права защищены',
  r_title:'Правила', r_ok:'Понятно',
- own_bet:'Своя', g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
+ own_bet:'Своя', wb_title:'Пока вас не было', wb_sub:'намайнено за {t}',
+ wb_d:'{n} д', wb_h:'{n} ч', wb_m:'{n} мин', g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 от цены · шансы ниже',
  k_open:'Открыть за {n} ★', k_opening:'Открываем…', k_again:'Открыть ещё · {n} ★',
  k_got:'Выпало {n} ★ · {r}', k_chance:'Шанс',
@@ -1707,7 +1748,8 @@ en:{
  sup_title:'Support', sup_desc:'We answer any question about payouts,<br>withdrawals and boosts',
  sup_write:'Write to us', copy_rights:'All rights reserved',
  r_title:'Rules', r_ok:'Got it',
- own_bet:'Own', g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
+ own_bet:'Own', wb_title:'While you were away', wb_sub:'mined over {t}',
+ wb_d:'{n} d', wb_h:'{n} h', wb_m:'{n} min', g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
  k_range:'{a} – {b} ★', k_max:'max ×{m}', k_hero:'Top drop is ×5 the price · odds below',
  k_open:'Open for {n} ★', k_opening:'Opening…', k_again:'Open again · {n} ★',
  k_got:'You got {n} ★ · {r}', k_chance:'Chance',
@@ -1758,7 +1800,8 @@ uk:{
  sup_title:'Підтримка', sup_desc:'Відповімо на будь-яке питання щодо нарахувань,<br>виведення та бустів',
  sup_write:'Написати', copy_rights:'Всі права захищені',
  r_title:'Правила', r_ok:'Зрозуміло',
- own_bet:'Своя', g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
+ own_bet:'Своя', wb_title:'Поки вас не було', wb_sub:'намайнено за {t}',
+ wb_d:'{n} д', wb_h:'{n} год', wb_m:'{n} хв', g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 від ціни · шанси нижче',
  k_open:'Відкрити за {n} ★', k_opening:'Відкриваємо…', k_again:'Відкрити ще · {n} ★',
  k_got:'Випало {n} ★ · {r}', k_chance:'Шанс',
@@ -2029,8 +2072,74 @@ var Ring = (function(){
    ЭКОНОМИКА — баланс растёт плавно, без рывков.
    Значения пишутся в DOM напрямую из rAF-цикла.
    ══════════════════════════════════════════════════════ */
-var bal = 0;                // новый пользователь начинает с нуля
-var YIELD_PCT = 1.00;       // %/день; растёт от купленных бустов
+/* Состояние переживает закрытие мини-аппа: иначе всё, что человек
+   вложил, купил и выиграл, обнулялось бы при каждом входе. */
+var SKEY='starshash_state';
+var SAVED=(function(){
+  try{
+    var o=JSON.parse(localStorage.getItem(SKEY)||'null');
+    if(!o || typeof o!=='object') return null;
+    var b=+o.bal, y=+o.y, t=+o.seen;
+    if(!isFinite(b)||b<0) b=0;
+    if(!isFinite(y)||y<1||y>7) y=1;
+    if(!isFinite(t)||t<=0) t=0;
+    return {bal:b, y:y, seen:t};
+  }catch(e){ return null; }
+})();
+
+var bal = SAVED ? SAVED.bal : 0;       // новый пользователь начинает с нуля
+var YIELD_PCT = SAVED ? SAVED.y : 1.00; // %/день; растёт от купленных бустов
+
+/* Доход идёт и когда приложение закрыто. Разрыв ограничиваем 30 сутками:
+   на большем окне выигрывает съехавшее системное время, а не игрок. */
+var OFFLINE_CAP = 30*86400, OFFLINE_GAIN = 0, OFFLINE_SEC = 0;
+if(SAVED && SAVED.seen && bal>0){
+  var gap = (Date.now()-SAVED.seen)/1000;
+  if(gap > 5){                       // отрицательный разрыв = съехавшие часы, молчим
+    OFFLINE_SEC = Math.min(gap, OFFLINE_CAP);
+    OFFLINE_GAIN = bal*(YIELD_PCT/100)/86400*OFFLINE_SEC;
+    bal += OFFLINE_GAIN;
+  }
+}
+
+function saveState(){
+  try{ localStorage.setItem(SKEY, JSON.stringify({v:1, bal:bal, y:YIELD_PCT, seen:Date.now()})); }catch(e){}
+}
+
+/* Сколько намайнено за `sec` секунд простоя при текущем балансе и ставке */
+function awayGain(sec){ return bal*(YIELD_PCT/100)/86400*sec; }
+
+/* Сообщение о доходе за отсутствие — не шторка: всплывать во весь
+   экран при каждом возврате было бы навязчиво. */
+var _awayHide=null;
+function showAway(gain, sec){
+  var box=document.getElementById('wBack');
+  if(!box || gain<0.01) return;
+  var span = sec>=86400 ? t('wb_d',{n:Math.floor(sec/86400)})
+           : sec>=3600  ? t('wb_h',{n:Math.floor(sec/3600)})
+           :              t('wb_m',{n:Math.max(1,Math.floor(sec/60))});
+  document.getElementById('wbTitle').textContent=t('wb_title');
+  document.getElementById('wbSub').textContent=t('wb_sub',{t:span});
+  document.getElementById('wbAmt').innerHTML='+'+fmt(gain)+
+    ' <svg width="13" height="13" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>';
+
+  /* высота навигации плавает с экраном, поэтому позицию берём от неё,
+     а не от постоянного отступа */
+  var nav=document.querySelector('.nav');
+  if(nav){ var r=nav.getBoundingClientRect();
+           if(r.height) box.style.bottom=Math.round(innerHeight-r.top+10)+'px'; }
+
+  clearTimeout(_awayHide);
+  box.classList.add('on');
+  requestAnimationFrame(function(){ box.classList.add('show'); haptic('light'); });
+  _awayHide=setTimeout(hideAway,5200);
+}
+function hideAway(){
+  var box=document.getElementById('wBack'); if(!box) return;
+  clearTimeout(_awayHide);
+  box.classList.remove('show');
+  setTimeout(function(){ box.classList.remove('on'); },340);
+}
 
 /* Уровни доходности — общий источник для магазина и калькулятора.
    На карточке стоит итоговая ставка, поэтому покупка её устанавливает,
@@ -2072,9 +2181,32 @@ var heroBal = document.getElementById('heroBal'),
 
 recalc();
 
+/* Сохраняем раз в 5 секунд и обязательно в момент ухода: свернуть
+   мини-апп можно в любой кадр, а pagehide в WebView не гарантирован. */
+saveState();
+setInterval(saveState, 5000);
+addEventListener('pagehide', saveState);
+addEventListener('blur', saveState);
+
+/* Свёрнутый мини-апп — то же отсутствие, что и закрытый, только без
+   перезагрузки. Пока вкладка скрыта, цикл не начисляет (см. frame),
+   поэтому единственный источник дохода за это время — здесь. */
+var _hiddenAt=0;
+document.addEventListener('visibilitychange', function(){   // событие приходит в document
+  if(document.hidden){ _hiddenAt=Date.now(); saveState(); return; }
+  if(!_hiddenAt) return;
+  var gap=(Date.now()-_hiddenAt)/1000; _hiddenAt=0;
+  if(gap<=5 || bal<=0) return;
+  var sec=Math.min(gap, OFFLINE_CAP), gain=awayGain(sec);
+  bal+=gain; recalc(); saveState();
+  showAway(gain, sec);
+});
+document.getElementById('wBack').addEventListener('click', hideAway);
+
 (function loop(){
   var last = performance.now(), acc = 0, cyc = 0;
   function frame(now){
+    if(document.hidden){ last=now; requestAnimationFrame(frame); return; }
     var dt = Math.min(0.05, (now-last)/1000); last = now;
     bal += RATE*dt; acc += dt; cyc += dt;
 
@@ -3335,6 +3467,10 @@ document.getElementById('btnBell').addEventListener('click', function(){ haptic(
 
 /* язык применяем последним — все модули уже зарегистрировали перерисовку */
 applyLang();
+
+/* Доход за время отсутствия показываем уже на нужном языке — поэтому
+   в самом конце, когда applyLang отработал. */
+setTimeout(function(){ showAway(OFFLINE_GAIN, OFFLINE_SEC); }, 700);
 
 })();
 </script>
