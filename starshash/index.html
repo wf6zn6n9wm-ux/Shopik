@@ -1196,7 +1196,11 @@ button.srow:active{transform:scale(.985);}
           <input id="wAmt" type="text" inputmode="decimal" autocomplete="off" value="50">
           <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
         </div>
-        <div class="wnotes"><span data-i18n="w_min">Мин 50</span><span></span></div>
+        <div class="wnotes">
+          <span><span data-i18n="w_min">Мин 50</span> · <span data-i18n="w_fee">Комиссия 5%</span></span>
+          <span><span data-i18n="w_receive">Получите</span> <b class="num" id="wNetS">47.50</b>
+            <svg width="11" height="11" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg></span>
+        </div>
       </div>
 
       <!-- TON -->
@@ -1204,7 +1208,7 @@ button.srow:active{transform:scale(.985);}
         <div class="wf" style="margin-top:12px">
           <input id="wWallet" type="text" autocomplete="off" spellcheck="false" data-i18n-ph="w_wallet_ph" placeholder="TON-кошелёк получателя">
         </div>
-        <div class="wlab"><span id="wL1">Введите сумму</span><span id="wL2">Получите</span></div>
+        <div class="wlab"><span id="wL1"></span><span id="wL2"></span></div>
         <div class="wconv">
           <div class="wf">
             <input id="wAmtT" type="text" inputmode="decimal" autocomplete="off" value="50">
@@ -1219,8 +1223,9 @@ button.srow:active{transform:scale(.985);}
           </div>
         </div>
         <div class="wnotes">
-          <span data-i18n="w_min">Мин 50</span>
-          <span><span data-i18n="w_fee">Комиссия 5</span> <svg width="11" height="11" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg></span>
+          <span><span data-i18n="w_min">Мин 50</span> · <span data-i18n="w_fee">Комиссия 5%</span></span>
+          <span><span data-i18n="w_fee_amt">Удержим</span> <b class="num" id="wFeeT">2.50</b>
+            <svg width="11" height="11" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg></span>
         </div>
         <div class="wlab" style="justify-content:flex-end;margin-bottom:0">
           <span class="av"><span data-i18n="w_avail">Доступно:</span> <b class="num wAvail">0</b>
@@ -1425,7 +1430,7 @@ ru:{
  buy_for:'Купить за',
  w_min:'Мин 50', w_amount:'Сумма', w_avail:'Доступно:', w_max:'Макс', w_me:'Мне',
  w_user_ph:'Telegram username', w_wallet_ph:'TON-кошелёк получателя',
- w_enter_amt:'Введите сумму', w_receive:'Получите', w_fee:'Комиссия 5',
+ w_enter_amt:'Введите сумму', w_receive:'Получите', w_fee:'Комиссия 5%', w_fee_amt:'Удержим',
  w_need_user:'Укажите Telegram username', w_need_wallet:'Укажите TON-кошелёк',
  w_min_msg:'Минимальная сумма вывода — {n} ★', w_no_funds:'Недостаточно звёзд на балансе',
  d_title:'Пополнить', d_amount:'Сумма пополнения', d_after:'Станет после пополнения',
@@ -1443,7 +1448,7 @@ ru:{
  r_h1:'Начисления', r_p1:'Доход идёт с баланса по текущей ставке доходности. Начисление происходит каждые 3 секунды, сумма за сутки равна балансу, умноженному на ставку.',
  r_h2:'Мощность', r_p2:'Мощность показывает, сколько вычислений покупает ваш вклад. Она растёт вместе с балансом и со ставкой доходности, поэтому меняется и при пополнении, и при покупке уровня.',
  r_h3:'Уровни доходности', r_p3:'Уровень задаёт ставку целиком, а не прибавляет к текущей. Купленный уровень действует постоянно. Уровни ниже текущего недоступны — понизить ставку покупкой нельзя.',
- r_h4:'Вывод', r_p4:'Минимальная сумма — 50 ★. Вывод в Stars идёт на указанный Telegram-аккаунт без комиссии, вывод в TON — на кошелёк с комиссией 5 ★.',
+ r_h4:'Вывод', r_p4:'Минимальная сумма — 50 ★. Комиссия одинаковая для обоих способов — 5% от суммы вывода. Вывод в Stars идёт на указанный Telegram-аккаунт, вывод в TON — на кошелёк по курсу 1 ★ = 0.01 TON.',
  r_h5:'Игры', r_p5:'Краш: ставка делается в фазе ожидания, забрать можно в любой момент до обрыва. Точка обрыва определяется до старта раунда. ПВП: доля в общем банке равна шансу на победу, победитель забирает банк целиком.',
  mln:' млн', mlrd:' млрд'
 },
@@ -1470,7 +1475,7 @@ en:{
  buy_for:'Buy for',
  w_min:'Min 50', w_amount:'Amount', w_avail:'Available:', w_max:'Max', w_me:'Me',
  w_user_ph:'Telegram username', w_wallet_ph:'Recipient TON wallet',
- w_enter_amt:'Enter amount', w_receive:'You receive', w_fee:'Fee 5',
+ w_enter_amt:'Enter amount', w_receive:'You receive', w_fee:'Fee 5%', w_fee_amt:'Fee',
  w_need_user:'Enter a Telegram username', w_need_wallet:'Enter a TON wallet',
  w_min_msg:'Minimum withdrawal is {n} ★', w_no_funds:'Not enough stars on balance',
  d_title:'Top up', d_amount:'Top-up amount', d_after:'After the top-up',
@@ -1488,7 +1493,7 @@ en:{
  r_h1:'Payouts', r_p1:'Income comes from your balance at the current daily rate. Payouts happen every 3 seconds, and the daily total equals your balance times the rate.',
  r_h2:'Power', r_p2:'Power shows how much computation your deposit buys. It grows with both your balance and your daily rate, so it changes when you top up and when you buy a tier.',
  r_h3:'Rate tiers', r_p3:'A tier sets the rate outright rather than adding to it. A purchased tier is permanent. Tiers below your current rate are unavailable — buying cannot lower your rate.',
- r_h4:'Withdrawal', r_p4:'The minimum is 50 ★. Withdrawing to Stars goes to the given Telegram account with no fee; withdrawing to TON goes to a wallet with a 5 ★ fee.',
+ r_h4:'Withdrawal', r_p4:'The minimum is 50 ★. The fee is the same either way — 5% of the withdrawal. Stars go to the given Telegram account; TON goes to a wallet at 1 ★ = 0.01 TON.',
  r_h5:'Games', r_p5:'Crash: you bet during the waiting phase and can cash out any moment before the bust. The bust point is fixed before the round starts. PvP: your share of the pot is your chance to win, and the winner takes the whole pot.',
  mln:'M', mlrd:'B'
 },
@@ -1515,7 +1520,7 @@ uk:{
  buy_for:'Купити за',
  w_min:'Мін 50', w_amount:'Сума', w_avail:'Доступно:', w_max:'Макс', w_me:'Мені',
  w_user_ph:'Telegram username', w_wallet_ph:'TON-гаманець отримувача',
- w_enter_amt:'Введіть суму', w_receive:'Отримаєте', w_fee:'Комісія 5',
+ w_enter_amt:'Введіть суму', w_receive:'Отримаєте', w_fee:'Комісія 5%', w_fee_amt:'Утримаємо',
  w_need_user:'Вкажіть Telegram username', w_need_wallet:'Вкажіть TON-гаманець',
  w_min_msg:'Мінімальна сума виведення — {n} ★', w_no_funds:'Недостатньо зірок на балансі',
  d_title:'Поповнити', d_amount:'Сума поповнення', d_after:'Стане після поповнення',
@@ -1533,7 +1538,7 @@ uk:{
  r_h1:'Нарахування', r_p1:'Дохід нараховується з балансу за поточною ставкою дохідності. Нарахування відбувається кожні 3 секунди, сума за добу дорівнює балансу, помноженому на ставку.',
  r_h2:'Потужність', r_p2:'Потужність показує, скільки обчислень купує ваш вклад. Вона зростає разом із балансом і зі ставкою дохідності, тому змінюється і при поповненні, і при купівлі рівня.',
  r_h3:'Рівні дохідності', r_p3:'Рівень задає ставку цілком, а не додає до поточної. Куплений рівень діє постійно. Рівні нижчі за поточний недоступні — знизити ставку купівлею не можна.',
- r_h4:'Виведення', r_p4:'Мінімальна сума — 50 ★. Виведення у Stars іде на вказаний Telegram-акаунт без комісії, виведення у TON — на гаманець із комісією 5 ★.',
+ r_h4:'Виведення', r_p4:'Мінімальна сума — 50 ★. Комісія однакова для обох способів — 5% від суми виведення. Виведення у Stars іде на вказаний Telegram-акаунт, виведення у TON — на гаманець за курсом 1 ★ = 0.01 TON.',
  r_h5:'Ігри', r_p5:'Краш: ставка робиться у фазі очікування, забрати можна будь-якої миті до обриву. Точка обриву визначається до старту раунду. ПВП: частка у спільному банку дорівнює шансу на перемогу, переможець забирає банк цілком.',
  mln:' млн', mlrd:' млрд'
 }};
@@ -2616,12 +2621,15 @@ function makeSheet(wrapId, topId, opts){
    ВЫВОД СРЕДСТВ
    ══════════════════════════════════════════════════════ */
 (function withdraw(){
-  var MIN=50, FEE_TON=5, RATE=0.01;   // 1 ★ = 0.01 TON, комиссия только для TON
+  /* Комиссия одна для обоих способов — 5% от суммы вывода. Списывается
+     с баланса вся сумма, до получателя доходит 95%. Курс 1 ★ = 0.01 TON. */
+  var MIN=50, FEE=0.05, RATE=0.01;
 
   var mStars=document.getElementById('mStars'), mTon=document.getElementById('mTon'),
       bStars=document.getElementById('wStars'), bTon=document.getElementById('wTon'),
       user=document.getElementById('wUser'), wallet=document.getElementById('wWallet'),
       amt=document.getElementById('wAmt'), amtT=document.getElementById('wAmtT'),
+      netS=document.getElementById('wNetS'), feeT=document.getElementById('wFeeT'),
       get=document.getElementById('wGet'), swap=document.getElementById('wSwap'),
       L1=document.getElementById('wL1'), L2=document.getElementById('wL2'),
       hint=document.getElementById('wdHint'), go=document.getElementById('wdGo');
@@ -2633,22 +2641,33 @@ function makeSheet(wrapId, topId, opts){
 
   function avail(){ return Math.floor(bal); }
   function num(v){ v=parseFloat(String(v).replace(',','.')); return isFinite(v)?v:0; }
+  /* сумма, которая спишется с баланса (комиссия уже внутри неё) */
   function amountStars(){
     if(mode==='stars') return num(amt.value);
-    return dir==='fwd' ? num(amtT.value) : num(get.value)/RATE + FEE_TON;
+    return dir==='fwd' ? num(amtT.value) : num(get.value)/RATE/(1-FEE);
+  }
+
+  /* подписи над полями конвертера зависят от направления, поэтому
+     ставим их здесь, а не в разметке — иначе не переводятся */
+  function dirLabels(){
+    L1.textContent = dir==='fwd' ? t('w_enter_amt') : t('w_receive');
+    L2.textContent = dir==='fwd' ? t('w_receive') : t('w_enter_amt');
   }
 
   /* пересчёт полей конвертации и состояния кнопки */
   function sync(){
     document.querySelectorAll('.wAvail').forEach(function(e){ e.textContent=avail().toLocaleString('ru-RU'); });
+    dirLabels();
 
-    if(mode==='ton'){
+    if(mode==='stars'){
+      netS.textContent=(Math.max(0,num(amt.value))*(1-FEE)).toFixed(2);
+    }else{
       if(dir==='fwd'){
-        var net=Math.max(0,num(amtT.value)-FEE_TON);
-        get.value=(net*RATE).toFixed(2);
+        get.value=(Math.max(0,num(amtT.value))*(1-FEE)*RATE).toFixed(2);
       }else{
-        amtT.value=Math.max(0,Math.round((num(get.value)/RATE+FEE_TON)*100)/100);
+        amtT.value=Math.max(0,Math.round(num(get.value)/RATE/(1-FEE)*100)/100);
       }
+      feeT.textContent=(Math.max(0,amountStars())*FEE).toFixed(2);
     }
 
     var a=amountStars(), msg='';
@@ -2680,8 +2699,6 @@ function makeSheet(wrapId, topId, opts){
     swap.classList.toggle('flip',dir==='rev');
     amtT.readOnly = dir!=='fwd';
     get.readOnly  = dir==='fwd';
-    L1.textContent = dir==='fwd' ? t('w_enter_amt') : t('w_receive');
-    L2.textContent = dir==='fwd' ? t('w_receive') : t('w_enter_amt');
     sync();
   });
 
@@ -2697,7 +2714,7 @@ function makeSheet(wrapId, topId, opts){
       var v=avail();
       if(mode==='stars') amt.value=v;
       else { dir='fwd'; swap.classList.remove('flip'); amtT.readOnly=false; get.readOnly=true;
-             L1.textContent=t('w_enter_amt'); L2.textContent=t('w_receive'); amtT.value=v; }
+             amtT.value=v; }
       sync();
     });
   });
@@ -2714,7 +2731,10 @@ function makeSheet(wrapId, topId, opts){
 
   RERENDER.push(sync);
   document.getElementById('btnWithdraw').addEventListener('click',function(){
-    haptic('medium'); amt.value=MIN; amtT.value=MIN; sheet.show();
+    haptic('medium');
+    amt.value=MIN; amtT.value=MIN;
+    dir='fwd'; swap.classList.remove('flip'); amtT.readOnly=false; get.readOnly=true;
+    sheet.show();
   });
 })();
 
