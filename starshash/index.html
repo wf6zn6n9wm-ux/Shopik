@@ -547,6 +547,136 @@ button.srow:active{transform:scale(.985);}
 }
 .pxreel.hit{animation:cShake .45s cubic-bezier(.36,.07,.19,.97);}
 
+/* ─────────── Кейсы ───────────
+   Акцент каждого кейса живёт в переменной --a на самом элементе:
+   так один набор правил обслуживает все пять оформлений. */
+.clist{
+  flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;gap:var(--gap);
+}
+.ccard{
+  flex:0 0 auto;height:clamp(74px,11.4vh,98px);
+  display:flex;align-items:center;gap:14px;text-align:left;padding:0 16px;
+  border-radius:var(--r-sm);background:var(--card);border:1px solid var(--line);
+  position:relative;overflow:hidden;transition:transform .16s,border-color .22s;
+}
+.ccard:active{transform:scale(.985);}
+.ccard::after{
+  content:"";position:absolute;top:-40%;right:-14%;width:132px;height:132px;border-radius:50%;
+  background:radial-gradient(circle,color-mix(in srgb,var(--a) 20%,transparent),transparent 70%);
+  filter:blur(8px);pointer-events:none;
+}
+.cemb{
+  width:50px;height:50px;flex:0 0 auto;border-radius:16px;display:grid;place-items:center;
+  color:var(--a);position:relative;
+  background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--a) 22%,transparent),color-mix(in srgb,var(--a) 6%,transparent));
+  border:1px solid color-mix(in srgb,var(--a) 32%,transparent);
+  box-shadow:0 0 18px color-mix(in srgb,var(--a) 16%,transparent);
+}
+.cbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
+.cname{
+  font-size:17px;font-weight:700;letter-spacing:.02em;color:var(--a);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.crange{font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:6px;min-width:0;}
+/* ужимается диапазон, а не бейдж: иначе у дорогих кейсов «макс» обрезается */
+.crange i{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.crange b{
+  font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  padding:3px 6px;border-radius:6px;color:var(--ink-2);background:rgba(255,255,255,.055);
+  white-space:nowrap;flex:0 0 auto;
+}
+.cprice{
+  flex:0 0 auto;display:flex;align-items:center;gap:5px;padding:7px 11px;border-radius:12px;
+  font-size:13.5px;font-weight:700;color:var(--ink);
+  background:color-mix(in srgb,var(--a) 11%,transparent);
+  border:1px solid color-mix(in srgb,var(--a) 26%,transparent);
+}
+
+/* на узких экранах ужимаем оправу, чтобы диапазон не съедало многоточие */
+@media (max-width:374px){
+  .ccard{gap:11px;padding:0 13px;}
+  .cemb{width:44px;height:44px;}
+  .cname{font-size:16px;}
+  .crange{font-size:11.5px;gap:5px;}
+  .crange b{letter-spacing:.06em;padding:3px 5px;}
+  .cprice{padding:7px 9px;font-size:13px;}
+}
+
+/* сцена открытия */
+.cxhero{
+  flex:0 0 auto;height:clamp(72px,10.8vh,94px);position:relative;overflow:hidden;
+  border-radius:var(--r-card);border:1px solid var(--line);
+  /* фон обязательно непрозрачный: сквозь полупрозрачный светит фоновая
+     дуга и перечёркивает подпись */
+  background-color:var(--card);
+  background-image:radial-gradient(circle at 50% 122%,color-mix(in srgb,var(--a) 15%,transparent),transparent 66%);
+  display:flex;align-items:center;gap:14px;padding:0 18px;
+}
+.cxhero .cemb{width:52px;height:52px;}
+.cxh{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.cxh .n{font-size:18.5px;font-weight:700;letter-spacing:.02em;color:var(--a);}
+.cxh .s{font-size:12px;color:var(--ink-3);font-weight:600;}
+.cxreel{
+  flex:0 0 auto;height:clamp(80px,12vh,98px);position:relative;overflow:hidden;
+  border-radius:18px;background:var(--card);border:1px solid var(--line);
+}
+.cxtrack{position:absolute;top:0;left:0;height:100%;display:flex;align-items:center;gap:8px;will-change:transform;}
+.cxc{
+  width:66px;flex:0 0 auto;height:76px;border-radius:14px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+  border:1px solid rgba(255,255,255,.07);position:relative;overflow:hidden;
+}
+.cxc::before{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--r);}
+.cxc.win{
+  border-color:color-mix(in srgb,var(--a) 62%,transparent);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--a) 42%,transparent),0 0 22px color-mix(in srgb,var(--a) 26%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--a) 13%,transparent),rgba(255,255,255,.02));
+}
+.cxc .v{font-size:15px;font-weight:700;letter-spacing:-.02em;color:#fff;line-height:1;}
+.cxc .u{font-size:10px;color:var(--ink-3);}
+.cxreel::before,.cxreel::after{
+  content:"";position:absolute;top:0;bottom:0;width:44px;z-index:2;pointer-events:none;
+}
+.cxreel::before{left:0;background:linear-gradient(90deg,var(--card),transparent);}
+.cxreel::after{right:0;background:linear-gradient(270deg,var(--card),transparent);}
+.cxmark{
+  position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%);z-index:3;
+  background:linear-gradient(180deg,transparent,var(--a),transparent);
+  box-shadow:0 0 14px color-mix(in srgb,var(--a) 60%,transparent);
+}
+.cxreel.hit{animation:cShake .45s cubic-bezier(.36,.07,.19,.97);}
+
+/* таблица шансов — открыта до нажатия, поэтому шансы честно видны заранее */
+/* шесть строк делят высоту и ужимаются вместе с экраном: шансы обещаны
+   пользователю до открытия, значит должны быть видны без прокрутки */
+.cxodds{
+  flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;gap:5px;
+}
+.cxrow{
+  flex:1 1 auto;min-height:31px;max-height:46px;
+  display:flex;align-items:center;gap:11px;padding:0 12px;border-radius:13px;
+  background:var(--card);border:1px solid var(--line);transition:border-color .2s,background .2s;
+}
+.cxrow.won{border-color:color-mix(in srgb,var(--a) 55%,transparent);background:color-mix(in srgb,var(--a) 9%,transparent);}
+.cxrow .d{width:4px;height:19px;border-radius:99px;background:var(--r);flex:0 0 auto;}
+.cxrow .r{font-size:12.5px;color:var(--ink-2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cxrow .a{font-size:13.5px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:4px;flex:0 0 auto;}
+.cxrow .p{font-size:12px;font-weight:600;color:var(--ink-3);width:44px;text-align:right;flex:0 0 auto;}
+/* на низких экранах уступают лента и шапка кейса, но не таблица шансов */
+@media (max-height:664px){
+  .cxhero{height:64px;}
+  .cxhero .cemb{width:44px;height:44px;}
+  .cxh .n{font-size:16.5px;}
+  .cxreel{height:72px;}
+  .cxc{height:60px;width:60px;}
+  .cxc .v{font-size:13.5px;}
+  .cxodds{gap:4px;}
+  .cxrow{min-height:30px;}
+}
+
 .share{display:flex;height:8px;border-radius:99px;overflow:hidden;gap:2px;flex:0 0 auto;}
 .share i{display:block;transition:width .45s cubic-bezier(.2,0,0,1);}
 
@@ -771,7 +901,8 @@ button.srow:active{transform:scale(.985);}
   .page.on{flex:0 0 auto;overflow:visible;}
   .earn{flex:0 0 auto;}
   .stats,.acts,.mini{flex:0 0 auto;}
-  .cplayers,.plist{overflow:visible;}
+  .cplayers,.plist,.clist,.cxodds{overflow:visible;}
+  .cxrow{max-height:none;}
   /* навигация снова плавающая, иначе до неё пришлось бы доскроллить */
   .nav{
     position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + var(--sab));
@@ -938,6 +1069,49 @@ button.srow:active{transform:scale(.985);}
         </span>
         <span class="gx"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
       </button>
+
+      <button class="gcard" id="goCases">
+        <span class="halo"></span>
+        <span class="gi">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.2 12 4l9 4.2v7.6L12 20l-9-4.2z"/><path d="M3 8.2 12 12.4l9-4.2M12 12.4V20"/></svg>
+        </span>
+        <span class="gb">
+          <span class="gt" data-i18n="g_cases">Кейсы</span>
+          <span class="gd" data-i18n="g_cases_d">Пять кейсов со звёздами — шансы известны заранее</span>
+        </span>
+        <span class="gx"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+      </button>
+    </div>
+
+    <!-- список кейсов -->
+    <div class="gview" id="gCases">
+      <div class="ghead">
+        <button class="bk" data-back aria-label="Назад"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <span class="t" data-i18n="g_cases">Кейсы</span>
+      </div>
+      <div class="clist" id="kList"></div>
+    </div>
+
+    <!-- открытие кейса -->
+    <div class="gview" id="gCase">
+      <div class="ghead">
+        <button class="bk" id="kBack" aria-label="Назад"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <span class="t" id="kTitle">Spark</span>
+        <span class="cprice" id="kPriceTag"></span>
+      </div>
+      <div class="cxhero" id="kHero">
+        <span class="cemb" id="kEmb"></span>
+        <span class="cxh">
+          <span class="n" id="kName">Spark</span>
+          <span class="s" id="kSub"></span>
+        </span>
+      </div>
+      <div class="cxreel" id="kReel">
+        <div class="cxtrack" id="kTrack"></div>
+        <div class="cxmark"></div>
+      </div>
+      <div class="cxodds" id="kOdds"></div>
+      <button class="btn-buy" id="kGo"></button>
     </div>
 
     <!-- Краш -->
@@ -1266,6 +1440,8 @@ button.srow:active{transform:scale(.985);}
       <p data-i18n="r_p4">Минимальная сумма — 50 ★.</p>
       <h4 data-i18n="r_h5">Игры</h4>
       <p data-i18n="r_p5">Краш: ставка делается в фазе ожидания.</p>
+      <h4 data-i18n="r_h6">Кейсы</h4>
+      <p data-i18n="r_p6">Пять кейсов с разной ценой открытия.</p>
     </div>
     <button class="btn-buy" id="rlOk" data-i18n="r_ok">Понятно</button>
   </div>
@@ -1445,10 +1621,16 @@ ru:{
  sup_title:'Поддержка', sup_desc:'Ответим на любой вопрос по начислениям,<br>выводу и бустам',
  sup_write:'Написать', copy_rights:'Все права защищены',
  r_title:'Правила', r_ok:'Понятно',
+ g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
+ k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 от цены · шансы ниже',
+ k_open:'Открыть за {n} ★', k_opening:'Открываем…', k_again:'Открыть ещё · {n} ★',
+ k_got:'Выпало {n} ★ · {r}', k_chance:'Шанс',
+ k_r1:'Обычный', k_r2:'Необычный', k_r3:'Редкий', k_r4:'Эпический', k_r5:'Легендарный', k_r6:'Мифический',
  r_h1:'Начисления', r_p1:'Доход идёт с баланса по текущей ставке доходности. Начисление происходит каждые 3 секунды, сумма за сутки равна балансу, умноженному на ставку.',
  r_h2:'Мощность', r_p2:'Мощность показывает, сколько вычислений покупает ваш вклад. Она растёт вместе с балансом и со ставкой доходности, поэтому меняется и при пополнении, и при покупке уровня.',
  r_h3:'Уровни доходности', r_p3:'Уровень задаёт ставку целиком, а не прибавляет к текущей. Купленный уровень действует постоянно. Уровни ниже текущего недоступны — понизить ставку покупкой нельзя.',
  r_h4:'Вывод', r_p4:'Минимальная сумма — 50 ★. Комиссия одинаковая для обоих способов — 5% от суммы вывода. Вывод в Stars идёт на указанный Telegram-аккаунт, вывод в TON — на кошелёк по курсу 1 ★ = 0.01 TON.',
+ r_h6:'Кейсы', r_p6:'Пять кейсов с разной ценой открытия: Spark 20 ★, Neon 50 ★, Crystal 100 ★, Royal 200 ★, Legend 500 ★. В каждом шесть вариантов выигрыша — от 5% цены до пятикратной цены, — и шанс каждого написан рядом до открытия. Вариант выпадает случайно ровно с этим шансом, лента лишь показывает результат.',
  r_h5:'Игры', r_p5:'Краш: ставка делается в фазе ожидания, забрать можно в любой момент до обрыва. Точка обрыва определяется до старта раунда. ПВП: доля в общем банке равна шансу на победу, победитель забирает банк целиком.',
  mln:' млн', mlrd:' млрд'
 },
@@ -1490,10 +1672,16 @@ en:{
  sup_title:'Support', sup_desc:'We answer any question about payouts,<br>withdrawals and boosts',
  sup_write:'Write to us', copy_rights:'All rights reserved',
  r_title:'Rules', r_ok:'Got it',
+ g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
+ k_range:'{a} – {b} ★', k_max:'max ×{m}', k_hero:'Top drop is ×5 the price · odds below',
+ k_open:'Open for {n} ★', k_opening:'Opening…', k_again:'Open again · {n} ★',
+ k_got:'You got {n} ★ · {r}', k_chance:'Chance',
+ k_r1:'Common', k_r2:'Uncommon', k_r3:'Rare', k_r4:'Epic', k_r5:'Legendary', k_r6:'Mythic',
  r_h1:'Payouts', r_p1:'Income comes from your balance at the current daily rate. Payouts happen every 3 seconds, and the daily total equals your balance times the rate.',
  r_h2:'Power', r_p2:'Power shows how much computation your deposit buys. It grows with both your balance and your daily rate, so it changes when you top up and when you buy a tier.',
  r_h3:'Rate tiers', r_p3:'A tier sets the rate outright rather than adding to it. A purchased tier is permanent. Tiers below your current rate are unavailable — buying cannot lower your rate.',
  r_h4:'Withdrawal', r_p4:'The minimum is 50 ★. The fee is the same either way — 5% of the withdrawal. Stars go to the given Telegram account; TON goes to a wallet at 1 ★ = 0.01 TON.',
+ r_h6:'Cases', r_p6:'Five cases with different prices: Spark 20 ★, Neon 50 ★, Crystal 100 ★, Royal 200 ★, Legend 500 ★. Each holds six outcomes — from 5% of the price up to five times the price — and every chance is printed next to it before you open. The outcome is drawn at exactly that chance; the reel only shows the result.',
  r_h5:'Games', r_p5:'Crash: you bet during the waiting phase and can cash out any moment before the bust. The bust point is fixed before the round starts. PvP: your share of the pot is your chance to win, and the winner takes the whole pot.',
  mln:'M', mlrd:'B'
 },
@@ -1535,10 +1723,16 @@ uk:{
  sup_title:'Підтримка', sup_desc:'Відповімо на будь-яке питання щодо нарахувань,<br>виведення та бустів',
  sup_write:'Написати', copy_rights:'Всі права захищені',
  r_title:'Правила', r_ok:'Зрозуміло',
+ g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
+ k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 від ціни · шанси нижче',
+ k_open:'Відкрити за {n} ★', k_opening:'Відкриваємо…', k_again:'Відкрити ще · {n} ★',
+ k_got:'Випало {n} ★ · {r}', k_chance:'Шанс',
+ k_r1:'Звичайний', k_r2:'Незвичайний', k_r3:'Рідкісний', k_r4:'Епічний', k_r5:'Легендарний', k_r6:'Міфічний',
  r_h1:'Нарахування', r_p1:'Дохід нараховується з балансу за поточною ставкою дохідності. Нарахування відбувається кожні 3 секунди, сума за добу дорівнює балансу, помноженому на ставку.',
  r_h2:'Потужність', r_p2:'Потужність показує, скільки обчислень купує ваш вклад. Вона зростає разом із балансом і зі ставкою дохідності, тому змінюється і при поповненні, і при купівлі рівня.',
  r_h3:'Рівні дохідності', r_p3:'Рівень задає ставку цілком, а не додає до поточної. Куплений рівень діє постійно. Рівні нижчі за поточний недоступні — знизити ставку купівлею не можна.',
  r_h4:'Виведення', r_p4:'Мінімальна сума — 50 ★. Комісія однакова для обох способів — 5% від суми виведення. Виведення у Stars іде на вказаний Telegram-акаунт, виведення у TON — на гаманець за курсом 1 ★ = 0.01 TON.',
+ r_h6:'Кейси', r_p6:'П’ять кейсів із різною ціною відкриття: Spark 20 ★, Neon 50 ★, Crystal 100 ★, Royal 200 ★, Legend 500 ★. У кожному шість варіантів виграшу — від 5% ціни до п’ятикратної ціни, — і шанс кожного написано поруч до відкриття. Варіант випадає випадково рівно з цим шансом, стрічка лише показує результат.',
  r_h5:'Ігри', r_p5:'Краш: ставка робиться у фазі очікування, забрати можна будь-якої миті до обриву. Точка обриву визначається до старту раунду. ПВП: частка у спільному банку дорівнює шансу на перемогу, переможець забирає банк цілком.',
  mln:' млн', mlrd:' млрд'
 }};
@@ -1954,7 +2148,8 @@ function makeSheet(wrapId, topId, opts){
   function num(v){ v=parseFloat(String(v).replace(/\s/g,'').replace(',','.')); return isFinite(v)&&v>0?v:0; }
 
   var views={list:document.getElementById('gList'),crash:document.getElementById('gCrash'),
-             pvp:document.getElementById('gPvp')};
+             pvp:document.getElementById('gPvp'),cases:document.getElementById('gCases'),
+             kase:document.getElementById('gCase')};
   function view(k){
     for(var n in views) views[n].classList.toggle('on',n===k);
   }
@@ -1963,10 +2158,12 @@ function makeSheet(wrapId, topId, opts){
   });
   /* уход на другую вкладку тоже должен гасить цикл раундов */
   document.querySelectorAll('.tab').forEach(function(t){
-    t.addEventListener('click',function(){ if(t.dataset.p!=='games'){ Crash.leave(); Pvp.leave(); } });
+    t.addEventListener('click',function(){ if(t.dataset.p!=='games'){ Crash.leave(); Pvp.leave(); Cases.leave(); } });
   });
   document.getElementById('goCrash').addEventListener('click',function(){ haptic('medium'); view('crash'); Crash.enter(); });
   document.getElementById('goPvp').addEventListener('click',function(){ haptic('medium'); view('pvp'); Pvp.enter(); });
+  document.getElementById('goCases').addEventListener('click',function(){ haptic('medium'); view('cases'); Cases.list(); });
+  document.getElementById('kBack').addEventListener('click',function(){ haptic('light'); Cases.leave(); view('cases'); });
 
   /* ─────────── КРАШ ───────────
      Точка обрыва берётся до старта по формуле 0.97/(1−r): у неё
@@ -2396,6 +2593,202 @@ function makeSheet(wrapId, topId, opts){
       enter:function(){ if(live) return; live=true; x=0; apply(); newRound(); raf=requestAnimationFrame(drift); },
       leave:function(){ live=false; if(raf) cancelAnimationFrame(raf);
         if(tmr) clearInterval(tmr); if(botTimer) clearInterval(botTimer); }
+    };
+  })();
+
+  /* ─────────── КЕЙСЫ ───────────
+     Механика лент как в CS:GO: сначала честно разыгрывается результат
+     по объявленным шансам, и только потом лента подводится к нужной
+     карточке. Порядок именно такой — иначе анимация решала бы исход.
+
+     Шесть исходов в каждом кейсе идут долями цены: 0.05 · 0.3 · 0.7 ·
+     1.2 · 2.5 · 5. Шансы общие для всех кейсов, поэтому возврат к
+     ставке одинаковый — около 87% — независимо от того, что открываешь. */
+  var Cases=(function(){
+    var ODDS=[18,22,24,25,9,2];                              // проценты, в сумме 100
+    var RAR=['#8A8A93','#6E9BD0','#8B7BE0','#C176D4','#D96E7E','#E4C078'];
+
+    var EMB={
+      spark:'<path d="M12 2.4 14.1 9.9 21.6 12l-7.5 2.1L12 21.6 9.9 14.1 2.4 12l7.5-2.1z" fill="currentColor"/>',
+      neon:'<path d="M12 2.6 21.4 12 12 21.4 2.6 12z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M13 7.4 9 13.1h2.7L11 16.8l4-5.7h-2.7z" fill="currentColor"/>',
+      crystal:'<path d="M7.4 3.2h9.2l4 5.9L12 20.8 3.4 9.1z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M3.4 9.1h17.2M7.4 3.2l1.8 5.9L12 20.8l2.8-11.7 1.8-5.9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" opacity=".65"/>',
+      royal:'<path d="M3.1 7.9 7 11.6 12 3.9l5 7.7 3.9-3.7L18.9 19H5.1z" fill="currentColor"/><path d="M5.4 20.9h13.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+      legend:'<path d="M12 2.1 14.8 8 21.3 8.9 16.6 13.4 17.8 19.9 12 16.8 6.2 19.9 7.4 13.4 2.7 8.9 9.2 8z" fill="currentColor"/><path d="M12 21.4v1.4M2.2 12H.8M23.2 12h-1.4M4.9 4.9 3.9 3.9M19.1 4.9l1-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".7"/>'
+    };
+
+    /* значения подогнаны под объявленные границы кейса, поэтому
+       выписаны явно, а не считаются из цены */
+    var CASES=[
+      {id:'spark',   name:'Spark',   price:20,  a:'#E4C078', drops:[1,6,14,24,50,100]},
+      {id:'neon',    name:'Neon',    price:50,  a:'#9B8CFF', drops:[2,15,35,60,125,250]},
+      {id:'crystal', name:'Crystal', price:100, a:'#5CD6C0', drops:[5,30,70,120,250,500]},
+      {id:'royal',   name:'Royal',   price:200, a:'#F2D28C', drops:[10,60,140,240,500,1000]},
+      {id:'legend',  name:'Legend',  price:500, a:'#F7E3A8', drops:[25,150,350,600,1250,2500]}
+    ];
+
+    var listEl=document.getElementById('kList'), reel=document.getElementById('kReel'),
+        track=document.getElementById('kTrack'), oddsEl=document.getElementById('kOdds'),
+        goBtn=document.getElementById('kGo'),
+        titleEl=document.getElementById('kTitle'), nameEl=document.getElementById('kName'),
+        subEl=document.getElementById('kSub'), embEl=document.getElementById('kEmb'),
+        tagEl=document.getElementById('kPriceTag');
+
+    /* ширина карточки зависит от высоты экрана (медиазапрос), поэтому
+       шаг ленты меряем по факту — иначе на низких экранах лента промахнётся */
+    var GAP=8, CW=66, PITCH=CW+GAP;
+    var cur=null, x=0, spinning=false, raf=null, cells=[], lastWin=-1, watch=null;
+    function measure(){
+      if(cells.length) CW=cells[0].el.offsetWidth||CW;
+      PITCH=CW+GAP;
+    }
+    function center(){ return reel.clientWidth/2-CW/2; }
+
+    function emb(c,size){
+      return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" aria-hidden="true">'+EMB[c.id]+'</svg>';
+    }
+    function star(sz){
+      return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>';
+    }
+    function roll(){
+      var r=Math.random()*100, acc=0;
+      for(var i=0;i<ODDS.length;i++){ acc+=ODDS[i]; if(r<acc) return i; }
+      return ODDS.length-1;
+    }
+
+    /* ── список кейсов ── */
+    function renderList(){
+      listEl.innerHTML='';
+      CASES.forEach(function(c){
+        var b=document.createElement('button');
+        b.className='ccard'; b.style.setProperty('--a',c.a);
+        b.innerHTML='<span class="cemb">'+emb(c,25)+'</span>'+
+          '<span class="cbody">'+
+            '<span class="cname">'+c.name+'</span>'+
+            '<span class="crange"><i>'+t('k_range',{a:fmtInt(c.drops[0]),b:fmtInt(c.drops[5])})+'</i>'+
+              '<b>'+t('k_max',{m:Math.round(c.drops[5]/c.price)})+'</b></span>'+
+          '</span>'+
+          '<span class="cprice">'+fmtInt(c.price)+' '+star(12)+'</span>';
+        b.addEventListener('click',function(){ haptic('medium'); open(c); });
+        listEl.appendChild(b);
+      });
+    }
+
+    /* ── экран одного кейса ── */
+    function renderOdds(){
+      oddsEl.innerHTML='';
+      cur.drops.forEach(function(v,i){
+        var row=document.createElement('div');
+        row.className='cxrow'+(i===lastWin?' won':'');
+        row.style.setProperty('--r',RAR[i]);
+        row.innerHTML='<i class="d"></i><span class="r">'+t('k_r'+(i+1))+'</span>'+
+          '<span class="a">'+fmtInt(v)+' '+star(12)+'</span>'+
+          '<span class="p">'+ODDS[i]+'%</span>';
+        oddsEl.appendChild(row);
+      });
+    }
+    function buildTrack(){
+      track.innerHTML=''; cells=[];
+      for(var i=0;i<72;i++){
+        var tier=roll(), d=document.createElement('div');
+        d.className='cxc'; d.style.setProperty('--r',RAR[tier]);
+        d.innerHTML='<span class="v">'+fmtInt(cur.drops[tier])+'</span><span class="u">'+star(11)+'</span>';
+        track.appendChild(d); cells.push({el:d,tier:tier});
+      }
+      measure();
+    }
+    function setCell(k,tier){
+      var c=cells[k]; if(!c) return;
+      c.tier=tier; c.el.style.setProperty('--r',RAR[tier]);
+      c.el.querySelector('.v').textContent=fmtInt(cur.drops[tier]);
+    }
+    function apply(){ track.style.transform='translate3d('+x+'px,0,0)'; }
+
+    function updBtn(){
+      if(spinning){ goBtn.disabled=true; goBtn.textContent=t('k_opening'); return; }
+      goBtn.disabled = bal < cur.price;
+      goBtn.textContent = goBtn.disabled ? t('no_stars')
+        : (lastWin>=0 ? t('k_again',{n:fmtInt(cur.price)}) : t('k_open',{n:fmtInt(cur.price)}));
+    }
+
+    function open(c){
+      cur=c; lastWin=-1; spinning=false;
+      views.kase.style.setProperty('--a',c.a);
+      titleEl.textContent=c.name; nameEl.textContent=c.name;
+      subEl.style.color=''; subEl.textContent=t('k_hero');
+      embEl.innerHTML=emb(c,26);
+      tagEl.innerHTML=fmtInt(c.price)+' '+star(12);
+      buildTrack(); renderOdds();
+      x=-(6*PITCH)+center(); apply();
+      updBtn();
+      view('kase');
+      /* баланс капает сам по себе — кнопка должна разблокироваться
+         в тот момент, когда звёзд наконец хватило */
+      clearInterval(watch); watch=setInterval(function(){ if(!spinning) updBtn(); },1000);
+    }
+
+    function spin(){
+      if(spinning||!cur) return;
+      if(bal<cur.price){ haptic('warning'); return; }
+      bal-=cur.price; spinning=true; lastWin=-1;
+      cells.forEach(function(c){ c.el.classList.remove('win'); });
+      subEl.style.color=''; subEl.textContent=t('k_opening');
+      renderOdds(); updBtn(); haptic('medium');
+
+      measure();
+      var win=roll();                                  // исход решён до анимации
+      var from=Math.round((center()-x)/PITCH);
+      var k=from+38+Math.floor(Math.random()*10);
+      if(k>=cells.length-4){ buildTrack(); from=6; x=-(from*PITCH)+center(); apply();
+                             k=from+38+Math.floor(Math.random()*10); }
+      setCell(k,win);
+
+      // остановка чуть мимо центра — так лента выглядит живой, а не защёлкнутой
+      var off=(Math.random()*2-1)*(CW*0.32);
+      var c0=center();
+      var x0=x, x1=-(k*PITCH)+c0+off, T=4600, t0=performance.now(), tick=from;
+
+      cancelAnimationFrame(raf);
+      (function step(now){
+        var e=Math.min(1,(now-t0)/T), p=1-Math.pow(1-e,3.6);
+        x=x0+(x1-x0)*p; apply();
+        var idx=Math.round((c0-x)/PITCH);
+        if(idx!==tick){ tick=idx; if(e>0.68){ haptic('light'); beep(900,0.03,0.025,'square'); } }
+        if(e<1) raf=requestAnimationFrame(step); else land(win,k,off);
+      })(performance.now());
+    }
+
+    function land(win,k,off){
+      // доводим до точного центра карточки, чтобы отметка не висела на краю
+      x=-(k*PITCH)+center()+off*0.35; apply();
+      spinning=false; lastWin=win;
+      if(cells[k]) cells[k].el.classList.add('win');
+      var amt=cur.drops[win];
+      bal+=amt;
+      reel.classList.remove('hit'); void reel.offsetWidth; reel.classList.add('hit');
+      subEl.style.color=RAR[win];
+      subEl.textContent=t('k_got',{n:fmtInt(amt),r:t('k_r'+(win+1))});
+      renderOdds(); updBtn();
+      if(win>=4){ haptic('success'); beep(1180,0.16,0.05,'triangle'); }
+      else if(amt>=cur.price){ haptic('success'); beep(880,0.1,0.04,'triangle'); }
+      else haptic('warning');
+    }
+
+    goBtn.addEventListener('click',spin);
+
+    RERENDER.push(function(){
+      renderList();
+      if(cur){
+        subEl.textContent = lastWin>=0
+          ? t('k_got',{n:fmtInt(cur.drops[lastWin]),r:t('k_r'+(lastWin+1))})
+          : t('k_hero');
+        renderOdds(); updBtn();
+      }
+    });
+
+    return {
+      list:function(){ renderList(); },
+      leave:function(){ if(raf) cancelAnimationFrame(raf); clearInterval(watch);
+                        spinning=false; if(cur) updBtn(); }
     };
   })();
 })();
