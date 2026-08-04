@@ -927,7 +927,7 @@ button.srow:active{transform:scale(.985);}
   .page.on{flex:0 0 auto;overflow:visible;}
   .earn{flex:0 0 auto;}
   .stats,.acts,.mini{flex:0 0 auto;}
-  .cplayers,.plist,.clist,.cxodds{overflow:visible;}
+  .cplayers,.plist,.clist,.cxodds,.tprows{overflow:visible;}
   .cxrow{max-height:none;}
   /* навигация снова плавающая, иначе до неё пришлось бы доскроллить */
   .nav{
@@ -1039,6 +1039,77 @@ button.srow:active{transform:scale(.985);}
   background:var(--gold);box-shadow:0 0 8px var(--gold-glow);display:none;
 }
 .tab.has .tdot{display:block;}
+
+/* ─────────── Топ ─────────── */
+.tseg{
+  flex:0 0 auto;display:flex;gap:4px;padding:4px;border-radius:15px;
+  background:#0D0D0F;border:1px solid var(--line);
+}
+.tseg button{
+  flex:1;height:34px;border-radius:11px;font-size:12.5px;font-weight:700;
+  color:var(--ink-3);transition:background .22s,color .22s;
+}
+.tseg button.on{color:#150F04;background:linear-gradient(180deg,#F7E7C4,var(--gold));}
+
+/* высота по содержимому: при фиксированной колонка первого места
+   переполнялась и наезжала на список */
+.podium{
+  flex:0 0 auto;display:grid;grid-template-columns:1fr 1.14fr 1fr;align-items:end;gap:8px;
+}
+.pod{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;}
+.pod .av{
+  width:46px;height:46px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  font-size:17px;font-weight:800;color:#150F04;position:relative;
+}
+.pod.p1 .av{width:56px;height:56px;font-size:20px;box-shadow:0 0 0 2px var(--gold),0 0 22px rgba(228,192,120,.32);}
+.pod .nm{
+  font-size:12px;font-weight:600;max-width:100%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.pod .vl{font-size:12.5px;font-weight:700;color:var(--gold);display:flex;align-items:center;gap:3px;}
+.pod .bar{
+  width:100%;border-radius:14px 14px 0 0;border:1px solid var(--line);border-bottom:0;
+  display:grid;place-items:center;font-size:19px;font-weight:800;color:var(--ink-3);
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012));
+}
+.pod.p1 .bar{height:64px;color:#150F04;background:linear-gradient(180deg,#F7E7C4,var(--gold));border-color:transparent;}
+.pod.p2 .bar{height:46px;}
+.pod.p3 .bar{height:34px;}
+
+.tprows{
+  flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;gap:6px;
+}
+.tprow{
+  flex:0 0 auto;display:flex;align-items:center;gap:11px;padding:9px 13px;border-radius:15px;
+  background:var(--card);border:1px solid var(--line);
+}
+.tprow .pl{width:22px;flex:0 0 auto;font-size:12.5px;font-weight:700;color:var(--ink-3);text-align:center;}
+.tprow .av{
+  width:32px;height:32px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+  font-size:13px;font-weight:800;color:#150F04;
+}
+.tprow .nm{flex:1;min-width:0;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tprow .vl{flex:0 0 auto;font-size:13px;font-weight:700;display:flex;align-items:center;gap:4px;}
+
+.tpme{
+  flex:0 0 auto;display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:17px;
+  background:linear-gradient(168deg,rgba(228,192,120,.12),rgba(255,255,255,.015));
+  border:1px solid rgba(228,192,120,.3);
+}
+.tpme .pl{width:22px;flex:0 0 auto;font-size:13px;font-weight:800;color:var(--gold);text-align:center;}
+.tpme .av{
+  width:34px;height:34px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+  font-size:14px;font-weight:800;color:#150F04;background:linear-gradient(180deg,#F7E7C4,var(--gold));
+}
+.tpme .nm{flex:1;min-width:0;font-size:14px;font-weight:700;}
+.tpme .vl{flex:0 0 auto;font-size:14px;font-weight:700;color:var(--gold);display:flex;align-items:center;gap:4px;}
+
+@media (max-height:664px){
+  .pod .av{width:40px;height:40px;font-size:15px;}
+  .pod.p1 .av{width:48px;height:48px;font-size:17px;}
+  .pod.p1 .bar{height:50px;} .pod.p2 .bar{height:36px;} .pod.p3 .bar{height:26px;}
+}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 </style>
@@ -1359,9 +1430,16 @@ button.srow:active{transform:scale(.985);}
     </div>
   </div>
 
-  <div class="page" id="p-top"><div class="soon">
-    <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20v-7M12 20V5M19 20v-4.5"/></svg></span>
-    <h3 data-i18n="nav_top">Топ</h3><p data-i18n="soon">Раздел откроется в следующем обновлении</p></div></div>
+  <div class="page" id="p-top">
+    <div class="tseg" id="tpSeg">
+      <button type="button" data-per="d" class="on" data-i18n="tp_day">День</button>
+      <button type="button" data-per="w" data-i18n="tp_week">Неделя</button>
+      <button type="button" data-per="a" data-i18n="tp_all">Всё время</button>
+    </div>
+    <div class="podium" id="tpPod"></div>
+    <div class="tprows" id="tpList"></div>
+    <div class="tpme" id="tpMe"></div>
+  </div>
 
   <div class="page" id="p-me">
     <div class="pscroll">
@@ -1799,6 +1877,7 @@ ru:{
  tk_case:'Открыть кейс', tk_crash:'Сыграть в Краш',
  tk_pvp:'Сыграть в ПВП', tk_wd:'Вывести звёзды',
  tk_all:'Все задания выполнены', tk_got:'Начислено {n} ★',
+ tp_day:'День', tp_week:'Неделя', tp_all:'Всё время',
  g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 от цены · шансы ниже',
  k_open:'Открыть за {n} ★', k_opening:'Открываем…', k_again:'Открыть ещё · {n} ★',
@@ -1859,6 +1938,7 @@ en:{
  tk_case:'Open a case', tk_crash:'Play Crash',
  tk_pvp:'Play PvP', tk_wd:'Withdraw stars',
  tk_all:'All tasks completed', tk_got:'{n} ★ credited',
+ tp_day:'Day', tp_week:'Week', tp_all:'All time',
  g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
  k_range:'{a} – {b} ★', k_max:'max ×{m}', k_hero:'Top drop is ×5 the price · odds below',
  k_open:'Open for {n} ★', k_opening:'Opening…', k_again:'Open again · {n} ★',
@@ -1919,6 +1999,7 @@ uk:{
  tk_case:'Відкрити кейс', tk_crash:'Зіграти в Краш',
  tk_pvp:'Зіграти в ПВП', tk_wd:'Вивести зірки',
  tk_all:'Усі завдання виконано', tk_got:'Нараховано {n} ★',
+ tp_day:'День', tp_week:'Тиждень', tp_all:'Увесь час',
  g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 від ціни · шанси нижче',
  k_open:'Відкрити за {n} ★', k_opening:'Відкриваємо…', k_again:'Відкрити ще · {n} ★',
@@ -2203,14 +2284,39 @@ var SAVED=(function(){
     if(!isFinite(t)||t<=0) t=0;
     var tk=(o.tk && typeof o.tk==='object') ? o.tk : {};
     var dl=(o.dl && typeof o.dl==='object') ? o.dl : {};
+    var mn=(o.mn && typeof o.mn==='object') ? o.mn : {};
+    var num=function(v){ v=+v; return isFinite(v)&&v>0 ? v : 0; };
     return {bal:b, y:y, seen:t, tk:tk,
-            dl:{streak:Math.max(0,Math.min(7,+dl.streak||0)), last:String(dl.last||'')}};
+            dl:{streak:Math.max(0,Math.min(7,+dl.streak||0)), last:String(dl.last||'')},
+            mn:{d:{k:String((mn.d&&mn.d.k)||''), v:num(mn.d&&mn.d.v)},
+                w:{k:String((mn.w&&mn.w.k)||''), v:num(mn.w&&mn.w.v)},
+                a:num(mn.a)}};
   }catch(e){ return null; }
 })();
 
 /* Прогресс заданий: {id:'go'|'ready'|'got'} и серия ежедневных входов */
 var TK = SAVED ? SAVED.tk : {};
 var DL = SAVED ? SAVED.dl : {streak:0, last:''};
+
+/* Намайнено за день, неделю и всё время — метрика для таблицы лидеров.
+   Считаем только доход с майнинга: выигрыши и награды туда не идут. */
+var MN = SAVED ? SAVED.mn : {d:{k:'',v:0}, w:{k:'',v:0}, a:0};
+function dayKey(d){ d=d||new Date();
+  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function weekKey(d){
+  d=new Date(d||Date.now());
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate()+4-(d.getDay()||7));                 // четверг той же недели
+  var y0=new Date(d.getFullYear(),0,1);
+  return d.getFullYear()+'w'+Math.ceil(((d-y0)/86400000+1)/7);
+}
+function addMined(x){
+  if(!(x>0)) return;
+  var dk=dayKey(), wk=weekKey();
+  if(MN.d.k!==dk){ MN.d.k=dk; MN.d.v=0; }
+  if(MN.w.k!==wk){ MN.w.k=wk; MN.w.v=0; }
+  MN.d.v+=x; MN.w.v+=x; MN.a+=x;
+}
 
 var bal = SAVED ? SAVED.bal : 0;       // новый пользователь начинает с нуля
 var YIELD_PCT = SAVED ? SAVED.y : 1.00; // %/день; растёт от купленных бустов
@@ -2223,13 +2329,13 @@ if(SAVED && SAVED.seen && bal>0){
   if(gap > 5){                       // отрицательный разрыв = съехавшие часы, молчим
     OFFLINE_SEC = Math.min(gap, OFFLINE_CAP);
     OFFLINE_GAIN = bal*(YIELD_PCT/100)/86400*OFFLINE_SEC;
-    bal += OFFLINE_GAIN;
+    bal += OFFLINE_GAIN; addMined(OFFLINE_GAIN);
   }
 }
 
 function saveState(){
   try{ localStorage.setItem(SKEY, JSON.stringify({v:1, bal:bal, y:YIELD_PCT, seen:Date.now(),
-                                                   tk:TK, dl:DL})); }catch(e){}
+                                                   tk:TK, dl:DL, mn:MN})); }catch(e){}
 }
 
 /* Сколько намайнено за `sec` секунд простоя при текущем балансе и ставке */
@@ -2324,7 +2430,7 @@ document.addEventListener('visibilitychange', function(){   // событие п
   var gap=(Date.now()-_hiddenAt)/1000; _hiddenAt=0;
   if(gap<=5 || bal<=0) return;
   var sec=Math.min(gap, OFFLINE_CAP), gain=awayGain(sec);
-  bal+=gain; recalc(); saveState();
+  bal+=gain; addMined(gain); recalc(); saveState();
   showAway(gain, sec);
 });
 document.getElementById('wBack').addEventListener('click', hideAway);
@@ -2334,7 +2440,7 @@ document.getElementById('wBack').addEventListener('click', hideAway);
   function frame(now){
     if(document.hidden){ last=now; requestAnimationFrame(frame); return; }
     var dt = Math.min(0.05, (now-last)/1000); last = now;
-    bal += RATE*dt; acc += dt; cyc += dt;
+    bal += RATE*dt; addMined(RATE*dt); acc += dt; cyc += dt;
 
     if(acc >= 1/15){
       var s = fmt(bal);
@@ -3739,6 +3845,120 @@ var Tasks = (function(){
   renderDaily(); renderList();
 
   return { done:done, refresh:function(){ renderDaily(); renderList(); } };
+})();
+
+/* ══════════════════════════════════════════════════════
+   ТОП
+   Соперники детерминированные: сид собирается из периода, поэтому
+   таблица не перетасовывается при каждом открытии, а сама неделя
+   отличается ото дня. Место игрока честное — по намайненному.
+   ══════════════════════════════════════════════════════ */
+var Top = (function(){
+  var NAMES={
+    ru:['Никита','Амир','Влад','Максим','Артём','Оля','Женя','Дима','Илья','Тимур','Паук','Нексус',
+        'Самира','Вадим','Фирюза','Рагнар','Артур','Данила','Марк','Лера','Сева','Рома','Кира','Глеб'],
+    uk:['Микита','Амір','Влад','Максим','Артем','Оля','Женя','Дмитро','Ілля','Тимур','Павук','Нексус',
+        'Саміра','Вадим','Фіруза','Рагнар','Артур','Данило','Марко','Лєра','Сева','Рома','Кіра','Гліб'],
+    en:['Nikita','Amir','Vlad','Max','Artem','Olly','Jane','Dima','Ilya','Timur','Spider','Nexus',
+        'Samira','Vadim','Firuza','Ragnar','Arthur','Daniel','Mark','Lera','Seva','Roma','Kira','Gleb']
+  };
+  var COLORS=['#8FA6C4','#C08A9E','#8FC4A8','#C4B08F','#A79AC4','#C49A8F','#9FC4BC','#C4C08F'];
+  var MED=['#E4C078','#B9C0CC','#C79A6E'];
+
+  var segEl=document.getElementById('tpSeg'), podEl=document.getElementById('tpPod'),
+      listEl=document.getElementById('tpList'), meEl=document.getElementById('tpMe');
+  var per='d';
+
+  function pool(){ return NAMES[LANG]||NAMES.ru; }
+  function star(sz,c){
+    return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="'+(c||'#E4C078')+'"/></svg>';
+  }
+  /* маленький детерминированный ГПСЧ: одинаковый сид — одинаковая таблица */
+  function rnd(seed){
+    var h=2166136261;
+    for(var i=0;i<seed.length;i++){ h^=seed.charCodeAt(i); h=Math.imul(h,16777619); }
+    return function(){
+      h+=0x6D2B79F5; var x=h;
+      x=Math.imul(x^x>>>15, x|1); x^=x+Math.imul(x^x>>>7, x|61);
+      return ((x^x>>>14)>>>0)/4294967296;
+    };
+  }
+  function myValue(){
+    return per==='d' ? MN.d.v : per==='w' ? MN.w.v : MN.a;
+  }
+  function seedKey(){
+    return per==='d' ? ('d'+dayKey()) : per==='w' ? ('w'+weekKey()) : 'all';
+  }
+  /* размах подобран под экономику: сутки при 1000 ★ и 7%/день дают ~70 ★,
+     поэтому вершина дня — тысячи, а не миллионы */
+  function scale(){ return per==='d' ? 1 : per==='w' ? 6.4 : 27; }
+
+  function build(){
+    var r=rnd(seedKey()), names=pool(), out=[];
+    for(var i=0;i<names.length;i++){
+      // тяжёлый верх: у первых мест отрыв заметный, хвост плотный
+      var q=Math.pow(r(), 2.2);
+      out.push({n:names[i], c:COLORS[i%COLORS.length], v:(28+q*4200)*scale()});
+    }
+    out.sort(function(a,b){ return b.v-a.v; });
+    return out;
+  }
+
+  function render(){
+    var rows=build(), mine=myValue();
+    var place=1;
+    for(var i=0;i<rows.length;i++){ if(rows[i].v>mine) place++; else break; }
+    rows.splice(place-1, 0, {n:t('you'), c:'var(--gold)', v:mine, me:true});
+
+    podEl.innerHTML='';
+    [1,0,2].forEach(function(i){                      // 2 · 1 · 3 — как на подиуме
+      var p=rows[i]; if(!p) return;
+      var el=document.createElement('div');
+      el.className='pod p'+(i+1);
+      el.innerHTML='<span class="av" style="background:'+(p.me?'linear-gradient(180deg,#F7E7C4,#E4C078)':p.c)+'">'+p.n.charAt(0)+'</span>'+
+        '<span class="nm"'+(p.me?' style="color:var(--gold)"':'')+'>'+p.n+'</span>'+
+        '<span class="vl" style="color:'+MED[i]+'">'+fmtInt(p.v)+' '+star(11,MED[i])+'</span>'+
+        '<span class="bar">'+(i+1)+'</span>';
+      podEl.appendChild(el);
+    });
+
+    listEl.innerHTML='';
+    rows.slice(3).forEach(function(p,i){
+      var el=document.createElement('div');
+      el.className='tprow';
+      el.innerHTML='<span class="pl">'+(i+4)+'</span>'+
+        '<span class="av" style="background:'+(p.me?'linear-gradient(180deg,#F7E7C4,#E4C078)':p.c)+'">'+p.n.charAt(0)+'</span>'+
+        '<span class="nm"'+(p.me?' style="color:var(--gold)"':'')+'>'+p.n+'</span>'+
+        '<span class="vl"'+(p.me?' style="color:var(--gold)"':'')+'>'+fmtInt(p.v)+' '+star(11)+'</span>';
+      listEl.appendChild(el);
+    });
+
+    meEl.innerHTML='<span class="pl">'+place+'</span>'+
+      '<span class="av">'+t('you').charAt(0)+'</span>'+
+      '<span class="nm">'+t('you')+'</span>'+
+      '<span class="vl">'+fmtInt(mine)+' '+star(12)+'</span>';
+  }
+
+  segEl.addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b || b.dataset.per===per) return;
+    haptic('light');
+    segEl.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+    b.classList.add('on'); per=b.dataset.per; render();
+  });
+
+  /* пока вкладка открыта, место игрока подтягивается вместе с балансом */
+  var tmr=null;
+  document.querySelectorAll('.tab').forEach(function(tb){
+    tb.addEventListener('click',function(){
+      clearInterval(tmr);
+      if(tb.dataset.p!=='top') return;
+      render(); tmr=setInterval(render,4000);
+    });
+  });
+
+  RERENDER.push(render);
+  render();
+  return { refresh:render };
 })();
 
 /* язык применяем последним — все модули уже зарегистрировали перерисовку */
