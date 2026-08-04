@@ -304,7 +304,7 @@ button.srow:active{transform:scale(.985);}
 .srow .nm{flex:1;min-width:0;font-size:14.5px;font-weight:600;}
 .lseg{display:flex;gap:4px;flex:0 0 auto;padding:3px;border-radius:12px;background:#0E0E10;border:1px solid var(--line);}
 .lseg button{
-  padding:6px 12px;border-radius:9px;font-size:12px;font-weight:800;letter-spacing:.04em;
+  padding:6px 10px;border-radius:9px;font-size:12px;font-weight:800;letter-spacing:.04em;
   color:var(--ink-3);transition:background .22s,color .22s;
 }
 .lseg button.on{color:#150F04;background:linear-gradient(180deg,#F7E7C4,var(--gold));}
@@ -1066,6 +1066,7 @@ button.srow:active{transform:scale(.985);}
         <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg></span>
         <span class="nm" data-i18n="set_lang">Язык</span>
         <span class="lseg" id="langSeg">
+          <button type="button" data-lang="uk">UA</button>
           <button type="button" data-lang="ru">RU</button>
           <button type="button" data-lang="en">EN</button>
         </span>
@@ -1383,10 +1384,10 @@ if (TG){ try{
    между сессиями. Вибрация включена по умолчанию, звук — нет: звук в
    мини-аппе навязчив, пусть будет осознанным выбором. */
 var PREFS = (function(){
-  var d={vibro:true, sound:false, lang:'ru'};
+  var d={vibro:true, sound:false, lang:null};
   try{ var raw=localStorage.getItem('starshash_prefs');
        if(raw){ var o=JSON.parse(raw); d.vibro=!!o.vibro; d.sound=!!o.sound;
-                if(o.lang==='ru'||o.lang==='en') d.lang=o.lang; } }catch(e){}
+                if(o.lang==='ru'||o.lang==='en'||o.lang==='uk') d.lang=o.lang; } }catch(e){}
   return d;
 })();
 function savePrefs(){ try{ localStorage.setItem('starshash_prefs',JSON.stringify(PREFS)); }catch(e){} }
@@ -1490,9 +1491,66 @@ en:{
  r_h4:'Withdrawal', r_p4:'The minimum is 50 ★. Withdrawing to Stars goes to the given Telegram account with no fee; withdrawing to TON goes to a wallet with a 5 ★ fee.',
  r_h5:'Games', r_p5:'Crash: you bet during the waiting phase and can cash out any moment before the bust. The bust point is fixed before the round starts. PvP: your share of the pot is your chance to win, and the winner takes the whole pot.',
  mln:'M', mlrd:'B'
+},
+uk:{
+ bal_cap:'Баланс', per_hour:'на годину', earn_l1:'Заробляєш зірки', per_hour_slash:'/ на годину',
+ next_in:'Наступне нарахування через', sec:'сек',
+ empty_hint:'Поповніть баланс,<br>щоб почати видобуток',
+ yield:'Дохідність', per_day:'на день', power:'Потужність', hash_rate:'hash rate',
+ topup:'Поповнити', withdraw:'Вивести', calc:'Калькулятор', bonus:'Бонуси', boost:'Буст',
+ nav_games:'Ігри', nav_tasks:'Завдання', nav_earn:'Заробіток', nav_top:'Топ', nav_me:'Профіль',
+ soon:'Розділ відкриється в наступному оновленні',
+ g_crash:'Краш', g_crash_d:'Множник зростає — встигни забрати до обриву',
+ g_pvp:'ПВП', g_pvp_d:'Ставки у спільний банк — переможець забирає все',
+ auto_cash:'Авто-виведення', round_live:'Раунд триває', round_over:'Раунд завершено',
+ waiting:'Очікування', next_round:'Наступний раунд', busted:'Обірвався',
+ players:'Гравці', bet_payout:'Ставка · виплата',
+ pot:'Спільний банк', wait_players:'Чекаємо гравців', draw_in:'Розіграш через {n} сек',
+ draw:'Розіграш', spinning:'Крутимо стрічку', drawing:'Розіграш…',
+ you:'Ви', you_in:'Ви у грі · {n} ★', you_in_wait:'Ви у грі · чекаємо розіграшу',
+ you_took:'Ви забрали банк', won_by:'Переміг {n}', win_amt:'Перемога · +{n} ★', lost_to:'Виграв {n}',
+ enter_battle:'Увійти в битву · {n} ★', place_bet:'Поставити {n} ★', bet_taken:'Ставку прийнято · {n} ★',
+ cash_out:'Забрати {n} ★', no_stars:'Недостатньо зірок',
+ shop_title:'Магазин бустів', shop_sub:'Постійні · ставка дохідності', active:'активний',
+ buy_for:'Купити за',
+ w_min:'Мін 50', w_amount:'Сума', w_avail:'Доступно:', w_max:'Макс', w_me:'Мені',
+ w_user_ph:'Telegram username', w_wallet_ph:'TON-гаманець отримувача',
+ w_enter_amt:'Введіть суму', w_receive:'Отримаєте', w_fee:'Комісія 5',
+ w_need_user:'Вкажіть Telegram username', w_need_wallet:'Вкажіть TON-гаманець',
+ w_min_msg:'Мінімальна сума виведення — {n} ★', w_no_funds:'Недостатньо зірок на балансі',
+ d_title:'Поповнити', d_amount:'Сума поповнення', d_after:'Стане після поповнення',
+ d_balance:'Баланс', d_power:'Потужність', d_income:'Дохід', d_go:'Поповнити на {n} ★',
+ c_deposit:'Сума вкладу', c_my_bal:'Мій баланс', c_term:'Термін', c_rate:'Ставка дохідності',
+ c_current:'Поточна', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 рік',
+ c_p7:'7 днів', c_p30:'30 днів', c_p90:'90 днів', c_py:'рік',
+ c_income_for:'Дохід за {n}', c_total:'Підсумковий баланс', c_avg:'У середньому на день',
+ c_boost_adds:'Додасть буст', c_done:'Готово',
+ set_title:'Налаштування', set_vibro:'Вібрація', set_sound:'Звук', set_rules:'Правила',
+ set_lang:'Мова',
+ sup_title:'Підтримка', sup_desc:'Відповімо на будь-яке питання щодо нарахувань,<br>виведення та бустів',
+ sup_write:'Написати', copy_rights:'Всі права захищені',
+ r_title:'Правила', r_ok:'Зрозуміло',
+ r_h1:'Нарахування', r_p1:'Дохід нараховується з балансу за поточною ставкою дохідності. Нарахування відбувається кожні 3 секунди, сума за добу дорівнює балансу, помноженому на ставку.',
+ r_h2:'Потужність', r_p2:'Потужність показує, скільки обчислень купує ваш вклад. Вона зростає разом із балансом і зі ставкою дохідності, тому змінюється і при поповненні, і при купівлі рівня.',
+ r_h3:'Рівні дохідності', r_p3:'Рівень задає ставку цілком, а не додає до поточної. Куплений рівень діє постійно. Рівні нижчі за поточний недоступні — знизити ставку купівлею не можна.',
+ r_h4:'Виведення', r_p4:'Мінімальна сума — 50 ★. Виведення у Stars іде на вказаний Telegram-акаунт без комісії, виведення у TON — на гаманець із комісією 5 ★.',
+ r_h5:'Ігри', r_p5:'Краш: ставка робиться у фазі очікування, забрати можна будь-якої миті до обриву. Точка обриву визначається до старту раунду. ПВП: частка у спільному банку дорівнює шансу на перемогу, переможець забирає банк цілком.',
+ mln:' млн', mlrd:' млрд'
 }};
 
-var LANG = PREFS.lang || 'ru';
+/* Язык берём из Telegram, если пользователь его сам не выбирал.
+   language_code у аккаунта — 'ru', 'uk', 'en' и т.д. Родственные
+   кириллические локали ведём на русский, всё прочее — на английский. */
+function detectLang(){
+  var c='';
+  try{ c=(TG && TG.initDataUnsafe && TG.initDataUnsafe.user && TG.initDataUnsafe.user.language_code)||''; }catch(e){}
+  if(!c) c=navigator.language||navigator.userLanguage||'';
+  c=String(c).toLowerCase().slice(0,2);
+  if(c==='uk') return 'uk';
+  if(c==='ru'||c==='be'||c==='kk'||c==='ky'||c==='uz') return 'ru';
+  return I18N[c] ? c : 'en';
+}
+var LANG = PREFS.lang || detectLang();
 var RERENDER = [];
 function t(k,vars){
   var s=(I18N[LANG] && I18N[LANG][k]) || I18N.ru[k] || k;
@@ -1918,11 +1976,11 @@ function makeSheet(wrapId, topId, opts){
         histEl=document.getElementById('cHist'), listEl=document.getElementById('cPlayers'),
         autoInp=document.getElementById('cAutoMult'), autoChk=document.getElementById('cAutoChk');
 
-    var NAMES_RU=['Никита','Амир','Данёк','Влад','Максим','Артём','Оля','Санёк','Женя',
-                  'Дима','Илья','Тимур','Паук'];
-    var NAMES_EN=['Nikita','Amir','Daniel','Vlad','Max','Artem','Olly','Sam','Jane',
-                  'Dima','Ilya','Timur','Spider'];
-    function pool(){ return LANG==='en'?NAMES_EN:NAMES_RU; }
+    var NAMES={
+      ru:['Никита','Амир','Данёк','Влад','Максим','Артём','Оля','Санёк','Женя','Дима','Илья','Тимур','Паук'],
+      uk:['Микита','Амір','Данило','Влад','Максим','Артем','Оля','Сашко','Женя','Дмитро','Ілля','Тимур','Павук'],
+      en:['Nikita','Amir','Daniel','Vlad','Max','Artem','Olly','Sam','Jane','Dima','Ilya','Timur','Spider']};
+    function pool(){ return NAMES[LANG]||NAMES.ru; }
     var COLORS=['#8FA6C4','#C08A9E','#8FC4A8','#C4B08F','#A79AC4'];
     var BETS=[50,100,250,500,1000];
 
@@ -1938,7 +1996,7 @@ function makeSheet(wrapId, topId, opts){
 
     function rint(a,b){ return a+Math.floor(Math.random()*(b-a+1)); }
     function mkBot(id){
-      var ni=rint(0,NAMES_RU.length-1);
+      var ni=rint(0,NAMES.ru.length-1);
       return { id:id, ni:ni, n:pool()[ni], c:COLORS[rint(0,COLORS.length-1)],
                bet:BETS[rint(0,BETS.length-1)],
                at:+(1.2+Math.random()*Math.random()*9).toFixed(2), st:'live', took:0 };
@@ -2162,9 +2220,11 @@ function makeSheet(wrapId, topId, opts){
         goBtn=document.getElementById('pGo'), reel=document.getElementById('pxReel'),
         track=document.getElementById('pxTrack');
 
-    var NAMES_RU=['Нексус','Самира','Паук','Вадим','Фирюза','Рагнар','Артур','Максим','Илья','Оля'];
-    var NAMES_EN=['Nexus','Samira','Spider','Vadim','Firuza','Ragnar','Arthur','Max','Ilya','Olly'];
-    function pool(){ return LANG==='en'?NAMES_EN:NAMES_RU; }
+    var NAMES={
+      ru:['Нексус','Самира','Паук','Вадим','Фирюза','Рагнар','Артур','Максим','Илья','Оля'],
+      uk:['Нексус','Саміра','Павук','Вадим','Фіруза','Рагнар','Артур','Максим','Ілля','Оля'],
+      en:['Nexus','Samira','Spider','Vadim','Firuza','Ragnar','Arthur','Max','Ilya','Olly']};
+    function pool(){ return NAMES[LANG]||NAMES.ru; }
     var COLORS=['#8FA6C4','#C08A9E','#8FC4A8','#C4B08F','#A79AC4','#C49A8F'];
     var BETS=[50,100,250,500,1000];
     var PITCH=66;               // ширина карточки 58 + зазор 8
@@ -2231,7 +2291,7 @@ function makeSheet(wrapId, topId, opts){
     function addBot(){
       if(phase!=='collect'||players.length>=6) return;
       var used={}; players.forEach(function(p){ if(p.ni!=null) used[p.ni]=1; });
-      var free=[]; for(var i=0;i<NAMES_RU.length;i++) if(!used[i]) free.push(i);
+      var free=[]; for(var i=0;i<NAMES.ru.length;i++) if(!used[i]) free.push(i);
       if(!free.length) return;
       var ni=free[rint(0,free.length-1)];
       players.push({ni:ni, n:pool()[ni], c:COLORS[players.length%COLORS.length],
