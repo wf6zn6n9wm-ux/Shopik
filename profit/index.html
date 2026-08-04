@@ -623,8 +623,7 @@ function summaryManager(t){
   return `
   <div class="hero manager"><div class="hero-cap">✋ Можно забрать сейчас</div>
     <div class="hero-big am">${money(t.mgrWithdrawable)}</div>
-    <div class="hero-sub">С проданных, ещё не рассчитанных пар: вложенное + твоя доля (${V.sharePct}%).</div>
-    ${t.mgrWithdrawable>0?`<button class="btn btn-primary mt4" data-act="settleAll">✅ Забрала всё — рассчитаться</button>`:''}</div>
+    <div class="hero-sub">С проданных, ещё не рассчитанных пар: вложенное + твоя доля (${V.sharePct}%).</div></div>
   <div class="grid2 mt4">
     <div class="stat"><div class="k">Вложено сейчас</div><div class="v am">${money(t.stockValue)}</div></div>
     <div class="stat"><div class="k">Твоя доля (заработано)</div><div class="v em">${money(t.mgrEarn)}</div></div>
