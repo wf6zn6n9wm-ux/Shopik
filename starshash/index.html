@@ -302,6 +302,12 @@ button.srow:active{transform:scale(.985);}
   background:rgba(228,192,120,.09);border:1px solid rgba(228,192,120,.16);color:var(--gold);
 }
 .srow .nm{flex:1;min-width:0;font-size:14.5px;font-weight:600;}
+.lseg{display:flex;gap:4px;flex:0 0 auto;padding:3px;border-radius:12px;background:#0E0E10;border:1px solid var(--line);}
+.lseg button{
+  padding:6px 12px;border-radius:9px;font-size:12px;font-weight:800;letter-spacing:.04em;
+  color:var(--ink-3);transition:background .22s,color .22s;
+}
+.lseg button.on{color:#150F04;background:linear-gradient(180deg,#F7E7C4,var(--gold));}
 .srow .ch{color:#4A4A51;flex:0 0 auto;display:grid;place-items:center;}
 
 .sup{
@@ -809,7 +815,7 @@ button.srow:active{transform:scale(.985);}
   <div class="page on" id="p-earn">
 
     <div class="hero">
-      <div class="cap">Баланс</div>
+      <div class="cap" data-i18n="bal_cap">Баланс</div>
       <div class="big">
         <span class="num" id="heroBal">12 480.42</span>
         <svg class="st" width="38" height="38" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
@@ -817,22 +823,22 @@ button.srow:active{transform:scale(.985);}
       <div class="sub">
         <b id="heroRate">+0.82</b>
         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
-        <span class="sl">/</span><span>в час</span>
+        <span class="sl">/</span><span data-i18n="per_hour">в час</span>
       </div>
     </div>
 
     <div class="card earn" id="earnCard">
       <div class="left">
-        <div class="l1">Зарабатываешь звезды</div>
+        <div class="l1" data-i18n="earn_l1">Зарабатываешь звезды</div>
         <div class="l2">
           <span id="earnRate">+0.82</span>
           <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
-          <span class="per">/ в час</span>
+          <span class="per" data-i18n="per_hour_slash">/ в час</span>
         </div>
-        <div class="l3">Следующее начисление через</div>
+        <div class="l3" data-i18n="next_in">Следующее начисление через</div>
         <div class="l4 num" id="cdText">00:03</div>
-        <div class="l5">сек</div>
-        <div class="l6">Пополните баланс,<br>чтобы начать добычу</div>
+        <div class="l5" data-i18n="sec">сек</div>
+        <div class="l6" data-i18n-html="empty_hint">Пополните баланс,<br>чтобы начать добычу</div>
       </div>
       <div class="ring-wrap">
         <canvas id="ring"></canvas>
@@ -846,10 +852,10 @@ button.srow:active{transform:scale(.985);}
           <span class="ic">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16.5 9.5 11l3.5 3.5L20 7.5"/><path d="M15.5 7.5H20V12"/></svg>
           </span>
-          <span class="nm">Доходность</span>
+          <span class="nm" data-i18n="yield">Доходность</span>
         </div>
         <div class="v"><span class="num" id="yieldVal">+1.00%</span></div>
-        <div class="cap">в день</div>
+        <div class="cap" data-i18n="per_day">в день</div>
         <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none" aria-hidden="true">
           <polyline id="sp1" fill="none" stroke="#E4C078" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -859,10 +865,10 @@ button.srow:active{transform:scale(.985);}
           <span class="ic">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 10v4M9.5 6.5v11M14.5 8.5v7M19 11v2"/></svg>
           </span>
-          <span class="nm">Мощность</span>
+          <span class="nm" data-i18n="power">Мощность</span>
         </div>
         <div class="v"><span class="num" id="powerVal">1.284</span><span class="u">PH/s</span></div>
-        <div class="cap">hash rate</div>
+        <div class="cap" data-i18n="hash_rate">hash rate</div>
         <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none" aria-hidden="true">
           <polyline id="sp2" fill="none" stroke="#E4C078" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -872,11 +878,11 @@ button.srow:active{transform:scale(.985);}
     <div class="acts">
       <button class="act fill" id="btnTopUp">
         <span class="cc"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg></span>
-        Пополнить
+        <span data-i18n="topup">Пополнить</span>
       </button>
       <button class="act ghost" id="btnWithdraw">
         <span class="cc"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/></svg></span>
-        Вывести
+        <span data-i18n="withdraw">Вывести</span>
       </button>
     </div>
 
@@ -886,20 +892,20 @@ button.srow:active{transform:scale(.985);}
           <rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8"/>
           <path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" stroke-width="2.2"/>
         </svg>
-        <span class="t">Калькулятор</span>
+        <span class="t" data-i18n="calc">Калькулятор</span>
       </button>
       <button data-h="light">
         <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#E6E6EA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="8.5" width="18" height="12.5" rx="2.5"/><path d="M3 12.5h18M12 8.5V21"/>
           <path d="M12 8.5C9.2 8.5 7 3.2 12 3.2s2.8 5.3 0 5.3Z"/>
         </svg>
-        <span class="t">Бонусы</span>
+        <span class="t" data-i18n="bonus">Бонусы</span>
       </button>
       <button id="btnBoost">
         <svg class="gold" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#E4C078" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M13.5 2.5 5 13.5h5.5l-.9 8 8.4-11h-5.5z"/>
         </svg>
-        <span class="t">Буст</span>
+        <span class="t" data-i18n="boost">Буст</span>
       </button>
     </div>
   </div>
@@ -915,8 +921,8 @@ button.srow:active{transform:scale(.985);}
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19c4.5 0 9-3.2 12-11"/><path d="M11 4.5h5v5"/></svg>
         </span>
         <span class="gb">
-          <span class="gt">Краш</span>
-          <span class="gd">Множитель растёт — успей забрать до обрыва</span>
+          <span class="gt" data-i18n="g_crash">Краш</span>
+          <span class="gd" data-i18n="g_crash_d">Множитель растёт — успей забрать до обрыва</span>
         </span>
         <span class="gx"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
       </button>
@@ -927,8 +933,8 @@ button.srow:active{transform:scale(.985);}
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 3.5l13 13M18.5 3.5l-13 13"/><path d="M3.5 18.5l3 3M20.5 18.5l-3 3"/></svg>
         </span>
         <span class="gb">
-          <span class="gt">ПВП</span>
-          <span class="gd">Ставки в общий банк — победитель забирает всё</span>
+          <span class="gt" data-i18n="g_pvp">ПВП</span>
+          <span class="gd" data-i18n="g_pvp_d">Ставки в общий банк — победитель забирает всё</span>
         </span>
         <span class="gx"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
       </button>
@@ -938,7 +944,7 @@ button.srow:active{transform:scale(.985);}
     <div class="gview" id="gCrash">
       <div class="ghead">
         <button class="bk" data-back aria-label="Назад"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
-        <span class="t">Краш</span>
+        <span class="t" data-i18n="g_crash">Краш</span>
         <span class="hist" id="cHist"></span>
       </div>
       <div class="cstage" id="cStage">
@@ -947,7 +953,7 @@ button.srow:active{transform:scale(.985);}
         <div class="cphase" id="cPhase"><i></i><span id="cPhaseTxt">Раунд идёт</span></div>
         <div class="cflash" id="cFlash"></div>
         <div class="cwait" id="cWait">
-          <div class="cwl">Следующий раунд</div>
+          <div class="cwl" data-i18n="next_round">Следующий раунд</div>
           <div class="cwr">
             <svg viewBox="0 0 120 120">
               <circle class="tk" cx="60" cy="60" r="52"/>
@@ -967,7 +973,7 @@ button.srow:active{transform:scale(.985);}
       </div>
 
       <div class="cauto">
-        <span class="lb">Авто-вывод</span>
+        <span class="lb" data-i18n="auto_cash">Авто-вывод</span>
         <div class="cstep">
           <button type="button" id="cAutoDn">−</button>
           <input id="cAutoMult" class="num" inputmode="decimal" value="2.00">
@@ -985,12 +991,12 @@ button.srow:active{transform:scale(.985);}
     <div class="gview" id="gPvp">
       <div class="ghead">
         <button class="bk" data-back aria-label="Назад"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
-        <span class="t">ПВП</span>
+        <span class="t" data-i18n="g_pvp">ПВП</span>
         <span class="pxlive"><i></i>LIVE</span>
       </div>
 
       <div class="pxpot">
-        <div class="k">Общий банк</div>
+        <div class="k" data-i18n="pot">Общий банк</div>
         <div class="v"><span class="num" id="pPot">0</span>
           <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#F7E7C4"/></svg>
         </div>
@@ -1020,11 +1026,11 @@ button.srow:active{transform:scale(.985);}
 
   <div class="page" id="p-tasks"><div class="soon">
     <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="15" height="17.5" rx="3"/><path d="M9 3.5h6v2.6H9z"/><path d="M8.5 11h7M8.5 15h4.5"/></svg></span>
-    <h3>Задания</h3><p>Раздел откроется в следующем обновлении</p></div></div>
+    <h3 data-i18n="nav_tasks">Задания</h3><p data-i18n="soon">Раздел откроется в следующем обновлении</p></div></div>
 
   <div class="page" id="p-top"><div class="soon">
     <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20v-7M12 20V5M19 20v-4.5"/></svg></span>
-    <h3>Топ</h3><p>Раздел откроется в следующем обновлении</p></div></div>
+    <h3 data-i18n="nav_top">Топ</h3><p data-i18n="soon">Раздел откроется в следующем обновлении</p></div></div>
 
   <div class="page" id="p-me">
     <div class="pscroll">
@@ -1040,34 +1046,43 @@ button.srow:active{transform:scale(.985);}
 
       <div class="ptitle">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 14.5a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.84 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.33 1.7 1.7 0 0 0-1.03 1.55V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.84l.06-.06a1.7 1.7 0 0 0 .33-1.88 1.7 1.7 0 0 0-1.55-1.03H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.84-2.83l.06.06a1.7 1.7 0 0 0 1.88.33H9.1a1.7 1.7 0 0 0 1.03-1.55V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.84l-.06.06a1.7 1.7 0 0 0-.33 1.88V9.1a1.7 1.7 0 0 0 1.55 1.03H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.55 1.03z"/></svg>
-        Настройки
+        <span data-i18n="set_title">Настройки</span>
       </div>
 
       <label class="srow">
         <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/><path d="M3.5 9v6M20.5 9v6"/></svg></span>
-        <span class="nm">Вибрация</span>
+        <span class="nm" data-i18n="set_vibro">Вибрация</span>
         <span class="cswitch"><input type="checkbox" id="setVibro"><span class="tr"></span></span>
       </label>
 
       <label class="srow">
         <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path d="M16 9.2a4 4 0 0 1 0 5.6"/><path d="M18.6 6.6a7.6 7.6 0 0 1 0 10.8"/></svg></span>
-        <span class="nm">Звук</span>
+        <span class="nm" data-i18n="set_sound">Звук</span>
         <span class="cswitch"><input type="checkbox" id="setSound"><span class="tr"></span></span>
       </label>
 
+
+      <div class="srow">
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg></span>
+        <span class="nm" data-i18n="set_lang">Язык</span>
+        <span class="lseg" id="langSeg">
+          <button type="button" data-lang="ru">RU</button>
+          <button type="button" data-lang="en">EN</button>
+        </span>
+      </div>
       <button class="srow" id="setRules">
         <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3" width="15" height="18" rx="2.5"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/></svg></span>
-        <span class="nm">Правила</span>
+        <span class="nm" data-i18n="set_rules">Правила</span>
         <span class="ch"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
       </button>
 
       <div class="sup">
         <div class="sh">
-          <span class="st">Поддержка</span>
+          <span class="st" data-i18n="sup_title">Поддержка</span>
           <span class="sb">24/7</span>
         </div>
-        <div class="sd">Ответим на любой вопрос по начислениям,<br>выводу и бустам</div>
-        <button class="sgo" id="setSupport">Написать</button>
+        <div class="sd" data-i18n-html="sup_desc">Ответим на любой вопрос по начислениям,<br>выводу и бустам</div>
+        <button class="sgo" id="setSupport" data-i18n="sup_write">Написать</button>
       </div>
 
       <div class="pfoot">
@@ -1075,7 +1090,7 @@ button.srow:active{transform:scale(.985);}
           <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.4c.5 3.9 1.9 6.4 3.5 7.6 1.1.9 3.1 1.6 7.1 3-4 1.4-6 2.1-7.1 3-1.6 1.2-3 3.7-3.5 7.6-.5-3.9-1.9-6.4-3.5-7.6-1.1-.9-3.1-1.6-7.1-3 4-1.4 6-2.1 7.1-3C10.1 7.8 11.5 5.3 12 1.4Z" fill="#E4C078"/></svg>
           <span>Stars<i>Hash</i></span>
         </div>
-        <div class="pcopy">© 2026 StarsHash<br>Все права защищены</div>
+        <div class="pcopy">© 2026 StarsHash<br><span data-i18n="copy_rights">Все права защищены</span></div>
       </div>
 
     </div>
@@ -1085,32 +1100,32 @@ button.srow:active{transform:scale(.985);}
 <nav class="nav" id="nav">
   <button class="tab" data-p="games">
     <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 7H7a5 5 0 0 0 0 10h10a5 5 0 0 0 0-10Zm-7.2 6H8.6v1.2a.9.9 0 1 1-1.8 0V13H5.6a.9.9 0 0 1 0-1.8h1.2V10a.9.9 0 1 1 1.8 0v1.2h1.2a.9.9 0 0 1 0 1.8Zm5.7-1.4a1.05 1.05 0 1 1 0-2.1 1.05 1.05 0 0 1 0 2.1Zm2.4 3a1.05 1.05 0 1 1 0-2.1 1.05 1.05 0 0 1 0 2.1Z"/></svg>
-    <span class="tl">Игры</span>
+    <span class="tl" data-i18n="nav_games">Игры</span>
   </button>
 
   <button class="tab" data-p="tasks">
     <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <rect x="4.5" y="3.5" width="15" height="17.5" rx="3"/><path d="M9.2 3.5h5.6v2.4H9.2z" fill="currentColor" stroke="none"/><path d="M8.6 11.5h6.8M8.6 15.4h4.4"/>
     </svg>
-    <span class="tl">Задания</span>
+    <span class="tl" data-i18n="nav_tasks">Задания</span>
   </button>
 
   <button class="tab center on" data-p="earn">
     <span class="ring">
       <svg width="25" height="25" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
     </span>
-    <span class="tl">Заработок</span>
+    <span class="tl" data-i18n="nav_earn">Заработок</span>
     <span class="bar"></span>
   </button>
 
   <button class="tab" data-p="top">
     <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3.6" y="13" width="3.6" height="7.4" rx="1.4"/><rect x="10.2" y="4.6" width="3.6" height="15.8" rx="1.4"/><rect x="16.8" y="9.4" width="3.6" height="11" rx="1.4"/></svg>
-    <span class="tl">Топ</span>
+    <span class="tl" data-i18n="nav_top">Топ</span>
   </button>
 
   <button class="tab" data-p="me">
     <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4.1"/><path d="M12 13.6c-4.1 0-7.4 2.7-7.4 6 0 .5.4.8.9.8h13c.5 0 .9-.3.9-.8 0-3.3-3.3-6-7.4-6Z"/></svg>
-    <span class="tl">Профиль</span>
+    <span class="tl" data-i18n="nav_me">Профиль</span>
   </button>
 </nav>
 
@@ -1122,12 +1137,12 @@ button.srow:active{transform:scale(.985);}
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="boostTitle">
     <div class="sheet-top" id="sheetTop">
       <div class="grab"></div>
-      <div class="sheet-t" id="boostTitle">Магазин бустов</div>
-      <div class="sheet-s">Постоянные · ставка доходности</div>
+      <div class="sheet-t" id="boostTitle" data-i18n="shop_title">Магазин бустов</div>
+      <div class="sheet-s" data-i18n="shop_sub">Постоянные · ставка доходности</div>
     </div>
     <div class="bgrid" id="bgrid"></div>
     <button class="btn-buy" id="buyBtn">
-      Купить за
+      <span data-i18n="buy_for">Купить за</span>
       <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#150F04"/></svg>
       <span id="buyPrice" class="num">5000</span>
     </button>
@@ -1141,7 +1156,7 @@ button.srow:active{transform:scale(.985);}
     <div class="sheet-top" id="wdTop">
       <div class="grab"></div>
       <div class="sheet-hd">
-        <span class="t" id="wdTitle">Вывести</span>
+        <span class="t" id="wdTitle" data-i18n="withdraw">Вывести</span>
         <button class="sheet-x" id="wdX" aria-label="Закрыть">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
@@ -1166,27 +1181,27 @@ button.srow:active{transform:scale(.985);}
       <div id="wStars">
         <div class="wf" style="margin-top:12px">
           <span class="at">@</span>
-          <input id="wUser" type="text" autocomplete="off" spellcheck="false" placeholder="Telegram username">
-          <button class="mini-btn" id="wMe">Мне</button>
+          <input id="wUser" type="text" autocomplete="off" spellcheck="false" data-i18n-ph="w_user_ph" placeholder="Telegram username">
+          <button class="mini-btn" id="wMe" data-i18n="w_me">Мне</button>
         </div>
         <div class="wlab">
-          <span>Сумма</span>
-          <span class="av">Доступно: <b class="num wAvail">0</b>
+          <span data-i18n="w_amount">Сумма</span>
+          <span class="av"><span data-i18n="w_avail">Доступно:</span> <b class="num wAvail">0</b>
             <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
-            <button class="mini-btn wMax">Макс</button>
+            <button class="mini-btn wMax" data-i18n="w_max">Макс</button>
           </span>
         </div>
         <div class="wf">
           <input id="wAmt" type="text" inputmode="decimal" autocomplete="off" value="50">
           <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
         </div>
-        <div class="wnotes"><span>Мин 50</span><span></span></div>
+        <div class="wnotes"><span data-i18n="w_min">Мин 50</span><span></span></div>
       </div>
 
       <!-- TON -->
       <div id="wTon" hidden>
         <div class="wf" style="margin-top:12px">
-          <input id="wWallet" type="text" autocomplete="off" spellcheck="false" placeholder="TON-кошелёк получателя">
+          <input id="wWallet" type="text" autocomplete="off" spellcheck="false" data-i18n-ph="w_wallet_ph" placeholder="TON-кошелёк получателя">
         </div>
         <div class="wlab"><span id="wL1">Введите сумму</span><span id="wL2">Получите</span></div>
         <div class="wconv">
@@ -1203,13 +1218,13 @@ button.srow:active{transform:scale(.985);}
           </div>
         </div>
         <div class="wnotes">
-          <span>Мин 50</span>
-          <span>Комиссия 5 <svg width="11" height="11" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg></span>
+          <span data-i18n="w_min">Мин 50</span>
+          <span><span data-i18n="w_fee">Комиссия 5</span> <svg width="11" height="11" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg></span>
         </div>
         <div class="wlab" style="justify-content:flex-end;margin-bottom:0">
-          <span class="av">Доступно: <b class="num wAvail">0</b>
+          <span class="av"><span data-i18n="w_avail">Доступно:</span> <b class="num wAvail">0</b>
             <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
-            <button class="mini-btn wMax">Макс</button>
+            <button class="mini-btn wMax" data-i18n="w_max">Макс</button>
           </span>
         </div>
       </div>
@@ -1217,7 +1232,7 @@ button.srow:active{transform:scale(.985);}
     </div>
 
     <div class="whint" id="wdHint"></div>
-    <button class="btn-buy" id="wdGo">Вывести</button>
+    <button class="btn-buy" id="wdGo" data-i18n="withdraw">Вывести</button>
   </div>
 </div>
 
@@ -1228,36 +1243,25 @@ button.srow:active{transform:scale(.985);}
     <div class="sheet-top" id="rlTop">
       <div class="grab"></div>
       <div class="sheet-hd">
-        <span class="t" id="rlTitle">Правила</span>
+        <span class="t" id="rlTitle" data-i18n="r_title">Правила</span>
         <button class="sheet-x" id="rlX" aria-label="Закрыть">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
     </div>
     <div class="wbody rules">
-      <h4>Начисления</h4>
-      <p>Доход идёт с баланса по текущей ставке доходности. Начисление
-         происходит каждые 3 секунды, сумма за сутки равна балансу,
-         умноженному на ставку.</p>
-      <h4>Мощность</h4>
-      <p>Мощность показывает, сколько вычислений покупает ваш вклад.
-         Она растёт вместе с балансом и со ставкой доходности,
-         поэтому меняется и при пополнении, и при покупке уровня.</p>
-      <h4>Уровни доходности</h4>
-      <p>Уровень задаёт ставку целиком, а не прибавляет к текущей.
-         Купленный уровень действует постоянно. Уровни ниже текущего
-         недоступны — понизить ставку покупкой нельзя.</p>
-      <h4>Вывод</h4>
-      <p>Минимальная сумма — 50 ★. Вывод в Stars идёт на указанный
-         Telegram-аккаунт без комиссии, вывод в TON — на кошелёк
-         с комиссией 5 ★.</p>
-      <h4>Игры</h4>
-      <p>Краш: ставка делается в фазе ожидания, забрать можно в любой
-         момент до обрыва. Точка обрыва определяется до старта раунда.
-         ПВП: доля в общем банке равна шансу на победу, победитель
-         забирает банк целиком.</p>
+      <h4 data-i18n="r_h1">Начисления</h4>
+      <p data-i18n="r_p1">Доход идёт с баланса по текущей ставке доходности.</p>
+      <h4 data-i18n="r_h2">Мощность</h4>
+      <p data-i18n="r_p2">Мощность показывает, сколько вычислений покупает ваш вклад.</p>
+      <h4 data-i18n="r_h3">Уровни доходности</h4>
+      <p data-i18n="r_p3">Уровень задаёт ставку целиком, а не прибавляет к текущей.</p>
+      <h4 data-i18n="r_h4">Вывод</h4>
+      <p data-i18n="r_p4">Минимальная сумма — 50 ★.</p>
+      <h4 data-i18n="r_h5">Игры</h4>
+      <p data-i18n="r_p5">Краш: ставка делается в фазе ожидания.</p>
     </div>
-    <button class="btn-buy" id="rlOk">Понятно</button>
+    <button class="btn-buy" id="rlOk" data-i18n="r_ok">Понятно</button>
   </div>
 </div>
 
@@ -1268,14 +1272,14 @@ button.srow:active{transform:scale(.985);}
     <div class="sheet-top" id="dpTop">
       <div class="grab"></div>
       <div class="sheet-hd">
-        <span class="t" id="dpTitle">Пополнить</span>
+        <span class="t" id="dpTitle" data-i18n="d_title">Пополнить</span>
         <button class="sheet-x" id="dpX" aria-label="Закрыть">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
     </div>
     <div class="wbody">
-      <div class="wlab" style="margin-top:0"><span>Сумма пополнения</span></div>
+      <div class="wlab" style="margin-top:0"><span data-i18n="d_amount">Сумма пополнения</span></div>
       <div class="wf">
         <input id="dpAmt" type="text" inputmode="decimal" autocomplete="off" value="1000">
         <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
@@ -1286,11 +1290,11 @@ button.srow:active{transform:scale(.985);}
         <button data-dp="5000">5000</button>
         <button data-dp="12480">12 480</button>
       </div>
-      <div class="wlab"><span>Станет после пополнения</span></div>
+      <div class="wlab"><span data-i18n="d_after">Станет после пополнения</span></div>
       <div class="cres" style="margin-top:0">
-        <div class="crow"><span>Баланс</span><b class="num" id="dpBal">0 ★</b></div>
-        <div class="crow" style="margin-top:9px"><span>Мощность</span><b class="num" id="dpPow">0.000 PH/s</b></div>
-        <div class="crow" style="margin-top:9px"><span>Доход</span><b class="num" id="dpRate">0.00 ★ / час</b></div>
+        <div class="crow"><span data-i18n="d_balance">Баланс</span><b class="num" id="dpBal">0 ★</b></div>
+        <div class="crow" style="margin-top:9px"><span data-i18n="d_power">Мощность</span><b class="num" id="dpPow">0.000 PH/s</b></div>
+        <div class="crow" style="margin-top:9px"><span data-i18n="d_income">Доход</span><b class="num" id="dpRate">0.00 ★ / час</b></div>
       </div>
     </div>
     <div class="whint" id="dpHint"></div>
@@ -1305,7 +1309,7 @@ button.srow:active{transform:scale(.985);}
     <div class="sheet-top" id="calcTop">
       <div class="grab"></div>
       <div class="sheet-hd">
-        <span class="t" id="calcTitle">Калькулятор</span>
+        <span class="t" id="calcTitle" data-i18n="calc">Калькулятор</span>
         <button class="sheet-x" id="calcX" aria-label="Закрыть">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
@@ -1314,8 +1318,8 @@ button.srow:active{transform:scale(.985);}
 
     <div class="wbody">
       <div class="wlab" style="margin-top:0">
-        <span>Сумма вклада</span>
-        <span class="av"><button class="mini-btn" id="cMine">Мой баланс</button></span>
+        <span data-i18n="c_deposit">Сумма вклада</span>
+        <span class="av"><button class="mini-btn" id="cMine" data-i18n="c_my_bal">Мой баланс</button></span>
       </div>
       <div class="wf">
         <input id="cAmt" type="text" inputmode="decimal" autocomplete="off" value="12480">
@@ -1323,17 +1327,17 @@ button.srow:active{transform:scale(.985);}
       </div>
 
       <div class="wlab">
-        <span>Срок</span>
-        <span class="av">Доходность&nbsp;<b id="cRate">+1.00%</b>&nbsp;в день</span>
+        <span data-i18n="c_term">Срок</span>
+        <span class="av"><span data-i18n="yield">Доходность</span>&nbsp;<b id="cRate">+1.00%</b>&nbsp;<span data-i18n="per_day">в день</span></span>
       </div>
       <div class="cper" id="cPer">
-        <button data-d="7">7 дн</button>
-        <button data-d="30" class="on">30 дн</button>
-        <button data-d="90">90 дн</button>
-        <button data-d="365">1 год</button>
+        <button data-d="7" data-i18n="c_d7">7 дн</button>
+        <button data-d="30" class="on" data-i18n="c_d30">30 дн</button>
+        <button data-d="90" data-i18n="c_d90">90 дн</button>
+        <button data-d="365" data-i18n="c_y1">1 год</button>
       </div>
 
-      <div class="wlab"><span>Ставка доходности</span></div>
+      <div class="wlab"><span data-i18n="c_rate">Ставка доходности</span></div>
       <div class="cboost" id="cBoost"></div>
 
       <div class="cres">
@@ -1352,15 +1356,15 @@ button.srow:active{transform:scale(.985);}
         </svg>
         <div class="rows">
           <div class="crow" id="cGainRow" hidden>
-            <span>Прибавит буст</span><b class="num" id="cGain" style="color:var(--gold)">0 ★</b>
+            <span data-i18n="c_boost_adds">Прибавит буст</span><b class="num" id="cGain" style="color:var(--gold)">0 ★</b>
           </div>
-          <div class="crow"><span>Итоговый баланс</span><b class="num" id="cTotal">0 ★</b></div>
-          <div class="crow"><span>В среднем в день</span><b class="num" id="cPerDay">0 ★</b></div>
+          <div class="crow"><span data-i18n="c_total">Итоговый баланс</span><b class="num" id="cTotal">0 ★</b></div>
+          <div class="crow"><span data-i18n="c_avg">В среднем в день</span><b class="num" id="cPerDay">0 ★</b></div>
         </div>
       </div>
     </div>
 
-    <button class="btn-buy" id="calcDone">Готово</button>
+    <button class="btn-buy" id="calcDone" data-i18n="c_done">Готово</button>
   </div>
 </div>
 
@@ -1379,12 +1383,133 @@ if (TG){ try{
    между сессиями. Вибрация включена по умолчанию, звук — нет: звук в
    мини-аппе навязчив, пусть будет осознанным выбором. */
 var PREFS = (function(){
-  var d={vibro:true, sound:false};
+  var d={vibro:true, sound:false, lang:'ru'};
   try{ var raw=localStorage.getItem('starshash_prefs');
-       if(raw){ var o=JSON.parse(raw); d.vibro=!!o.vibro; d.sound=!!o.sound; } }catch(e){}
+       if(raw){ var o=JSON.parse(raw); d.vibro=!!o.vibro; d.sound=!!o.sound;
+                if(o.lang==='ru'||o.lang==='en') d.lang=o.lang; } }catch(e){}
   return d;
 })();
 function savePrefs(){ try{ localStorage.setItem('starshash_prefs',JSON.stringify(PREFS)); }catch(e){} }
+
+
+/* ══════════════════════════════════════════════════════
+   ЯЗЫКИ
+   Статика размечена в разметке: data-i18n → textContent,
+   data-i18n-html → innerHTML, data-i18n-ph → placeholder.
+   Строки, которые собираются в JS, идут через t(), а модули
+   регистрируют перерисовку — иначе после смены языка они
+   остались бы на прежнем до следующего действия.
+   ══════════════════════════════════════════════════════ */
+var I18N={
+ru:{
+ bal_cap:'Баланс', per_hour:'в час', earn_l1:'Зарабатываешь звезды', per_hour_slash:'/ в час',
+ next_in:'Следующее начисление через', sec:'сек',
+ empty_hint:'Пополните баланс,<br>чтобы начать добычу',
+ yield:'Доходность', per_day:'в день', power:'Мощность', hash_rate:'hash rate',
+ topup:'Пополнить', withdraw:'Вывести', calc:'Калькулятор', bonus:'Бонусы', boost:'Буст',
+ nav_games:'Игры', nav_tasks:'Задания', nav_earn:'Заработок', nav_top:'Топ', nav_me:'Профиль',
+ soon:'Раздел откроется в следующем обновлении',
+ g_crash:'Краш', g_crash_d:'Множитель растёт — успей забрать до обрыва',
+ g_pvp:'ПВП', g_pvp_d:'Ставки в общий банк — победитель забирает всё',
+ auto_cash:'Авто-вывод', round_live:'Раунд идёт', round_over:'Раунд окончен',
+ waiting:'Ожидание', next_round:'Следующий раунд', busted:'Улетел',
+ players:'Игроки', bet_payout:'Ставка · выплата',
+ pot:'Общий банк', wait_players:'Ждём игроков', draw_in:'Розыгрыш через {n} сек',
+ draw:'Розыгрыш', spinning:'Крутим ленту', drawing:'Розыгрыш…',
+ you:'Вы', you_in:'Вы в игре · {n} ★', you_in_wait:'Вы в игре · ждём розыгрыша',
+ you_took:'Вы забрали банк', won_by:'Победил {n}', win_amt:'Победа · +{n} ★', lost_to:'Выиграл {n}',
+ enter_battle:'Войти в битву · {n} ★', place_bet:'Поставить {n} ★', bet_taken:'Ставка принята · {n} ★',
+ cash_out:'Забрать {n} ★', no_stars:'Недостаточно звёзд',
+ shop_title:'Магазин бустов', shop_sub:'Постоянные · ставка доходности', active:'активен',
+ buy_for:'Купить за',
+ w_min:'Мин 50', w_amount:'Сумма', w_avail:'Доступно:', w_max:'Макс', w_me:'Мне',
+ w_user_ph:'Telegram username', w_wallet_ph:'TON-кошелёк получателя',
+ w_enter_amt:'Введите сумму', w_receive:'Получите', w_fee:'Комиссия 5',
+ w_need_user:'Укажите Telegram username', w_need_wallet:'Укажите TON-кошелёк',
+ w_min_msg:'Минимальная сумма вывода — {n} ★', w_no_funds:'Недостаточно звёзд на балансе',
+ d_title:'Пополнить', d_amount:'Сумма пополнения', d_after:'Станет после пополнения',
+ d_balance:'Баланс', d_power:'Мощность', d_income:'Доход', d_go:'Пополнить на {n} ★',
+ c_deposit:'Сумма вклада', c_my_bal:'Мой баланс', c_term:'Срок', c_rate:'Ставка доходности',
+ c_current:'Текущая', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 год',
+ c_p7:'7 дней', c_p30:'30 дней', c_p90:'90 дней', c_py:'год',
+ c_income_for:'Доход за {n}', c_total:'Итоговый баланс', c_avg:'В среднем в день',
+ c_boost_adds:'Прибавит буст', c_done:'Готово',
+ set_title:'Настройки', set_vibro:'Вибрация', set_sound:'Звук', set_rules:'Правила',
+ set_lang:'Язык',
+ sup_title:'Поддержка', sup_desc:'Ответим на любой вопрос по начислениям,<br>выводу и бустам',
+ sup_write:'Написать', copy_rights:'Все права защищены',
+ r_title:'Правила', r_ok:'Понятно',
+ r_h1:'Начисления', r_p1:'Доход идёт с баланса по текущей ставке доходности. Начисление происходит каждые 3 секунды, сумма за сутки равна балансу, умноженному на ставку.',
+ r_h2:'Мощность', r_p2:'Мощность показывает, сколько вычислений покупает ваш вклад. Она растёт вместе с балансом и со ставкой доходности, поэтому меняется и при пополнении, и при покупке уровня.',
+ r_h3:'Уровни доходности', r_p3:'Уровень задаёт ставку целиком, а не прибавляет к текущей. Купленный уровень действует постоянно. Уровни ниже текущего недоступны — понизить ставку покупкой нельзя.',
+ r_h4:'Вывод', r_p4:'Минимальная сумма — 50 ★. Вывод в Stars идёт на указанный Telegram-аккаунт без комиссии, вывод в TON — на кошелёк с комиссией 5 ★.',
+ r_h5:'Игры', r_p5:'Краш: ставка делается в фазе ожидания, забрать можно в любой момент до обрыва. Точка обрыва определяется до старта раунда. ПВП: доля в общем банке равна шансу на победу, победитель забирает банк целиком.',
+ mln:' млн', mlrd:' млрд'
+},
+en:{
+ bal_cap:'Balance', per_hour:'per hour', earn_l1:'You are earning stars', per_hour_slash:'/ per hour',
+ next_in:'Next payout in', sec:'sec',
+ empty_hint:'Top up your balance<br>to start mining',
+ yield:'Daily rate', per_day:'per day', power:'Power', hash_rate:'hash rate',
+ topup:'Top up', withdraw:'Withdraw', calc:'Calculator', bonus:'Bonuses', boost:'Boost',
+ nav_games:'Games', nav_tasks:'Tasks', nav_earn:'Earn', nav_top:'Top', nav_me:'Profile',
+ soon:'This section opens in the next update',
+ g_crash:'Crash', g_crash_d:'The multiplier climbs — cash out before it breaks',
+ g_pvp:'PvP', g_pvp_d:'Stakes go into one pot — the winner takes it all',
+ auto_cash:'Auto cash-out', round_live:'Round in progress', round_over:'Round over',
+ waiting:'Waiting', next_round:'Next round', busted:'Busted',
+ players:'Players', bet_payout:'Bet · payout',
+ pot:'Total pot', wait_players:'Waiting for players', draw_in:'Draw in {n} sec',
+ draw:'Draw', spinning:'Spinning', drawing:'Drawing…',
+ you:'You', you_in:'You are in · {n} ★', you_in_wait:'You are in · waiting for the draw',
+ you_took:'You took the pot', won_by:'{n} won', win_amt:'You won · +{n} ★', lost_to:'{n} won',
+ enter_battle:'Join the battle · {n} ★', place_bet:'Bet {n} ★', bet_taken:'Bet placed · {n} ★',
+ cash_out:'Cash out {n} ★', no_stars:'Not enough stars',
+ shop_title:'Boost shop', shop_sub:'Permanent · daily rate', active:'active',
+ buy_for:'Buy for',
+ w_min:'Min 50', w_amount:'Amount', w_avail:'Available:', w_max:'Max', w_me:'Me',
+ w_user_ph:'Telegram username', w_wallet_ph:'Recipient TON wallet',
+ w_enter_amt:'Enter amount', w_receive:'You receive', w_fee:'Fee 5',
+ w_need_user:'Enter a Telegram username', w_need_wallet:'Enter a TON wallet',
+ w_min_msg:'Minimum withdrawal is {n} ★', w_no_funds:'Not enough stars on balance',
+ d_title:'Top up', d_amount:'Top-up amount', d_after:'After the top-up',
+ d_balance:'Balance', d_power:'Power', d_income:'Income', d_go:'Top up {n} ★',
+ c_deposit:'Deposit amount', c_my_bal:'My balance', c_term:'Term', c_rate:'Daily rate',
+ c_current:'Current', c_d7:'7 d', c_d30:'30 d', c_d90:'90 d', c_y1:'1 year',
+ c_p7:'7 days', c_p30:'30 days', c_p90:'90 days', c_py:'a year',
+ c_income_for:'Income over {n}', c_total:'Final balance', c_avg:'Average per day',
+ c_boost_adds:'Boost adds', c_done:'Done',
+ set_title:'Settings', set_vibro:'Vibration', set_sound:'Sound', set_rules:'Rules',
+ set_lang:'Language',
+ sup_title:'Support', sup_desc:'We answer any question about payouts,<br>withdrawals and boosts',
+ sup_write:'Write to us', copy_rights:'All rights reserved',
+ r_title:'Rules', r_ok:'Got it',
+ r_h1:'Payouts', r_p1:'Income comes from your balance at the current daily rate. Payouts happen every 3 seconds, and the daily total equals your balance times the rate.',
+ r_h2:'Power', r_p2:'Power shows how much computation your deposit buys. It grows with both your balance and your daily rate, so it changes when you top up and when you buy a tier.',
+ r_h3:'Rate tiers', r_p3:'A tier sets the rate outright rather than adding to it. A purchased tier is permanent. Tiers below your current rate are unavailable — buying cannot lower your rate.',
+ r_h4:'Withdrawal', r_p4:'The minimum is 50 ★. Withdrawing to Stars goes to the given Telegram account with no fee; withdrawing to TON goes to a wallet with a 5 ★ fee.',
+ r_h5:'Games', r_p5:'Crash: you bet during the waiting phase and can cash out any moment before the bust. The bust point is fixed before the round starts. PvP: your share of the pot is your chance to win, and the winner takes the whole pot.',
+ mln:'M', mlrd:'B'
+}};
+
+var LANG = PREFS.lang || 'ru';
+var RERENDER = [];
+function t(k,vars){
+  var s=(I18N[LANG] && I18N[LANG][k]) || I18N.ru[k] || k;
+  if(vars) for(var v in vars) s=s.split('{'+v+'}').join(vars[v]);
+  return s;
+}
+function applyLang(){
+  document.documentElement.lang=LANG;
+  document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent=t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(function(el){ el.innerHTML=t(el.dataset.i18nHtml); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(function(el){ el.placeholder=t(el.dataset.i18nPh); });
+  RERENDER.forEach(function(fn){ try{ fn(); }catch(e){} });
+}
+function setLang(l){
+  if(l===LANG) return;
+  LANG=l; PREFS.lang=l; savePrefs(); applyLang();
+}
 
 function haptic(kind){
   if(!PREFS.vibro) return;
@@ -1793,8 +1918,11 @@ function makeSheet(wrapId, topId, opts){
         histEl=document.getElementById('cHist'), listEl=document.getElementById('cPlayers'),
         autoInp=document.getElementById('cAutoMult'), autoChk=document.getElementById('cAutoChk');
 
-    var NAMES=['Никита','ARMIN','Amir','Данёк','Влад','Максим','Артём','Оля','Санёк','Женя',
-               'Дима','Илья','Тимур','Samira','Nexus','Паук','Vadim','Ragnar'];
+    var NAMES_RU=['Никита','Амир','Данёк','Влад','Максим','Артём','Оля','Санёк','Женя',
+                  'Дима','Илья','Тимур','Паук'];
+    var NAMES_EN=['Nikita','Amir','Daniel','Vlad','Max','Artem','Olly','Sam','Jane',
+                  'Dima','Ilya','Timur','Spider'];
+    function pool(){ return LANG==='en'?NAMES_EN:NAMES_RU; }
     var COLORS=['#8FA6C4','#C08A9E','#8FC4A8','#C4B08F','#A79AC4'];
     var BETS=[50,100,250,500,1000];
 
@@ -1810,7 +1938,8 @@ function makeSheet(wrapId, topId, opts){
 
     function rint(a,b){ return a+Math.floor(Math.random()*(b-a+1)); }
     function mkBot(id){
-      return { id:id, n:NAMES[rint(0,NAMES.length-1)], c:COLORS[rint(0,COLORS.length-1)],
+      var ni=rint(0,NAMES_RU.length-1);
+      return { id:id, ni:ni, n:pool()[ni], c:COLORS[rint(0,COLORS.length-1)],
                bet:BETS[rint(0,BETS.length-1)],
                at:+(1.2+Math.random()*Math.random()*9).toFixed(2), st:'live', took:0 };
     }
@@ -1871,7 +2000,7 @@ function makeSheet(wrapId, topId, opts){
     }
 
     function renderPlayers(){
-      var html='<div class="cph"><span>Игроки · '+bots.length+'</span><span>Ставка · выплата</span></div>';
+      var html='<div class="cph"><span>'+t('players')+' · '+bots.length+'</span><span>'+t('bet_payout')+'</span></div>';
       bots.forEach(function(p){
         var cls='', mx;
         if(p.st==='win'){ cls='win'; mx='+'+fmtInt(p.took); }
@@ -1895,12 +2024,12 @@ function makeSheet(wrapId, topId, opts){
     function updBtn(){
       goBtn.classList.remove('cash');
       if(phase==='waiting'){
-        goBtn.textContent=joined?('Ставка принята · '+fmtInt(stake)+' ★'):('Поставить '+fmtInt(stake)+' ★');
+        goBtn.textContent=joined?t('bet_taken',{n:fmtInt(stake)}):t('place_bet',{n:fmtInt(stake)});
         goBtn.disabled=joined;
       } else if(phase==='flying'){
-        if(joined&&!cashed){ goBtn.textContent='Забрать '+fmtInt(stake*mult)+' ★'; goBtn.disabled=false; }
-        else { goBtn.textContent='Раунд идёт'; goBtn.disabled=true; }
-      } else { goBtn.textContent='Раунд окончен'; goBtn.disabled=true; }
+        if(joined&&!cashed){ goBtn.textContent=t('cash_out',{n:fmtInt(stake*mult)}); goBtn.disabled=false; }
+        else { goBtn.textContent=t('round_live'); goBtn.disabled=true; }
+      } else { goBtn.textContent=t('round_over'); goBtn.disabled=true; }
     }
 
     function beginWaiting(){
@@ -1910,7 +2039,7 @@ function makeSheet(wrapId, topId, opts){
       for(var i=0;i<n;i++) bots.push(mkBot(i));
       renderPlayers();
       multEl.textContent='1.00×'; multEl.className='cmult num t1';
-      setPhase('waiting','Ожидание');
+      setPhase('waiting',t('waiting'));
       waitNum.textContent='5'; waitRing.style.strokeDashoffset='0';
       updBtn();
       ctx.clearRect(0,0,W,H);
@@ -1925,7 +2054,7 @@ function makeSheet(wrapId, topId, opts){
 
     function beginFlying(){
       if(!live) return;
-      setPhase('flying','Раунд идёт');
+      setPhase('flying',t('round_live'));
       t0=performance.now();
       target=+(1.2+Math.random()*Math.random()*12).toFixed(2);
       renderPlayers(); updBtn();
@@ -1959,7 +2088,7 @@ function makeSheet(wrapId, topId, opts){
     function bust(){
       cancelAnimationFrame(raf);
       mult=target;
-      setPhase('crashed','Улетел');
+      setPhase('crashed',t('busted'));
       multEl.textContent=target.toFixed(2)+'×'; multEl.className='cmult num boom';
       stage.classList.remove('shake'); void stage.offsetWidth; stage.classList.add('shake');
       flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
@@ -1984,13 +2113,13 @@ function makeSheet(wrapId, topId, opts){
 
     function join(){
       if(joined||phase!=='waiting') return;
-      if(stake>bal){ haptic('warning'); goBtn.textContent='Недостаточно звёзд';
+      if(stake>bal){ haptic('warning'); goBtn.textContent=t('no_stars');
         setTimeout(updBtn,1400); return; }
       autoOn=autoChk.checked;
       var am=parseFloat(String(autoInp.value).replace(',','.'));
       autoAt=(am&&am>1)?am:2;
       bal-=stake; joined=true;
-      bots.unshift({id:'me',n:'Вы',me:true,bet:stake,at:autoOn?autoAt:999,st:'live',took:0});
+      bots.unshift({id:'me',n:t('you'),me:true,bet:stake,at:autoOn?autoAt:999,st:'live',took:0});
       renderPlayers(); updBtn(); haptic('medium');
     }
 
@@ -2011,6 +2140,12 @@ function makeSheet(wrapId, topId, opts){
     document.getElementById('cAutoUp').addEventListener('click',function(){ stepAuto(0.1); });
     document.getElementById('cAutoDn').addEventListener('click',function(){ stepAuto(-0.1); });
 
+    RERENDER.push(function(){
+      phaseTxt.textContent = phase==='waiting'?t('waiting'):phase==='flying'?t('round_live'):t('busted');
+      renderPlayers(); updBtn();
+      bots.forEach(function(p){ p.n = p.me ? t('you') : pool()[p.ni]; });
+    });
+
     return {
       enter:function(){ if(live) return; live=true; size(); renderHist(); beginWaiting(); },
       leave:function(){ live=false; if(raf) cancelAnimationFrame(raf); if(cdTimer) clearInterval(cdTimer); }
@@ -2027,7 +2162,9 @@ function makeSheet(wrapId, topId, opts){
         goBtn=document.getElementById('pGo'), reel=document.getElementById('pxReel'),
         track=document.getElementById('pxTrack');
 
-    var NAMES=['Nexus','Samira','Паук','Vadim','Фирюза','Ragnar','Артур','Максим','Илья','Оля'];
+    var NAMES_RU=['Нексус','Самира','Паук','Вадим','Фирюза','Рагнар','Артур','Максим','Илья','Оля'];
+    var NAMES_EN=['Nexus','Samira','Spider','Vadim','Firuza','Ragnar','Arthur','Max','Ilya','Olly'];
+    function pool(){ return LANG==='en'?NAMES_EN:NAMES_RU; }
     var COLORS=['#8FA6C4','#C08A9E','#8FC4A8','#C4B08F','#A79AC4','#C49A8F'];
     var BETS=[50,100,250,500,1000];
     var PITCH=66;               // ширина карточки 58 + зазор 8
@@ -2079,9 +2216,9 @@ function makeSheet(wrapId, topId, opts){
 
     function updBtn(){
       if(phase!=='collect'){ goBtn.disabled=true;
-        goBtn.textContent = phase==='spin' ? 'Розыгрыш…' : goBtn.textContent; return; }
+        goBtn.textContent = phase==='spin' ? t('drawing') : goBtn.textContent; return; }
       goBtn.disabled=joined;
-      goBtn.textContent=joined ? ('Вы в игре · '+fmtInt(stake)+' ★') : ('Войти в битву · '+fmtInt(stake)+' ★');
+      goBtn.textContent=joined ? t('you_in',{n:fmtInt(stake)}) : t('enter_battle',{n:fmtInt(stake)});
     }
 
     /* лента медленно дрейфует, пока идёт сбор */
@@ -2093,10 +2230,11 @@ function makeSheet(wrapId, topId, opts){
 
     function addBot(){
       if(phase!=='collect'||players.length>=6) return;
-      var used={}; players.forEach(function(p){ used[p.n]=1; });
-      var free=NAMES.filter(function(n){ return !used[n]; });
+      var used={}; players.forEach(function(p){ if(p.ni!=null) used[p.ni]=1; });
+      var free=[]; for(var i=0;i<NAMES_RU.length;i++) if(!used[i]) free.push(i);
       if(!free.length) return;
-      players.push({n:free[rint(0,free.length-1)], c:COLORS[players.length%COLORS.length],
+      var ni=free[rint(0,free.length-1)];
+      players.push({ni:ni, n:pool()[ni], c:COLORS[players.length%COLORS.length],
                     s:BETS[rint(0,BETS.length-1)], me:false});
       render(); buildTickets();
     }
@@ -2104,7 +2242,7 @@ function makeSheet(wrapId, topId, opts){
     function newRound(){
       if(!live) return;
       phase='collect'; joined=false; players=[]; left=COLLECT;
-      subEl.textContent='Ждём игроков';
+      subEl.textContent=t('wait_players');
       timerEl.style.width='0%';
       reel.classList.remove('hit');
       var n=rint(2,3);
@@ -2118,7 +2256,7 @@ function makeSheet(wrapId, topId, opts){
       tmr=setInterval(function(){
         left--;
         timerEl.style.width=((COLLECT-left)/COLLECT*100)+'%';
-        subEl.textContent = left>0 ? ('Розыгрыш через '+left+' сек') : 'Розыгрыш';
+        subEl.textContent = left>0 ? t('draw_in',{n:left}) : t('draw');
         if(left<=0){ clearInterval(tmr); clearInterval(botTimer); spin(); }
       },1000);
     }
@@ -2126,7 +2264,7 @@ function makeSheet(wrapId, topId, opts){
     function spin(){
       if(!live||players.length<2){ newRound(); return; }
       phase='spin'; updBtn();
-      subEl.textContent='Крутим ленту';
+      subEl.textContent=t('spinning');
       haptic('medium');
 
       // победитель — взвешенно по долям
@@ -2155,10 +2293,10 @@ function makeSheet(wrapId, topId, opts){
       var rows=listEl.children;
       for(var j=0;j<rows.length;j++) rows[j].classList.add(j===win?'won':'out');
       var P=pot();
-      if(players[win].me){ bal+=P; goBtn.textContent='Победа · +'+fmtInt(P)+' ★'; haptic('success');
-        subEl.textContent='Вы забрали банк'; }
-      else { goBtn.textContent='Выиграл '+players[win].n; haptic('error');
-        subEl.textContent='Победил '+players[win].n; }
+      if(players[win].me){ bal+=P; goBtn.textContent=t('win_amt',{n:fmtInt(P)}); haptic('success');
+        subEl.textContent=t('you_took'); }
+      else { goBtn.textContent=t('lost_to',{n:players[win].n}); haptic('error');
+        subEl.textContent=t('won_by',{n:players[win].n}); }
       goBtn.disabled=true;
       raf=requestAnimationFrame(drift);
       setTimeout(newRound,2800);
@@ -2166,12 +2304,12 @@ function makeSheet(wrapId, topId, opts){
 
     function join(){
       if(joined||phase!=='collect') return;
-      if(stake>bal){ haptic('warning'); goBtn.textContent='Недостаточно звёзд';
+      if(stake>bal){ haptic('warning'); goBtn.textContent=t('no_stars');
         setTimeout(updBtn,1400); return; }
       bal-=stake; joined=true;
-      players.unshift({n:'Вы',c:'var(--gold)',s:stake,me:true});
+      players.unshift({n:t('you'),c:'var(--gold)',s:stake,me:true});
       render(); buildTickets(); updBtn(); haptic('medium');
-      subEl.textContent='Вы в игре · ждём розыгрыша';
+      subEl.textContent=t('you_in_wait');
     }
 
     goBtn.addEventListener('click',join);
@@ -2180,6 +2318,13 @@ function makeSheet(wrapId, topId, opts){
       haptic('light');
       chips.querySelectorAll('button').forEach(function(x2){ x2.classList.remove('on'); });
       b.classList.add('on'); stake=+b.dataset.pbet; updBtn();
+    });
+
+    RERENDER.push(function(){
+      players.forEach(function(p){ p.n = p.me ? t('you') : pool()[p.ni]; });
+      if(phase==='collect') subEl.textContent = joined ? t('you_in_wait')
+        : (left>0 ? t('draw_in',{n:left}) : t('wait_players'));
+      render(); renderTrack(); updBtn();
     });
 
     return {
@@ -2233,6 +2378,18 @@ function makeSheet(wrapId, topId, opts){
     if(PREFS.sound) beep(660,0.09,0.05,'triangle');
   });
 
+  var seg=document.getElementById('langSeg');
+  function markLang(){
+    seg.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on',b.dataset.lang===LANG); });
+  }
+  markLang();
+  seg.addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    haptic('light'); beep(700,0.06,0.04,'triangle');
+    setLang(b.dataset.lang); markLang();
+  });
+  RERENDER.push(markLang);
+
   var rules=makeSheet('rlSheet','rlTop');
   document.getElementById('rlX').addEventListener('click',rules.hide);
   document.getElementById('rlOk').addEventListener('click',function(){ haptic('light'); rules.hide(); });
@@ -2268,10 +2425,10 @@ function makeSheet(wrapId, topId, opts){
     var a=num(amt.value), next=bal+a;
     oBal.textContent=fmt(next)+' ★';
     oPow.textContent=(next*HASH_PER_STAR*(YIELD_PCT/BASE_YIELD)).toFixed(3)+' PH/s';
-    oRate.textContent=fmt(next*(YIELD_PCT/100)/24)+' ★ / час';
-    hint.textContent = a ? '' : 'Введите сумму';
+    oRate.textContent=fmt(next*(YIELD_PCT/100)/24)+' ★ / '+t('per_hour');
+    hint.textContent = a ? '' : t('w_enter_amt');
     go.disabled=!a;
-    go.textContent = a ? ('Пополнить на '+fmtInt(a)+' ★') : 'Пополнить';
+    go.textContent = a ? t('d_go',{n:fmtInt(a)}) : t('d_title');
   }
 
   amt.addEventListener('input',preview);
@@ -2286,6 +2443,7 @@ function makeSheet(wrapId, topId, opts){
     bal+=num(amt.value); recalc(); haptic('success'); sheet.hide();
   });
 
+  RERENDER.push(preview);
   function open(){ haptic('medium'); sheet.show(); }
   document.getElementById('btnTopUp').addEventListener('click',open);
   document.getElementById('btnAdd').addEventListener('click',open);
@@ -2301,7 +2459,7 @@ function makeSheet(wrapId, topId, opts){
    триллионы), что для финтех-продукта выглядит как обман.
    ══════════════════════════════════════════════════════ */
 (function calculator(){
-  var PERIODS={7:'7 дней',30:'30 дней',90:'90 дней',365:'год'};
+  function period(d){ return t({7:'c_p7',30:'c_p30',90:'c_p90',365:'c_py'}[d]); }
 
   var amt=document.getElementById('cAmt'), per=document.getElementById('cPer'),
       rate=document.getElementById('cRate'), resK=document.getElementById('cResK'),
@@ -2320,8 +2478,8 @@ function makeSheet(wrapId, topId, opts){
 
   /* крупные суммы сокращаем, иначе строка вылезает за карточку */
   function big(n){
-    if(n>=1e9) return fmt(n/1e9)+' млрд';
-    if(n>=1e6) return fmt(n/1e6)+' млн';
+    if(n>=1e9) return fmt(n/1e9)+t('mlrd');
+    if(n>=1e6) return fmt(n/1e6)+t('mln');
     return fmt(n);
   }
 
@@ -2337,7 +2495,7 @@ function makeSheet(wrapId, topId, opts){
   function calc(){
     var a=toNum(amt.value), eff=override||YIELD_PCT, perDay=a*(eff/100);
     rate.textContent='+'+eff.toFixed(2)+'%';
-    resK.textContent='Доход за '+PERIODS[days];
+    resK.textContent=t('c_income_for',{n:period(days)});
 
     var profit=perDay*days, total=a+profit;
     profitEl.textContent='+'+big(profit);
@@ -2364,7 +2522,7 @@ function makeSheet(wrapId, topId, opts){
       b.textContent=label; b.dataset.y=y; if(on) b.className='on';
       boostRow.appendChild(b);
     };
-    mk('Текущая',0,true);
+    mk(t('c_current'),0,true);
     BOOSTS.forEach(function(x){ if(x.y>YIELD_PCT) mk(x.y+'%',x.y,false); });
     override=0;
   }
@@ -2388,6 +2546,7 @@ function makeSheet(wrapId, topId, opts){
     haptic('light'); amt.value=Math.floor(bal); calc();
   });
 
+  RERENDER.push(function(){ buildBoosts(); calc(); });
   document.getElementById('btnCalc').addEventListener('click',function(){
     haptic('medium'); amt.value=Math.floor(bal); sheet.show();
   });
@@ -2433,11 +2592,11 @@ function makeSheet(wrapId, topId, opts){
     }
 
     var a=amountStars(), msg='';
-    if(mode==='stars' && !user.value.trim()) msg='Укажите Telegram username';
-    else if(mode==='ton' && !wallet.value.trim()) msg='Укажите TON-кошелёк';
-    else if(!a) msg='Введите сумму';
-    else if(a<MIN) msg='Минимальная сумма вывода — '+MIN+' ★';
-    else if(a>avail()) msg='Недостаточно звёзд на балансе';
+    if(mode==='stars' && !user.value.trim()) msg=t('w_need_user');
+    else if(mode==='ton' && !wallet.value.trim()) msg=t('w_need_wallet');
+    else if(!a) msg=t('w_enter_amt');
+    else if(a<MIN) msg=t('w_min_msg',{n:MIN});
+    else if(a>avail()) msg=t('w_no_funds');
 
     hint.textContent=msg;
     go.disabled=!!msg;
@@ -2461,8 +2620,8 @@ function makeSheet(wrapId, topId, opts){
     swap.classList.toggle('flip',dir==='rev');
     amtT.readOnly = dir!=='fwd';
     get.readOnly  = dir==='fwd';
-    L1.textContent = dir==='fwd' ? 'Введите сумму' : 'Получите';
-    L2.textContent = dir==='fwd' ? 'Получите' : 'Введите сумму';
+    L1.textContent = dir==='fwd' ? t('w_enter_amt') : t('w_receive');
+    L2.textContent = dir==='fwd' ? t('w_receive') : t('w_enter_amt');
     sync();
   });
 
@@ -2478,7 +2637,7 @@ function makeSheet(wrapId, topId, opts){
       var v=avail();
       if(mode==='stars') amt.value=v;
       else { dir='fwd'; swap.classList.remove('flip'); amtT.readOnly=false; get.readOnly=true;
-             L1.textContent='Введите сумму'; L2.textContent='Получите'; amtT.value=v; }
+             L1.textContent=t('w_enter_amt'); L2.textContent=t('w_receive'); amtT.value=v; }
       sync();
     });
   });
@@ -2493,6 +2652,7 @@ function makeSheet(wrapId, topId, opts){
     sheet.hide();
   });
 
+  RERENDER.push(sync);
   document.getElementById('btnWithdraw').addEventListener('click',function(){
     haptic('medium'); amt.value=MIN; amtT.value=MIN; sheet.show();
   });
@@ -2517,7 +2677,7 @@ function makeSheet(wrapId, topId, opts){
     el.className='bcard';
     el.innerHTML='<span class="pc num">'+b.y+'%</span>'+
                  '<span class="ic">'+BOLT+'</span>'+
-                 '<span class="fo">в день</span>'+
+                 '<span class="fo"></span>'+
                  '<span class="pr">'+STAR+'<span class="num">'+b.price+'</span></span>';
     el.addEventListener('click',function(){
       if(sel===i || el.classList.contains('own')) return;
@@ -2536,7 +2696,7 @@ function makeSheet(wrapId, topId, opts){
     BOOSTS.forEach(function(b,i){
       var el=grid.children[i], own=b.y<=YIELD_PCT;
       el.classList.toggle('own',own);
-      el.querySelector('.fo').textContent = own ? 'активен' : 'в день';
+      el.querySelector('.fo').textContent = own ? t('active') : t('per_day');
       if(!own && firstFree<0) firstFree=i;
     });
     if(sel<0 || grid.children[sel].classList.contains('own')){
@@ -2548,6 +2708,7 @@ function makeSheet(wrapId, topId, opts){
     else { buyBtn.disabled=true; }
   }
 
+  RERENDER.push(refresh);
   document.getElementById('btnBoost').addEventListener('click',function(){ haptic('medium'); sheet.show(); });
 
   buyBtn.addEventListener('click',function(){
@@ -2568,6 +2729,9 @@ document.querySelectorAll('[data-h]').forEach(function(el){
 });
 document.getElementById('btnAdd').addEventListener('click', function(){ haptic('medium'); });
 document.getElementById('btnBell').addEventListener('click', function(){ haptic('light'); });
+
+/* язык применяем последним — все модули уже зарегистрировали перерисовку */
+applyLang();
 
 })();
 </script>
