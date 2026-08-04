@@ -431,6 +431,19 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // -------- SETTLE ALL — рассчитать все непосчитанные продажи разом --------
+    if (action === 'settle_all') {
+      const open = await sb('profit_sales?shop_id=eq.' + SHOP + '&settled=eq.false&select=id');
+      const n = Array.isArray(open) ? open.length : 0;
+      if (n) {
+        await sb('profit_sales?shop_id=eq.' + SHOP + '&settled=eq.false', { method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify({ settled: true, settled_at: new Date().toISOString() }) });
+        const members = await shopMembers(SHOP);
+        pushOthers(members, '✅ Рассчитались по всем продажам (' + n + ' шт) — вопрос закрыт.');
+      }
+      res.status(200).json(await stateResponse(SHOP));
+      return;
+    }
+
     // -------- SALE DELETE (владелец) — вернуть пару на склад --------
     if (action === 'sale_delete') {
       if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }

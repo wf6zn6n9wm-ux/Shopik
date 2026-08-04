@@ -603,7 +603,8 @@ function summaryOwner(t){
   return `
   <div class="hero owner"><div class="hero-cap">🤝 Выдать «${esc(V.managerName)}» при расчёте</div>
     <div class="hero-big am">${money(t.mgrWithdrawable)}</div>
-    <div class="hero-sub">Общая сумма к выдаче управляющей по непосчитанным продажам: её вложенное + её доля (${V.sharePct}%).</div></div>
+    <div class="hero-sub">Общая сумма к выдаче управляющей по непосчитанным продажам: её вложенное + её доля (${V.sharePct}%).</div>
+    ${t.mgrWithdrawable>0?`<button class="btn btn-primary mt4" data-act="settleAll">✅ Выдал всё — рассчитаться</button>`:''}</div>
   <div class="grid2 mt4">
     <div class="stat"><div class="k">Моя доля всего</div><div class="v sky">${money(t.ownProfit)}</div></div>
     <div class="stat"><div class="k">Чистая прибыль</div><div class="v em">${money(t.net)}</div></div>
@@ -622,7 +623,8 @@ function summaryManager(t){
   return `
   <div class="hero manager"><div class="hero-cap">✋ Можно забрать сейчас</div>
     <div class="hero-big am">${money(t.mgrWithdrawable)}</div>
-    <div class="hero-sub">С проданных, ещё не рассчитанных пар: вложенное + твоя доля (${V.sharePct}%).</div></div>
+    <div class="hero-sub">С проданных, ещё не рассчитанных пар: вложенное + твоя доля (${V.sharePct}%).</div>
+    ${t.mgrWithdrawable>0?`<button class="btn btn-primary mt4" data-act="settleAll">✅ Забрала всё — рассчитаться</button>`:''}</div>
   <div class="grid2 mt4">
     <div class="stat"><div class="k">Вложено сейчас</div><div class="v am">${money(t.stockValue)}</div></div>
     <div class="stat"><div class="k">Твоя доля (заработано)</div><div class="v em">${money(t.mgrEarn)}</div></div>
@@ -938,6 +940,13 @@ document.addEventListener('click',e=>{
     return;
   }
   if(act==='settle'){ if(V.online){ apiCall('sale_settle',{id,settled:true},'Рассчитано ✓'); } else { const s=S.sales.find(x=>x.id===id); if(s)s.settled=true; saveLocal(); buildView(); render(); toast('Рассчитано ✓'); } return; }
+  if(act==='settleAll'){
+    const n=V.sales.filter(s=>!s.settled).length; if(!n){ toast('Нет непосчитанных продаж'); return; }
+    if(!confirm('Рассчитаться по всем '+n+' продажам сразу? Все они уйдут в «Рассчитано».')) return;
+    if(V.online){ apiCall('settle_all',null,'Рассчитались по всем ✓'); }
+    else{ S.sales.forEach(s=>{ if(!s.settled) s.settled=true; }); saveLocal(); buildView(); render(); toast('Рассчитались по всем ✓'); }
+    return;
+  }
   if(act==='unsettle'){ if(V.online){ apiCall('sale_settle',{id,settled:false}); } else { const s=S.sales.find(x=>x.id===id); if(s)s.settled=false; saveLocal(); buildView(); render(); } return; }
   if(act==='delSale'){
     if(!confirm('Отменить продажу и вернуть пару на склад?')) return;
