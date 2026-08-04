@@ -431,8 +431,9 @@ module.exports = async (req, res) => {
       return;
     }
 
-    // -------- SETTLE ALL — рассчитать все непосчитанные продажи разом --------
+    // -------- SETTLE ALL — рассчитать все непосчитанные продажи разом (владелец) --------
     if (action === 'settle_all') {
+      if (!isOwner) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
       const open = await sb('profit_sales?shop_id=eq.' + SHOP + '&settled=eq.false&select=id');
       const n = Array.isArray(open) ? open.length : 0;
       if (n) {
