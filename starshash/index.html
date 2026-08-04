@@ -852,6 +852,8 @@ button.srow:active{transform:scale(.985);}
 
 .wnotes{display:flex;justify-content:space-between;gap:10px;margin-top:9px;font-size:12px;color:var(--ink-3);}
 .whint{flex:0 0 auto;margin-top:10px;text-align:center;font-size:12.5px;color:#C98F6F;min-height:16px;}
+.btn-buy .bp{display:inline-flex;align-items:center;gap:8px;}
+.btn-buy .bp[hidden]{display:none;}
 .btn-buy[disabled]{background:#141416;color:#55555C;box-shadow:none;}
 .btn-buy[disabled]:active{transform:none;}
 
@@ -1645,9 +1647,13 @@ button.srow:active{transform:scale(.985);}
     </div>
     <div class="bgrid" id="bgrid"></div>
     <button class="btn-buy" id="buyBtn">
-      <span data-i18n="buy_for">Купить за</span>
-      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#150F04"/></svg>
-      <span id="buyPrice" class="num">5000</span>
+      <span class="bp" id="buyOk">
+        <span data-i18n="buy_for">Купить за</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#150F04"/></svg>
+        <span id="buyPrice" class="num">5000</span>
+      </span>
+      <span class="bp" id="buyNo" hidden data-i18n="no_stars">Недостаточно звёзд</span>
+      <span class="bp" id="buyMax" hidden data-i18n="max_lvl">Максимальный уровень</span>
     </button>
   </div>
 </div>
@@ -2051,6 +2057,7 @@ ru:{
  rf_r3:'И 10% от всего, что он пополнит — навсегда',
  rf_joined:'Вы пришли по приглашению — начислено {n} ★',
  rf_msg:'Майню звёзды в StarsHash. Заходи по ссылке — обоим будет бонус',
+ max_lvl:'Максимальный уровень',
  g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 от цены · шансы ниже',
  k_open:'Открыть за {n} ★', k_opening:'Открываем…', k_again:'Открыть ещё · {n} ★',
@@ -2121,6 +2128,7 @@ en:{
  rf_r3:'And 10% of everything they top up — forever',
  rf_joined:'You joined through an invite — {n} ★ credited',
  rf_msg:'Mining stars in StarsHash. Join through my link and we both get a bonus',
+ max_lvl:'Top level reached',
  g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
  k_range:'{a} – {b} ★', k_max:'max ×{m}', k_hero:'Top drop is ×5 the price · odds below',
  k_open:'Open for {n} ★', k_opening:'Opening…', k_again:'Open again · {n} ★',
@@ -2191,6 +2199,7 @@ uk:{
  rf_r3:'І 10% від усього, що він поповнить — назавжди',
  rf_joined:'Ви прийшли за запрошенням — нараховано {n} ★',
  rf_msg:'Майню зірки в StarsHash. Заходь за посиланням — обом буде бонус',
+ max_lvl:'Максимальний рівень',
  g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 від ціни · шанси нижче',
  k_open:'Відкрити за {n} ★', k_opening:'Відкриваємо…', k_again:'Відкрити ще · {n} ★',
@@ -3826,6 +3835,8 @@ function makeSheet(wrapId, topId, opts){
 
   var grid=document.getElementById('bgrid'), buyBtn=document.getElementById('buyBtn'),
       buyPrice=document.getElementById('buyPrice'),
+      buyOk=document.getElementById('buyOk'), buyNo=document.getElementById('buyNo'),
+      buyMax=document.getElementById('buyMax'),
       yieldVal=document.getElementById('yieldVal'), yieldCard=document.getElementById('yieldCard');
 
   var sheet=makeSheet('boostSheet','sheetTop',{ onShow:refresh });
@@ -3863,19 +3874,34 @@ function makeSheet(wrapId, topId, opts){
       sel=firstFree;
       if(sel>=0) grid.children[sel].classList.add('on');
     }
-    if(sel>=0){ buyPrice.textContent=BOOSTS[sel].price; buyBtn.disabled=false; }
-    else { buyBtn.disabled=true; }
+    if(sel<0){                          // куплен верхний уровень — покупать нечего
+      buyBtn.disabled=true;
+      buyOk.hidden=true; buyNo.hidden=true; buyMax.hidden=false;
+      return;
+    }
+    var price=BOOSTS[sel].price, enough=bal>=price;
+    buyPrice.textContent=price;
+    buyMax.hidden=true;
+    buyOk.hidden=!enough; buyNo.hidden=enough;
+    buyBtn.disabled=!enough;
   }
+
+  /* баланс капает сам — пока шторка открыта, кнопка должна разблокироваться
+     в тот момент, когда звёзд наконец хватило */
+  setInterval(function(){ if(sheet.isOpen()) refresh(); },1000);
 
   RERENDER.push(refresh);
   document.getElementById('btnBoost').addEventListener('click',function(){ haptic('medium'); sheet.show(); });
 
   buyBtn.addEventListener('click',function(){
-    haptic('success');
     if(sel<0) return;
-    YIELD_PCT = BOOSTS[sel].y;          // уровень задаёт ставку, а не прибавляет
+    var b=BOOSTS[sel];
+    if(bal < b.price){ haptic('warning'); refresh(); return; }
+    haptic('success');
+    bal -= b.price;                     // уровень платный — списываем цену
+    YIELD_PCT = b.y;                    // уровень задаёт ставку, а не прибавляет
     Tasks.done('boost');
-    recalc();                           // мощность, выплата и скорость — от новой доходности
+    recalc(); saveState();              // мощность, выплата и скорость — от новой доходности
     [yieldCard,document.getElementById('powerCard')].forEach(function(c){
       c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse');
     });
