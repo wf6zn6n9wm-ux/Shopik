@@ -469,7 +469,7 @@ function saleCard(s){
       <div class="kv" style="padding:2px 0"><span class="kk">${esc(V.ownerName)} · ${100-V.sharePct}%</span><span class="vv sky">${money(c.ownShare)}</span></div>
       ${V.salaryPct>0?`<div class="kv" style="padding:2px 0"><span class="kk">Продавец · ${V.salaryPct}%</span><span class="vv" style="color:#e879f9">${money(c.salary)}</span></div>`:''}
     </div>`;
-  if(isOwner) h+=`<div class="kv" style="margin-top:9px"><span class="kk">${s.settled?'Получено':'К получению'}, вам <span class="muted2">(ваша доля)</span></span><span class="vv sky">${money(c.ownTotal)}</span></div>`;
+  if(isOwner) h+=`<div class="kv" style="margin-top:9px"><span class="kk">${s.settled?'Выдано':'Выдать'} «${esc(V.managerName)}» <span class="muted2">(вложенное+её доля)</span></span><span class="vv am">${money(c.mgrTotal)}</span></div>`;
   else h+=`<div class="kv" style="margin-top:9px"><span class="kk">${s.settled?'Забрано':'Можно забрать'} <span class="muted2">(вложенное+доля)</span></span><span class="vv am">${money(c.mgrTotal)}</span></div>`;
   h+=`<div class="row gap2 mt3">`;
   if(isOwner) h+=`<button class="chip" data-act="delSale" data-id="${s.id}">Отменить</button>`;
@@ -601,20 +601,20 @@ function periodDashboard(){
 function viewSummary(){ return V.role==='owner'?summaryOwner(totals()):summaryManager(totals()); }
 function summaryOwner(t){
   return `
-  <div class="hero owner"><div class="hero-cap">💰 К получению от «${esc(V.managerName)}»</div>
-    <div class="hero-big sky">${money(t.ownReceivable)}</div>
-    <div class="hero-sub">Твоя доля с проданных, ещё не рассчитанных пар (${100-V.sharePct}% чистой прибыли).</div></div>
+  <div class="hero owner"><div class="hero-cap">🤝 Выдать «${esc(V.managerName)}» при расчёте</div>
+    <div class="hero-big am">${money(t.mgrWithdrawable)}</div>
+    <div class="hero-sub">Общая сумма к выдаче управляющей по непосчитанным продажам: её вложенное + её доля (${V.sharePct}%).</div></div>
   <div class="grid2 mt4">
-    <div class="stat"><div class="k">Оборот (продажи)</div><div class="v">${money(t.turnover)}</div></div>
+    <div class="stat"><div class="k">Моя доля всего</div><div class="v sky">${money(t.ownProfit)}</div></div>
     <div class="stat"><div class="k">Чистая прибыль</div><div class="v em">${money(t.net)}</div></div>
-    <div class="stat"><div class="k">Моя доля всего</div><div class="v sky sm">${money(t.ownProfit)}</div></div>
-    <div class="stat"><div class="k">Уже получено</div><div class="v sm">${money(t.ownReceived)}</div></div>
+    <div class="stat"><div class="k">Оборот (продажи)</div><div class="v sm">${money(t.turnover)}</div></div>
+    <div class="stat"><div class="k">Уже выдано</div><div class="v sm">${money(t.mgrWithdrawn)}</div></div>
     <div class="stat"><div class="k">Вложила управляющая</div><div class="v am sm">${money(t.stockValue)}</div></div>
     <div class="stat"><div class="k">Пар на складе</div><div class="v sm">${t.pairsInStock}</div></div>
   </div>
   ${periodDashboard()}
   <div class="card p4 mt4 small muted" style="line-height:1.5">
-    <b class="sky">Как читать:</b> товар покупает управляющая за свои деньги (<b>${money(t.stockValue)}</b> сейчас в обороте). Зарплата продавцов — расход (вычитается из прибыли). Чистую прибыль вы делите: тебе <b>${100-V.sharePct}%</b>, ей ${V.sharePct}% (плюс она возвращает вложенное). «Рассчитаться» на продаже фиксирует, что доля тебе передана.
+    <b class="am">Как читать:</b> товар покупает управляющая за свои деньги. Когда рассчитываешься, ты <b>выдаёшь ей вложенное назад + её долю (${V.sharePct}%)</b> — это число вверху. Себе оставляешь <b>${100-V.sharePct}%</b> прибыли, зарплата продавцу — отдельно. «Рассчитаться» на продаже фиксирует, что ты ей выдал.
   </div>
   ${explainerCard()}`;
 }
