@@ -606,11 +606,13 @@ function summaryOwner(t){
     <div class="hero-sub">Общая сумма к выдаче управляющей по непосчитанным продажам: её вложенное + её доля (${V.sharePct}%).</div>
     ${t.mgrWithdrawable>0?`<button class="btn btn-primary mt4" data-act="settleAll">✅ Выдал всё — рассчитаться</button>`:''}</div>
   <div class="grid2 mt4">
-    <div class="stat"><div class="k">Моя доля всего</div><div class="v sky">${money(t.ownProfit)}</div></div>
+    <div class="stat"><div class="k">Моя доля всего (${100-V.sharePct}%)</div><div class="v sky">${money(t.ownProfit)}</div></div>
+    <div class="stat"><div class="k">Доля управляющей (${V.sharePct}%)</div><div class="v am">${money(t.mgrEarn)}</div></div>
     <div class="stat"><div class="k">Чистая прибыль</div><div class="v em">${money(t.net)}</div></div>
     <div class="stat"><div class="k">Оборот (продажи)</div><div class="v sm">${money(t.turnover)}</div></div>
-    <div class="stat"><div class="k">Уже выдано</div><div class="v sm">${money(t.mgrWithdrawn)}</div></div>
     <div class="stat"><div class="k">Вложила управляющая</div><div class="v am sm">${money(t.stockValue)}</div></div>
+    <div class="stat"><div class="k">Уже выдано</div><div class="v sm">${money(t.mgrWithdrawn)}</div></div>
+    <div class="stat"><div class="k">Продавцам всего</div><div class="v sm">${money(t.salaryTotal)}</div></div>
     <div class="stat"><div class="k">Пар на складе</div><div class="v sm">${t.pairsInStock}</div></div>
   </div>
   ${periodDashboard()}
