@@ -467,12 +467,14 @@ button.srow:active{transform:scale(.985);}
   background:linear-gradient(168deg,rgba(228,192,120,.15),rgba(228,192,120,.04));
 }
 .ownchip.on input{color:var(--gold);}
-/* в ПВП фишек на одну больше, поэтому ряд плотнее — иначе «1000»
+.cchips.locked button:not(.on),.cchips.locked .ownchip:not(.on){opacity:.45;}
+.cchips.locked button:active{transform:none;}
+/* в играх фишек на одну больше, поэтому ряд плотнее — иначе «1000»
    уезжает за край целиком и о прокрутке никак не догадаться */
-#pChips{gap:7px;}
-#pChips button{padding:0 10px;}
-#pChips .ownchip{padding:0 9px;gap:4px;}
-#pChips .ownchip input{width:40px;}
+#pChips,#cChips{gap:7px;}
+#pChips button,#cChips button{padding:0 10px;}
+#pChips .ownchip,#cChips .ownchip{padding:0 9px;gap:4px;}
+#pChips .ownchip input,#cChips .ownchip input{width:40px;}
 
 /* авто-вывод */
 .cauto{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
@@ -1162,6 +1164,11 @@ button.srow:active{transform:scale(.985);}
       </div>
 
       <div class="cchips" id="cChips">
+        <label class="ownchip" id="cOwnWrap">
+          <input id="cOwn" type="text" inputmode="numeric" autocomplete="off" maxlength="7"
+                 data-i18n-ph="own_bet" placeholder="Своя" aria-label="Своя ставка">
+          <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="currentColor"/></svg>
+        </label>
         <button data-cbet="50">50</button>
         <button data-cbet="100" class="on">100</button>
         <button data-cbet="250">250</button>
@@ -2203,6 +2210,7 @@ function makeSheet(wrapId, topId, opts){
         phaseTxt=document.getElementById('cPhaseTxt'), flash=document.getElementById('cFlash'),
         waitRing=document.getElementById('cWaitRing'), waitNum=document.getElementById('cWaitNum'),
         chips=document.getElementById('cChips'), goBtn=document.getElementById('cGo'),
+        own=document.getElementById('cOwn'), ownWrap=document.getElementById('cOwnWrap'),
         histEl=document.getElementById('cHist'), listEl=document.getElementById('cPlayers'),
         autoInp=document.getElementById('cAutoMult'), autoChk=document.getElementById('cAutoChk');
 
@@ -2318,6 +2326,9 @@ function makeSheet(wrapId, topId, opts){
         if(joined&&!cashed){ goBtn.textContent=t('cash_out',{n:fmtInt(stake*mult)}); goBtn.disabled=false; }
         else { goBtn.textContent=t('round_live'); goBtn.disabled=true; }
       } else { goBtn.textContent=t('round_over'); goBtn.disabled=true; }
+      /* после входа ставку не трогаем: выплата считается по текущему stake */
+      own.readOnly=joined;
+      chips.classList.toggle('locked',joined);
     }
 
     function beginWaiting(){
@@ -2414,11 +2425,53 @@ function makeSheet(wrapId, topId, opts){
     goBtn.addEventListener('click',function(){
       if(phase==='waiting') join(); else if(phase==='flying') cashout();
     });
-    chips.addEventListener('click',function(e){
-      var b=e.target.closest('button'); if(!b) return;
-      haptic('light');
+    /* поле растёт под содержимое: и «12 480», и англоязычная подсказка
+       не должны обрезаться внутри фишки */
+    var _mx=null;
+    function sizeOwn(){
+      var txt=own.value, cs=getComputedStyle(own), wt=cs.fontWeight;
+      if(!txt){ txt=own.placeholder||''; wt='600'; }
+      try{
+        _mx=_mx||document.createElement('canvas').getContext('2d');
+        _mx.font=wt+' '+cs.fontSize+' '+cs.fontFamily;
+        own.style.width=Math.max(38,Math.ceil(_mx.measureText(txt).width)+4)+'px';
+      }catch(e){ own.style.width=Math.max(38,txt.length*9+5)+'px'; }
+    }
+    /* подсветка одна на пресеты и на своё поле */
+    function markChip(el){
       chips.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
-      b.classList.add('on'); stake=+b.dataset.cbet; updBtn();
+      ownWrap.classList.remove('on');
+      if(el) el.classList.add('on');
+    }
+    function preset(v){
+      var b=chips.querySelector('button[data-cbet="'+v+'"]');
+      if(b){ markChip(b); stake=+b.dataset.cbet; }
+    }
+    chips.addEventListener('click',function(e){
+      var b=e.target.closest('button'); if(!b||joined) return;
+      haptic('light');
+      markChip(b); stake=+b.dataset.cbet; own.value=''; sizeOwn(); updBtn();
+    });
+
+    /* своя ставка: любое целое число звёзд. Верхнюю границу не режем —
+       если звёзд не хватит, это скажет кнопка ставки, как и для пресетов. */
+    own.addEventListener('input',function(){
+      if(joined){ own.value=''; return; }
+      var v=own.value.replace(/\D/g,'');
+      if(v!==own.value) own.value=v;
+      sizeOwn();
+      if(!v) return;
+      stake=Math.max(1,parseInt(v,10));
+      markChip(ownWrap); updBtn();
+    });
+    own.addEventListener('focus',function(){
+      if(joined || !own.value) return;
+      stake=Math.max(1,parseInt(own.value,10)); markChip(ownWrap); updBtn();
+    });
+    /* пустое поле не должно оставлять ставку в подвешенном состоянии */
+    own.addEventListener('blur',function(){
+      if(joined || own.value) return;
+      preset(100); updBtn();
     });
     function stepAuto(d){
       var v=parseFloat(String(autoInp.value).replace(',','.'))||2;
@@ -2429,13 +2482,14 @@ function makeSheet(wrapId, topId, opts){
     document.getElementById('cAutoDn').addEventListener('click',function(){ stepAuto(-0.1); });
 
     RERENDER.push(function(){
+      sizeOwn();
       phaseTxt.textContent = phase==='waiting'?t('waiting'):phase==='flying'?t('round_live'):t('busted');
       renderPlayers(); updBtn();
       bots.forEach(function(p){ p.n = p.me ? t('you') : pool()[p.ni]; });
     });
 
     return {
-      enter:function(){ if(live) return; live=true; size(); renderHist(); beginWaiting(); },
+      enter:function(){ if(live) return; live=true; size(); sizeOwn(); renderHist(); beginWaiting(); },
       leave:function(){ live=false; if(raf) cancelAnimationFrame(raf); if(cdTimer) clearInterval(cdTimer); }
     };
   })();
@@ -2511,6 +2565,7 @@ function makeSheet(wrapId, topId, opts){
       goBtn.disabled=joined;
       goBtn.textContent=joined ? t('you_in',{n:fmtInt(stake)}) : t('enter_battle',{n:fmtInt(stake)});
       own.readOnly=joined;
+      chips.classList.toggle('locked',joined);
     }
 
     /* лента медленно дрейфует, пока идёт сбор */
