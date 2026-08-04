@@ -1152,6 +1152,28 @@ button.srow:active{transform:scale(.985);}
 .bnlad i.done{color:var(--gold-deep);border-color:rgba(228,192,120,.2);background:rgba(228,192,120,.05);}
 .bnnote{margin-top:12px;text-align:center;font-size:11.5px;color:var(--ink-3);line-height:1.5;}
 
+/* ─────────── Пополнение через GRAM ─────────── */
+.gpack{display:flex;flex-direction:column;gap:8px;}
+.gp{
+  display:flex;align-items:center;gap:10px;width:100%;padding:13px 15px;border-radius:17px;
+  background:var(--card);border:1px solid var(--line);text-align:left;
+  transition:border-color .22s,background .22s,transform .16s;
+}
+.gp:active{transform:scale(.985);}
+.gp .s{
+  font-size:16px;font-weight:700;color:var(--gold);display:flex;align-items:center;gap:6px;
+  font-variant-numeric:tabular-nums;
+}
+.gp .g{
+  margin-left:auto;font-size:14.5px;font-weight:600;color:var(--ink-2);
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.gp.on{
+  border-color:var(--gold);
+  background:linear-gradient(168deg,rgba(228,192,120,.13),rgba(228,192,120,.03));
+}
+.gp.on .g{color:var(--ink);}
+
 /* ─────────── Друзья ─────────── */
 .srow .rfc{
   flex:0 0 auto;font-size:13px;font-weight:700;color:var(--gold);
@@ -1795,16 +1817,36 @@ button.srow:active{transform:scale(.985);}
       </div>
     </div>
     <div class="wbody">
-      <div class="wlab" style="margin-top:0"><span data-i18n="d_amount">Сумма пополнения</span></div>
-      <div class="wf">
-        <input id="dpAmt" type="text" inputmode="decimal" autocomplete="off" value="1000">
-        <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+      <div class="wmet">
+        <button id="dmStars" class="on">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+          <span class="nm">Stars</span>
+          <span class="rd"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        </button>
+        <button id="dmGram">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#2E9BE8"/><path d="M12 5.4l4.6 4.3L12 18.6 7.4 9.7z" fill="#fff"/><path d="M7.4 9.7h9.2" stroke="#2E9BE8" stroke-width="1.1"/></svg>
+          <span class="nm">GRAM</span>
+          <span class="rd"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        </button>
       </div>
-      <div class="cchips" id="dpChips" style="margin-top:12px">
-        <button data-dp="500">500</button>
-        <button data-dp="1000" class="on">1000</button>
-        <button data-dp="5000">5000</button>
-        <button data-dp="12480">12 480</button>
+
+      <div id="dpStars">
+        <div class="wlab"><span data-i18n="d_amount">Сумма пополнения</span></div>
+        <div class="wf">
+          <input id="dpAmt" type="text" inputmode="decimal" autocomplete="off" value="1000">
+          <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+        </div>
+        <div class="cchips" id="dpChips" style="margin-top:12px">
+          <button data-dp="500">500</button>
+          <button data-dp="1000" class="on">1000</button>
+          <button data-dp="5000">5000</button>
+          <button data-dp="12480">12 480</button>
+        </div>
+      </div>
+
+      <div id="dpGram" hidden>
+        <div class="wlab"><span data-i18n="d_pick">Выберите пакет</span></div>
+        <div class="gpack" id="gpList"></div>
       </div>
     </div>
     <div class="whint" id="dpHint"></div>
@@ -2026,6 +2068,7 @@ ru:{
  w_enter_amt:'Введите сумму', w_receive:'Получите', w_fee:'Комиссия 5%', w_fee_amt:'Удержим',
  w_need_user:'Укажите Telegram username', w_need_wallet:'Укажите TON-кошелёк',
  w_min_msg:'Минимальная сумма вывода — {n} ★', w_no_funds:'Недостаточно звёзд на балансе',
+ d_pick:'Выберите пакет',
  d_title:'Пополнить', d_amount:'Сумма пополнения', d_go:'Пополнить на {n} ★',
  c_deposit:'Сумма вклада', c_my_bal:'Мой баланс', c_term:'Срок', c_rate:'Ставка доходности',
  c_current:'Текущая', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 год',
@@ -2097,6 +2140,7 @@ en:{
  w_enter_amt:'Enter amount', w_receive:'You receive', w_fee:'Fee 5%', w_fee_amt:'Fee',
  w_need_user:'Enter a Telegram username', w_need_wallet:'Enter a TON wallet',
  w_min_msg:'Minimum withdrawal is {n} ★', w_no_funds:'Not enough stars on balance',
+ d_pick:'Choose a pack',
  d_title:'Top up', d_amount:'Top-up amount', d_go:'Top up {n} ★',
  c_deposit:'Deposit amount', c_my_bal:'My balance', c_term:'Term', c_rate:'Daily rate',
  c_current:'Current', c_d7:'7 d', c_d30:'30 d', c_d90:'90 d', c_y1:'1 year',
@@ -2168,6 +2212,7 @@ uk:{
  w_enter_amt:'Введіть суму', w_receive:'Отримаєте', w_fee:'Комісія 5%', w_fee_amt:'Утримаємо',
  w_need_user:'Вкажіть Telegram username', w_need_wallet:'Вкажіть TON-гаманець',
  w_min_msg:'Мінімальна сума виведення — {n} ★', w_no_funds:'Недостатньо зірок на балансі',
+ d_pick:'Оберіть пакет',
  d_title:'Поповнити', d_amount:'Сума поповнення', d_go:'Поповнити на {n} ★',
  c_deposit:'Сума вкладу', c_my_bal:'Мій баланс', c_term:'Термін', c_rate:'Ставка дохідності',
  c_current:'Поточна', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 рік',
@@ -3570,19 +3615,58 @@ function makeSheet(wrapId, topId, opts){
    ══════════════════════════════════════════════════════ */
 (function deposit(){
   var amt=document.getElementById('dpAmt'), chips=document.getElementById('dpChips'),
-      go=document.getElementById('dpGo'), hint=document.getElementById('dpHint');
+      go=document.getElementById('dpGo'), hint=document.getElementById('dpHint'),
+      mStars=document.getElementById('dmStars'), mGram=document.getElementById('dmGram'),
+      bStars=document.getElementById('dpStars'), bGram=document.getElementById('dpGram'),
+      gpList=document.getElementById('gpList');
+
+  /* тот же курс, что и на выводе: 1 ★ = 0.01 GRAM. Бонусов за пакет нет —
+     сколько звёзд в строке, столько и приходит на баланс. */
+  var GRAM_RATE=0.01;
+  var PACKS=[200,500,1000,2500,5000];
+  var mode='stars', gsel=2;                 // по умолчанию 1000 ★
 
   var sheet=makeSheet('dpSheet','dpTop',{ onShow:preview });
   document.getElementById('dpX').addEventListener('click',sheet.hide);
 
   function num(v){ v=parseFloat(String(v).replace(/\s/g,'').replace(',','.')); return isFinite(v)&&v>0?v:0; }
+  function amount(){ return mode==='stars' ? num(amt.value) : PACKS[gsel]; }
+
+  var STAR='<svg width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-2px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>';
+  function buildPacks(){
+    gpList.innerHTML='';
+    PACKS.forEach(function(v,i){
+      var el=document.createElement('button');
+      el.className='gp'+(i===gsel?' on':'');
+      el.innerHTML='<span class="s">'+fmtInt(v)+' '+STAR+'</span>'+
+                   '<span class="g">'+(v*GRAM_RATE).toFixed(2)+' GRAM</span>';
+      el.addEventListener('click',function(){
+        if(gsel===i) return;
+        haptic('light');
+        gpList.children[gsel].classList.remove('on');
+        gsel=i; el.classList.add('on'); preview();
+      });
+      gpList.appendChild(el);
+    });
+  }
 
   function preview(){
-    var a=num(amt.value);
+    var a=amount();
     hint.textContent = a ? '' : t('w_enter_amt');
     go.disabled=!a;
     go.textContent = a ? t('d_go',{n:fmtInt(a)}) : t('d_title');
   }
+
+  function setMode(m){
+    if(mode===m) return;
+    haptic('light'); mode=m;
+    mStars.classList.toggle('on',m==='stars');
+    mGram.classList.toggle('on',m==='gram');
+    bStars.hidden=m!=='stars'; bGram.hidden=m!=='gram';
+    preview();
+  }
+  mStars.addEventListener('click',function(){ setMode('stars'); });
+  mGram.addEventListener('click',function(){ setMode('gram'); });
 
   amt.addEventListener('input',preview);
   chips.addEventListener('click',function(e){
@@ -3591,12 +3675,15 @@ function makeSheet(wrapId, topId, opts){
     chips.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
     b.classList.add('on'); amt.value=b.dataset.dp; preview();
   });
+
+  buildPacks();
+  RERENDER.push(function(){ buildPacks(); preview(); });
   go.addEventListener('click',function(){
     if(go.disabled) return;
-    bal+=num(amt.value); recalc(); haptic('success'); sheet.hide();  Tasks.done('topup');
+    var a=amount(); if(!a) return;
+    bal+=a; recalc(); saveState(); Tasks.done('topup');
+    haptic('success'); sheet.hide();
   });
-
-  RERENDER.push(preview);
   function open(){ haptic('medium'); sheet.show(); }
   document.getElementById('btnTopUp').addEventListener('click',open);
   document.getElementById('btnAdd').addEventListener('click',open);
