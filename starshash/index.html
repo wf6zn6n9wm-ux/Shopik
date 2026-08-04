@@ -450,6 +450,29 @@ button.srow:active{transform:scale(.985);}
   border-color:var(--gold);color:var(--gold);
   background:linear-gradient(168deg,rgba(228,192,120,.15),rgba(228,192,120,.04));
 }
+/* своя ставка — фишка с полем ввода, живёт в том же ряду и не съедает высоту */
+.ownchip{
+  flex:0 0 auto;height:40px;display:flex;align-items:center;gap:5px;padding:0 11px;
+  border-radius:13px;background:#0E0E10;border:1px solid var(--line);color:var(--ink-3);
+  transition:border-color .22s,color .22s,background .22s;
+}
+.ownchip input{
+  width:52px;background:none;border:0;outline:none;padding:0;
+  font-family:inherit;font-size:13.5px;font-weight:700;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.ownchip input::placeholder{color:var(--ink-3);font-weight:600;}
+.ownchip.on{
+  border-color:var(--gold);color:var(--gold);
+  background:linear-gradient(168deg,rgba(228,192,120,.15),rgba(228,192,120,.04));
+}
+.ownchip.on input{color:var(--gold);}
+/* в ПВП фишек на одну больше, поэтому ряд плотнее — иначе «1000»
+   уезжает за край целиком и о прокрутке никак не догадаться */
+#pChips{gap:7px;}
+#pChips button{padding:0 10px;}
+#pChips .ownchip{padding:0 9px;gap:4px;}
+#pChips .ownchip input{width:40px;}
 
 /* авто-вывод */
 .cauto{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
@@ -1187,6 +1210,11 @@ button.srow:active{transform:scale(.985);}
       <div class="plist" id="pList"></div>
 
       <div class="cchips" id="pChips">
+        <label class="ownchip" id="pOwnWrap">
+          <input id="pOwn" type="text" inputmode="numeric" autocomplete="off" maxlength="7"
+                 data-i18n-ph="own_bet" placeholder="Своя" aria-label="Своя ставка">
+          <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="currentColor"/></svg>
+        </label>
         <button data-pbet="50">50</button>
         <button data-pbet="100" class="on">100</button>
         <button data-pbet="250">250</button>
@@ -1621,7 +1649,7 @@ ru:{
  sup_title:'Поддержка', sup_desc:'Ответим на любой вопрос по начислениям,<br>выводу и бустам',
  sup_write:'Написать', copy_rights:'Все права защищены',
  r_title:'Правила', r_ok:'Понятно',
- g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
+ own_bet:'Своя', g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 от цены · шансы ниже',
  k_open:'Открыть за {n} ★', k_opening:'Открываем…', k_again:'Открыть ещё · {n} ★',
  k_got:'Выпало {n} ★ · {r}', k_chance:'Шанс',
@@ -1672,7 +1700,7 @@ en:{
  sup_title:'Support', sup_desc:'We answer any question about payouts,<br>withdrawals and boosts',
  sup_write:'Write to us', copy_rights:'All rights reserved',
  r_title:'Rules', r_ok:'Got it',
- g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
+ own_bet:'Own', g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
  k_range:'{a} – {b} ★', k_max:'max ×{m}', k_hero:'Top drop is ×5 the price · odds below',
  k_open:'Open for {n} ★', k_opening:'Opening…', k_again:'Open again · {n} ★',
  k_got:'You got {n} ★ · {r}', k_chance:'Chance',
@@ -1723,7 +1751,7 @@ uk:{
  sup_title:'Підтримка', sup_desc:'Відповімо на будь-яке питання щодо нарахувань,<br>виведення та бустів',
  sup_write:'Написати', copy_rights:'Всі права захищені',
  r_title:'Правила', r_ok:'Зрозуміло',
- g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
+ own_bet:'Своя', g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 від ціни · шанси нижче',
  k_open:'Відкрити за {n} ★', k_opening:'Відкриваємо…', k_again:'Відкрити ще · {n} ★',
  k_got:'Випало {n} ★ · {r}', k_chance:'Шанс',
@@ -2420,7 +2448,8 @@ function makeSheet(wrapId, topId, opts){
         timerEl=document.getElementById('pTimer'), shareEl=document.getElementById('pShare'),
         listEl=document.getElementById('pList'), chips=document.getElementById('pChips'),
         goBtn=document.getElementById('pGo'), reel=document.getElementById('pxReel'),
-        track=document.getElementById('pxTrack');
+        track=document.getElementById('pxTrack'),
+        own=document.getElementById('pOwn'), ownWrap=document.getElementById('pOwnWrap');
 
     var NAMES={
       ru:['Нексус','Самира','Паук','Вадим','Фирюза','Рагнар','Артур','Максим','Илья','Оля'],
@@ -2481,6 +2510,7 @@ function makeSheet(wrapId, topId, opts){
         goBtn.textContent = phase==='spin' ? t('drawing') : goBtn.textContent; return; }
       goBtn.disabled=joined;
       goBtn.textContent=joined ? t('you_in',{n:fmtInt(stake)}) : t('enter_battle',{n:fmtInt(stake)});
+      own.readOnly=joined;
     }
 
     /* лента медленно дрейфует, пока идёт сбор */
@@ -2575,14 +2605,59 @@ function makeSheet(wrapId, topId, opts){
     }
 
     goBtn.addEventListener('click',join);
+    /* поле растёт под содержимое: и «12 480», и англоязычное «Custom»
+       не должны обрезаться внутри фишки. Ширину меряем по-настоящему —
+       на глазок цифры и буквы считаются по-разному. */
+    var _mx=null;
+    function sizeOwn(){
+      var txt=own.value, cs=getComputedStyle(own), wt=cs.fontWeight;
+      if(!txt){ txt=own.placeholder||''; wt='600'; }
+      try{
+        _mx=_mx||document.createElement('canvas').getContext('2d');
+        _mx.font=wt+' '+cs.fontSize+' '+cs.fontFamily;
+        own.style.width=Math.max(38,Math.ceil(_mx.measureText(txt).width)+4)+'px';
+      }catch(e){ own.style.width=Math.max(38,txt.length*9+5)+'px'; }
+    }
+
+    /* подсветка одна на пресеты и на своё поле */
+    function markChip(el){
+      chips.querySelectorAll('button').forEach(function(x2){ x2.classList.remove('on'); });
+      ownWrap.classList.remove('on');
+      if(el) el.classList.add('on');
+    }
+    function preset(v){
+      var b=chips.querySelector('button[data-pbet="'+v+'"]');
+      if(b){ markChip(b); stake=+b.dataset.pbet; } 
+    }
     chips.addEventListener('click',function(e){
       var b=e.target.closest('button'); if(!b||joined) return;
       haptic('light');
-      chips.querySelectorAll('button').forEach(function(x2){ x2.classList.remove('on'); });
-      b.classList.add('on'); stake=+b.dataset.pbet; updBtn();
+      markChip(b); stake=+b.dataset.pbet; own.value=''; sizeOwn(); updBtn();
+    });
+
+    /* своя ставка: любое целое число звёзд. Верхнюю границу не режем —
+       если звёзд не хватит, это скажет кнопка входа, как и для пресетов. */
+    own.addEventListener('input',function(){
+      if(joined){ own.value=''; return; }
+      var v=own.value.replace(/\D/g,'');
+      if(v!==own.value) own.value=v;
+      sizeOwn();
+      if(!v) return;
+      stake=Math.max(1,parseInt(v,10));
+      markChip(ownWrap); updBtn();
+    });
+    own.addEventListener('focus',function(){
+      if(joined || !own.value) return;
+      stake=Math.max(1,parseInt(own.value,10)); markChip(ownWrap); updBtn();
+    });
+    /* пустое поле не должно оставлять ставку в подвешенном состоянии */
+    own.addEventListener('blur',function(){
+      if(joined || own.value) return;
+      preset(100); updBtn();
     });
 
     RERENDER.push(function(){
+      sizeOwn();
       players.forEach(function(p){ p.n = p.me ? t('you') : pool()[p.ni]; });
       if(phase==='collect') subEl.textContent = joined ? t('you_in_wait')
         : (left>0 ? t('draw_in',{n:left}) : t('wait_players'));
@@ -2590,7 +2665,7 @@ function makeSheet(wrapId, topId, opts){
     });
 
     return {
-      enter:function(){ if(live) return; live=true; x=0; apply(); newRound(); raf=requestAnimationFrame(drift); },
+      enter:function(){ if(live) return; live=true; x=0; sizeOwn(); apply(); newRound(); raf=requestAnimationFrame(drift); },
       leave:function(){ live=false; if(raf) cancelAnimationFrame(raf);
         if(tmr) clearInterval(tmr); if(botTimer) clearInterval(botTimer); }
     };
