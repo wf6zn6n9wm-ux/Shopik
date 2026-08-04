@@ -995,7 +995,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     <div class="sheet-top" id="sheetTop">
       <div class="grab"></div>
       <div class="sheet-t" id="boostTitle">Магазин бустов</div>
-      <div class="sheet-s">Постоянные</div>
+      <div class="sheet-s">Постоянные · прибавка к доходности</div>
     </div>
     <div class="bgrid" id="bgrid"></div>
     <button class="btn-buy" id="buyBtn">
@@ -2255,7 +2255,7 @@ function makeSheet(wrapId, topId, opts){
     el.className='bcard'+(i===sel?' on':'');
     el.innerHTML='<span class="pc num">+'+b.p+'%</span>'+
                  '<span class="ic">'+BOLT+'</span>'+
-                 '<span class="fo">Навсегда</span>'+
+                 '<span class="fo">в день</span>'+
                  '<span class="pr">'+STAR+'<span class="num">'+b.price+'</span></span>';
     el.addEventListener('click',function(){
       if(sel===i) return;
