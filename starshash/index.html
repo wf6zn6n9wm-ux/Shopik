@@ -1150,6 +1150,51 @@ button.srow:active{transform:scale(.985);}
 .bnlad i.done{color:var(--gold-deep);border-color:rgba(228,192,120,.2);background:rgba(228,192,120,.05);}
 .bnnote{margin-top:12px;text-align:center;font-size:11.5px;color:var(--ink-3);line-height:1.5;}
 
+/* ─────────── Друзья ─────────── */
+.srow .rfc{
+  flex:0 0 auto;font-size:13px;font-weight:700;color:var(--gold);
+  padding:3px 9px;border-radius:9px;background:rgba(228,192,120,.1);
+  border:1px solid rgba(228,192,120,.2);
+}
+.rfstats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.rfs{
+  padding:14px 16px;border-radius:20px;background:var(--card);border:1px solid var(--line);
+  display:flex;flex-direction:column;gap:6px;
+}
+.rfs .k{font-size:12px;color:var(--ink-3);font-weight:600;}
+.rfs .v{font-size:26px;font-weight:300;letter-spacing:-.03em;line-height:1;}
+.rfjoin{
+  margin-bottom:14px;padding:11px 14px;border-radius:16px;font-size:12.5px;color:var(--ink-2);
+  background:linear-gradient(168deg,rgba(228,192,120,.1),rgba(255,255,255,.012));
+  border:1px solid rgba(228,192,120,.22);
+}
+.rflink{
+  width:100%;display:flex;align-items:center;gap:10px;padding:13px 15px;border-radius:18px;
+  background:var(--card);border:1px solid var(--line);text-align:left;transition:border-color .22s;
+}
+/* хост и личный код разведены по строкам: с настоящим telegram-id
+   ссылка в одну строку не влезает и многоточие съедает именно код */
+.rflink .u{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.rflink .u b{
+  font-size:12.5px;font-weight:600;color:var(--ink-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.rflink .u i{
+  font-style:normal;font-size:13.5px;font-weight:700;color:var(--gold);
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.rflink .ci{flex:0 0 auto;color:var(--gold);display:grid;place-items:center;}
+.rflink.done{border-color:var(--gold);}
+.rflink.done .u b{color:var(--gold-deep);}
+.rfrules{margin:16px 0 18px;display:flex;flex-direction:column;gap:11px;}
+.rfr{display:flex;align-items:flex-start;gap:11px;font-size:13px;color:var(--ink-2);line-height:1.45;}
+.rfr i{
+  flex:0 0 auto;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+  font-style:normal;font-size:11px;font-weight:800;color:var(--gold);
+  background:rgba(228,192,120,.1);border:1px solid rgba(228,192,120,.2);margin-top:1px;
+}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 </style>
 </head>
@@ -1493,6 +1538,13 @@ button.srow:active{transform:scale(.985);}
         </button>
       </div>
 
+      <button class="srow" id="pRef">
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.5" cy="8.5" r="3.4"/><path d="M3.5 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><path d="M18 8v6M15 11h6"/></svg></span>
+        <span class="nm" data-i18n="rf_title">Друзья</span>
+        <span class="rfc num" id="pRefN">0</span>
+        <span class="ch"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+      </button>
+
       <div class="ptitle">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 14.5a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.84 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.33 1.7 1.7 0 0 0-1.03 1.55V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.84l.06-.06a1.7 1.7 0 0 0 .33-1.88 1.7 1.7 0 0 0-1.55-1.03H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.84-2.83l.06.06a1.7 1.7 0 0 0 1.88.33H9.1a1.7 1.7 0 0 0 1.03-1.55V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.84l-.06.06a1.7 1.7 0 0 0-.33 1.88V9.1a1.7 1.7 0 0 0 1.55 1.03H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.55 1.03z"/></svg>
         <span data-i18n="set_title">Настройки</span>
@@ -1761,6 +1813,52 @@ button.srow:active{transform:scale(.985);}
 </div>
 
 <!-- ═══ шторка «Калькулятор» ═══ -->
+<div class="sheet-wrap" id="rfSheet" aria-hidden="true">
+  <div class="sheet-bd"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rfTitle">
+    <div class="sheet-top" id="rfTop">
+      <div class="grab"></div>
+      <div class="sheet-hd">
+        <span class="t" id="rfTitle" data-i18n="rf_title">Друзья</span>
+        <button class="sheet-x" id="rfX" aria-label="Закрыть">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="wbody">
+      <div class="rfstats">
+        <div class="rfs">
+          <span class="k" data-i18n="rf_friends">Приглашено</span>
+          <span class="v num" id="rfN">0</span>
+        </div>
+        <div class="rfs">
+          <span class="k" data-i18n="rf_earned">Заработано</span>
+          <span class="v num" id="rfE">0</span>
+        </div>
+      </div>
+
+      <div class="rfjoin" id="rfJoin" hidden></div>
+
+      <div class="wlab" style="margin-top:0"><span data-i18n="rf_link">Ваша ссылка</span></div>
+      <button class="rflink" id="rfCopy">
+        <span class="u"><b id="rfHost"></b><i id="rfCode"></i></span>
+        <span class="ci">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5.5A2.5 2.5 0 0 1 7.5 3H15"/></svg>
+        </span>
+      </button>
+
+      <div class="rfrules">
+        <div class="rfr"><i>1</i><span data-i18n="rf_r1">Друг открывает приложение по вашей ссылке</span></div>
+        <div class="rfr"><i>2</i><span data-i18n="rf_r2">Вы получаете 25 ★ за каждого друга</span></div>
+        <div class="rfr"><i>3</i><span data-i18n="rf_r3">И 10% от всего, что он пополнит — навсегда</span></div>
+      </div>
+
+      <button class="btn-buy" id="rfShare" data-i18n="rf_share">Пригласить друга</button>
+    </div>
+  </div>
+</div>
+
 <div class="sheet-wrap" id="bnSheet" aria-hidden="true">
   <div class="sheet-bd"></div>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="bnTitle">
@@ -1953,6 +2051,13 @@ ru:{
  bn_title:'Бонусы', bn_ready:'можно забрать', bn_wait:'до следующего бонуса',
  bn_take:'Забрать {n} ★', bn_next:'Ещё {t}', bn_streak:'серия · {n} подряд', bn_streak0:'серия не начата',
  bn_note:'Бонус приходит раз в час. Забирайте подряд — награда растёт. Пропуск больше шести часов обнуляет серию.',
+ rf_title:'Друзья', rf_friends:'Приглашено', rf_earned:'Заработано',
+ rf_link:'Ваша ссылка', rf_share:'Пригласить друга',
+ rf_r1:'Друг открывает приложение по вашей ссылке',
+ rf_r2:'Вы получаете 25 ★ за каждого друга',
+ rf_r3:'И 10% от всего, что он пополнит — навсегда',
+ rf_joined:'Вы пришли по приглашению — начислено {n} ★',
+ rf_msg:'Майню звёзды в StarsHash. Заходи по ссылке — обоим будет бонус',
  g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 от цены · шансы ниже',
  k_open:'Открыть за {n} ★', k_opening:'Открываем…', k_again:'Открыть ещё · {n} ★',
@@ -2017,6 +2122,13 @@ en:{
  bn_title:'Bonuses', bn_ready:'ready to claim', bn_wait:'until the next bonus',
  bn_take:'Claim {n} ★', bn_next:'In {t}', bn_streak:'streak · {n} in a row', bn_streak0:'no streak yet',
  bn_note:'A bonus lands every hour. Claim them back to back and the reward grows. Skipping more than six hours resets the streak.',
+ rf_title:'Friends', rf_friends:'Invited', rf_earned:'Earned',
+ rf_link:'Your link', rf_share:'Invite a friend',
+ rf_r1:'Your friend opens the app through your link',
+ rf_r2:'You get 25 ★ for every friend',
+ rf_r3:'And 10% of everything they top up — forever',
+ rf_joined:'You joined through an invite — {n} ★ credited',
+ rf_msg:'Mining stars in StarsHash. Join through my link and we both get a bonus',
  g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
  k_range:'{a} – {b} ★', k_max:'max ×{m}', k_hero:'Top drop is ×5 the price · odds below',
  k_open:'Open for {n} ★', k_opening:'Opening…', k_again:'Open again · {n} ★',
@@ -2081,6 +2193,13 @@ uk:{
  bn_title:'Бонуси', bn_ready:'можна забрати', bn_wait:'до наступного бонусу',
  bn_take:'Забрати {n} ★', bn_next:'Ще {t}', bn_streak:'серія · {n} поспіль', bn_streak0:'серію не розпочато',
  bn_note:'Бонус приходить раз на годину. Забирайте поспіль — нагорода зростає. Пропуск понад шість годин обнуляє серію.',
+ rf_title:'Друзі', rf_friends:'Запрошено', rf_earned:'Зароблено',
+ rf_link:'Ваше посилання', rf_share:'Запросити друга',
+ rf_r1:'Друг відкриває застосунок за вашим посиланням',
+ rf_r2:'Ви отримуєте 25 ★ за кожного друга',
+ rf_r3:'І 10% від усього, що він поповнить — назавжди',
+ rf_joined:'Ви прийшли за запрошенням — нараховано {n} ★',
+ rf_msg:'Майню зірки в StarsHash. Заходь за посиланням — обом буде бонус',
  g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 від ціни · шанси нижче',
  k_open:'Відкрити за {n} ★', k_opening:'Відкриваємо…', k_again:'Відкрити ще · {n} ★',
@@ -2367,13 +2486,15 @@ var SAVED=(function(){
     var dl=(o.dl && typeof o.dl==='object') ? o.dl : {};
     var mn=(o.mn && typeof o.mn==='object') ? o.mn : {};
     var bn=(o.bn && typeof o.bn==='object') ? o.bn : {};
+    var rf=(o.rf && typeof o.rf==='object') ? o.rf : {};
     var num=function(v){ v=+v; return isFinite(v)&&v>0 ? v : 0; };
     return {bal:b, y:y, seen:t, tk:tk,
             dl:{streak:Math.max(0,Math.min(7,+dl.streak||0)), last:String(dl.last||'')},
             mn:{d:{k:String((mn.d&&mn.d.k)||''), v:num(mn.d&&mn.d.v)},
                 w:{k:String((mn.w&&mn.w.k)||''), v:num(mn.w&&mn.w.v)},
                 a:num(mn.a)},
-            bn:{last:num(bn.last), streak:Math.max(0,Math.min(8,+bn.streak||0))}};
+            bn:{last:num(bn.last), streak:Math.max(0,Math.min(8,+bn.streak||0))},
+            rf:{by:String(rf.by||''), n:Math.max(0,Math.round(num(rf.n))), earned:num(rf.earned)}};
   }catch(e){ return null; }
 })();
 
@@ -2385,6 +2506,9 @@ var DL = SAVED ? SAVED.dl : {streak:0, last:''};
    Считаем только доход с майнинга: выигрыши и награды туда не идут. */
 var MN = SAVED ? SAVED.mn : {d:{k:'',v:0}, w:{k:'',v:0}, a:0};
 var BN = SAVED ? SAVED.bn : {last:0, streak:0};
+/* by — кто пригласил (из start_param), n и earned наполняет сервер:
+   клиент не может подтвердить чужую регистрацию и её не выдумывает */
+var RF = SAVED ? SAVED.rf : {by:'', n:0, earned:0};
 function dayKey(d){ d=d||new Date();
   return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 function weekKey(d){
@@ -2419,7 +2543,7 @@ if(SAVED && SAVED.seen && bal>0){
 
 function saveState(){
   try{ localStorage.setItem(SKEY, JSON.stringify({v:1, bal:bal, y:YIELD_PCT, seen:Date.now(),
-                                                   tk:TK, dl:DL, mn:MN, bn:BN})); }catch(e){}
+                                                   tk:TK, dl:DL, mn:MN, bn:BN, rf:RF})); }catch(e){}
 }
 
 /* Сколько намайнено за `sec` секунд простоя при текущем балансе и ставке */
@@ -3888,18 +4012,14 @@ var Tasks = (function(){
     if(st==='got') return;
     if(st==='ready'){ take(x); return; }
     if(x.kind!=='link'){ haptic('warning'); return; }   // ждём действия в приложении
+    /* приглашение шлём через раздел «Друзья»: ссылка должна быть одна */
+    if(x.id==='invite'){ Ref.share(); done(x.id); return; }
     haptic('medium');
-    var link = x.url || ('https://t.me/share/url?url='+encodeURIComponent('https://t.me/starshash_bot?start=ref_'+uid())+
-                         '&text='+encodeURIComponent('StarsHash'));
     try{
-      if(TG && TG.openTelegramLink) TG.openTelegramLink(link);
-      else window.open(link,'_blank','noopener');
-    }catch(e){ window.open(link,'_blank','noopener'); }
+      if(TG && TG.openTelegramLink) TG.openTelegramLink(x.url);
+      else window.open(x.url,'_blank','noopener');
+    }catch(e){ window.open(x.url,'_blank','noopener'); }
     done(x.id);
-  }
-  function uid(){
-    try{ var u=TG && TG.initDataUnsafe && TG.initDataUnsafe.user; if(u && u.id) return u.id; }catch(e){}
-    return '0';
   }
 
   function take(x){
@@ -4131,6 +4251,88 @@ var Bonus = (function(){
   RERENDER.push(render);
   render();
   return { ready:ready, refresh:render };
+})();
+
+/* ══════════════════════════════════════════════════════
+   ДРУЗЬЯ
+   Ссылка и приход по ней — настоящие: Telegram отдаёт start_param
+   при открытии мини-аппа. Счётчик приглашённых наполняет сервер —
+   клиент не может подтвердить чужую регистрацию, поэтому не рисует
+   цифры, которых нет.
+   ══════════════════════════════════════════════════════ */
+var Ref = (function(){
+  var JOIN_BONUS=25;              // ★ тому, кто пришёл по ссылке
+  var BOT='starshash_bot';
+
+  var nEl=document.getElementById('rfN'), eEl=document.getElementById('rfE'),
+      hostEl=document.getElementById('rfHost'), codeEl=document.getElementById('rfCode'),
+      copyEl=document.getElementById('rfCopy'),
+      shareEl=document.getElementById('rfShare'), joinEl=document.getElementById('rfJoin'),
+      badgeEl=document.getElementById('pRefN');
+
+  function uid(){
+    try{ var u=TG && TG.initDataUnsafe && TG.initDataUnsafe.user; if(u && u.id) return String(u.id); }catch(e){}
+    return '0';
+  }
+  function link(){ return 'https://t.me/'+BOT+'?start=ref_'+uid(); }
+
+  /* приход по чужой ссылке засчитываем один раз и не самому себе */
+  (function capture(){
+    var sp='';
+    try{ sp=(TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param)||''; }catch(e){}
+    if(!sp && location.search) sp=(new URLSearchParams(location.search).get('startapp'))||'';
+    var m=/^ref_(\d{1,20})$/.exec(String(sp));
+    if(!m) return;
+    if(RF.by || m[1]===uid()) return;
+    RF.by=m[1]; bal+=JOIN_BONUS; recalc(); saveState();
+  })();
+
+  function render(){
+    nEl.textContent=fmtInt(RF.n);
+    eEl.textContent=fmtInt(RF.earned);
+    badgeEl.textContent=fmtInt(RF.n);
+    hostEl.textContent='t.me/'+BOT;
+    codeEl.textContent='?start=ref_'+uid();
+    joinEl.hidden=!RF.by;
+    if(RF.by) joinEl.textContent=t('rf_joined',{n:JOIN_BONUS});
+  }
+
+  var sheet=makeSheet('rfSheet','rfTop',{ onShow:render });
+  document.getElementById('rfX').addEventListener('click',sheet.hide);
+  document.getElementById('pRef').addEventListener('click',function(){ haptic('medium'); sheet.show(); });
+
+  copyEl.addEventListener('click',function(){
+    haptic('light'); beep(760,0.06,0.04,'triangle');
+    var done=function(){
+      copyEl.classList.add('done');
+      setTimeout(function(){ copyEl.classList.remove('done'); },1200);
+    };
+    var txt=link();
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done,done);
+    } else {
+      var el=document.createElement('textarea');
+      el.value=txt; el.style.position='fixed'; el.style.opacity='0';
+      document.body.appendChild(el); el.select();
+      try{ document.execCommand('copy'); }catch(e){}
+      document.body.removeChild(el); done();
+    }
+  });
+
+  function share(){
+    haptic('medium');
+    var url='https://t.me/share/url?url='+encodeURIComponent(link())+
+            '&text='+encodeURIComponent(t('rf_msg'));
+    try{
+      if(TG && TG.openTelegramLink) TG.openTelegramLink(url);
+      else window.open(url,'_blank','noopener');
+    }catch(e){ window.open(url,'_blank','noopener'); }
+  }
+  shareEl.addEventListener('click',share);
+
+  RERENDER.push(render);
+  render();
+  return { show:sheet.show, share:share, link:link };
 })();
 
 /* язык применяем последним — все модули уже зарегистрировали перерисовку */
