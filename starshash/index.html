@@ -1111,6 +1111,45 @@ button.srow:active{transform:scale(.985);}
   .pod.p1 .bar{height:50px;} .pod.p2 .bar{height:36px;} .pod.p3 .bar{height:26px;}
 }
 
+/* ─────────── Бонусы ─────────── */
+.mini button{position:relative;}
+.rdot{
+  position:absolute;top:8px;right:14px;width:7px;height:7px;border-radius:50%;
+  background:var(--gold);box-shadow:0 0 8px var(--gold-glow);display:none;
+}
+.rdot.on{display:block;}
+
+.bnring{
+  position:relative;width:172px;height:172px;margin:2px auto 14px;
+}
+.bnring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.bnring .tk{fill:none;stroke:rgba(255,255,255,.06);stroke-width:6;}
+.bnring .pg{
+  fill:none;stroke:var(--gold);stroke-width:6;stroke-linecap:round;
+  stroke-dasharray:326.7;stroke-dashoffset:326.7;
+  filter:drop-shadow(0 0 8px var(--gold-glow));transition:stroke-dashoffset .4s linear;
+}
+.bnc{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:5px;
+}
+.bnc .v{font-size:44px;font-weight:200;letter-spacing:-.04em;line-height:1;transition:color .3s;}
+.bnc .v.rdy{color:var(--gold);}
+.bnc .c{font-size:11.5px;color:var(--ink-3);font-weight:600;text-align:center;padding:0 24px;}
+.bnst{text-align:center;font-size:12.5px;color:var(--ink-2);font-weight:600;margin-bottom:12px;}
+.bnlad{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-bottom:16px;}
+.bnlad i{
+  font-style:normal;font-size:11px;font-weight:700;color:var(--ink-3);
+  text-align:center;padding:7px 0;border-radius:9px;
+  background:#0D0D0F;border:1px solid var(--line);
+}
+.bnlad i.on{
+  color:var(--gold);border-color:var(--gold);
+  background:linear-gradient(168deg,rgba(228,192,120,.16),rgba(228,192,120,.04));
+}
+.bnlad i.done{color:var(--gold-deep);border-color:rgba(228,192,120,.2);background:rgba(228,192,120,.05);}
+.bnnote{margin-top:12px;text-align:center;font-size:11.5px;color:var(--ink-3);line-height:1.5;}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 </style>
 </head>
@@ -1225,12 +1264,13 @@ button.srow:active{transform:scale(.985);}
         </svg>
         <span class="t" data-i18n="calc">Калькулятор</span>
       </button>
-      <button data-h="light">
+      <button id="btnBonus">
         <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#E6E6EA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="8.5" width="18" height="12.5" rx="2.5"/><path d="M3 12.5h18M12 8.5V21"/>
           <path d="M12 8.5C9.2 8.5 7 3.2 12 3.2s2.8 5.3 0 5.3Z"/>
         </svg>
         <span class="t" data-i18n="bonus">Бонусы</span>
+        <i class="rdot" id="bnDot" aria-hidden="true"></i>
       </button>
       <button id="btnBoost">
         <svg class="gold" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#E4C078" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -1721,6 +1761,38 @@ button.srow:active{transform:scale(.985);}
 </div>
 
 <!-- ═══ шторка «Калькулятор» ═══ -->
+<div class="sheet-wrap" id="bnSheet" aria-hidden="true">
+  <div class="sheet-bd"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="bnTitle">
+    <div class="sheet-top" id="bnTop">
+      <div class="grab"></div>
+      <div class="sheet-hd">
+        <span class="t" id="bnTitle" data-i18n="bn_title">Бонусы</span>
+        <button class="sheet-x" id="bnX" aria-label="Закрыть">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="wbody">
+      <div class="bnring">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="tk" cx="60" cy="60" r="52"/>
+          <circle class="pg" id="bnRing" cx="60" cy="60" r="52"/>
+        </svg>
+        <div class="bnc">
+          <span class="v num" id="bnVal">2</span>
+          <span class="c" id="bnCap" data-i18n="bn_ready">можно забрать</span>
+        </div>
+      </div>
+      <div class="bnst" id="bnStreak"></div>
+      <div class="bnlad" id="bnLad"></div>
+      <button class="btn-buy" id="bnGo"></button>
+      <p class="bnnote" data-i18n="bn_note">Бонус приходит раз в час. Забирайте подряд — награда растёт.</p>
+    </div>
+  </div>
+</div>
+
 <div class="sheet-wrap" id="calcSheet" aria-hidden="true">
   <div class="sheet-bd"></div>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="calcTitle">
@@ -1878,6 +1950,9 @@ ru:{
  tk_pvp:'Сыграть в ПВП', tk_wd:'Вывести звёзды',
  tk_all:'Все задания выполнены', tk_got:'Начислено {n} ★',
  tp_day:'День', tp_week:'Неделя', tp_all:'Всё время',
+ bn_title:'Бонусы', bn_ready:'можно забрать', bn_wait:'до следующего бонуса',
+ bn_take:'Забрать {n} ★', bn_next:'Ещё {t}', bn_streak:'серия · {n} подряд', bn_streak0:'серия не начата',
+ bn_note:'Бонус приходит раз в час. Забирайте подряд — награда растёт. Пропуск больше шести часов обнуляет серию.',
  g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 от цены · шансы ниже',
  k_open:'Открыть за {n} ★', k_opening:'Открываем…', k_again:'Открыть ещё · {n} ★',
@@ -1939,6 +2014,9 @@ en:{
  tk_pvp:'Play PvP', tk_wd:'Withdraw stars',
  tk_all:'All tasks completed', tk_got:'{n} ★ credited',
  tp_day:'Day', tp_week:'Week', tp_all:'All time',
+ bn_title:'Bonuses', bn_ready:'ready to claim', bn_wait:'until the next bonus',
+ bn_take:'Claim {n} ★', bn_next:'In {t}', bn_streak:'streak · {n} in a row', bn_streak0:'no streak yet',
+ bn_note:'A bonus lands every hour. Claim them back to back and the reward grows. Skipping more than six hours resets the streak.',
  g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
  k_range:'{a} – {b} ★', k_max:'max ×{m}', k_hero:'Top drop is ×5 the price · odds below',
  k_open:'Open for {n} ★', k_opening:'Opening…', k_again:'Open again · {n} ★',
@@ -2000,6 +2078,9 @@ uk:{
  tk_pvp:'Зіграти в ПВП', tk_wd:'Вивести зірки',
  tk_all:'Усі завдання виконано', tk_got:'Нараховано {n} ★',
  tp_day:'День', tp_week:'Тиждень', tp_all:'Увесь час',
+ bn_title:'Бонуси', bn_ready:'можна забрати', bn_wait:'до наступного бонусу',
+ bn_take:'Забрати {n} ★', bn_next:'Ще {t}', bn_streak:'серія · {n} поспіль', bn_streak0:'серію не розпочато',
+ bn_note:'Бонус приходить раз на годину. Забирайте поспіль — нагорода зростає. Пропуск понад шість годин обнуляє серію.',
  g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 від ціни · шанси нижче',
  k_open:'Відкрити за {n} ★', k_opening:'Відкриваємо…', k_again:'Відкрити ще · {n} ★',
@@ -2285,12 +2366,14 @@ var SAVED=(function(){
     var tk=(o.tk && typeof o.tk==='object') ? o.tk : {};
     var dl=(o.dl && typeof o.dl==='object') ? o.dl : {};
     var mn=(o.mn && typeof o.mn==='object') ? o.mn : {};
+    var bn=(o.bn && typeof o.bn==='object') ? o.bn : {};
     var num=function(v){ v=+v; return isFinite(v)&&v>0 ? v : 0; };
     return {bal:b, y:y, seen:t, tk:tk,
             dl:{streak:Math.max(0,Math.min(7,+dl.streak||0)), last:String(dl.last||'')},
             mn:{d:{k:String((mn.d&&mn.d.k)||''), v:num(mn.d&&mn.d.v)},
                 w:{k:String((mn.w&&mn.w.k)||''), v:num(mn.w&&mn.w.v)},
-                a:num(mn.a)}};
+                a:num(mn.a)},
+            bn:{last:num(bn.last), streak:Math.max(0,Math.min(8,+bn.streak||0))}};
   }catch(e){ return null; }
 })();
 
@@ -2301,6 +2384,7 @@ var DL = SAVED ? SAVED.dl : {streak:0, last:''};
 /* Намайнено за день, неделю и всё время — метрика для таблицы лидеров.
    Считаем только доход с майнинга: выигрыши и награды туда не идут. */
 var MN = SAVED ? SAVED.mn : {d:{k:'',v:0}, w:{k:'',v:0}, a:0};
+var BN = SAVED ? SAVED.bn : {last:0, streak:0};
 function dayKey(d){ d=d||new Date();
   return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 function weekKey(d){
@@ -2335,7 +2419,7 @@ if(SAVED && SAVED.seen && bal>0){
 
 function saveState(){
   try{ localStorage.setItem(SKEY, JSON.stringify({v:1, bal:bal, y:YIELD_PCT, seen:Date.now(),
-                                                   tk:TK, dl:DL, mn:MN})); }catch(e){}
+                                                   tk:TK, dl:DL, mn:MN, bn:BN})); }catch(e){}
 }
 
 /* Сколько намайнено за `sec` секунд простоя при текущем балансе и ставке */
@@ -3959,6 +4043,94 @@ var Top = (function(){
   RERENDER.push(render);
   render();
   return { refresh:render };
+})();
+
+/* ══════════════════════════════════════════════════════
+   БОНУСЫ
+   Раз в час. Серия растит награду, но обрывается, если не забрать
+   в течение шести часов после готовности — иначе «серия» ничего
+   не значила бы и достаточно было заходить раз в неделю.
+   ══════════════════════════════════════════════════════ */
+var Bonus = (function(){
+  var LADDER=[2,3,4,5,6,7,8,10];      // ★ за 1..8 забор подряд, дальше 10
+  var COOL=3600*1000;                 // час до следующего
+  var GRACE=6*3600*1000;              // столько держится серия после готовности
+
+  var ringEl=document.getElementById('bnRing'), valEl=document.getElementById('bnVal'),
+      capEl=document.getElementById('bnCap'), stEl=document.getElementById('bnStreak'),
+      ladEl=document.getElementById('bnLad'), goEl=document.getElementById('bnGo'),
+      dotEl=document.getElementById('bnDot');
+  var LEN=2*Math.PI*52;
+
+  function since(){
+    if(!BN.last) return COOL;
+    /* часы съехали назад — не выдаём бонус даром, но и не показываем
+       обратный отсчёт длиннее часа: просто начинаем ожидание заново */
+    if(BN.last > Date.now()){ BN.last=Date.now(); saveState(); }
+    return Date.now()-BN.last;
+  }
+  function ready(){ return since()>=COOL; }
+  /* серия жива, пока после готовности не прошло больше GRACE */
+  function step(){
+    if(!BN.last) return 1;
+    if(since() > COOL+GRACE) return 1;
+    return Math.min(LADDER.length, BN.streak+1);
+  }
+  function reward(){ return LADDER[step()-1]; }
+  function leftMs(){ return Math.max(0, COOL-since()); }
+
+  function clock(ms){
+    var s=Math.ceil(ms/1000), m=Math.floor(s/60);
+    return ('0'+m).slice(-2)+':'+('0'+(s%60)).slice(-2);
+  }
+
+  function renderLadder(){
+    var st=step();
+    ladEl.innerHTML='';
+    LADDER.forEach(function(v,i){
+      var el=document.createElement('i');
+      el.className = i+1===st ? 'on' : (i+1<st ? 'done' : '');
+      el.textContent=v;
+      ladEl.appendChild(el);
+    });
+  }
+
+  function render(){
+    var st=step(), rd=ready();
+    valEl.textContent = rd ? reward() : clock(leftMs());
+    valEl.style.fontSize = rd ? '' : '34px';
+    valEl.classList.toggle('rdy', rd);
+    capEl.textContent = rd ? t('bn_ready') : t('bn_wait');
+    ringEl.style.strokeDashoffset = String(LEN*(rd ? 0 : leftMs()/COOL));
+    stEl.textContent = BN.streak>0 ? t('bn_streak',{n:BN.streak}) : t('bn_streak0');
+    goEl.disabled = !rd;
+    goEl.textContent = rd ? t('bn_take',{n:reward()}) : t('bn_next',{t:clock(leftMs())});
+    renderLadder();
+    mark();
+  }
+  function mark(){ dotEl.classList.toggle('on', ready()); }
+
+  var sheet=makeSheet('bnSheet','bnTop',{ onShow:render });
+  document.getElementById('bnX').addEventListener('click',sheet.hide);
+  document.getElementById('btnBonus').addEventListener('click',function(){ haptic('medium'); sheet.show(); });
+
+  goEl.addEventListener('click',function(){
+    if(!ready()) return;
+    var st=step(), r=LADDER[st-1];
+    BN.streak=st; BN.last=Date.now();
+    bal+=r; recalc(); saveState();
+    haptic('success'); beep(1050,0.13,0.05,'triangle');
+    render();
+  });
+
+  /* пока шторка открыта — секундная стрелка; закрыта — только точка */
+  setInterval(function(){
+    if(sheet.isOpen()) render(); else mark();
+  },1000);
+
+  RERENDER.push(render);
+  render();
+  return { ready:ready, refresh:render };
 })();
 
 /* язык применяем последним — все модули уже зарегистрировали перерисовку */
