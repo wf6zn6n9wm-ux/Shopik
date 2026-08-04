@@ -539,6 +539,8 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
   font-size:12px;font-weight:600;letter-spacing:-.01em;
 }
 .bcard.on{border-color:var(--gold);box-shadow:0 0 22px rgba(228,192,120,.16);}
+.bcard.own{opacity:.42;}
+.bcard.own .pr{border-color:var(--line);color:var(--ink-3);}
 .bcard.on .pc{color:var(--gold);}
 .bcard.on .ic{background:rgba(228,192,120,.16);border-color:rgba(228,192,120,.4);}
 
@@ -995,7 +997,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
     <div class="sheet-top" id="sheetTop">
       <div class="grab"></div>
       <div class="sheet-t" id="boostTitle">Магазин бустов</div>
-      <div class="sheet-s">Постоянные · прибавка к доходности</div>
+      <div class="sheet-s">Постоянные · ставка доходности</div>
     </div>
     <div class="bgrid" id="bgrid"></div>
     <button class="btn-buy" id="buyBtn">
@@ -1165,7 +1167,7 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
         <button data-d="365">1 год</button>
       </div>
 
-      <div class="wlab"><span>С бустом</span></div>
+      <div class="wlab"><span>Ставка доходности</span></div>
       <div class="cboost" id="cBoost"></div>
 
       <div class="cres">
@@ -1418,10 +1420,12 @@ var Ring = (function(){
 var bal = 0;                // новый пользователь начинает с нуля
 var YIELD_PCT = 1.00;       // %/день; растёт от купленных бустов
 
-/* Постоянные бусты — общий источник для магазина и калькулятора */
+/* Уровни доходности — общий источник для магазина и калькулятора.
+   На карточке стоит итоговая ставка, поэтому покупка её устанавливает,
+   а не прибавляет: иначе «1.4%» после «1.2%» дало бы 1.6%. */
 var BOOSTS=[
-  {p:0.2, price:100},  {p:0.4, price:200},  {p:0.6, price:300},
-  {p:1,   price:1000}, {p:4,   price:3000}, {p:6,   price:5000}
+  {y:1.2, price:100},  {y:1.4, price:200},  {y:1.6, price:300},
+  {y:2,   price:1000}, {y:5,   price:3000}, {y:7,   price:5000}
 ];
 
 function fmtInt(n){ return Math.round(n).toLocaleString('ru-RU'); }
@@ -2054,8 +2058,8 @@ function makeSheet(wrapId, topId, opts){
       boostRow=document.getElementById('cBoost'),
       gainRow=document.getElementById('cGainRow'), gainEl=document.getElementById('cGain');
 
-  var days=30, extra=0;   // extra — процент буста, который прикидываем поверх текущего
-  var sheet=makeSheet('calcSheet','calcTop',{ onShow:calc });
+  var days=30, override=0;   // 0 — считаем по текущей ставке, иначе по выбранному уровню
+  var sheet=makeSheet('calcSheet','calcTop',{ onShow:function(){ buildBoosts(); calc(); } });
   document.getElementById('calcX').addEventListener('click',sheet.hide);
   document.getElementById('calcDone').addEventListener('click',function(){ haptic('light'); sheet.hide(); });
 
@@ -2078,7 +2082,7 @@ function makeSheet(wrapId, topId, opts){
   }
 
   function calc(){
-    var a=toNum(amt.value), eff=YIELD_PCT+extra, perDay=a*(eff/100);
+    var a=toNum(amt.value), eff=override||YIELD_PCT, perDay=a*(eff/100);
     rate.textContent='+'+eff.toFixed(2)+'%';
     resK.textContent='Доход за '+PERIODS[days];
 
@@ -2088,32 +2092,37 @@ function makeSheet(wrapId, topId, opts){
     dayEl.textContent=(a?'~'+big(perDay):'0.00')+' ★';
 
     /* сколько именно добавит выбранный буст — иначе выбор ни о чём не говорит */
-    gainRow.hidden = !extra || !a;
-    if(!gainRow.hidden) gainEl.textContent='+'+big(a*(extra/100)*days)+' ★';
+    var delta=eff-YIELD_PCT;
+    gainRow.hidden = delta<=0 || !a;
+    if(!gainRow.hidden) gainEl.textContent='+'+big(a*(delta/100)*days)+' ★';
 
     var pts=curve(a,perDay||1,300,66);
     line.setAttribute('points',pts.join(' '));
     area.setAttribute('points','0,66 '+pts.join(' ')+' 300,66');
   }
 
-  /* чипы бустов из общего списка — магазин и калькулятор не разъедутся */
-  (function buildBoosts(){
-    var mk=function(label,p,on){
+  /* Чипы — те же уровни, что в магазине, но абсолютной ставкой.
+     Список пересобирается при открытии: купленные уровни показывать
+     как «что если» уже незачем. */
+  function buildBoosts(){
+    boostRow.innerHTML='';
+    var mk=function(label,y,on){
       var b=document.createElement('button');
-      b.textContent=label; b.dataset.p=p; if(on) b.className='on';
+      b.textContent=label; b.dataset.y=y; if(on) b.className='on';
       boostRow.appendChild(b);
     };
-    mk('Без буста',0,true);
-    BOOSTS.forEach(function(x){ mk('+'+x.p+'%',x.p,false); });
-    boostRow.addEventListener('click',function(e){
-      var btn=e.target.closest('button'); if(!btn) return;
-      haptic('light');
-      boostRow.querySelectorAll('button').forEach(function(b){ b.classList.remove('on'); });
-      btn.classList.add('on'); extra=parseFloat(btn.dataset.p)||0; calc();
-      /* строка прокручиваемая — держим выбранный чип в поле зрения */
-      btn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
-    });
-  })();
+    mk('Текущая',0,true);
+    BOOSTS.forEach(function(x){ if(x.y>YIELD_PCT) mk(x.y+'%',x.y,false); });
+    override=0;
+  }
+  boostRow.addEventListener('click',function(e){
+    var btn=e.target.closest('button'); if(!btn) return;
+    haptic('light');
+    boostRow.querySelectorAll('button').forEach(function(b){ b.classList.remove('on'); });
+    btn.classList.add('on'); override=parseFloat(btn.dataset.y)||0; calc();
+    /* строка прокручиваемая — держим выбранный чип в поле зрения */
+    btn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  });
 
   per.addEventListener('click',function(e){
     var btn=e.target.closest('button'); if(!btn) return;
@@ -2247,33 +2256,51 @@ function makeSheet(wrapId, topId, opts){
       buyPrice=document.getElementById('buyPrice'),
       yieldVal=document.getElementById('yieldVal'), yieldCard=document.getElementById('yieldCard');
 
-  var sheet=makeSheet('boostSheet','sheetTop');
-  var sel=BOOSTS.length-1;
+  var sheet=makeSheet('boostSheet','sheetTop',{ onShow:refresh });
+  var sel=-1;
 
   BOOSTS.forEach(function(b,i){
     var el=document.createElement('button');
-    el.className='bcard'+(i===sel?' on':'');
-    el.innerHTML='<span class="pc num">+'+b.p+'%</span>'+
+    el.className='bcard';
+    el.innerHTML='<span class="pc num">'+b.y+'%</span>'+
                  '<span class="ic">'+BOLT+'</span>'+
                  '<span class="fo">в день</span>'+
                  '<span class="pr">'+STAR+'<span class="num">'+b.price+'</span></span>';
     el.addEventListener('click',function(){
-      if(sel===i) return;
+      if(sel===i || el.classList.contains('own')) return;
       haptic('light');
-      grid.children[sel].classList.remove('on');
+      if(grid.children[sel]) grid.children[sel].classList.remove('on');
       sel=i; el.classList.add('on');
-      buyPrice.textContent=BOOSTS[sel].price;
+      refresh();
     });
     grid.appendChild(el);
   });
-  buyPrice.textContent=BOOSTS[sel].price;
+
+  /* Уровни не выше текущего покупать нечего — помечаем их и уводим
+     выбор на первый доступный, иначе покупка понизила бы доходность. */
+  function refresh(){
+    var firstFree=-1;
+    BOOSTS.forEach(function(b,i){
+      var el=grid.children[i], own=b.y<=YIELD_PCT;
+      el.classList.toggle('own',own);
+      el.querySelector('.fo').textContent = own ? 'активен' : 'в день';
+      if(!own && firstFree<0) firstFree=i;
+    });
+    if(sel<0 || grid.children[sel].classList.contains('own')){
+      if(grid.children[sel]) grid.children[sel].classList.remove('on');
+      sel=firstFree;
+      if(sel>=0) grid.children[sel].classList.add('on');
+    }
+    if(sel>=0){ buyPrice.textContent=BOOSTS[sel].price; buyBtn.disabled=false; }
+    else { buyBtn.disabled=true; }
+  }
 
   document.getElementById('btnBoost').addEventListener('click',function(){ haptic('medium'); sheet.show(); });
 
   buyBtn.addEventListener('click',function(){
     haptic('success');
-    YIELD_PCT += BOOSTS[sel].p;
-    yieldVal.textContent='+'+YIELD_PCT.toFixed(2)+'%';
+    if(sel<0) return;
+    YIELD_PCT = BOOSTS[sel].y;          // уровень задаёт ставку, а не прибавляет
     recalc();                           // мощность, выплата и скорость — от новой доходности
     [yieldCard,document.getElementById('powerCard')].forEach(function(c){
       c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse');
