@@ -1174,6 +1174,30 @@ button.srow:active{transform:scale(.985);}
 }
 .gp.on .g{color:var(--ink);}
 
+/* ─────────── Условия бесплатного кейса ─────────── */
+.fcsub{margin:-4px 0 16px;font-size:13px;color:var(--ink-3);}
+.fcrow{
+  width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:10px;
+  border-radius:18px;background:var(--card);border:1px solid var(--line);text-align:left;
+  transition:border-color .22s,transform .16s;
+}
+.fcrow:active{transform:scale(.985);}
+.fcrow.done{border-color:rgba(228,192,120,.32);background:linear-gradient(168deg,rgba(228,192,120,.07),rgba(255,255,255,.012));}
+.fcrow .ic{width:36px;height:36px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;}
+.fcrow .bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.fcrow .nm{font-size:14.5px;font-weight:700;letter-spacing:-.01em;}
+/* описание переносится: с счётчиком и стрелкой в одну строку не влезает */
+.fcrow .ds{font-size:12px;color:var(--ink-3);line-height:1.35;}
+.fcrow .cnt{
+  flex:0 0 auto;font-size:12.5px;font-weight:700;color:var(--gold);
+  padding:3px 9px;border-radius:9px;background:rgba(228,192,120,.1);
+  border:1px solid rgba(228,192,120,.2);
+}
+.fcrow .tick{flex:0 0 auto;color:var(--gold);display:grid;place-items:center;}
+.fcrow .tick[hidden]{display:none;}
+.fcrow .ch{flex:0 0 auto;color:#4A4A51;display:grid;place-items:center;}
+.ccard.free .crange b{color:var(--a);border:1px solid color-mix(in srgb,var(--a) 30%,transparent);background:color-mix(in srgb,var(--a) 10%,transparent);}
+
 /* ─────────── Друзья ─────────── */
 .srow .rfc{
   flex:0 0 auto;font-size:13px;font-weight:700;color:var(--gold);
@@ -1855,6 +1879,50 @@ button.srow:active{transform:scale(.985);}
 </div>
 
 <!-- ═══ шторка «Калькулятор» ═══ -->
+<div class="sheet-wrap" id="fcSheet" aria-hidden="true">
+  <div class="sheet-bd"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="fcTitle">
+    <div class="sheet-top" id="fcTop">
+      <div class="grab"></div>
+      <div class="sheet-hd">
+        <span class="t" id="fcTitle" data-i18n="fc_title">Выполни условия</span>
+        <button class="sheet-x" id="fcX" aria-label="Закрыть">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="wbody">
+      <p class="fcsub" data-i18n="fc_sub">Чтобы открыть этот кейс</p>
+
+      <button class="fcrow" id="fcShare">
+        <span class="ic" style="background:#2E86DE">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M21.5 3.2 2.8 10.4c-.9.35-.88 1.63.03 1.95l4.6 1.6 1.75 5.3c.28.85 1.4 1.02 1.92.3l2.5-3.45 4.6 3.4c.62.46 1.5.13 1.67-.62l3.3-14.5c.18-.8-.62-1.47-1.37-1.18z"/></svg>
+        </span>
+        <span class="bd">
+          <span class="nm" data-i18n="fc_share">Отправь 3 друзьям</span>
+          <span class="ds" data-i18n="fc_share_d">Поделись сообщением в 3 чатах</span>
+        </span>
+        <span class="cnt num" id="fcShareN">0/3</span>
+        <span class="ch"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+      </button>
+
+      <button class="fcrow" id="fcSub">
+        <span class="ic" style="background:#E0573E">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16v11H4z"/><path d="M4 6.5 12 12l8-5.5"/></svg>
+        </span>
+        <span class="bd">
+          <span class="nm" data-i18n="fc_sub_t">Подпишись на канал</span>
+          <span class="ds" data-i18n="fc_sub_d">И вернись сюда</span>
+        </span>
+        <span class="tick" id="fcSubOk" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19.5 7"/></svg></span>
+        <span class="ch"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+      </button>
+
+      <button class="btn-buy" id="fcDone" data-i18n="fc_done">Готово</button>
+    </div>
+  </div>
+</div>
+
 <div class="sheet-wrap" id="rfSheet" aria-hidden="true">
   <div class="sheet-bd"></div>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rfTitle">
@@ -2101,6 +2169,12 @@ ru:{
  rf_joined:'Вы пришли по приглашению — начислено {n} ★',
  rf_msg:'Майню звёзды в StarsHash. Заходи по ссылке — обоим будет бонус',
  max_lvl:'Максимальный уровень',
+ fc_name:'Бесплатный', fc_free:'Бесплатно', fc_once:'один раз', fc_used:'уже открыт',
+ fc_open:'Открыть бесплатно', fc_opened:'Кейс уже открыт',
+ fc_title:'Выполни условия', fc_sub:'Чтобы открыть этот кейс',
+ fc_share:'Отправь 3 друзьям', fc_share_d:'Поделись сообщением в 3 чатах',
+ fc_sub_t:'Подпишись на канал', fc_sub_d:'И вернись сюда',
+ fc_done:'Готово', fc_wait:'Выполни оба условия',
  g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 от цены · шансы ниже',
  k_open:'Открыть за {n} ★', k_opening:'Открываем…', k_again:'Открыть ещё · {n} ★',
@@ -2173,6 +2247,12 @@ en:{
  rf_joined:'You joined through an invite — {n} ★ credited',
  rf_msg:'Mining stars in StarsHash. Join through my link and we both get a bonus',
  max_lvl:'Top level reached',
+ fc_name:'Free', fc_free:'Free', fc_once:'once', fc_used:'already opened',
+ fc_open:'Open for free', fc_opened:'Case already opened',
+ fc_title:'Complete the steps', fc_sub:'To open this case',
+ fc_share:'Send to 3 friends', fc_share_d:'Share the message in 3 chats',
+ fc_sub_t:'Join the channel', fc_sub_d:'And come back here',
+ fc_done:'Done', fc_wait:'Complete both steps',
  g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
  k_range:'{a} – {b} ★', k_max:'max ×{m}', k_hero:'Top drop is ×5 the price · odds below',
  k_open:'Open for {n} ★', k_opening:'Opening…', k_again:'Open again · {n} ★',
@@ -2245,6 +2325,12 @@ uk:{
  rf_joined:'Ви прийшли за запрошенням — нараховано {n} ★',
  rf_msg:'Майню зірки в StarsHash. Заходь за посиланням — обом буде бонус',
  max_lvl:'Максимальний рівень',
+ fc_name:'Безкоштовний', fc_free:'Безкоштовно', fc_once:'один раз', fc_used:'вже відкрито',
+ fc_open:'Відкрити безкоштовно', fc_opened:'Кейс уже відкрито',
+ fc_title:'Виконай умови', fc_sub:'Щоб відкрити цей кейс',
+ fc_share:'Надішли 3 друзям', fc_share_d:'Поділись повідомленням у 3 чатах',
+ fc_sub_t:'Підпишись на канал', fc_sub_d:'І повернись сюди',
+ fc_done:'Готово', fc_wait:'Виконай обидві умови',
  g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 від ціни · шанси нижче',
  k_open:'Відкрити за {n} ★', k_opening:'Відкриваємо…', k_again:'Відкрити ще · {n} ★',
@@ -2532,6 +2618,7 @@ var SAVED=(function(){
     var mn=(o.mn && typeof o.mn==='object') ? o.mn : {};
     var bn=(o.bn && typeof o.bn==='object') ? o.bn : {};
     var rf=(o.rf && typeof o.rf==='object') ? o.rf : {};
+    var fc=(o.fc && typeof o.fc==='object') ? o.fc : {};
     var num=function(v){ v=+v; return isFinite(v)&&v>0 ? v : 0; };
     return {bal:b, y:y, seen:t, tk:tk,
             dl:{streak:Math.max(0,Math.min(7,+dl.streak||0)), last:String(dl.last||'')},
@@ -2539,7 +2626,8 @@ var SAVED=(function(){
                 w:{k:String((mn.w&&mn.w.k)||''), v:num(mn.w&&mn.w.v)},
                 a:num(mn.a)},
             bn:{last:num(bn.last), streak:Math.max(0,Math.min(8,+bn.streak||0))},
-            rf:{by:String(rf.by||''), n:Math.max(0,Math.round(num(rf.n))), earned:num(rf.earned)}};
+            rf:{by:String(rf.by||''), n:Math.max(0,Math.round(num(rf.n))), earned:num(rf.earned)},
+            fc:{sh:Math.max(0,Math.min(3,Math.round(num(fc.sh)))), sb:fc.sb?1:0, op:fc.op?1:0}};
   }catch(e){ return null; }
 })();
 
@@ -2554,6 +2642,9 @@ var BN = SAVED ? SAVED.bn : {last:0, streak:0};
 /* by — кто пригласил (из start_param), n и earned наполняет сервер:
    клиент не может подтвердить чужую регистрацию и её не выдумывает */
 var RF = SAVED ? SAVED.rf : {by:'', n:0, earned:0};
+/* бесплатный кейс: sh — сколько раз поделились (нужно 3), sb — подписка,
+   op — кейс уже открыт (он одноразовый) */
+var FC = SAVED ? SAVED.fc : {sh:0, sb:0, op:0};
 function dayKey(d){ d=d||new Date();
   return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 function weekKey(d){
@@ -2588,7 +2679,7 @@ if(SAVED && SAVED.seen && bal>0){
 
 function saveState(){
   try{ localStorage.setItem(SKEY, JSON.stringify({v:1, bal:bal, y:YIELD_PCT, seen:Date.now(),
-                                                   tk:TK, dl:DL, mn:MN, bn:BN, rf:RF})); }catch(e){}
+                                                   tk:TK, dl:DL, mn:MN, bn:BN, rf:RF, fc:FC})); }catch(e){}
 }
 
 /* Сколько намайнено за `sec` секунд простоя при текущем балансе и ставке */
@@ -3356,6 +3447,7 @@ function makeSheet(wrapId, topId, opts){
     var RAR=['#8A8A93','#6E9BD0','#8B7BE0','#C176D4','#D96E7E','#E4C078'];
 
     var EMB={
+      free:'<path d="M3.4 9.6h17.2v10.8H3.4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M2.4 5.8h19.2v3.8H2.4zM12 5.8v14.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 5.8C9.6 5.8 7.4 1.6 12 1.6s2.4 4.2 0 4.2Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
       spark:'<path d="M12 2.4 14.1 9.9 21.6 12l-7.5 2.1L12 21.6 9.9 14.1 2.4 12l7.5-2.1z" fill="currentColor"/>',
       neon:'<path d="M12 2.6 21.4 12 12 21.4 2.6 12z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M13 7.4 9 13.1h2.7L11 16.8l4-5.7h-2.7z" fill="currentColor"/>',
       crystal:'<path d="M7.4 3.2h9.2l4 5.9L12 20.8 3.4 9.1z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M3.4 9.1h17.2M7.4 3.2l1.8 5.9L12 20.8l2.8-11.7 1.8-5.9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" opacity=".65"/>',
@@ -3366,6 +3458,8 @@ function makeSheet(wrapId, topId, opts){
     /* значения подогнаны под объявленные границы кейса, поэтому
        выписаны явно, а не считаются из цены */
     var CASES=[
+      /* бесплатный одноразовый кейс: открывается после выполнения условий */
+      {id:'free',    name:'Free',    price:0,   a:'#7FD1A8', drops:[1,6,14,24,50,100], free:true},
       {id:'spark',   name:'Spark',   price:20,  a:'#E4C078', drops:[1,6,14,24,50,100]},
       {id:'neon',    name:'Neon',    price:50,  a:'#9B8CFF', drops:[2,15,35,60,125,250]},
       {id:'crystal', name:'Crystal', price:100, a:'#5CD6C0', drops:[5,30,70,120,250,500]},
@@ -3407,15 +3501,24 @@ function makeSheet(wrapId, topId, opts){
       listEl.innerHTML='';
       CASES.forEach(function(c){
         var b=document.createElement('button');
-        b.className='ccard'; b.style.setProperty('--a',c.a);
+        b.className='ccard'+(c.free?' free':''); b.style.setProperty('--a',c.a);
+        /* у бесплатного нет цены: чип занял бы место, из-за которого
+           длинное «Бесплатный» упиралось в многоточие */
+        var badge = c.free
+          ? (FC.op ? t('fc_used') : t('fc_free'))
+          : t('k_max',{m:Math.round(c.drops[5]/c.price)});
         b.innerHTML='<span class="cemb">'+emb(c,25)+'</span>'+
           '<span class="cbody">'+
-            '<span class="cname">'+c.name+'</span>'+
+            '<span class="cname">'+(c.free?t('fc_name'):c.name)+'</span>'+
             '<span class="crange"><i>'+t('k_range',{a:fmtInt(c.drops[0]),b:fmtInt(c.drops[5])})+'</i>'+
-              '<b>'+t('k_max',{m:Math.round(c.drops[5]/c.price)})+'</b></span>'+
+              '<b>'+badge+'</b></span>'+
           '</span>'+
-          '<span class="cprice">'+fmtInt(c.price)+' '+star(12)+'</span>';
-        b.addEventListener('click',function(){ haptic('medium'); open(c); });
+          (c.free ? '' : '<span class="cprice">'+fmtInt(c.price)+' '+star(12)+'</span>');
+        b.addEventListener('click',function(){
+        haptic('medium');
+        if(c.free && !ready()){ conds.show(); return; }   // сначала условия
+        open(c);
+      });
         listEl.appendChild(b);
       });
     }
@@ -3452,6 +3555,11 @@ function makeSheet(wrapId, topId, opts){
 
     function updBtn(){
       if(spinning){ goBtn.disabled=true; goBtn.textContent=t('k_opening'); return; }
+      if(cur.free){
+        goBtn.disabled = !!FC.op;
+        goBtn.textContent = FC.op ? t('fc_opened') : t('fc_open');
+        return;
+      }
       goBtn.disabled = bal < cur.price;
       goBtn.textContent = goBtn.disabled ? t('no_stars')
         : (lastWin>=0 ? t('k_again',{n:fmtInt(cur.price)}) : t('k_open',{n:fmtInt(cur.price)}));
@@ -3460,10 +3568,11 @@ function makeSheet(wrapId, topId, opts){
     function open(c){
       cur=c; lastWin=-1; spinning=false;
       views.kase.style.setProperty('--a',c.a);
-      titleEl.textContent=c.name; nameEl.textContent=c.name;
-      subEl.style.color=''; subEl.textContent=t('k_hero');
+      var nm = c.free ? t('fc_name') : c.name;
+      titleEl.textContent=nm; nameEl.textContent=nm;
+      subEl.style.color=''; subEl.textContent = c.free ? t('fc_sub') : t('k_hero');
       embEl.innerHTML=emb(c,26);
-      tagEl.innerHTML=fmtInt(c.price)+' '+star(12);
+      tagEl.innerHTML = c.free ? t('fc_free') : (fmtInt(c.price)+' '+star(12));
       buildTrack(); renderOdds();
       x=-(6*PITCH)+center(); apply();
       updBtn();
@@ -3475,14 +3584,16 @@ function makeSheet(wrapId, topId, opts){
 
     function spin(){
       if(spinning||!cur) return;
-      if(bal<cur.price){ haptic('warning'); return; }
-      bal-=cur.price; spinning=true; lastWin=-1;  Tasks.done('kase');
+      if(cur.free && FC.op) return;                    // одноразовый
+      if(!cur.free && bal<cur.price){ haptic('warning'); return; }
+      if(cur.free){ FC.op=1; saveState(); } else bal-=cur.price;
+      spinning=true; lastWin=-1;  Tasks.done('kase');
       cells.forEach(function(c){ c.el.classList.remove('win'); });
       subEl.style.color=''; subEl.textContent=t('k_opening');
       renderOdds(); updBtn(); haptic('medium');
 
       measure();
-      var win=roll();                                  // исход решён до анимации
+      var win=cur.free ? 0 : roll();                   // исход решён до анимации
       var from=Math.round((center()-x)/PITCH);
       var k=from+38+Math.floor(Math.random()*10);
       if(k>=cells.length-4){ buildTrack(); from=6; x=-(from*PITCH)+center(); apply();
@@ -3522,12 +3633,52 @@ function makeSheet(wrapId, topId, opts){
 
     goBtn.addEventListener('click',spin);
 
+    /* ── условия бесплатного кейса ── */
+    var SHARE_NEED=3, CHANNEL='https://t.me/starshash';
+    var fcShare=document.getElementById('fcShare'), fcSub=document.getElementById('fcSub'),
+        fcShareN=document.getElementById('fcShareN'), fcSubOk=document.getElementById('fcSubOk'),
+        fcDone=document.getElementById('fcDone');
+    function ready(){ return FC.sh>=SHARE_NEED && FC.sb; }
+    function renderConds(){
+      fcShareN.textContent=FC.sh+'/'+SHARE_NEED;
+      fcShare.classList.toggle('done',FC.sh>=SHARE_NEED);
+      fcSub.classList.toggle('done',!!FC.sb);
+      fcSubOk.hidden=!FC.sb;
+      fcDone.disabled=!ready();
+      fcDone.textContent = ready() ? t('fc_done') : t('fc_wait');
+    }
+    var conds=makeSheet('fcSheet','fcTop',{ onShow:renderConds });
+    document.getElementById('fcX').addEventListener('click',conds.hide);
+    function tgOpen(url){
+      try{
+        if(TG && TG.openTelegramLink) TG.openTelegramLink(url);
+        else window.open(url,'_blank','noopener');
+      }catch(e){ window.open(url,'_blank','noopener'); }
+    }
+    fcShare.addEventListener('click',function(){
+      haptic('medium');
+      if(FC.sh<SHARE_NEED){ FC.sh++; saveState(); }
+      Ref.share();
+      renderConds(); renderList();
+    });
+    fcSub.addEventListener('click',function(){
+      haptic('medium');
+      if(!FC.sb){ FC.sb=1; saveState(); }
+      tgOpen(CHANNEL);
+      renderConds(); renderList();
+    });
+    fcDone.addEventListener('click',function(){
+      if(!ready()) return;
+      haptic('success'); conds.hide();
+      open(CASES[0]);
+    });
+
     RERENDER.push(function(){
-      renderList();
+      renderList(); renderConds();
       if(cur){
         subEl.textContent = lastWin>=0
           ? t('k_got',{n:fmtInt(cur.drops[lastWin]),r:t('k_r'+(lastWin+1))})
-          : t('k_hero');
+          : (cur.free ? t('fc_sub') : t('k_hero'));
         renderOdds(); updBtn();
       }
     });
