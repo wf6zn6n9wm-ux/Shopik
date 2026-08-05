@@ -1174,6 +1174,21 @@ button.srow:active{transform:scale(.985);}
 }
 .gp.on .g{color:var(--ink);}
 
+/* ─────────── Вложение в мощность ─────────── */
+.stat.tap{text-align:left;transition:border-color .22s,transform .16s;}
+.stat.tap:active{transform:scale(.985);}
+.stat .hd .plus{
+  margin-left:auto;width:20px;height:20px;border-radius:7px;display:grid;place-items:center;
+  color:var(--gold);background:rgba(228,192,120,.12);border:1px solid rgba(228,192,120,.24);
+}
+.ivres{
+  margin-top:16px;padding:14px 16px;border-radius:20px;
+  background:var(--card);border:1px solid var(--line);
+}
+.ivnote{
+  margin-top:12px;font-size:11.5px;line-height:1.5;color:var(--ink-3);text-align:center;
+}
+
 /* ─────────── Условия бесплатного кейса ─────────── */
 .fcsub{margin:-4px 0 16px;font-size:13px;color:var(--ink-3);}
 .fcrow{
@@ -1301,7 +1316,7 @@ button.srow:active{transform:scale(.985);}
         <div class="l3" data-i18n="next_in">Следующее начисление через</div>
         <div class="l4 num" id="cdText">00:03</div>
         <div class="l5" data-i18n="sec">сек</div>
-        <div class="l6" data-i18n-html="empty_hint">Пополните баланс,<br>чтобы начать добычу</div>
+        <div class="l6" data-i18n-html="empty_hint">Вложите звёзды в мощность,<br>чтобы начать добычу</div>
       </div>
       <div class="ring-wrap">
         <canvas id="ring"></canvas>
@@ -1323,19 +1338,20 @@ button.srow:active{transform:scale(.985);}
           <polyline id="sp1" fill="none" stroke="#E4C078" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div class="card stat" id="powerCard">
+      <button class="card stat tap" id="powerCard">
         <div class="hd">
           <span class="ic">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 10v4M9.5 6.5v11M14.5 8.5v7M19 11v2"/></svg>
           </span>
           <span class="nm" data-i18n="power">Мощность</span>
+          <span class="plus"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></span>
         </div>
         <div class="v"><span class="num" id="powerVal">1.284</span><span class="u">PH/s</span></div>
         <div class="cap" data-i18n="hash_rate">hash rate</div>
         <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none" aria-hidden="true">
           <polyline id="sp2" fill="none" stroke="#E4C078" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-      </div>
+      </button>
     </div>
 
     <div class="acts">
@@ -1879,6 +1895,48 @@ button.srow:active{transform:scale(.985);}
 </div>
 
 <!-- ═══ шторка «Калькулятор» ═══ -->
+<div class="sheet-wrap" id="ivSheet" aria-hidden="true">
+  <div class="sheet-bd"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ivTitle">
+    <div class="sheet-top" id="ivTop">
+      <div class="grab"></div>
+      <div class="sheet-hd">
+        <span class="t" id="ivTitle" data-i18n="iv_title">Вложить в мощность</span>
+        <button class="sheet-x" id="ivX" aria-label="Закрыть">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="wbody">
+      <div class="wlab" style="margin-top:0">
+        <span data-i18n="iv_amount">Сумма вклада</span>
+        <span class="av"><span data-i18n="w_avail">Доступно:</span> <b class="num" id="ivAvail">0</b>
+          <svg width="12" height="12" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+          <button class="mini-btn" id="ivMax" data-i18n="w_max">Макс</button></span>
+      </div>
+      <div class="wf">
+        <input id="ivAmt" type="text" inputmode="decimal" autocomplete="off" value="">
+        <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:6px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
+      </div>
+      <div class="cchips" id="ivChips" style="margin-top:12px">
+        <button data-iv="100">100</button>
+        <button data-iv="500">500</button>
+        <button data-iv="1000">1000</button>
+        <button data-iv="5000">5000</button>
+      </div>
+
+      <div class="ivres">
+        <div class="crow"><span data-i18n="power">Мощность</span><b class="num" id="ivPow">0.000 PH/s</b></div>
+        <div class="crow" style="margin-top:9px"><span data-i18n="d_income">Доход</span><b class="num" id="ivRate">0.00 ★ / час</b></div>
+      </div>
+
+      <p class="ivnote" data-i18n="iv_note">Вложенные звёзды нельзя вернуть — они превращаются в мощность и приносят доход в кошелёк.</p>
+    </div>
+    <div class="whint" id="ivHint"></div>
+    <button class="btn-buy" id="ivGo" data-i18n="iv_go">Вложить</button>
+  </div>
+</div>
+
 <div class="sheet-wrap" id="fcSheet" aria-hidden="true">
   <div class="sheet-bd"></div>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="fcTitle">
@@ -2113,7 +2171,7 @@ var I18N={
 ru:{
  bal_cap:'Баланс', per_hour:'в час', earn_l1:'Зарабатываешь звезды', per_hour_slash:'/ в час',
  next_in:'Следующее начисление через', sec:'сек',
- empty_hint:'Пополните баланс,<br>чтобы начать добычу',
+ empty_hint:'Вложите звёзды в мощность,<br>чтобы начать добычу',
  yield:'Доходность', per_day:'в день', power:'Мощность', hash_rate:'hash rate',
  topup:'Пополнить', withdraw:'Вывести', calc:'Калькулятор', bonus:'Бонусы', boost:'Буст',
  nav_games:'Игры', nav_tasks:'Задания', nav_earn:'Заработок', nav_top:'Топ', nav_me:'Профиль',
@@ -2138,7 +2196,7 @@ ru:{
  w_min_msg:'Минимальная сумма вывода — {n} ★', w_no_funds:'Недостаточно звёзд на балансе',
  d_pick:'Выберите пакет',
  d_title:'Пополнить', d_amount:'Сумма пополнения', d_go:'Пополнить на {n} ★',
- c_deposit:'Сумма вклада', c_my_bal:'Мой баланс', c_term:'Срок', c_rate:'Ставка доходности',
+ c_deposit:'Сумма вклада', c_my_bal:'Мой вклад', c_term:'Срок', c_rate:'Ставка доходности',
  c_current:'Текущая', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 год',
  c_p7:'7 дней', c_p30:'30 дней', c_p90:'90 дней', c_py:'год',
  c_income_for:'Доход за {n}', c_total:'Итоговый баланс', c_avg:'В среднем в день',
@@ -2175,13 +2233,16 @@ ru:{
  fc_share:'Отправь 3 друзьям', fc_share_d:'Поделись сообщением в 3 чатах',
  fc_sub_t:'Подпишись на канал', fc_sub_d:'И вернись сюда',
  fc_done:'Готово', fc_wait:'Выполни оба условия',
+ iv_title:'Вложить в мощность', iv_amount:'Сумма вклада',
+ iv_go:'Вложить', iv_go_n:'Вложить {n} ★', d_income:'Доход',
+ iv_note:'Вложенные звёзды нельзя вернуть — они превращаются в мощность и приносят доход в кошелёк.',
  g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 от цены · шансы ниже',
  k_open:'Открыть за {n} ★', k_opening:'Открываем…', k_again:'Открыть ещё · {n} ★',
  k_got:'Выпало {n} ★ · {r}', k_chance:'Шанс',
  k_r1:'Обычный', k_r2:'Необычный', k_r3:'Редкий', k_r4:'Эпический', k_r5:'Легендарный', k_r6:'Мифический',
- r_h1:'Начисления', r_p1:'Доход идёт с баланса по текущей ставке доходности. Начисление происходит каждые 3 секунды, сумма за сутки равна балансу, умноженному на ставку.',
- r_h2:'Мощность', r_p2:'Мощность показывает, сколько вычислений покупает ваш вклад. Она растёт вместе с балансом и со ставкой доходности, поэтому меняется и при пополнении, и при покупке уровня.',
+ r_h1:'Начисления', r_p1:'Доход идёт не с баланса, а с вклада — тех звёзд, что вы вложили в мощность. Начисление происходит каждые 3 секунды и падает в кошелёк, сумма за сутки равна вкладу, умноженному на ставку. Звёзды, которые просто лежат на балансе, дохода не приносят.',
+ r_h2:'Мощность', r_p2:'Мощность покупается за звёзды с баланса и обратно не возвращается — вложенное превращается в оборудование. Она растёт вместе с размером вклада и со ставкой доходности, поэтому меняется и при новом вложении, и при покупке уровня.',
  r_h3:'Уровни доходности', r_p3:'Уровень задаёт ставку целиком, а не прибавляет к текущей. Купленный уровень действует постоянно. Уровни ниже текущего недоступны — понизить ставку покупкой нельзя.',
  r_h4:'Вывод', r_p4:'Минимальная сумма — 150 ★. Комиссия одинаковая для обоих способов — 5% от суммы вывода. Вывод в Stars идёт на указанный Telegram-аккаунт, вывод в TON — на кошелёк по курсу 1 ★ = 0.01 TON.',
  r_h6:'Кейсы', r_p6:'Пять кейсов с разной ценой открытия: Spark 20 ★, Neon 50 ★, Crystal 100 ★, Royal 200 ★, Legend 500 ★. В каждом шесть вариантов выигрыша — от 5% цены до пятикратной цены, — и шанс каждого написан рядом до открытия. Вариант выпадает случайно ровно с этим шансом, лента лишь показывает результат.',
@@ -2191,7 +2252,7 @@ ru:{
 en:{
  bal_cap:'Balance', per_hour:'per hour', earn_l1:'You are earning stars', per_hour_slash:'/ per hour',
  next_in:'Next payout in', sec:'sec',
- empty_hint:'Top up your balance<br>to start mining',
+ empty_hint:'Invest stars into power<br>to start mining',
  yield:'Daily rate', per_day:'per day', power:'Power', hash_rate:'hash rate',
  topup:'Top up', withdraw:'Withdraw', calc:'Calculator', bonus:'Bonuses', boost:'Boost',
  nav_games:'Games', nav_tasks:'Tasks', nav_earn:'Earn', nav_top:'Top', nav_me:'Profile',
@@ -2216,7 +2277,7 @@ en:{
  w_min_msg:'Minimum withdrawal is {n} ★', w_no_funds:'Not enough stars on balance',
  d_pick:'Choose a pack',
  d_title:'Top up', d_amount:'Top-up amount', d_go:'Top up {n} ★',
- c_deposit:'Deposit amount', c_my_bal:'My balance', c_term:'Term', c_rate:'Daily rate',
+ c_deposit:'Deposit amount', c_my_bal:'My deposit', c_term:'Term', c_rate:'Daily rate',
  c_current:'Current', c_d7:'7 d', c_d30:'30 d', c_d90:'90 d', c_y1:'1 year',
  c_p7:'7 days', c_p30:'30 days', c_p90:'90 days', c_py:'a year',
  c_income_for:'Income over {n}', c_total:'Final balance', c_avg:'Average per day',
@@ -2253,13 +2314,16 @@ en:{
  fc_share:'Send to 3 friends', fc_share_d:'Share the message in 3 chats',
  fc_sub_t:'Join the channel', fc_sub_d:'And come back here',
  fc_done:'Done', fc_wait:'Complete both steps',
+ iv_title:'Invest into power', iv_amount:'Investment amount',
+ iv_go:'Invest', iv_go_n:'Invest {n} ★', d_income:'Income',
+ iv_note:'Invested stars cannot be taken back — they become hashpower and pay income into your wallet.',
  g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
  k_range:'{a} – {b} ★', k_max:'max ×{m}', k_hero:'Top drop is ×5 the price · odds below',
  k_open:'Open for {n} ★', k_opening:'Opening…', k_again:'Open again · {n} ★',
  k_got:'You got {n} ★ · {r}', k_chance:'Chance',
  k_r1:'Common', k_r2:'Uncommon', k_r3:'Rare', k_r4:'Epic', k_r5:'Legendary', k_r6:'Mythic',
- r_h1:'Payouts', r_p1:'Income comes from your balance at the current daily rate. Payouts happen every 3 seconds, and the daily total equals your balance times the rate.',
- r_h2:'Power', r_p2:'Power shows how much computation your deposit buys. It grows with both your balance and your daily rate, so it changes when you top up and when you buy a tier.',
+ r_h1:'Payouts', r_p1:'Income comes from your deposit — the stars you invested into power — not from your balance. Payouts land in your wallet every 3 seconds, and the daily total equals your deposit times the rate. Stars sitting in the wallet earn nothing.',
+ r_h2:'Power', r_p2:'Power is bought with stars from your wallet and cannot be taken back — what you invest becomes equipment. It grows with the size of your deposit and with your daily rate, so it changes when you invest more and when you buy a tier.',
  r_h3:'Rate tiers', r_p3:'A tier sets the rate outright rather than adding to it. A purchased tier is permanent. Tiers below your current rate are unavailable — buying cannot lower your rate.',
  r_h4:'Withdrawal', r_p4:'The minimum is 150 ★. The fee is the same either way — 5% of the withdrawal. Stars go to the given Telegram account; TON goes to a wallet at 1 ★ = 0.01 TON.',
  r_h6:'Cases', r_p6:'Five cases with different prices: Spark 20 ★, Neon 50 ★, Crystal 100 ★, Royal 200 ★, Legend 500 ★. Each holds six outcomes — from 5% of the price up to five times the price — and every chance is printed next to it before you open. The outcome is drawn at exactly that chance; the reel only shows the result.',
@@ -2269,7 +2333,7 @@ en:{
 uk:{
  bal_cap:'Баланс', per_hour:'на годину', earn_l1:'Заробляєш зірки', per_hour_slash:'/ на годину',
  next_in:'Наступне нарахування через', sec:'сек',
- empty_hint:'Поповніть баланс,<br>щоб почати видобуток',
+ empty_hint:'Вкладіть зірки в потужність,<br>щоб почати видобуток',
  yield:'Дохідність', per_day:'на день', power:'Потужність', hash_rate:'hash rate',
  topup:'Поповнити', withdraw:'Вивести', calc:'Калькулятор', bonus:'Бонуси', boost:'Буст',
  nav_games:'Ігри', nav_tasks:'Завдання', nav_earn:'Заробіток', nav_top:'Топ', nav_me:'Профіль',
@@ -2294,7 +2358,7 @@ uk:{
  w_min_msg:'Мінімальна сума виведення — {n} ★', w_no_funds:'Недостатньо зірок на балансі',
  d_pick:'Оберіть пакет',
  d_title:'Поповнити', d_amount:'Сума поповнення', d_go:'Поповнити на {n} ★',
- c_deposit:'Сума вкладу', c_my_bal:'Мій баланс', c_term:'Термін', c_rate:'Ставка дохідності',
+ c_deposit:'Сума вкладу', c_my_bal:'Мій вклад', c_term:'Термін', c_rate:'Ставка дохідності',
  c_current:'Поточна', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 рік',
  c_p7:'7 днів', c_p30:'30 днів', c_p90:'90 днів', c_py:'рік',
  c_income_for:'Дохід за {n}', c_total:'Підсумковий баланс', c_avg:'У середньому на день',
@@ -2331,13 +2395,16 @@ uk:{
  fc_share:'Надішли 3 друзям', fc_share_d:'Поділись повідомленням у 3 чатах',
  fc_sub_t:'Підпишись на канал', fc_sub_d:'І повернись сюди',
  fc_done:'Готово', fc_wait:'Виконай обидві умови',
+ iv_title:'Вкласти в потужність', iv_amount:'Сума вкладу',
+ iv_go:'Вкласти', iv_go_n:'Вкласти {n} ★', d_income:'Дохід',
+ iv_note:'Вкладені зірки не можна повернути — вони стають потужністю і приносять дохід у гаманець.',
  g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
  k_range:'{a} – {b} ★', k_max:'макс ×{m}', k_hero:'Максимум ×5 від ціни · шанси нижче',
  k_open:'Відкрити за {n} ★', k_opening:'Відкриваємо…', k_again:'Відкрити ще · {n} ★',
  k_got:'Випало {n} ★ · {r}', k_chance:'Шанс',
  k_r1:'Звичайний', k_r2:'Незвичайний', k_r3:'Рідкісний', k_r4:'Епічний', k_r5:'Легендарний', k_r6:'Міфічний',
- r_h1:'Нарахування', r_p1:'Дохід нараховується з балансу за поточною ставкою дохідності. Нарахування відбувається кожні 3 секунди, сума за добу дорівнює балансу, помноженому на ставку.',
- r_h2:'Потужність', r_p2:'Потужність показує, скільки обчислень купує ваш вклад. Вона зростає разом із балансом і зі ставкою дохідності, тому змінюється і при поповненні, і при купівлі рівня.',
+ r_h1:'Нарахування', r_p1:'Дохід іде не з балансу, а з вкладу — тих зірок, які ви вклали в потужність. Нарахування відбувається кожні 3 секунди й падає в гаманець, сума за добу дорівнює вкладу, помноженому на ставку. Зірки, що просто лежать на балансі, доходу не приносять.',
+ r_h2:'Потужність', r_p2:'Потужність купується за зірки з гаманця і назад не повертається — вкладене стає обладнанням. Вона зростає разом із розміром вкладу і зі ставкою дохідності, тому змінюється і при новому вкладенні, і при купівлі рівня.',
  r_h3:'Рівні дохідності', r_p3:'Рівень задає ставку цілком, а не додає до поточної. Куплений рівень діє постійно. Рівні нижчі за поточний недоступні — знизити ставку купівлею не можна.',
  r_h4:'Виведення', r_p4:'Мінімальна сума — 150 ★. Комісія однакова для обох способів — 5% від суми виведення. Виведення у Stars іде на вказаний Telegram-акаунт, виведення у TON — на гаманець за курсом 1 ★ = 0.01 TON.',
  r_h6:'Кейси', r_p6:'П’ять кейсів із різною ціною відкриття: Spark 20 ★, Neon 50 ★, Crystal 100 ★, Royal 200 ★, Legend 500 ★. У кожному шість варіантів виграшу — від 5% ціни до п’ятикратної ціни, — і шанс кожного написано поруч до відкриття. Варіант випадає випадково рівно з цим шансом, стрічка лише показує результат.',
@@ -2619,6 +2686,7 @@ var SAVED=(function(){
     var bn=(o.bn && typeof o.bn==='object') ? o.bn : {};
     var rf=(o.rf && typeof o.rf==='object') ? o.rf : {};
     var fc=(o.fc && typeof o.fc==='object') ? o.fc : {};
+    var iv=+o.inv; if(!isFinite(iv)||iv<0) iv=0;
     var num=function(v){ v=+v; return isFinite(v)&&v>0 ? v : 0; };
     return {bal:b, y:y, seen:t, tk:tk,
             dl:{streak:Math.max(0,Math.min(7,+dl.streak||0)), last:String(dl.last||'')},
@@ -2627,7 +2695,8 @@ var SAVED=(function(){
                 a:num(mn.a)},
             bn:{last:num(bn.last), streak:Math.max(0,Math.min(8,+bn.streak||0))},
             rf:{by:String(rf.by||''), n:Math.max(0,Math.round(num(rf.n))), earned:num(rf.earned)},
-            fc:{sh:Math.max(0,Math.min(3,Math.round(num(fc.sh)))), sb:fc.sb?1:0, op:fc.op?1:0}};
+            fc:{sh:Math.max(0,Math.min(3,Math.round(num(fc.sh)))), sb:fc.sb?1:0, op:fc.op?1:0},
+            inv:iv};
   }catch(e){ return null; }
 })();
 
@@ -2662,28 +2731,33 @@ function addMined(x){
   MN.d.v+=x; MN.w.v+=x; MN.a+=x;
 }
 
-var bal = SAVED ? SAVED.bal : 0;       // новый пользователь начинает с нуля
+var bal = SAVED ? SAVED.bal : 0;       // кошелёк: пополнения, выигрыши, доход
+/* Мощность покупается за звёзды безвозвратно: вложенное превращается в
+   оборудование и обратно не достаётся. Доход идёт с вклада, а не с
+   кошелька — иначе деньги одновременно работали бы и выводились. */
+var inv = SAVED ? SAVED.inv : 0;
 var YIELD_PCT = SAVED ? SAVED.y : 1.00; // %/день; растёт от купленных бустов
 
 /* Доход идёт и когда приложение закрыто. Разрыв ограничиваем 30 сутками:
    на большем окне выигрывает съехавшее системное время, а не игрок. */
 var OFFLINE_CAP = 30*86400, OFFLINE_GAIN = 0, OFFLINE_SEC = 0;
-if(SAVED && SAVED.seen && bal>0){
+if(SAVED && SAVED.seen && inv>0){
   var gap = (Date.now()-SAVED.seen)/1000;
   if(gap > 5){                       // отрицательный разрыв = съехавшие часы, молчим
     OFFLINE_SEC = Math.min(gap, OFFLINE_CAP);
-    OFFLINE_GAIN = bal*(YIELD_PCT/100)/86400*OFFLINE_SEC;
+    OFFLINE_GAIN = inv*(YIELD_PCT/100)/86400*OFFLINE_SEC;
     bal += OFFLINE_GAIN; addMined(OFFLINE_GAIN);
   }
 }
 
 function saveState(){
   try{ localStorage.setItem(SKEY, JSON.stringify({v:1, bal:bal, y:YIELD_PCT, seen:Date.now(),
-                                                   tk:TK, dl:DL, mn:MN, bn:BN, rf:RF, fc:FC})); }catch(e){}
+                                                   tk:TK, dl:DL, mn:MN, bn:BN, rf:RF, fc:FC,
+                                                   inv:inv})); }catch(e){}
 }
 
 /* Сколько намайнено за `sec` секунд простоя при текущем балансе и ставке */
-function awayGain(sec){ return bal*(YIELD_PCT/100)/86400*sec; }
+function awayGain(sec){ return inv*(YIELD_PCT/100)/86400*sec; }
 
 /* Сообщение о доходе за отсутствие — не шторка: всплывать во весь
    экран при каждом возврате было бы навязчиво. */
@@ -2740,15 +2814,16 @@ var RATE = 0;               // ★ в секунду; считается из б
 /* Единый пересчёт: доход идёт с баланса по ставке доходности, мощность —
    с вклада. Пока баланса нет, всё по нулям; после пополнения и бустов
    каждое число на экране меняется пропорционально. */
+function power(){ return inv*HASH_PER_STAR*(YIELD_PCT/BASE_YIELD); }
 function recalc(){
-  RATE = bal * (YIELD_PCT/100) / 86400;
+  RATE = inv * (YIELD_PCT/100) / 86400;      // работает вклад, а не кошелёк
   var perHour = RATE * 3600, el;
   if((el=document.getElementById('heroRate'))) el.textContent='+'+fmt(perHour);
   if((el=document.getElementById('earnRate'))) el.textContent='+'+fmt(perHour);
-  if((el=document.getElementById('powerVal'))) el.textContent=(bal*HASH_PER_STAR*(YIELD_PCT/BASE_YIELD)).toFixed(3);
+  if((el=document.getElementById('powerVal'))) el.textContent=power().toFixed(3);
   if((el=document.getElementById('yieldVal'))) el.textContent='+'+YIELD_PCT.toFixed(2)+'%';
   var card=document.getElementById('earnCard');
-  if(card) card.classList.toggle('empty', bal<0.01);
+  if(card) card.classList.toggle('empty', inv<0.01);
 }
 
 var heroBal = document.getElementById('heroBal'),
@@ -2772,7 +2847,7 @@ document.addEventListener('visibilitychange', function(){   // событие п
   if(document.hidden){ _hiddenAt=Date.now(); saveState(); return; }
   if(!_hiddenAt) return;
   var gap=(Date.now()-_hiddenAt)/1000; _hiddenAt=0;
-  if(gap<=5 || bal<=0) return;
+  if(gap<=5 || inv<=0) return;
   var sec=Math.min(gap, OFFLINE_CAP), gain=awayGain(sec);
   bal+=gain; addMined(gain); recalc(); saveState();
   showAway(gain, sec);
@@ -3934,12 +4009,12 @@ function makeSheet(wrapId, topId, opts){
   });
   amt.addEventListener('input',calc);
   document.getElementById('cMine').addEventListener('click',function(){
-    haptic('light'); amt.value=Math.floor(bal); calc();
+    haptic('light'); amt.value=Math.floor(inv); calc();
   });
 
   RERENDER.push(function(){ buildBoosts(); calc(); });
   document.getElementById('btnCalc').addEventListener('click',function(){
-    haptic('medium'); amt.value=Math.floor(bal); sheet.show();
+    haptic('medium'); amt.value=Math.floor(inv); sheet.show();
   });
 })();
 
@@ -4581,6 +4656,72 @@ var Ref = (function(){
   RERENDER.push(render);
   render();
   return { show:sheet.show, share:share, link:link };
+})();
+
+/* ══════════════════════════════════════════════════════
+   ВЛОЖЕНИЕ В МОЩНОСТЬ
+   Звёзды уходят из кошелька безвозвратно и становятся вкладом.
+   Доход капает обратно в кошелёк — оттуда его и выводят.
+   ══════════════════════════════════════════════════════ */
+(function invest(){
+  var amt=document.getElementById('ivAmt'), chips=document.getElementById('ivChips'),
+      go=document.getElementById('ivGo'), hint=document.getElementById('ivHint'),
+      avail=document.getElementById('ivAvail'), oPow=document.getElementById('ivPow'),
+      oRate=document.getElementById('ivRate');
+
+  var sheet=makeSheet('ivSheet','ivTop',{ onShow:preview });
+  document.getElementById('ivX').addEventListener('click',sheet.hide);
+
+  function num(v){ v=parseFloat(String(v).replace(/\s/g,'').replace(',','.')); return isFinite(v)&&v>0?v:0; }
+
+  function preview(){
+    var a=num(amt.value), next=inv+a;
+    avail.textContent=fmtInt(Math.floor(bal));
+    oPow.textContent=(next*HASH_PER_STAR*(YIELD_PCT/BASE_YIELD)).toFixed(3)+' PH/s';
+    oRate.textContent=fmt(next*(YIELD_PCT/100)/24)+' ★ / '+t('per_hour');
+
+    var msg='';
+    if(!a) msg=t('w_enter_amt');
+    else if(a>bal) msg=t('w_no_funds');
+    hint.textContent=msg;
+    go.disabled=!!msg;
+    go.textContent = a && !msg ? t('iv_go_n',{n:fmtInt(a)}) : t('iv_go');
+  }
+
+  amt.addEventListener('input',preview);
+  chips.addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    haptic('light');
+    chips.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+    b.classList.add('on'); amt.value=b.dataset.iv; preview();
+  });
+  document.getElementById('ivMax').addEventListener('click',function(){
+    haptic('light');
+    chips.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+    amt.value=Math.floor(bal); preview();
+  });
+
+  go.addEventListener('click',function(){
+    if(go.disabled) return;
+    var a=num(amt.value);
+    if(!a || a>bal) return;
+    bal-=a; inv+=a;                     // обратно не достаётся
+    recalc(); saveState();
+    [document.getElementById('powerCard'),document.getElementById('yieldCard')].forEach(function(c){
+      c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse');
+    });
+    haptic('success'); beep(980,0.12,0.045,'triangle');
+    sheet.hide();
+  });
+
+  RERENDER.push(preview);
+  function open(){ haptic('medium'); amt.value=''; 
+    chips.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+    sheet.show(); }
+  document.getElementById('powerCard').addEventListener('click',open);
+  document.getElementById('earnCard').addEventListener('click',function(){
+    if(inv<0.01) open();               // пустая карточка — прямой путь к вкладу
+  });
 })();
 
 /* язык применяем последним — все модули уже зарегистрировали перерисовку */
