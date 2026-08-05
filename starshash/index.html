@@ -753,9 +753,9 @@ button.srow:active{transform:scale(.985);}
 .sheet-s{text-align:center;font-size:12.5px;color:var(--ink-3);margin-top:5px;}
 
 .bgrid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
-  margin:18px 0 16px;flex:1 1 auto;min-height:0;overflow-y:auto;
-  align-content:start;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:9px;
+  margin:16px 0 14px;flex:1 1 auto;min-height:0;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;align-content:start;
 }
 .bcard{
   background:#0E0E10;border:1px solid var(--line);border-radius:18px;
@@ -1710,12 +1710,12 @@ button.srow:active{transform:scale(.985);}
     <div class="bgrid" id="bgrid"></div>
     <button class="btn-buy" id="buyBtn">
       <span class="bp" id="buyOk">
-        <span data-i18n="buy_for">Купить за</span>
+        <span data-i18n="iv_go">Вложить</span>
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#150F04"/></svg>
         <span id="buyPrice" class="num">5000</span>
       </span>
       <span class="bp" id="buyNo" hidden data-i18n="no_stars">Недостаточно звёзд</span>
-      <span class="bp" id="buyMax" hidden data-i18n="max_lvl">Максимальный уровень</span>
+
     </button>
   </div>
 </div>
@@ -2187,7 +2187,7 @@ ru:{
  you_took:'Вы забрали банк', won_by:'Победил {n}', win_amt:'Победа · +{n} ★', lost_to:'Выиграл {n}',
  enter_battle:'Войти в битву · {n} ★', place_bet:'Поставить {n} ★', bet_taken:'Ставка принята · {n} ★',
  cash_out:'Забрать {n} ★', no_stars:'Недостаточно звёзд',
- shop_title:'Магазин бустов', shop_sub:'Постоянные · ставка доходности', active:'активен',
+ shop_title:'Пакеты мощности', shop_sub:'Цена пакета становится вкладом и работает', active:'ваш уровень',
  buy_for:'Купить за',
  w_min:'Мин 150', w_amount:'Сумма', w_avail:'Доступно:', w_max:'Макс', w_me:'Мне',
  w_user_ph:'Telegram username', w_wallet_ph:'TON-кошелёк получателя',
@@ -2243,7 +2243,7 @@ ru:{
  k_r1:'Обычный', k_r2:'Необычный', k_r3:'Редкий', k_r4:'Эпический', k_r5:'Легендарный', k_r6:'Мифический',
  r_h1:'Начисления', r_p1:'Доход идёт не с баланса, а с вклада — тех звёзд, что вы вложили в мощность. Начисление происходит каждые 3 секунды и падает в кошелёк, сумма за сутки равна вкладу, умноженному на ставку. Звёзды, которые просто лежат на балансе, дохода не приносят.',
  r_h2:'Мощность', r_p2:'Мощность покупается за звёзды с баланса и обратно не возвращается — вложенное превращается в оборудование. Она растёт вместе с размером вклада и со ставкой доходности, поэтому меняется и при новом вложении, и при покупке уровня.',
- r_h3:'Уровни доходности', r_p3:'Уровень задаёт ставку целиком, а не прибавляет к текущей. Купленный уровень действует постоянно. Уровни ниже текущего недоступны — понизить ставку покупкой нельзя.',
+ r_h3:'Ставка и пакеты', r_p3:'Ставка зависит от размера вклада: 100 ★ — 1.2%, 200 ★ — 1.4%, 300 ★ — 1.6%, 1 000 ★ — 1.8%, 3 000 ★ — 2%, 5 000 ★ — 2.3%, 10 000 ★ — 2.6%, 20 000 ★ — 2.8%, 50 000 ★ — 3.5%, 100 000 ★ — 5%. Пакет — это готовая сумма вложения: его цена целиком уходит в мощность и работает. Ставка не понижается.',
  r_h4:'Вывод', r_p4:'Минимальная сумма — 150 ★. Комиссия одинаковая для обоих способов — 5% от суммы вывода. Вывод в Stars идёт на указанный Telegram-аккаунт, вывод в TON — на кошелёк по курсу 1 ★ = 0.01 TON.',
  r_h6:'Кейсы', r_p6:'Пять кейсов с разной ценой открытия: Spark 20 ★, Neon 50 ★, Crystal 100 ★, Royal 200 ★, Legend 500 ★. В каждом шесть вариантов выигрыша — от 5% цены до пятикратной цены, — и шанс каждого написан рядом до открытия. Вариант выпадает случайно ровно с этим шансом, лента лишь показывает результат.',
  r_h5:'Игры', r_p5:'Краш: ставка делается в фазе ожидания, забрать можно в любой момент до обрыва. Точка обрыва определяется до старта раунда. ПВП: доля в общем банке равна шансу на победу, победитель забирает банк целиком.',
@@ -2268,7 +2268,7 @@ en:{
  you_took:'You took the pot', won_by:'{n} won', win_amt:'You won · +{n} ★', lost_to:'{n} won',
  enter_battle:'Join the battle · {n} ★', place_bet:'Bet {n} ★', bet_taken:'Bet placed · {n} ★',
  cash_out:'Cash out {n} ★', no_stars:'Not enough stars',
- shop_title:'Boost shop', shop_sub:'Permanent · daily rate', active:'active',
+ shop_title:'Power packs', shop_sub:'The price becomes your deposit and works', active:'your tier',
  buy_for:'Buy for',
  w_min:'Min 150', w_amount:'Amount', w_avail:'Available:', w_max:'Max', w_me:'Me',
  w_user_ph:'Telegram username', w_wallet_ph:'Recipient TON wallet',
@@ -2324,7 +2324,7 @@ en:{
  k_r1:'Common', k_r2:'Uncommon', k_r3:'Rare', k_r4:'Epic', k_r5:'Legendary', k_r6:'Mythic',
  r_h1:'Payouts', r_p1:'Income comes from your deposit — the stars you invested into power — not from your balance. Payouts land in your wallet every 3 seconds, and the daily total equals your deposit times the rate. Stars sitting in the wallet earn nothing.',
  r_h2:'Power', r_p2:'Power is bought with stars from your wallet and cannot be taken back — what you invest becomes equipment. It grows with the size of your deposit and with your daily rate, so it changes when you invest more and when you buy a tier.',
- r_h3:'Rate tiers', r_p3:'A tier sets the rate outright rather than adding to it. A purchased tier is permanent. Tiers below your current rate are unavailable — buying cannot lower your rate.',
+ r_h3:'Rate and packs', r_p3:'Your rate depends on the size of your deposit: 100 ★ — 1.2%, 200 ★ — 1.4%, 300 ★ — 1.6%, 1,000 ★ — 1.8%, 3,000 ★ — 2%, 5,000 ★ — 2.3%, 10,000 ★ — 2.6%, 20,000 ★ — 2.8%, 50,000 ★ — 3.5%, 100,000 ★ — 5%. A pack is a ready-made investment: its price goes into power in full and starts working. The rate never drops.',
  r_h4:'Withdrawal', r_p4:'The minimum is 150 ★. The fee is the same either way — 5% of the withdrawal. Stars go to the given Telegram account; TON goes to a wallet at 1 ★ = 0.01 TON.',
  r_h6:'Cases', r_p6:'Five cases with different prices: Spark 20 ★, Neon 50 ★, Crystal 100 ★, Royal 200 ★, Legend 500 ★. Each holds six outcomes — from 5% of the price up to five times the price — and every chance is printed next to it before you open. The outcome is drawn at exactly that chance; the reel only shows the result.',
  r_h5:'Games', r_p5:'Crash: you bet during the waiting phase and can cash out any moment before the bust. The bust point is fixed before the round starts. PvP: your share of the pot is your chance to win, and the winner takes the whole pot.',
@@ -2349,7 +2349,7 @@ uk:{
  you_took:'Ви забрали банк', won_by:'Переміг {n}', win_amt:'Перемога · +{n} ★', lost_to:'Виграв {n}',
  enter_battle:'Увійти в битву · {n} ★', place_bet:'Поставити {n} ★', bet_taken:'Ставку прийнято · {n} ★',
  cash_out:'Забрати {n} ★', no_stars:'Недостатньо зірок',
- shop_title:'Магазин бустів', shop_sub:'Постійні · ставка дохідності', active:'активний',
+ shop_title:'Пакети потужності', shop_sub:'Ціна пакета стає вкладом і працює', active:'ваш рівень',
  buy_for:'Купити за',
  w_min:'Мін 150', w_amount:'Сума', w_avail:'Доступно:', w_max:'Макс', w_me:'Мені',
  w_user_ph:'Telegram username', w_wallet_ph:'TON-гаманець отримувача',
@@ -2405,7 +2405,7 @@ uk:{
  k_r1:'Звичайний', k_r2:'Незвичайний', k_r3:'Рідкісний', k_r4:'Епічний', k_r5:'Легендарний', k_r6:'Міфічний',
  r_h1:'Нарахування', r_p1:'Дохід іде не з балансу, а з вкладу — тих зірок, які ви вклали в потужність. Нарахування відбувається кожні 3 секунди й падає в гаманець, сума за добу дорівнює вкладу, помноженому на ставку. Зірки, що просто лежать на балансі, доходу не приносять.',
  r_h2:'Потужність', r_p2:'Потужність купується за зірки з гаманця і назад не повертається — вкладене стає обладнанням. Вона зростає разом із розміром вкладу і зі ставкою дохідності, тому змінюється і при новому вкладенні, і при купівлі рівня.',
- r_h3:'Рівні дохідності', r_p3:'Рівень задає ставку цілком, а не додає до поточної. Куплений рівень діє постійно. Рівні нижчі за поточний недоступні — знизити ставку купівлею не можна.',
+ r_h3:'Ставка і пакети', r_p3:'Ставка залежить від розміру вкладу: 100 ★ — 1.2%, 200 ★ — 1.4%, 300 ★ — 1.6%, 1 000 ★ — 1.8%, 3 000 ★ — 2%, 5 000 ★ — 2.3%, 10 000 ★ — 2.6%, 20 000 ★ — 2.8%, 50 000 ★ — 3.5%, 100 000 ★ — 5%. Пакет — це готова сума вкладення: його ціна цілком іде в потужність і працює. Ставка не знижується.',
  r_h4:'Виведення', r_p4:'Мінімальна сума — 150 ★. Комісія однакова для обох способів — 5% від суми виведення. Виведення у Stars іде на вказаний Telegram-акаунт, виведення у TON — на гаманець за курсом 1 ★ = 0.01 TON.',
  r_h6:'Кейси', r_p6:'П’ять кейсів із різною ціною відкриття: Spark 20 ★, Neon 50 ★, Crystal 100 ★, Royal 200 ★, Legend 500 ★. У кожному шість варіантів виграшу — від 5% ціни до п’ятикратної ціни, — і шанс кожного написано поруч до відкриття. Варіант випадає випадково рівно з цим шансом, стрічка лише показує результат.',
  r_h5:'Ігри', r_p5:'Краш: ставка робиться у фазі очікування, забрати можна будь-якої миті до обриву. Точка обриву визначається до старту раунду. ПВП: частка у спільному банку дорівнює шансу на перемогу, переможець забирає банк цілком.',
@@ -2731,12 +2731,30 @@ function addMined(x){
   MN.d.v+=x; MN.w.v+=x; MN.a+=x;
 }
 
+var BASE_YIELD = 1.00;      // ставка, пока вклад не дотянул до первого пакета
+
+var BOOSTS=[
+  {y:1.2, price:100},    {y:1.4, price:200},    {y:1.6, price:300},
+  {y:1.8, price:1000},   {y:2.0, price:3000},   {y:2.3, price:5000},
+  {y:2.6, price:10000},  {y:2.8, price:20000},  {y:3.5, price:50000},
+  {y:5.0, price:100000}
+];
+/* ставка по размеру вклада: берём верхний порог, который вклад перекрыл */
+function rateFor(v){
+  var y=BASE_YIELD;
+  for(var i=0;i<BOOSTS.length;i++) if(v>=BOOSTS[i].price) y=BOOSTS[i].y;
+  return y;
+}
+
+
 var bal = SAVED ? SAVED.bal : 0;       // кошелёк: пополнения, выигрыши, доход
 /* Мощность покупается за звёзды безвозвратно: вложенное превращается в
    оборудование и обратно не достаётся. Доход идёт с вклада, а не с
    кошелька — иначе деньги одновременно работали бы и выводились. */
 var inv = SAVED ? SAVED.inv : 0;
-var YIELD_PCT = SAVED ? SAVED.y : 1.00; // %/день; растёт от купленных бустов
+/* ставку выставляем сразу: доход за время отсутствия считается ниже,
+   до первого recalc(), и на базовой ставке занижал бы начисление */
+var YIELD_PCT = rateFor(inv);
 
 /* Доход идёт и когда приложение закрыто. Разрыв ограничиваем 30 сутками:
    на большем окне выигрывает съехавшее системное время, а не игрок. */
@@ -2794,10 +2812,9 @@ function hideAway(){
 /* Уровни доходности — общий источник для магазина и калькулятора.
    На карточке стоит итоговая ставка, поэтому покупка её устанавливает,
    а не прибавляет: иначе «1.4%» после «1.2%» дало бы 1.6%. */
-var BOOSTS=[
-  {y:1.2, price:100},  {y:1.4, price:200},  {y:1.6, price:300},
-  {y:2,   price:1000}, {y:5,   price:3000}, {y:7,   price:5000}
-];
+/* Пакеты мощности. Цена пакета — это и есть вклад: заплатил 100 ★ —
+   ровно эти 100 ★ и работают, поэтому «окупаемость» считается от цены.
+   Ставка определяется размером всего вклада, а не последней покупкой. */
 
 function fmtInt(n){ return Math.round(n).toLocaleString('ru-RU'); }
 function fmt(n){
@@ -2805,7 +2822,6 @@ function fmt(n){
 }
 
 var CYCLE = 3;              // сек до начисления
-var BASE_YIELD = 1.00;      // доходность плана без бустов, %/день
 /* Мощность покупается вкладом: столько PH/s даёт одна звезда при базовой
    доходности. Отсюда 12 480 ★ при 1%/день = 1.284 PH/s, как в макете. */
 var HASH_PER_STAR = 1.284 / 12480;
@@ -2816,6 +2832,7 @@ var RATE = 0;               // ★ в секунду; считается из б
    каждое число на экране меняется пропорционально. */
 function power(){ return inv*HASH_PER_STAR*(YIELD_PCT/BASE_YIELD); }
 function recalc(){
+  YIELD_PCT = rateFor(inv);                  // ставку задаёт размер вклада
   RATE = inv * (YIELD_PCT/100) / 86400;      // работает вклад, а не кошелёк
   var perHour = RATE * 3600, el;
   if((el=document.getElementById('heroRate'))) el.textContent='+'+fmt(perHour);
@@ -4149,7 +4166,7 @@ function makeSheet(wrapId, topId, opts){
   var grid=document.getElementById('bgrid'), buyBtn=document.getElementById('buyBtn'),
       buyPrice=document.getElementById('buyPrice'),
       buyOk=document.getElementById('buyOk'), buyNo=document.getElementById('buyNo'),
-      buyMax=document.getElementById('buyMax'),
+
       yieldVal=document.getElementById('yieldVal'), yieldCard=document.getElementById('yieldCard');
 
   var sheet=makeSheet('boostSheet','sheetTop',{ onShow:refresh });
@@ -4161,9 +4178,9 @@ function makeSheet(wrapId, topId, opts){
     el.innerHTML='<span class="pc num">'+b.y+'%</span>'+
                  '<span class="ic">'+BOLT+'</span>'+
                  '<span class="fo"></span>'+
-                 '<span class="pr">'+STAR+'<span class="num">'+b.price+'</span></span>';
+                 '<span class="pr">'+STAR+'<span class="num">'+fmtInt(b.price)+'</span></span>';
     el.addEventListener('click',function(){
-      if(sel===i || el.classList.contains('own')) return;
+      if(sel===i) return;
       haptic('light');
       if(grid.children[sel]) grid.children[sel].classList.remove('on');
       sel=i; el.classList.add('on');
@@ -4172,29 +4189,17 @@ function makeSheet(wrapId, topId, opts){
     grid.appendChild(el);
   });
 
-  /* Уровни не выше текущего покупать нечего — помечаем их и уводим
-     выбор на первый доступный, иначе покупка понизила бы доходность. */
+  /* Пакет можно купить любой — он просто добавляется к вкладу.
+     Отмечаем тот, чью ставку вклад уже обеспечивает. */
   function refresh(){
-    var firstFree=-1;
     BOOSTS.forEach(function(b,i){
-      var el=grid.children[i], own=b.y<=YIELD_PCT;
+      var el=grid.children[i], own=(b.y===YIELD_PCT && inv>=b.price);
       el.classList.toggle('own',own);
       el.querySelector('.fo').textContent = own ? t('active') : t('per_day');
-      if(!own && firstFree<0) firstFree=i;
     });
-    if(sel<0 || grid.children[sel].classList.contains('own')){
-      if(grid.children[sel]) grid.children[sel].classList.remove('on');
-      sel=firstFree;
-      if(sel>=0) grid.children[sel].classList.add('on');
-    }
-    if(sel<0){                          // куплен верхний уровень — покупать нечего
-      buyBtn.disabled=true;
-      buyOk.hidden=true; buyNo.hidden=true; buyMax.hidden=false;
-      return;
-    }
+    if(sel<0){ sel=0; grid.children[0].classList.add('on'); }
     var price=BOOSTS[sel].price, enough=bal>=price;
-    buyPrice.textContent=price;
-    buyMax.hidden=true;
+    buyPrice.textContent=fmtInt(price);
     buyOk.hidden=!enough; buyNo.hidden=enough;
     buyBtn.disabled=!enough;
   }
@@ -4211,10 +4216,9 @@ function makeSheet(wrapId, topId, opts){
     var b=BOOSTS[sel];
     if(bal < b.price){ haptic('warning'); refresh(); return; }
     haptic('success');
-    bal -= b.price;                     // уровень платный — списываем цену
-    YIELD_PCT = b.y;                    // уровень задаёт ставку, а не прибавляет
+    bal -= b.price; inv += b.price;     // цена пакета уходит во вклад и работает
     Tasks.done('boost');
-    recalc(); saveState();              // мощность, выплата и скорость — от новой доходности
+    recalc(); saveState();              // ставка, мощность и выплата — от нового вклада
     [yieldCard,document.getElementById('powerCard')].forEach(function(c){
       c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse');
     });
@@ -4676,9 +4680,12 @@ var Ref = (function(){
 
   function preview(){
     var a=num(amt.value), next=inv+a;
+    /* ставка берётся по будущему вкладу: иначе предпросмотр показывал бы
+       доход по старому порогу и занижал результат вложения */
+    var y=rateFor(next);
     avail.textContent=fmtInt(Math.floor(bal));
-    oPow.textContent=(next*HASH_PER_STAR*(YIELD_PCT/BASE_YIELD)).toFixed(3)+' PH/s';
-    oRate.textContent=fmt(next*(YIELD_PCT/100)/24)+' ★ / '+t('per_hour');
+    oPow.textContent=(next*HASH_PER_STAR*(y/BASE_YIELD)).toFixed(3)+' PH/s';
+    oRate.textContent=fmt(next*(y/100)/24)+' ★ / '+t('per_hour');
 
     var msg='';
     if(!a) msg=t('w_enter_amt');
