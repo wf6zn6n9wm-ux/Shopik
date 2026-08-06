@@ -481,6 +481,50 @@ button.srow:active{transform:scale(.985);}
   85%,93%{opacity:.95;transform:scale(1);} 100%{opacity:0;transform:scale(1);}}
 @keyframes cgN4{0%,92%{opacity:0;transform:scale(.5);} 95%{opacity:1;transform:scale(1.7);}
   96%{opacity:.95;transform:scale(1);} 100%{opacity:0;transform:scale(1);}}
+/* ─── живые «Кейсы» ───
+   Тут ничего вырезать не пришлось: движение целиком световое, поэтому
+   слой просто светится поверх кадра в режиме screen. Подсветка перебирает
+   сундуки, замедляясь, останавливается на золотом и даёт вспышку —
+   ровно то, что человек увидит, открывая кейс.
+   Координаты — в системе кадра (860×315), чтобы не разъезжались. */
+.kscene{
+  position:absolute;inset:0;width:100%;height:100%;z-index:1;
+  pointer-events:none;mix-blend-mode:screen;
+}
+.kscene .kpick{opacity:0;}
+.kscene .k0{animation:kcP0 5s linear infinite;}
+.kscene .k1{animation:kcP1 5s linear infinite;}
+.kscene .k2{animation:kcP2 5s linear infinite;}
+.kscene .k3{animation:kcP3 5s linear infinite;}
+.kscene .k4{animation:kcP4 5s linear infinite;}
+.kscene .kburst{opacity:0;transform-origin:560px 196px;animation:kcBurst 5s linear infinite;}
+.kscene .ksp{opacity:0;animation:kcSpark 5s linear infinite;}
+.kscene .s2{animation-delay:.16s;} .kscene .s3{animation-delay:.32s;}
+.kscene .s4{animation-delay:.48s;} .kscene .s5{animation-delay:.64s;}
+/* Перебор замедляется: шаги 4% → 5% → 6%, поэтому остановка на золотом
+   читается как результат, а не как обрыв анимации. */
+@keyframes kcP0{0%,1%{opacity:0;} 2%{opacity:1;} 6%{opacity:0;}
+  22%{opacity:0;} 23%{opacity:1;} 27%{opacity:0;}
+  50%{opacity:0;} 51%{opacity:1;} 56%{opacity:0;} 100%{opacity:0;}}
+@keyframes kcP1{0%,5%{opacity:0;} 6%{opacity:1;} 10%{opacity:0;}
+  27%{opacity:0;} 28%{opacity:1;} 32%{opacity:0;}
+  56%{opacity:0;} 57%{opacity:1;} 62%{opacity:0;} 100%{opacity:0;}}
+@keyframes kcP2{0%,9%{opacity:0;} 10%{opacity:1;} 14%{opacity:0;}
+  32%{opacity:0;} 33%{opacity:1;} 37%{opacity:0;}
+  62%{opacity:0;} 63%{opacity:1;} 88%{opacity:1;} 97%{opacity:0;} 100%{opacity:0;}}
+@keyframes kcP3{0%,13%{opacity:0;} 14%{opacity:1;} 18%{opacity:0;}
+  38%{opacity:0;} 39%{opacity:1;} 43%{opacity:0;} 100%{opacity:0;}}
+@keyframes kcP4{0%,17%{opacity:0;} 18%{opacity:1;} 22%{opacity:0;}
+  44%{opacity:0;} 45%{opacity:1;} 49%{opacity:0;} 100%{opacity:0;}}
+@keyframes kcBurst{0%,62%{opacity:0;transform:scale(.35);}
+  67%{opacity:.9;transform:scale(1);} 84%{opacity:0;transform:scale(1.6);} 100%{opacity:0;}}
+@keyframes kcSpark{0%,63%{opacity:0;transform:translate(0,0) scale(.6);}
+  68%{opacity:1;transform:translate(0,-26px) scale(1);}
+  92%{opacity:0;transform:translate(0,-92px) scale(.5);} 100%{opacity:0;}}
+@media (prefers-reduced-motion: reduce){
+  .kscene .kpick,.kscene .kburst,.kscene .ksp{animation:none;}
+  .kscene .k2{opacity:1;}
+}
 /* кому анимация мешает — сцена замирает на пике, как исходный баннер */
 @media (prefers-reduced-motion: reduce){
   .scene .trail,.scene .trailGlow,.scene .rk,.scene .fl,.scene .nd{animation:none;}
@@ -1645,6 +1689,49 @@ button.srow:active{transform:scale(.985);}
 
       <button class="gcard banner art-kase" id="goCases">
         <span class="art"></span>
+        <svg class="kscene" viewBox="0 0 860 315" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+          <defs>
+            <filter id="kcBlur" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="14"/></filter>
+            <radialGradient id="kcBu"><stop offset="0" stop-color="#FFFBEE"/><stop offset=".35" stop-color="#FFD87A" stop-opacity=".7"/><stop offset="1" stop-color="#F0A62A" stop-opacity="0"/></radialGradient>
+            <radialGradient id="kcSp"><stop offset="0" stop-color="#FFFEF6"/><stop offset=".5" stop-color="#FFE3A4" stop-opacity=".85"/><stop offset="1" stop-color="#F3B03A" stop-opacity="0"/></radialGradient>
+          </defs>
+          <g class="kpick k0">
+            <ellipse cx="389" cy="180" rx="66" ry="59" fill="#A855F7" opacity=".28" filter="url(#kcBlur)"/>
+            <rect x="344" y="126" width="90" height="110" rx="12"
+                  fill="none" stroke="#A855F7" stroke-width="3" opacity=".95"/>
+            <ellipse cx="395" cy="110" rx="44" ry="22" fill="#A855F7" opacity=".5" filter="url(#kcBlur)"/>
+          </g>
+          <g class="kpick k1">
+            <ellipse cx="458" cy="176" rx="68" ry="61" fill="#3B82F6" opacity=".28" filter="url(#kcBlur)"/>
+            <rect x="410" y="118" width="96" height="114" rx="12"
+                  fill="none" stroke="#3B82F6" stroke-width="3" opacity=".95"/>
+            <ellipse cx="468" cy="95" rx="42" ry="22" fill="#3B82F6" opacity=".5" filter="url(#kcBlur)"/>
+          </g>
+          <g class="kpick k2">
+            <ellipse cx="560" cy="196" rx="120" ry="108" fill="#F0C468" opacity=".28" filter="url(#kcBlur)"/>
+            <rect x="478" y="100" width="178" height="190" rx="20"
+                  fill="none" stroke="#F0C468" stroke-width="3" opacity=".95"/>
+            <ellipse cx="578" cy="58" rx="58" ry="30" fill="#F0C468" opacity=".5" filter="url(#kcBlur)"/>
+          </g>
+          <g class="kpick k3">
+            <ellipse cx="685" cy="177" rx="70" ry="63" fill="#22C55E" opacity=".28" filter="url(#kcBlur)"/>
+            <rect x="634" y="118" width="100" height="116" rx="12"
+                  fill="none" stroke="#22C55E" stroke-width="3" opacity=".95"/>
+            <ellipse cx="682" cy="95" rx="42" ry="22" fill="#22C55E" opacity=".5" filter="url(#kcBlur)"/>
+          </g>
+          <g class="kpick k4">
+            <ellipse cx="755" cy="182" rx="70" ry="63" fill="#EF4444" opacity=".28" filter="url(#kcBlur)"/>
+            <rect x="700" y="126" width="106" height="112" rx="12"
+                  fill="none" stroke="#EF4444" stroke-width="3" opacity=".95"/>
+            <ellipse cx="772" cy="110" rx="40" ry="22" fill="#EF4444" opacity=".5" filter="url(#kcBlur)"/>
+          </g>
+          <circle class="kburst" cx="560" cy="196" r="150" fill="url(#kcBu)"/>
+          <circle class="ksp s1" cx="520" cy="214" r="7" fill="url(#kcSp)"/>
+          <circle class="ksp s2" cx="548" cy="222" r="7" fill="url(#kcSp)"/>
+          <circle class="ksp s3" cx="572" cy="218" r="7" fill="url(#kcSp)"/>
+          <circle class="ksp s4" cx="596" cy="224" r="7" fill="url(#kcSp)"/>
+          <circle class="ksp s5" cx="610" cy="210" r="7" fill="url(#kcSp)"/>
+        </svg>
         <span class="halo"></span>
         <span class="gi">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.2 12 4l9 4.2v7.6L12 20l-9-4.2z"/><path d="M3 8.2 12 12.4l9-4.2M12 12.4V20"/></svg>
