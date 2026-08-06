@@ -420,6 +420,64 @@ button.srow:active{transform:scale(.985);}
 .reel .rc.hot{border-color:rgba(228,192,120,.55);box-shadow:0 0 .8em rgba(228,192,120,.35);}
 .reel .rc.hot .rp{color:#F5C463;}
 @keyframes pvpReel{ from{transform:translate3d(0,0,0);} to{transform:translate3d(-50%,0,0);} }
+
+/* ─── тяга ракеты в баннере «Краш» ───
+   Ракета на карточке высотой около 32 px: сдвинуть её на пару пикселей
+   значит не сдвинуть ни на что. Поэтому движение отдано тому, что на
+   таком размере читается — импульсам света по следу и по траектории,
+   пульсу пламени и вспышкам узловых точек. Слой живёт в координатах
+   самого кадра (viewBox 860×338), поэтому точки привязаны к рисунку
+   и не разъезжаются ни при каком размере карточки. */
+.fx{
+  position:absolute;inset:0;width:100%;height:100%;z-index:1;
+  pointer-events:none;mix-blend-mode:screen;
+}
+/* импульс по выхлопу: снизу слева к соплу */
+.fx .sp{animation:fxSpark 2.2s linear infinite;}
+.fx .sp2{animation-delay:.73s;}
+.fx .sp3{animation-delay:1.46s;}
+/* импульс по траектории: от нижней точки к верхней */
+.fx .tr{animation:fxTrail 2.2s linear infinite;}
+.fx .tr2{animation-delay:1.1s;}
+.fx .fl{animation:fxFlame .95s ease-in-out infinite;transform-origin:558px 201px;}
+.fx .ha{animation:fxHalo 2.9s ease-in-out infinite;transform-origin:615px 120px;}
+/* узлы траектории загораются по очереди — линия будто растёт */
+.fx .nd{animation:fxNode 2.2s ease-in-out infinite;}
+.fx .n1{transform-origin:487px 297px;}
+.fx .n2{transform-origin:706px 224px;animation-delay:.5s;}
+.fx .n3{transform-origin:792px 145px;animation-delay:1s;}
+.fx .n4{transform-origin:836px  84px;animation-delay:1.5s;}
+/* ключевые точки повторяют изгиб следа, иначе импульс срезал бы угол */
+@keyframes fxSpark{
+  0%  {transform:translate(0,0);         opacity:0;}
+  12% {opacity:1;}
+  35% {transform:translate(80px,-58px);}
+  70% {transform:translate(140px,-95px); opacity:1;}
+  100%{transform:translate(180px,-128px);opacity:0;}
+}
+@keyframes fxTrail{
+  0%  {transform:translate(0,0);         opacity:0;}
+  15% {opacity:1;}
+  55% {transform:translate(86px,-79px);}
+  85% {opacity:1;}
+  100%{transform:translate(130px,-140px);opacity:0;}
+}
+@keyframes fxFlame{
+  0%,100%{transform:scale(.8); opacity:.45;}
+  50%    {transform:scale(1.35);opacity:1;}
+}
+@keyframes fxHalo{
+  0%,100%{transform:scale(.9); opacity:.18;}
+  50%    {transform:scale(1.14);opacity:.62;}
+}
+@keyframes fxNode{
+  0%,100%{transform:scale(.6); opacity:0;}
+  45%    {transform:scale(1.5);opacity:.95;}
+}
+@media (prefers-reduced-motion: reduce){
+  .fx .sp,.fx .fl,.fx .ha{animation:none;}
+  .fx .sp{opacity:0;}
+}
 /* кому анимация мешает — лента просто стоит */
 @media (prefers-reduced-motion: reduce){ .reel .rt{animation:none;} }
 .reel .rv-nova{background-image:url('data:image/webp;base64,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');}
@@ -1517,6 +1575,24 @@ button.srow:active{transform:scale(.985);}
     <div class="gview on" id="gList">
       <button class="gcard banner art-crash" id="goCrash">
         <span class="art"></span>
+        <svg class="fx" viewBox="0 0 860 338" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+          <defs>
+            <radialGradient id="fxFl"><stop offset="0" stop-color="#FFFDF4"/><stop offset=".4" stop-color="#FFC85A" stop-opacity=".7"/><stop offset="1" stop-color="#F0A62A" stop-opacity="0"/></radialGradient>
+            <radialGradient id="fxHa"><stop offset=".3" stop-color="#F2D79A" stop-opacity=".65"/><stop offset="1" stop-color="#E4C078" stop-opacity="0"/></radialGradient>
+            <radialGradient id="fxSp"><stop offset="0" stop-color="#FFFEF8"/><stop offset=".35" stop-color="#FFE7AE" stop-opacity=".85"/><stop offset="1" stop-color="#F3B03A" stop-opacity="0"/></radialGradient>
+          </defs>
+          <circle class="ha" cx="615" cy="120" r="96" fill="url(#fxHa)"/>
+          <circle class="fl" cx="558" cy="201" r="44" fill="url(#fxFl)"/>
+          <circle class="nd n1" cx="487" cy="297" r="15" fill="url(#fxSp)"/>
+          <circle class="nd n2" cx="706" cy="224" r="15" fill="url(#fxSp)"/>
+          <circle class="nd n3" cx="792" cy="145" r="15" fill="url(#fxSp)"/>
+          <circle class="nd n4" cx="836" cy="84"  r="17" fill="url(#fxSp)"/>
+          <g class="sp sp1"><ellipse cx="390" cy="328" rx="20" ry="9" transform="rotate(-36 390 328)" fill="url(#fxSp)"/></g>
+          <g class="sp sp2"><ellipse cx="390" cy="328" rx="15" ry="7" transform="rotate(-36 390 328)" fill="url(#fxSp)"/></g>
+          <g class="sp sp3"><ellipse cx="390" cy="328" rx="17" ry="8" transform="rotate(-36 390 328)" fill="url(#fxSp)"/></g>
+          <g class="tr tr1"><ellipse cx="706" cy="224" rx="17" ry="8" transform="rotate(-47 706 224)" fill="url(#fxSp)"/></g>
+          <g class="tr tr2"><ellipse cx="706" cy="224" rx="14" ry="7" transform="rotate(-47 706 224)" fill="url(#fxSp)"/></g>
+        </svg>
         <span class="halo"></span>
         <span class="gi">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19c4.5 0 9-3.2 12-11"/><path d="M11 4.5h5v5"/></svg>
