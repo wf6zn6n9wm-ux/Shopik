@@ -998,15 +998,7 @@ button.srow:active{transform:scale(.985);}
 }
 
 /* ─────────── Задания ─────────── */
-.dcard{
-  flex:0 0 auto;padding:16px 16px 16px;border-radius:var(--r-card);
-  background:linear-gradient(168deg,rgba(228,192,120,.11),rgba(255,255,255,.015));
-  border:1px solid rgba(228,192,120,.19);
-  display:flex;flex-direction:column;gap:13px;
-}
-.dhd{display:flex;align-items:baseline;gap:9px;}
-.dhd .t{font-size:15.5px;font-weight:600;letter-spacing:-.01em;}
-.dhd .st{margin-left:auto;font-size:12px;color:var(--ink-3);font-weight:600;}
+/* лесенка дней живёт в шторке «Бонусы»; на «Заданиях» остался только список */
 .ddays{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
 .dday{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
@@ -1168,17 +1160,8 @@ button.srow:active{transform:scale(.985);}
 .bnc .v.rdy{color:var(--gold);}
 .bnc .c{font-size:11.5px;color:var(--ink-3);font-weight:600;text-align:center;padding:0 24px;}
 .bnst{text-align:center;font-size:12.5px;color:var(--ink-2);font-weight:600;margin-bottom:12px;}
-.bnlad{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-bottom:16px;}
-.bnlad i{
-  font-style:normal;font-size:11px;font-weight:700;color:var(--ink-3);
-  text-align:center;padding:7px 0;border-radius:9px;
-  background:#0D0D0F;border:1px solid var(--line);
-}
-.bnlad i.on{
-  color:var(--gold);border-color:var(--gold);
-  background:linear-gradient(168deg,rgba(228,192,120,.16),rgba(228,192,120,.04));
-}
-.bnlad i.done{color:var(--gold-deep);border-color:rgba(228,192,120,.2);background:rgba(228,192,120,.05);}
+/* лесенку дней рисуем теми же ячейками, что и раньше на «Заданиях» */
+.bnring + .bnst + .ddays{margin-bottom:16px;}
 .bnnote{margin-top:12px;text-align:center;font-size:11.5px;color:var(--ink-3);line-height:1.5;}
 
 /* ─────────── Пополнение через GRAM ─────────── */
@@ -1641,15 +1624,6 @@ button.srow:active{transform:scale(.985);}
 
   <div class="page" id="p-tasks">
     <div class="pscroll">
-
-      <div class="dcard">
-        <div class="dhd">
-          <span class="t" data-i18n="dl_title">Ежедневный вход</span>
-          <span class="st" id="dlStreak"></span>
-        </div>
-        <div class="ddays" id="dlDays"></div>
-        <button class="btn-buy" id="dlGo"></button>
-      </div>
 
       <div class="ptitle">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5 9 17l10.5-10.5"/></svg>
@@ -2165,9 +2139,9 @@ button.srow:active{transform:scale(.985);}
         </div>
       </div>
       <div class="bnst" id="bnStreak"></div>
-      <div class="bnlad" id="bnLad"></div>
+      <div class="ddays" id="bnDays"></div>
       <button class="btn-buy" id="bnGo"></button>
-      <p class="bnnote" data-i18n="bn_note">Бонус приходит раз в час. Забирайте подряд — награда растёт.</p>
+      <p class="bnnote" data-i18n="bn_note">Бонус приходит раз в сутки. Заходите каждый день — награда растёт.</p>
     </div>
   </div>
 </div>
@@ -2321,7 +2295,7 @@ ru:{
  sup_write:'Написать', copy_rights:'Все права защищены',
  r_title:'Правила', r_ok:'Понятно',
  own_bet:'Своя', wb_title:'Пока вас не было', wb_sub:'намайнено за {t}',
- wb_d:'{n} д', wb_h:'{n} ч', wb_m:'{n} мин', dl_title:'Ежедневный вход', dl_streak:'серия · {n} дн', dl_streak0:'серия прервана', dl_streak_new:'серия не начата',
+ wb_d:'{n} д', wb_h:'{n} ч', wb_m:'{n} мин', dl_streak:'серия · {n} дн', dl_streak0:'серия прервана', dl_streak_new:'серия не начата',
  dl_take:'Забрать {n} ★', dl_done:'Уже забрано · завтра {n} ★', dl_day:'{n} дн',
  tk_title:'Задания', tk_go:'Перейти', tk_take:'Забрать',
  tk_sub:'Подписка на канал', tk_invite:'Пригласить друга',
@@ -2331,8 +2305,7 @@ ru:{
  tk_all:'Все задания выполнены', tk_got:'Начислено {n} ★',
  tp_day:'День', tp_week:'Неделя', tp_all:'Всё время',
  bn_title:'Бонусы', bn_ready:'можно забрать', bn_wait:'до следующего бонуса',
- bn_take:'Забрать {n} ★', bn_next:'Ещё {t}', bn_streak:'серия · {n} подряд', bn_streak0:'серия не начата',
- bn_note:'Бонус приходит раз в час. Забирайте подряд — награда растёт. Пропуск больше шести часов обнуляет серию.',
+ bn_note:'Бонус приходит раз в сутки. Заходите каждый день — награда растёт. Пропуск дня обнуляет серию.',
  rf_title:'Друзья', rf_friends:'Приглашено', rf_earned:'Заработано',
  rf_link:'Ваша ссылка', rf_share:'Пригласить друга',
  rf_r1:'Друг открывает приложение по вашей ссылке',
@@ -2354,7 +2327,7 @@ ru:{
  nt_empty:'Здесь появятся начисления, выигрыши и покупки',
  nt_dep:'Пополнение баланса', nt_wd:'Вывод звёзд', nt_inv:'Вложено в мощность',
  nt_pack:'Пакет мощности', nt_mine:'Намайнено без вас',
- nt_task:'Награда за задание', nt_daily:'Ежедневный вход', nt_bonus:'Ежечасный бонус',
+ nt_task:'Награда за задание', nt_daily:'Ежедневный бонус',
  nt_kase:'Выигрыш в кейсе', nt_crash:'Выигрыш в Краше', nt_pvp:'Победа в ПВП',
  nt_ref:'Бонус за друга',
  g_cases:'Кейсы', g_cases_d:'Пять кейсов со звёздами — шансы известны заранее',
@@ -2410,7 +2383,7 @@ en:{
  sup_write:'Write to us', copy_rights:'All rights reserved',
  r_title:'Rules', r_ok:'Got it',
  own_bet:'Own', wb_title:'While you were away', wb_sub:'mined over {t}',
- wb_d:'{n} d', wb_h:'{n} h', wb_m:'{n} min', dl_title:'Daily check-in', dl_streak:'streak · {n} d', dl_streak0:'streak broken', dl_streak_new:'no streak yet',
+ wb_d:'{n} d', wb_h:'{n} h', wb_m:'{n} min', dl_streak:'streak · {n} d', dl_streak0:'streak broken', dl_streak_new:'no streak yet',
  dl_take:'Claim {n} ★', dl_done:'Claimed · tomorrow {n} ★', dl_day:'{n} d',
  tk_title:'Tasks', tk_go:'Open', tk_take:'Claim',
  tk_sub:'Join the channel', tk_invite:'Invite a friend',
@@ -2420,8 +2393,7 @@ en:{
  tk_all:'All tasks completed', tk_got:'{n} ★ credited',
  tp_day:'Day', tp_week:'Week', tp_all:'All time',
  bn_title:'Bonuses', bn_ready:'ready to claim', bn_wait:'until the next bonus',
- bn_take:'Claim {n} ★', bn_next:'In {t}', bn_streak:'streak · {n} in a row', bn_streak0:'no streak yet',
- bn_note:'A bonus lands every hour. Claim them back to back and the reward grows. Skipping more than six hours resets the streak.',
+ bn_note:'A bonus lands once a day. Come back every day and the reward grows. Missing a day resets the streak.',
  rf_title:'Friends', rf_friends:'Invited', rf_earned:'Earned',
  rf_link:'Your link', rf_share:'Invite a friend',
  rf_r1:'Your friend opens the app through your link',
@@ -2443,7 +2415,7 @@ en:{
  nt_empty:'Payouts, wins and purchases will show up here',
  nt_dep:'Balance topped up', nt_wd:'Stars withdrawn', nt_inv:'Invested into power',
  nt_pack:'Power pack', nt_mine:'Mined while away',
- nt_task:'Task reward', nt_daily:'Daily check-in', nt_bonus:'Hourly bonus',
+ nt_task:'Task reward', nt_daily:'Daily bonus',
  nt_kase:'Case win', nt_crash:'Crash win', nt_pvp:'PvP win',
  nt_ref:'Invite bonus',
  g_cases:'Cases', g_cases_d:'Five star cases — the odds are shown up front',
@@ -2499,7 +2471,7 @@ uk:{
  sup_write:'Написати', copy_rights:'Всі права захищені',
  r_title:'Правила', r_ok:'Зрозуміло',
  own_bet:'Своя', wb_title:'Поки вас не було', wb_sub:'намайнено за {t}',
- wb_d:'{n} д', wb_h:'{n} год', wb_m:'{n} хв', dl_title:'Щоденний вхід', dl_streak:'серія · {n} дн', dl_streak0:'серію перервано', dl_streak_new:'серію не розпочато',
+ wb_d:'{n} д', wb_h:'{n} год', wb_m:'{n} хв', dl_streak:'серія · {n} дн', dl_streak0:'серію перервано', dl_streak_new:'серію не розпочато',
  dl_take:'Забрати {n} ★', dl_done:'Вже забрано · завтра {n} ★', dl_day:'{n} дн',
  tk_title:'Завдання', tk_go:'Перейти', tk_take:'Забрати',
  tk_sub:'Підписка на канал', tk_invite:'Запросити друга',
@@ -2509,8 +2481,7 @@ uk:{
  tk_all:'Усі завдання виконано', tk_got:'Нараховано {n} ★',
  tp_day:'День', tp_week:'Тиждень', tp_all:'Увесь час',
  bn_title:'Бонуси', bn_ready:'можна забрати', bn_wait:'до наступного бонусу',
- bn_take:'Забрати {n} ★', bn_next:'Ще {t}', bn_streak:'серія · {n} поспіль', bn_streak0:'серію не розпочато',
- bn_note:'Бонус приходить раз на годину. Забирайте поспіль — нагорода зростає. Пропуск понад шість годин обнуляє серію.',
+ bn_note:'Бонус приходить раз на добу. Заходьте щодня — нагорода зростає. Пропуск дня обнуляє серію.',
  rf_title:'Друзі', rf_friends:'Запрошено', rf_earned:'Зароблено',
  rf_link:'Ваше посилання', rf_share:'Запросити друга',
  rf_r1:'Друг відкриває застосунок за вашим посиланням',
@@ -2532,7 +2503,7 @@ uk:{
  nt_empty:'Тут з’являться нарахування, виграші та покупки',
  nt_dep:'Поповнення балансу', nt_wd:'Виведення зірок', nt_inv:'Вкладено в майнінг',
  nt_pack:'Пакет потужності', nt_mine:'Намайнено без вас',
- nt_task:'Нагорода за завдання', nt_daily:'Щоденний вхід', nt_bonus:'Щогодинний бонус',
+ nt_task:'Нагорода за завдання', nt_daily:'Щоденний бонус',
  nt_kase:'Виграш у кейсі', nt_crash:'Виграш у Краші', nt_pvp:'Перемога у ПВП',
  nt_ref:'Бонус за друга',
  g_cases:'Кейси', g_cases_d:'П’ять кейсів із зірками — шанси відомі заздалегідь',
@@ -2848,7 +2819,6 @@ var DL = SAVED ? SAVED.dl : {streak:0, last:''};
 /* Намайнено за день, неделю и всё время — метрика для таблицы лидеров.
    Считаем только доход с майнинга: выигрыши и награды туда не идут. */
 var MN = SAVED ? SAVED.mn : {d:{k:'',v:0}, w:{k:'',v:0}, a:0};
-var BN = SAVED ? SAVED.bn : {last:0, streak:0};
 /* by — кто пригласил (из start_param), n и earned наполняет сервер:
    клиент не может подтвердить чужую регистрацию и её не выдумывает */
 var RF = SAVED ? SAVED.rf : {by:'', n:0, earned:0};
@@ -2920,7 +2890,7 @@ if(SAVED && SAVED.seen && inv>0){
 
 function saveState(){
   try{ localStorage.setItem(SKEY, JSON.stringify({v:1, bal:bal, y:YIELD_PCT, seen:Date.now(),
-                                                   tk:TK, dl:DL, mn:MN, bn:BN, rf:RF, fc:FC,
+                                                   tk:TK, dl:DL, mn:MN, rf:RF, fc:FC,
                                                    inv:inv, nt:NT})); }catch(e){}
 }
 
@@ -4426,8 +4396,6 @@ document.getElementById('btnBell').addEventListener('click', function(){ haptic(
    отдельным шагом — «выполнено» и «забрано» это разные состояния.
    ══════════════════════════════════════════════════════ */
 var Tasks = (function(){
-  var DAILY=[10,15,25,40,60,90,150];        // ★ за 1..7 день серии
-
   var ICO={
     sub:'<path d="M4 6.5 12 12l8-5.5M4 6.5h16v11H4z"/>',
     invite:'<circle cx="9.5" cy="8.5" r="3.4"/><path d="M3.5 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><path d="M18 8v6M15 11h6"/>',
@@ -4451,47 +4419,19 @@ var Tasks = (function(){
     {id:'wd',     k:'tk_wd',     r:10, kind:'act'}
   ];
 
-  var daysEl=document.getElementById('dlDays'), goEl=document.getElementById('dlGo'),
-      stEl=document.getElementById('dlStreak'), listEl=document.getElementById('tkList'),
+  var listEl=document.getElementById('tkList'),
       cntEl=document.getElementById('tkCnt'), tab=document.querySelector('.tab[data-p="tasks"]');
 
   function star(sz){
     return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>';
   }
-  function day(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
-  function today(){ return day(new Date()); }
-  function yesterday(){ var d=new Date(); d.setDate(d.getDate()-1); return day(d); }
-
-  /* какой день серии предстоит забрать; 0 — сегодня уже забрано */
-  function pending(){
-    if(DL.last===today()) return 0;
-    if(DL.last===yesterday() && DL.streak>0 && DL.streak<7) return DL.streak+1;
-    return 1;                       // пропуск дня или седьмой день — серия с начала
-  }
+  /* ежедневный вход переехал в шторку «Бонусы», поэтому точка на вкладке
+     теперь честно отражает только невзятые награды за задания */
   function claimable(){
-    if(pending()) return true;
     for(var i=0;i<LIST.length;i++) if(TK[LIST[i].id]==='ready') return true;
     return false;
   }
   function markTab(){ if(tab) tab.classList.toggle('has', claimable()); }
-
-  function renderDaily(){
-    var p=pending(), cur=p||DL.streak;
-    daysEl.innerHTML='';
-    for(var i=1;i<=7;i++){
-      var el=document.createElement('div');
-      el.className='dday'+(i===p?' now':'')+((p? i<p : i<=DL.streak)?' got':'');
-      el.innerHTML='<span class="n">'+t('dl_day',{n:i})+'</span><span class="v">'+DAILY[i-1]+'</span>';
-      daysEl.appendChild(el);
-    }
-    stEl.textContent = DL.streak>0 ? t('dl_streak',{n:DL.streak})
-                     : (DL.last ? t('dl_streak0') : t('dl_streak_new'));
-    if(p){ goEl.disabled=false; goEl.textContent=t('dl_take',{n:DAILY[p-1]}); }
-    else {
-      var nxt = DL.streak>=7 ? 1 : DL.streak+1;
-      goEl.disabled=true; goEl.textContent=t('dl_done',{n:DAILY[nxt-1]});
-    }
-  }
 
   function renderList(){
     listEl.innerHTML='';
@@ -4550,18 +4490,10 @@ var Tasks = (function(){
     if(listEl.children.length) renderList();
   }
 
-  goEl.addEventListener('click',function(){
-    var p=pending(); if(!p) return;
-    DL.streak=p; DL.last=today();
-    bal+=DAILY[p-1]; notify('daily',DAILY[p-1]); recalc(); saveState();
-    haptic('success'); beep(1050,0.14,0.05,'triangle');
-    renderDaily(); markTab();
-  });
+  RERENDER.push(renderList);
+  renderList();
 
-  RERENDER.push(function(){ renderDaily(); renderList(); });
-  renderDaily(); renderList();
-
-  return { done:done, refresh:function(){ renderDaily(); renderList(); } };
+  return { done:done, refresh:renderList };
 })();
 
 /* ══════════════════════════════════════════════════════
@@ -4680,65 +4612,72 @@ var Top = (function(){
 
 /* ══════════════════════════════════════════════════════
    БОНУСЫ
-   Раз в час. Серия растит награду, но обрывается, если не забрать
-   в течение шести часов после готовности — иначе «серия» ничего
-   не значила бы и достаточно было заходить раз в неделю.
+   Раз в сутки. Серия растит награду семь дней подряд, пропуск дня
+   начинает её заново — иначе «серия» ничего не значила бы и хватало
+   бы заходить раз в неделю. День считаем по календарю устройства,
+   а не по «24 часа с прошлого раза»: так забор не уползает вперёд
+   на несколько минут каждый день.
    ══════════════════════════════════════════════════════ */
 var Bonus = (function(){
-  var LADDER=[2,3,4,5,6,7,8,10];      // ★ за 1..8 забор подряд, дальше 10
-  var COOL=3600*1000;                 // час до следующего
-  var GRACE=6*3600*1000;              // столько держится серия после готовности
+  var DAILY=[10,15,25,40,60,90,150];  // ★ за 1..7 день серии
 
   var ringEl=document.getElementById('bnRing'), valEl=document.getElementById('bnVal'),
       capEl=document.getElementById('bnCap'), stEl=document.getElementById('bnStreak'),
-      ladEl=document.getElementById('bnLad'), goEl=document.getElementById('bnGo'),
+      daysEl=document.getElementById('bnDays'), goEl=document.getElementById('bnGo'),
       dotEl=document.getElementById('bnDot');
-  var LEN=2*Math.PI*52;
+  var LEN=2*Math.PI*52, DAY=86400*1000;
 
-  function since(){
-    if(!BN.last) return COOL;
-    /* часы съехали назад — не выдаём бонус даром, но и не показываем
-       обратный отсчёт длиннее часа: просто начинаем ожидание заново */
-    if(BN.last > Date.now()){ BN.last=Date.now(); saveState(); }
-    return Date.now()-BN.last;
-  }
-  function ready(){ return since()>=COOL; }
-  /* серия жива, пока после готовности не прошло больше GRACE */
+  function key(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function today(){ return key(new Date()); }
+  function yesterday(){ var d=new Date(); d.setDate(d.getDate()-1); return key(d); }
+
+  /* какой день серии предстоит забрать; 0 — сегодня уже забрано */
   function step(){
-    if(!BN.last) return 1;
-    if(since() > COOL+GRACE) return 1;
-    return Math.min(LADDER.length, BN.streak+1);
+    if(DL.last===today()) return 0;
+    if(DL.last===yesterday() && DL.streak>0 && DL.streak<DAILY.length) return DL.streak+1;
+    return 1;                       // пропуск дня или седьмой день — серия с начала
   }
-  function reward(){ return LADDER[step()-1]; }
-  function leftMs(){ return Math.max(0, COOL-since()); }
+  function ready(){ return step()>0; }
+  /* следующий бонус открывается в полночь, а не через сутки от забора */
+  function leftMs(){
+    var d=new Date(); d.setHours(24,0,0,0);
+    return Math.max(0, d.getTime()-Date.now());
+  }
+  /* сколько дадут завтра, если сегодня уже забрано */
+  function nextReward(){ return DAILY[(DL.streak>=DAILY.length ? 0 : DL.streak)]; }
+  /* живая длина серии: если лесенка откатилась на первый день, значит серия
+     уже не идёт, и хвастаться прошлым числом нельзя — награда-то упала */
+  function liveStreak(){ return step()===1 ? 0 : DL.streak; }
 
   function clock(ms){
-    var s=Math.ceil(ms/1000), m=Math.floor(s/60);
-    return ('0'+m).slice(-2)+':'+('0'+(s%60)).slice(-2);
+    var m=Math.ceil(ms/60000), h=Math.floor(m/60);
+    return ('0'+h).slice(-2)+':'+('0'+(m%60)).slice(-2);
   }
 
-  function renderLadder(){
-    var st=step();
-    ladEl.innerHTML='';
-    LADDER.forEach(function(v,i){
-      var el=document.createElement('i');
-      el.className = i+1===st ? 'on' : (i+1<st ? 'done' : '');
-      el.textContent=v;
-      ladEl.appendChild(el);
-    });
+  function renderDays(){
+    var p=step();
+    daysEl.innerHTML='';
+    for(var i=1;i<=DAILY.length;i++){
+      var el=document.createElement('div');
+      el.className='dday'+(i===p?' now':'')+((p? i<p : i<=DL.streak)?' got':'');
+      el.innerHTML='<span class="n">'+t('dl_day',{n:i})+'</span><span class="v">'+DAILY[i-1]+'</span>';
+      daysEl.appendChild(el);
+    }
   }
 
   function render(){
-    var st=step(), rd=ready();
-    valEl.textContent = rd ? reward() : clock(leftMs());
+    var p=step(), rd=p>0;
+    valEl.textContent = rd ? DAILY[p-1] : clock(leftMs());
     valEl.style.fontSize = rd ? '' : '34px';
     valEl.classList.toggle('rdy', rd);
     capEl.textContent = rd ? t('bn_ready') : t('bn_wait');
-    ringEl.style.strokeDashoffset = String(LEN*(rd ? 0 : leftMs()/COOL));
-    stEl.textContent = BN.streak>0 ? t('bn_streak',{n:BN.streak}) : t('bn_streak0');
+    ringEl.style.strokeDashoffset = String(LEN*(rd ? 0 : leftMs()/DAY));
+    var live=liveStreak();
+    stEl.textContent = live>0 ? t('dl_streak',{n:live})
+      : (DL.last && DL.last!==yesterday() ? t('dl_streak0') : t('dl_streak_new'));
     goEl.disabled = !rd;
-    goEl.textContent = rd ? t('bn_take',{n:reward()}) : t('bn_next',{t:clock(leftMs())});
-    renderLadder();
+    goEl.textContent = rd ? t('dl_take',{n:DAILY[p-1]}) : t('dl_done',{n:nextReward()});
+    renderDays();
     mark();
   }
   function mark(){ dotEl.classList.toggle('on', ready()); }
@@ -4748,15 +4687,15 @@ var Bonus = (function(){
   document.getElementById('btnBonus').addEventListener('click',function(){ haptic('medium'); sheet.show(); });
 
   goEl.addEventListener('click',function(){
-    if(!ready()) return;
-    var st=step(), r=LADDER[st-1];
-    BN.streak=st; BN.last=Date.now();
-    bal+=r; notify('bonus',r); recalc(); saveState();
-    haptic('success'); beep(1050,0.13,0.05,'triangle');
+    var p=step(); if(!p) return;
+    DL.streak=p; DL.last=today();
+    bal+=DAILY[p-1]; notify('daily',DAILY[p-1]); recalc(); saveState();
+    haptic('success'); beep(1050,0.14,0.05,'triangle');
     render();
   });
 
-  /* пока шторка открыта — секундная стрелка; закрыта — только точка */
+  /* минуты в кольце меняются нечасто, но полночь должна ловиться сама:
+     пока шторка открыта — пересчёт каждую секунду, закрыта — только точка */
   setInterval(function(){
     if(sheet.isOpen()) render(); else mark();
   },1000);
@@ -4932,7 +4871,6 @@ var Notes = (function(){
     mine:'<circle cx="12" cy="12" r="8.6"/><path d="M12 7.4V12l3 1.8"/>',
     task:'<path d="M4.5 12.5 9 17l10.5-10.5"/>',
     daily:'<rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/>',
-    bonus:'<rect x="3" y="8.5" width="18" height="12.5" rx="2.5"/><path d="M3 12.5h18M12 8.5V21"/><path d="M12 8.5C9.2 8.5 7 3.2 12 3.2s2.8 5.3 0 5.3Z"/>',
     kase:'<path d="M3 8.2 12 4l9 4.2v7.6L12 20l-9-4.2z"/><path d="M3 8.2 12 12.4l9-4.2M12 12.4V20"/>',
     crash:'<path d="M3 19c4.5 0 9-3.2 12-11"/><path d="M11 4.5h5v5"/>',
     pvp:'<path d="M5.5 3.5l13 13M18.5 3.5l-13 13"/><path d="M3.5 18.5l3 3M20.5 18.5l-3 3"/>',
