@@ -381,6 +381,41 @@ button.srow:active{transform:scale(.985);}
    на низком экране обычный center выталкивает верх карточек за границу
    прокрутки, и до первой игры уже не добраться. */
 #gList.on{justify-content:center;justify-content:safe center;}
+
+/* ─── лента выигрышей над списком игр ───
+   Плитки не крутятся по кругу: слева уходящая снимается, справа
+   дописывается новая, поэтому суммы всё время разные и лента никогда
+   не повторяется. Всё нарисованное — витрина, а не настоящие выигрыши,
+   поэтому от скринридера скрыто. */
+.livebar{
+  flex:0 0 auto;display:flex;align-items:center;gap:9px;
+  margin-bottom:var(--gap);min-width:0;
+}
+.livebar .pxlive{flex:0 0 auto;}
+.livewrap{
+  position:relative;flex:1 1 auto;min-width:0;overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 26px),transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 26px),transparent);
+}
+.livetrack{display:flex;gap:7px;width:max-content;will-change:transform;}
+.livecell{
+  flex:0 0 auto;width:clamp(44px,12.5vw,56px);aspect-ratio:1;border-radius:14px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  background:#0D0D10;border:1px solid var(--line);
+}
+.livecell .a{font-size:12.5px;font-weight:800;letter-spacing:-.03em;color:#D8D8DE;
+  font-variant-numeric:tabular-nums;line-height:1;}
+/* звёздочка красится под плитку: на золотой белая читалась пятном */
+.livecell svg{color:#6E6E78;}
+/* крупные выигрыши выделяем золотом — так лента читается сразу */
+.livecell.mid{border-color:rgba(228,192,120,.34);background:rgba(228,192,120,.07);}
+.livecell.mid .a,.livecell.mid svg{color:var(--gold);}
+.livecell.top{
+  border-color:transparent;background:linear-gradient(168deg,#F7E7C4,#E4C078);
+  box-shadow:0 3px 14px rgba(228,192,120,.28);
+}
+.livecell.top .a,.livecell.top svg{color:#150F04;}
+@media (max-width:370px){ .livecell .a{font-size:11.5px;} }
 /* ─── живая лента бойцов в баннере ПВП ───
    Плитки вшиты в кадр, поэтому оживить их можно только собрав ленту
    заново: аватарки вырезаны из того же баннера, подложка повторяет
@@ -1657,6 +1692,10 @@ button.srow:active{transform:scale(.985);}
 
     <!-- список игр -->
     <div class="gview on" id="gList">
+      <div class="livebar" id="liveBar" aria-hidden="true">
+        <span class="pxlive"><i></i>LIVE</span>
+        <div class="livewrap"><div class="livetrack" id="liveTrack"></div></div>
+      </div>
       <button class="gcard banner art-crash" id="goCrash">
         <span class="art"></span>
         <svg class="scene" viewBox="0 0 860 338" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
@@ -3439,6 +3478,48 @@ function makeSheet(wrapId, topId, opts){
   document.getElementById('goPvp').addEventListener('click',function(){ haptic('medium'); view('pvp'); Pvp.enter(); });
   document.getElementById('goCases').addEventListener('click',function(){ haptic('medium'); view('cases'); Cases.list(); });
   document.getElementById('kBack').addEventListener('click',function(){ haptic('light'); Cases.leave(); view('cases'); });
+
+  /* ── лента выигрышей над списком игр ──
+     Крупные выигрыши редки: если брать сумму равномерно от 1 до 1000,
+     лента будет сплошь из трёхзначных чисел и перестанет читаться. */
+  (function liveFeed(){
+    var wrap=document.getElementById('liveTrack'); if(!wrap) return;
+    var STAR='<svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true">'+
+      '<path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="currentColor"/></svg>';
+    function amount(){
+      var r=Math.random();
+      if(r<0.60) return 1+Math.floor(Math.random()*20);
+      if(r<0.85) return 21+Math.floor(Math.random()*80);
+      if(r<0.96) return 101+Math.floor(Math.random()*300);
+      return 401+Math.floor(Math.random()*600);
+    }
+    function cell(){
+      var v=amount(), el=document.createElement('div');
+      el.className='livecell'+(v>=200?' top':v>=50?' mid':'');
+      el.innerHTML=STAR+'<span class="a">'+fmtInt(v)+'</span>';
+      return el;
+    }
+    /* набиваем с запасом: ширина плитки резиновая, считать её незачем */
+    for(var i=0;i<14;i++) wrap.appendChild(cell());
+    var off=0, last=0;
+    function frame(ts){
+      requestAnimationFrame(frame);
+      if(!wrap.getClientRects().length){ last=ts; return; }   // экран скрыт
+      var dt=last?Math.min(60,ts-last):16; last=ts;
+      off += dt*0.046;                                        // ~46 px в секунду
+      var first=wrap.firstElementChild;
+      if(first){
+        var w=first.getBoundingClientRect().width+7;          // плитка и зазор
+        while(off>=w && wrap.children.length>2){
+          off-=w; wrap.removeChild(first); wrap.appendChild(cell());
+          first=wrap.firstElementChild;
+          w=first.getBoundingClientRect().width+7;
+        }
+      }
+      wrap.style.transform='translate3d('+(-off)+'px,0,0)';
+    }
+    requestAnimationFrame(frame);
+  })();
 
   /* ── лента бойцов на баннере ПВП ──
      Восемь плиток в ряду — это два прохода по четвёрке, поэтому сдвиг
