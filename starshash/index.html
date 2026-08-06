@@ -1475,8 +1475,6 @@ button.srow:active{transform:scale(.985);}
 .ntempty p{font-size:13px;color:var(--ink-3);line-height:1.5;max-width:240px;}
 
 /* ─────────── Вложение в мощность ─────────── */
-.stat.tap{text-align:left;transition:border-color .22s,transform .16s;}
-.stat.tap:active{transform:scale(.985);}
 .ivres{
   margin-top:16px;padding:14px 16px;border-radius:20px;
   background:var(--card);border:1px solid var(--line);
@@ -1636,7 +1634,7 @@ button.srow:active{transform:scale(.985);}
           <polyline id="sp1" fill="none" stroke="#E4C078" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <button class="card stat tap" id="powerCard">
+      <div class="card stat" id="powerCard">
         <div class="hd">
           <span class="ic">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 10v4M9.5 6.5v11M14.5 8.5v7M19 11v2"/></svg>
@@ -1648,7 +1646,7 @@ button.srow:active{transform:scale(.985);}
         <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none" aria-hidden="true">
           <polyline id="sp2" fill="none" stroke="#E4C078" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-      </button>
+      </div>
     </div>
 
     <div class="acts">
@@ -5310,7 +5308,8 @@ var Ref = (function(){
   function open(){ haptic('medium'); amt.value=''; 
     chips.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
     sheet.show(); }
-  document.getElementById('powerCard').addEventListener('click',open);
+  /* «Мощность» — только показатель: нажатие по ней больше ничего не
+     открывает. Вложить можно с пустой карточки дохода и через «Буст». */
   document.getElementById('earnCard').addEventListener('click',function(){
     if(inv<0.01) open();               // пустая карточка — прямой путь к вкладу
   });
