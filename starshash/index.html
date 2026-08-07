@@ -604,6 +604,14 @@ html[lang="uk"] .gcard.art-kase .art{background-image:url('img/kase-uk.0a80de6c.
    Русский лежит выше и служит запасным: если языка нет в списке, покажется он. */
 html[lang="en"] .gcard.art-crash .art{background-image:url('img/crash-en.d717a4cc.webp');}
 html[lang="uk"] .gcard.art-crash .art{background-image:url('img/crash-uk.482e202f.webp');}
+/* Рамка под множитель нарисована в каждом арте чуть по-своему, поэтому
+   живое число подвигаем под неё. Значения сняты с самих картинок: центр
+   рамки минус центр рамки на русском арте, он служит образцом.
+   Единицы — пользовательские координаты SVG (viewBox 860×338), поэтому
+   сдвиг масштабируется вместе с карточкой. */
+html[lang="en"] #cgMult{transform:translate(19px,-12px);}
+html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
+
 .gcard.banner .halo{display:none;}
 /* текст держим в чистой зоне слева, стрелку прижимаем к краю */
 /* маленькая иконка рядом с иллюстрацией лишняя и съедает четверть
