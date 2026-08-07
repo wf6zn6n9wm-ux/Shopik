@@ -107,7 +107,14 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 }
 .hero .big{
   margin-top:clamp(6px,1.4vh,12px);display:flex;align-items:center;justify-content:center;gap:12px;
-  font-size:clamp(31px,min(12.2vw,5.7vh),54px);font-weight:200;letter-spacing:-.035em;line-height:1;
+  /* Баланс золотом и плотно: тонким весом 200 он терялся на чёрном, и
+     понять, что это вообще баланс, было нельзя. Узкое начертание с
+     табличными цифрами — цифры одной ширины, поэтому сумма не дёргается
+     при пересчёте и занимает меньше места, чем обычное. */
+  font-size:clamp(37px,min(14.4vw,6.7vh),64px);
+  font-weight:650;letter-spacing:-.01em;line-height:1;
+  font-stretch:condensed;font-variant-numeric:tabular-nums;
+  color:var(--gold);text-shadow:0 0 26px rgba(228,192,120,.30);
 }
 .hero .big .st{filter:drop-shadow(0 0 14px rgba(228,192,120,.45));flex:0 0 auto;
   width:clamp(24px,7vw,38px);height:auto;}
@@ -3668,6 +3675,31 @@ function recalc(){
   if(card) card.classList.toggle('empty', inv<0.01);
 }
 
+/* Крупная сумма не должна вылезать за экран: если строка шире места,
+   ужимаем кегль ровно настолько, чтобы влезла. Меряем по факту, а не по
+   числу знаков — ширина цифр зависит от шрифта, а он берётся с телефона. */
+var _подгонДлина=-1;
+function fitHero(строка){
+  var big=document.querySelector('.hero .big'); if(!big) return;
+  if(строка!=null && строка.length===_подгонДлина) return;   // ширина не менялась
+  var st=big.querySelector('.st');
+  big.style.fontSize=''; if(st) st.style.width='';           // сначала вернуть базовый
+  var есть=big.clientWidth;
+  /* экран скрыт — мерить нечего; длину не запоминаем, иначе подгонка
+     больше не сработает, когда экран покажут */
+  if(!есть) return;
+  _подгонДлина = строка==null ? -1 : строка.length;
+  var зазор=parseFloat(getComputedStyle(big).gap)||0;
+  var надо=0;
+  for(var i=0;i<big.children.length;i++) надо+=big.children[i].getBoundingClientRect().width;
+  надо+=зазор*Math.max(0,big.children.length-1);
+  if(надо<=есть) return;
+  var k=Math.max(0.55,(есть-6)/надо);   // запас, чтобы строка не липла к краю
+  big.style.fontSize=(parseFloat(getComputedStyle(big).fontSize)*k)+'px';
+  if(st) st.style.width=(st.getBoundingClientRect().width*k)+'px';
+}
+addEventListener('resize', function(){ fitHero(null); });
+
 var heroBal = document.getElementById('heroBal'),
     pillBal = document.getElementById('pillBal'),
     cdText  = document.getElementById('cdText');
@@ -3706,6 +3738,7 @@ document.getElementById('wBack').addEventListener('click', hideAway);
     if(acc >= 1/15){
       var s = fmt(bal);
       heroBal.textContent = s; pillBal.textContent = s;
+      fitHero(s);               // пересчитываем, только когда длина строки изменилась
       recalc();                 // мощность и ставка идут за балансом
       acc = 0;
     }
