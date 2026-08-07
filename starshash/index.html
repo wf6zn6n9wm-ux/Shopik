@@ -5172,11 +5172,36 @@ var Top = (function(){
     return out;
   }
 
+  /* Сколько игроков в таблице всего. Показываем два десятка верхних, но
+     место считается среди всех: с нулём на счету человек должен видеть
+     трёхзначную строку, а не двадцать шестую — иначе выходит, что играть
+     больше некому и подниматься неоткуда. */
+  function всего(){
+    var r=rnd(seedKey()+'|n');
+    return per==='d' ? 100+Math.floor(r()*70)
+         : per==='w' ? 260+Math.floor(r()*180)
+                     : 700+Math.floor(r()*600);
+  }
+  /* Место: в верхушке настоящее, ниже — по доле от последнего видимого.
+     Показатель степени меньше единицы, потому что хвост плотный: внизу
+     почти у всех пусто, и первые же звёзды поднимают заметно. */
+  function место(rows, mine){
+    var n=1;
+    for(var i=0;i<rows.length;i++){ if(rows[i].v>mine) n++; else break; }
+    if(n<=rows.length) return n;
+    var хвост=rows[rows.length-1].v, N=всего();
+    if(!(хвост>0)) return N;
+    var доля=Math.max(0,Math.min(1,mine/хвост));
+    return Math.max(rows.length+1, Math.round(N-(N-rows.length-1)*Math.pow(доля,0.6)));
+  }
+
   function render(){
     var rows=build(), mine=myValue();
-    var place=1;
-    for(var i=0;i<rows.length;i++){ if(rows[i].v>mine) place++; else break; }
-    rows.splice(place-1, 0, {n:t('you'), c:'var(--gold)', v:mine, me:true});
+    var place=место(rows, mine);
+    /* в список вставляем себя, только если правда попали в показанные:
+       иначе строка «Вы» стояла двадцать шестой и тут же дублировалась
+       закреплённой внизу */
+    if(place<=rows.length) rows.splice(place-1, 0, {n:t('you'), c:'var(--gold)', v:mine, me:true});
 
     podEl.innerHTML='';
     [1,0,2].forEach(function(i){                      // 2 · 1 · 3 — как на подиуме
