@@ -1271,42 +1271,36 @@ button.srow:active{transform:scale(.985);}
 .dday.got .n{color:var(--gold-deep);}
 
 /* ─────────── Первые шаги ─────────── */
-.steps{
-  display:flex;flex-direction:column;gap:7px;padding:11px 11px 10px;border-radius:18px;
-  background:linear-gradient(168deg,rgba(228,192,120,.07),rgba(255,255,255,.012));
-  border:1px solid rgba(228,192,120,.2);margin-bottom:12px;
-}
-.steps[hidden]{display:none;}   /* display:flex перебивает сам атрибут */
-.steps .sh{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
-.steps .sh b{font-size:14.5px;font-weight:800;letter-spacing:-.01em;}
-.steps .sh .cnt{
-  margin-left:auto;font-size:11px;font-weight:800;color:var(--gold);
-  font-variant-numeric:tabular-nums;
-}
-.steps .strip{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
-/* Карточками в строку, а не полосами: первый экран «Заработка» свёрстан
-   без прокрутки и запаса по высоте не имеет — три полосы уводили низ
-   страницы под навигацию на всех телефонах. */
+/* Живут в шторке, а не на «Заработке»: первый экран свёрстан без
+   прокрутки и запаса по высоте не имеет — блок отъедал у него четверть.
+   Шторка всплывает сама, пока шаги не пройдены, и больше не возвращается. */
+.stlead{margin:0 0 14px;font-size:13px;line-height:1.5;color:var(--ink-2);}
+.stlist{display:flex;flex-direction:column;gap:9px;}
 .strow{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  padding:9px 5px 8px;border-radius:14px;min-width:0;
-  background:rgba(0,0,0,.28);border:1px solid var(--line);
-  font-family:inherit;cursor:pointer;
+  display:flex;align-items:center;gap:12px;padding:13px 13px;border-radius:16px;
+  background:var(--card);border:1px solid var(--line);
+  font-family:inherit;text-align:left;width:100%;cursor:pointer;
   transition:border-color .2s,background .2s,opacity .2s,transform .08s;
 }
-.strow:active{transform:scale(.97);}
+.strow:active{transform:scale(.99);}
 .strow:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
 .strow .no{
-  width:21px;height:21px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
-  font-size:11px;font-weight:800;color:var(--gold);
+  width:28px;height:28px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+  font-size:12.5px;font-weight:800;color:var(--gold);
   background:rgba(228,192,120,.12);border:1px solid rgba(228,192,120,.26);
 }
-.strow .nm{font-size:12px;font-weight:700;letter-spacing:-.01em;color:var(--ink);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
-.strow .rw{font-size:11px;font-weight:700;color:var(--gold-deep);white-space:nowrap;}
+.strow .bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.strow .nm{font-size:14px;font-weight:700;letter-spacing:-.01em;color:var(--ink);}
+.strow .rw{font-size:12px;font-weight:700;color:var(--gold-deep);}
+.strow .ch{flex:0 0 auto;color:var(--ink-3);display:grid;place-items:center;}
 .strow.done{opacity:.45;}
 .strow.done .no{background:rgba(228,192,120,.06);border-color:rgba(228,192,120,.14);}
 .strow.done .nm{text-decoration:line-through;text-decoration-color:rgba(255,255,255,.3);}
+.stfoot{
+  margin-top:16px;text-align:center;font-size:12px;font-weight:700;color:var(--ink-3);
+  letter-spacing:.03em;text-transform:uppercase;
+}
+.stfoot b{color:var(--gold);font-variant-numeric:tabular-nums;}
 
 /* ─────────── Статистика игрока ─────────── */
 .stgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
@@ -1698,15 +1692,6 @@ button.srow:active{transform:scale(.985);}
         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
         <span class="sl">/</span><span data-i18n="per_hour">в час</span>
       </div>
-    </div>
-
-    <div class="steps" id="stepBox" hidden>
-      <div class="sh">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E4C078" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.4"/></svg>
-        <b data-i18n="fs_title">С чего начать</b>
-        <span class="cnt" id="stepCnt">0/3</span>
-      </div>
-      <div class="strip" id="stepList"></div>
     </div>
 
     <div class="card earn" id="earnCard">
@@ -2419,6 +2404,26 @@ button.srow:active{transform:scale(.985);}
   </div>
 </div>
 
+<div class="sheet-wrap" id="stSheet" aria-hidden="true">
+  <div class="sheet-bd"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="stTitle">
+    <div class="sheet-top" id="stTop">
+      <div class="grab"></div>
+      <div class="sheet-hd">
+        <span class="t" id="stTitle" data-i18n="fs_title">С чего начать</span>
+        <button class="sheet-x" id="stX" aria-label="Закрыть">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="wbody">
+      <p class="stlead" data-i18n="fs_lead">Три шага, чтобы начать. Первый бонус и подписка дают 20 ★ — этого хватит на первый кейс.</p>
+      <div class="stlist" id="stepList"></div>
+      <div class="stfoot"><span data-i18n="fs_done">Пройдено</span> <b id="stepCnt">0/3</b></div>
+    </div>
+  </div>
+</div>
+
 <div class="sheet-wrap" id="ghSheet" aria-hidden="true">
   <div class="sheet-bd"></div>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ghTitle">
@@ -2786,8 +2791,9 @@ ru:{
  iv_note:'Вложенные звёзды нельзя вернуть — они превращаются в мощность и приносят доход в кошелёк.',
  nt_title:'Уведомления', nt_clear:'Очистить', nt_now:'только что',
  nt_empty:'Здесь появятся начисления, выигрыши и покупки',
- fs_title:'С чего начать', fs_bonus:'Бонус', fs_sub:'Подписка',
- fs_case:'Кейс', fs_r:'+{n} ★', fs_from:'от {n} ★',
+ fs_title:'С чего начать', fs_bonus:'Забрать первый бонус', fs_sub:'Подписаться на канал', fs_case:'Открыть первый кейс',
+ fs_lead:'Три шага, чтобы начать. Первый бонус и подписка дают 20 ★ — этого хватит на первый кейс.',
+ fs_done:'Пройдено', fs_r:'+{n} ★', fs_from:'от {n} ★',
  st_title:'Статистика', st_games:'Сыграно', st_wins:'Побед', st_best:'Крупнейший выигрыш',
  st_mult:'Лучший множитель', st_wager:'Поставлено', st_mined:'Намайнено',
  gh_title:'История игр', gh_empty:'Здесь появятся ваши раунды в Краше, ПВП и открытые кейсы',
@@ -2881,8 +2887,9 @@ en:{
  iv_note:'Invested stars cannot be taken back — they become hashpower and pay income into your wallet.',
  nt_title:'Notifications', nt_clear:'Clear', nt_now:'just now',
  nt_empty:'Payouts, wins and purchases will show up here',
- fs_title:'Where to start', fs_bonus:'Bonus', fs_sub:'Channel',
- fs_case:'Case', fs_r:'+{n} ★', fs_from:'from {n} ★',
+ fs_title:'Where to start', fs_bonus:'Claim your first bonus', fs_sub:'Subscribe to the channel', fs_case:'Open your first case',
+ fs_lead:'Three steps to get going. The first bonus and the subscription give 20 ★ — enough for your first case.',
+ fs_done:'Done', fs_r:'+{n} ★', fs_from:'from {n} ★',
  st_title:'Stats', st_games:'Rounds', st_wins:'Wins', st_best:'Biggest win',
  st_mult:'Best multiplier', st_wager:'Wagered', st_mined:'Mined',
  gh_title:'Game history', gh_empty:'Your Crash and PVP rounds and opened cases will show up here',
@@ -2976,8 +2983,9 @@ uk:{
  iv_note:'Вкладені зірки не можна повернути — вони стають потужністю і приносять дохід у гаманець.',
  nt_title:'Сповіщення', nt_clear:'Очистити', nt_now:'щойно',
  nt_empty:'Тут з’являться нарахування, виграші та покупки',
- fs_title:'З чого почати', fs_bonus:'Бонус', fs_sub:'Підписка',
- fs_case:'Кейс', fs_r:'+{n} ★', fs_from:'від {n} ★',
+ fs_title:'З чого почати', fs_bonus:'Забрати перший бонус', fs_sub:'Підписатися на канал', fs_case:'Відкрити перший кейс',
+ fs_lead:'Три кроки, щоб почати. Перший бонус і підписка дають 20 ★ — цього вистачить на перший кейс.',
+ fs_done:'Пройдено', fs_r:'+{n} ★', fs_from:'від {n} ★',
  st_title:'Статистика', st_games:'Зіграно', st_wins:'Перемог', st_best:'Найбільший виграш',
  st_mult:'Найкращий множник', st_wager:'Поставлено', st_mined:'Намайнено',
  gh_title:'Історія ігор', gh_empty:'Тут з’являться ваші раунди в Краші, ПВП і відкриті кейси',
@@ -3336,12 +3344,14 @@ var SAVED=(function(){
        восстановишь — их надо копить счётчиками, иначе цифры поедут
        вниз, как только хвост обрежется. */
     var gm=(o.gm && typeof o.gm==='object') ? o.gm : {};
+    var fs=(o.fs && typeof o.fs==='object') ? o.fs : {};
     var gl=Array.isArray(gm.l) ? gm.l.filter(function(e){
       return e && typeof e.g==='string' && isFinite(+e.b) && isFinite(+e.w) && isFinite(+e.t);
     }).slice(0,50) : [];
     return {bal:b, y:y, seen:t, tk:tk,
             gm:{l:gl, n:Math.round(num(gm.n)), win:Math.round(num(gm.win)),
                 bx:num(gm.bx), bw:num(gm.bw), wag:num(gm.wag), won:num(gm.won)},
+            fs:{d:String(fs.d||'')},
             dl:{streak:Math.max(0,Math.min(DAILY.length,+dl.streak||0)), last:String(dl.last||'')},
             mn:{d:{k:String((mn.d&&mn.d.k)||''), v:num(mn.d&&mn.d.v)},
                 w:{k:String((mn.w&&mn.w.k)||''), v:num(mn.w&&mn.w.v)},
@@ -3364,6 +3374,8 @@ var MN = SAVED ? SAVED.mn : {d:{k:'',v:0}, w:{k:'',v:0}, a:0};
    всё время. n сыграно, win выиграно, bx лучший множитель в Краше,
    bw крупнейший выигрыш, wag поставлено, won получено. */
 var GM = SAVED ? SAVED.gm : {l:[], n:0, win:0, bx:0, bw:0, wag:0, won:0};
+/* d — день, когда шаги новичка всплывали последний раз */
+var FS = SAVED ? SAVED.fs : {d:''};
 /* Один раунд в журнал. Ставку и выигрыш пишем как есть: разницу
    посчитает тот, кому она нужна, а хранить обе честнее. */
 function logGame(g, bet, win, x){
@@ -3530,7 +3542,7 @@ if(SAVED && SAVED.seen && inv>0){
 function saveState(){
   try{ localStorage.setItem(SKEY, JSON.stringify({v:1, bal:bal, y:YIELD_PCT, seen:Date.now(),
                                                    tk:TK, dl:DL, mn:MN, rf:RF, fc:FC,
-                                                   inv:inv, nt:NT, gm:GM})); }catch(e){}
+                                                   inv:inv, nt:NT, gm:GM, fs:FS})); }catch(e){}
 }
 
 /* Сколько намайнено за `sec` секунд простоя при текущем балансе и ставке */
@@ -5341,22 +5353,26 @@ var Tasks = (function(){
    Блок ведёт по нему и исчезает совсем, когда всё пройдено: постоянное
    напоминание о сделанном только занимает первый экран. */
 var Steps = (function(){
-  var box=document.getElementById('stepBox'), listEl=document.getElementById('stepList'),
-      cntEl=document.getElementById('stepCnt');
+  var listEl=document.getElementById('stepList'), cntEl=document.getElementById('stepCnt');
   /* «Сделано» берём из тех же меток, которыми живут задания и бонус:
      свой отдельный признак разошёлся бы с ними на первом же случае,
      когда человек сделал шаг не отсюда, а из своего раздела. */
   var ШАГИ=[
     {k:'fs_bonus', r:function(){ return t('fs_r',{n:DAILY[0]}); },
      done:function(){ return !!DL.last; },
-     go:function(){ Bonus.show(); }},
+     go:function(){ потом(Bonus.show); }},
     {k:'fs_sub',   r:function(){ return t('fs_r',{n:10}); },
      done:function(){ return !!TK.sub; },
-     go:function(){ goPage('tasks'); }},
+     go:function(){ потом(function(){ goPage('tasks'); }); }},
     {k:'fs_case',  r:function(){ return t('fs_from',{n:20}); },
      done:function(){ return !!TK.kase; },
-     go:function(){ goPage('games'); var b=document.getElementById('goCases'); if(b) b.click(); }}
+     go:function(){ потом(function(){
+       goPage('games'); var b=document.getElementById('goCases'); if(b) b.click(); }); }}
   ];
+
+  /* Шаг уводит человека в другое место, поэтому шторку сначала закрываем:
+     две открытые сразу — шторка бонусов поверх шагов — выглядят поломкой. */
+  function потом(что){ sheet.hide(); setTimeout(что, 260); }
 
   function render(){
     var сделано=0;
@@ -5366,20 +5382,32 @@ var Steps = (function(){
       var el=document.createElement('button');
       el.type='button'; el.className='strow'+(г?' done':'');
       el.innerHTML='<span class="no">'+(г
-          ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19.5 7"/></svg>'
+          ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19.5 7"/></svg>'
           : (i+1))+'</span>'+
-        '<span class="nm">'+t(x.k)+'</span>'+
-        '<span class="rw">'+x.r()+'</span>';
+        '<span class="bd"><span class="nm">'+t(x.k)+'</span>'+
+          '<span class="rw">'+x.r()+'</span></span>'+
+        '<span class="ch"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>';
       el.addEventListener('click',function(){ haptic('medium'); x.go(); });
       listEl.appendChild(el);
     });
     cntEl.textContent=сделано+'/'+ШАГИ.length;
-    box.hidden = сделано===ШАГИ.length;
+    return сделано;
   }
 
-  RERENDER.push(render);
-  render();
-  return { refresh:render };
+  var sheet=makeSheet('stSheet','stTop',{ onShow:render });
+  document.getElementById('stX').addEventListener('click',sheet.hide);
+
+  /* Всплывает сама, пока не пройдено всё: своей кнопки у шагов нет, а без
+     показа новичок про этот путь так и не узнает. Но не чаще раза в день —
+     если человек не собирается подписываться, окно на каждом запуске
+     превращается из подсказки в назойливость. Задержка — чтобы не выехать
+     поверх появления страницы. */
+  if(render()<ШАГИ.length && FS.d!==dayKey()){
+    setTimeout(function(){ FS.d=dayKey(); saveState(); sheet.show(); }, 900);
+  }
+
+  RERENDER.push(function(){ if(sheet.isOpen()) render(); });
+  return { refresh:function(){ if(sheet.isOpen()) render(); }, show:sheet.show };
 })();
 
 /* ══════════════════════════════════════════════════════
