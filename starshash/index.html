@@ -991,6 +991,9 @@ button.srow:active{transform:scale(.985);}
 
 /* ─────────── шторка «Магазин бустов» ─────────── */
 .sheet-wrap{position:fixed;inset:0;z-index:60;display:none;}
+/* Салют рисуется поверх шторок, но под тостом: сообщение о начислении
+   должно читаться, пока звёзды ещё падают. */
+#fxWin{position:fixed;inset:0;width:100%;height:100%;z-index:65;pointer-events:none;display:none;}
 .sheet-wrap.on{display:block;}
 .sheet-bd{
   position:absolute;inset:0;background:rgba(0,0,0,.66);
@@ -1569,6 +1572,7 @@ button.srow:active{transform:scale(.985);}
 </head>
 <body>
 <canvas id="bg"></canvas>
+<canvas id="fxWin"></canvas>
 
 <div id="app">
 
@@ -3191,6 +3195,81 @@ var inv = SAVED ? SAVED.inv : 0;
 /* Лента уведомлений — журнал того, что реально произошло в приложении.
    k — тип события, a — сумма, t — момент. Ничего не выдумываем. */
 var NT = SAVED ? SAVED.nt : {l:[], seen:0};
+/* ── звёздный залп на выигрыш ──────────────────────────────────────────
+   Один слой на всё приложение: у Краша, ПВП и Кейсов праздник одинаковый,
+   а три копии частиц разъехались бы по настройкам. Точка вылета — элемент
+   с суммой, поэтому звёзды летят именно оттуда, где человек её увидел. */
+var FX = (function(){
+  var cv=document.getElementById('fxWin'), ctx=cv.getContext('2d');
+  var W=0,H=0,части=[],идёт=false;
+  function fit(){
+    var d=Math.min(2,window.devicePixelRatio||1);
+    W=cv.clientWidth; H=cv.clientHeight;
+    cv.width=Math.round(W*d); cv.height=Math.round(H*d);
+    ctx.setTransform(d,0,0,d,0,0);
+  }
+  window.addEventListener('resize',fit);
+
+  var ЗОЛОТО=['#E4C078','#F7E7C4','#C79A6E','#FFF6E2'];
+  function цвет(){ return ЗОЛОТО[(Math.random()*ЗОЛОТО.length)|0]; }
+  function путь(c,x,y,r,rot){
+    c.beginPath();
+    for(var i=0;i<5;i++){
+      var a=rot+i*Math.PI*2/5-Math.PI/2;
+      c.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);
+      var b=a+Math.PI/5;
+      c.lineTo(x+Math.cos(b)*r*0.45,y+Math.sin(b)*r*0.45);
+    }
+    c.closePath();
+  }
+  function гаснет(p){ var к=p.t/p.ttl; return к>0.72 ? 1-(к-0.72)/0.28 : 1; }
+
+  function кадр(ts){
+    var dt=Math.min(48,ts-кадр.был); кадр.был=ts;
+    var f=dt/16.67;                                   // шаг в «кадрах по 60»
+    ctx.clearRect(0,0,W,H);
+    for(var i=части.length-1;i>=0;i--){
+      var p=части[i]; p.t+=dt;
+      if(p.t>=p.ttl){ части.splice(i,1); continue; }
+      p.x+=p.vx*f; p.y+=p.vy*f; p.vy+=p.g*f; p.vx*=Math.pow(p.тр,f);
+      ctx.globalAlpha=гаснет(p); ctx.fillStyle=p.c;
+      if(p.r){ p.rot+=p.vr*f; путь(ctx,p.x,p.y,p.r,p.rot); ctx.fill(); }
+      else { ctx.strokeStyle=p.c; ctx.lineWidth=2; ctx.lineCap='round';
+             ctx.beginPath(); ctx.moveTo(p.x-p.vx*2,p.y-p.vy*2); ctx.lineTo(p.x,p.y); ctx.stroke(); }
+      ctx.globalAlpha=1;
+    }
+    if(части.length) requestAnimationFrame(кадр);
+    else { идёт=false; ctx.clearRect(0,0,W,H); cv.style.display='none'; }
+  }
+
+  /* сила 0..1: мелкий выигрыш празднуется скромно, крупный — в полную */
+  function залп(эл, сила){
+    if(!эл) return;
+    var r=эл.getBoundingClientRect();
+    if(!r.width) return;                              // элемент скрыт — салютовать некуда
+    cv.style.display='block'; fit();
+    var x=r.left+r.width/2, y=r.top+r.height/2;
+    var тише=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var к=Math.max(0.25,Math.min(1,сила))*(тише?0.4:1), дл=тише?0.6:1;
+    var n=Math.round(74*к), m=Math.round(26*к), i;
+    for(i=0;i<n;i++){
+      var a=-Math.PI/2+(Math.random()-0.5)*Math.PI*1.4, v=(3+Math.random()*10)*(0.6+к*0.4);
+      части.push({t:0,ttl:(1300+Math.random()*700)*дл,x:x,y:y,
+        vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:0.30,тр:0.995,
+        r:4+Math.random()*5,rot:Math.random()*6.28,vr:(Math.random()-0.5)*0.3,c:цвет()});
+    }
+    for(i=0;i<m;i++){
+      var b=-Math.PI/2+(Math.random()-0.5)*Math.PI*1.5, w=(4+Math.random()*9)*(0.6+к*0.4);
+      части.push({t:0,ttl:(700+Math.random()*400)*дл,x:x,y:y,
+        vx:Math.cos(b)*w,vy:Math.sin(b)*w,g:0.24,тр:0.982,r:0,c:цвет()});
+    }
+    if(!идёт){ идёт=true; кадр.был=performance.now(); requestAnimationFrame(кадр); }
+  }
+  /* пороги те же, что у ленты выигрышей: крупным считается всё от 200 ★ */
+  function сила(amt){ return amt>=200 ? 1 : amt>=50 ? 0.7 : 0.45; }
+  return { win:function(эл,amt){ залп(эл, сила(amt)); } };
+})();
+
 function notify(kind, amount){
   NT.l.unshift({k:kind, a:+amount||0, t:Date.now()});
   if(NT.l.length>40) NT.l.length=40;
@@ -3826,6 +3905,7 @@ var FIGHTERS=[
       var me=bots.filter(function(p){ return p.me; })[0];
       if(me){ me.st='win'; me.took=win; me.at=mult; }
       renderPlayers(); updBtn(); haptic('success');
+      FX.win(multEl, win);
     }
 
     function join(){
@@ -4059,7 +4139,7 @@ var FIGHTERS=[
       for(var j=0;j<rows.length;j++) rows[j].classList.add(j===win?'won':'out');
       var P=pot();
       if(players[win].me){ bal+=P; notify('pvp',P); goBtn.textContent=t('win_amt',{n:fmtInt(P)}); haptic('success');
-        subEl.textContent=t('you_took'); }
+        subEl.textContent=t('you_took'); FX.win(goBtn,P); }
       else { goBtn.textContent=t('lost_to',{n:players[win].n}); haptic('error');
         subEl.textContent=t('won_by',{n:players[win].n}); }
       goBtn.disabled=true;
@@ -4336,8 +4416,10 @@ var FIGHTERS=[
       subEl.style.color=RAR[win];
       subEl.textContent=t('k_got',{n:fmtInt(amt),r:t('k_r'+(win+1))});
       renderOdds(); updBtn();
-      if(win>=4){ haptic('success'); beep(1180,0.16,0.05,'triangle'); }
-      else if(amt>=cur.price){ haptic('success'); beep(880,0.1,0.04,'triangle'); }
+      /* салют только когда выпало дороже открытия: на возврате мельче
+         цены праздновать нечего, человек в минусе */
+      if(win>=4){ haptic('success'); beep(1180,0.16,0.05,'triangle'); FX.win(subEl,amt); }
+      else if(amt>=cur.price){ haptic('success'); beep(880,0.1,0.04,'triangle'); FX.win(subEl,amt); }
       else haptic('warning');
     }
 
