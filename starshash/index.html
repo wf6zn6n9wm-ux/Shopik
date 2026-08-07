@@ -5926,7 +5926,15 @@ var Ref = (function(){
      правило — 5% с каждого пополнения приглашённого. Приз за сам переход
      собирает пустые регистрации и ничего не приносит. */
   var ДОЛЯ_С_ПОПОЛНЕНИЙ=0.05;
-  var BOT='starshash_bot';
+  /* Ссылка должна открывать мини-апп, а не переписку с ботом: только тогда
+     Telegram передаёт метку в start_param и приглашение засчитывается.
+     Форма ?start= уходит боту и до приложения не доходит — это тихо съедало
+     бы всю реферальную программу.
+
+     ПРИЛОЖЕНИЕ — короткое имя из BotFather /newapp. Если оставить пустым,
+     ссылка ведёт на главный мини-апп бота (Settings → Mini Apps →
+     Configure Mini App); обе формы передают startapp одинаково. */
+  var BOT='starshashx_bot', ПРИЛОЖЕНИЕ='';
 
   var nEl=document.getElementById('rfN'), eEl=document.getElementById('rfE'),
       hostEl=document.getElementById('rfHost'), codeEl=document.getElementById('rfCode'),
@@ -5938,7 +5946,9 @@ var Ref = (function(){
     try{ var u=TG && TG.initDataUnsafe && TG.initDataUnsafe.user; if(u && u.id) return String(u.id); }catch(e){}
     return '0';
   }
-  function link(){ return 'https://t.me/'+BOT+'?start=ref_'+uid(); }
+  function адрес(){ return 't.me/'+BOT+(ПРИЛОЖЕНИЕ ? '/'+ПРИЛОЖЕНИЕ : ''); }
+  function хвост(){ return '?startapp=ref_'+uid(); }
+  function link(){ return 'https://'+адрес()+хвост(); }
 
   /* приход по чужой ссылке засчитываем один раз и не самому себе */
   (function capture(){
@@ -5960,8 +5970,8 @@ var Ref = (function(){
     nEl.textContent=fmtInt(RF.n);
     eEl.textContent=fmtInt(RF.earned);
     badgeEl.textContent=fmtInt(RF.n);
-    hostEl.textContent='t.me/'+BOT;
-    codeEl.textContent='?start=ref_'+uid();
+    hostEl.textContent=адрес();
+    codeEl.textContent=хвост();
     joinEl.hidden=!RF.by;
     if(RF.by) joinEl.textContent=t('rf_joined');
   }
