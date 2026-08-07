@@ -956,7 +956,8 @@ button.srow:active{transform:scale(.985);}
 }
 /* фотография вместо буквы: набор один и на списки игроков, и на ленту.
    Кружок уже круглый, поэтому квадратную картинку просто обрезаем по нему */
-.prow .av.ph,.cpr .av.ph,.pxc.ph{background-size:cover;background-position:center;font-size:0;}
+.prow .av.ph,.cpr .av.ph,.pxc.ph,.pod .av.ph,.tprow .av.ph{
+  background-size:cover;background-position:center;font-size:0;}
 /* в рулетке ячейка квадратная и крупная — картинке нужна своя скруглённая рамка */
 .pxc.ph{border-color:rgba(255,255,255,.14);}
 .av-1{background-image:url('data:image/webp;base64,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');}
@@ -3408,6 +3409,39 @@ function makeSheet(wrapId, topId, opts){
 /* ══════════════════════════════════════════════════════
    ИГРЫ: список, Краш, ПВП
    ══════════════════════════════════════════════════════ */
+/* Соперники: ник и лицо связаны навсегда, иначе один и тот же человек
+   будет каждый раунд с новой внешностью. Ники не переводятся — это
+   handle'ы, а не имена. Состав общий на игры и таблицу лидеров: если
+   развести их по разным спискам, один и тот же человек окажется в топе
+   под другим именем. Добавить новых значит дописать сюда строку и класс
+   .av-N в стилях. */
+var FIGHTERS=[
+  {n:'ToMaz', av:1},
+  {n:'kohaa', av:2},
+  {n:'Arjan', av:3},
+  {n:'Kachu', av:4},
+  {n:'NFTix', av:5},
+  {n:'Firanko', av:6},
+  {n:'dariuz', av:7},
+  {n:'Kianmer', av:8},
+  {n:'Shayn', av:9},
+  {n:'Khan', av:10},
+  {n:'Шинья', av:11},
+  {n:'Muxammadriz', av:12},
+  {n:'занятой', av:13},
+  {n:'Kuji', av:14},
+  {n:'Lutfullaev', av:15},
+  {n:'Anonim', av:16},
+  {n:'Whalex', av:17},
+  {n:'ZAIDo', av:18},
+  {n:'Omidd', av:19},
+  {n:'Safsaf', av:20},
+  {n:'ПишиСюда', av:21},
+  {n:'Parsa', av:22},
+  {n:'tilloo', av:23},
+  {n:'Motaqaed', av:24},
+  {n:'parsah', av:25}
+];
 (function games(){
   function num(v){ v=parseFloat(String(v).replace(/\s/g,'').replace(',','.')); return isFinite(v)&&v>0?v:0; }
 
@@ -3418,33 +3452,7 @@ function makeSheet(wrapId, topId, opts){
      будет каждый раунд с новой внешностью. Ники не переводятся — это
      handle'ы, а не имена. Добавить новых значит дописать сюда строку и
      класс .av-N в стилях; раздачей займутся оба режима сами. */
-  var FIGHTERS=[
-    {n:'ToMaz', av:1},
-    {n:'kohaa', av:2},
-    {n:'Arjan', av:3},
-    {n:'Kachu', av:4},
-    {n:'NFTix', av:5},
-    {n:'Firanko', av:6},
-    {n:'dariuz', av:7},
-    {n:'Kianmer', av:8},
-    {n:'Shayn', av:9},
-    {n:'Khan', av:10},
-    {n:'Шинья', av:11},
-    {n:'Muxammadriz', av:12},
-    {n:'занятой', av:13},
-    {n:'Kuji', av:14},
-    {n:'Lutfullaev', av:15},
-    {n:'Anonim', av:16},
-    {n:'Whalex', av:17},
-    {n:'ZAIDo', av:18},
-    {n:'Omidd', av:19},
-    {n:'Safsaf', av:20},
-    {n:'ПишиСюда', av:21},
-    {n:'Parsa', av:22},
-    {n:'tilloo', av:23},
-    {n:'Motaqaed', av:24},
-    {n:'parsah', av:25}
-  ];
+
   var FACES=FIGHTERS.length;
   function faceDeck(){
     var d=[]; for(var i=0;i<FIGHTERS.length;i++) d.push(i);
@@ -4961,22 +4969,12 @@ var Tasks = (function(){
    отличается ото дня. Место игрока честное — по намайненному.
    ══════════════════════════════════════════════════════ */
 var Top = (function(){
-  var NAMES={
-    ru:['Никита','Амир','Влад','Максим','Артём','Оля','Женя','Дима','Илья','Тимур','Паук','Нексус',
-        'Самира','Вадим','Фирюза','Рагнар','Артур','Данила','Марк','Лера','Сева','Рома','Кира','Глеб'],
-    uk:['Микита','Амір','Влад','Максим','Артем','Оля','Женя','Дмитро','Ілля','Тимур','Павук','Нексус',
-        'Саміра','Вадим','Фіруза','Рагнар','Артур','Данило','Марко','Лєра','Сева','Рома','Кіра','Гліб'],
-    en:['Nikita','Amir','Vlad','Max','Artem','Olly','Jane','Dima','Ilya','Timur','Spider','Nexus',
-        'Samira','Vadim','Firuza','Ragnar','Arthur','Daniel','Mark','Lera','Seva','Roma','Kira','Gleb']
-  };
-  var COLORS=['#8FA6C4','#C08A9E','#8FC4A8','#C4B08F','#A79AC4','#C49A8F','#9FC4BC','#C4C08F'];
   var MED=['#E4C078','#B9C0CC','#C79A6E'];
 
   var segEl=document.getElementById('tpSeg'), podEl=document.getElementById('tpPod'),
       listEl=document.getElementById('tpList'), meEl=document.getElementById('tpMe');
   var per='d';
 
-  function pool(){ return NAMES[LANG]||NAMES.ru; }
   function star(sz,c){
     return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="'+(c||'#E4C078')+'"/></svg>';
   }
@@ -5001,11 +4999,11 @@ var Top = (function(){
   function scale(){ return per==='d' ? 1 : per==='w' ? 6.4 : 27; }
 
   function build(){
-    var r=rnd(seedKey()), names=pool(), out=[];
-    for(var i=0;i<names.length;i++){
+    var r=rnd(seedKey()), out=[];
+    for(var i=0;i<FIGHTERS.length;i++){
       // тяжёлый верх: у первых мест отрыв заметный, хвост плотный
       var q=Math.pow(r(), 2.2);
-      out.push({n:names[i], c:COLORS[i%COLORS.length], v:(28+q*4200)*scale()});
+      out.push({n:FIGHTERS[i].n, av:FIGHTERS[i].av, v:(28+q*4200)*scale()});
     }
     out.sort(function(a,b){ return b.v-a.v; });
     return out;
@@ -5022,7 +5020,9 @@ var Top = (function(){
       var p=rows[i]; if(!p) return;
       var el=document.createElement('div');
       el.className='pod p'+(i+1);
-      el.innerHTML='<span class="av" style="background:'+(p.me?'linear-gradient(180deg,#F7E7C4,#E4C078)':p.c)+'">'+p.n.charAt(0)+'</span>'+
+      el.innerHTML='<span class="av'+(p.av?' ph av-'+p.av:'')+'"'+
+          (p.av?'':' style="background:linear-gradient(180deg,#F7E7C4,#E4C078)"')+
+          '>'+(p.av?'':p.n.charAt(0))+'</span>'+
         '<span class="nm"'+(p.me?' style="color:var(--gold)"':'')+'>'+p.n+'</span>'+
         '<span class="vl" style="color:'+MED[i]+'">'+fmtInt(p.v)+' '+star(11,MED[i])+'</span>'+
         '<span class="bar">'+(i+1)+'</span>';
@@ -5034,7 +5034,9 @@ var Top = (function(){
       var el=document.createElement('div');
       el.className='tprow';
       el.innerHTML='<span class="pl">'+(i+4)+'</span>'+
-        '<span class="av" style="background:'+(p.me?'linear-gradient(180deg,#F7E7C4,#E4C078)':p.c)+'">'+p.n.charAt(0)+'</span>'+
+        '<span class="av'+(p.av?' ph av-'+p.av:'')+'"'+
+          (p.av?'':' style="background:linear-gradient(180deg,#F7E7C4,#E4C078)"')+
+          '>'+(p.av?'':p.n.charAt(0))+'</span>'+
         '<span class="nm"'+(p.me?' style="color:var(--gold)"':'')+'>'+p.n+'</span>'+
         '<span class="vl"'+(p.me?' style="color:var(--gold)"':'')+'>'+fmtInt(p.v)+' '+star(11)+'</span>';
       listEl.appendChild(el);
