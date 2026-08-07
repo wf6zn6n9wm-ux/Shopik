@@ -1237,8 +1237,16 @@ button.srow:active{transform:scale(.985);}
 
 /* ─────────── Задания ─────────── */
 /* лесенка дней живёт в шторке «Бонусы»; на «Заданиях» остался только список */
-.ddays{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.ddays{
+  display:flex;gap:5px;overflow-x:auto;scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  /* края растворяются: так видно, что полоса длиннее экрана */
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 18px,#000 calc(100% - 18px),transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 18px,#000 calc(100% - 18px),transparent);
+}
+.ddays::-webkit-scrollbar{display:none;}
 .dday{
+  width:48px;flex:0 0 auto;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
   padding:8px 0 7px;border-radius:12px;background:#0D0D0F;border:1px solid var(--line);
   transition:border-color .22s,background .22s;
@@ -1291,6 +1299,7 @@ button.srow:active{transform:scale(.985);}
   .trow .ic{width:30px;height:30px;border-radius:10px;}
   .trow .nm{font-size:13.5px;}
   .trow .ac{padding:0 10px;font-size:12px;}
+  .dday{width:44px;}
   .dday .n{font-size:9px;}
 }
 
@@ -3083,6 +3092,14 @@ var Ring = (function(){
   return { set:function(v){ p=v; }, draw:draw };
 })();
 
+/* Ежедневный бонус: шестьдесят дней подряд, первый — 10 ★, дальше по
+   звезде сверху. Руками такую лесенку не выпишешь: шестьдесят чисел в
+   строке не прочитать, а правило «плюс звезда в день» видно сразу.
+   Объявлена здесь, а не в модуле бонусов: её длиной обрезается серия
+   при загрузке состояния, и вторая копия числа рано или поздно
+   разъедется с первой. */
+var DAILY=[]; for(var дн=1;дн<=60;дн++) DAILY.push(9+дн);   // 10, 11, 12 … 69
+
 /* ══════════════════════════════════════════════════════
    ЭКОНОМИКА — баланс растёт плавно, без рывков.
    Значения пишутся в DOM напрямую из rAF-цикла.
@@ -3111,7 +3128,7 @@ var SAVED=(function(){
     }).slice(0,40) : [];
     var num=function(v){ v=+v; return isFinite(v)&&v>0 ? v : 0; };
     return {bal:b, y:y, seen:t, tk:tk,
-            dl:{streak:Math.max(0,Math.min(7,+dl.streak||0)), last:String(dl.last||'')},
+            dl:{streak:Math.max(0,Math.min(DAILY.length,+dl.streak||0)), last:String(dl.last||'')},
             mn:{d:{k:String((mn.d&&mn.d.k)||''), v:num(mn.d&&mn.d.v)},
                 w:{k:String((mn.w&&mn.w.k)||''), v:num(mn.w&&mn.w.v)},
                 a:num(mn.a)},
@@ -5096,7 +5113,6 @@ var Top = (function(){
    на несколько минут каждый день.
    ══════════════════════════════════════════════════════ */
 var Bonus = (function(){
-  var DAILY=[10,15,25,40,60,90,150];  // ★ за 1..7 день серии
 
   var ringEl=document.getElementById('bnRing'), valEl=document.getElementById('bnVal'),
       capEl=document.getElementById('bnCap'), stEl=document.getElementById('bnStreak'),
@@ -5131,8 +5147,17 @@ var Bonus = (function(){
     return ('0'+h).slice(-2)+':'+('0'+(m%60)).slice(-2);
   }
 
+  /* Полоса перестраивается только когда день и правда сменился: render()
+     зовётся раз в секунду по таймеру, и если каждый раз собирать её
+     заново, прокрутка отскакивает в начало — ни доехать до своего дня,
+     ни пролистать руками. */
+  var было='';
   function renderDays(){
-    var p=step();
+    var p=step(), метка=p+'/'+DL.streak+'/'+LANG;
+    if(метка===было) return; было=метка;
+    /* полосу собираем заново, но встаём туда же: иначе после «Забрать»
+       прокрутка отскакивает в начало и едет к своему дню через всю линейку */
+    var стояли=daysEl.scrollLeft;
     daysEl.innerHTML='';
     for(var i=1;i<=DAILY.length;i++){
       var el=document.createElement('div');
@@ -5140,6 +5165,27 @@ var Bonus = (function(){
       el.innerHTML='<span class="n">'+t('dl_day',{n:i})+'</span><span class="v">'+DAILY[i-1]+'</span>';
       daysEl.appendChild(el);
     }
+    var b=daysEl.style.scrollBehavior; daysEl.style.scrollBehavior='auto';
+    daysEl.scrollLeft=стояли; daysEl.style.scrollBehavior=b;
+  }
+  /* Свой день ставим по центру сами: шестидесятидневную полосу человек
+     листать не должен. При открытии — сразу, без бега; после «Забрать» —
+     плавно, чтобы был виден переход на следующий день. */
+  function centerNow(плавно){
+    /* забрано на сегодня — подводим завтрашний день: серия продолжается,
+       и смотреть человек будет на него, а не на уже закрытый */
+    var взято=daysEl.querySelectorAll('.dday.got'), последний=взято[взято.length-1];
+    var el=daysEl.querySelector('.dday.now') ||
+           (последний ? последний.nextElementSibling||последний : daysEl.firstElementChild);
+    if(!el) return;
+    /* считаем по экранным координатам: offsetLeft отмеряет от предка с
+       позиционированием, а не от самой полосы, и промахивается на её отступ */
+    var r=el.getBoundingClientRect(), o=daysEl.getBoundingClientRect();
+    var к=daysEl.scrollLeft+(r.left-o.left)-(o.width-r.width)/2;
+    к=Math.max(0, Math.min(к, daysEl.scrollWidth-daysEl.clientWidth));
+    if(плавно && daysEl.scrollTo) daysEl.scrollTo({left:к, behavior:'smooth'});
+    else { var b=daysEl.style.scrollBehavior; daysEl.style.scrollBehavior='auto';
+           daysEl.scrollLeft=к; daysEl.style.scrollBehavior=b; }
   }
 
   function render(){
@@ -5159,7 +5205,7 @@ var Bonus = (function(){
   }
   function mark(){ dotEl.classList.toggle('on', ready()); }
 
-  var sheet=makeSheet('bnSheet','bnTop',{ onShow:render });
+  var sheet=makeSheet('bnSheet','bnTop',{ onShow:function(){ render(); centerNow(false); } });
   document.getElementById('bnX').addEventListener('click',sheet.hide);
   document.getElementById('btnBonus').addEventListener('click',function(){ haptic('medium'); sheet.show(); });
 
@@ -5168,7 +5214,7 @@ var Bonus = (function(){
     DL.streak=p; DL.last=today();
     bal+=DAILY[p-1]; notify('daily',DAILY[p-1]); recalc(); saveState();
     haptic('success'); beep(1050,0.14,0.05,'triangle');
-    render();
+    render(); centerNow(true);
   });
 
   /* минуты в кольце меняются нечасто, но полночь должна ловиться сама:
