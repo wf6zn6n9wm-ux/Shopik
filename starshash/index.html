@@ -3492,12 +3492,28 @@ var FIGHTERS=[
     var wrap=document.getElementById('liveTrack'); if(!wrap) return;
     var STAR='<svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true">'+
       '<path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="currentColor"/></svg>';
+    /* Суммы не «любое число подряд», а круглые — 45, 70, 150, 250: такие
+       и выпадают в играх, а 283 ★ сразу видно как машинный шум. Мелочь
+       оставлена, но редкой: на ленте из двоек и четвёрок смотреть нечего. */
+    var SUMS=[
+      [10,15,20,25],                                   /* мелочь      15% */
+      [30,35,40,45,50,60,70,75,80,90,100],             /* обычный     50% */
+      [120,150,175,200,250,300],                       /* крупный     27% */
+      [400,500,750,1000]                               /* редкий куш   8% */
+    ];
+    var ДОЛИ=[0.15,0.65,0.92];
+    /* На экран влезает пять-шесть плиток, а сумм всего два десятка —
+       без памяти одно и то же число встаёт рядом с собой. */
+    var были=[];
     function amount(){
-      var r=Math.random();
-      if(r<0.60) return 1+Math.floor(Math.random()*20);
-      if(r<0.85) return 21+Math.floor(Math.random()*80);
-      if(r<0.96) return 101+Math.floor(Math.random()*300);
-      return 401+Math.floor(Math.random()*600);
+      for(var t=0;t<8;t++){
+        var r=Math.random(), g=r<ДОЛИ[0]?0:r<ДОЛИ[1]?1:r<ДОЛИ[2]?2:3, a=SUMS[g],
+            v=a[Math.floor(Math.random()*a.length)];
+        if(были.indexOf(v)<0 || t===7){
+          были.push(v); if(были.length>6) были.shift();
+          return v;
+        }
+      }
     }
     function cell(){
       var v=amount(), el=document.createElement('div');
