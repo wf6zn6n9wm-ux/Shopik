@@ -35,6 +35,22 @@ if (ru && en && uk) {
   о.проверка('лишних ключей в переводах нет', лишние.length === 0, лишние.join(', '));
 }
 
+о.раздел('картинки в файлах');
+{
+  const fs=require('fs'), path=require('path');
+  const папка=path.join(__dirname,'..','starshash','img');
+  const ссылки=[...new Set([...src.matchAll(/url\('img\/([^']+)'\)/g)].map(m=>m[1])
+    .concat([...src.matchAll(/href="img\/([^"]+)"/g)].map(m=>m[1])))];
+  const файлы=fs.existsSync(папка)?fs.readdirSync(папка):[];
+  const нет=ссылки.filter(и=>!файлы.includes(и));
+  const сироты=файлы.filter(ф=>!ссылки.includes(ф));
+  о.проверка('все картинки на месте', нет.length===0,
+    ссылки.length+' ссылок'+(нет.length?', нет файлов: '+нет.join(', '):''));
+  о.проверка('лишних файлов в img/ нет', сироты.length===0, сироты.join(', '));
+  о.проверка('картинки в HTML не встроены', !/data:image\/\w+;base64/.test(src),
+    'иначе вес вернётся и кэш перестанет помогать');
+}
+
 о.раздел('внешние связи');
 const внеш = [...new Set([...src.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g)].map(m => m[1]))];
 const чужие = внеш.filter(u => !/telegram\.org/.test(u));
