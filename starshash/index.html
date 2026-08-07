@@ -3502,15 +3502,16 @@ var FIGHTERS=[
       [400,500,750,1000]                               /* редкий куш   8% */
     ];
     var ДОЛИ=[0.15,0.65,0.92];
-    /* На экран влезает пять-шесть плиток, а сумм всего два десятка —
-       без памяти одно и то же число встаёт рядом с собой. */
+    /* В окно ленты помещается шесть плиток, седьмая выходит из-под края —
+       а сумм всего два десятка. Без памяти одно и то же число встаёт рядом
+       с собой; помним восемь последних, с запасом на эту седьмую. */
     var были=[];
     function amount(){
       for(var t=0;t<8;t++){
         var r=Math.random(), g=r<ДОЛИ[0]?0:r<ДОЛИ[1]?1:r<ДОЛИ[2]?2:3, a=SUMS[g],
             v=a[Math.floor(Math.random()*a.length)];
         if(были.indexOf(v)<0 || t===7){
-          были.push(v); if(были.length>6) были.shift();
+          были.push(v); if(были.length>8) были.shift();
           return v;
         }
       }
@@ -3528,17 +3529,17 @@ var FIGHTERS=[
       requestAnimationFrame(frame);
       if(!wrap.getClientRects().length){ last=ts; return; }   // экран скрыт
       var dt=last?Math.min(60,ts-last):16; last=ts;
-      off += dt*0.046;                                        // ~46 px в секунду
-      var first=wrap.firstElementChild;
-      if(first){
-        var w=first.getBoundingClientRect().width+7;          // плитка и зазор
-        while(off>=w && wrap.children.length>2){
-          off-=w; wrap.removeChild(first); wrap.appendChild(cell());
-          first=wrap.firstElementChild;
-          w=first.getBoundingClientRect().width+7;
-        }
+      /* Едем слева направо: сдвиг растёт к нулю, а как дошёл — спереди
+         встаёт новая плитка, и сдвиг отступает на её ширину. Ряд при этом
+         не дёргается: подстановка и откат происходят в одном кадре. */
+      off += dt*0.033;                                        // ~33 px в секунду
+      while(off>=0){
+        var свежая=cell();
+        wrap.insertBefore(свежая, wrap.firstElementChild);
+        off -= свежая.getBoundingClientRect().width+7;        // плитка и зазор
+        while(wrap.children.length>16) wrap.removeChild(wrap.lastElementChild);
       }
-      wrap.style.transform='translate3d('+(-off)+'px,0,0)';
+      wrap.style.transform='translate3d('+off+'px,0,0)';
     }
     requestAnimationFrame(frame);
   })();
