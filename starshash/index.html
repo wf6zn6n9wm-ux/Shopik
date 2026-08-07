@@ -2082,7 +2082,7 @@ button.srow:active{transform:scale(.985);}
 
       <button class="srow" id="pRef">
         <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.5" cy="8.5" r="3.4"/><path d="M3.5 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><path d="M18 8v6M15 11h6"/></svg></span>
-        <span class="nm" data-i18n="rf_title">Друзья</span>
+        <span class="nm" data-i18n="rf_short">Рефералы</span>
         <span class="rfc num" id="pRefN">0</span>
         <span class="ch"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
       </button>
@@ -2591,8 +2591,7 @@ button.srow:active{transform:scale(.985);}
 
       <div class="rfrules">
         <div class="rfr"><i>1</i><span data-i18n="rf_r1">Друг открывает приложение по вашей ссылке</span></div>
-        <div class="rfr"><i>2</i><span data-i18n="rf_r2">Вы получаете 25 ★ за каждого друга</span></div>
-        <div class="rfr"><i>3</i><span data-i18n="rf_r3">И 10% от всего, что он пополнит — навсегда</span></div>
+        <div class="rfr"><i>2</i><span id="rfR2">Вы получаете 5% от каждого его пополнения — навсегда</span></div>
       </div>
 
       <button class="btn-buy" id="rfShare" data-i18n="rf_share">Пригласить друга</button>
@@ -2792,12 +2791,11 @@ ru:{
  tp_day:'День', tp_week:'Неделя', tp_all:'Всё время',
  bn_title:'Бонусы', bn_ready:'можно забрать', bn_wait:'до следующего бонуса',
  bn_note:'Бонус приходит раз в сутки: 10 ★ в первый день, дальше по одной. Пропуск дня обнуляет серию.',
- rf_title:'Друзья', rf_friends:'Приглашено', rf_earned:'Заработано',
+ rf_title:'Реферальная программа', rf_short:'Рефералы', rf_friends:'Приглашено', rf_earned:'Заработано',
  rf_link:'Ваша ссылка', rf_share:'Пригласить друга',
  rf_r1:'Друг открывает приложение по вашей ссылке',
- rf_r2:'Вы получаете 25 ★ за каждого друга',
- rf_r3:'И 10% от всего, что он пополнит — навсегда',
- rf_joined:'Вы пришли по приглашению — начислено {n} ★',
+ rf_r2:'Вы получаете {n}% от каждого его пополнения — навсегда',
+ rf_joined:'Вы пришли по приглашению',
  rf_msg:'Майню звёзды в StarsHash. Заходи по ссылке — обоим будет бонус',
  max_lvl:'Максимальный уровень',
  fc_name:'Бесплатный', fc_free:'Бесплатно', fc_once:'один раз', fc_used:'уже открыт',
@@ -2891,12 +2889,11 @@ en:{
  tp_day:'Day', tp_week:'Week', tp_all:'All time',
  bn_title:'Bonuses', bn_ready:'ready to claim', bn_wait:'until the next bonus',
  bn_note:'A bonus lands once a day: 10 ★ on the first day, 1 ★ after that. Missing a day resets the streak.',
- rf_title:'Friends', rf_friends:'Invited', rf_earned:'Earned',
+ rf_title:'Referral program', rf_short:'Referrals', rf_friends:'Invited', rf_earned:'Earned',
  rf_link:'Your link', rf_share:'Invite a friend',
  rf_r1:'Your friend opens the app through your link',
- rf_r2:'You get 25 ★ for every friend',
- rf_r3:'And 10% of everything they top up — forever',
- rf_joined:'You joined through an invite — {n} ★ credited',
+ rf_r2:'You get {n}% of every top-up they make — forever',
+ rf_joined:'You joined through an invite',
  rf_msg:'Mining stars in StarsHash. Join through my link and we both get a bonus',
  max_lvl:'Top level reached',
  fc_name:'Free', fc_free:'Free', fc_once:'once', fc_used:'already opened',
@@ -2990,12 +2987,11 @@ uk:{
  tp_day:'День', tp_week:'Тиждень', tp_all:'Увесь час',
  bn_title:'Бонуси', bn_ready:'можна забрати', bn_wait:'до наступного бонусу',
  bn_note:'Бонус приходить раз на добу: 10 ★ у перший день, далі по одній. Пропуск дня обнуляє серію.',
- rf_title:'Друзі', rf_friends:'Запрошено', rf_earned:'Зароблено',
+ rf_title:'Реферальна програма', rf_short:'Реферали', rf_friends:'Запрошено', rf_earned:'Зароблено',
  rf_link:'Ваше посилання', rf_share:'Запросити друга',
  rf_r1:'Друг відкриває застосунок за вашим посиланням',
- rf_r2:'Ви отримуєте 25 ★ за кожного друга',
- rf_r3:'І 10% від усього, що він поповнить — назавжди',
- rf_joined:'Ви прийшли за запрошенням — нараховано {n} ★',
+ rf_r2:'Ви отримуєте {n}% від кожного його поповнення — назавжди',
+ rf_joined:'Ви прийшли за запрошенням',
  rf_msg:'Майню зірки в StarsHash. Заходь за посиланням — обом буде бонус',
  max_lvl:'Максимальний рівень',
  fc_name:'Безкоштовний', fc_free:'Безкоштовно', fc_once:'один раз', fc_used:'вже відкрито',
@@ -5877,7 +5873,10 @@ var Bonus = (function(){
    цифры, которых нет.
    ══════════════════════════════════════════════════════ */
 var Ref = (function(){
-  var JOIN_BONUS=25;              // ★ тому, кто пришёл по ссылке
+  /* Награда за переход по ссылке убрана: в программе остаётся одно
+     правило — 5% с каждого пополнения приглашённого. Приз за сам переход
+     собирает пустые регистрации и ничего не приносит. */
+  var ДОЛЯ_С_ПОПОЛНЕНИЙ=0.05;
   var BOT='starshash_bot';
 
   var nEl=document.getElementById('rfN'), eEl=document.getElementById('rfE'),
@@ -5900,21 +5899,22 @@ var Ref = (function(){
     var m=/^ref_(\d{1,20})$/.exec(String(sp));
     if(!m) return;
     if(RF.by || m[1]===uid()) return;
-    RF.by=m[1]; bal+=JOIN_BONUS; notify('ref',JOIN_BONUS); recalc(); saveState();
-    /* приход по ссылке случается на самой загрузке: салютуем от кошелька,
-       потому что своего экрана у этого начисления нет, и с задержкой —
-       раньше вёрстка ещё не встала и вылетать было бы неоткуда */
-    setTimeout(function(){ FX.reward(document.getElementById('pillBal'), JOIN_BONUS); }, 700);
+    RF.by=m[1]; saveState();        // связь запомнили, звёзд за переход не даём
+
   })();
 
   function render(){
+    /* правило подписываем из константы: два места с одним числом рано или
+       поздно разъедутся, и в приложении будет написано одно, а считаться другое */
+    var п=document.getElementById('rfR2');
+    if(п) п.textContent=t('rf_r2',{n:ДОЛЯ_С_ПОПОЛНЕНИЙ*100});
     nEl.textContent=fmtInt(RF.n);
     eEl.textContent=fmtInt(RF.earned);
     badgeEl.textContent=fmtInt(RF.n);
     hostEl.textContent='t.me/'+BOT;
     codeEl.textContent='?start=ref_'+uid();
     joinEl.hidden=!RF.by;
-    if(RF.by) joinEl.textContent=t('rf_joined',{n:JOIN_BONUS});
+    if(RF.by) joinEl.textContent=t('rf_joined');
   }
 
   var sheet=makeSheet('rfSheet','rfTop',{ onShow:render });
