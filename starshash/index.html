@@ -2460,7 +2460,7 @@ button.srow:active{transform:scale(.985);}
       <div class="bnst" id="bnStreak"></div>
       <div class="ddays" id="bnDays"></div>
       <button class="btn-buy" id="bnGo"></button>
-      <p class="bnnote" data-i18n="bn_note">Бонус приходит раз в сутки. Заходите каждый день — награда растёт.</p>
+      <p class="bnnote" data-i18n="bn_note">Бонус приходит раз в сутки: 10 ★ в первый день, дальше по одной.</p>
     </div>
   </div>
 </div>
@@ -2624,7 +2624,7 @@ ru:{
  tk_all:'Все задания выполнены', tk_got:'Начислено {n} ★',
  tp_day:'День', tp_week:'Неделя', tp_all:'Всё время',
  bn_title:'Бонусы', bn_ready:'можно забрать', bn_wait:'до следующего бонуса',
- bn_note:'Бонус приходит раз в сутки. Заходите каждый день — награда растёт. Пропуск дня обнуляет серию.',
+ bn_note:'Бонус приходит раз в сутки: 10 ★ в первый день, дальше по одной. Пропуск дня обнуляет серию.',
  rf_title:'Друзья', rf_friends:'Приглашено', rf_earned:'Заработано',
  rf_link:'Ваша ссылка', rf_share:'Пригласить друга',
  rf_r1:'Друг открывает приложение по вашей ссылке',
@@ -2712,7 +2712,7 @@ en:{
  tk_all:'All tasks completed', tk_got:'{n} ★ credited',
  tp_day:'Day', tp_week:'Week', tp_all:'All time',
  bn_title:'Bonuses', bn_ready:'ready to claim', bn_wait:'until the next bonus',
- bn_note:'A bonus lands once a day. Come back every day and the reward grows. Missing a day resets the streak.',
+ bn_note:'A bonus lands once a day: 10 ★ on the first day, 1 ★ after that. Missing a day resets the streak.',
  rf_title:'Friends', rf_friends:'Invited', rf_earned:'Earned',
  rf_link:'Your link', rf_share:'Invite a friend',
  rf_r1:'Your friend opens the app through your link',
@@ -2800,7 +2800,7 @@ uk:{
  tk_all:'Усі завдання виконано', tk_got:'Нараховано {n} ★',
  tp_day:'День', tp_week:'Тиждень', tp_all:'Увесь час',
  bn_title:'Бонуси', bn_ready:'можна забрати', bn_wait:'до наступного бонусу',
- bn_note:'Бонус приходить раз на добу. Заходьте щодня — нагорода зростає. Пропуск дня обнуляє серію.',
+ bn_note:'Бонус приходить раз на добу: 10 ★ у перший день, далі по одній. Пропуск дня обнуляє серію.',
  rf_title:'Друзі', rf_friends:'Запрошено', rf_earned:'Зароблено',
  rf_link:'Ваше посилання', rf_share:'Запросити друга',
  rf_r1:'Друг відкриває застосунок за вашим посиланням',
@@ -3092,13 +3092,11 @@ var Ring = (function(){
   return { set:function(v){ p=v; }, draw:draw };
 })();
 
-/* Ежедневный бонус: шестьдесят дней подряд, первый — 10 ★, дальше по
-   звезде сверху. Руками такую лесенку не выпишешь: шестьдесят чисел в
-   строке не прочитать, а правило «плюс звезда в день» видно сразу.
-   Объявлена здесь, а не в модуле бонусов: её длиной обрезается серия
-   при загрузке состояния, и вторая копия числа рано или поздно
-   разъедется с первой. */
-var DAILY=[]; for(var дн=1;дн<=60;дн++) DAILY.push(9+дн);   // 10, 11, 12 … 69
+/* Ежедневный бонус: шестьдесят дней подряд. Первый день — 10 ★ за
+   приход, дальше по одной звезде за день. Объявлен здесь, а не в модуле
+   бонусов: этой длиной обрезается серия при загрузке состояния, и вторая
+   копия числа рано или поздно разъедется с первой. */
+var DAILY=[10]; while(DAILY.length<60) DAILY.push(1);   // 10, 1, 1, 1 … 1
 
 /* ══════════════════════════════════════════════════════
    ЭКОНОМИКА — баланс растёт плавно, без рывков.
