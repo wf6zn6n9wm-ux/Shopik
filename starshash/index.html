@@ -5777,9 +5777,13 @@ var Bonus = (function(){
      уже не идёт, и хвастаться прошлым числом нельзя — награда-то упала */
   function liveStreak(){ return step()===1 ? 0 : DL.streak; }
 
+  /* С секундами: «04:06» читалось как время на часах, а не как остаток.
+     Бегущие секунды сразу показывают, что это обратный отсчёт. */
   function clock(ms){
-    var m=Math.ceil(ms/60000), h=Math.floor(m/60);
-    return ('0'+h).slice(-2)+':'+('0'+(m%60)).slice(-2);
+    var s=Math.max(0,Math.ceil(ms/1000));
+    return ('0'+Math.floor(s/3600)).slice(-2)+':'+
+           ('0'+Math.floor(s%3600/60)).slice(-2)+':'+
+           ('0'+(s%60)).slice(-2);
   }
 
   /* Полоса перестраивается только когда день и правда сменился: render()
@@ -5826,7 +5830,7 @@ var Bonus = (function(){
   function render(){
     var p=step(), rd=p>0;
     valEl.textContent = rd ? DAILY[p-1] : clock(leftMs());
-    valEl.style.fontSize = rd ? '' : '34px';
+    valEl.style.fontSize = rd ? '' : '27px';   // «00:00:00» шире, чем «00:00»
     valEl.classList.toggle('rdy', rd);
     capEl.textContent = rd ? t('bn_ready') : t('bn_wait');
     ringEl.style.strokeDashoffset = String(LEN*(rd ? 0 : leftMs()/DAY));
