@@ -2900,6 +2900,49 @@ function beep(freq,dur,vol,type){
   }catch(e){}
 }
 
+/* Победа и обрыв заслуживают не писка, а короткой фразы: пик слышен как
+   «нажалось», а выигрыш должен слышаться как событие. Ноты берём по
+   мажорному трезвучию вверх — растущая линия читается как «получилось»
+   без всякой мелодии. Сила та же, что у салюта: крупный выигрыш звучит
+   выше и дольше. */
+var SFX = (function(){
+  function нота(freq,старт,дл,гром,тип){
+    if(!PREFS.sound) return;
+    try{
+      var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+      _actx=_actx||new AC();
+      if(_actx.state==='suspended') _actx.resume();
+      var t=_actx.currentTime+старт;
+      var o=_actx.createOscillator(), g=_actx.createGain();
+      o.type=тип||'triangle'; o.frequency.setValueAtTime(freq,t);
+      /* мягкая атака: без неё короткая нота даёт щелчок на телефоне */
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(гром,t+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+дл);
+      o.connect(g); g.connect(_actx.destination);
+      o.start(t); o.stop(t+дл+0.03);
+    }catch(e){}
+  }
+  return {
+    /* сила 0..1 — та же шкала, что у салюта */
+    win:function(сила){
+      var к=Math.max(0.25,Math.min(1,сила||0.5));
+      var баз=520+к*140, дл=0.16+к*0.1, гром=0.035+к*0.03;
+      нота(баз,        0,     дл, гром, 'triangle');
+      нота(баз*1.26,   0.075, дл, гром, 'triangle');
+      нота(баз*1.5,    0.15,  дл+0.1, гром, 'triangle');
+      if(к>0.9) нота(баз*2, 0.24, 0.34, гром*0.8, 'sine');   // крупный — с верхом
+    },
+    /* обрыв: линия вниз, коротко и глухо */
+    bust:function(свой){
+      нота(свой?300:250, 0,    0.16, свой?0.05:0.03, 'sawtooth');
+      нота(свой?190:170, 0.09, 0.26, свой?0.045:0.025,'sawtooth');
+    },
+    /* мимо в ПВП — одна низкая, без драмы */
+    miss:function(){ нота(260,0,0.2,0.03,'triangle'); }
+  };
+})();
+
 /* Реальная видимая высота. visualViewport — единственный источник, который
    учитывает наложенные панели браузера; у Mini App приоритет за
    viewportStableHeight. Иначе нижняя навигация уходит под панель. */
@@ -3267,7 +3310,11 @@ var FX = (function(){
   }
   /* пороги те же, что у ленты выигрышей: крупным считается всё от 200 ★ */
   function сила(amt){ return amt>=200 ? 1 : amt>=50 ? 0.7 : 0.45; }
-  return { win:function(эл,amt){ залп(эл, сила(amt)); } };
+  return { win:function(эл,amt){ залп(эл, сила(amt)); },
+           /* начисления празднуем вполсилы: выигрыш должен оставаться громче
+              бонуса, иначе праздник перестаёт что-либо значить */
+           reward:function(эл,amt){ залп(эл, сила(amt)*0.5); },
+           сила:сила };
 })();
 
 function notify(kind, amount){
@@ -3893,6 +3940,7 @@ var FIGHTERS=[
       renderPlayers();
       hist.unshift(target); if(hist.length>12) hist.pop(); renderHist();
       haptic(joined&&!cashed?'error':'warning');
+      SFX.bust(joined&&!cashed);
       updBtn();
       setTimeout(beginWaiting,2600);
     }
@@ -3905,7 +3953,7 @@ var FIGHTERS=[
       var me=bots.filter(function(p){ return p.me; })[0];
       if(me){ me.st='win'; me.took=win; me.at=mult; }
       renderPlayers(); updBtn(); haptic('success');
-      FX.win(multEl, win);
+      FX.win(multEl, win); SFX.win(FX.сила(win));
     }
 
     function join(){
@@ -4139,9 +4187,9 @@ var FIGHTERS=[
       for(var j=0;j<rows.length;j++) rows[j].classList.add(j===win?'won':'out');
       var P=pot();
       if(players[win].me){ bal+=P; notify('pvp',P); goBtn.textContent=t('win_amt',{n:fmtInt(P)}); haptic('success');
-        subEl.textContent=t('you_took'); FX.win(goBtn,P); }
+        subEl.textContent=t('you_took'); FX.win(goBtn,P); SFX.win(FX.сила(P)); }
       else { goBtn.textContent=t('lost_to',{n:players[win].n}); haptic('error');
-        subEl.textContent=t('won_by',{n:players[win].n}); }
+        subEl.textContent=t('won_by',{n:players[win].n}); SFX.miss(); }
       goBtn.disabled=true;
       raf=requestAnimationFrame(drift);
       setTimeout(newRound,2800);
@@ -4418,8 +4466,8 @@ var FIGHTERS=[
       renderOdds(); updBtn();
       /* салют только когда выпало дороже открытия: на возврате мельче
          цены праздновать нечего, человек в минусе */
-      if(win>=4){ haptic('success'); beep(1180,0.16,0.05,'triangle'); FX.win(subEl,amt); }
-      else if(amt>=cur.price){ haptic('success'); beep(880,0.1,0.04,'triangle'); FX.win(subEl,amt); }
+      if(win>=4){ haptic('success'); FX.win(subEl,amt); SFX.win(FX.сила(amt)); }
+      else if(amt>=cur.price){ haptic('success'); FX.win(subEl,amt); SFX.win(FX.сила(amt)); }
       else haptic('warning');
     }
 
@@ -5032,7 +5080,7 @@ var Tasks = (function(){
         '<span class="bd"><span class="nm">'+t(x.k)+'</span>'+
         '<span class="rw">+'+x.r+' '+star(11)+'</span></span>'+right;
       var btn=row.querySelector('.ac');
-      if(btn) btn.addEventListener('click',function(){ tap(x); });
+      if(btn) btn.addEventListener('click',function(){ tap(x,btn); });
       listEl.appendChild(row);
       if(st!=='got') left++;
     });
@@ -5040,10 +5088,10 @@ var Tasks = (function(){
     markTab();
   }
 
-  function tap(x){
+  function tap(x,эл){
     var st=TK[x.id]||'';
     if(st==='got') return;
-    if(st==='ready'){ take(x); return; }
+    if(st==='ready'){ take(x,эл); return; }
     if(x.kind!=='link'){ haptic('warning'); return; }   // ждём действия в приложении
     /* приглашение шлём через раздел «Друзья»: ссылка должна быть одна */
     if(x.id==='invite'){ Ref.share(); done(x.id); return; }
@@ -5055,10 +5103,11 @@ var Tasks = (function(){
     done(x.id);
   }
 
-  function take(x){
+  function take(x,эл){
     if(TK[x.id]!=='ready') return;
     TK[x.id]='got'; bal+=x.r; notify('task',x.r); recalc(); saveState();
     haptic('success'); beep(900,0.11,0.045,'triangle');
+    FX.reward(эл||listEl, x.r);
     renderList();
   }
 
@@ -5294,6 +5343,7 @@ var Bonus = (function(){
     DL.streak=p; DL.last=today();
     bal+=DAILY[p-1]; notify('daily',DAILY[p-1]); recalc(); saveState();
     haptic('success'); beep(1050,0.14,0.05,'triangle');
+    FX.reward(valEl, DAILY[p-1]);
     render(); centerNow(true);
   });
 
@@ -5340,6 +5390,10 @@ var Ref = (function(){
     if(!m) return;
     if(RF.by || m[1]===uid()) return;
     RF.by=m[1]; bal+=JOIN_BONUS; notify('ref',JOIN_BONUS); recalc(); saveState();
+    /* приход по ссылке случается на самой загрузке: салютуем от кошелька,
+       потому что своего экрана у этого начисления нет, и с задержкой —
+       раньше вёрстка ещё не встала и вылетать было бы неоткуда */
+    setTimeout(function(){ FX.reward(document.getElementById('pillBal'), JOIN_BONUS); }, 700);
   })();
 
   function render(){
