@@ -246,9 +246,14 @@ button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:poin
 
 /* ─────────── прочие вкладки ─────────── */
 .page{display:none;}
+.page.on::-webkit-scrollbar{display:none;}
 .page.on{
   display:flex;flex-direction:column;flex:1 1 auto;min-height:0;gap:var(--gap);
-  overflow:hidden;   /* при нехватке высоты режем контент, но не выдавливаем навигацию */
+  /* Высоты может не хватить — например, у новичка первый экран занимает
+     блок «С чего начать». Прокрутка внутри страницы лучше, чем обрезка:
+     навигацию она всё так же не выдавливает, но до низа можно дойти. */
+  overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+  scrollbar-width:none;
   animation:pin .34s cubic-bezier(.2,0,0,1);
 }
 @keyframes pin{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
@@ -1265,6 +1270,86 @@ button.srow:active{transform:scale(.985);}
 .dday.got .v{color:var(--gold);}
 .dday.got .n{color:var(--gold-deep);}
 
+/* ─────────── Первые шаги ─────────── */
+.steps{
+  display:flex;flex-direction:column;gap:7px;padding:11px 11px 10px;border-radius:18px;
+  background:linear-gradient(168deg,rgba(228,192,120,.07),rgba(255,255,255,.012));
+  border:1px solid rgba(228,192,120,.2);margin-bottom:12px;
+}
+.steps[hidden]{display:none;}   /* display:flex перебивает сам атрибут */
+.steps .sh{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+.steps .sh b{font-size:14.5px;font-weight:800;letter-spacing:-.01em;}
+.steps .sh .cnt{
+  margin-left:auto;font-size:11px;font-weight:800;color:var(--gold);
+  font-variant-numeric:tabular-nums;
+}
+.steps .strip{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+/* Карточками в строку, а не полосами: первый экран «Заработка» свёрстан
+   без прокрутки и запаса по высоте не имеет — три полосы уводили низ
+   страницы под навигацию на всех телефонах. */
+.strow{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:9px 5px 8px;border-radius:14px;min-width:0;
+  background:rgba(0,0,0,.28);border:1px solid var(--line);
+  font-family:inherit;cursor:pointer;
+  transition:border-color .2s,background .2s,opacity .2s,transform .08s;
+}
+.strow:active{transform:scale(.97);}
+.strow:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+.strow .no{
+  width:21px;height:21px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+  font-size:11px;font-weight:800;color:var(--gold);
+  background:rgba(228,192,120,.12);border:1px solid rgba(228,192,120,.26);
+}
+.strow .nm{font-size:12px;font-weight:700;letter-spacing:-.01em;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.strow .rw{font-size:11px;font-weight:700;color:var(--gold-deep);white-space:nowrap;}
+.strow.done{opacity:.45;}
+.strow.done .no{background:rgba(228,192,120,.06);border-color:rgba(228,192,120,.14);}
+.strow.done .nm{text-decoration:line-through;text-decoration-color:rgba(255,255,255,.3);}
+
+/* ─────────── Статистика игрока ─────────── */
+.stgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.stcell{
+  display:flex;flex-direction:column;gap:3px;padding:12px 13px;border-radius:16px;
+  background:var(--card);border:1px solid var(--line);min-width:0;
+}
+.stcell .k{
+  font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-3);line-height:1.25;
+  /* Подпись переносится, а не обрезается: «крупнейший выигрыш» и его
+     переводы в строку не влезают. Две строки заложены всем, иначе
+     значения в соседних ячейках встают на разной высоте. */
+  min-height:2.5em;
+}
+.stcell .v{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--ink);
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.stcell.gold .v{color:var(--gold);}
+.stcell .v .u{font-size:12px;font-weight:700;color:var(--ink-3);margin-left:2px;}
+
+/* ─────────── История игр ─────────── */
+.ghrow{
+  display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:16px;
+  background:var(--card);border:1px solid var(--line);
+}
+.ghrow .ic{
+  width:32px;height:32px;flex:0 0 auto;border-radius:10px;display:grid;place-items:center;
+  background:rgba(228,192,120,.08);border:1px solid rgba(228,192,120,.15);color:var(--gold);
+}
+.ghrow.lose .ic{background:rgba(201,143,111,.09);border-color:rgba(201,143,111,.18);color:#C98F6F;}
+.ghrow .bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.ghrow .nm{font-size:13.5px;font-weight:600;letter-spacing:-.01em;}
+.ghrow .tm{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;}
+.ghrow .am{font-size:13.5px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;
+  white-space:nowrap;}
+.ghrow.lose .am{color:#C98F6F;}
+.ghlist{display:flex;flex-direction:column;gap:8px;}
+.ghempty{display:flex;flex-direction:column;align-items:center;gap:11px;padding:34px 20px;text-align:center;}
+.ghempty[hidden]{display:none;}   /* display:flex перебивает сам атрибут */
+.ghempty .ic{width:52px;height:52px;border-radius:17px;display:grid;place-items:center;
+  background:rgba(228,192,120,.07);border:1px solid rgba(228,192,120,.14);color:var(--gold-deep);}
+.ghempty p{margin:0;font-size:13px;line-height:1.5;color:var(--ink-3);max-width:230px;}
+
 .ptitle .cnt{
   margin-left:auto;font-size:11px;font-weight:700;color:#150F04;
   padding:3px 8px;border-radius:8px;background:linear-gradient(180deg,#F7E7C4,var(--gold));
@@ -1613,6 +1698,15 @@ button.srow:active{transform:scale(.985);}
         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
         <span class="sl">/</span><span data-i18n="per_hour">в час</span>
       </div>
+    </div>
+
+    <div class="steps" id="stepBox" hidden>
+      <div class="sh">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E4C078" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.4"/></svg>
+        <b data-i18n="fs_title">С чего начать</b>
+        <span class="cnt" id="stepCnt">0/3</span>
+      </div>
+      <div class="strip" id="stepList"></div>
     </div>
 
     <div class="card earn" id="earnCard">
@@ -1989,6 +2083,26 @@ button.srow:active{transform:scale(.985);}
       </button>
 
       <div class="ptitle">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        <span data-i18n="st_title">Статистика</span>
+      </div>
+
+      <div class="stgrid">
+        <div class="stcell"><span class="k" data-i18n="st_games">Сыграно</span><span class="v num" id="stGames">0</span></div>
+        <div class="stcell"><span class="k" data-i18n="st_wins">Побед</span><span class="v num" id="stWins">0</span></div>
+        <div class="stcell gold"><span class="k" data-i18n="st_best">Крупнейший выигрыш</span><span class="v num" id="stBest">0</span></div>
+        <div class="stcell gold"><span class="k" data-i18n="st_mult">Лучший множитель</span><span class="v num" id="stMult">—</span></div>
+        <div class="stcell"><span class="k" data-i18n="st_wager">Поставлено</span><span class="v num" id="stWager">0</span></div>
+        <div class="stcell"><span class="k" data-i18n="st_mined">Намайнено</span><span class="v num" id="stMined">0</span></div>
+      </div>
+
+      <button class="srow" id="pHist" style="margin-top:10px">
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.4l3.4 2"/></svg></span>
+        <span class="nm" data-i18n="gh_title">История игр</span>
+        <span class="ch"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+      </button>
+
+      <div class="ptitle">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 14.5a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.84 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.33 1.7 1.7 0 0 0-1.03 1.55V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.84l.06-.06a1.7 1.7 0 0 0 .33-1.88 1.7 1.7 0 0 0-1.55-1.03H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.84-2.83l.06.06a1.7 1.7 0 0 0 1.88.33H9.1a1.7 1.7 0 0 0 1.03-1.55V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.84l-.06.06a1.7 1.7 0 0 0-.33 1.88V9.1a1.7 1.7 0 0 0 1.55 1.03H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.55 1.03z"/></svg>
         <span data-i18n="set_title">Настройки</span>
       </div>
@@ -2302,6 +2416,30 @@ button.srow:active{transform:scale(.985);}
       </div>
     </div>
     <button class="btn-buy" id="ntClear" data-i18n="nt_clear">Очистить</button>
+  </div>
+</div>
+
+<div class="sheet-wrap" id="ghSheet" aria-hidden="true">
+  <div class="sheet-bd"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ghTitle">
+    <div class="sheet-top" id="ghTop">
+      <div class="grab"></div>
+      <div class="sheet-hd">
+        <span class="t" id="ghTitle" data-i18n="gh_title">История игр</span>
+        <button class="sheet-x" id="ghX" aria-label="Закрыть">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="wbody">
+      <div class="ghlist" id="ghList"></div>
+      <div class="ghempty" id="ghEmpty" hidden>
+        <span class="ic">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.4l3.4 2"/></svg>
+        </span>
+        <p data-i18n="gh_empty">Здесь появятся ваши раунды в Краше, ПВП и открытые кейсы</p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2648,6 +2786,13 @@ ru:{
  iv_note:'Вложенные звёзды нельзя вернуть — они превращаются в мощность и приносят доход в кошелёк.',
  nt_title:'Уведомления', nt_clear:'Очистить', nt_now:'только что',
  nt_empty:'Здесь появятся начисления, выигрыши и покупки',
+ fs_title:'С чего начать', fs_bonus:'Бонус', fs_sub:'Подписка',
+ fs_case:'Кейс', fs_r:'+{n} ★', fs_from:'от {n} ★',
+ st_title:'Статистика', st_games:'Сыграно', st_wins:'Побед', st_best:'Крупнейший выигрыш',
+ st_mult:'Лучший множитель', st_wager:'Поставлено', st_mined:'Намайнено',
+ gh_title:'История игр', gh_empty:'Здесь появятся ваши раунды в Краше, ПВП и открытые кейсы',
+ gh_crash:'Краш', gh_pvp:'ПВП', gh_kase:'Кейс', gh_lost:'Ставка {n} ★ · мимо',
+ gh_bet:'Ставка {n} ★', gh_free:'Бесплатный',
  nt_dep:'Пополнение баланса', nt_wd:'Вывод звёзд', nt_inv:'Вложено в мощность',
  nt_pack:'Пакет мощности', nt_mine:'Намайнено без вас',
  nt_task:'Награда за задание', nt_daily:'Ежедневный бонус',
@@ -2736,6 +2881,13 @@ en:{
  iv_note:'Invested stars cannot be taken back — they become hashpower and pay income into your wallet.',
  nt_title:'Notifications', nt_clear:'Clear', nt_now:'just now',
  nt_empty:'Payouts, wins and purchases will show up here',
+ fs_title:'Where to start', fs_bonus:'Bonus', fs_sub:'Channel',
+ fs_case:'Case', fs_r:'+{n} ★', fs_from:'from {n} ★',
+ st_title:'Stats', st_games:'Rounds', st_wins:'Wins', st_best:'Biggest win',
+ st_mult:'Best multiplier', st_wager:'Wagered', st_mined:'Mined',
+ gh_title:'Game history', gh_empty:'Your Crash and PVP rounds and opened cases will show up here',
+ gh_crash:'Crash', gh_pvp:'PVP', gh_kase:'Case', gh_lost:'Bet {n} ★ · missed',
+ gh_bet:'Bet {n} ★', gh_free:'Free',
  nt_dep:'Balance topped up', nt_wd:'Stars withdrawn', nt_inv:'Invested into power',
  nt_pack:'Power pack', nt_mine:'Mined while away',
  nt_task:'Task reward', nt_daily:'Daily bonus',
@@ -2824,6 +2976,13 @@ uk:{
  iv_note:'Вкладені зірки не можна повернути — вони стають потужністю і приносять дохід у гаманець.',
  nt_title:'Сповіщення', nt_clear:'Очистити', nt_now:'щойно',
  nt_empty:'Тут з’являться нарахування, виграші та покупки',
+ fs_title:'З чого почати', fs_bonus:'Бонус', fs_sub:'Підписка',
+ fs_case:'Кейс', fs_r:'+{n} ★', fs_from:'від {n} ★',
+ st_title:'Статистика', st_games:'Зіграно', st_wins:'Перемог', st_best:'Найбільший виграш',
+ st_mult:'Найкращий множник', st_wager:'Поставлено', st_mined:'Намайнено',
+ gh_title:'Історія ігор', gh_empty:'Тут з’являться ваші раунди в Краші, ПВП і відкриті кейси',
+ gh_crash:'Краш', gh_pvp:'ПВП', gh_kase:'Кейс', gh_lost:'Ставка {n} ★ · повз',
+ gh_bet:'Ставка {n} ★', gh_free:'Безкоштовний',
  nt_dep:'Поповнення балансу', nt_wd:'Виведення зірок', nt_inv:'Вкладено в майнінг',
  nt_pack:'Пакет потужності', nt_mine:'Намайнено без вас',
  nt_task:'Нагорода за завдання', nt_daily:'Щоденний бонус',
@@ -3172,7 +3331,17 @@ var SAVED=(function(){
       return e && typeof e.k==='string' && isFinite(+e.a) && isFinite(+e.t);
     }).slice(0,40) : [];
     var num=function(v){ v=+v; return isFinite(v)&&v>0 ? v : 0; };
+    /* Журнал игр и итоги живут отдельно: список обрезан последними
+       полусотней раундов, а «сыграно всего» и рекорды по нему не
+       восстановишь — их надо копить счётчиками, иначе цифры поедут
+       вниз, как только хвост обрежется. */
+    var gm=(o.gm && typeof o.gm==='object') ? o.gm : {};
+    var gl=Array.isArray(gm.l) ? gm.l.filter(function(e){
+      return e && typeof e.g==='string' && isFinite(+e.b) && isFinite(+e.w) && isFinite(+e.t);
+    }).slice(0,50) : [];
     return {bal:b, y:y, seen:t, tk:tk,
+            gm:{l:gl, n:Math.round(num(gm.n)), win:Math.round(num(gm.win)),
+                bx:num(gm.bx), bw:num(gm.bw), wag:num(gm.wag), won:num(gm.won)},
             dl:{streak:Math.max(0,Math.min(DAILY.length,+dl.streak||0)), last:String(dl.last||'')},
             mn:{d:{k:String((mn.d&&mn.d.k)||''), v:num(mn.d&&mn.d.v)},
                 w:{k:String((mn.w&&mn.w.k)||''), v:num(mn.w&&mn.w.v)},
@@ -3191,6 +3360,25 @@ var DL = SAVED ? SAVED.dl : {streak:0, last:''};
 /* Намайнено за день, неделю и всё время — метрика для таблицы лидеров.
    Считаем только доход с майнинга: выигрыши и награды туда не идут. */
 var MN = SAVED ? SAVED.mn : {d:{k:'',v:0}, w:{k:'',v:0}, a:0};
+/* Журнал игр: l — последние раунды для «Истории», остальное — итоги за
+   всё время. n сыграно, win выиграно, bx лучший множитель в Краше,
+   bw крупнейший выигрыш, wag поставлено, won получено. */
+var GM = SAVED ? SAVED.gm : {l:[], n:0, win:0, bx:0, bw:0, wag:0, won:0};
+/* Один раунд в журнал. Ставку и выигрыш пишем как есть: разницу
+   посчитает тот, кому она нужна, а хранить обе честнее. */
+function logGame(g, bet, win, x){
+  GM.n++; GM.wag+=bet; GM.won+=win;
+  if(win>0) GM.win++;
+  if(win>GM.bw) GM.bw=win;
+  if(g==='crash' && x>GM.bx) GM.bx=x;
+  GM.l.unshift({g:g, b:bet, w:win, x:x||0, t:Date.now()});
+  if(GM.l.length>50) GM.l.pop();
+  saveState();
+  /* Stats объявлен ниже по файлу: до его создания раунда сыграть нельзя,
+     но проверка дешевле, чем разбираться в порядке инициализации */
+  if(typeof Stats!=='undefined' && Stats) Stats.refresh();
+}
+
 /* by — кто пригласил (из start_param), n и earned наполняет сервер:
    клиент не может подтвердить чужую регистрацию и её не выдумывает */
 var RF = SAVED ? SAVED.rf : {by:'', n:0, earned:0};
@@ -3342,7 +3530,7 @@ if(SAVED && SAVED.seen && inv>0){
 function saveState(){
   try{ localStorage.setItem(SKEY, JSON.stringify({v:1, bal:bal, y:YIELD_PCT, seen:Date.now(),
                                                    tk:TK, dl:DL, mn:MN, rf:RF, fc:FC,
-                                                   inv:inv, nt:NT})); }catch(e){}
+                                                   inv:inv, nt:NT, gm:GM})); }catch(e){}
 }
 
 /* Сколько намайнено за `sec` секунд простоя при текущем балансе и ставке */
@@ -3487,17 +3675,21 @@ document.getElementById('wBack').addEventListener('click', hideAway);
 
 /* ─── навигация ─── */
 var pages = { earn:'p-earn', games:'p-games', tasks:'p-tasks', top:'p-top', me:'p-me' };
+function goPage(key){
+  var tab=document.querySelector('.tab[data-p="'+key+'"]');
+  if(!tab || tab.classList.contains('on')) return;
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
+  tab.classList.add('on');
+  for(var k in pages){
+    document.getElementById(pages[k]).classList.toggle('on', k===key);
+  }
+  scrollTo({top:0, behavior:'smooth'});
+}
 document.querySelectorAll('.tab').forEach(function(tab){
   tab.addEventListener('click', function(){
-    var key = tab.dataset.p;
     if(tab.classList.contains('on')) return;
     haptic('light');
-    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
-    tab.classList.add('on');
-    for(var k in pages){
-      document.getElementById(pages[k]).classList.toggle('on', k===key);
-    }
-    scrollTo({top:0, behavior:'smooth'});
+    goPage(tab.dataset.p);
   });
 });
 
@@ -3939,6 +4131,9 @@ var FIGHTERS=[
       bots.forEach(function(p){ if(p.st==='live') p.st='lose'; });
       renderPlayers();
       hist.unshift(target); if(hist.length>12) hist.pop(); renderHist();
+      /* проигранный раунд тоже раунд: без него «сыграно» врёт, а история
+         состоит из одних побед */
+      if(joined&&!cashed) logGame('crash', stake, 0, +target.toFixed(2));
       haptic(joined&&!cashed?'error':'warning');
       SFX.bust(joined&&!cashed);
       updBtn();
@@ -3953,6 +4148,7 @@ var FIGHTERS=[
       var me=bots.filter(function(p){ return p.me; })[0];
       if(me){ me.st='win'; me.took=win; me.at=mult; }
       renderPlayers(); updBtn(); haptic('success');
+      logGame('crash', stake, win, +mult.toFixed(2));
       FX.win(multEl, win); SFX.win(FX.сила(win));
     }
 
@@ -4186,10 +4382,14 @@ var FIGHTERS=[
       var rows=listEl.children;
       for(var j=0;j<rows.length;j++) rows[j].classList.add(j===win?'won':'out');
       var P=pot();
+      var моя=players.filter(function(p){ return p.me; })[0];
       if(players[win].me){ bal+=P; notify('pvp',P); goBtn.textContent=t('win_amt',{n:fmtInt(P)}); haptic('success');
         subEl.textContent=t('you_took'); FX.win(goBtn,P); SFX.win(FX.сила(P)); }
       else { goBtn.textContent=t('lost_to',{n:players[win].n}); haptic('error');
         subEl.textContent=t('won_by',{n:players[win].n}); SFX.miss(); }
+      /* в журнал попадает только своя игра: раунды, где человек не входил
+         в битву, к его статистике отношения не имеют */
+      if(моя) logGame('pvp', моя.s, players[win].me?P:0, 0);
       goBtn.disabled=true;
       raf=requestAnimationFrame(drift);
       setTimeout(newRound,2800);
@@ -4460,6 +4660,7 @@ var FIGHTERS=[
       if(cells[k]) cells[k].el.classList.add('win');
       var amt=cur.drops[win];
       bal+=amt; notify('kase',amt);
+      logGame('kase', cur.free?0:cur.price, amt, 0);
       reel.classList.remove('hit'); void reel.offsetWidth; reel.classList.add('hit');
       subEl.style.color=RAR[win];
       subEl.textContent=t('k_got',{n:fmtInt(amt),r:t('k_r'+(win+1))});
@@ -5117,6 +5318,7 @@ var Tasks = (function(){
     TK[id]='ready'; saveState();
     markTab();
     if(listEl.children.length) renderList();
+    Steps.refresh();                   // подписка и первый кейс — это шаги новичка
   }
 
   RERENDER.push(renderList);
@@ -5131,6 +5333,127 @@ var Tasks = (function(){
    таблица не перетасовывается при каждом открытии, а сама неделя
    отличается ото дня. Место игрока честное — по намайненному.
    ══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   Первые шаги
+   ══════════════════════════════════════════════════════ */
+/* Новичок открывает приложение с нулём: играть не на что, майнить нечем,
+   и путь наверх — бонус, подписка, первый кейс — ниоткуда не виден.
+   Блок ведёт по нему и исчезает совсем, когда всё пройдено: постоянное
+   напоминание о сделанном только занимает первый экран. */
+var Steps = (function(){
+  var box=document.getElementById('stepBox'), listEl=document.getElementById('stepList'),
+      cntEl=document.getElementById('stepCnt');
+  /* «Сделано» берём из тех же меток, которыми живут задания и бонус:
+     свой отдельный признак разошёлся бы с ними на первом же случае,
+     когда человек сделал шаг не отсюда, а из своего раздела. */
+  var ШАГИ=[
+    {k:'fs_bonus', r:function(){ return t('fs_r',{n:DAILY[0]}); },
+     done:function(){ return !!DL.last; },
+     go:function(){ Bonus.show(); }},
+    {k:'fs_sub',   r:function(){ return t('fs_r',{n:10}); },
+     done:function(){ return !!TK.sub; },
+     go:function(){ goPage('tasks'); }},
+    {k:'fs_case',  r:function(){ return t('fs_from',{n:20}); },
+     done:function(){ return !!TK.kase; },
+     go:function(){ goPage('games'); var b=document.getElementById('goCases'); if(b) b.click(); }}
+  ];
+
+  function render(){
+    var сделано=0;
+    listEl.innerHTML='';
+    ШАГИ.forEach(function(x,i){
+      var г=x.done(); if(г) сделано++;
+      var el=document.createElement('button');
+      el.type='button'; el.className='strow'+(г?' done':'');
+      el.innerHTML='<span class="no">'+(г
+          ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19.5 7"/></svg>'
+          : (i+1))+'</span>'+
+        '<span class="nm">'+t(x.k)+'</span>'+
+        '<span class="rw">'+x.r()+'</span>';
+      el.addEventListener('click',function(){ haptic('medium'); x.go(); });
+      listEl.appendChild(el);
+    });
+    cntEl.textContent=сделано+'/'+ШАГИ.length;
+    box.hidden = сделано===ШАГИ.length;
+  }
+
+  RERENDER.push(render);
+  render();
+  return { refresh:render };
+})();
+
+/* ══════════════════════════════════════════════════════
+   Статистика игрока и история игр
+   ══════════════════════════════════════════════════════ */
+/* Обе кормятся от одного журнала: цифры в профиле — накопленные итоги,
+   список — последние полсотни раундов. Считать итоги по списку нельзя,
+   он обрезан, и «сыграно» поехало бы вниз на пятьдесят первом раунде. */
+var Stats = (function(){
+  var ИКОНКИ={
+    crash:'<path d="M4 18.5 10 11l3.5 3.5L20 6"/><path d="M14.5 6H20v5.5"/>',
+    pvp:'<path d="M5 4h3l9.5 12.5"/><path d="M19 4h-3L6.5 16.5"/><path d="M4.5 17.5 7 20M19.5 17.5 17 20"/>',
+    kase:'<path d="M4 8.5 12 4.5l8 4v7L12 19.5l-8-4z"/><path d="M4 8.5 12 12.5l8-4M12 12.5v7"/>'
+  };
+  var g=document.getElementById('stGames'), w=document.getElementById('stWins'),
+      bwEl=document.getElementById('stBest'), bxEl=document.getElementById('stMult'),
+      wagEl=document.getElementById('stWager'), mndEl=document.getElementById('stMined'),
+      listEl=document.getElementById('ghList'), emptyEl=document.getElementById('ghEmpty');
+
+  /* звёздочка объявлена локально в каждом модуле, общей нет — своя дешевле,
+     чем тащить её в глобальную область ради одной строки */
+  function звёздочка(sz){
+    return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="currentColor"/></svg>';
+  }
+  function когда(ms){
+    var s=Math.max(0,(Date.now()-ms)/1000);
+    if(s<60)    return t('nt_now');
+    if(s<3600)  return t('wb_m',{n:Math.floor(s/60)});
+    if(s<86400) return t('wb_h',{n:Math.floor(s/3600)});
+    return t('wb_d',{n:Math.floor(s/86400)});
+  }
+
+  function render(){
+    g.textContent=fmtInt(GM.n);
+    w.textContent=fmtInt(GM.win);
+    bwEl.textContent=fmtInt(GM.bw);
+    /* прочерк, а не «0.00×»: множителя ещё не было, и ноль тут соврал бы */
+    bxEl.textContent=GM.bx>0 ? GM.bx.toFixed(2)+'×' : '—';
+    wagEl.textContent=fmtInt(GM.wag);
+    mndEl.textContent=fmtInt(MN.a);
+  }
+
+  function renderList(){
+    listEl.innerHTML='';
+    emptyEl.hidden=GM.l.length>0;
+    GM.l.forEach(function(e){
+      /* показываем чистый исход: человеку важно, поднялся он или просел,
+         а выплату без ставки читать невозможно — 6 ★ за кейс по 20 ★
+         выглядят выигрышем */
+      var чисто=e.w-e.b, вминус=чисто<0;
+      var имя=t('gh_'+e.g)+(e.g==='crash'&&e.x?' ×'+e.x.toFixed(2):'');
+      var под=e.b>0 ? t('gh_bet',{n:fmtInt(e.b)}) : t('gh_free');
+      if(e.w===0) под=t('gh_lost',{n:fmtInt(e.b)});
+      var row=document.createElement('div');
+      row.className='ghrow'+(вминус?' lose':'');
+      row.innerHTML='<span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" '+
+          'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+
+          ИКОНКИ[e.g]+'</svg></span>'+
+        '<span class="bd"><span class="nm">'+имя+'</span>'+
+          '<span class="tm">'+под+' · '+когда(e.t)+'</span></span>'+
+        '<span class="am">'+(вминус?'−':'+')+fmtInt(Math.abs(чисто))+' '+звёздочка(11)+'</span>';
+      listEl.appendChild(row);
+    });
+  }
+
+  var sheet=makeSheet('ghSheet','ghTop',{ onShow:renderList });
+  document.getElementById('ghX').addEventListener('click',sheet.hide);
+  document.getElementById('pHist').addEventListener('click',function(){ haptic('medium'); sheet.show(); });
+
+  RERENDER.push(function(){ render(); if(sheet.isOpen()) renderList(); });
+  render();
+  return { refresh:function(){ render(); if(sheet.isOpen()) renderList(); } };
+})();
+
 var Top = (function(){
   var MED=['#E4C078','#B9C0CC','#C79A6E'];
 
@@ -5370,6 +5693,7 @@ var Bonus = (function(){
     haptic('success'); beep(1050,0.14,0.05,'triangle');
     FX.reward(valEl, DAILY[p-1]);
     render(); centerNow(true);
+    Steps.refresh();                   // первый бонус закрывает первый шаг
   });
 
   /* минуты в кольце меняются нечасто, но полночь должна ловиться сама:
@@ -5380,7 +5704,7 @@ var Bonus = (function(){
 
   RERENDER.push(render);
   render();
-  return { ready:ready, refresh:render };
+  return { ready:ready, refresh:render, show:sheet.show };
 })();
 
 /* ══════════════════════════════════════════════════════
