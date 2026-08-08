@@ -45,8 +45,24 @@ module.exports = async (req, res) => {
     // вебхук на себя и увёл все платежи.
     if (req.method === 'GET') {
       const секрет = env('SETUP_SECRET');
-      const дали = String((req.query && req.query.setup) || '');
-      if (!секрет || дали !== секрет) { res.status(403).json({ ok: false, reason: 'forbidden' }); return; }
+      /* Разбираем адрес сами: req.query бывает пустым, а гадать, почему
+         «не пускает», дороже трёх строк кода. */
+      let дали = String((req.query && req.query.setup) || '');
+      if (!дали) {
+        try { дали = new URL(req.url, 'https://x').searchParams.get('setup') || ''; } catch (e) {}
+      }
+      if (!секрет) { res.status(403).json({ ok: false, reason: 'no_secret',
+        подсказка: 'переменная SH_SETUP_SECRET не задана или сборка старая' }); return; }
+      if (дали !== секрет) {
+        /* Сам пароль не показываем, но говорим, что именно не сошлось:
+           чаще всего строку обрезает или коверкает адресная строка. */
+        res.status(403).json({ ok: false, reason: 'forbidden',
+          получено_символов: дали.length, ожидалось_символов: секрет.length,
+          подсказка: дали.length === секрет.length
+            ? 'длина совпала, а строки разные — проверьте регистр и опечатки'
+            : 'длина не совпала — строку обрезало, лишние символы уберите из пароля' });
+        return;
+      }
 
       const хост = req.headers['x-forwarded-host'] || req.headers.host;
       const хук = 'https://' + хост + '/api/bot';
