@@ -303,6 +303,36 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // ── пополнение звёздами Telegram ─────────────────────────────────
+    // Здесь только выписывается счёт. Зачисление делает не эта функция и
+    // не приложение, а бот, когда Telegram сообщит ему об оплате: слово
+    // телефона «я заплатил» не стоит ничего.
+    if (action === 'topup') {
+      const n = Math.floor(Number(body.amount) || 0);
+      if (!(n >= 1 && n <= 100000)) { res.status(200).json({ ok: false, reason: 'bad_amount' }); return; }
+      // payload вернётся вместе с оплатой — по нему бот поймёт, кому зачислять
+      const payload = JSON.stringify({ v: 1, tg: u.tg_id, n: n });
+      try {
+        const r = await fetch('https://api.telegram.org/bot' + BOT + '/createInvoiceLink', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: 'StarsHash: ' + n + ' ★',
+            description: 'Пополнение счёта в StarsHash',
+            payload: payload,
+            currency: 'XTR',                       // Telegram Stars
+            provider_token: '',                    // для XTR токен провайдера не нужен
+            prices: [{ label: n + ' ★', amount: n }]
+          })
+        });
+        const j = await r.json().catch(() => ({}));
+        if (j && j.ok && j.result) { res.status(200).json({ ok: true, link: j.result }); return; }
+        res.status(200).json({ ok: false, reason: 'invoice_failed', error: (j && j.description) || '' });
+      } catch (e) {
+        res.status(200).json({ ok: false, reason: 'invoice_failed', error: String(e && e.message).slice(0, 120) });
+      }
+      return;
+    }
+
     // ── задание ──────────────────────────────────────────────────────
     // Телефон говорит только, какое задание закрылось. Сколько за него
     // причитается и не забирали ли уже — решает сервер.
