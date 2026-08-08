@@ -49,6 +49,11 @@ async function открыть(b, о) {
     const s = m.text();
     /* песочница не пускает telegram.org; в самом Telegram скрипт грузится */
     if (/TUNNEL_CONNECTION_FAILED|telegram-web-app/.test(s)) return;
+    /* Проверки открывают файл с диска, а сервер живёт по относительному
+       пути — обращение к нему по file:// браузер ругает сам. Приложение
+       такой отказ переживает и работает из памяти телефона; проверки,
+       которым сервер нужен, подставляют его через `о.сервер`. */
+    if (/api\/starshash/.test(s)) return;
     ошибки.push('консоль: ' + s.slice(0, 100));
   });
   p.ошибки = ошибки;
@@ -58,6 +63,38 @@ async function открыть(b, о) {
     if (ст && !localStorage.getItem('starshash_state')) localStorage.setItem('starshash_state', ст);
   }, [о.язык || 'ru', о.состояние ? JSON.stringify(о.состояние) : null]);
   if (о.звук) await p.addInitScript(() => { window.__звук = true; });
+
+  /* Подделка Telegram: настоящий telegram-web-app.js в песочницу не
+     пускают, поэтому объект собираем сами — иначе приложение считает,
+     что открыто в браузере, и половина веток не выполняется. */
+  if (о.телеграм) await p.addInitScript(о => {
+    window.Telegram = { WebApp: {
+      /* initData — подписанная строка; приложение её не разбирает, просто
+         пересылает серверу, поэтому здесь достаточно непустой заглушки.
+         Но без неё запросы к серверу не уходят вовсе. */
+      initData: о.initData || 'user=%7B%22id%22%3A1%7D&hash=подделка',
+      initDataUnsafe: { user: о.user || {}, start_param: о.start_param || '' },
+      viewportStableHeight: 752,
+      ready() {}, expand() {}, setHeaderColor() {}, setBackgroundColor() {},
+      openTelegramLink() {}, openLink() {},
+      HapticFeedback: { impactOccurred() {}, notificationOccurred() {}, selectionChanged() {} }
+    } };
+  }, о.телеграм);
+
+  /* Подставной сервер. `о.сервер` — что отвечать на каждое действие;
+     значение false означает «запрос не дошёл», и это отдельный важный
+     случай: упавший сервер не должен ронять приложение. */
+  if (о.сервер) await p.addInitScript(ответы => {
+    const настоящий = window.fetch;
+    window.fetch = function (u, init) {
+      if (String(u).indexOf('/api/starshash') < 0) return настоящий.apply(this, arguments);
+      let действие = 'state';
+      try { действие = JSON.parse(init.body).action || 'state'; } catch (e) {}
+      const о = ответы[действие];
+      if (о === false) return Promise.reject(new Error('нет связи'));
+      return Promise.resolve({ json: () => Promise.resolve(о || { ok: false, reason: 'unknown_action' }) });
+    };
+  }, о.сервер);
 
   await p.goto(АДРЕС);
   await p.waitForTimeout(о.пауза || 1700);

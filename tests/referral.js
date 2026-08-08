@@ -68,6 +68,49 @@ const { браузер, открыть, день, Отчёт } = require('./help
     await pg.close();
   }
 
+  /* Счётчики приглашённых знает только сервер: телефон пригласившего о
+     чужой регистрации не узнаёт никак. Поэтому проверяем и то, что цифры
+     сервера доезжают, и то, что без сервера остаются честные нули. */
+  о.раздел('счётчики с сервера');
+  const СОСТ = { bal: 1000, fs: { d: день() }, dl: { streak: 1, last: день() } };
+  p = await открыть(b, {
+    состояние: СОСТ,
+    телеграм: { user: { id: 6029995640, first_name: 'Андрій' } },
+    сервер: { state: { ok: true, ref_n: 7, ref: { by: '555', earned: 42 }, bal: 1000, inv: 0 } }
+  });
+  await p.click('.tab[data-p="me"]'); await p.waitForTimeout(400);
+  await p.click('#pRef'); await p.waitForTimeout(700);
+  const с = await p.evaluate(() => ({
+    n: document.getElementById('rfN').textContent,
+    e: document.getElementById('rfE').textContent,
+    знак: document.getElementById('pRefN').textContent,
+    пришёл: !document.getElementById('rfJoin').hidden
+  }));
+  о.проверка('приглашённые показаны числом сервера', с.n.replace(/\s/g, '') === '7', с.n);
+  о.проверка('заработано показано числом сервера', с.e.replace(/\s/g, '') === '42', с.e);
+  о.проверка('значок в профиле совпадает', с.знак.replace(/\s/g, '') === '7', с.знак);
+  о.проверка('связь с пригласившим подхвачена с сервера', с.пришёл);
+  await p.close();
+
+  о.раздел('сервера нет');
+  p = await открыть(b, {
+    состояние: СОСТ,
+    телеграм: { user: { id: 6029995640, first_name: 'Андрій' } },
+    сервер: { state: false }                       // запрос не доходит
+  });
+  await p.click('.tab[data-p="me"]'); await p.waitForTimeout(400);
+  await p.click('#pRef'); await p.waitForTimeout(700);
+  const без = await p.evaluate(() => ({
+    n: document.getElementById('rfN').textContent,
+    ссылка: document.getElementById('rfHost').textContent,
+    баланс: document.querySelector('.hero .big').textContent
+  }));
+  о.проверка('приложение работает без сервера', /1[\s ]*000/.test(без.баланс), без.баланс);
+  о.проверка('счётчик приглашённых — ноль, а не выдумка', без.n.replace(/\s/g, '') === '0', без.n);
+  о.проверка('ссылка на месте', /starshashx_bot/.test(без.ссылка), без.ссылка);
+  о.проверка('ошибок в консоли нет', p.ошибки.length === 0, p.ошибки.join(' | '));
+  await p.close();
+
   await b.close();
   process.exit(о.итог() ? 0 : 1);
 })();

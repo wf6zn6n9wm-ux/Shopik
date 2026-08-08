@@ -70,8 +70,14 @@ if (ru && en && uk) {
 const внеш = [...new Set([...src.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g)].map(m => m[1]))];
 const чужие = внеш.filter(u => !/telegram\.org/.test(u));
 о.проверка('грузится только скрипт телеграма', чужие.length === 0, внеш.join(', '));
-const сеть = [...new Set([...src.matchAll(/\b(fetch|XMLHttpRequest|WebSocket)\s*\(/g)].map(m => m[1]))];
-о.проверка('сетевых вызовов нет', сеть.length === 0, сеть.join(', '));
+/* Сетевые вызовы появились — приложение разговаривает со своим сервером.
+   Чужой адрес здесь означал бы утечку данных игрока на сторону, поэтому
+   сверяем, куда именно ходит fetch. */
+const кудаFetch = [...src.matchAll(/fetch\(\s*([^,)\s]+)/g)].map(m => m[1].trim());
+о.проверка('fetch только к своему серверу',
+  кудаFetch.length > 0 && кудаFetch.every(a => a === 'АДРЕС'), кудаFetch.join(' | '));
+о.проверка('адрес сервера — свой путь', /var АДРЕС='\/api\/starshash'/.test(src));
+о.проверка('нет XMLHttpRequest и WebSocket', !/\b(XMLHttpRequest|WebSocket)\s*\(/.test(src));
 
 о.раздел('мини-апп');
 [[/<script src="https:\/\/telegram\.org\/js\/telegram-web-app\.js"><\/script>/, 'подключён telegram-web-app.js'],
@@ -79,6 +85,17 @@ const сеть = [...new Set([...src.matchAll(/\b(fetch|XMLHttpRequest|WebSocket
  [/user-scalable=no/, 'масштабирование пальцами отключено'],
  [/theme-color/, 'цвет темы задан']
 ].forEach(([re, что]) => о.проверка(что, re.test(src)));
+
+/* Ссылка в никуда обходится дорого: задание «подписаться на канал»
+   начисляет звёзды за нажатие, а человек попадает в пустоту. Проверить
+   существование адреса отсюда нельзя, поэтому сверяем хотя бы то, что
+   заглушек не осталось. */
+о.раздел('адреса Telegram');
+/* имя бота лежит константой: адрес ссылки собирается из неё в рантайме */
+о.проверка('бот — starshashx_bot', /var BOT='starshashx_bot'/.test(src));
+[['канал', 'starhash_app'], ['поддержка', 'starshash_support']]
+  .forEach(([что, имя]) => о.проверка(что + ' — ' + имя, src.includes('t.me/' + имя)));
+о.проверка('заглушка t.me/starshash не осталась', !/t\.me\/starshash['"]/.test(src));
 
 о.раздел('опасные места');
 [[/\beval\s*\(/g, 'eval'],
