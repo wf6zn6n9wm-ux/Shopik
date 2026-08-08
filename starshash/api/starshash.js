@@ -13,6 +13,10 @@
 //   state              → состояние игрока; заводит нового, начисляет майнинг
 //   invest   {amount}  → вложить звёзды в мощность
 //   bonus              → забрать ежедневный бонус
+//   crash_bet {amount, auto}  → ставка в Краше; точка обрыва остаётся тут
+//   crash_settle {x}   → расчёт: забрал на x или не успел
+//   case_open {id}     → открыть кейс, приз выбирает сервер
+//   pvp      {stake}   → раунд ПВП: соперники и победитель с сервера
 //   top      {period}  → таблица лидеров: day | week | all
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
@@ -47,6 +51,31 @@ function rateFor(v) {
 
 // Лесенка ежедневного бонуса: первый день 10 ★, дальше по одной.
 const DAILY_FIRST = 10, DAILY_REST = 1, DAILY_LEN = 60;
+
+// Краш. Закон обрыва: target = min(ПОТОЛОК, ДОЛЯ/U), U равномерно на
+// (0,1]. Отдача при таком законе постоянная и равна ДОЛЕ, как бы игрок
+// ни выбирал момент вывода — на этом и держится честность игры.
+const КРАШ = { ДОЛЯ: 0.95, ПОТОЛОК: 25, РОСТ: 0.12 };
+// Множитель растёт как 1 + РОСТ·t². Обратная величина нужна, чтобы
+// проверить: не просит ли телефон вывод по множителю, до которого время
+// ещё не дошло.
+const крашX = сек => 1 + КРАШ.РОСТ * сек * сек;
+const крашСек = x => Math.sqrt(Math.max(0, x - 1) / КРАШ.РОСТ);
+
+// Кейсы. Значения выписаны явно, а не считаются из цены: они подогнаны
+// под границы, обещанные игроку на карточке кейса.
+const ШАНСЫ = [18, 22, 24, 25, 9, 2];              // проценты, в сумме 100
+const КЕЙСЫ = {
+  free:    { price: 0,   drops: [1, 6, 14, 24, 50, 100] },
+  spark:   { price: 20,  drops: [1, 6, 14, 24, 50, 100] },
+  neon:    { price: 50,  drops: [2, 15, 35, 60, 125, 250] },
+  crystal: { price: 100, drops: [5, 30, 70, 120, 250, 500] },
+  royal:   { price: 200, drops: [10, 60, 140, 240, 500, 1000] },
+  legend:  { price: 500, drops: [25, 150, 350, 600, 1250, 2500] }
+};
+
+// ПВП: банк забирает победитель за вычетом комиссии.
+const КОМИССИЯ = 0.05;
 
 // Доход идёт и при закрытом приложении, но разрыв ограничиваем месяцем:
 // на большем окне выигрывает съехавшее системное время, а не игрок.
@@ -263,6 +292,119 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // ── игры ─────────────────────────────────────────────────────────
+    // Общая часть: списать ставку, записать исход, обновить статистику.
+    async function ставка(u, сумма, вид) {
+      if (!(сумма > 0) || сумма > Number(u.bal)) return false;
+      u.bal = round6(Number(u.bal) - сумма);
+      u.plays += 1;
+      u.wagered = round6(Number(u.wagered) + сумма);
+      await sb('sh_users?tg_id=eq.' + u.tg_id, { method: 'PATCH',
+        body: JSON.stringify({ bal: u.bal, plays: u.plays, wagered: u.wagered }) });
+      await движение(u, 'bet', -сумма, { game: вид });
+      return true;
+    }
+    async function выплата(u, сумма, вид, x) {
+      const патч = {};
+      if (сумма > 0) {
+        u.bal = round6(Number(u.bal) + сумма);
+        u.won = round6(Number(u.won) + сумма);
+        u.wins += 1;
+        патч.bal = u.bal; патч.won = u.won; патч.wins = u.wins;
+        if (сумма > Number(u.best_win)) { u.best_win = сумма; патч.best_win = сумма; }
+      }
+      if (x && x > Number(u.best_x)) { u.best_x = x; патч.best_x = x; }
+      if (Object.keys(патч).length)
+        await sb('sh_users?tg_id=eq.' + u.tg_id, { method: 'PATCH', body: JSON.stringify(патч) });
+      if (сумма > 0) await движение(u, 'win', сумма, x ? { game: вид, x } : { game: вид });
+    }
+
+    // Краш, ставка. Точка обрыва рождается здесь и наружу не уходит:
+    // отдай её телефону — и игрок будет забирать за миг до обрыва всегда.
+    if (action === 'crash_bet') {
+      await начислить(u);
+      const сумма = round6(Number(body.amount) || 0);
+      if (!(сумма > 0)) { res.status(200).json({ ok: false, reason: 'bad_amount' }); return; }
+      // незакрытый прошлый раунд считаем проигранным: игрок закрыл
+      // приложение на взлёте, ставка уже списана, забирать нечего
+      await sb('sh_rounds?tg_id=eq.' + u.tg_id, { method: 'DELETE' });
+      if (!await ставка(u, сумма, 'crash')) { res.status(200).json({ ok: false, reason: 'not_enough' }); return; }
+      let target = Math.min(КРАШ.ПОТОЛОК, КРАШ.ДОЛЯ / Math.max(1e-9, Math.random()));
+      target = target < 1 ? 1 : +target.toFixed(2);
+      const авто = Number(body.auto) > 1 ? +Number(body.auto).toFixed(2) : null;
+      await sb('sh_rounds', { method: 'POST',
+        body: JSON.stringify({ tg_id: u.tg_id, bet: сумма, target, auto: авто }) });
+      res.status(200).json(наружу(u));
+      return;
+    }
+
+    // Краш, расчёт. Телефон присылает множитель, на котором нажали. Ему
+    // не верим дважды: он не должен превышать ни точку обрыва, ни то,
+    // до чего дорос множитель по часам сервера.
+    if (action === 'crash_settle') {
+      const р = один(await sb('sh_rounds?tg_id=eq.' + u.tg_id + '&select=*'));
+      if (!р) { res.status(200).json({ ok: false, reason: 'no_round' }); return; }
+      await sb('sh_rounds?tg_id=eq.' + u.tg_id, { method: 'DELETE' });
+
+      const цель = Number(р.target), ставк = Number(р.bet);
+      const прошло = (Date.now() - new Date(р.started_at).getTime()) / 1000;
+      // полсекунды на дорогу до сервера: без запаса честный вывод у
+      // человека с медленной связью засчитывался бы как обрыв
+      const потолокПоЧасам = крашX(прошло + 0.5);
+
+      let x = Number(body.x) || 0;
+      const авто = р.auto ? Number(р.auto) : 0;
+      if (авто && авто <= цель && крашX(прошло) >= авто) x = авто;   // авто-вывод сработал бы сам
+
+      const взял = x >= 1 && x < цель && x <= потолокПоЧасам;
+      const выигрыш = взял ? Math.floor(ставк * x) : 0;
+      await выплата(u, выигрыш, 'crash', взял ? x : 0);
+      res.status(200).json(наружу(u, { busted: !взял, target: цель, x: взял ? x : цель, win: выигрыш }));
+      return;
+    }
+
+    // Кейс. Приз выбирает сервер по тем же шансам, что написаны на
+    // экране до открытия; лента в приложении только показывает результат.
+    if (action === 'case_open') {
+      await начислить(u);
+      const к = КЕЙСЫ[String(body.id || '')];
+      if (!к) { res.status(200).json({ ok: false, reason: 'no_case' }); return; }
+      if (к.price > 0 && !await ставка(u, к.price, 'kase')) {
+        res.status(200).json({ ok: false, reason: 'not_enough' }); return;
+      }
+      let r = Math.random() * 100, i = ШАНСЫ.length - 1, acc = 0;
+      for (let j = 0; j < ШАНСЫ.length; j++) { acc += ШАНСЫ[j]; if (r < acc) { i = j; break; } }
+      const приз = к.drops[i];
+      await выплата(u, приз, 'kase', к.price ? +(приз / к.price).toFixed(2) : 0);
+      res.status(200).json(наружу(u, { slot: i, prize: приз }));
+      return;
+    }
+
+    // ПВП. Доля в банке равна шансу на победу, поэтому и соперников, и
+    // победителя выбирает сервер: оставь это телефону — и «случайность»
+    // станет управляемой.
+    if (action === 'pvp') {
+      await начислить(u);
+      const ставк = round6(Number(body.stake) || 0);
+      if (!(ставк > 0)) { res.status(200).json({ ok: false, reason: 'bad_amount' }); return; }
+      if (!await ставка(u, ставк, 'pvp')) { res.status(200).json({ ok: false, reason: 'not_enough' }); return; }
+
+      // соперники: три-пять, ставки того же порядка, что и у игрока
+      const сколько = 3 + Math.floor(Math.random() * 3);
+      const соперники = [];
+      for (let i = 0; i < сколько; i++) {
+        const k = 0.4 + Math.random() * 2.2;
+        соперники.push(Math.max(10, Math.round(ставк * k / 5) * 5));
+      }
+      const банк = соперники.reduce((a, b) => a + b, ставк);
+      let r = Math.random() * банк, победитель = -1, acc = ставк;   // -1 — игрок
+      if (r >= acc) { for (let i = 0; i < соперники.length; i++) { acc += соперники[i]; if (r < acc) { победитель = i; break; } } }
+      const приз = победитель === -1 ? Math.floor(банк * (1 - КОМИССИЯ)) : 0;
+      await выплата(u, приз, 'pvp', приз ? +(приз / ставк).toFixed(2) : 0);
+      res.status(200).json(наружу(u, { rivals: соперники, winner: победитель, pot: банк, win: приз }));
+      return;
+    }
+
     // ── таблица лидеров ──────────────────────────────────────────────
     // Настоящая: берём из журнала, а не рисуем ботами.
     if (action === 'top') {
@@ -286,3 +428,9 @@ module.exports.rateFor = rateFor;
 module.exports.BOOSTS = BOOSTS;
 module.exports.BASE_YIELD = BASE_YIELD;
 module.exports.DAILY = { first: DAILY_FIRST, rest: DAILY_REST, len: DAILY_LEN };
+module.exports.КРАШ = КРАШ;
+module.exports.крашX = крашX;
+module.exports.крашСек = крашСек;
+module.exports.ШАНСЫ = ШАНСЫ;
+module.exports.КЕЙСЫ = КЕЙСЫ;
+module.exports.КОМИССИЯ = КОМИССИЯ;

@@ -65,6 +65,20 @@ create table if not exists sh_tx (
 create index if not exists sh_tx_user on sh_tx(tg_id, created_at desc);
 create index if not exists sh_tx_kind on sh_tx(kind, created_at desc);
 
+-- ── Открытый раунд Краша ─────────────────────────────────────────────
+-- Точку обрыва выбирает сервер и держит при себе: если её отдать
+-- телефону, игрок будет забирать за миг до обрыва каждый раз.
+--
+-- Один открытый раунд на игрока — больше и не нужно, а ключ по игроку
+-- сам не даёт поставить дважды на один раунд.
+create table if not exists sh_rounds (
+  tg_id      bigint primary key references sh_users(tg_id) on delete cascade,
+  bet        numeric(20,6) not null,
+  target     numeric(10,2) not null,             -- секрет до расчёта
+  auto       numeric(10,2),                      -- авто-вывод, если включён
+  started_at timestamptz not null default now()
+);
+
 -- ── Приглашения ──────────────────────────────────────────────────────
 -- Связь односторонняя и на всю жизнь: перепривязать себя к другому
 -- пригласившему нельзя, поэтому ключ — приглашённый.
@@ -112,6 +126,7 @@ create or replace view sh_top_week as
 alter table sh_users enable row level security;
 alter table sh_tx    enable row level security;
 alter table sh_refs  enable row level security;
+alter table sh_rounds enable row level security;
 
 -- Разрешающих правил не создаём ни одного: при включённом RLS это значит
 -- «нельзя никому». Ключ service_role защиту обходит — им и ходит сервер.
@@ -120,11 +135,11 @@ alter table sh_refs  enable row level security;
 -- expose new tables» при создании проекта: он может стоять и так и эдак,
 -- а база должна работать одинаково.
 grant usage on schema public to service_role;
-grant select, insert, update, delete on sh_users, sh_tx, sh_refs to service_role;
+grant select, insert, update, delete on sh_users, sh_tx, sh_refs, sh_rounds to service_role;
 grant select on sh_top_all, sh_top_day, sh_top_week to service_role;
 grant usage, select on sequence sh_tx_id_seq to service_role;
 
 -- А у публичных ролей забираем всё: пусть утёкший анонимный ключ упрётся
 -- в отсутствие прав, а не только в RLS.
-revoke all on sh_users, sh_tx, sh_refs from anon, authenticated;
+revoke all on sh_users, sh_tx, sh_refs, sh_rounds from anon, authenticated;
 revoke all on sh_top_all, sh_top_day, sh_top_week from anon, authenticated;
