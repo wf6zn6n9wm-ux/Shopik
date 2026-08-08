@@ -8,7 +8,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ВСЕ = ['source', 'layout', 'smoke', 'state', 'money', 'games', 'economy',
-             'hero', 'bonus', 'referral', 'daily', 'fee', 'crash', 'avatar', 'server'];
+             'hero', 'bonus', 'referral', 'daily', 'fee', 'crash', 'avatar', 'server',
+             'withdraw'];
 
 const выбор = process.argv.slice(2);
 const список = выбор.length ? выбор : ВСЕ;

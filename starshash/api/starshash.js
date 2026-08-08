@@ -87,6 +87,21 @@ const КОМИССИЯ = 0.05;
 const ЗАДАНИЯ = { sub: 10, invite: 10, topup: 5, boost: 8, kase: 6, crash: 5, pvp: 5, wd: 10 };
 const ЗАДАНИЯ_ДНЯ = { d_play: 4, d_case: 4, d_win: 6 };
 
+// Вывод. Заявку рассматривает человек-админ; деньги снимаются сразу и
+// висят в удержании, отказ их возвращает. Комиссия одна на оба способа,
+// курс — для GRAM. Значения обязаны совпадать с index.html: игрок не
+// должен видеть одну сумму, а получать другую.
+const ВЫВОД = { MIN: 150, FEE: 0.05, GRAM: 0.01 };
+// Разбор суммы вывода: сколько спишется целиком, сколько удержим и что
+// дойдёт до получателя. Отдельной функцией — её же сверяет набор
+// `withdraw` без базы, как остальную экономику.
+function расчётВывода(amount) {
+  const сумма = Math.floor(Number(amount) || 0);
+  const fee = Math.round(сумма * ВЫВОД.FEE * 1e6) / 1e6;
+  const net = Math.round((сумма - fee) * 1e6) / 1e6;
+  return { сумма, fee, net };
+}
+
 // Доход идёт и при закрытом приложении, но разрыв ограничиваем месяцем:
 // на большем окне выигрывает съехавшее системное время, а не игрок.
 const OFFLINE_CAP = 30 * 86400;
@@ -357,6 +372,40 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // ── заявка на вывод ──────────────────────────────────────────────
+    // Деньги снимаем сразу и держим в заявке: иначе игрок оставит вывод и
+    // тут же проиграет те же звёзды. Отказ админа их вернёт. Настоящую
+    // выплату делает человек — сервер лишь ведёт учёт и держит удержание.
+    if (action === 'withdraw') {
+      await начислить(u);
+      const method = String(body.method || 'stars');
+      if (method !== 'stars' && method !== 'gram') { res.status(200).json({ ok: false, reason: 'bad_method' }); return; }
+      const dest = String(body.dest || '').trim().slice(0, 128);
+      if (!dest) { res.status(200).json({ ok: false, reason: 'no_dest' }); return; }
+      const { сумма, fee, net } = расчётВывода(body.amount);
+      if (!(сумма >= ВЫВОД.MIN)) { res.status(200).json({ ok: false, reason: 'below_min' }); return; }
+      if (сумма > Number(u.bal)) { res.status(200).json({ ok: false, reason: 'not_enough' }); return; }
+      u.bal = round6(Number(u.bal) - сумма);
+      await sb('sh_users?tg_id=eq.' + u.tg_id, { method: 'PATCH', body: JSON.stringify({ bal: u.bal }) });
+      await движение(u, 'withdraw', -сумма, { method, dest, fee, net });
+      const заявка = один(await sb('sh_withdrawals', {
+        method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ tg_id: u.tg_id, method, amount: сумма, fee, net, dest })
+      }));
+      res.status(200).json(наружу(u, { wd: заявка }));
+      return;
+    }
+
+    // ── история выводов игрока ───────────────────────────────────────
+    // Свои заявки со статусом: чтобы человек видел, что вывод в работе, а
+    // не пропал. Только свои — чужие сюда не отдаём.
+    if (action === 'withdrawals') {
+      const rows = await sb('sh_withdrawals?tg_id=eq.' + u.tg_id +
+        '&select=id,method,amount,fee,net,dest,status,note,created_at,decided_at&order=created_at.desc&limit=50');
+      res.status(200).json({ ok: true, rows: rows || [] });
+      return;
+    }
+
     // ── игры ─────────────────────────────────────────────────────────
     // Общая часть: списать ставку, записать исход, обновить статистику.
     async function ставка(u, сумма, вид) {
@@ -480,6 +529,59 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // ── админка: заявки на вывод ─────────────────────────────────────
+    // Видит только админ (tg_id в SH_ADMIN_IDS). Обычному игроку — отказ,
+    // даже если он подберёт имя действия: доступ проверяется по подписи, а
+    // не по тому, что прислал клиент.
+    if (action === 'admin_withdrawals') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      const st = String(body.status || 'pending');
+      const флаг = ['pending', 'done', 'rejected'].indexOf(st) !== -1 ? '&status=eq.' + st : '';
+      const rows = await sb('sh_withdrawals?select=id,tg_id,method,amount,fee,net,dest,status,note,created_at,decided_at,decided_by' +
+        флаг + '&order=created_at.desc&limit=200');
+      // имена подтягиваем одним запросом — в списке видно, кому платить
+      const имена = {};
+      const ids = [...new Set((rows || []).map(r => r.tg_id))];
+      if (ids.length) {
+        const us = await sb('sh_users?tg_id=in.(' + ids.join(',') + ')&select=tg_id,name');
+        (us || []).forEach(x => { имена[x.tg_id] = x.name; });
+      }
+      (rows || []).forEach(r => { r.name = имена[r.tg_id] || ''; });
+      res.status(200).json({ ok: true, status: st, rows: rows || [] });
+      return;
+    }
+
+    // ── админка: решение по заявке ───────────────────────────────────
+    // done — выплачено (баланс уже списан при заявке); reject — возврат
+    // суммы на баланс. Только из состояния pending и только один раз:
+    // повторное решение ничего не двигает.
+    if (action === 'admin_decide') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      const id = Math.floor(Number(body.id) || 0);
+      const decision = String(body.decision || '');
+      if (!id || (decision !== 'done' && decision !== 'reject')) { res.status(200).json({ ok: false, reason: 'bad_request' }); return; }
+      const з = один(await sb('sh_withdrawals?id=eq.' + id + '&select=*'));
+      if (!з) { res.status(200).json({ ok: false, reason: 'no_wd' }); return; }
+      if (з.status !== 'pending') { res.status(200).json({ ok: false, reason: 'already' }); return; }
+      const note = String(body.note || '').trim().slice(0, 200) || null;
+      const t = new Date().toISOString();
+      if (decision === 'reject') {
+        // возвращаем удержанное владельцу заявки — за отклонённую платить нельзя
+        const вл = один(await sb('sh_users?tg_id=eq.' + з.tg_id + '&select=bal'));
+        if (вл) {
+          const бал = round6(Number(вл.bal) + Number(з.amount));
+          await sb('sh_users?tg_id=eq.' + з.tg_id, { method: 'PATCH', body: JSON.stringify({ bal: бал }) });
+          await sb('sh_tx', { method: 'POST', body: JSON.stringify({
+            tg_id: з.tg_id, kind: 'admin', amount: round6(Number(з.amount)), bal_after: бал, meta: { wd: id, refund: true } }) });
+        }
+      }
+      const итог = один(await sb('sh_withdrawals?id=eq.' + id, {
+        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: decision === 'done' ? 'done' : 'rejected', note, decided_by: me.id, decided_at: t }) }));
+      res.status(200).json({ ok: true, wd: итог });
+      return;
+    }
+
     res.status(400).json({ ok: false, reason: 'unknown_action' });
   } catch (e) {
     res.status(500).json({ ok: false, reason: 'server', detail: String(e && e.message || e).slice(0, 200) });
@@ -501,3 +603,5 @@ module.exports.КЕЙСЫ = КЕЙСЫ;
 module.exports.КОМИССИЯ = КОМИССИЯ;
 module.exports.ЗАДАНИЯ = ЗАДАНИЯ;
 module.exports.ЗАДАНИЯ_ДНЯ = ЗАДАНИЯ_ДНЯ;
+module.exports.ВЫВОД = ВЫВОД;
+module.exports.расчётВывода = расчётВывода;
