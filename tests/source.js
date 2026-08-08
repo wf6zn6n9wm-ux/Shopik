@@ -70,8 +70,14 @@ if (ru && en && uk) {
 const внеш = [...new Set([...src.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g)].map(m => m[1]))];
 const чужие = внеш.filter(u => !/telegram\.org/.test(u));
 о.проверка('грузится только скрипт телеграма', чужие.length === 0, внеш.join(', '));
-const сеть = [...new Set([...src.matchAll(/\b(fetch|XMLHttpRequest|WebSocket)\s*\(/g)].map(m => m[1]))];
-о.проверка('сетевых вызовов нет', сеть.length === 0, сеть.join(', '));
+/* Сетевые вызовы появились — приложение разговаривает со своим сервером.
+   Чужой адрес здесь означал бы утечку данных игрока на сторону, поэтому
+   сверяем, куда именно ходит fetch. */
+const кудаFetch = [...src.matchAll(/fetch\(\s*([^,)\s]+)/g)].map(m => m[1].trim());
+о.проверка('fetch только к своему серверу',
+  кудаFetch.length > 0 && кудаFetch.every(a => a === 'АДРЕС'), кудаFetch.join(' | '));
+о.проверка('адрес сервера — свой путь', /var АДРЕС='\/api\/starshash'/.test(src));
+о.проверка('нет XMLHttpRequest и WebSocket', !/\b(XMLHttpRequest|WebSocket)\s*\(/.test(src));
 
 о.раздел('мини-апп');
 [[/<script src="https:\/\/telegram\.org\/js\/telegram-web-app\.js"><\/script>/, 'подключён telegram-web-app.js'],
