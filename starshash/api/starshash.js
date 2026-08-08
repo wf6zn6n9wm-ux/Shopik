@@ -136,6 +136,35 @@ function verifyInitData(initData, botToken) {
   } catch (e) { return null; }
 }
 
+// ── Вход в админку из браузера ───────────────────────────────────────
+// Мини-апп присылает initData, но админка — отдельная страница, и её
+// открывают в обычном браузере, где initData взяться неоткуда. Там вход
+// идёт через Telegram Login Widget: он присылает те же поля, подписанные
+// иначе — ключ здесь sha256 от токена, а не HMAC 'WebAppData'.
+function verifyLoginWidget(auth, botToken) {
+  try {
+    if (!auth || !auth.hash || !botToken) return null;
+    const hash = String(auth.hash);
+    const rest = {};
+    Object.keys(auth).forEach(k => { if (k !== 'hash' && auth[k] != null) rest[k] = auth[k]; });
+    const dcs = Object.keys(rest).sort().map(k => k + '=' + rest[k]).join('\n');
+    const secret = crypto.createHash('sha256').update(botToken).digest();
+    const calc = crypto.createHmac('sha256', secret).update(dcs).digest('hex');
+    if (calc.length !== hash.length ||
+        !crypto.timingSafeEqual(Buffer.from(calc), Buffer.from(hash))) return null;
+    // свежесть та же, что у initData: сутки
+    if (auth.auth_date && (Date.now() / 1000 - Number(auth.auth_date)) > 86400) return null;
+    if (!auth.id) return null;
+    return {
+      id: Number(auth.id),
+      name: (auth.first_name || '') + (auth.last_name ? ' ' + auth.last_name : ''),
+      photo_url: auth.photo_url || null,
+      lang: 'ru',
+      start_param: ''
+    };
+  } catch (e) { return null; }
+}
+
 // Глушилка всплесков от одного игрока. Основная защита — подпись: без
 // настоящего аккаунта Telegram сюда не дойти. Живёт в памяти инстанса,
 // то есть работает приблизительно — этого достаточно.
@@ -163,7 +192,9 @@ module.exports = async (req, res) => {
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
     body = body || {};
 
-    const me = verifyInitData(body.initData, BOT);
+    // мини-апп присылает initData, браузерная админка — auth от Login Widget
+    let me = verifyInitData(body.initData, BOT);
+    if (!me && body.auth) me = verifyLoginWidget(body.auth, BOT);
     if (!me) { res.status(401).json({ ok: false, reason: 'bad_auth' }); return; }
 
     const ADMINS = env('ADMIN_IDS').split(',').map(s => s.trim()).filter(Boolean);
@@ -534,7 +565,7 @@ module.exports = async (req, res) => {
     // даже если он подберёт имя действия: доступ проверяется по подписи, а
     // не по тому, что прислал клиент.
     if (action === 'admin_withdrawals') {
-      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
       const st = String(body.status || 'pending');
       const флаг = ['pending', 'done', 'rejected'].indexOf(st) !== -1 ? '&status=eq.' + st : '';
       const rows = await sb('sh_withdrawals?select=id,tg_id,method,amount,fee,net,dest,status,note,created_at,decided_at,decided_by' +
@@ -556,7 +587,7 @@ module.exports = async (req, res) => {
     // суммы на баланс. Только из состояния pending и только один раз:
     // повторное решение ничего не двигает.
     if (action === 'admin_decide') {
-      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
       const id = Math.floor(Number(body.id) || 0);
       const decision = String(body.decision || '');
       if (!id || (decision !== 'done' && decision !== 'reject')) { res.status(200).json({ ok: false, reason: 'bad_request' }); return; }
@@ -582,6 +613,130 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // ── админка: дашборд ─────────────────────────────────────────────
+    // Показатели и графики за 30 дней. Считаем по журналу движений: он и
+    // так ведётся на каждое изменение баланса, а отдельные счётчики рано
+    // или поздно разъехались бы с ним.
+    if (action === 'admin_dash') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const СУТКИ = 86400000;
+      const д10 = s => String(s || '').slice(0, 10);
+      const назад = n => new Date(Date.now() - n * СУТКИ).toISOString().slice(0, 10);
+      const сегодня = д10(new Date().toISOString());
+      const с30 = new Date(Date.now() - 29 * СУТКИ).toISOString();
+
+      const users = await sb('sh_users?select=tg_id,name,bal,inv,mined,banned,created_at,seen_at&limit=100000') || [];
+      /* Журнал за 30 дней тянем целиком: агрегировать на стороне базы
+         пришлось бы отдельным представлением, а это лишний ручной шаг при
+         выкладке. Предел ставим явно и, если упёрлись, честно говорим об
+         этом в панели — молча показывать неполные числа нельзя. */
+      const ПРЕДЕЛ = 100000;
+      const tx = await sb('sh_tx?created_at=gte.' + encodeURIComponent(с30) +
+        '&select=kind,amount,tg_id,created_at&order=created_at.desc&limit=' + ПРЕДЕЛ) || [];
+      const wd = await sb('sh_withdrawals?select=status,amount,net,created_at&limit=100000') || [];
+
+      const сумма = (arr, f) => arr.reduce((s, r) => s + (Number(f(r)) || 0), 0);
+      const заДень = (k, d) => tx.filter(r => r.kind === k && д10(r.created_at) === d);
+      const поВиду = k => tx.filter(r => r.kind === k);
+      const окр = v => Math.round(v * 100) / 100;
+
+      const пополнено = сумма(поВиду('topup'), r => r.amount);
+      const выведено = Math.abs(сумма(поВиду('withdraw'), r => r.amount));
+      const ставки = Math.abs(сумма(поВиду('bet'), r => r.amount));
+      const выигрыши = сумма(поВиду('win'), r => r.amount);
+
+      const totals = {
+        users: users.length,
+        newToday: users.filter(u => д10(u.created_at) === сегодня).length,
+        new7d: users.filter(u => д10(u.created_at) >= назад(6)).length,
+        banned: users.filter(u => u.banned).length,
+        online: users.filter(u => Date.now() - new Date(u.seen_at).getTime() < СУТКИ).length,
+        bal: окр(сумма(users, u => u.bal)),
+        inv: окр(сумма(users, u => u.inv)),
+        mined: окр(сумма(users, u => u.mined)),
+        topup30: окр(пополнено),
+        wd30: окр(выведено),
+        bet30: окр(ставки),
+        win30: окр(выигрыши),
+        // казна с игр: сколько поставили минус сколько выиграли
+        ggr30: окр(ставки - выигрыши),
+        bonus30: окр(сумма(поВиду('bonus'), r => r.amount) + сумма(поВиду('task'), r => r.amount)),
+        ref30: окр(сумма(поВиду('ref'), r => r.amount)),
+        dau: new Set(tx.filter(r => д10(r.created_at) === сегодня).map(r => r.tg_id)).size,
+        wdPending: wd.filter(w => w.status === 'pending').length,
+        wdPendingSum: окр(сумма(wd.filter(w => w.status === 'pending'), w => w.amount)),
+        wdDone: wd.filter(w => w.status === 'done').length,
+        wdDoneSum: окр(сумма(wd.filter(w => w.status === 'done'), w => w.net)),
+        wdRejected: wd.filter(w => w.status === 'rejected').length
+      };
+
+      const дни = []; for (let i = 29; i >= 0; i--) дни.push(назад(i));
+      const ряд = f => дни.map(d => ({ date: d, v: окр(f(d)) }));
+      const series = {
+        users: ряд(d => users.filter(u => д10(u.created_at) === d).length),
+        topup: ряд(d => сумма(заДень('topup', d), r => r.amount)),
+        withdraw: ряд(d => Math.abs(сумма(заДень('withdraw', d), r => r.amount))),
+        bet: ряд(d => Math.abs(сумма(заДень('bet', d), r => r.amount))),
+        win: ряд(d => сумма(заДень('win', d), r => r.amount)),
+        mine: ряд(d => сумма(заДень('mine', d), r => r.amount)),
+        dau: дни.map(d => ({ date: d, v: new Set(tx.filter(r => д10(r.created_at) === d).map(r => r.tg_id)).size }))
+      };
+
+      res.status(200).json({ ok: true, admin: { name: me.name, id: me.id },
+        totals, series, truncated: tx.length >= ПРЕДЕЛ });
+      return;
+    }
+
+    // ── админка: игроки ──────────────────────────────────────────────
+    if (action === 'admin_users') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const q = String(body.q || '').trim().slice(0, 64);
+      let путь = 'sh_users?select=tg_id,name,bal,inv,mined,wagered,won,plays,banned,note,created_at,seen_at';
+      if (q) {
+        // ищем и по имени, и по номеру: админ помнит то одно, то другое
+        путь += /^\d+$/.test(q) ? '&tg_id=eq.' + q : '&name=ilike.' + encodeURIComponent('*' + q + '*');
+      }
+      путь += '&order=' + (q ? 'created_at.desc' : 'bal.desc') + '&limit=100';
+      const rows = await sb(путь) || [];
+      res.status(200).json({ ok: true, rows });
+      return;
+    }
+
+    // ── админка: правка баланса ──────────────────────────────────────
+    // Начислить или списать вручную. Пишем в журнал видом `admin` вместе с
+    // причиной: правка деньгами без следа — то же, что деньги из воздуха.
+    if (action === 'admin_adjust') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const кому = Math.floor(Number(body.tg_id) || 0);
+      const сумма = round6(Number(body.amount) || 0);
+      if (!кому || !сумма) { res.status(200).json({ ok: false, reason: 'bad_request' }); return; }
+      const цель = один(await sb('sh_users?tg_id=eq.' + кому + '&select=tg_id,bal'));
+      if (!цель) { res.status(200).json({ ok: false, reason: 'no_user' }); return; }
+      const бал = round6(Number(цель.bal) + сумма);
+      if (бал < 0) { res.status(200).json({ ok: false, reason: 'not_enough' }); return; }
+      await sb('sh_users?tg_id=eq.' + кому, { method: 'PATCH', body: JSON.stringify({ bal: бал }) });
+      await sb('sh_tx', { method: 'POST', body: JSON.stringify({
+        tg_id: кому, kind: 'admin', amount: сумма, bal_after: бал,
+        meta: { by: me.id, reason: String(body.reason || '').slice(0, 200) } }) });
+      res.status(200).json({ ok: true, tg_id: кому, bal: бал });
+      return;
+    }
+
+    // ── админка: доступ игрока ───────────────────────────────────────
+    if (action === 'admin_ban') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const кого = Math.floor(Number(body.tg_id) || 0);
+      if (!кого) { res.status(200).json({ ok: false, reason: 'bad_request' }); return; }
+      const патч = { banned: !!body.banned };
+      if (body.note != null) патч.note = String(body.note).slice(0, 200);
+      const итог = один(await sb('sh_users?tg_id=eq.' + кого, {
+        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
+        body: JSON.stringify(патч) }));
+      if (!итог) { res.status(200).json({ ok: false, reason: 'no_user' }); return; }
+      res.status(200).json({ ok: true, user: итог });
+      return;
+    }
+
     res.status(400).json({ ok: false, reason: 'unknown_action' });
   } catch (e) {
     res.status(500).json({ ok: false, reason: 'server', detail: String(e && e.message || e).slice(0, 200) });
@@ -591,6 +746,7 @@ module.exports = async (req, res) => {
 // Наружу — для проверок: подпись и экономика проверяются без базы и без
 // Vercel, а расхождение ставок с index.html ловится сразу.
 module.exports.verifyInitData = verifyInitData;
+module.exports.verifyLoginWidget = verifyLoginWidget;
 module.exports.rateFor = rateFor;
 module.exports.BOOSTS = BOOSTS;
 module.exports.BASE_YIELD = BASE_YIELD;
