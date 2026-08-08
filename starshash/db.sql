@@ -119,6 +119,23 @@ create table if not exists sh_withdrawals (
   created_at  timestamptz not null default now()
 );
 
+-- Таблица с таким именем могла остаться от прежней задумки вывода — с
+-- другим набором столбцов. Тогда `create table if not exists` её молча
+-- пропустит, и следующий же указатель упадёт на столбце, которого нет.
+-- Поэтому недостающее дописываем: так повторный запуск доводит базу до
+-- нужного вида, а не падает. Данные при этом целы — столбцы только
+-- добавляются.
+alter table sh_withdrawals add column if not exists method     text;
+alter table sh_withdrawals add column if not exists amount     numeric(20,6);
+alter table sh_withdrawals add column if not exists fee        numeric(20,6);
+alter table sh_withdrawals add column if not exists net        numeric(20,6);
+alter table sh_withdrawals add column if not exists dest       text;
+alter table sh_withdrawals add column if not exists status     text not null default 'pending';
+alter table sh_withdrawals add column if not exists note       text;
+alter table sh_withdrawals add column if not exists decided_by bigint;
+alter table sh_withdrawals add column if not exists decided_at timestamptz;
+alter table sh_withdrawals add column if not exists created_at timestamptz not null default now();
+
 create index if not exists sh_wd_user   on sh_withdrawals(tg_id, created_at desc);
 create index if not exists sh_wd_status  on sh_withdrawals(status, created_at desc);
 
