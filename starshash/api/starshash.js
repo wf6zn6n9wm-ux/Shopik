@@ -19,12 +19,18 @@
 //   pvp      {stake}   → раунд ПВП: соперники и победитель с сервера
 //   task     {id}      → закрыть задание; награду называет сервер
 //   top      {period}  → таблица лидеров: day | week | all
+//   topup    {amount}  → счёт на звёзды Telegram; зачисляет бот
+//   crypto_invoice {amount} → счёт @CryptoBot; crypto_check — проверка оплаты
+//   withdraw / withdrawals  → заявка на вывод и своя история
+//   admin_*             → дашборд, заявки, игроки (только для админов)
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
 //   SH_SUPABASE_URL              — URL проекта Supabase под StarsHash
 //   SH_SUPABASE_SERVICE_ROLE_KEY — service_role ключ (секрет, в браузер не отдаём)
 //   SH_BOT_TOKEN                 — токен бота от @BotFather
 //   SH_ADMIN_IDS                 — tg_id админов через запятую (необязательно)
+//   SH_CRYPTOBOT_TOKEN           — ключ @CryptoBot для пополнения криптой
+//   SH_CRYPTO_ASSET              — чем платят: TON, USDT… Без неё крипта выключена
 // (читаются и без префикса SH_, если отдельные не заданы)
 //
 // Пока ключи не заданы — отвечаем not_configured, и приложение работает
@@ -123,6 +129,29 @@ function расчётВывода(amount) {
   const net = Math.round((сумма - fee) * 1e6) / 1e6;
   return { сумма, fee, net };
 }
+
+// ── Пополнение криптой через @CryptoBot ──────────────────────────────
+// Тот же путь, что в «шарке»: выписываем счёт его ключом, а зачисляем не
+// по вебхуку, а ленивой проверкой — приложение спрашивает статус, сервер
+// сам ходит в getInvoices нашим секретным токеном. На serverless это
+// надёжнее вебхука: не нужно ловить сырое тело и сверять подпись.
+//
+// Лесенка цен та же, что нарисована в приложении: цена звезды в крупном
+// пакете ниже, одним множителем это не выражается.
+const КРИПТО_ЛЕСЕНКА = [[50, 1], [100, 2], [200, 3.7], [500, 9], [1000, 18], [2500, 45], [5000, 89]];
+const КРИПТО_МИН = 50;
+function ценаКрипты(звёзд) {
+  const n = Math.floor(Number(звёзд) || 0);
+  if (!(n >= КРИПТО_МИН)) return 0;
+  const L = КРИПТО_ЛЕСЕНКА;
+  let a, b;
+  if (n <= L[0][0]) { a = L[0]; b = L[1]; }
+  else if (n >= L[L.length - 1][0]) { a = L[L.length - 2]; b = L[L.length - 1]; }
+  else for (let i = 0; i < L.length - 1; i++) if (n >= L[i][0] && n <= L[i + 1][0]) { a = L[i]; b = L[i + 1]; break; }
+  const k = (b[1] - a[1]) / (b[0] - a[0]);
+  return Math.round(Math.max(0, a[1] + (n - a[0]) * k) * 100) / 100;
+}
+const CRYPTOBOT_API = 'https://pay.crypt.bot/api/';
 
 // Доход идёт и при закрытом приложении, но разрыв ограничиваем месяцем:
 // на большем окне выигрывает съехавшее системное время, а не игрок.
@@ -422,6 +451,98 @@ module.exports = async (req, res) => {
       await sb('sh_users?tg_id=eq.' + u.tg_id, { method: 'PATCH', body: JSON.stringify(патч) });
       await движение(u, 'task', сумма, { id });
       res.status(200).json(наружу(u, { got: сумма }));
+      return;
+    }
+
+    // ── пополнение криптой: счёт ─────────────────────────────────────
+    // Актив задаём переменной окружения и без неё счёт не выписываем. Это
+    // намеренно: у @CryptoBot нет актива с именем GRAM, а угадать между
+    // TON и USDT нельзя — цена одна и та же, а денег выйдет втрое разно.
+    // Пока не задано, приложение показывает «оплата недоступна».
+    if (action === 'crypto_invoice') {
+      const CB = env('CRYPTOBOT_TOKEN'), ASSET = env('CRYPTO_ASSET');
+      if (!CB || !ASSET) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
+      const звёзд = Math.floor(Number(body.amount) || 0);
+      const цена = ценаКрипты(звёзд);
+      if (!(цена > 0)) { res.status(200).json({ ok: false, reason: 'bad_amount', min: КРИПТО_МИН }); return; }
+      try {
+        const r = await fetch(CRYPTOBOT_API + 'createInvoice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Crypto-Pay-API-Token': CB },
+          body: JSON.stringify({
+            asset: ASSET, amount: String(цена),
+            description: 'StarsHash: ' + звёзд + ' ★',
+            payload: JSON.stringify({ v: 1, tg: u.tg_id, n: звёзд }),
+            expires_in: 1800
+          })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!d || !d.ok || !d.result) {
+          res.status(200).json({ ok: false, reason: 'invoice_failed', error: (d && d.error && d.error.name) || '' }); return;
+        }
+        res.status(200).json({ ok: true, invoiceId: d.result.invoice_id,
+          link: d.result.mini_app_invoice_url || d.result.bot_invoice_url || d.result.pay_url,
+          stars: звёзд, price: цена, asset: ASSET });
+      } catch (e) {
+        res.status(200).json({ ok: false, reason: 'invoice_failed', error: String(e && e.message).slice(0, 120) });
+      }
+      return;
+    }
+
+    // ── пополнение криптой: проверка оплаты ──────────────────────────
+    // Слову телефона «я заплатил» не верим: статус спрашиваем у самого
+    // @CryptoBot нашим ключом. Зачисляем один раз — повторный опрос
+    // упирается в номер счёта, уже записанный в журнал.
+    if (action === 'crypto_check') {
+      const CB = env('CRYPTOBOT_TOKEN');
+      if (!CB) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
+      const id = Math.floor(Number(body.invoiceId) || 0);
+      if (!id) { res.status(200).json({ ok: false, reason: 'bad_invoice' }); return; }
+      const r = await fetch(CRYPTOBOT_API + 'getInvoices?invoice_ids=' + id, {
+        headers: { 'Crypto-Pay-API-Token': CB } });
+      const d = await r.json().catch(() => ({}));
+      const inv = d && d.ok && d.result && d.result.items && d.result.items[0];
+      if (!inv) { res.status(200).json({ ok: false, reason: 'not_found' }); return; }
+      if (inv.status !== 'paid') { res.status(200).json({ ok: true, status: inv.status }); return; }
+
+      // счёт выписан не этому игроку — чужую оплату себе не зачисляем
+      let pl = {}; try { pl = JSON.parse(inv.payload || '{}'); } catch (e) {}
+      if (Number(pl.tg) !== Number(u.tg_id)) { res.status(200).json({ ok: true, status: 'paid', credited: false }); return; }
+      const звёзд = Math.floor(Number(pl.n) || 0);
+      if (!(звёзд > 0)) { res.status(200).json({ ok: true, status: 'paid', credited: false }); return; }
+
+      const метка = 'cb' + inv.invoice_id;
+      const было = await sb('sh_tx?kind=eq.topup&meta->>charge=eq.' + encodeURIComponent(метка) + '&select=id&limit=1');
+      if (Array.isArray(было) && было.length) {
+        await начислить(u);
+        res.status(200).json(наружу(u, { status: 'paid', credited: true, stars: звёзд })); return;
+      }
+
+      u.bal = round6(Number(u.bal) + звёзд);
+      await sb('sh_users?tg_id=eq.' + u.tg_id, { method: 'PATCH', body: JSON.stringify({ bal: u.bal }) });
+      await движение(u, 'topup', звёзд, { charge: метка, asset: inv.asset, amount: inv.amount });
+
+      /* Доля пригласившему — то же обещание «5% с каждого пополнения», что
+         и при оплате звёздами; там её начисляет бот, здесь — мы, потому что
+         только здесь известно, что оплата настоящая. */
+      if (u.ref_by) {
+        const доля = round6(звёзд * 0.05);
+        if (доля > 0) {
+          const п = один(await sb('sh_users?tg_id=eq.' + u.ref_by + '&select=bal,ref_earned'));
+          if (п) {
+            const бал = round6(Number(п.bal) + доля);
+            await sb('sh_users?tg_id=eq.' + u.ref_by, { method: 'PATCH',
+              body: JSON.stringify({ bal: бал, ref_earned: round6(Number(п.ref_earned) + доля) }) });
+            await sb('sh_refs?invitee=eq.' + u.tg_id, { method: 'PATCH',
+              body: JSON.stringify({ earned: доля }), headers: Object.assign({}, H, { Prefer: 'return=minimal' }) })
+              .catch(() => {});
+            await sb('sh_tx', { method: 'POST', body: JSON.stringify({
+              tg_id: u.ref_by, kind: 'ref', amount: доля, bal_after: бал,
+              meta: { from: u.tg_id, charge: метка } }) });
+          }
+        }
+      }
+      res.status(200).json(наружу(u, { status: 'paid', credited: true, stars: звёзд }));
       return;
     }
 
@@ -779,3 +900,5 @@ module.exports.ЗАДАНИЯ = ЗАДАНИЯ;
 module.exports.ЗАДАНИЯ_ДНЯ = ЗАДАНИЯ_ДНЯ;
 module.exports.ВЫВОД = ВЫВОД;
 module.exports.расчётВывода = расчётВывода;
+module.exports.КРИПТО_ЛЕСЕНКА = КРИПТО_ЛЕСЕНКА;
+module.exports.ценаКрипты = ценаКрипты;

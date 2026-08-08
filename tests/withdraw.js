@@ -7,7 +7,7 @@
    расчёт комиссии, наличие действий и защиту доступа — проверяем по коду,
    а поведение клиента — в браузере с подставным сервером. */
 const fs = require('fs');
-const { браузер, открыть, состояние, близко, день, исходник, Отчёт } = require('./helpers');
+const { браузер, открыть, жди, состояние, близко, день, исходник, Отчёт } = require('./helpers');
 const S = require('../starshash/api/starshash.js');
 
 (async () => {
@@ -198,6 +198,59 @@ const S = require('../starshash/api/starshash.js');
   const после = (await состояние(p)).bal;
   о.проверка('локально списывается вся сумма', близко(до - после, 300), 'списано ' + (до - после).toFixed(2));
   await p.close();
+
+  о.раздел('пополнение криптой в приложении');
+  {
+    /* Счёт выписывает сервер, а зачисление приходит не сразу: приложение
+       опрашивает статус, пока @CryptoBot не подтвердит оплату. */
+    let опрошено = 0;
+    p = await открыть(b, {
+      состояние: { bal: 0, fs: { d: день() }, dl: { streak: 1, last: день() } },
+      телеграм: { user: { id: 6029995640, first_name: 'Андрій' } },
+      сервер: {
+        state: БАЗА,
+        crypto_invoice: { ok: true, invoiceId: 555, link: 'https://t.me/CryptoBot?start=IV', stars: 500, price: 9, asset: 'TON' },
+        crypto_check: Object.assign({}, БАЗА, { bal: 500, status: 'paid', credited: true, stars: 500 })
+      }
+    });
+    await p.click('#btnAdd'); await p.waitForTimeout(600);
+    await p.click('#dmGram'); await p.waitForTimeout(400);
+    const пакеты = await p.evaluate(() => [...document.querySelectorAll('#gpList .gp')].map(e => e.textContent.replace(/\s+/g, ' ').trim()));
+    о.проверка('пакеты GRAM по таблице', пакеты.length === 7 &&
+      /50 .*1 GRAM/.test(пакеты[0]) && /5 000 .*89 GRAM/.test(пакеты[6]),
+      пакеты.slice(0, 2).join(' | '));
+
+    await p.click('#gpList .gp:nth-child(4)'); await p.waitForTimeout(300);   // 500 ★ = 9 GRAM
+    await p.click('#dpGo', { force: true }); await p.waitForTimeout(1200);
+    const ждём = await p.evaluate(() => document.getElementById('dpHint').textContent);
+    о.проверка('после счёта ждём оплату, а не зачисляем сразу', /Ждём оплату/.test(ждём), '«' + ждём + '»');
+
+    /* опрос идёт раз в три секунды — дожидаемся первого ответа «оплачено» */
+    const зачли = await жди(p, () => /Зачислено/.test(document.getElementById('dpHint').textContent), 12000);
+    о.проверка('оплата подтверждена сервером и зачислена', зачли,
+      await p.evaluate(() => document.getElementById('dpHint').textContent));
+    const бал = (await состояние(p)).bal;
+    о.проверка('баланс принят с сервера', близко(бал, 500, 1), бал.toFixed(2));
+    о.проверка('ошибок в консоли нет', p.ошибки.length === 0, p.ошибки.join(' | '));
+    await p.close();
+
+    о.раздел('крипта не настроена — честный отказ');
+    p = await открыть(b, {
+      состояние: { bal: 0, fs: { d: день() }, dl: { streak: 1, last: день() } },
+      телеграм: { user: { id: 6029995640, first_name: 'Андрій' } },
+      сервер: { state: БАЗА, crypto_invoice: { ok: false, reason: 'not_configured' } }
+    });
+    await p.click('#btnAdd'); await p.waitForTimeout(600);
+    await p.click('#dmGram'); await p.waitForTimeout(400);
+    await p.click('#dpGo', { force: true }); await p.waitForTimeout(900);
+    const отказ = await p.evaluate(() => ({ т: document.getElementById('dpHint').textContent,
+      бал: JSON.parse(localStorage.getItem('starshash_state')).bal }));
+    о.проверка('без настройки говорим прямо, а не молчим', /недоступна/.test(отказ.т), '«' + отказ.т + '»');
+    /* 1000 — это баланс, который вернул подставной state; важно, что
+       неудачная попытка оплаты его не тронула */
+    о.проверка('и ничего не зачисляем', близко(отказ.бал, БАЗА.bal, 1), отказ.бал.toFixed(2));
+    await p.close();
+  }
 
   о.раздел('админка: обработка заявок');
   p = await открыть(b, {

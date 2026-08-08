@@ -2973,6 +2973,9 @@ ru:{
  d_pick:'Выберите пакет',
  d_own:'Своя сумма',
  d_title:'Пополнить', d_amount:'Сумма пополнения', d_go:'Пополнить на {n} ★',
+ d_crypto_off:'Оплата криптой пока недоступна',
+ d_crypto_min:'Криптой — от {n} ★',
+ d_wait_pay:'Ждём оплату…', d_paid:'Зачислено {n} ★',
  c_deposit:'Сумма вклада', c_my_bal:'Мой вклад', c_term:'Срок', c_rate:'Ставка доходности',
  c_current:'Текущая', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 год',
  c_p7:'7 дней', c_p30:'30 дней', c_p90:'90 дней', c_py:'год',
@@ -3077,6 +3080,9 @@ en:{
  d_pick:'Choose a pack',
  d_own:'Custom amount',
  d_title:'Top up', d_amount:'Top-up amount', d_go:'Top up {n} ★',
+ d_crypto_off:'Crypto payment is not available yet',
+ d_crypto_min:'Crypto — from {n} ★',
+ d_wait_pay:'Waiting for payment…', d_paid:'{n} ★ credited',
  c_deposit:'Deposit amount', c_my_bal:'My deposit', c_term:'Term', c_rate:'Daily rate',
  c_current:'Current', c_d7:'7 d', c_d30:'30 d', c_d90:'90 d', c_y1:'1 year',
  c_p7:'7 days', c_p30:'30 days', c_p90:'90 days', c_py:'a year',
@@ -3181,6 +3187,9 @@ uk:{
  d_pick:'Оберіть пакет',
  d_own:'Своя сума',
  d_title:'Поповнити', d_amount:'Сума поповнення', d_go:'Поповнити на {n} ★',
+ d_crypto_off:'Оплата криптою поки недоступна',
+ d_crypto_min:'Криптою — від {n} ★',
+ d_wait_pay:'Чекаємо оплату…', d_paid:'Зараховано {n} ★',
  c_deposit:'Сума вкладу', c_my_bal:'Мій вклад', c_term:'Термін', c_rate:'Ставка дохідності',
  c_current:'Поточна', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 рік',
  c_p7:'7 днів', c_p30:'30 днів', c_p90:'90 днів', c_py:'рік',
@@ -5557,12 +5566,50 @@ var adminReflect;
       else window.open(link,'_blank','noopener');
     }catch(e){ try{ window.open(link,'_blank','noopener'); }catch(_){} }
   }
+  /* Оплата криптой идёт через @CryptoBot: он выписывает счёт, а зачисление
+     мы не берём со слов телефона — сервер сам спрашивает у него статус.
+     Поэтому после открытия счёта опрашиваем, пока не увидим оплату. */
+  var опрос=null;
+  function ждатьОплату(id){
+    clearInterval(опрос);
+    var до=Date.now()+15*60*1000;
+    hint.textContent=t('d_wait_pay');
+    опрос=setInterval(function(){
+      if(Date.now()>до){ clearInterval(опрос); hint.textContent=''; return; }
+      SRV.raw('crypto_check',{invoiceId:id}).then(function(о){
+        if(!о || !о.ok) return;
+        if(о.credited){
+          clearInterval(опрос);
+          применитьСостояние(о);
+          var n=+о.stars||0;
+          notify('dep',n); Tasks.done('topup');
+          hint.textContent=t('d_paid',{n:fmtInt(n)});
+          haptic('success'); beep(980,0.12,0.045,'triangle');
+          setTimeout(function(){ hint.textContent=''; sheet.hide(); },1200);
+        }
+      });
+    },3000);
+  }
+  /* закрыли шторку — опрашивать больше некого */
+  document.getElementById('dpX').addEventListener('click',function(){ clearInterval(опрос); hint.textContent=''; });
+
   go.addEventListener('click',function(){
     if(go.disabled) return;
     var a=amount(); if(!a) return;
+    if(онлайн() && mode==='gram'){
+      go.disabled=true;
+      SRV.raw('crypto_invoice',{amount:Math.floor(a)}).then(function(о){
+        go.disabled=false;
+        if(о && о.ok && о.link){ открытьРядом(о.link); ждатьОплату(о.invoiceId); haptic('success'); return; }
+        hint.textContent = о && о.reason==='not_configured' ? t('d_crypto_off')
+                         : о && о.reason==='bad_amount' ? t('d_crypto_min',{n:(о.min||50)})
+                         : t('w_fail');
+        haptic('warning');
+      });
+      return;
+    }
     if(онлайн()){
-      /* оба способа сводятся к сумме в звёздах — счёт Telegram в них и
-         выписывается; GRAM-режим лишь показывает эквивалент */
+      /* звёздами Telegram: счёт выписывает сервер, зачисляет бот по факту оплаты */
       go.disabled=true;
       SRV.raw('topup',{amount:Math.floor(a)}).then(function(о){
         go.disabled=false;
