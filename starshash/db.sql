@@ -112,3 +112,19 @@ create or replace view sh_top_week as
 alter table sh_users enable row level security;
 alter table sh_tx    enable row level security;
 alter table sh_refs  enable row level security;
+
+-- Разрешающих правил не создаём ни одного: при включённом RLS это значит
+-- «нельзя никому». Ключ service_role защиту обходит — им и ходит сервер.
+
+-- Права выдаём явно, а не полагаемся на переключатель «Automatically
+-- expose new tables» при создании проекта: он может стоять и так и эдак,
+-- а база должна работать одинаково.
+grant usage on schema public to service_role;
+grant select, insert, update, delete on sh_users, sh_tx, sh_refs to service_role;
+grant select on sh_top_all, sh_top_day, sh_top_week to service_role;
+grant usage, select on sequence sh_tx_id_seq to service_role;
+
+-- А у публичных ролей забираем всё: пусть утёкший анонимный ключ упрётся
+-- в отсутствие прав, а не только в RLS.
+revoke all on sh_users, sh_tx, sh_refs from anon, authenticated;
+revoke all on sh_top_all, sh_top_day, sh_top_week from anon, authenticated;
