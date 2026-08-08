@@ -154,7 +154,8 @@ create table if not exists sh_withdrawals (
   id         bigserial primary key,
   tg_id      bigint not null references sh_users(tg_id) on delete cascade,
   amount     numeric(20,6) not null,
-  handle     text not null,                      -- ник в Telegram, куда выплачивать
+  method     text not null default 'stars',      -- stars | gram
+  handle     text not null,                      -- ник в Telegram или адрес кошелька
   state      text not null default 'new',        -- new | paid | rejected
   reason     text,                               -- почему отказали
   handled_by bigint,                             -- кто из админов закрыл

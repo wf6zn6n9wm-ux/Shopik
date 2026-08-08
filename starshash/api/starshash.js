@@ -19,7 +19,8 @@
 //   pvp      {stake}   → раунд ПВП: соперники и победитель с сервера
 //   task     {id}      → закрыть задание; награду называет сервер
 //   topup    {amount}  → счёт на пополнение звёздами; зачисляет бот
-//   withdraw {amount, handle} → заявка на вывод, выплата ручная
+//   withdraw {amount, handle, method} → заявка на вывод, выплата ручная
+//   withdrawals        → свои заявки и их состояние
 //   top      {period}  → таблица лидеров: day | week | all
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
@@ -345,11 +346,20 @@ module.exports = async (req, res) => {
     if (action === 'withdraw') {
       await начислить(u);
       const сумма = Math.floor(Number(body.amount) || 0);
-      const ник = String(body.handle || '').replace(/^@/, '').trim();
+      const способ = body.method === 'gram' ? 'gram' : 'stars';
+      const куда = String(body.handle || '').replace(/^@/, '').trim();
 
       if (!(сумма >= ВЫВОД.МИН)) { res.status(200).json({ ok: false, reason: 'min', min: ВЫВОД.МИН }); return; }
       if (сумма > Number(u.bal)) { res.status(200).json({ ok: false, reason: 'not_enough' }); return; }
-      if (!/^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(ник)) { res.status(200).json({ ok: false, reason: 'bad_handle' }); return; }
+
+      /* Куда платить — проверяем по способу. Ошибка в адресе кошелька
+         стоит всей суммы: перевод уходит в пустоту и не возвращается.
+         Ник Telegram: пять и больше символов, начинается с буквы.
+         Адрес TON: 48 символов, начинается с UQ/EQ/kQ/0Q. */
+      const ладно = способ === 'gram'
+        ? /^[EU0k]Q[A-Za-z0-9_-]{46}$/.test(куда)
+        : /^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(куда);
+      if (!ладно) { res.status(200).json({ ok: false, reason: 'bad_handle', method: способ }); return; }
 
       // Порог по пополнениям: без него выигрыш с бонусов уходил бы наружу,
       // а внутрь не приходило бы ничего.
@@ -367,9 +377,19 @@ module.exports = async (req, res) => {
       u.bal = round6(Number(u.bal) - сумма);
       await sb('sh_users?tg_id=eq.' + u.tg_id, { method: 'PATCH', body: JSON.stringify({ bal: u.bal }) });
       await sb('sh_withdrawals', { method: 'POST',
-        body: JSON.stringify({ tg_id: u.tg_id, amount: сумма, handle: ник }) });
-      await движение(u, 'withdraw', -сумма, { handle: ник });
+        body: JSON.stringify({ tg_id: u.tg_id, amount: сумма, handle: куда, method: способ }) });
+      await движение(u, 'withdraw', -сумма, { handle: куда, method: способ });
       res.status(200).json(наружу(u, { queued: сумма }));
+      return;
+    }
+
+    // История заявок. Игрок должен видеть, где его деньги: «в работе»
+    // без единого следа выглядит как пропажа.
+    if (action === 'withdrawals') {
+      const строки = await sb('sh_withdrawals?tg_id=eq.' + u.tg_id +
+        '&select=id,amount,method,handle,state,reason,created_at,handled_at' +
+        '&order=created_at.desc&limit=30');
+      res.status(200).json({ ok: true, rows: строки || [] });
       return;
     }
 
