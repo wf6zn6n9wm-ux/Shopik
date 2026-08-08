@@ -92,6 +92,53 @@ create table if not exists sh_refs (
 
 create index if not exists sh_refs_inviter on sh_refs(inviter);
 
+-- ── Заявки на вывод ──────────────────────────────────────────────────
+-- Вывод не мгновенный: игрок оставляет заявку, деньги тут же снимаются с
+-- баланса и висят в удержании, а человек-админ рассматривает её в
+-- профиле. Отказ возвращает сумму на баланс — списывать за отклонённую
+-- заявку нельзя.
+--
+-- amount — что списано с баланса (комиссия уже внутри); net — что уйдёт
+-- получателю в звёздах; fee — удержанная доля. Способ (stars | gram)
+-- определяет, куда именно платить, но арифметика везде одна.
+--
+-- status: pending — ждёт; done — выплачено; rejected — отклонено (сумма
+-- возвращена).
+create table if not exists sh_withdrawals (
+  id          bigserial primary key,
+  tg_id       bigint not null references sh_users(tg_id) on delete cascade,
+  method      text not null,                        -- stars | gram
+  amount      numeric(20,6) not null,               -- списано с баланса
+  fee         numeric(20,6) not null,               -- удержанная комиссия
+  net         numeric(20,6) not null,               -- к выдаче, в звёздах
+  dest        text not null,                        -- @username или GRAM-кошелёк
+  status      text not null default 'pending',      -- pending | done | rejected
+  note        text,                                 -- пометка админа при решении
+  decided_by  bigint,                               -- админ, закрывший заявку
+  decided_at  timestamptz,
+  created_at  timestamptz not null default now()
+);
+
+-- Таблица с таким именем могла остаться от прежней задумки вывода — с
+-- другим набором столбцов. Тогда `create table if not exists` её молча
+-- пропустит, и следующий же указатель упадёт на столбце, которого нет.
+-- Поэтому недостающее дописываем: так повторный запуск доводит базу до
+-- нужного вида, а не падает. Данные при этом целы — столбцы только
+-- добавляются.
+alter table sh_withdrawals add column if not exists method     text;
+alter table sh_withdrawals add column if not exists amount     numeric(20,6);
+alter table sh_withdrawals add column if not exists fee        numeric(20,6);
+alter table sh_withdrawals add column if not exists net        numeric(20,6);
+alter table sh_withdrawals add column if not exists dest       text;
+alter table sh_withdrawals add column if not exists status     text not null default 'pending';
+alter table sh_withdrawals add column if not exists note       text;
+alter table sh_withdrawals add column if not exists decided_by bigint;
+alter table sh_withdrawals add column if not exists decided_at timestamptz;
+alter table sh_withdrawals add column if not exists created_at timestamptz not null default now();
+
+create index if not exists sh_wd_user   on sh_withdrawals(tg_id, created_at desc);
+create index if not exists sh_wd_status  on sh_withdrawals(status, created_at desc);
+
 -- ── Таблица лидеров ──────────────────────────────────────────────────
 -- Считаем по журналу: намайнено за день, за неделю, за всё время.
 -- Представлением, а не отдельной таблицей — иначе её пришлось бы
@@ -127,6 +174,7 @@ alter table sh_users enable row level security;
 alter table sh_tx    enable row level security;
 alter table sh_refs  enable row level security;
 alter table sh_rounds enable row level security;
+alter table sh_withdrawals enable row level security;
 
 -- Разрешающих правил не создаём ни одного: при включённом RLS это значит
 -- «нельзя никому». Ключ service_role защиту обходит — им и ходит сервер.
@@ -135,11 +183,12 @@ alter table sh_rounds enable row level security;
 -- expose new tables» при создании проекта: он может стоять и так и эдак,
 -- а база должна работать одинаково.
 grant usage on schema public to service_role;
-grant select, insert, update, delete on sh_users, sh_tx, sh_refs, sh_rounds to service_role;
+grant select, insert, update, delete on sh_users, sh_tx, sh_refs, sh_rounds, sh_withdrawals to service_role;
 grant select on sh_top_all, sh_top_day, sh_top_week to service_role;
 grant usage, select on sequence sh_tx_id_seq to service_role;
+grant usage, select on sequence sh_withdrawals_id_seq to service_role;
 
 -- А у публичных ролей забираем всё: пусть утёкший анонимный ключ упрётся
 -- в отсутствие прав, а не только в RLS.
-revoke all on sh_users, sh_tx, sh_refs, sh_rounds from anon, authenticated;
+revoke all on sh_users, sh_tx, sh_refs, sh_rounds, sh_withdrawals from anon, authenticated;
 revoke all on sh_top_all, sh_top_day, sh_top_week from anon, authenticated;

@@ -1371,6 +1371,17 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
 .ghrow .am{font-size:13.5px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;
   white-space:nowrap;}
 .ghrow.lose .am{color:#C98F6F;}
+/* кнопки решения по заявке в админке — на строке заявки */
+.adbtns{flex:0 0 auto;display:flex;align-items:center;gap:6px;}
+.ghrow .ac{
+  flex:0 0 auto;height:30px;padding:0 12px;border-radius:10px;font-size:12px;font-weight:700;
+  background:#131315;border:1px solid var(--line);color:var(--ink-2);transition:transform .16s;
+}
+.ghrow .ac:active{transform:scale(.94);}
+.ghrow .ac.ok{color:#150F04;background:linear-gradient(180deg,#F7E7C4,var(--gold));border-color:transparent;}
+.ghrow .ac.no{color:#C98F6F;border-color:rgba(201,143,111,.3);}
+.adseg{display:flex;}
+.adseg button{flex:1;}
 .ghlist{display:flex;flex-direction:column;gap:8px;}
 .ghempty{display:flex;flex-direction:column;align-items:center;gap:11px;padding:34px 20px;text-align:center;}
 .ghempty[hidden]{display:none;}   /* display:flex перебивает сам атрибут */
@@ -2130,6 +2141,13 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
         <span class="ch"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
       </button>
 
+      <button class="srow" id="pAdmin" style="margin-top:10px" hidden>
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 8-7 10-4-2-7-5.6-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+        <span class="nm" data-i18n="ad_open">Заявки на вывод</span>
+        <span class="rfc num" id="pAdminN"></span>
+        <span class="ch"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+      </button>
+
       <div class="ptitle">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 14.5a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.84 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.33 1.7 1.7 0 0 0-1.03 1.55V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.84l.06-.06a1.7 1.7 0 0 0 .33-1.88 1.7 1.7 0 0 0-1.55-1.03H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.84-2.83l.06.06a1.7 1.7 0 0 0 1.88.33H9.1a1.7 1.7 0 0 0 1.03-1.55V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.84l-.06.06a1.7 1.7 0 0 0-.33 1.88V9.1a1.7 1.7 0 0 0 1.55 1.03H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.55 1.03z"/></svg>
         <span data-i18n="set_title">Настройки</span>
@@ -2326,10 +2344,51 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
         </div>
       </div>
 
+      <div class="wdhist" id="wdHistWrap" hidden>
+        <div class="wlab" style="margin-top:16px"><span data-i18n="wh_title">История выводов</span></div>
+        <div class="ghlist" id="wdHist"></div>
+        <div class="ghempty" id="wdHistEmpty" hidden>
+          <span class="ic">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.4l3.4 2"/></svg>
+          </span>
+          <p data-i18n="wh_empty">Заявок на вывод пока нет</p>
+        </div>
+      </div>
+
     </div>
 
     <div class="whint" id="wdHint"></div>
     <button class="btn-buy" id="wdGo" data-i18n="withdraw">Вывести</button>
+  </div>
+</div>
+
+<!-- ═══ шторка «Заявки на вывод» (админ) ═══ -->
+<div class="sheet-wrap" id="adSheet" aria-hidden="true">
+  <div class="sheet-bd"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="adTitle">
+    <div class="sheet-top" id="adTop">
+      <div class="grab"></div>
+      <div class="sheet-hd">
+        <span class="t" id="adTitle" data-i18n="ad_title">Заявки на вывод</span>
+        <button class="sheet-x" id="adX" aria-label="Закрыть">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="wbody">
+      <div class="lseg adseg" id="adSeg" style="width:100%;margin-bottom:12px">
+        <button type="button" class="on" data-st="pending" data-i18n="st_pending">В обработке</button>
+        <button type="button" data-st="done" data-i18n="st_done">Выплачено</button>
+        <button type="button" data-st="rejected" data-i18n="st_rejected">Отклонено</button>
+      </div>
+      <div class="ghlist" id="adList"></div>
+      <div class="ghempty" id="adEmpty" hidden>
+        <span class="ic">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4.6"/><path d="M6 10.4 12 4.4l6 6"/></svg>
+        </span>
+        <p data-i18n="ad_empty">Заявок нет</p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2794,13 +2853,20 @@ function аватар(p, фон){
    Telegram — молчим и работаем как раньше, из памяти телефона. Это
    важнее, чем кажется: иначе упавший сервер означал бы белый экран. */
 var SRV = (function(){
-  var АДРЕС='/api/starshash', готов=null;   // null — ещё не знаем, true/false — ответ был
+  var АДРЕС='/api/starshash', готов=null, режим=false;
+  /* готов  — итог последнего запроса (для тонких проверок).
+     режим  — «работаем через сервер»: включается, как только сервер хоть
+              раз ответил делом, и назад не откатывается. Иначе честный
+              отказ вроде «уже забрано» ронял бы приложение обратно в
+              память телефона на середине сессии. */
 
   function подпись(){
     try{ return (TG && TG.initData) || ''; }catch(e){ return ''; }
   }
 
-  function зов(действие, данные){
+  /* raw отдаёт ответ сервера как есть — вызвавшему нужен и reason при
+     отказе (например «not_enough»), а не только успех. */
+  function raw(действие, данные){
     var п=подпись();
     if(!п) return Promise.resolve(null);          // вне Telegram сервер нас не узнает
     var тело=Object.assign({action:действие, initData:п}, данные||{});
@@ -2812,12 +2878,28 @@ var SRV = (function(){
       /* not_configured — переменные окружения не заданы: это не поломка,
          а способ выложить сервер раньше, чем он понадобится */
       готов = !!(o && o.ok);
-      return (o && o.ok) ? o : null;
+      if(o && o.ok) режим=true;
+      return o || null;
     }).catch(function(){ готов=false; return null; });
   }
 
-  return { зов:зов, готов:function(){ return готов===true; } };
+  /* зов — прежнее поведение: null при любом неуспехе. На нём держатся
+     места, которым важен только удачный ответ. */
+  function зов(действие, данные){
+    return raw(действие, данные).then(function(o){ return (o && o.ok) ? o : null; });
+  }
+
+  return { зов:зов, raw:raw,
+           готов:function(){ return готов===true; },
+           режим:function(){ return режим; } };
 })();
+/* Единая проверка «деньги ведёт сервер»: все серверные ветки клиента
+   висят на ней, а без Telegram и без сервера она ложна — приложение
+   работает из памяти телефона, как раньше, и проверки это видят. */
+function онлайн(){ return SRV.режим(); }
+/* Флаг админа приходит в состоянии; профиль по нему показывает раздел
+   обработки заявок. */
+var АДМИН=false;
 
 /* Настройки живут в localStorage, чтобы переключатели что-то значили
    между сессиями. Вибрация включена по умолчанию, звук — нет: звук в
@@ -2867,6 +2949,11 @@ ru:{
  w_enter_amt:'Введите сумму', w_receive:'Получите', w_fee:'Комиссия 5%', w_fee_amt:'Удержим',
  w_need_user:'Укажите Telegram username', w_need_wallet:'Укажите GRAM-кошелёк',
  w_min_msg:'Минимальная сумма вывода — {n} ★', w_no_funds:'Недостаточно звёзд на балансе',
+ w_fail:'Не удалось. Попробуйте позже',
+ wh_title:'История выводов', wh_empty:'Заявок на вывод пока нет',
+ st_pending:'В обработке', st_done:'Выплачено', st_rejected:'Отклонено',
+ ad_open:'Заявки на вывод', ad_title:'Заявки на вывод', ad_empty:'Заявок нет',
+ ad_approve:'Выплатить', ad_reject:'Отклонить',
  d_pick:'Выберите пакет',
  d_own:'Своя сумма',
  d_title:'Пополнить', d_amount:'Сумма пополнения', d_go:'Пополнить на {n} ★',
@@ -2965,6 +3052,11 @@ en:{
  w_enter_amt:'Enter amount', w_receive:'You receive', w_fee:'Fee 5%', w_fee_amt:'Fee',
  w_need_user:'Enter a Telegram username', w_need_wallet:'Enter a GRAM wallet',
  w_min_msg:'Minimum withdrawal is {n} ★', w_no_funds:'Not enough stars on balance',
+ w_fail:'Something went wrong. Try again later',
+ wh_title:'Withdrawal history', wh_empty:'No withdrawals yet',
+ st_pending:'Processing', st_done:'Paid', st_rejected:'Rejected',
+ ad_open:'Withdrawals', ad_title:'Withdrawal requests', ad_empty:'No requests',
+ ad_approve:'Pay out', ad_reject:'Reject',
  d_pick:'Choose a pack',
  d_own:'Custom amount',
  d_title:'Top up', d_amount:'Top-up amount', d_go:'Top up {n} ★',
@@ -3063,6 +3155,11 @@ uk:{
  w_enter_amt:'Введіть суму', w_receive:'Отримаєте', w_fee:'Комісія 5%', w_fee_amt:'Утримаємо',
  w_need_user:'Вкажіть Telegram username', w_need_wallet:'Вкажіть GRAM-гаманець',
  w_min_msg:'Мінімальна сума виведення — {n} ★', w_no_funds:'Недостатньо зірок на балансі',
+ w_fail:'Не вдалося. Спробуйте пізніше',
+ wh_title:'Історія виводів', wh_empty:'Заявок на вивід поки немає',
+ st_pending:'В обробці', st_done:'Виплачено', st_rejected:'Відхилено',
+ ad_open:'Заявки на вивід', ad_title:'Заявки на вивід', ad_empty:'Заявок немає',
+ ad_approve:'Виплатити', ad_reject:'Відхилити',
  d_pick:'Оберіть пакет',
  d_own:'Своя сума',
  d_title:'Поповнити', d_amount:'Сума поповнення', d_go:'Поповнити на {n} ★',
@@ -3685,7 +3782,10 @@ var YIELD_PCT = rateFor(inv);
 /* Доход идёт и когда приложение закрыто. Разрыв ограничиваем 30 сутками:
    на большем окне выигрывает съехавшее системное время, а не игрок. */
 var OFFLINE_CAP = 30*86400, OFFLINE_GAIN = 0, OFFLINE_SEC = 0;
-if(SAVED && SAVED.seen && inv>0){
+/* В Telegram доход за отсутствие считает сервер и присылает в mined_away:
+   считать его ещё и тут — начислить дважды. Поэтому локально копим только
+   вне Telegram, где сервера нет. */
+if(SAVED && SAVED.seen && inv>0 && !(TG && TG.initData)){
   var gap = (Date.now()-SAVED.seen)/1000;
   if(gap > 5){                       // отрицательный разрыв = съехавшие часы, молчим
     OFFLINE_SEC = Math.min(gap, OFFLINE_CAP);
@@ -3733,6 +3833,46 @@ function hideAway(){
   clearTimeout(_awayHide);
   box.classList.remove('show');
   setTimeout(function(){ box.classList.remove('on'); },340);
+}
+
+/* ── принятие состояния с сервера ──────────────────────────────────────
+   Сервер — источник истины по деньгам: приняв его ответ, показываем его
+   числа, а не то, что лежало в телефоне. Балансы из памяти не переносим —
+   у нового игрока это ноль, и это правильно. Функция вызывается на первом
+   `state` и после каждого действия, которое сервер подтвердил. */
+function применитьСостояние(о){
+  if(!о || !о.ok) return;
+  if(typeof о.bal==='number') bal=о.bal;
+  if(typeof о.inv==='number') inv=о.inv;
+  if(typeof о.mined==='number') MN.a=о.mined;     // «намайнено всего» — из журнала сервера
+  if(о.bonus){                                     // серия и дата бонуса — серверные
+    DL.streak=Math.max(0, +о.bonus.streak||0);
+    DL.last=о.bonus.day ? String(о.bonus.day) : '';
+  }
+  if(о.tasks){ for(var k in о.tasks){ if(о.tasks[k]) TK[k]='got'; } }
+  if(о.daily && о.daily.d){                         // забранные задания дня
+    if(DT.d!==о.daily.d){ DT.d=о.daily.d; DT.p={}; DT.g={}; }
+    for(var d in о.daily){ if(d!=='d' && о.daily[d]) DT.g[d]=1; }
+  }
+  if(о.stats){ var s=о.stats;
+    GM.n=Math.max(GM.n, +s.plays||0); GM.win=Math.max(GM.win, +s.wins||0);
+    GM.wag=Math.max(GM.wag, +s.wagered||0); GM.won=Math.max(GM.won, +s.won||0);
+    GM.bw=Math.max(GM.bw, +s.best_win||0); GM.bx=Math.max(GM.bx, +s.best_x||0);
+  }
+  if(typeof о.ref_n==='number') RF.n=о.ref_n;
+  if(о.ref){ RF.earned=+о.ref.earned||0; if(о.ref.by) RF.by=String(о.ref.by); }
+  АДМИН=!!о.admin;
+  YIELD_PCT=rateFor(inv);
+  recalc(); saveState();
+  var s2=fmt(bal);
+  if(heroBal) heroBal.textContent=s2;
+  if(pillBal) pillBal.textContent=s2;
+  fitHero(s2);
+  RERENDER.forEach(function(f){ try{ f(); }catch(e){} });
+  if(typeof о.mined_away==='number' && о.mined_away>0.01){
+    addMined(о.mined_away); notify('mine',о.mined_away);
+    showAway(о.mined_away, OFFLINE_SEC || 0);
+  }
 }
 
 /* Уровни доходности — общий источник для магазина и калькулятора.
@@ -3815,7 +3955,12 @@ document.addEventListener('visibilitychange', function(){   // событие п
   if(document.hidden){ _hiddenAt=Date.now(); saveState(); return; }
   if(!_hiddenAt) return;
   var gap=(Date.now()-_hiddenAt)/1000; _hiddenAt=0;
-  if(gap<=5 || inv<=0) return;
+  if(gap<=5) return;
+  /* на сервере доход за отлучку считает он сам: перечитываем состояние, а
+     локально ничего не прибавляем — иначе к серверной сумме добавится ещё
+     и телефонная */
+  if(онлайн()){ OFFLINE_SEC=Math.min(gap, OFFLINE_CAP); SRV.зов('state').then(применитьСостояние); return; }
+  if(inv<=0) return;
   var sec=Math.min(gap, OFFLINE_CAP), gain=awayGain(sec);
   bal+=gain; addMined(gain); notify('mine',gain); recalc(); saveState();
   showAway(gain, sec);
@@ -4150,6 +4295,11 @@ var FIGHTERS=[
 
     var phase='waiting', raf=null, cdTimer=null, mult=1, target=0, t0=0, cd=5,
         bots=[], hist=[], stake=100, joined=false, cashed=false, live=false, autoOn=false, autoAt=2;
+    /* settled — расчёт по серверу уже запрошен (второй раз не шлём);
+       capX — потолок множителя, до которого сервер вообще может дотянуть
+       обрыв: без него серверный раунд, где точка обрыва скрыта, летел бы
+       бесконечно, если игрок не забирает. */
+    var settled=false, capX=25;
 
     var W=0,H=0;
     function size(){
@@ -4259,7 +4409,7 @@ var FIGHTERS=[
 
     function beginWaiting(){
       if(!live) return;
-      mult=1; joined=false; cashed=false; cd=5; bots=[];
+      mult=1; joined=false; cashed=false; settled=false; cd=5; bots=[];
       var n=Math.min(rint(3,7), FIGHTERS.length);
       var deck=faceDeck();                     // без повторов внутри раунда
       for(var i=0;i<n;i++) bots.push(mkBot(i, deck[i]));
@@ -4293,6 +4443,11 @@ var FIGHTERS=[
       var ДОЛЯ=0.95, ПОТОЛОК=25;
       target=Math.min(ПОТОЛОК, ДОЛЯ/Math.max(1e-9, Math.random()));
       target=target<1 ? 1 : +target.toFixed(2);
+      capX=ПОТОЛОК;
+      /* в серверном режиме точку обрыва держит сервер и не отдаёт её:
+         летим с неизвестным обрывом, а лопнет лента на расчёте, куда
+         сервер вернёт свою цель */
+      if(joined && онлайн()) target=Infinity;
       renderPlayers(); updBtn();
       raf=requestAnimationFrame(tick);
     }
@@ -4318,6 +4473,9 @@ var FIGHTERS=[
         updBtn();
         if(autoOn && mult>=autoAt) cashout();
       }
+      /* серверный раунд нельзя тянуть вечно: у потолка просим расчёт, и
+         сервер вернёт свою точку обрыва — там лента и лопнет */
+      if(joined && онлайн() && !cashed && !settled && mult>=capX) settleServer(mult);
       raf=requestAnimationFrame(tick);
     }
 
@@ -4343,6 +4501,7 @@ var FIGHTERS=[
 
     function cashout(){
       if(!joined||cashed||phase!=='flying') return;
+      if(онлайн()){ settleServer(mult); return; }   // исход считает сервер
       cashed=true;
       var win=Math.floor(stake*mult);
       bal+=win; notify('crash',win);
@@ -4353,6 +4512,34 @@ var FIGHTERS=[
       FX.win(multEl, win); SFX.win(FX.сила(win));
     }
 
+    /* Расчёт по серверу: телефон присылает множитель, на котором нажали,
+       но верит ему сервер только вместе со своими часами и скрытой точкой
+       обрыва. В ответ приходит и цель — по ней лента доводит обрыв. */
+    function settleServer(x){
+      if(settled) return; settled=true;
+      SRV.raw('crash_settle',{x:+Number(x).toFixed(2)}).then(function(о){
+        if(!о || !о.ok){ target=mult; return; }   // раунда нет — просто оборвём ленту
+        применитьСостояние(о);
+        target = (+о.target>0) ? +о.target : mult;
+        if(!о.busted && (+о.win)>0){
+          cashed=true;
+          var win=+о.win;
+          notify('crash',win);
+          var me=bots.filter(function(p){ return p.me; })[0];
+          if(me){ me.st='win'; me.took=win; me.at=+о.x||mult; }
+          renderPlayers(); updBtn(); haptic('success');
+          logGame('crash', stake, win, +(о.x||mult));
+          FX.win(multEl, win); SFX.win(FX.сила(win));
+        }
+        /* обрыв (win=0) зачтётся в bust(), когда множитель дойдёт до
+           присланной цели — а если уже прошёл, обрыв случится сразу */
+      });
+    }
+
+    function войти(){
+      bots.unshift({id:'me',n:t('you'),me:true,bet:stake,at:autoOn?autoAt:999,st:'live',took:0});
+      renderPlayers(); updBtn(); haptic('medium');
+    }
     function join(){
       if(joined||phase!=='waiting') return;
       if(stake>bal){ haptic('warning'); goBtn.textContent=t('no_stars');
@@ -4360,9 +4547,24 @@ var FIGHTERS=[
       autoOn=autoChk.checked;
       var am=parseFloat(String(autoInp.value).replace(',','.'));
       autoAt=(am&&am>1)?am:2;
+      if(онлайн()){
+        /* ставку принимает сервер: он спишет её и втайне выберет точку
+           обрыва. Локально баланс не трогаем. */
+        goBtn.disabled=true;
+        SRV.raw('crash_bet',{amount:stake, auto: autoOn?autoAt:0}).then(function(о){
+          goBtn.disabled=false;
+          if(!о || !о.ok){ haptic('warning');
+            if(о && о.reason==='not_enough'){ goBtn.textContent=t('no_stars'); setTimeout(updBtn,1400); }
+            return; }
+          применитьСостояние(о);
+          joined=true; settled=false; Tasks.done('crash');
+          if(phase==='flying') target=Infinity;   // успели до старта — обрыв держит сервер
+          войти();
+        });
+        return;
+      }
       bal-=stake; joined=true;  Tasks.done('crash');
-      bots.unshift({id:'me',n:t('you'),me:true,bet:stake,at:autoOn?autoAt:999,st:'live',took:0});
-      renderPlayers(); updBtn(); haptic('medium');
+      войти();
     }
 
     goBtn.addEventListener('click',function(){
@@ -4456,6 +4658,7 @@ var FIGHTERS=[
 
     var players=[], tickets=[], phase='collect', stake=100, joined=false,
         live=false, x=0, raf=null, tmr=null, left=COLLECT, botTimer=null;
+    var серверныйВыигрыш=null;   // выплата, названная сервером в этом раунде
 
     function rint(a,b){ return a+Math.floor(Math.random()*(b-a+1)); }
     function pot(){ return players.reduce(function(a,p){ return a+p.s; },0); }
@@ -4563,7 +4766,19 @@ var FIGHTERS=[
     }
 
     function spin(){
-      if(!live||players.length<2){ newRound(); return; }
+      if(!live) return;
+      if(joined && онлайн()){
+        /* соперников и победителя выбирает сервер: доля в банке равна шансу,
+           отдай это телефону — и «случайность» станет управляемой. */
+        phase='spin'; updBtn(); subEl.textContent=t('spinning'); haptic('medium');
+        SRV.raw('pvp',{stake:stake}).then(function(о){
+          if(!о || !о.ok){ joined=false; newRound(); return; }
+          применитьСостояние(о);
+          серверныйИсход(о);
+        });
+        return;
+      }
+      if(players.length<2){ newRound(); return; }
       phase='spin'; updBtn();
       subEl.textContent=t('spinning');
       haptic('medium');
@@ -4588,20 +4803,49 @@ var FIGHTERS=[
       })(performance.now());
     }
 
+    /* Пересобираем состав под решение сервера — я и присланные соперники —
+       и подводим ленту к его победителю. */
+    function серверныйИсход(о){
+      var used={};
+      players=[{n:t('you'), c:'var(--gold)', s:stake, me:true}];
+      var rivals=о.rivals||[];
+      for(var i=0;i<rivals.length;i++){
+        var free=[]; for(var j=0;j<FIGHTERS.length;j++) if(!used[j]) free.push(j);
+        var ni=free.length ? free[rint(0,free.length-1)] : (i%FIGHTERS.length); used[ni]=1;
+        var f=FIGHTERS[ni];
+        players.push({ni:ni, n:f.n, c:COLORS[(i+1)%COLORS.length], av:f.av, s:rivals[i], me:false});
+      }
+      render(); buildTickets();
+      var win = о.winner===-1 ? 0 : (1+о.winner);
+      серверныйВыигрыш = +о.win||0;
+      var cur=Math.round(-x/PITCH), k=cur+rint(34,44);
+      tickets[k]=win; renderTrack();
+      var center=reel.clientWidth/2-29;
+      var from=x, to=-(k*PITCH)+center, T=4200, t0=performance.now();
+      cancelAnimationFrame(raf);
+      (function step(now){
+        var e=Math.min(1,(now-t0)/T), p=1-Math.pow(1-e,3.4);
+        x=from+(to-from)*p; apply();
+        if(e<1) requestAnimationFrame(step); else land(win);
+      })(performance.now());
+    }
+
     function land(win){
       phase='done';
       reel.classList.remove('hit'); void reel.offsetWidth; reel.classList.add('hit');
       var rows=listEl.children;
       for(var j=0;j<rows.length;j++) rows[j].classList.add(j===win?'won':'out');
-      var P=выплата();
+      var P = серверныйВыигрыш!=null ? серверныйВыигрыш : выплата();
       var моя=players.filter(function(p){ return p.me; })[0];
-      if(players[win].me){ bal+=P; notify('pvp',P); goBtn.textContent=t('win_amt',{n:fmtInt(P)}); haptic('success');
+      var локально = серверныйВыигрыш==null;   // в серверном режиме баланс уже принят
+      if(players[win].me){ if(локально) bal+=P; notify('pvp',P); goBtn.textContent=t('win_amt',{n:fmtInt(P)}); haptic('success');
         subEl.textContent=t('you_took'); FX.win(goBtn,P); SFX.win(FX.сила(P)); }
       else { goBtn.textContent=t('lost_to',{n:players[win].n}); haptic('error');
         subEl.textContent=t('won_by',{n:players[win].n}); SFX.miss(); }
       /* в журнал попадает только своя игра: раунды, где человек не входил
          в битву, к его статистике отношения не имеют */
       if(моя) logGame('pvp', моя.s, players[win].me?P:0, 0);
+      серверныйВыигрыш=null;
       goBtn.disabled=true;
       raf=requestAnimationFrame(drift);
       setTimeout(newRound,2800);
@@ -4611,7 +4855,8 @@ var FIGHTERS=[
       if(joined||phase!=='collect') return;
       if(stake>bal){ haptic('warning'); goBtn.textContent=t('no_stars');
         setTimeout(updBtn,1400); return; }
-      bal-=stake; joined=true;  Tasks.done('pvp');
+      if(!онлайн()) bal-=stake;      // на сервере ставку спишет розыгрыш, не вход
+      joined=true;  Tasks.done('pvp');
       players.unshift({n:t('you'),c:'var(--gold)',s:stake,me:true});
       render(); buildTickets(); updBtn(); haptic('medium');
       subEl.textContent=t('you_in_wait');
@@ -4728,6 +4973,7 @@ var FIGHTERS=[
        шаг ленты меряем по факту — иначе на низких экранах лента промахнётся */
     var GAP=8, CW=66, PITCH=CW+GAP;
     var cur=null, x=0, spinning=false, raf=null, cells=[], lastWin=-1, watch=null;
+    var серверныйРаунд=false;   // приз назначил сервер — баланс уже принят
     function measure(){
       if(cells.length) CW=cells[0].el.offsetWidth||CW;
       PITCH=CW+GAP;
@@ -4836,14 +5082,34 @@ var FIGHTERS=[
       if(spinning||!cur) return;
       if(cur.free && FC.op) return;                    // одноразовый
       if(!cur.free && bal<cur.price){ haptic('warning'); return; }
+      if(онлайн()){
+        /* приз выбирает сервер по тем же шансам, что на экране; лента лишь
+           показывает его выбор. Списание и выплата — тоже на сервере. */
+        spinning=true; subEl.style.color=''; subEl.textContent=t('k_opening');
+        updBtn(); haptic('medium');
+        SRV.raw('case_open',{id:cur.id}).then(function(о){
+          if(!о || !о.ok){ spinning=false; updBtn(); haptic('warning'); return; }
+          применитьСостояние(о);
+          if(cur.free){ FC.op=1; saveState(); }
+          Tasks.done('kase');
+          серверныйРаунд=true;
+          крутить(typeof о.slot==='number' ? о.slot : 0);
+        });
+        return;
+      }
       if(cur.free){ FC.op=1; saveState(); } else bal-=cur.price;
-      spinning=true; lastWin=-1;  Tasks.done('kase');
+      Tasks.done('kase');
+      серверныйРаунд=false;
+      крутить(cur.free ? 0 : roll());                  // исход решён до анимации
+    }
+
+    function крутить(win){
+      spinning=true; lastWin=-1;
       cells.forEach(function(c){ c.el.classList.remove('win'); });
       subEl.style.color=''; subEl.textContent=t('k_opening');
       renderOdds(); updBtn(); haptic('medium');
 
       measure();
-      var win=cur.free ? 0 : roll();                   // исход решён до анимации
       var from=Math.round((center()-x)/PITCH);
       var k=from+38+Math.floor(Math.random()*10);
       if(k>=cells.length-4){ buildTrack(); from=6; x=-(from*PITCH)+center(); apply();
@@ -4871,7 +5137,9 @@ var FIGHTERS=[
       spinning=false; lastWin=win;
       if(cells[k]) cells[k].el.classList.add('win');
       var amt=cur.drops[win];
-      bal+=amt; notify('kase',amt);
+      if(!серверныйРаунд) bal+=amt;      // в серверном режиме баланс уже принят
+      серверныйРаунд=false;
+      notify('kase',amt);
       logGame('kase', cur.free?0:cur.price, amt, 0);
       reel.classList.remove('hit'); void reel.offsetWidth; reel.classList.add('hit');
       subEl.style.color=RAR[win];
@@ -5019,6 +5287,90 @@ var FIGHTERS=[
 })();
 
 /* ══════════════════════════════════════════════════════
+   АДМИНКА — обработка заявок на вывод
+   Раздел виден только тем, чей tg_id сервер отметил админским: флаг admin
+   приходит в состоянии, подделать его с телефона нельзя. Клиент лишь
+   показывает список и шлёт решение — проверяет доступ и двигает деньги
+   сервер.
+   ══════════════════════════════════════════════════════ */
+var adminReflect;
+(function admin(){
+  var row=document.getElementById('pAdmin'), badge=document.getElementById('pAdminN'),
+      seg=document.getElementById('adSeg'), listEl=document.getElementById('adList'),
+      emptyEl=document.getElementById('adEmpty');
+  var st='pending';
+  var СТАТУС={ pending:'st_pending', done:'st_done', rejected:'st_rejected' };
+
+  var sheet=makeSheet('adSheet','adTop',{ onShow:function(){ загрузить(); } });
+  document.getElementById('adX').addEventListener('click',sheet.hide);
+
+  function звезда(sz){
+    return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>';
+  }
+
+  /* профиль отрисован до ответа сервера — этот метод зовётся из состояния,
+     когда стал известен флаг admin */
+  adminReflect=function(){
+    row.hidden=!АДМИН;
+    if(АДМИН && онлайн()) обновитьЗначок();
+  };
+
+  function обновитьЗначок(){
+    SRV.raw('admin_withdrawals',{status:'pending'}).then(function(о){
+      if(!о || !о.ok) return;
+      var n=(о.rows||[]).length;
+      badge.textContent = n ? String(n) : '';
+    });
+  }
+
+  function загрузить(){
+    if(!онлайн()) return;
+    SRV.raw('admin_withdrawals',{status:st}).then(function(о){
+      if(!о || !о.ok){ if(о && о.reason==='forbidden'){ row.hidden=true; АДМИН=false; sheet.hide(); } return; }
+      var rows=о.rows||[];
+      emptyEl.hidden=rows.length>0;
+      if(st==='pending') badge.textContent = rows.length ? String(rows.length) : '';
+      listEl.innerHTML=rows.map(function(w){
+        var где = w.method==='gram' ? (w.dest||'GRAM') : ('@'+String(w.dest||'').replace(/^@/,''));
+        var кто = w.name || ('#'+w.tg_id);
+        var хвост = w.status==='pending'
+          ? '<span class="adbtns"><button class="ac ok" data-act="done" data-id="'+w.id+'">'+t('ad_approve')+'</button>'+
+            '<button class="ac no" data-act="reject" data-id="'+w.id+'">'+t('ad_reject')+'</button></span>'
+          : '<span class="tm" style="text-align:right">'+t(СТАТУС[w.status]||'st_done')+'</span>';
+        return '<div class="ghrow'+(w.status==='rejected'?' lose':'')+'">'+
+          '<span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4.6"/><path d="M6 10.4 12 4.4l6 6"/></svg></span>'+
+          '<span class="bd"><span class="nm">'+кто+' · '+fmtInt(w.amount)+' '+звезда(11)+'</span>'+
+            '<span class="tm">'+где+' → '+fmtInt(w.net)+' '+(w.method==='gram'?'GRAM':'★')+'</span></span>'+
+          хвост+'</div>';
+      }).join('');
+      [].forEach.call(listEl.querySelectorAll('button[data-act]'), function(b){
+        b.addEventListener('click',function(){ решить(+b.dataset.id, b.dataset.act); });
+      });
+    });
+  }
+
+  function решить(id, decision){
+    if(!id) return;
+    haptic('medium');
+    SRV.raw('admin_decide',{id:id, decision:decision}).then(function(о){
+      if(о && о.ok){ haptic('success'); загрузить(); }
+      else haptic('warning');
+    });
+  }
+
+  seg.addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b || b.dataset.st===st) return;
+    haptic('light');
+    seg.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+    b.classList.add('on'); st=b.dataset.st; загрузить();
+  });
+  row.addEventListener('click',function(){ haptic('medium'); sheet.show(); });
+
+  RERENDER.push(function(){ if(!row.hidden && sheet.isOpen()) загрузить(); });
+  adminReflect();
+})();
+
+/* ══════════════════════════════════════════════════════
    ПОПОЛНЕНИЕ
    ══════════════════════════════════════════════════════ */
 (function deposit(){
@@ -5121,9 +5473,34 @@ var FIGHTERS=[
 
   buildPacks();
   RERENDER.push(function(){ buildPacks(); preview(); });
+
+  /* Счёт открываем средствами Telegram. Зачисляет не приложение, а бот —
+     когда Telegram сообщит ему об оплате: слово телефона «я заплатил»
+     ничего не стоит. После оплаты перечитываем состояние с сервера. */
+  function счёт(link){
+    try{
+      if(TG && TG.openInvoice){
+        TG.openInvoice(link, function(status){
+          if(status==='paid') SRV.зов('state').then(применитьСостояние);
+        });
+      } else if(TG && TG.openTelegramLink){ TG.openTelegramLink(link); }
+      else window.open(link,'_blank','noopener');
+    }catch(e){ try{ window.open(link,'_blank','noopener'); }catch(_){} }
+  }
   go.addEventListener('click',function(){
     if(go.disabled) return;
     var a=amount(); if(!a) return;
+    if(онлайн()){
+      /* оба способа сводятся к сумме в звёздах — счёт Telegram в них и
+         выписывается; GRAM-режим лишь показывает эквивалент */
+      go.disabled=true;
+      SRV.raw('topup',{amount:Math.floor(a)}).then(function(о){
+        go.disabled=false;
+        if(о && о.ok && о.link){ счёт(о.link); Tasks.done('topup'); haptic('success'); sheet.hide(); }
+        else { hint.textContent=t('w_fail'); haptic('warning'); }
+      });
+      return;
+    }
     bal+=a; notify('dep',a); recalc(); saveState(); Tasks.done('topup');
     haptic('success'); sheet.hide();
   });
@@ -5254,8 +5631,39 @@ var FIGHTERS=[
 
   var mode='stars', dir='fwd';   // fwd: вводим звёзды → получаем GRAM
 
-  var sheet=makeSheet('wdSheet','wdTop',{ onShow:function(){ sync(); } });
+  var histWrap=document.getElementById('wdHistWrap'), histEl=document.getElementById('wdHist'),
+      histEmpty=document.getElementById('wdHistEmpty');
+
+  var sheet=makeSheet('wdSheet','wdTop',{ onShow:function(){ sync(); историю(); } });
   document.getElementById('wdX').addEventListener('click',sheet.hide);
+
+  function звезда(sz){
+    return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>';
+  }
+  var СТАТУС={ pending:'st_pending', done:'st_done', rejected:'st_rejected' };
+  function датаК(iso){
+    var д=new Date(iso);
+    return ('0'+д.getDate()).slice(-2)+'.'+('0'+(д.getMonth()+1)).slice(-2)+'.'+String(д.getFullYear()).slice(-2);
+  }
+  /* История выводов — только на сервере: без него заявок не бывает.
+     Показываем получателя, дату, статус и удержанную сумму каждой заявки. */
+  function историю(){
+    if(!онлайн()){ histWrap.hidden=true; return; }
+    histWrap.hidden=false;
+    SRV.raw('withdrawals').then(function(о){
+      if(!о || !о.ok) return;
+      var rows=о.rows||[];
+      histEmpty.hidden=rows.length>0;
+      histEl.innerHTML=rows.map(function(w){
+        var где = w.method==='gram' ? (w.dest||'GRAM') : ('@'+String(w.dest||'').replace(/^@/,''));
+        return '<div class="ghrow'+(w.status==='rejected'?' lose':'')+'">'+
+          '<span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4.6"/><path d="M6 10.4 12 4.4l6 6"/></svg></span>'+
+          '<span class="bd"><span class="nm">'+где+'</span>'+
+            '<span class="tm">'+датаК(w.created_at)+' · '+t(СТАТУС[w.status]||'st_pending')+'</span></span>'+
+          '<span class="am">'+fmtInt(w.amount)+' '+звезда(11)+'</span></div>';
+      }).join('');
+    });
+  }
 
   function avail(){ return Math.floor(bal); }
   function num(v){ v=parseFloat(String(v).replace(',','.')); return isFinite(v)?v:0; }
@@ -5339,9 +5747,30 @@ var FIGHTERS=[
 
   [user,wallet,amt,amtT,get].forEach(function(el){ el.addEventListener('input',sync); });
 
+  /* причину отказа сервера переводим в понятную строку у поля суммы */
+  function причина(о){
+    var r=о && о.reason;
+    if(r==='below_min') return t('w_min_msg',{n:MIN});
+    if(r==='not_enough') return t('w_no_funds');
+    if(r==='no_dest') return mode==='stars' ? t('w_need_user') : t('w_need_wallet');
+    return t('w_fail');
+  }
   go.addEventListener('click',function(){
     if(go.disabled) return;
     var a=amountStars();
+    if(онлайн()){
+      /* заявку и удержание ведёт сервер: он снимет сумму и заведёт заявку,
+         которую разберёт админ. Локально баланс не трогаем. */
+      go.disabled=true;
+      var dest = mode==='stars' ? user.value.trim() : wallet.value.trim();
+      SRV.raw('withdraw',{method: mode==='stars'?'stars':'gram', amount:Math.floor(a), dest:dest}).then(function(о){
+        go.disabled=false;
+        if(о && о.ok){ применитьСостояние(о); notify('wd',Math.floor(a)); Tasks.done('wd');
+          haptic('success'); историю(); sync(); }
+        else { hint.textContent=причина(о); haptic('warning'); }
+      });
+      return;
+    }
     bal -= a; notify('wd',a); Tasks.done('wd');   // баланс уменьшается — видимое подтверждение
     haptic('success');
     sheet.hide();
@@ -5411,19 +5840,32 @@ var FIGHTERS=[
   RERENDER.push(refresh);
   document.getElementById('btnBoost').addEventListener('click',function(){ haptic('medium'); sheet.show(); });
 
+  function куплено(){
+    [yieldCard,document.getElementById('powerCard')].forEach(function(c){
+      c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse');
+    });
+    sheet.hide();
+  }
   buyBtn.addEventListener('click',function(){
     if(sel<0) return;
     var b=BOOSTS[sel];
     if(bal < b.price){ haptic('warning'); refresh(); return; }
+    if(онлайн()){
+      /* пакет — это вклад: сервер спишет цену и повысит мощность */
+      buyBtn.disabled=true;
+      SRV.raw('invest',{amount:b.price}).then(function(о){
+        buyBtn.disabled=false;
+        if(о && о.ok){ применитьСостояние(о); notify('pack',b.price); Tasks.done('boost'); haptic('success'); куплено(); }
+        else { refresh(); haptic('warning'); }
+      });
+      return;
+    }
     haptic('success');
     bal -= b.price; inv += b.price;     // цена пакета уходит во вклад и работает
     notify('pack',b.price);
     Tasks.done('boost');
     recalc(); saveState();              // ставка, мощность и выплата — от нового вклада
-    [yieldCard,document.getElementById('powerCard')].forEach(function(c){
-      c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse');
-    });
-    sheet.hide();
+    куплено();
   });
 })();
 
@@ -5485,6 +5927,16 @@ var Tasks = (function(){
   }
   function взятьДень(x){
     if(!готово(x)) return;
+    if(онлайн()){
+      /* награду называет сервер: попроси её у телефона — и любой впишет
+         себе тысячу. Отправляем только, какое задание закрылось. */
+      SRV.raw('task',{id:x.id}).then(function(о){
+        if(о && о.ok){ применитьСостояние(о); notify('task',+о.got||x.r);
+          haptic('success'); beep(900,0.11,0.045,'triangle'); FX.reward(dListEl,+о.got||x.r); renderDaily(); }
+        else renderDaily();
+      });
+      return;
+    }
     DT.g[x.id]=1; bal+=x.r; notify('task',x.r); recalc(); saveState();
     haptic('success'); beep(900,0.11,0.045,'triangle');
     FX.reward(dListEl, x.r);
@@ -5571,6 +6023,14 @@ var Tasks = (function(){
 
   function take(x,эл){
     if(TK[x.id]!=='ready') return;
+    if(онлайн()){
+      SRV.raw('task',{id:x.id}).then(function(о){
+        if(о && о.ok){ применитьСостояние(о); notify('task',+о.got||x.r);
+          haptic('success'); beep(900,0.11,0.045,'triangle'); FX.reward(эл||listEl,+о.got||x.r); renderList(); }
+        else renderList();
+      });
+      return;
+    }
     TK[x.id]='got'; bal+=x.r; notify('task',x.r); recalc(); saveState();
     haptic('success'); beep(900,0.11,0.045,'triangle');
     FX.reward(эл||listEl, x.r);
@@ -5971,14 +6431,29 @@ var Bonus = (function(){
   document.getElementById('bnX').addEventListener('click',sheet.hide);
   document.getElementById('btnBonus').addEventListener('click',function(){ haptic('medium'); sheet.show(); });
 
-  goEl.addEventListener('click',function(){
-    var p=step(); if(!p) return;
-    DL.streak=p; DL.last=today();
-    bal+=DAILY[p-1]; notify('daily',DAILY[p-1]); recalc(); saveState();
+  function празднуй(got){
+    notify('daily',got);
     haptic('success'); beep(1050,0.14,0.05,'triangle');
-    FX.reward(valEl, DAILY[p-1]);
+    FX.reward(valEl, got);
     render(); centerNow(true);
     Steps.refresh();                   // первый бонус закрывает первый шаг
+  }
+  goEl.addEventListener('click',function(){
+    var p=step(); if(!p) return;
+    if(онлайн()){
+      /* дату и серию считает сервер: перевод часов на телефоне бонус не
+         ускорит. Приняв ответ, показываем ровно то, что он начислил. */
+      goEl.disabled=true;
+      SRV.raw('bonus').then(function(о){
+        goEl.disabled=false;
+        if(о && о.ok){ применитьСостояние(о); празднуй(+о.got||DAILY[Math.max(0,(о.bonus&&о.bonus.streak||1)-1)]); }
+        else { render(); if(о && о.reason!=='already') haptic('warning'); }
+      });
+      return;
+    }
+    DL.streak=p; DL.last=today();
+    bal+=DAILY[p-1]; recalc(); saveState();
+    празднуй(DAILY[p-1]);
   });
 
   /* минуты в кольце меняются нечасто, но полночь должна ловиться сама:
@@ -6046,11 +6521,13 @@ var Ref = (function(){
      здесь честные нули, а не выдуманные цифры. */
   SRV.зов('state').then(function(о){
     if(!о) return;
-    RF.n = +о.ref_n || 0;
-    RF.earned = +(о.ref && о.ref.earned) || 0;
-    if(о.ref && о.ref.by) RF.by = String(о.ref.by);
-    saveState();
+    /* всё состояние — деньги, бонус, задания, статистика, рефералы —
+       принимаем разом; render() ниже дорисует именно реферальный раздел */
+    применитьСостояние(о);
     render();
+    /* профиль мог отрисоваться до ответа сервера — покажем админский
+       раздел, если пришёл флаг admin */
+    if(typeof adminReflect==='function') adminReflect();
   });
 
   function render(){
@@ -6151,17 +6628,31 @@ var Ref = (function(){
     amt.value=Math.floor(bal); preview();
   });
 
-  go.addEventListener('click',function(){
-    if(go.disabled) return;
-    var a=num(amt.value);
-    if(!a || a>bal) return;
-    bal-=a; inv+=a; notify('inv',a);    // обратно не достаётся
-    recalc(); saveState();
+  function пульс(){
     [document.getElementById('powerCard'),document.getElementById('yieldCard')].forEach(function(c){
       c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse');
     });
     haptic('success'); beep(980,0.12,0.045,'triangle');
     sheet.hide();
+  }
+  go.addEventListener('click',function(){
+    if(go.disabled) return;
+    var a=num(amt.value);
+    if(!a || a>bal) return;
+    if(онлайн()){
+      /* вклад ведёт сервер: он спишет с баланса и вернёт новое состояние.
+         Локально ничего не двигаем — покажем то, что он подтвердил. */
+      go.disabled=true;
+      SRV.raw('invest',{amount:Math.floor(a)}).then(function(о){
+        go.disabled=false;
+        if(о && о.ok){ применитьСостояние(о); notify('inv',Math.floor(a)); пульс(); }
+        else { preview(); haptic('warning'); }
+      });
+      return;
+    }
+    bal-=a; inv+=a; notify('inv',a);    // обратно не достаётся
+    recalc(); saveState();
+    пульс();
   });
 
   RERENDER.push(preview);
