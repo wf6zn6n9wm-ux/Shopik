@@ -153,7 +153,8 @@ revoke all on sh_top_all, sh_top_day, sh_top_week from anon, authenticated;
 create table if not exists sh_withdrawals (
   id         bigserial primary key,
   tg_id      bigint not null references sh_users(tg_id) on delete cascade,
-  amount     numeric(20,6) not null,
+  amount     numeric(20,6) not null,            -- списано с баланса
+  payout     numeric(20,6) not null default 0,   -- к выплате, после комиссии
   method     text not null default 'stars',      -- stars | gram
   handle     text not null,                      -- ник в Telegram или адрес кошелька
   state      text not null default 'new',        -- new | paid | rejected

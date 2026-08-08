@@ -93,7 +93,10 @@ const ЗАДАНИЯ_ДНЯ = { d_play: 4, d_case: 4, d_win: 6 };
 // Вывод. Выплата ручная, поэтому сервер только принимает заявки.
 // Порог по пополнениям — чтобы наружу не уходил выигрыш с одних бонусов,
 // когда внутрь не пришло ничего.
-const ВЫВОД = { МИН: 50, ПОРОГ_ПОПОЛНЕНИЙ: 50 };
+// Комиссия разная: подарками платить дороже, чем криптой, поэтому
+// проценты не сходятся. Оба числа объявлены здесь и попадают на экран
+// отсюда же — два места с одним процентом рано или поздно разъедутся.
+const ВЫВОД = { МИН: 50, ПОРОГ_ПОПОЛНЕНИЙ: 50, КОМИССИЯ: { stars: 0.10, gram: 0.15 } };
 
 // Доход идёт и при закрытом приложении, но разрыв ограничиваем месяцем:
 // на большем окне выигрывает съехавшее системное время, а не игрок.
@@ -256,6 +259,7 @@ module.exports = async (req, res) => {
         rate: rateFor(Number(u.inv)),
         ref: { by: u.ref_by ? String(u.ref_by) : '', earned: Number(u.ref_earned) },
         bonus: { streak: u.streak, day: u.bonus_day },
+        wd: { min: ВЫВОД.МИН, need_topup: ВЫВОД.ПОРОГ_ПОПОЛНЕНИЙ, fee: ВЫВОД.КОМИССИЯ },
         tasks: u.tasks || {}, daily: u.daily || {},
         stats: { plays: u.plays, wins: u.wins, wagered: Number(u.wagered),
                  won: Number(u.won), best_win: Number(u.best_win), best_x: Number(u.best_x) }
@@ -345,6 +349,8 @@ module.exports = async (req, res) => {
     // Выплата ручная. Здесь только очередь: списать, записать, показать.
     if (action === 'withdraw') {
       await начислить(u);
+      // проценты отдаём и вместе с отказом: экран должен показывать их
+      // до нажатия, а не после
       const сумма = Math.floor(Number(body.amount) || 0);
       const способ = body.method === 'gram' ? 'gram' : 'stars';
       const куда = String(body.handle || '').replace(/^@/, '').trim();
@@ -376,10 +382,14 @@ module.exports = async (req, res) => {
 
       u.bal = round6(Number(u.bal) - сумма);
       await sb('sh_users?tg_id=eq.' + u.tg_id, { method: 'PATCH', body: JSON.stringify({ bal: u.bal }) });
+      /* Комиссию считаем здесь и кладём рядом с заявкой: тому, кто будет
+         платить, нужно готовое число, а не повод пересчитывать вручную. */
+      const кВыплате = Math.floor(сумма * (1 - ВЫВОД.КОМИССИЯ[способ]));
       await sb('sh_withdrawals', { method: 'POST',
-        body: JSON.stringify({ tg_id: u.tg_id, amount: сумма, handle: куда, method: способ }) });
-      await движение(u, 'withdraw', -сумма, { handle: куда, method: способ });
-      res.status(200).json(наружу(u, { queued: сумма }));
+        body: JSON.stringify({ tg_id: u.tg_id, amount: сумма, payout: кВыплате,
+                               handle: куда, method: способ }) });
+      await движение(u, 'withdraw', -сумма, { handle: куда, method: способ, payout: кВыплате });
+      res.status(200).json(наружу(u, { queued: сумма, payout: кВыплате }));
       return;
     }
 
@@ -387,7 +397,7 @@ module.exports = async (req, res) => {
     // без единого следа выглядит как пропажа.
     if (action === 'withdrawals') {
       const строки = await sb('sh_withdrawals?tg_id=eq.' + u.tg_id +
-        '&select=id,amount,method,handle,state,reason,created_at,handled_at' +
+        '&select=id,amount,payout,method,handle,state,reason,created_at,handled_at' +
         '&order=created_at.desc&limit=30');
       res.status(200).json({ ok: true, rows: строки || [] });
       return;
