@@ -2897,6 +2897,22 @@ var SRV = (function(){
    висят на ней, а без Telegram и без сервера она ложна — приложение
    работает из памяти телефона, как раньше, и проверки это видят. */
 function онлайн(){ return SRV.режим(); }
+
+/* Открыть ссылку, не закрывая приложение.
+
+   openTelegramLink уводит вглубь Telegram и закрывает мини-апп — человек
+   нажимает «Подписаться», попадает на канал, а приложение схлопывается, и
+   вернуться за наградой нужно заново. Для канала и поддержки это не то
+   поведение, поэтому там openLink: ссылка открывается поверх, приложение
+   остаётся жить. Родное окно «поделиться» — единственное место, где нужен
+   именно openTelegramLink, и оно зовёт его напрямую. */
+function открытьРядом(url){
+  try{
+    if(TG && TG.openLink){ TG.openLink(url); return; }
+    if(TG && TG.openTelegramLink){ TG.openTelegramLink(url); return; }
+    window.open(url,'_blank','noopener');
+  }catch(e){ try{ window.open(url,'_blank','noopener'); }catch(_){} }
+}
 /* Флаг админа приходит в состоянии; профиль по нему показывает раздел
    обработки заявок. */
 var АДМИН=false;
@@ -3001,6 +3017,7 @@ ru:{
  fs_lead:'Три шага, чтобы начать. Первый бонус и подписка дают 20 ★ — этого хватит на первый кейс.',
  fs_done:'Пройдено', fs_r:'+{n} ★', fs_from:'от {n} ★',
  px_fee:'Комиссия 5% · победитель получит {n} ★',
+ p_min:'Минимальная ставка — {n} ★',
  dt_title:'Каждый день', dt_note:'Обновляются в полночь',
  dt_play:'Сыграть 3 раунда', dt_case:'Открыть кейс', dt_win:'Выиграть раунд',
  st_title:'Статистика', st_games:'Сыграно', st_wins:'Побед', st_best:'Крупнейший выигрыш',
@@ -3021,7 +3038,7 @@ ru:{
  r_h1:'Начисления', r_p1:'Доход идёт не с баланса, а с вклада — тех звёзд, что вы вложили в мощность. Начисление происходит каждые 3 секунды и падает в кошелёк, сумма за сутки равна вкладу, умноженному на ставку. Звёзды, которые просто лежат на балансе, дохода не приносят.',
  r_h2:'Мощность', r_p2:'Мощность покупается за звёзды с баланса и обратно не возвращается — вложенное превращается в оборудование. Она растёт вместе с размером вклада и со ставкой доходности, поэтому меняется и при новом вложении, и при покупке уровня.',
  r_h3:'Ставка и пакеты', r_p3:'Ставка зависит от размера вклада: 100 ★ — 1.2%, 200 ★ — 1.4%, 300 ★ — 1.6%, 1 000 ★ — 1.8%, 3 000 ★ — 2%, 5 000 ★ — 2.3%, 10 000 ★ — 2.6%, 20 000 ★ — 2.8%, 50 000 ★ — 3.5%, 100 000 ★ — 5%. Пакет — это готовая сумма вложения: его цена целиком уходит в мощность и работает. Ставка не понижается.',
- r_h4:'Вывод', r_p4:'Минимальная сумма — 150 ★. Комиссия одинаковая для обоих способов — 5% от суммы вывода. Вывод в Stars идёт на указанный Telegram-аккаунт, вывод в GRAM — на кошелёк по курсу 1 ★ = 0.01 GRAM.',
+ r_h4:'Вывод', r_p4:'Минимальная сумма — 150 ★. Комиссия одинаковая для обоих способов — 5% от суммы вывода. Вывод в Stars идёт на указанный Telegram-аккаунт, вывод в GRAM — на указанный кошелёк.',
  r_h6:'Кейсы', r_p6:'Пять кейсов с разной ценой открытия: Spark 20 ★, Neon 50 ★, Crystal 100 ★, Royal 200 ★, Legend 500 ★. В каждом шесть вариантов выигрыша — от 5% цены до пятикратной цены, — и шанс каждого написан рядом до открытия. Вариант выпадает случайно ровно с этим шансом, лента лишь показывает результат.',
  r_h5:'Игры', r_p5:'Краш: ставка делается в фазе ожидания, забрать можно в любой момент до обрыва. Точка обрыва определяется до старта раунда. ПВП: доля в общем банке равна шансу на победу, победитель забирает банк за вычетом комиссии 5%.',
  mln:' млн', mlrd:' млрд'
@@ -3104,6 +3121,7 @@ en:{
  fs_lead:'Three steps to get going. The first bonus and the subscription give 20 ★ — enough for your first case.',
  fs_done:'Done', fs_r:'+{n} ★', fs_from:'from {n} ★',
  px_fee:'5% fee · the winner gets {n} ★',
+ p_min:'Minimum bet is {n} ★',
  dt_title:'Every day', dt_note:'Reset at midnight',
  dt_play:'Play 3 rounds', dt_case:'Open a case', dt_win:'Win a round',
  st_title:'Stats', st_games:'Rounds', st_wins:'Wins', st_best:'Biggest win',
@@ -3124,7 +3142,7 @@ en:{
  r_h1:'Payouts', r_p1:'Income comes from your deposit — the stars you invested into power — not from your balance. Payouts land in your wallet every 3 seconds, and the daily total equals your deposit times the rate. Stars sitting in the wallet earn nothing.',
  r_h2:'Power', r_p2:'Power is bought with stars from your wallet and cannot be taken back — what you invest becomes equipment. It grows with the size of your deposit and with your daily rate, so it changes when you invest more and when you buy a tier.',
  r_h3:'Rate and packs', r_p3:'Your rate depends on the size of your deposit: 100 ★ — 1.2%, 200 ★ — 1.4%, 300 ★ — 1.6%, 1,000 ★ — 1.8%, 3,000 ★ — 2%, 5,000 ★ — 2.3%, 10,000 ★ — 2.6%, 20,000 ★ — 2.8%, 50,000 ★ — 3.5%, 100,000 ★ — 5%. A pack is a ready-made investment: its price goes into power in full and starts working. The rate never drops.',
- r_h4:'Withdrawal', r_p4:'The minimum is 150 ★. The fee is the same either way — 5% of the withdrawal. Stars go to the given Telegram account; GRAM goes to a wallet at 1 ★ = 0.01 GRAM.',
+ r_h4:'Withdrawal', r_p4:'The minimum is 150 ★. The fee is the same either way — 5% of the withdrawal. Stars go to the given Telegram account; GRAM goes to the wallet you specify.',
  r_h6:'Cases', r_p6:'Five cases with different prices: Spark 20 ★, Neon 50 ★, Crystal 100 ★, Royal 200 ★, Legend 500 ★. Each holds six outcomes — from 5% of the price up to five times the price — and every chance is printed next to it before you open. The outcome is drawn at exactly that chance; the reel only shows the result.',
  r_h5:'Games', r_p5:'Crash: you bet during the waiting phase and can cash out any moment before the bust. The bust point is fixed before the round starts. PvP: your share of the pot is your chance to win, and the winner takes the pot minus a 5% fee.',
  mln:'M', mlrd:'B'
@@ -3207,6 +3225,7 @@ uk:{
  fs_lead:'Три кроки, щоб почати. Перший бонус і підписка дають 20 ★ — цього вистачить на перший кейс.',
  fs_done:'Пройдено', fs_r:'+{n} ★', fs_from:'від {n} ★',
  px_fee:'Комісія 5% · переможець отримає {n} ★',
+ p_min:'Мінімальна ставка — {n} ★',
  dt_title:'Щодня', dt_note:'Оновлюються опівночі',
  dt_play:'Зіграти 3 раунди', dt_case:'Відкрити кейс', dt_win:'Виграти раунд',
  st_title:'Статистика', st_games:'Зіграно', st_wins:'Перемог', st_best:'Найбільший виграш',
@@ -3227,7 +3246,7 @@ uk:{
  r_h1:'Нарахування', r_p1:'Дохід іде не з балансу, а з вкладу — тих зірок, які ви вклали в потужність. Нарахування відбувається кожні 3 секунди й падає в гаманець, сума за добу дорівнює вкладу, помноженому на ставку. Зірки, що просто лежать на балансі, доходу не приносять.',
  r_h2:'Потужність', r_p2:'Потужність купується за зірки з гаманця і назад не повертається — вкладене стає обладнанням. Вона зростає разом із розміром вкладу і зі ставкою дохідності, тому змінюється і при новому вкладенні, і при купівлі рівня.',
  r_h3:'Ставка і пакети', r_p3:'Ставка залежить від розміру вкладу: 100 ★ — 1.2%, 200 ★ — 1.4%, 300 ★ — 1.6%, 1 000 ★ — 1.8%, 3 000 ★ — 2%, 5 000 ★ — 2.3%, 10 000 ★ — 2.6%, 20 000 ★ — 2.8%, 50 000 ★ — 3.5%, 100 000 ★ — 5%. Пакет — це готова сума вкладення: його ціна цілком іде в потужність і працює. Ставка не знижується.',
- r_h4:'Виведення', r_p4:'Мінімальна сума — 150 ★. Комісія однакова для обох способів — 5% від суми виведення. Виведення у Stars іде на вказаний Telegram-акаунт, виведення у GRAM — на гаманець за курсом 1 ★ = 0.01 GRAM.',
+ r_h4:'Виведення', r_p4:'Мінімальна сума — 150 ★. Комісія однакова для обох способів — 5% від суми виведення. Виведення у Stars іде на вказаний Telegram-акаунт, виведення у GRAM — на вказаний гаманець.',
  r_h6:'Кейси', r_p6:'П’ять кейсів із різною ціною відкриття: Spark 20 ★, Neon 50 ★, Crystal 100 ★, Royal 200 ★, Legend 500 ★. У кожному шість варіантів виграшу — від 5% ціни до п’ятикратної ціни, — і шанс кожного написано поруч до відкриття. Варіант випадає випадково рівно з цим шансом, стрічка лише показує результат.',
  r_h5:'Ігри', r_p5:'Краш: ставка робиться у фазі очікування, забрати можна будь-якої миті до обриву. Точка обриву визначається до старту раунду. ПВП: частка у спільному банку дорівнює шансу на перемогу, переможець забирає банк за вирахуванням комісії 5%.',
  mln:' млн', mlrd:' млрд'
@@ -4652,13 +4671,18 @@ var FIGHTERS=[
         own=document.getElementById('pOwn'), ownWrap=document.getElementById('pOwnWrap');
 
     var COLORS=['#8FA6C4','#C08A9E','#8FC4A8','#C4B08F','#A79AC4','#C49A8F'];
-    var BETS=[50,100,250,500,1000];
     var PITCH=66;               // ширина карточки 58 + зазор 8
     var COLLECT=9;              // секунд на сбор состава
+    /* Вход от 30 ★, соперники приносят в банк от 65 до 187 ★ — те же числа,
+       что и на сервере. Расхождение игрок увидел бы как скачок банка в момент
+       розыгрыша, поэтому закон один на обе стороны. */
+    var МИН=30, БАНК_ОТ=65, БАНК_ДО=187;
 
     var players=[], tickets=[], phase='collect', stake=100, joined=false,
         live=false, x=0, raf=null, tmr=null, left=COLLECT, botTimer=null;
     var серверныйВыигрыш=null;   // выплата, названная сервером в этом раунде
+    var серверРаунд=null;        // исход, уже посчитанный сервером при входе
+    var очередь=[];              // соперники, которые ещё не подсели за стол
 
     function rint(a,b){ return a+Math.floor(Math.random()*(b-a+1)); }
     function pot(){ return players.reduce(function(a,p){ return a+p.s; },0); }
@@ -4719,6 +4743,10 @@ var FIGHTERS=[
     function updBtn(){
       if(phase!=='collect'){ goBtn.disabled=true;
         goBtn.textContent = phase==='spin' ? t('drawing') : goBtn.textContent; return; }
+      /* Ставку ниже минимума не правим втихую: поднять её за человека значит
+         списать больше, чем он набрал. Просто говорим, что так нельзя. */
+      if(!joined && stake<МИН){ goBtn.disabled=true; goBtn.textContent=t('p_min',{n:МИН});
+        own.readOnly=false; chips.classList.remove('locked'); return; }
       goBtn.disabled=joined;
       goBtn.textContent=joined ? t('you_in',{n:fmtInt(stake)}) : t('enter_battle',{n:fmtInt(stake)});
       own.readOnly=joined;
@@ -4732,29 +4760,51 @@ var FIGHTERS=[
     }
     function apply(){ track.style.transform='translateX('+x+'px)'; }
 
-    function addBot(){
-      if(phase!=='collect'||players.length>=6) return;
+    /* Ставки соперников: их сумма попадает в объявленный размах, а делится
+       между ними неровно — иначе доли у всех выглядели бы одинаковыми.
+       Тот же закон, что на сервере. */
+    function ставкиСоперников(){
+      var всего=БАНК_ОТ+Math.floor(Math.random()*(БАНК_ДО-БАНК_ОТ+1));
+      var сколько=3+Math.floor(Math.random()*3), веса=[], i;
+      for(i=0;i<сколько;i++) веса.push(0.35+Math.random());
+      var сум=веса.reduce(function(a,b){ return a+b; },0);
+      var out=веса.map(function(в){ return Math.max(5, Math.round(всего*в/сум)); });
+      var разн=всего-out.reduce(function(a,b){ return a+b; },0), к=0;
+      for(i=1;i<out.length;i++) if(out[i]>out[к]) к=i;
+      out[к]=Math.max(5,out[к]+разн);
+      return out;
+    }
+    /* Соперник садится за стол. Лица не повторяются внутри раунда. */
+    function посадить(ставка){
       var used={}; players.forEach(function(p){ if(p.ni!=null) used[p.ni]=1; });
       var free=[]; for(var i=0;i<FIGHTERS.length;i++) if(!used[i]) free.push(i);
       if(!free.length) return;
       var ni=free[rint(0,free.length-1)], f=FIGHTERS[ni];
       players.push({ni:ni, n:f.n, c:COLORS[players.length%COLORS.length], av:f.av,
-                    s:BETS[rint(0,BETS.length-1)], me:false});
+                    s:ставка, me:false});
+    }
+    function addBot(){
+      if(phase!=='collect'||!очередь.length) return;
+      посадить(очередь.shift());
       render(); buildTickets();
     }
 
     function newRound(){
       if(!live) return;
       phase='collect'; joined=false; players=[]; left=COLLECT;
+      серверРаунд=null; серверныйВыигрыш=null;
       subEl.textContent=t('wait_players');
       timerEl.style.width='0%';
       reel.classList.remove('hit');
-      var n=rint(2,3);
-      for(var i=0;i<n;i++) addBot();
+      /* Состав известен заранее, но подсаживается по одному: так видно, что
+         стол живой. Итоговый банк от этого не меняется. */
+      очередь=ставкиСоперников();
+      var n=Math.min(очередь.length, rint(2,3));
+      for(var i=0;i<n;i++) посадить(очередь.shift());
       render(); buildTickets(); updBtn();
 
       if(botTimer) clearInterval(botTimer);
-      botTimer=setInterval(function(){ if(Math.random()<0.55) addBot(); },1900);
+      botTimer=setInterval(function(){ if(Math.random()<0.7) addBot(); },1500);
 
       if(tmr) clearInterval(tmr);
       tmr=setInterval(function(){
@@ -4767,15 +4817,11 @@ var FIGHTERS=[
 
     function spin(){
       if(!live) return;
-      if(joined && онлайн()){
-        /* соперников и победителя выбирает сервер: доля в банке равна шансу,
-           отдай это телефону — и «случайность» станет управляемой. */
+      if(серверРаунд){
+        /* Исход сервер посчитал ещё при входе, состав на экране уже его —
+           осталось довести ленту до победителя. */
         phase='spin'; updBtn(); subEl.textContent=t('spinning'); haptic('medium');
-        SRV.raw('pvp',{stake:stake}).then(function(о){
-          if(!о || !о.ok){ joined=false; newRound(); return; }
-          применитьСостояние(о);
-          серверныйИсход(о);
-        });
+        доИгрока(серверРаунд.winner===-1 ? 0 : 1+серверРаунд.winner);
         return;
       }
       if(players.length<2){ newRound(); return; }
@@ -4786,38 +4832,12 @@ var FIGHTERS=[
       // победитель — взвешенно по долям
       var P=pot(), r=Math.random()*P, acc=0, win=0;
       for(var i=0;i<players.length;i++){ acc+=players[i].s; if(r<=acc){ win=i; break; } }
-
-      // подводим ленту к билету победителя: сам билет назначаем принудительно,
-      // распределение карточек остаётся честным по долям
-      var cur=Math.round(-x/PITCH);
-      var k=cur+rint(34,44);
-      tickets[k]=win; renderTrack();
-
-      var center=reel.clientWidth/2-29;
-      var from=x, to=-(k*PITCH)+center, T=4200, t0=performance.now();
-      cancelAnimationFrame(raf);
-      (function step(now){
-        var e=Math.min(1,(now-t0)/T), p=1-Math.pow(1-e,3.4);
-        x=from+(to-from)*p; apply();
-        if(e<1) requestAnimationFrame(step); else land(win);
-      })(performance.now());
+      доИгрока(win);
     }
 
-    /* Пересобираем состав под решение сервера — я и присланные соперники —
-       и подводим ленту к его победителю. */
-    function серверныйИсход(о){
-      var used={};
-      players=[{n:t('you'), c:'var(--gold)', s:stake, me:true}];
-      var rivals=о.rivals||[];
-      for(var i=0;i<rivals.length;i++){
-        var free=[]; for(var j=0;j<FIGHTERS.length;j++) if(!used[j]) free.push(j);
-        var ni=free.length ? free[rint(0,free.length-1)] : (i%FIGHTERS.length); used[ni]=1;
-        var f=FIGHTERS[ni];
-        players.push({ni:ni, n:f.n, c:COLORS[(i+1)%COLORS.length], av:f.av, s:rivals[i], me:false});
-      }
-      render(); buildTickets();
-      var win = о.winner===-1 ? 0 : (1+о.winner);
-      серверныйВыигрыш = +о.win||0;
+    /* Подводим ленту к билету победителя: сам билет назначаем принудительно,
+       распределение остальных карточек остаётся честным по долям. */
+    function доИгрока(win){
       var cur=Math.round(-x/PITCH), k=cur+rint(34,44);
       tickets[k]=win; renderTrack();
       var center=reel.clientWidth/2-29;
@@ -4828,6 +4848,25 @@ var FIGHTERS=[
         x=from+(to-from)*p; apply();
         if(e<1) requestAnimationFrame(step); else land(win);
       })(performance.now());
+    }
+
+    /* Состав раунда по решению сервера: я и присланные соперники. Ставится
+       сразу при входе, а не перед розыгрышем — иначе банк на экране менялся
+       бы в последний миг, и человек справедливо считал бы это подвохом. */
+    function составСервера(о){
+      var used={};
+      players=[{n:t('you'), c:'var(--gold)', s:stake, me:true}];
+      var rivals=о.rivals||[];
+      for(var i=0;i<rivals.length;i++){
+        var free=[]; for(var j=0;j<FIGHTERS.length;j++) if(!used[j]) free.push(j);
+        var ni=free.length ? free[rint(0,free.length-1)] : (i%FIGHTERS.length); used[ni]=1;
+        var f=FIGHTERS[ni];
+        players.push({ni:ni, n:f.n, c:COLORS[(i+1)%COLORS.length], av:f.av, s:rivals[i], me:false});
+      }
+      очередь=[];                       // состав окончательный, подсаживать некого
+      серверныйВыигрыш = +о.win||0;
+      серверРаунд = { winner: о.winner };
+      render(); buildTickets();
     }
 
     function land(win){
@@ -4853,9 +4892,34 @@ var FIGHTERS=[
 
     function join(){
       if(joined||phase!=='collect') return;
+      if(stake<МИН){ haptic('warning'); goBtn.textContent=t('p_min',{n:МИН});
+        setTimeout(updBtn,1600); return; }
       if(stake>bal){ haptic('warning'); goBtn.textContent=t('no_stars');
         setTimeout(updBtn,1400); return; }
-      if(!онлайн()) bal-=stake;      // на сервере ставку спишет розыгрыш, не вход
+      if(онлайн()){
+        /* Сервер списывает ставку, набирает соперников и решает исход — всё
+           одним ответом. Показываем его состав сразу, а лента доедет к нему
+           же, когда выйдет время сбора. */
+        goBtn.disabled=true;
+        SRV.raw('pvp',{stake:stake}).then(function(о){
+          goBtn.disabled=false;
+          if(!о || !о.ok){
+            haptic('warning');
+            goBtn.textContent = о && о.reason==='not_enough' ? t('no_stars')
+                              : о && о.reason==='below_min' ? t('p_min',{n:(о.min||МИН)})
+                              : t('w_fail');
+            setTimeout(updBtn,1600);
+            return;
+          }
+          применитьСостояние(о);
+          joined=true; Tasks.done('pvp');
+          составСервера(о);
+          updBtn(); haptic('medium');
+          subEl.textContent=t('you_in_wait');
+        });
+        return;
+      }
+      bal-=stake;
       joined=true;  Tasks.done('pvp');
       players.unshift({n:t('you'),c:'var(--gold)',s:stake,me:true});
       render(); buildTickets(); updBtn(); haptic('medium');
@@ -4893,8 +4957,9 @@ var FIGHTERS=[
       markChip(b); stake=+b.dataset.pbet; own.value=''; sizeOwn(); updBtn();
     });
 
-    /* своя ставка: любое целое число звёзд. Верхнюю границу не режем —
-       если звёзд не хватит, это скажет кнопка входа, как и для пресетов. */
+    /* Своя ставка: целое число звёзд, не меньше МИН. Пока набирают, число
+       не трогаем — иначе «3» на пути к «300» прыгало бы в 30; поправляем
+       на выходе из поля, а до тех пор о минимуме скажет кнопка входа. */
     own.addEventListener('input',function(){
       if(joined){ own.value=''; return; }
       var v=own.value.replace(/\D/g,'');
@@ -5170,12 +5235,7 @@ var FIGHTERS=[
     }
     var conds=makeSheet('fcSheet','fcTop',{ onShow:renderConds });
     document.getElementById('fcX').addEventListener('click',conds.hide);
-    function tgOpen(url){
-      try{
-        if(TG && TG.openTelegramLink) TG.openTelegramLink(url);
-        else window.open(url,'_blank','noopener');
-      }catch(e){ window.open(url,'_blank','noopener'); }
-    }
+    function tgOpen(url){ открытьРядом(url); }
     fcShare.addEventListener('click',function(){
       haptic('medium');
       if(FC.sh<SHARE_NEED){ FC.sh++; saveState(); }
@@ -5278,11 +5338,7 @@ var FIGHTERS=[
 
   document.getElementById('setSupport').addEventListener('click',function(){
     haptic('medium');
-    var link='https://t.me/starshash_support';
-    try{
-      if(TG && TG.openTelegramLink) TG.openTelegramLink(link);
-      else window.open(link,'_blank','noopener');
-    }catch(e){ window.open(link,'_blank','noopener'); }
+    открытьРядом('https://t.me/starshash_support');
   });
 })();
 
@@ -5382,11 +5438,25 @@ var adminReflect;
       gpOwn=document.getElementById('gpOwn'), gpOwnRow=document.getElementById('gpOwnRow'),
       gpOwnG=document.getElementById('gpOwnG');
 
-  /* тот же курс, что и на выводе: 1 ★ = 0.01 GRAM. Бонусов за пакет нет —
-     сколько звёзд в строке, столько и приходит на баланс. */
-  var GRAM_RATE=0.01;
-  var PACKS=[200,500,1000,2500,5000];
-  var mode='stars', gsel=2;                 // по умолчанию 1000 ★
+  /* Пакеты GRAM заданы парами, а не одним курсом: цена звезды в крупном
+     пакете ниже, чем в мелком, и вывести это из множителя нельзя. Бонусов
+     за пакет нет — сколько звёзд в строке, столько и приходит на баланс. */
+  var PACKS=[[50,1],[100,2],[200,3.7],[500,9],[1000,18],[2500,45],[5000,89]];
+  /* Для своей суммы считаем по той же лесенке: между соседними пакетами
+     тянем прямую, за краями продолжаем крайним отрезком. Иначе своя сумма
+     жила бы по собственному курсу и расходилась с таблицей. */
+  function вGRAM(звёзд){
+    if(!(звёзд>0)) return 0;
+    var i, a, b;
+    if(звёзд<=PACKS[0][0]) { a=PACKS[0]; b=PACKS[1]; }
+    else if(звёзд>=PACKS[PACKS.length-1][0]) { a=PACKS[PACKS.length-2]; b=PACKS[PACKS.length-1]; }
+    else {
+      for(i=0;i<PACKS.length-1;i++) if(звёзд>=PACKS[i][0] && звёзд<=PACKS[i+1][0]){ a=PACKS[i]; b=PACKS[i+1]; break; }
+    }
+    var k=(b[1]-a[1])/(b[0]-a[0]);
+    return Math.max(0, a[1]+(звёзд-a[0])*k);
+  }
+  var mode='stars', gsel=4;                 // по умолчанию 1000 ★
 
   var sheet=makeSheet('dpSheet','dpTop',{ onShow:preview });
   document.getElementById('dpX').addEventListener('click',sheet.hide);
@@ -5395,17 +5465,17 @@ var adminReflect;
   /* gsel = -1 значит выбрана своя сумма, а не готовый пакет */
   function amount(){
     if(mode==='stars') return num(amt.value);
-    return gsel<0 ? num(gpOwn.value) : PACKS[gsel];
+    return gsel<0 ? num(gpOwn.value) : PACKS[gsel][0];
   }
 
   var STAR='<svg width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-2px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>';
   function buildPacks(){
     gpList.innerHTML='';
-    PACKS.forEach(function(v,i){
+    PACKS.forEach(function(п,i){
       var el=document.createElement('button');
       el.className='gp'+(i===gsel?' on':'');
-      el.innerHTML='<span class="s">'+fmtInt(v)+' '+STAR+'</span>'+
-                   '<span class="g">'+(v*GRAM_RATE).toFixed(2)+' GRAM</span>';
+      el.innerHTML='<span class="s">'+fmtInt(п[0])+' '+STAR+'</span>'+
+                   '<span class="g">'+(+п[1].toFixed(2))+' GRAM</span>';
       el.addEventListener('click',function(){
         if(gsel===i) return;
         haptic('light');
@@ -5437,13 +5507,13 @@ var adminReflect;
   gpOwn.addEventListener('input',function(){
     var v=gpOwn.value.replace(/\D/g,'');
     if(v!==gpOwn.value) gpOwn.value=v;
-    gpOwnG.textContent=(num(v)*GRAM_RATE).toFixed(2)+' GRAM';
+    gpOwnG.textContent=вGRAM(num(v)).toFixed(2)+' GRAM';
     if(v) markPack(-1);
     sizeGpOwn(); preview();
   });
   gpOwn.addEventListener('focus',function(){ if(gpOwn.value){ markPack(-1); preview(); } });
   /* пустое поле не должно оставлять сумму в подвешенном состоянии */
-  gpOwn.addEventListener('blur',function(){ if(!gpOwn.value && gsel<0){ markPack(2); preview(); } sizeGpOwn(); });
+  gpOwn.addEventListener('blur',function(){ if(!gpOwn.value && gsel<0){ markPack(4); preview(); } sizeGpOwn(); });
 
   function preview(){
     var a=amount();
@@ -6014,10 +6084,7 @@ var Tasks = (function(){
     /* приглашение шлём через раздел «Друзья»: ссылка должна быть одна */
     if(x.id==='invite'){ Ref.share(); done(x.id); return; }
     haptic('medium');
-    try{
-      if(TG && TG.openTelegramLink) TG.openTelegramLink(x.url);
-      else window.open(x.url,'_blank','noopener');
-    }catch(e){ window.open(x.url,'_blank','noopener'); }
+    открытьРядом(x.url);
     done(x.id);
   }
 

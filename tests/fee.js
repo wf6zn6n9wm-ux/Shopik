@@ -65,6 +65,72 @@ const жди = async (p,усл,мс=30000)=>{ const t0=Date.now();
   if(!проверено) errs.push('победы за десять раундов не дождались');
   await p.close();
 
+  console.log('— вход от 30 ★ и состав из ответа сервера —');
+  {
+    /* Раньше состав набирался в телефоне, а раунд считал сервер со своими
+       соперниками — и банк на экране прыгал в момент розыгрыша. Теперь
+       сервер отвечает при входе, и показанный банк дальше не меняется. */
+    const БАЗА = { ok:true, admin:false, bal:5000, inv:0, mined:0, ref:{by:'',earned:0},
+                   ref_n:0, bonus:{streak:0,day:null}, tasks:{}, daily:{}, stats:{} };
+    const p2 = await b.newPage({ viewport:{width:393,height:752} });
+    p2.on('pageerror', e => errs.push(String(e)));
+    await p2.addInitScript(о => {
+      localStorage.setItem('starshash_prefs', JSON.stringify({vibro:true,sound:false,lang:'ru'}));
+      localStorage.setItem('starshash_state', JSON.stringify({bal:5000,fs:{d:'2026-08-07'},dl:{streak:1,last:'2026-08-07'}}));
+      window.Telegram = { WebApp:{ initData:'user=%7B%22id%22%3A1%7D&hash=подделка', initDataUnsafe:{user:{}},
+        ready(){}, expand(){}, setHeaderColor(){}, setBackgroundColor(){}, openTelegramLink(){}, openLink(){},
+        HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}} } };
+      window.fetch = function(u, init){
+        let d='state'; try{ d=JSON.parse(init.body).action||d; }catch(e){}
+        return Promise.resolve({ json:()=>Promise.resolve(о[d]||{ok:false,reason:'unknown_action'}) });
+      };
+    }, { state: БАЗА,
+         pvp: Object.assign({}, БАЗА, { bal:4900, rivals:[40,55,30], winner:1, pot:225, win:0 }) });
+    await p2.goto(require('./helpers').АДРЕС); await p2.waitForTimeout(1700);
+    await p2.evaluate(()=>{const x=document.getElementById('stX');
+      if(x&&document.getElementById('stSheet').getAttribute('aria-hidden')==='false') x.click();});
+    await p2.waitForTimeout(300);
+    await p2.click('.tab[data-p="games"]'); await p2.waitForTimeout(400);
+    await p2.click('#goPvp'); await p2.waitForTimeout(700);
+
+    /* Соперники подсаживаются по одному, поэтому в начале сбора банк ещё
+       неполный — важно, что он не перерастает объявленный потолок. */
+    const банк0 = await p2.evaluate(()=>+document.getElementById('pPot').textContent.replace(/\D/g,''));
+    say('банк до входа не выходит за потолок', банк0>0 && банк0<=187, String(банк0));
+
+    /* ставка ниже минимума не пропускается */
+    await p2.fill('#pOwn','5').catch(()=>{});
+    await p2.evaluate(()=>document.getElementById('pOwn').dispatchEvent(new Event('input',{bubbles:true})));
+    await p2.waitForTimeout(200);
+    await p2.click('#pGo',{force:true}).catch(()=>{}); await p2.waitForTimeout(400);
+    const к = await p2.evaluate(()=>({ т:document.getElementById('pGo').textContent,
+      выкл:document.getElementById('pGo').disabled, вошёл:!!document.querySelector('.prow.me') }));
+    say('ставка ниже 30 ★ не пропускается', /30/.test(к.т) && к.выкл && !к.вошёл,
+        '«'+к.т.trim()+'», кнопка '+(к.выкл?'заблокирована':'АКТИВНА'));
+
+    await p2.waitForTimeout(1800);
+    await p2.click('#pChips button[data-pbet="50"]').catch(()=>{});
+    await p2.waitForTimeout(200);
+    if(await жди(p2,()=>!document.getElementById('pGo').disabled &&
+                        /Войти/.test(document.getElementById('pGo').textContent), 12000)){
+      await p2.click('#pGo'); await p2.waitForTimeout(900);
+      const после = await p2.evaluate(()=>({
+        банк:+document.getElementById('pPot').textContent.replace(/\D/g,''),
+        строк:document.querySelectorAll('.prow').length,
+        баланс:JSON.parse(localStorage.getItem('starshash_state')).bal
+      }));
+      /* 50 своих + 40+55+30 присланных = 175 */
+      say('после входа банк — из ответа сервера', после.банк===175, String(после.банк));
+      say('состав — я и трое соперников', после.строк===4, 'строк '+после.строк);
+      say('баланс принят с сервера, а не посчитан в телефоне',
+          Math.abs(после.баланс-4900)<1, после.баланс.toFixed(2));
+      await p2.waitForTimeout(2500);
+      const держится = await p2.evaluate(()=>+document.getElementById('pPot').textContent.replace(/\D/g,''));
+      say('до розыгрыша банк больше не меняется', держится===175, String(держится));
+    } else errs.push('кнопка входа в ПВП не разблокировалась');
+    await p2.close();
+  }
+
   console.log('— правила и три языка —');
   for(const [l,кусок] of [['ru','комиссии 5%'],['en','5% fee'],['uk','комісії 5%']]){
     const pg=await открыть(b,l);
