@@ -143,3 +143,29 @@ grant usage, select on sequence sh_tx_id_seq to service_role;
 -- в отсутствие прав, а не только в RLS.
 revoke all on sh_users, sh_tx, sh_refs, sh_rounds from anon, authenticated;
 revoke all on sh_top_all, sh_top_day, sh_top_week from anon, authenticated;
+
+-- ── Заявки на вывод ──────────────────────────────────────────────────
+-- Выплата ручная, поэтому здесь только очередь и её состояние.
+--
+-- Звёзды списываются в момент подачи, а не выплаты: иначе игрок подаст
+-- десять заявок на один баланс и проиграет остаток, пока их обрабатывают.
+-- Отказ возвращает списанное.
+create table if not exists sh_withdrawals (
+  id         bigserial primary key,
+  tg_id      bigint not null references sh_users(tg_id) on delete cascade,
+  amount     numeric(20,6) not null,
+  handle     text not null,                      -- ник в Telegram, куда выплачивать
+  state      text not null default 'new',        -- new | paid | rejected
+  reason     text,                               -- почему отказали
+  handled_by bigint,                             -- кто из админов закрыл
+  handled_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists sh_wd_state on sh_withdrawals(state, created_at);
+create index if not exists sh_wd_user  on sh_withdrawals(tg_id, created_at desc);
+
+alter table sh_withdrawals enable row level security;
+grant select, insert, update, delete on sh_withdrawals to service_role;
+grant usage, select on sequence sh_withdrawals_id_seq to service_role;
+revoke all on sh_withdrawals from anon, authenticated;

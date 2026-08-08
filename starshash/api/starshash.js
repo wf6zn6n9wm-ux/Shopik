@@ -18,6 +18,8 @@
 //   case_open {id}     → открыть кейс, приз выбирает сервер
 //   pvp      {stake}   → раунд ПВП: соперники и победитель с сервера
 //   task     {id}      → закрыть задание; награду называет сервер
+//   topup    {amount}  → счёт на пополнение звёздами; зачисляет бот
+//   withdraw {amount, handle} → заявка на вывод, выплата ручная
 //   top      {period}  → таблица лидеров: day | week | all
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
@@ -86,6 +88,11 @@ const КОМИССИЯ = 0.05;
 // вовсе — это умеет только бот, и это отдельная работа.
 const ЗАДАНИЯ = { sub: 10, invite: 10, topup: 5, boost: 8, kase: 6, crash: 5, pvp: 5, wd: 10 };
 const ЗАДАНИЯ_ДНЯ = { d_play: 4, d_case: 4, d_win: 6 };
+
+// Вывод. Выплата ручная, поэтому сервер только принимает заявки.
+// Порог по пополнениям — чтобы наружу не уходил выигрыш с одних бонусов,
+// когда внутрь не пришло ничего.
+const ВЫВОД = { МИН: 50, ПОРОГ_ПОПОЛНЕНИЙ: 50 };
 
 // Доход идёт и при закрытом приложении, но разрыв ограничиваем месяцем:
 // на большем окне выигрывает съехавшее системное время, а не игрок.
@@ -333,6 +340,39 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // ── заявка на вывод ──────────────────────────────────────────────
+    // Выплата ручная. Здесь только очередь: списать, записать, показать.
+    if (action === 'withdraw') {
+      await начислить(u);
+      const сумма = Math.floor(Number(body.amount) || 0);
+      const ник = String(body.handle || '').replace(/^@/, '').trim();
+
+      if (!(сумма >= ВЫВОД.МИН)) { res.status(200).json({ ok: false, reason: 'min', min: ВЫВОД.МИН }); return; }
+      if (сумма > Number(u.bal)) { res.status(200).json({ ok: false, reason: 'not_enough' }); return; }
+      if (!/^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(ник)) { res.status(200).json({ ok: false, reason: 'bad_handle' }); return; }
+
+      // Порог по пополнениям: без него выигрыш с бонусов уходил бы наружу,
+      // а внутрь не приходило бы ничего.
+      const пополнения = await sb('sh_tx?tg_id=eq.' + u.tg_id + '&kind=eq.topup&select=amount');
+      const всего = (пополнения || []).reduce((a, t) => a + Number(t.amount), 0);
+      if (всего < ВЫВОД.ПОРОГ_ПОПОЛНЕНИЙ) {
+        res.status(200).json({ ok: false, reason: 'need_topup', need: ВЫВОД.ПОРОГ_ПОПОЛНЕНИЙ, have: всего });
+        return;
+      }
+
+      // Одна заявка в работе: вторая только запутает и вас, и игрока.
+      const висит = await sb('sh_withdrawals?tg_id=eq.' + u.tg_id + '&state=eq.new&select=id&limit=1');
+      if (Array.isArray(висит) && висит.length) { res.status(200).json({ ok: false, reason: 'pending' }); return; }
+
+      u.bal = round6(Number(u.bal) - сумма);
+      await sb('sh_users?tg_id=eq.' + u.tg_id, { method: 'PATCH', body: JSON.stringify({ bal: u.bal }) });
+      await sb('sh_withdrawals', { method: 'POST',
+        body: JSON.stringify({ tg_id: u.tg_id, amount: сумма, handle: ник }) });
+      await движение(u, 'withdraw', -сумма, { handle: ник });
+      res.status(200).json(наружу(u, { queued: сумма }));
+      return;
+    }
+
     // ── задание ──────────────────────────────────────────────────────
     // Телефон говорит только, какое задание закрылось. Сколько за него
     // причитается и не забирали ли уже — решает сервер.
@@ -501,3 +541,4 @@ module.exports.КЕЙСЫ = КЕЙСЫ;
 module.exports.КОМИССИЯ = КОМИССИЯ;
 module.exports.ЗАДАНИЯ = ЗАДАНИЯ;
 module.exports.ЗАДАНИЯ_ДНЯ = ЗАДАНИЯ_ДНЯ;
+module.exports.ВЫВОД = ВЫВОД;
