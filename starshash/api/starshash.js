@@ -17,6 +17,7 @@
 //   crash_settle {x}   → расчёт: забрал на x или не успел
 //   case_open {id}     → открыть кейс, приз выбирает сервер
 //   pvp      {stake}   → раунд ПВП: соперники и победитель с сервера
+//   task     {id}      → закрыть задание; награду называет сервер
 //   top      {period}  → таблица лидеров: day | week | all
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
@@ -76,6 +77,15 @@ const КЕЙСЫ = {
 
 // ПВП: банк забирает победитель за вычетом комиссии.
 const КОМИССИЯ = 0.05;
+
+// Задания. Награду называет сервер: попроси её у телефона — и любой
+// напишет себе тысячу за «подписку на канал».
+//
+// Разовые берутся раз в жизни, ежедневные обнуляются в полночь по
+// серверным часам. Проверить настоящую подписку на канал клиент не может
+// вовсе — это умеет только бот, и это отдельная работа.
+const ЗАДАНИЯ = { sub: 10, invite: 10, topup: 5, boost: 8, kase: 6, crash: 5, pvp: 5, wd: 10 };
+const ЗАДАНИЯ_ДНЯ = { d_play: 4, d_case: 4, d_win: 6 };
 
 // Доход идёт и при закрытом приложении, но разрыв ограничиваем месяцем:
 // на большем окне выигрывает съехавшее системное время, а не игрок.
@@ -238,6 +248,7 @@ module.exports = async (req, res) => {
         rate: rateFor(Number(u.inv)),
         ref: { by: u.ref_by ? String(u.ref_by) : '', earned: Number(u.ref_earned) },
         bonus: { streak: u.streak, day: u.bonus_day },
+        tasks: u.tasks || {}, daily: u.daily || {},
         stats: { plays: u.plays, wins: u.wins, wagered: Number(u.wagered),
                  won: Number(u.won), best_win: Number(u.best_win), best_x: Number(u.best_x) }
       }, extra || {});
@@ -288,6 +299,30 @@ module.exports = async (req, res) => {
       await sb('sh_users?tg_id=eq.' + u.tg_id, {
         method: 'PATCH', body: JSON.stringify({ bal: u.bal, streak: шаг, bonus_day: сегодня }) });
       await движение(u, 'bonus', сумма, { day: шаг });
+      res.status(200).json(наружу(u, { got: сумма }));
+      return;
+    }
+
+    // ── задание ──────────────────────────────────────────────────────
+    // Телефон говорит только, какое задание закрылось. Сколько за него
+    // причитается и не забирали ли уже — решает сервер.
+    if (action === 'task') {
+      await начислить(u);
+      const id = String(body.id || '');
+      const разовое = ЗАДАНИЯ[id], дневное = ЗАДАНИЯ_ДНЯ[id];
+      if (!разовое && !дневное) { res.status(200).json({ ok: false, reason: 'no_task' }); return; }
+
+      const сегодня = день(Date.now());
+      const tk = u.tasks || {}, dt = (u.daily && u.daily.d === сегодня) ? u.daily : { d: сегодня };
+      if (разовое ? tk[id] : dt[id]) { res.status(200).json({ ok: false, reason: 'already' }); return; }
+
+      const сумма = разовое || дневное;
+      u.bal = round6(Number(u.bal) + сумма);
+      const патч = { bal: u.bal };
+      if (разовое) { tk[id] = 1; u.tasks = tk; патч.tasks = tk; }
+      else { dt[id] = 1; u.daily = dt; патч.daily = dt; }
+      await sb('sh_users?tg_id=eq.' + u.tg_id, { method: 'PATCH', body: JSON.stringify(патч) });
+      await движение(u, 'task', сумма, { id });
       res.status(200).json(наружу(u, { got: сумма }));
       return;
     }
@@ -434,3 +469,5 @@ module.exports.крашСек = крашСек;
 module.exports.ШАНСЫ = ШАНСЫ;
 module.exports.КЕЙСЫ = КЕЙСЫ;
 module.exports.КОМИССИЯ = КОМИССИЯ;
+module.exports.ЗАДАНИЯ = ЗАДАНИЯ;
+module.exports.ЗАДАНИЯ_ДНЯ = ЗАДАНИЯ_ДНЯ;
