@@ -59,6 +59,19 @@ async function открыть(b, о) {
   }, [о.язык || 'ru', о.состояние ? JSON.stringify(о.состояние) : null]);
   if (о.звук) await p.addInitScript(() => { window.__звук = true; });
 
+  /* Подделка Telegram: настоящий telegram-web-app.js в песочницу не
+     пускают, поэтому объект собираем сами — иначе приложение считает,
+     что открыто в браузере, и половина веток не выполняется. */
+  if (о.телеграм) await p.addInitScript(о => {
+    window.Telegram = { WebApp: {
+      initDataUnsafe: { user: о.user || {}, start_param: о.start_param || '' },
+      viewportStableHeight: 752,
+      ready() {}, expand() {}, setHeaderColor() {}, setBackgroundColor() {},
+      openTelegramLink() {}, openLink() {},
+      HapticFeedback: { impactOccurred() {}, notificationOccurred() {}, selectionChanged() {} }
+    } };
+  }, о.телеграм);
+
   await p.goto(АДРЕС);
   await p.waitForTimeout(о.пауза || 1700);
   if (о.шаги !== true) await закрытьШаги(p);

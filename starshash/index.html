@@ -984,7 +984,7 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
 }
 /* фотография вместо буквы: набор один и на списки игроков, и на ленту.
    Кружок уже круглый, поэтому квадратную картинку просто обрезаем по нему */
-.prow .av.ph,.cpr .av.ph,.pxc.ph,.pod .av.ph,.tprow .av.ph{
+.prow .av.ph,.cpr .av.ph,.pxc.ph,.pod .av.ph,.tprow .av.ph,.tpme .av.ph,.pav.ph{
   background-size:cover;background-position:center;font-size:0;}
 /* в рулетке ячейка квадратная и крупная — картинке нужна своя скруглённая рамка */
 .pxc.ph{border-color:rgba(255,255,255,.14);}
@@ -2741,6 +2741,49 @@ if (TG){ try{
   TG.setHeaderColor && TG.setHeaderColor('#000000');
   TG.setBackgroundColor && TG.setBackgroundColor('#000000');
 }catch(e){} }
+
+/* Аватарка из Telegram.
+
+   Фото приходит не всегда: часть точек запуска не отдаёт photo_url, у
+   закрытых профилей его нет, а сама ссылка со временем протухает.
+   Поэтому буква из имени остаётся основным вариантом, а фотография
+   подставляется только когда картинка действительно загрузилась — иначе
+   в кружке была бы дырка. */
+var ФОТО = (function(){
+  var url='', готово=false, ждут=[];
+  try{ var u=TG && TG.initDataUnsafe && TG.initDataUnsafe.user; url=(u && u.photo_url)||''; }catch(e){}
+  if(url){
+    var им=new Image();
+    им.onload=function(){ готово=true; ждут.forEach(function(f){ f(); }); ждут=[]; };
+    им.onerror=function(){ url=''; ждут=[]; };
+    им.src=url;
+  }
+  return {
+    /* адрес отдаём только после загрузки: до неё зовущий рисует букву */
+    есть:function(){ return готово ? url : ''; },
+    /* для мест, которые рисуются один раз и сами себя не перерисовывают */
+    потом:function(f){ if(готово) f(); else if(url) ждут.push(f); },
+    /* красит кружок фотографией; текст убираем — его прячет и .ph, но
+       без этого буква осталась бы в разметке и читалась голосом */
+    надеть:function(эл){
+      if(!эл || !готово) return;
+      эл.style.backgroundImage='url("'+url+'")';
+      эл.classList.add('ph');
+      эл.textContent='';
+    }
+  };
+})();
+
+/* Кружок игрока одинаков в четырёх списках — Краш, ПВП, подиум и таблица.
+   У соперников картинка из набора, у вас фотография из Telegram, а запасной
+   вариант всюду один: первая буква имени на переданном фоне. */
+function аватар(p, фон){
+  if(p.av) return '<span class="av ph av-'+p.av+'"></span>';
+  var фото = p.me ? ФОТО.есть() : '';
+  if(фото) return '<span class="av ph" style="background-image:url(\''+фото+'\')"></span>';
+  return '<span class="av" style="background:'+фон+'">'+p.n.charAt(0)+'</span>';
+}
+
 /* Настройки живут в localStorage, чтобы переключатели что-то значили
    между сессиями. Вибрация включена по умолчанию, звук — нет: звук в
    мини-аппе навязчив, пусть будет осознанным выбором. */
@@ -4151,9 +4194,7 @@ var FIGHTERS=[
         else if(p.st==='lose'){ cls='lose'; mx='—'; }
         else { cls=''; mx='×'+(phase==='flying'?mult:1).toFixed(2); }
         html+='<div class="cpr '+cls+(p.me?' me':'')+'">'+
-          '<span class="av'+(p.av?' ph av-'+p.av:'')+'"'+
-            (p.av?'':' style="background:'+(p.me?'linear-gradient(180deg,#F7E7C4,#B08D4A)':p.c)+'"')+
-            '>'+(p.av?'':p.n[0])+'</span>'+
+          аватар(p, p.me?'linear-gradient(180deg,#F7E7C4,#B08D4A)':p.c)+
           '<span class="nm">'+p.n+'</span>'+
           '<span class="bt num">'+fmtInt(p.bet)+' ★</span>'+
           '<span class="mx num">'+mx+'</span></div>';
@@ -4408,8 +4449,11 @@ var FIGHTERS=[
       track.innerHTML=tickets.map(function(k){
         if(k<0) return '<span class="pxc" style="background:#17171B"></span>';
         var p=players[k];
-        /* при фотографии инлайновый background не ставим: сокращённое
-           свойство обнуляет background-image из класса */
+        /* ячейка рулетки не .av, а .pxc, поэтому общий помощник тут не
+           подходит — но правило то же: при фотографии инлайновый background
+           не ставим, сокращённое свойство обнулило бы background-image */
+        var фото = p.me ? ФОТО.есть() : '';
+        if(фото) return '<span class="pxc me ph" style="background-image:url(\''+фото+'\')"></span>';
         return '<span class="pxc'+(p.me?' me':'')+(p.av?' ph av-'+p.av:'')+'"'+
           (p.av?'':' style="background:'+(p.me?'linear-gradient(180deg,#F7E7C4,#B08D4A)':p.c)+'"')+
           '>'+(p.av?'':p.n[0])+'</span>';
@@ -4427,9 +4471,7 @@ var FIGHTERS=[
       }).join('');
       listEl.innerHTML=players.map(function(p,i){
         return '<div class="prow'+(p.me?' me':'')+'" data-i="'+i+'">'+
-          '<span class="av'+(p.av?' ph av-'+p.av:'')+'"'+
-            (p.av?'':' style="background:'+(p.me?'linear-gradient(180deg,#F7E7C4,#B08D4A)':p.c)+'"')+
-            '>'+(p.av?'':p.n[0])+'</span>'+
+          аватар(p, p.me?'linear-gradient(180deg,#F7E7C4,#B08D4A)':p.c)+
           '<span class="nm">'+p.n+'</span>'+
           '<span class="st num">'+fmtInt(p.s)+' ★</span>'+
           '<span class="ch num">'+(p.s/P*100).toFixed(0)+'%</span></div>';
@@ -4876,7 +4918,11 @@ var FIGHTERS=[
   var id=(u && u.id) ? String(u.id) : '000000';
 
   document.getElementById('pNm').textContent=name;
-  document.getElementById('pAv').textContent=name.trim().charAt(0).toUpperCase();
+  var avEl=document.getElementById('pAv');
+  avEl.textContent=name.trim().charAt(0).toUpperCase();
+  /* карточка рисуется один раз при запуске, а фото доезжает позже —
+     поэтому не спрашиваем, а просим позвать, когда доедет */
+  ФОТО.потом(function(){ ФОТО.надеть(avEl); });
   var idTxt='#SH-'+id.slice(-6).padStart(6,'0');
   document.getElementById('pIdTxt').textContent=idTxt;
 
@@ -5721,6 +5767,8 @@ var Top = (function(){
     return Math.max(rows.length+1, Math.round(N-(N-rows.length-1)*Math.pow(доля,0.6)));
   }
 
+  function кружок(p){ return аватар(p,'linear-gradient(180deg,#F7E7C4,#E4C078)'); }
+
   function render(){
     var rows=build(), mine=myValue();
     var place=место(rows, mine);
@@ -5734,9 +5782,7 @@ var Top = (function(){
       var p=rows[i]; if(!p) return;
       var el=document.createElement('div');
       el.className='pod p'+(i+1);
-      el.innerHTML='<span class="av'+(p.av?' ph av-'+p.av:'')+'"'+
-          (p.av?'':' style="background:linear-gradient(180deg,#F7E7C4,#E4C078)"')+
-          '>'+(p.av?'':p.n.charAt(0))+'</span>'+
+      el.innerHTML=кружок(p)+
         '<span class="nm"'+(p.me?' style="color:var(--gold)"':'')+'>'+p.n+'</span>'+
         '<span class="vl" style="color:'+MED[i]+'">'+fmtInt(p.v)+' '+star(11,MED[i])+'</span>'+
         '<span class="bar">'+(i+1)+'</span>';
@@ -5747,17 +5793,14 @@ var Top = (function(){
     rows.slice(3).forEach(function(p,i){
       var el=document.createElement('div');
       el.className='tprow';
-      el.innerHTML='<span class="pl">'+(i+4)+'</span>'+
-        '<span class="av'+(p.av?' ph av-'+p.av:'')+'"'+
-          (p.av?'':' style="background:linear-gradient(180deg,#F7E7C4,#E4C078)"')+
-          '>'+(p.av?'':p.n.charAt(0))+'</span>'+
+      el.innerHTML='<span class="pl">'+(i+4)+'</span>'+кружок(p)+
         '<span class="nm"'+(p.me?' style="color:var(--gold)"':'')+'>'+p.n+'</span>'+
         '<span class="vl"'+(p.me?' style="color:var(--gold)"':'')+'>'+fmtInt(p.v)+' '+star(11)+'</span>';
       listEl.appendChild(el);
     });
 
     meEl.innerHTML='<span class="pl">'+place+'</span>'+
-      '<span class="av">'+t('you').charAt(0)+'</span>'+
+      аватар({n:t('you'), me:true}, 'linear-gradient(180deg,#F7E7C4,var(--gold))')+
       '<span class="nm">'+t('you')+'</span>'+
       '<span class="vl">'+fmtInt(mine)+' '+star(12)+'</span>';
   }
