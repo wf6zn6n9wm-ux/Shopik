@@ -129,6 +129,14 @@ const S = require('../starshash/api/starshash.js');
     о.проверка('admin.html не кэшируется',
       (vc.headers || []).some(h => h.source === '/admin.html' &&
         h.headers.some(x => x.key === 'Cache-Control' && /no-store/.test(x.value))));
+    /* В репозитории шесть проектов, и без этой строки пуш в starshash
+       собирает все шесть разом. Сотня сборок в сутки на бесплатном тарифе
+       кончается за день, после чего выкладка встаёт вся — с сообщением
+       api-deployments-free-per-day и без единой подсказки, при чём тут
+       соседние папки. */
+    о.проверка('сборка не запускается, когда папка не менялась',
+      /git diff --quiet HEAD\^ HEAD \.\//.test(String(vc.ignoreCommand || '')),
+      vc.ignoreCommand || 'нет');
   }
 
   о.раздел('схема базы');
