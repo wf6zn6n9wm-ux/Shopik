@@ -2953,6 +2953,20 @@ function открытьРядом(url){
     window.open(url,'_blank','noopener');
   }catch(e){ try{ window.open(url,'_blank','noopener'); }catch(_){} }
 }
+/* Открыть адрес внутри Telegram — для t.me, куда человек идёт по делу.
+
+   Разница с «рядом» существенная: openLink отдаёт ссылку встроенному
+   браузеру, и t.me превращается в веб-страницу с кнопкой «OPEN APP» —
+   лишний шаг посреди оплаты, да ещё и с рекламой Telegram. openTelegramLink
+   уводит в сам Telegram и открывает нужное сразу. Для счёта это правильно:
+   там человек платит и возвращается, а не отвлекается на минуту. */
+function вТелеграме(url){
+  try{
+    if(TG && TG.openTelegramLink){ TG.openTelegramLink(url); return; }
+    if(TG && TG.openLink){ TG.openLink(url); return; }
+    window.open(url,'_blank','noopener');
+  }catch(e){ try{ window.open(url,'_blank','noopener'); }catch(_){} }
+}
 /* Флаг админа приходит в состоянии; профиль по нему показывает раздел
    обработки заявок. */
 var АДМИН=false;
@@ -5658,7 +5672,7 @@ var adminReflect;
       el.addEventListener('click',function(){
         if(gsel===i) return;
         haptic('light');
-        markPack(i); gpOwn.value=''; gpOwnG.textContent='0.00 GRAM'; preview();
+        markPack(i); gpOwn.value=''; gpOwnG.textContent='0.00 USDT'; preview();
       });
       gpList.appendChild(el);
     });
@@ -5739,8 +5753,30 @@ var adminReflect;
   /* Оплата криптой идёт через @CryptoBot: он выписывает счёт, а зачисление
      мы не берём со слов телефона — сервер сам спрашивает у него статус.
      Поэтому после открытия счёта опрашиваем, пока не увидим оплату. */
+  /* Счёт живёт полчаса, а приложение столько может и не прожить: уходя в
+     @CryptoBot, Telegram на части телефонов схлопывает мини-апп, и опрос
+     умирает вместе с ним. Номер счёта поэтому кладём в память телефона и
+     при следующем открытии спрашиваем о нём один раз. Довериться этому
+     номеру нечем не рискуя: сервер всё равно идёт за статусом к
+     @CryptoBot сам и сверяет, кому счёт выписан. */
+  var ПАМЯТЬ='sh_pay';
+  function помнить(id){ try{ localStorage.setItem(ПАМЯТЬ,String(id)); }catch(e){} }
+  function забыть(){ try{ localStorage.removeItem(ПАМЯТЬ); }catch(e){} }
+  function добратьОплату(){
+    var id; try{ id=Number(localStorage.getItem(ПАМЯТЬ)); }catch(e){ return; }
+    if(!id || !онлайн()) return;
+    SRV.raw('crypto_check',{invoiceId:id}).then(function(о){
+      if(!о || !о.ok) return;
+      if(о.credited){
+        забыть(); применитьСостояние(о);
+        var n=+о.stars||0; notify('dep',n); Tasks.done('topup'); haptic('success');
+      } else if(о.status && о.status!=='active') забыть();
+    });
+  }
+
   var опрос=null;
   function ждатьОплату(id){
+    помнить(id);
     clearInterval(опрос);
     var до=Date.now()+15*60*1000;
     hint.textContent=t('d_wait_pay');
@@ -5749,7 +5785,7 @@ var adminReflect;
       SRV.raw('crypto_check',{invoiceId:id}).then(function(о){
         if(!о || !о.ok) return;
         if(о.credited){
-          clearInterval(опрос);
+          clearInterval(опрос); забыть();
           применитьСостояние(о);
           var n=+о.stars||0;
           notify('dep',n); Tasks.done('topup');
@@ -5763,6 +5799,13 @@ var adminReflect;
   /* закрыли шторку — опрашивать больше некого */
   document.getElementById('dpX').addEventListener('click',function(){ clearInterval(опрос); hint.textContent=''; });
 
+  /* Возвращение из @CryptoBot ловим по двум местам сразу: вкладка снова
+     видна — приложение пережило переход; загрузка — не пережило. Оба раза
+     спрашиваем про отложенный счёт. Задержка нужна, чтобы дождаться
+     первого ответа сервера: до него онлайн() ещё не знает, что сервер есть. */
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) добратьОплату(); });
+  setTimeout(добратьОплату,2500);
+
   go.addEventListener('click',function(){
     if(go.disabled) return;
     var a=amount(); if(!a) return;
@@ -5770,7 +5813,7 @@ var adminReflect;
       go.disabled=true;
       SRV.raw('crypto_invoice',{amount:Math.floor(a)}).then(function(о){
         go.disabled=false;
-        if(о && о.ok && о.link){ открытьРядом(о.link); ждатьОплату(о.invoiceId); haptic('success'); return; }
+        if(о && о.ok && о.link){ вТелеграме(о.link); ждатьОплату(о.invoiceId); haptic('success'); return; }
         /* Отказ @CryptoBot показываем с его же словами: «не удалось» без
            подробностей нечем чинить, а там обычно написано, что не так. */
         hint.textContent = о && о.reason==='not_configured' ? t('d_crypto_off')

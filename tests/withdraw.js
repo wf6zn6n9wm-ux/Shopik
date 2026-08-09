@@ -221,9 +221,29 @@ const S = require('../starshash/api/starshash.js');
       пакеты.slice(0, 2).join(' | '));
 
     await p.click('#gpList .gp:nth-child(4)'); await p.waitForTimeout(300);   // 500 ★ = 11.97 USDT
+    /* Счёт живёт на t.me, и открыть его нужно внутри Telegram. Отдай мы
+       ссылку встроенному браузеру — человек увидел бы веб-страницу t.me с
+       кнопкой «OPEN APP» и рекламой Telegram, то есть лишний шаг посреди
+       оплаты. Запоминаем, каким способом ушла ссылка. */
+    await p.evaluate(() => {
+      window.__куда = [];
+      const W = window.Telegram.WebApp;
+      W.openTelegramLink = u => window.__куда.push(['telegram', u]);
+      W.openLink = u => window.__куда.push(['браузер', u]);
+    });
     await p.click('#dpGo', { force: true }); await p.waitForTimeout(1200);
+    const куда = await p.evaluate(() => window.__куда);
+    о.проверка('счёт открывается внутри Telegram, а не во встроенном браузере',
+      куда.length === 1 && куда[0][0] === 'telegram',
+      куда.map(x => x[0] + ' ' + x[1]).join(' | ') || 'ссылка никуда не ушла');
+
     const ждём = await p.evaluate(() => document.getElementById('dpHint').textContent);
     о.проверка('после счёта ждём оплату, а не зачисляем сразу', /Ждём оплату/.test(ждём), '«' + ждём + '»');
+    /* Уходя платить, приложение на части телефонов схлопывается. Номер
+       счёта переживает это в памяти телефона — иначе оплаченное повисло бы
+       до жалобы «где мои звёзды». */
+    const отложен = await p.evaluate(() => localStorage.getItem('sh_pay'));
+    о.проверка('номер счёта пережил уход на оплату', отложен === '555', String(отложен));
 
     /* опрос идёт раз в три секунды — дожидаемся первого ответа «оплачено» */
     const зачли = await жди(p, () => /Зачислено/.test(document.getElementById('dpHint').textContent), 12000);
@@ -231,8 +251,35 @@ const S = require('../starshash/api/starshash.js');
       await p.evaluate(() => document.getElementById('dpHint').textContent));
     const бал = (await состояние(p)).bal;
     о.проверка('баланс принят с сервера', близко(бал, 500, 1), бал.toFixed(2));
+    о.проверка('зачтённый счёт из памяти убран',
+      (await p.evaluate(() => localStorage.getItem('sh_pay'))) === null);
     о.проверка('ошибок в консоли нет', p.ошибки.length === 0, p.ошибки.join(' | '));
     await p.close();
+
+    о.раздел('оплата догоняет закрывшееся приложение');
+    {
+      /* Уход в @CryptoBot на части телефонов схлопывает мини-апп: опрос
+         умирает, и оплата повисает. Открывшись заново, приложение должно
+         само спросить про отложенный счёт — деньги уже уплачены. */
+      const p2 = await открыть(b, {
+        состояние: { bal: 0, fs: { d: день() }, dl: { streak: 1, last: день() } },
+        память: { sh_pay: '555' },
+        телеграм: { user: { id: 6029995640, first_name: 'Андрій' } },
+        сервер: {
+          state: БАЗА,
+          /* баланс нарочно не тот, что в state: иначе не отличить
+             «оплата дошла» от «просто прочитали состояние» */
+          crypto_check: Object.assign({}, БАЗА, { bal: 2500, status: 'paid', credited: true, stars: 1500 })
+        }
+      });
+      const дошло = await жди(p2, () => JSON.parse(localStorage.getItem('starshash_state') || '{}').bal > 2000, 9000);
+      о.проверка('оплата дошла без участия человека', дошло,
+        String((await состояние(p2)).bal));
+      о.проверка('счёт больше не отложен',
+        (await p2.evaluate(() => localStorage.getItem('sh_pay'))) === null);
+      о.проверка('ошибок в консоли нет', p2.ошибки.length === 0, p2.ошибки.join(' | '));
+      await p2.close();
+    }
 
     о.раздел('крипта не настроена — честный отказ');
     p = await открыть(b, {
