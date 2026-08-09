@@ -1382,6 +1382,28 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
 .ghrow .ac.no{color:#C98F6F;border-color:rgba(201,143,111,.3);}
 .adseg{display:flex;}
 .adseg button{flex:1;}
+/* Админка внутри приложения: показатели, поиск и решения по заявкам.
+   Подписи тут нарочно только по-русски — панель для владельца, а не для
+   игроков, и держать её в трёх словарях значило бы носить лишний груз. */
+.admsg{padding:26px 8px;text-align:center;font-size:13px;color:var(--ink-3);}
+.adkpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.adkpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;}
+.adkpi .k{font-size:10.5px;color:var(--ink-3);letter-spacing:.02em;}
+.adkpi .v{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-top:3px;
+  font-variant-numeric:tabular-nums;}
+.adkpi .v.gold{color:var(--gold);} .adkpi .v.green{color:#7FD1A8;} .adkpi .v.red{color:#C98F6F;}
+.adsub{font-size:12px;font-weight:700;color:var(--ink-2);margin:14px 2px 8px;}
+.adchart{width:100%;height:64px;display:block;}
+.adcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px;}
+.adcard .k{font-size:11px;color:var(--ink-3);margin-bottom:4px;}
+.adrow{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+.adinp{flex:1;min-width:0;height:36px;padding:0 12px;border-radius:11px;
+  border:1px solid var(--line);background:#0E0E11;color:var(--ink);font-size:13.5px;}
+.adinp:focus{outline:none;border-color:rgba(228,192,120,.4);}
+.adbtn{flex:0 0 auto;height:36px;padding:0 14px;border-radius:11px;border:1px solid var(--line);
+  background:#131315;color:var(--ink-2);font-size:12.5px;font-weight:700;}
+.adbtn:active{transform:scale(.95);}
+.adbtn.gold{color:#150F04;background:linear-gradient(180deg,#F7E7C4,var(--gold));border-color:transparent;}
 .ghlist{display:flex;flex-direction:column;gap:8px;}
 .ghempty{display:flex;flex-direction:column;align-items:center;gap:11px;padding:34px 20px;text-align:center;}
 .ghempty[hidden]{display:none;}   /* display:flex перебивает сам атрибут */
@@ -2143,7 +2165,7 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
 
       <button class="srow" id="pAdmin" style="margin-top:10px" hidden>
         <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 8-7 10-4-2-7-5.6-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
-        <span class="nm" data-i18n="ad_open">Заявки на вывод</span>
+        <span class="nm" data-i18n="ad_open">Админка</span>
         <span class="rfc num" id="pAdminN"></span>
         <span class="ch"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
       </button>
@@ -2369,24 +2391,42 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
     <div class="sheet-top" id="adTop">
       <div class="grab"></div>
       <div class="sheet-hd">
-        <span class="t" id="adTitle" data-i18n="ad_title">Заявки на вывод</span>
+        <span class="t" id="adTitle" data-i18n="ad_title">Админка</span>
         <button class="sheet-x" id="adX" aria-label="Закрыть">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
     </div>
     <div class="wbody">
-      <div class="lseg adseg" id="adSeg" style="width:100%;margin-bottom:12px">
-        <button type="button" class="on" data-st="pending" data-i18n="st_pending">В обработке</button>
-        <button type="button" data-st="done" data-i18n="st_done">Выплачено</button>
-        <button type="button" data-st="rejected" data-i18n="st_rejected">Отклонено</button>
+      <div class="lseg adseg" id="adNav" style="width:100%;margin-bottom:12px">
+        <button type="button" class="on" data-v="dash">Дашборд</button>
+        <button type="button" data-v="wd">Заявки</button>
+        <button type="button" data-v="users">Игроки</button>
       </div>
-      <div class="ghlist" id="adList"></div>
-      <div class="ghempty" id="adEmpty" hidden>
-        <span class="ic">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4.6"/><path d="M6 10.4 12 4.4l6 6"/></svg>
-        </span>
-        <p data-i18n="ad_empty">Заявок нет</p>
+
+      <div id="adDash"><div class="admsg">Загрузка…</div></div>
+
+      <div id="adWd" hidden>
+        <div class="lseg adseg" id="adSeg" style="width:100%;margin-bottom:12px">
+          <button type="button" class="on" data-st="pending" data-i18n="st_pending">В обработке</button>
+          <button type="button" data-st="done" data-i18n="st_done">Выплачено</button>
+          <button type="button" data-st="rejected" data-i18n="st_rejected">Отклонено</button>
+        </div>
+        <div class="ghlist" id="adList"></div>
+        <div class="ghempty" id="adEmpty" hidden>
+          <span class="ic">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4.6"/><path d="M6 10.4 12 4.4l6 6"/></svg>
+          </span>
+          <p data-i18n="ad_empty">Заявок нет</p>
+        </div>
+      </div>
+
+      <div id="adUsers" hidden>
+        <div class="adrow">
+          <input class="adinp" id="adQ" type="text" autocomplete="off" placeholder="Имя или Telegram ID">
+          <button class="adbtn gold" id="adFind">Найти</button>
+        </div>
+        <div class="ghlist" id="adUList"></div>
       </div>
     </div>
   </div>
@@ -2968,7 +3008,7 @@ ru:{
  w_fail:'Не удалось. Попробуйте позже',
  wh_title:'История выводов', wh_empty:'Заявок на вывод пока нет',
  st_pending:'В обработке', st_done:'Выплачено', st_rejected:'Отклонено',
- ad_open:'Заявки на вывод', ad_title:'Заявки на вывод', ad_empty:'Заявок нет',
+ ad_open:'Админка', ad_title:'Админка', ad_empty:'Заявок нет',
  ad_approve:'Выплатить', ad_reject:'Отклонить',
  d_pick:'Выберите пакет',
  d_own:'Своя сумма',
@@ -3075,7 +3115,7 @@ en:{
  w_fail:'Something went wrong. Try again later',
  wh_title:'Withdrawal history', wh_empty:'No withdrawals yet',
  st_pending:'Processing', st_done:'Paid', st_rejected:'Rejected',
- ad_open:'Withdrawals', ad_title:'Withdrawal requests', ad_empty:'No requests',
+ ad_open:'Admin', ad_title:'Admin panel', ad_empty:'No requests',
  ad_approve:'Pay out', ad_reject:'Reject',
  d_pick:'Choose a pack',
  d_own:'Custom amount',
@@ -3182,7 +3222,7 @@ uk:{
  w_fail:'Не вдалося. Спробуйте пізніше',
  wh_title:'Історія виводів', wh_empty:'Заявок на вивід поки немає',
  st_pending:'В обробці', st_done:'Виплачено', st_rejected:'Відхилено',
- ad_open:'Заявки на вивід', ad_title:'Заявки на вивід', ad_empty:'Заявок немає',
+ ad_open:'Адмінка', ad_title:'Адмінка', ad_empty:'Заявок немає',
  ad_approve:'Виплатити', ad_reject:'Відхилити',
  d_pick:'Оберіть пакет',
  d_own:'Своя сума',
@@ -5361,17 +5401,25 @@ var FIGHTERS=[
 var adminReflect;
 (function admin(){
   var row=document.getElementById('pAdmin'), badge=document.getElementById('pAdminN'),
+      nav=document.getElementById('adNav'),
+      dashEl=document.getElementById('adDash'),
+      wdEl=document.getElementById('adWd'), usersEl=document.getElementById('adUsers'),
       seg=document.getElementById('adSeg'), listEl=document.getElementById('adList'),
-      emptyEl=document.getElementById('adEmpty');
-  var st='pending';
-  var СТАТУС={ pending:'st_pending', done:'st_done', rejected:'st_rejected' };
+      emptyEl=document.getElementById('adEmpty'),
+      qEl=document.getElementById('adQ'), uListEl=document.getElementById('adUList');
+  var ВИД='dash', st='pending', ИГРОКИ=[];
+  var СТАТУС={ pending:'В обработке', done:'Выплачено', rejected:'Отклонено' };
 
-  var sheet=makeSheet('adSheet','adTop',{ onShow:function(){ загрузить(); } });
+  var sheet=makeSheet('adSheet','adTop',{ onShow:function(){ показать(ВИД, true); } });
   document.getElementById('adX').addEventListener('click',sheet.hide);
 
   function звезда(sz){
     return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" style="vertical-align:-1px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>';
   }
+  function эск(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function датаК(iso){ var d=new Date(iso); if(isNaN(d)) return '—';
+    return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+String(d.getFullYear()).slice(-2); }
 
   /* профиль отрисован до ответа сервера — этот метод зовётся из состояния,
      когда стал известен флаг admin */
@@ -5379,7 +5427,6 @@ var adminReflect;
     row.hidden=!АДМИН;
     if(АДМИН && онлайн()) обновитьЗначок();
   };
-
   function обновитьЗначок(){
     SRV.raw('admin_withdrawals',{status:'pending'}).then(function(о){
       if(!о || !о.ok) return;
@@ -5388,50 +5435,167 @@ var adminReflect;
     });
   }
 
-  function загрузить(){
+  function показать(v, перезагрузить){
+    ВИД=v;
+    nav.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.v===v); });
+    dashEl.hidden = v!=='dash'; wdEl.hidden = v!=='wd'; usersEl.hidden = v!=='users';
     if(!онлайн()) return;
+    if(v==='dash' && (перезагрузить || !dashEl.dataset.готово)) дашборд();
+    if(v==='wd' && (перезагрузить || !listEl.children.length)) заявки();
+    if(v==='users' && (перезагрузить || !ИГРОКИ.length)) игроков('');
+  }
+  nav.addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b || b.dataset.v===ВИД) return;
+    haptic('light'); показать(b.dataset.v, true);
+  });
+
+  /* ── дашборд ── */
+  function столбцы(ряд, цвет){
+    ряд=ряд||[]; var W=320,H=64,p=3,n=ряд.length||1;
+    var max=Math.max(1,ряд.reduce(function(m,q){ return Math.max(m,q.v); },0));
+    var bw=(W-2*p)/n, out='';
+    ряд.forEach(function(q,i){ var h=(H-2*p)*(q.v/max);
+      out+='<rect x="'+(p+i*bw+bw*0.18).toFixed(1)+'" y="'+(H-p-h).toFixed(1)+
+           '" width="'+(bw*0.64).toFixed(1)+'" height="'+Math.max(h,0.6).toFixed(1)+'" rx="1" fill="'+цвет+'"/>'; });
+    return '<svg class="adchart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+out+'</svg>';
+  }
+  function кпи(k,v,cls){
+    return '<div class="adkpi"><div class="k">'+k+'</div><div class="v '+(cls||'')+'">'+v+'</div></div>';
+  }
+  function дашборд(){
+    dashEl.innerHTML='<div class="admsg">Считаем…</div>';
+    SRV.raw('admin_dash').then(function(о){
+      if(!о || !о.ok){
+        dashEl.innerHTML='<div class="admsg">'+(о && о.reason==='forbidden'
+          ? 'Нет доступа. Ваш Telegram ID: '+эск(о.yourId)
+          : 'Не вышло: '+эск((о&&о.reason)||'?'))+'</div>';
+        return;
+      }
+      var t=о.totals||{}, s=о.series||{};
+      dashEl.dataset.готово='1';
+      badge.textContent = t.wdPending ? String(t.wdPending) : '';
+      dashEl.innerHTML=
+        (о.truncated ? '<div class="admsg" style="color:#E4C078">Журнал за 30 дней не поместился целиком — числа за период неполные.</div>' : '')
+        + '<div class="adkpis">'
+        + кпи('Игроков', fmtInt(t.users), 'gold')
+        + кпи('Новых сегодня', fmtInt(t.newToday), 'green')
+        + кпи('Новых за 7 дней', fmtInt(t.new7d))
+        + кпи('Заходили за сутки', fmtInt(t.online))
+        + кпи('На балансах, ★', fmtInt(t.bal), 'gold')
+        + кпи('Вложено, ★', fmtInt(t.inv))
+        + кпи('Пополнено за 30 дн', fmtInt(t.topup30), 'green')
+        + кпи('Выведено за 30 дн', fmtInt(t.wd30), 'red')
+        + кпи('Поставлено за 30 дн', fmtInt(t.bet30))
+        + кпи('Выиграно за 30 дн', fmtInt(t.win30))
+        + кпи('Казна с игр', fmtInt(t.ggr30), t.ggr30>=0?'green':'red')
+        + кпи('Закрыт доступ', fmtInt(t.banned), t.banned?'red':'')
+        + '</div>'
+        + '<div class="adsub">Заявки на вывод</div>'
+        + '<div class="adkpis">'
+        + кпи('Ждёт', fmtInt(t.wdPending), t.wdPending?'gold':'')
+        + кпи('Ждёт к выплате, ★', fmtInt(t.wdPendingSum), t.wdPending?'gold':'')
+        + кпи('Выплачено заявок', fmtInt(t.wdDone), 'green')
+        + кпи('Выплачено, ★', fmtInt(t.wdDoneSum), 'green')
+        + '</div>'
+        + '<div class="adsub">За 30 дней</div>'
+        + '<div class="adcard"><div class="k">Новые игроки</div>'+столбцы(s.users,'#E4C078')+'</div>'
+        + '<div class="adcard"><div class="k">Активные за день</div>'+столбцы(s.dau,'#8FA6C4')+'</div>'
+        + '<div class="adcard"><div class="k">Пополнения, ★</div>'+столбцы(s.topup,'#7FD1A8')+'</div>'
+        + '<div class="adcard"><div class="k">Выводы, ★</div>'+столбцы(s.withdraw,'#C98F6F')+'</div>';
+    });
+  }
+
+  /* ── заявки ── */
+  function заявки(){
+    listEl.innerHTML=''; emptyEl.hidden=true;
     SRV.raw('admin_withdrawals',{status:st}).then(function(о){
       if(!о || !о.ok){ if(о && о.reason==='forbidden'){ row.hidden=true; АДМИН=false; sheet.hide(); } return; }
       var rows=о.rows||[];
       emptyEl.hidden=rows.length>0;
       if(st==='pending') badge.textContent = rows.length ? String(rows.length) : '';
       listEl.innerHTML=rows.map(function(w){
-        var где = w.method==='gram' ? (w.dest||'GRAM') : ('@'+String(w.dest||'').replace(/^@/,''));
-        var кто = w.name || ('#'+w.tg_id);
+        var где = w.method==='gram' ? (w.dest||'—') : '@'+String(w.dest||'').replace(/^@/,'');
         var хвост = w.status==='pending'
-          ? '<span class="adbtns"><button class="ac ok" data-act="done" data-id="'+w.id+'">'+t('ad_approve')+'</button>'+
-            '<button class="ac no" data-act="reject" data-id="'+w.id+'">'+t('ad_reject')+'</button></span>'
-          : '<span class="tm" style="text-align:right">'+t(СТАТУС[w.status]||'st_done')+'</span>';
-        return '<div class="ghrow'+(w.status==='rejected'?' lose':'')+'">'+
-          '<span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4.6"/><path d="M6 10.4 12 4.4l6 6"/></svg></span>'+
-          '<span class="bd"><span class="nm">'+кто+' · '+fmtInt(w.amount)+' '+звезда(11)+'</span>'+
-            '<span class="tm">'+где+' → '+fmtInt(w.net)+' '+(w.method==='gram'?'GRAM':'★')+'</span></span>'+
-          хвост+'</div>';
+          ? '<span class="adbtns"><button class="ac ok" data-do="done" data-id="'+w.id+'">Выплатить</button>'
+            + '<button class="ac no" data-do="reject" data-id="'+w.id+'">Отклонить</button></span>'
+          : '<span class="tm">'+эск(СТАТУС[w.status]||'')+'</span>';
+        return '<div class="ghrow'+(w.status==='rejected'?' lose':'')+'">'
+          + '<span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4.6"/><path d="M6 10.4 12 4.4l6 6"/></svg></span>'
+          + '<span class="bd"><span class="nm">'+эск(w.name||('#'+w.tg_id))+' · '+fmtInt(w.amount)+' '+звезда(11)+'</span>'
+            + '<span class="tm">'+эск(где)+' → '+fmtInt(w.net)+' · '+датаК(w.created_at)+'</span></span>'
+          + хвост+'</div>';
       }).join('');
-      [].forEach.call(listEl.querySelectorAll('button[data-act]'), function(b){
-        b.addEventListener('click',function(){ решить(+b.dataset.id, b.dataset.act); });
+      [].forEach.call(listEl.querySelectorAll('button[data-do]'),function(b){
+        b.addEventListener('click',function(){ решить(+b.dataset.id, b.dataset.do); });
       });
     });
   }
-
-  function решить(id, decision){
-    if(!id) return;
-    haptic('medium');
-    SRV.raw('admin_decide',{id:id, decision:decision}).then(function(о){
-      if(о && о.ok){ haptic('success'); загрузить(); }
-      else haptic('warning');
-    });
-  }
-
   seg.addEventListener('click',function(e){
     var b=e.target.closest('button'); if(!b || b.dataset.st===st) return;
     haptic('light');
     seg.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
-    b.classList.add('on'); st=b.dataset.st; загрузить();
+    b.classList.add('on'); st=b.dataset.st; заявки();
   });
-  row.addEventListener('click',function(){ haptic('medium'); sheet.show(); });
+  function решить(id, d){
+    if(!id) return;
+    haptic('medium');
+    SRV.raw('admin_decide',{id:id, decision:d}).then(function(о){
+      if(о && о.ok){ haptic('success'); dashEl.dataset.готово=''; заявки(); }
+      else haptic('warning');
+    });
+  }
 
-  RERENDER.push(function(){ if(!row.hidden && sheet.isOpen()) загрузить(); });
+  /* ── игроки ── */
+  function имяПо(id){
+    var u=ИГРОКИ.filter(function(x){ return String(x.tg_id)===String(id); })[0];
+    return (u && u.name) || ('#'+id);
+  }
+  function игроков(q){
+    uListEl.innerHTML='<div class="admsg">Загрузка…</div>';
+    SRV.raw('admin_users',{q:q||''}).then(function(о){
+      if(!о || !о.ok){ uListEl.innerHTML='<div class="admsg">Не вышло</div>'; return; }
+      ИГРОКИ=о.rows||[];
+      if(!ИГРОКИ.length){ uListEl.innerHTML='<div class="admsg">Никого не нашлось</div>'; return; }
+      uListEl.innerHTML=ИГРОКИ.map(function(u){
+        return '<div class="ghrow'+(u.banned?' lose':'')+'">'
+          + '<span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M12 13.6c-4.1 0-7.4 2.7-7.4 6h14.8c0-3.3-3.3-6-7.4-6Z"/></svg></span>'
+          + '<span class="bd"><span class="nm">'+эск(u.name||'—')+(u.banned?' · закрыт':'')+'</span>'
+            + '<span class="tm">'+u.tg_id+' · '+fmtInt(u.bal)+' ★ · вклад '+fmtInt(u.inv)+'</span></span>'
+          + '<span class="adbtns"><button class="ac ok" data-give="'+u.tg_id+'">+★</button>'
+          + '<button class="ac'+(u.banned?'':' no')+'" data-ban="'+u.tg_id+'">'+(u.banned?'Вернуть':'Закрыть')+'</button></span></div>';
+      }).join('');
+      [].forEach.call(uListEl.querySelectorAll('button[data-give]'),function(b){
+        b.addEventListener('click',function(){ начислить(+b.dataset.give); });
+      });
+      [].forEach.call(uListEl.querySelectorAll('button[data-ban]'),function(b){
+        b.addEventListener('click',function(){ доступ(+b.dataset.ban); });
+      });
+    });
+  }
+  function начислить(id){
+    var s=prompt('Начислить «'+имяПо(id)+'» (минус — списать):','100');
+    if(s===null) return;
+    var v=parseFloat(String(s).replace(',','.'));
+    if(!v) return;
+    SRV.raw('admin_adjust',{tg_id:id, amount:v, reason:'правка из приложения'}).then(function(о){
+      if(о && о.ok){ haptic('success'); dashEl.dataset.готово='';
+        if(String(id)===String((о.tg_id))) SRV.зов('state').then(применитьСостояние);
+        игроков(qEl.value); }
+      else haptic('warning');
+    });
+  }
+  function доступ(id){
+    var u=ИГРОКИ.filter(function(x){ return String(x.tg_id)===String(id); })[0];
+    var ban=!(u && u.banned);
+    if(!confirm(ban?'Закрыть доступ игроку?':'Вернуть доступ игроку?')) return;
+    SRV.raw('admin_ban',{tg_id:id, banned:ban}).then(function(о){
+      if(о && о.ok){ haptic('success'); игроков(qEl.value); } else haptic('warning');
+    });
+  }
+  document.getElementById('adFind').addEventListener('click',function(){ игроков(qEl.value); });
+  qEl.addEventListener('keydown',function(e){ if(e.key==='Enter') игроков(qEl.value); });
+
+  row.addEventListener('click',function(){ haptic('medium'); sheet.show(); });
   adminReflect();
 })();
 

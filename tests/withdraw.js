@@ -252,38 +252,82 @@ const S = require('../starshash/api/starshash.js');
     await p.close();
   }
 
-  о.раздел('админка: обработка заявок');
+  о.раздел('админка внутри приложения');
+  /* Владельцу панель нужна там же, где он играет — в профиле. Три раздела:
+     показатели, заявки и игроки; данные те же, что у отдельной страницы. */
+  const ДАШ = {
+    ok: true, admin: { name: 'Андрій', id: 6029995640 },
+    totals: { users: 12, newToday: 3, new7d: 8, banned: 0, online: 5, dau: 4,
+              bal: 1234, inv: 900, mined: 77, topup30: 5000, wd30: 300,
+              bet30: 2000, win30: 1750, ggr30: 250, bonus30: 40, ref30: 25,
+              wdPending: 1, wdPendingSum: 300, wdDone: 2, wdDoneSum: 570, wdRejected: 0 },
+    series: { users: [{ date: '2026-08-08', v: 3 }], dau: [{ date: '2026-08-08', v: 4 }],
+              topup: [{ date: '2026-08-08', v: 500 }], withdraw: [{ date: '2026-08-08', v: 300 }] },
+    truncated: false
+  };
   p = await открыть(b, {
     состояние: { bal: 0, fs: { d: день() }, dl: { streak: 1, last: день() } },
     телеграм: { user: { id: 6029995640, first_name: 'Андрій' } },
     сервер: {
       state: Object.assign({}, БАЗА, { admin: true }),
+      admin_dash: ДАШ,
       admin_withdrawals: { ok: true, status: 'pending', rows: [
         { id: 5, tg_id: 42, name: 'Тест', method: 'stars', amount: 300, fee: 15, net: 285, dest: 'user5', status: 'pending', created_at: '2026-08-08T10:00:00Z' }
+      ] },
+      admin_users: { ok: true, rows: [
+        { tg_id: 42, name: 'Тест', bal: 100, inv: 50, mined: 7, wagered: 20, won: 10,
+          plays: 3, banned: false, created_at: '2026-08-08T10:00:00Z', seen_at: '2026-08-08T10:00:00Z' }
       ] },
       admin_decide: { ok: true, wd: { id: 5, status: 'done' } }
     }
   });
   await p.click('.tab[data-p="me"]'); await p.waitForTimeout(500);
-  const виден = await p.evaluate(() => !document.getElementById('pAdmin').hidden);
-  о.проверка('раздел заявок виден админу', виден);
-  const значок = await p.evaluate(() => document.getElementById('pAdminN').textContent);
-  о.проверка('на разделе счётчик заявок в обработке', значок === '1', '«' + значок + '»');
+  const виден = await p.evaluate(() => ({
+    есть: !document.getElementById('pAdmin').hidden,
+    имя: document.querySelector('#pAdmin .nm').textContent,
+    значок: document.getElementById('pAdminN').textContent
+  }));
+  о.проверка('в профиле есть раздел «Админка»', виден.есть && /Админка/.test(виден.имя), виден.имя);
+  о.проверка('на разделе счётчик заявок в обработке', виден.значок === '1', '«' + виден.значок + '»');
 
-  await p.click('#pAdmin'); await p.waitForTimeout(500);
+  await p.click('#pAdmin'); await p.waitForTimeout(900);
+  const даш = await p.evaluate(() => ({
+    разделов: document.querySelectorAll('#adNav button').length,
+    показателей: document.querySelectorAll('#adDash .adkpi').length,
+    графиков: document.querySelectorAll('#adDash svg.adchart').length,
+    текст: document.getElementById('adDash').innerText
+  }));
+  о.проверка('открывается на дашборде с тремя разделами', даш.разделов === 3, String(даш.разделов));
+  о.проверка('показатели и графики нарисованы',
+    даш.показателей >= 16 && даш.графиков >= 4,
+    'показателей ' + даш.показателей + ', графиков ' + даш.графиков);
+  о.проверка('числа с сервера, а не заглушки', /1\s?234/.test(даш.текст) && /\b12\b/.test(даш.текст));
+
+  await p.click('#adNav button[data-v="wd"]'); await p.waitForTimeout(700);
   const заявка = await p.evaluate(() => {
     const row = document.querySelector('#adList .ghrow');
     return row ? {
       имя: (row.querySelector('.nm') || {}).textContent || '',
-      выплатить: !!row.querySelector('button[data-act="done"]'),
-      отклонить: !!row.querySelector('button[data-act="reject"]')
+      выплатить: !!row.querySelector('button[data-do="done"]'),
+      отклонить: !!row.querySelector('button[data-do="reject"]')
     } : null;
   });
   о.проверка('заявка в списке с кнопками «Выплатить» и «Отклонить»',
     !!заявка && заявка.выплатить && заявка.отклонить && /Тест/.test(заявка.имя),
     заявка ? заявка.имя : 'списка нет');
-  await p.click('#adList button[data-act="done"]'); await p.waitForTimeout(500);
-  о.проверка('решение по заявке не роняет приложение', p.ошибки.length === 0, p.ошибки.join(' | '));
+  await p.click('#adList button[data-do="done"]'); await p.waitForTimeout(600);
+
+  await p.click('#adNav button[data-v="users"]'); await p.waitForTimeout(700);
+  const игроки = await p.evaluate(() => ({
+    строк: document.querySelectorAll('#adUList .ghrow').length,
+    начислить: !!document.querySelector('#adUList button[data-give]'),
+    доступ: !!document.querySelector('#adUList button[data-ban]'),
+    поиск: !!document.getElementById('adQ')
+  }));
+  о.проверка('раздел «Игроки» с поиском и кнопками',
+    игроки.строк === 1 && игроки.начислить && игроки.доступ && игроки.поиск,
+    'строк ' + игроки.строк);
+  о.проверка('панель не роняет приложение', p.ошибки.length === 0, p.ошибки.join(' | '));
 
   о.раздел('страница админки в браузере');
   {
@@ -314,7 +358,14 @@ const S = require('../starshash/api/starshash.js');
     const стр = await b.newPage({ viewport: { width: 900, height: 900 } });
     const беды = [];
     стр.on('pageerror', e => беды.push('JS: ' + e.message));
-    стр.on('console', m => { if (m.type() === 'error') беды.push('консоль: ' + m.text().slice(0, 80)); });
+    стр.on('console', m => {
+      if (m.type() !== 'error') return;
+      const т = m.text();
+      /* песочница не пускает telegram.org — сам скрипт мини-аппа там не
+         грузится; в Telegram он есть. Как и в общей обвязке, молчим */
+      if (/TUNNEL_CONNECTION_FAILED|telegram-web-app|telegram\.org/.test(т)) return;
+      беды.push('консоль: ' + т.slice(0, 80));
+    });
     await стр.addInitScript(о => {
       window.Telegram = { WebApp: { initData: 'user=%7B%22id%22%3A1%7D&hash=подделка',
         initDataUnsafe: {}, ready() {}, expand() {} } };
