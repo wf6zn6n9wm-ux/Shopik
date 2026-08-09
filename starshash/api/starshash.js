@@ -19,12 +19,18 @@
 //   pvp      {stake}   → раунд ПВП: соперники и победитель с сервера
 //   task     {id}      → закрыть задание; награду называет сервер
 //   top      {period}  → таблица лидеров: day | week | all
+//   topup    {amount}  → счёт на звёзды Telegram; зачисляет бот
+//   crypto_invoice {amount} → счёт @CryptoBot; crypto_check — проверка оплаты
+//   withdraw / withdrawals  → заявка на вывод и своя история
+//   admin_*             → дашборд, заявки, игроки (только для админов)
 //
 // Переменные окружения (Vercel → Settings → Environment Variables):
 //   SH_SUPABASE_URL              — URL проекта Supabase под StarsHash
 //   SH_SUPABASE_SERVICE_ROLE_KEY — service_role ключ (секрет, в браузер не отдаём)
 //   SH_BOT_TOKEN                 — токен бота от @BotFather
 //   SH_ADMIN_IDS                 — tg_id админов через запятую (необязательно)
+//   SH_CRYPTOBOT_TOKEN           — ключ @CryptoBot для пополнения криптой
+//   SH_CRYPTO_ASSET              — чем платят: TON, USDT… Без неё крипта выключена
 // (читаются и без префикса SH_, если отдельные не заданы)
 //
 // Пока ключи не заданы — отвечаем not_configured, и приложение работает
@@ -77,6 +83,28 @@ const КЕЙСЫ = {
 
 // ПВП: банк забирает победитель за вычетом комиссии.
 const КОМИССИЯ = 0.05;
+// Вход от 30 ★, а соперники приносят в банк от 65 до 187 ★ на троих-пятерых.
+// Отсюда и доля игрока: при минимальном входе она около трети, дальше растёт
+// вместе со ставкой. Победителя это не подкручивает — шанс по-прежнему равен
+// доле, — но в среднем раунды чаще уходят соперникам просто потому, что их
+// несколько, а игрок один.
+const ПВП = { МИН: 30, БАНК_ОТ: 65, БАНК_ДО: 187 };
+// Состав соперников: сумма их ставок попадает в объявленный размах, а делится
+// между ними неровно — иначе доли выглядели бы одинаковыми у всех.
+function составПВП(rnd) {
+  const r = rnd || Math.random;
+  const всего = ПВП.БАНК_ОТ + Math.floor(r() * (ПВП.БАНК_ДО - ПВП.БАНК_ОТ + 1));
+  const сколько = 3 + Math.floor(r() * 3);          // трое-пятеро
+  const веса = [];
+  for (let i = 0; i < сколько; i++) веса.push(0.35 + r());
+  const суммаВесов = веса.reduce((a, b) => a + b, 0);
+  const ставки = веса.map(в => Math.max(5, Math.round(всего * в / суммаВесов)));
+  // округление увело сумму в сторону — правим самой крупной ставкой
+  const разница = всего - ставки.reduce((a, b) => a + b, 0);
+  let к = 0; for (let i = 1; i < ставки.length; i++) if (ставки[i] > ставки[к]) к = i;
+  ставки[к] = Math.max(5, ставки[к] + разница);
+  return ставки;
+}
 
 // Задания. Награду называет сервер: попроси её у телефона — и любой
 // напишет себе тысячу за «подписку на канал».
@@ -101,6 +129,29 @@ function расчётВывода(amount) {
   const net = Math.round((сумма - fee) * 1e6) / 1e6;
   return { сумма, fee, net };
 }
+
+// ── Пополнение криптой через @CryptoBot ──────────────────────────────
+// Тот же путь, что в «шарке»: выписываем счёт его ключом, а зачисляем не
+// по вебхуку, а ленивой проверкой — приложение спрашивает статус, сервер
+// сам ходит в getInvoices нашим секретным токеном. На serverless это
+// надёжнее вебхука: не нужно ловить сырое тело и сверять подпись.
+//
+// Лесенка цен та же, что нарисована в приложении: цена звезды в крупном
+// пакете ниже, одним множителем это не выражается.
+const КРИПТО_ЛЕСЕНКА = [[50, 1], [100, 2], [200, 3.7], [500, 9], [1000, 18], [2500, 45], [5000, 89]];
+const КРИПТО_МИН = 50;
+function ценаКрипты(звёзд) {
+  const n = Math.floor(Number(звёзд) || 0);
+  if (!(n >= КРИПТО_МИН)) return 0;
+  const L = КРИПТО_ЛЕСЕНКА;
+  let a, b;
+  if (n <= L[0][0]) { a = L[0]; b = L[1]; }
+  else if (n >= L[L.length - 1][0]) { a = L[L.length - 2]; b = L[L.length - 1]; }
+  else for (let i = 0; i < L.length - 1; i++) if (n >= L[i][0] && n <= L[i + 1][0]) { a = L[i]; b = L[i + 1]; break; }
+  const k = (b[1] - a[1]) / (b[0] - a[0]);
+  return Math.round(Math.max(0, a[1] + (n - a[0]) * k) * 100) / 100;
+}
+const CRYPTOBOT_API = 'https://pay.crypt.bot/api/';
 
 // Доход идёт и при закрытом приложении, но разрыв ограничиваем месяцем:
 // на большем окне выигрывает съехавшее системное время, а не игрок.
@@ -136,6 +187,35 @@ function verifyInitData(initData, botToken) {
   } catch (e) { return null; }
 }
 
+// ── Вход в админку из браузера ───────────────────────────────────────
+// Мини-апп присылает initData, но админка — отдельная страница, и её
+// открывают в обычном браузере, где initData взяться неоткуда. Там вход
+// идёт через Telegram Login Widget: он присылает те же поля, подписанные
+// иначе — ключ здесь sha256 от токена, а не HMAC 'WebAppData'.
+function verifyLoginWidget(auth, botToken) {
+  try {
+    if (!auth || !auth.hash || !botToken) return null;
+    const hash = String(auth.hash);
+    const rest = {};
+    Object.keys(auth).forEach(k => { if (k !== 'hash' && auth[k] != null) rest[k] = auth[k]; });
+    const dcs = Object.keys(rest).sort().map(k => k + '=' + rest[k]).join('\n');
+    const secret = crypto.createHash('sha256').update(botToken).digest();
+    const calc = crypto.createHmac('sha256', secret).update(dcs).digest('hex');
+    if (calc.length !== hash.length ||
+        !crypto.timingSafeEqual(Buffer.from(calc), Buffer.from(hash))) return null;
+    // свежесть та же, что у initData: сутки
+    if (auth.auth_date && (Date.now() / 1000 - Number(auth.auth_date)) > 86400) return null;
+    if (!auth.id) return null;
+    return {
+      id: Number(auth.id),
+      name: (auth.first_name || '') + (auth.last_name ? ' ' + auth.last_name : ''),
+      photo_url: auth.photo_url || null,
+      lang: 'ru',
+      start_param: ''
+    };
+  } catch (e) { return null; }
+}
+
 // Глушилка всплесков от одного игрока. Основная защита — подпись: без
 // настоящего аккаунта Telegram сюда не дойти. Живёт в памяти инстанса,
 // то есть работает приблизительно — этого достаточно.
@@ -163,7 +243,9 @@ module.exports = async (req, res) => {
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
     body = body || {};
 
-    const me = verifyInitData(body.initData, BOT);
+    // мини-апп присылает initData, браузерная админка — auth от Login Widget
+    let me = verifyInitData(body.initData, BOT);
+    if (!me && body.auth) me = verifyLoginWidget(body.auth, BOT);
     if (!me) { res.status(401).json({ ok: false, reason: 'bad_auth' }); return; }
 
     const ADMINS = env('ADMIN_IDS').split(',').map(s => s.trim()).filter(Boolean);
@@ -372,6 +454,98 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // ── пополнение криптой: счёт ─────────────────────────────────────
+    // Актив задаём переменной окружения и без неё счёт не выписываем. Это
+    // намеренно: у @CryptoBot нет актива с именем GRAM, а угадать между
+    // TON и USDT нельзя — цена одна и та же, а денег выйдет втрое разно.
+    // Пока не задано, приложение показывает «оплата недоступна».
+    if (action === 'crypto_invoice') {
+      const CB = env('CRYPTOBOT_TOKEN'), ASSET = env('CRYPTO_ASSET');
+      if (!CB || !ASSET) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
+      const звёзд = Math.floor(Number(body.amount) || 0);
+      const цена = ценаКрипты(звёзд);
+      if (!(цена > 0)) { res.status(200).json({ ok: false, reason: 'bad_amount', min: КРИПТО_МИН }); return; }
+      try {
+        const r = await fetch(CRYPTOBOT_API + 'createInvoice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Crypto-Pay-API-Token': CB },
+          body: JSON.stringify({
+            asset: ASSET, amount: String(цена),
+            description: 'StarsHash: ' + звёзд + ' ★',
+            payload: JSON.stringify({ v: 1, tg: u.tg_id, n: звёзд }),
+            expires_in: 1800
+          })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!d || !d.ok || !d.result) {
+          res.status(200).json({ ok: false, reason: 'invoice_failed', error: (d && d.error && d.error.name) || '' }); return;
+        }
+        res.status(200).json({ ok: true, invoiceId: d.result.invoice_id,
+          link: d.result.mini_app_invoice_url || d.result.bot_invoice_url || d.result.pay_url,
+          stars: звёзд, price: цена, asset: ASSET });
+      } catch (e) {
+        res.status(200).json({ ok: false, reason: 'invoice_failed', error: String(e && e.message).slice(0, 120) });
+      }
+      return;
+    }
+
+    // ── пополнение криптой: проверка оплаты ──────────────────────────
+    // Слову телефона «я заплатил» не верим: статус спрашиваем у самого
+    // @CryptoBot нашим ключом. Зачисляем один раз — повторный опрос
+    // упирается в номер счёта, уже записанный в журнал.
+    if (action === 'crypto_check') {
+      const CB = env('CRYPTOBOT_TOKEN');
+      if (!CB) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
+      const id = Math.floor(Number(body.invoiceId) || 0);
+      if (!id) { res.status(200).json({ ok: false, reason: 'bad_invoice' }); return; }
+      const r = await fetch(CRYPTOBOT_API + 'getInvoices?invoice_ids=' + id, {
+        headers: { 'Crypto-Pay-API-Token': CB } });
+      const d = await r.json().catch(() => ({}));
+      const inv = d && d.ok && d.result && d.result.items && d.result.items[0];
+      if (!inv) { res.status(200).json({ ok: false, reason: 'not_found' }); return; }
+      if (inv.status !== 'paid') { res.status(200).json({ ok: true, status: inv.status }); return; }
+
+      // счёт выписан не этому игроку — чужую оплату себе не зачисляем
+      let pl = {}; try { pl = JSON.parse(inv.payload || '{}'); } catch (e) {}
+      if (Number(pl.tg) !== Number(u.tg_id)) { res.status(200).json({ ok: true, status: 'paid', credited: false }); return; }
+      const звёзд = Math.floor(Number(pl.n) || 0);
+      if (!(звёзд > 0)) { res.status(200).json({ ok: true, status: 'paid', credited: false }); return; }
+
+      const метка = 'cb' + inv.invoice_id;
+      const было = await sb('sh_tx?kind=eq.topup&meta->>charge=eq.' + encodeURIComponent(метка) + '&select=id&limit=1');
+      if (Array.isArray(было) && было.length) {
+        await начислить(u);
+        res.status(200).json(наружу(u, { status: 'paid', credited: true, stars: звёзд })); return;
+      }
+
+      u.bal = round6(Number(u.bal) + звёзд);
+      await sb('sh_users?tg_id=eq.' + u.tg_id, { method: 'PATCH', body: JSON.stringify({ bal: u.bal }) });
+      await движение(u, 'topup', звёзд, { charge: метка, asset: inv.asset, amount: inv.amount });
+
+      /* Доля пригласившему — то же обещание «5% с каждого пополнения», что
+         и при оплате звёздами; там её начисляет бот, здесь — мы, потому что
+         только здесь известно, что оплата настоящая. */
+      if (u.ref_by) {
+        const доля = round6(звёзд * 0.05);
+        if (доля > 0) {
+          const п = один(await sb('sh_users?tg_id=eq.' + u.ref_by + '&select=bal,ref_earned'));
+          if (п) {
+            const бал = round6(Number(п.bal) + доля);
+            await sb('sh_users?tg_id=eq.' + u.ref_by, { method: 'PATCH',
+              body: JSON.stringify({ bal: бал, ref_earned: round6(Number(п.ref_earned) + доля) }) });
+            await sb('sh_refs?invitee=eq.' + u.tg_id, { method: 'PATCH',
+              body: JSON.stringify({ earned: доля }), headers: Object.assign({}, H, { Prefer: 'return=minimal' }) })
+              .catch(() => {});
+            await sb('sh_tx', { method: 'POST', body: JSON.stringify({
+              tg_id: u.ref_by, kind: 'ref', amount: доля, bal_after: бал,
+              meta: { from: u.tg_id, charge: метка } }) });
+          }
+        }
+      }
+      res.status(200).json(наружу(u, { status: 'paid', credited: true, stars: звёзд }));
+      return;
+    }
+
     // ── заявка на вывод ──────────────────────────────────────────────
     // Деньги снимаем сразу и держим в заявке: иначе игрок оставит вывод и
     // тут же проиграет те же звёзды. Отказ админа их вернёт. Настоящую
@@ -500,16 +674,10 @@ module.exports = async (req, res) => {
     if (action === 'pvp') {
       await начислить(u);
       const ставк = round6(Number(body.stake) || 0);
-      if (!(ставк > 0)) { res.status(200).json({ ok: false, reason: 'bad_amount' }); return; }
+      if (!(ставк >= ПВП.МИН)) { res.status(200).json({ ok: false, reason: 'below_min', min: ПВП.МИН }); return; }
       if (!await ставка(u, ставк, 'pvp')) { res.status(200).json({ ok: false, reason: 'not_enough' }); return; }
 
-      // соперники: три-пять, ставки того же порядка, что и у игрока
-      const сколько = 3 + Math.floor(Math.random() * 3);
-      const соперники = [];
-      for (let i = 0; i < сколько; i++) {
-        const k = 0.4 + Math.random() * 2.2;
-        соперники.push(Math.max(10, Math.round(ставк * k / 5) * 5));
-      }
+      const соперники = составПВП();
       const банк = соперники.reduce((a, b) => a + b, ставк);
       let r = Math.random() * банк, победитель = -1, acc = ставк;   // -1 — игрок
       if (r >= acc) { for (let i = 0; i < соперники.length; i++) { acc += соперники[i]; if (r < acc) { победитель = i; break; } } }
@@ -534,7 +702,7 @@ module.exports = async (req, res) => {
     // даже если он подберёт имя действия: доступ проверяется по подписи, а
     // не по тому, что прислал клиент.
     if (action === 'admin_withdrawals') {
-      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
       const st = String(body.status || 'pending');
       const флаг = ['pending', 'done', 'rejected'].indexOf(st) !== -1 ? '&status=eq.' + st : '';
       const rows = await sb('sh_withdrawals?select=id,tg_id,method,amount,fee,net,dest,status,note,created_at,decided_at,decided_by' +
@@ -556,7 +724,7 @@ module.exports = async (req, res) => {
     // суммы на баланс. Только из состояния pending и только один раз:
     // повторное решение ничего не двигает.
     if (action === 'admin_decide') {
-      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden' }); return; }
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
       const id = Math.floor(Number(body.id) || 0);
       const decision = String(body.decision || '');
       if (!id || (decision !== 'done' && decision !== 'reject')) { res.status(200).json({ ok: false, reason: 'bad_request' }); return; }
@@ -582,6 +750,130 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // ── админка: дашборд ─────────────────────────────────────────────
+    // Показатели и графики за 30 дней. Считаем по журналу движений: он и
+    // так ведётся на каждое изменение баланса, а отдельные счётчики рано
+    // или поздно разъехались бы с ним.
+    if (action === 'admin_dash') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const СУТКИ = 86400000;
+      const д10 = s => String(s || '').slice(0, 10);
+      const назад = n => new Date(Date.now() - n * СУТКИ).toISOString().slice(0, 10);
+      const сегодня = д10(new Date().toISOString());
+      const с30 = new Date(Date.now() - 29 * СУТКИ).toISOString();
+
+      const users = await sb('sh_users?select=tg_id,name,bal,inv,mined,banned,created_at,seen_at&limit=100000') || [];
+      /* Журнал за 30 дней тянем целиком: агрегировать на стороне базы
+         пришлось бы отдельным представлением, а это лишний ручной шаг при
+         выкладке. Предел ставим явно и, если упёрлись, честно говорим об
+         этом в панели — молча показывать неполные числа нельзя. */
+      const ПРЕДЕЛ = 100000;
+      const tx = await sb('sh_tx?created_at=gte.' + encodeURIComponent(с30) +
+        '&select=kind,amount,tg_id,created_at&order=created_at.desc&limit=' + ПРЕДЕЛ) || [];
+      const wd = await sb('sh_withdrawals?select=status,amount,net,created_at&limit=100000') || [];
+
+      const сумма = (arr, f) => arr.reduce((s, r) => s + (Number(f(r)) || 0), 0);
+      const заДень = (k, d) => tx.filter(r => r.kind === k && д10(r.created_at) === d);
+      const поВиду = k => tx.filter(r => r.kind === k);
+      const окр = v => Math.round(v * 100) / 100;
+
+      const пополнено = сумма(поВиду('topup'), r => r.amount);
+      const выведено = Math.abs(сумма(поВиду('withdraw'), r => r.amount));
+      const ставки = Math.abs(сумма(поВиду('bet'), r => r.amount));
+      const выигрыши = сумма(поВиду('win'), r => r.amount);
+
+      const totals = {
+        users: users.length,
+        newToday: users.filter(u => д10(u.created_at) === сегодня).length,
+        new7d: users.filter(u => д10(u.created_at) >= назад(6)).length,
+        banned: users.filter(u => u.banned).length,
+        online: users.filter(u => Date.now() - new Date(u.seen_at).getTime() < СУТКИ).length,
+        bal: окр(сумма(users, u => u.bal)),
+        inv: окр(сумма(users, u => u.inv)),
+        mined: окр(сумма(users, u => u.mined)),
+        topup30: окр(пополнено),
+        wd30: окр(выведено),
+        bet30: окр(ставки),
+        win30: окр(выигрыши),
+        // казна с игр: сколько поставили минус сколько выиграли
+        ggr30: окр(ставки - выигрыши),
+        bonus30: окр(сумма(поВиду('bonus'), r => r.amount) + сумма(поВиду('task'), r => r.amount)),
+        ref30: окр(сумма(поВиду('ref'), r => r.amount)),
+        dau: new Set(tx.filter(r => д10(r.created_at) === сегодня).map(r => r.tg_id)).size,
+        wdPending: wd.filter(w => w.status === 'pending').length,
+        wdPendingSum: окр(сумма(wd.filter(w => w.status === 'pending'), w => w.amount)),
+        wdDone: wd.filter(w => w.status === 'done').length,
+        wdDoneSum: окр(сумма(wd.filter(w => w.status === 'done'), w => w.net)),
+        wdRejected: wd.filter(w => w.status === 'rejected').length
+      };
+
+      const дни = []; for (let i = 29; i >= 0; i--) дни.push(назад(i));
+      const ряд = f => дни.map(d => ({ date: d, v: окр(f(d)) }));
+      const series = {
+        users: ряд(d => users.filter(u => д10(u.created_at) === d).length),
+        topup: ряд(d => сумма(заДень('topup', d), r => r.amount)),
+        withdraw: ряд(d => Math.abs(сумма(заДень('withdraw', d), r => r.amount))),
+        bet: ряд(d => Math.abs(сумма(заДень('bet', d), r => r.amount))),
+        win: ряд(d => сумма(заДень('win', d), r => r.amount)),
+        mine: ряд(d => сумма(заДень('mine', d), r => r.amount)),
+        dau: дни.map(d => ({ date: d, v: new Set(tx.filter(r => д10(r.created_at) === d).map(r => r.tg_id)).size }))
+      };
+
+      res.status(200).json({ ok: true, admin: { name: me.name, id: me.id },
+        totals, series, truncated: tx.length >= ПРЕДЕЛ });
+      return;
+    }
+
+    // ── админка: игроки ──────────────────────────────────────────────
+    if (action === 'admin_users') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const q = String(body.q || '').trim().slice(0, 64);
+      let путь = 'sh_users?select=tg_id,name,bal,inv,mined,wagered,won,plays,banned,note,created_at,seen_at';
+      if (q) {
+        // ищем и по имени, и по номеру: админ помнит то одно, то другое
+        путь += /^\d+$/.test(q) ? '&tg_id=eq.' + q : '&name=ilike.' + encodeURIComponent('*' + q + '*');
+      }
+      путь += '&order=' + (q ? 'created_at.desc' : 'bal.desc') + '&limit=100';
+      const rows = await sb(путь) || [];
+      res.status(200).json({ ok: true, rows });
+      return;
+    }
+
+    // ── админка: правка баланса ──────────────────────────────────────
+    // Начислить или списать вручную. Пишем в журнал видом `admin` вместе с
+    // причиной: правка деньгами без следа — то же, что деньги из воздуха.
+    if (action === 'admin_adjust') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const кому = Math.floor(Number(body.tg_id) || 0);
+      const сумма = round6(Number(body.amount) || 0);
+      if (!кому || !сумма) { res.status(200).json({ ok: false, reason: 'bad_request' }); return; }
+      const цель = один(await sb('sh_users?tg_id=eq.' + кому + '&select=tg_id,bal'));
+      if (!цель) { res.status(200).json({ ok: false, reason: 'no_user' }); return; }
+      const бал = round6(Number(цель.bal) + сумма);
+      if (бал < 0) { res.status(200).json({ ok: false, reason: 'not_enough' }); return; }
+      await sb('sh_users?tg_id=eq.' + кому, { method: 'PATCH', body: JSON.stringify({ bal: бал }) });
+      await sb('sh_tx', { method: 'POST', body: JSON.stringify({
+        tg_id: кому, kind: 'admin', amount: сумма, bal_after: бал,
+        meta: { by: me.id, reason: String(body.reason || '').slice(0, 200) } }) });
+      res.status(200).json({ ok: true, tg_id: кому, bal: бал });
+      return;
+    }
+
+    // ── админка: доступ игрока ───────────────────────────────────────
+    if (action === 'admin_ban') {
+      if (!isAdmin) { res.status(200).json({ ok: false, reason: 'forbidden', yourId: me.id }); return; }
+      const кого = Math.floor(Number(body.tg_id) || 0);
+      if (!кого) { res.status(200).json({ ok: false, reason: 'bad_request' }); return; }
+      const патч = { banned: !!body.banned };
+      if (body.note != null) патч.note = String(body.note).slice(0, 200);
+      const итог = один(await sb('sh_users?tg_id=eq.' + кого, {
+        method: 'PATCH', headers: Object.assign({}, H, { Prefer: 'return=representation' }),
+        body: JSON.stringify(патч) }));
+      if (!итог) { res.status(200).json({ ok: false, reason: 'no_user' }); return; }
+      res.status(200).json({ ok: true, user: итог });
+      return;
+    }
+
     res.status(400).json({ ok: false, reason: 'unknown_action' });
   } catch (e) {
     res.status(500).json({ ok: false, reason: 'server', detail: String(e && e.message || e).slice(0, 200) });
@@ -591,6 +883,7 @@ module.exports = async (req, res) => {
 // Наружу — для проверок: подпись и экономика проверяются без базы и без
 // Vercel, а расхождение ставок с index.html ловится сразу.
 module.exports.verifyInitData = verifyInitData;
+module.exports.verifyLoginWidget = verifyLoginWidget;
 module.exports.rateFor = rateFor;
 module.exports.BOOSTS = BOOSTS;
 module.exports.BASE_YIELD = BASE_YIELD;
@@ -601,7 +894,11 @@ module.exports.крашСек = крашСек;
 module.exports.ШАНСЫ = ШАНСЫ;
 module.exports.КЕЙСЫ = КЕЙСЫ;
 module.exports.КОМИССИЯ = КОМИССИЯ;
+module.exports.ПВП = ПВП;
+module.exports.составПВП = составПВП;
 module.exports.ЗАДАНИЯ = ЗАДАНИЯ;
 module.exports.ЗАДАНИЯ_ДНЯ = ЗАДАНИЯ_ДНЯ;
 module.exports.ВЫВОД = ВЫВОД;
 module.exports.расчётВывода = расчётВывода;
+module.exports.КРИПТО_ЛЕСЕНКА = КРИПТО_ЛЕСЕНКА;
+module.exports.ценаКрипты = ценаКрипты;

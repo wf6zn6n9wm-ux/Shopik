@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#08080A">
+<title>StarsHash — Админка</title>
+<style>
+/* Оформление то же, что у приложения: золото по чёрному. Панель смотрят
+   и с телефона, и с настольного, поэтому всё тянется по ширине, а таблицы
+   прокручиваются вбок сами. */
+:root{
+  --bg:#08080A; --card:#111114; --line:#1E1E23; --gold:#E4C078;
+  --ink:#EFEFF2; --ink-2:#A5A5AE; --ink-3:#6E6E78;
+  --green:#7FD1A8; --red:#C98F6F;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);}
+body{font:15px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+     padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);}
+.num{font-variant-numeric:tabular-nums;}
+.muted{color:var(--ink-2);} .small{font-size:12.5px;}
+.wrap{max-width:1080px;margin:0 auto;padding:14px 12px 40px;}
+.center{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;}
+
+.top{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;}
+.logo{width:38px;height:38px;flex:0 0 auto;border-radius:12px;display:grid;place-items:center;
+      background:linear-gradient(180deg,#F7E7C4,var(--gold));}
+.brand b{font-size:16px;letter-spacing:-.01em;display:block;}
+.brand .sub{font-size:11.5px;color:var(--ink-3);}
+.who{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);}
+.btn{height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:#131315;
+     color:var(--ink-2);font-size:12.5px;font-weight:600;cursor:pointer;}
+.btn:active{transform:scale(.96);}
+.btn.gold{color:#150F04;background:linear-gradient(180deg,#F7E7C4,var(--gold));border-color:transparent;}
+.btn.red{color:var(--red);border-color:rgba(201,143,111,.35);}
+
+.nav2{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;}
+.nav2 button{flex:0 0 auto;height:36px;padding:0 14px;border-radius:12px;border:1px solid var(--line);
+             background:#111114;color:var(--ink-2);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.nav2 button.on{color:#150F04;background:linear-gradient(180deg,#F7E7C4,var(--gold));border-color:transparent;}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px;}
+.kpi .lbl{font-size:11.5px;color:var(--ink-3);margin-bottom:6px;}
+.kpi .val{font-size:21px;font-weight:800;letter-spacing:-.02em;}
+.kpi .val.gold{color:var(--gold);} .kpi .val.green{color:var(--green);} .kpi .val.red{color:var(--red);}
+.sec-title{font-size:13px;font-weight:700;color:var(--ink-2);margin:18px 2px 8px;}
+.chart{width:100%;height:130px;display:block;}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px;}
+
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;font-size:11.5px;color:var(--ink-3);font-weight:600;padding:8px 10px;white-space:nowrap;}
+td{padding:9px 10px;border-top:1px solid var(--line);white-space:nowrap;}
+td.wide{white-space:normal;min-width:150px;}
+.tag{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;}
+.tag.pending{color:#150F04;background:linear-gradient(180deg,#F7E7C4,var(--gold));}
+.tag.done{color:var(--green);background:rgba(127,209,168,.12);}
+.tag.rejected{color:var(--red);background:rgba(201,143,111,.12);}
+.tag.ban{color:var(--red);background:rgba(201,143,111,.12);}
+
+.inp{height:36px;padding:0 12px;border-radius:11px;border:1px solid var(--line);background:#0E0E11;
+     color:var(--ink);font-size:13.5px;width:100%;}
+.inp:focus{outline:none;border-color:rgba(228,192,120,.4);}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+.warn{margin:10px 0;padding:10px 12px;border-radius:12px;font-size:12.5px;
+      color:#F0D9A8;background:rgba(228,192,120,.08);border:1px solid rgba(228,192,120,.2);}
+.err{color:var(--red);}
+</style>
+</head>
+<body>
+
+<div id="root"><div class="center"><div class="muted">Загрузка…</div></div></div>
+
+<script>
+(function(){
+'use strict';
+
+/* Админка — отдельная страница, а не раздел приложения: списки и графики
+   на экране телефона внутри мини-аппа читать невозможно, а здесь можно
+   открыть и с настольного.
+
+   Кто вошёл, решает сервер по подписи Telegram. В мини-аппе это initData,
+   в браузере — Login Widget. Права проверяются там же: список админов
+   лежит в переменной окружения, а не в этой странице. */
+
+var TG = (window.Telegram && window.Telegram.WebApp) || null;
+if (TG) { try { TG.ready(); TG.expand(); } catch(e){} }
+var BOT = 'starshashx_bot';
+var АДРЕС = '/api/starshash';
+var root = document.getElementById('root');
+
+var AUTH = null;      // чем подписываемся: {initData} или {auth:{...}}
+var ВИД = 'dash';
+var ДАШ = null, ЗАЯВКИ = null, ИГРОКИ = null;
+var СТАТУС = 'pending';
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function n0(v){ return Math.round(Number(v)||0).toLocaleString('ru-RU'); }
+function n2(v){ return (Number(v)||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function дата(s){ var d=new Date(s); if(isNaN(d)) return '—';
+  return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+String(d.getFullYear()).slice(-2); }
+
+function зов(action, extra){
+  return fetch(АДРЕС,{ method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(Object.assign({action:action}, AUTH||{}, extra||{})) })
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return {ok:false, reason:'network'}; });
+}
+
+/* ── вход ─────────────────────────────────────────────────────────── */
+window.onTelegramAuth = function(user){ войти({auth:user}); };
+
+function экранВхода(msg){
+  root.innerHTML = '<div class="center">'
+    + '<div class="logo" style="width:60px;height:60px;border-radius:20px">'
+    + '<svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#150F04"/></svg></div>'
+    + '<div><b style="font-size:20px">StarsHash · Админка</b>'
+    + '<div class="muted small" style="margin-top:6px">Войдите через Telegram, чтобы открыть панель</div></div>'
+    + (msg ? '<div class="small err">'+esc(msg)+'</div>' : '')
+    + '<div id="tglogin"></div>'
+    + '<div class="muted small" style="max-width:320px">Если кнопка не появилась, у бота не задан домен: BotFather → /setdomain → выберите бота → пришлите адрес этой страницы.</div>'
+    + '</div>';
+  var s = document.createElement('script');
+  s.async = true; s.src = 'https://telegram.org/js/telegram-widget.js?22';
+  s.setAttribute('data-telegram-login', BOT);
+  s.setAttribute('data-size','large');
+  s.setAttribute('data-radius','12');
+  s.setAttribute('data-onauth','onTelegramAuth(user)');
+  document.getElementById('tglogin').appendChild(s);
+}
+function сообщение(msg, sub){
+  root.innerHTML = '<div class="center"><div class="muted">'+esc(msg)+'</div>'
+    + (sub ? '<div class="small muted">'+esc(sub)+'</div>' : '')
+    + '<button class="btn" onclick="location.reload()">Обновить</button></div>';
+}
+
+function войти(payload){
+  AUTH = payload || AUTH;
+  root.innerHTML = '<div class="center"><div class="muted">Загрузка данных…</div></div>';
+  зов('admin_dash').then(function(о){
+    if (о && о.ok){ ДАШ = о; ВИД='dash'; отрисовать(); return; }
+    if (о && о.reason === 'forbidden'){
+      сообщение('Нет доступа к админке', 'Ваш Telegram ID: ' + о.yourId + '. Впишите его в SH_ADMIN_IDS и пересоберите.'); return; }
+    if (о && о.reason === 'bad_auth'){ экранВхода('Не удалось подтвердить вход. Попробуйте ещё раз.'); return; }
+    if (о && о.reason === 'not_configured'){ сообщение('Сервер не настроен', 'Не заданы переменные окружения.'); return; }
+    сообщение('Ошибка: ' + ((о && о.reason) || 'неизвестно'));
+  });
+}
+
+/* ── графики: свои, без внешних библиотек ──────────────────────────── */
+function линия(ряд, цвет){
+  ряд = ряд || []; var W=920,H=130,p=10,n=ряд.length;
+  if(!n) return '<svg class="chart" viewBox="0 0 '+W+' '+H+'"></svg>';
+  var max=Math.max(1,ряд.reduce(function(m,q){ return Math.max(m,q.v); },0));
+  var pts=ряд.map(function(q,i){ return [p+(W-2*p)*(i/((n-1)||1)), H-p-(H-2*p)*(q.v/max)]; });
+  var l=pts.map(function(q,i){ return (i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1); }).join(' ');
+  var a=l+' L'+pts[n-1][0].toFixed(1)+' '+(H-p)+' L'+pts[0][0].toFixed(1)+' '+(H-p)+' Z';
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'
+    +'<path d="'+a+'" fill="'+цвет+'" opacity=".13"/>'
+    +'<path d="'+l+'" fill="none" stroke="'+цвет+'" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>';
+}
+function столбцы(ряд, цвет){
+  ряд = ряд || []; var W=920,H=130,p=10,n=ряд.length||1;
+  var max=Math.max(1,ряд.reduce(function(m,q){ return Math.max(m,q.v); },0));
+  var bw=(W-2*p)/n, out='';
+  ряд.forEach(function(q,i){ var h=(H-2*p)*(q.v/max);
+    out+='<rect x="'+(p+i*bw+bw*0.15).toFixed(1)+'" y="'+(H-p-h).toFixed(1)+
+         '" width="'+(bw*0.7).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1.5" fill="'+цвет+'"/>'; });
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+out+'</svg>';
+}
+function карточкаГрафика(t, svg){
+  return '<div class="card"><div class="sec-title" style="margin:0 0 8px">'+t+'</div>'+svg
+    +'<div class="small muted" style="margin-top:6px">за 30 дней</div></div>';
+}
+function kpi(l,v,cls){
+  return '<div class="card kpi"><div class="lbl">'+l+'</div><div class="val '+(cls||'')+'">'+v+'</div></div>';
+}
+
+/* ── общая обвязка ────────────────────────────────────────────────── */
+function шапка(){
+  var имя = (ДАШ && ДАШ.admin && ДАШ.admin.name) || 'Админ';
+  return '<div class="top"><div class="brand">'
+    + '<div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#150F04"/></svg></div>'
+    + '<div><b>StarsHash · Админка</b><div class="sub">панель управления</div></div></div>'
+    + '<div class="who">'+esc(имя)+' <button class="btn" onclick="__обновить()">Обновить</button></div></div>'
+    + '<div class="nav2">'
+    + '<button class="'+(ВИД==='dash'?'on':'')+'" onclick="__вид(\'dash\')">Дашборд</button>'
+    + '<button class="'+(ВИД==='wd'?'on':'')+'" onclick="__вид(\'wd\')">Заявки на вывод</button>'
+    + '<button class="'+(ВИД==='users'?'on':'')+'" onclick="__вид(\'users\')">Игроки</button>'
+    + '</div>';
+}
+function отрисовать(){
+  if (ВИД==='dash') return дашборд();
+  if (ВИД==='wd')   return заявки();
+  return игроки();
+}
+window.__вид = function(v){
+  ВИД = v;
+  if (v==='dash'){ ДАШ ? дашборд() : обновитьДаш(); return; }
+  if (v==='wd'){ ЗАЯВКИ ? заявки() : загрузитьЗаявки(); return; }
+  ИГРОКИ ? игроки() : загрузитьИгроков('');
+};
+window.__обновить = function(){
+  if (ВИД==='dash') return обновитьДаш();
+  if (ВИД==='wd')   return загрузитьЗаявки();
+  загрузитьИгроков(document.getElementById('q') ? document.getElementById('q').value : '');
+};
+
+/* ── дашборд ──────────────────────────────────────────────────────── */
+function обновитьДаш(){
+  root.innerHTML = шапка() + '<div class="wrap"><div class="muted">Считаем…</div></div>';
+  зов('admin_dash').then(function(о){ if(о&&о.ok){ ДАШ=о; дашборд(); } else сообщение('Не вышло: '+((о&&о.reason)||'?')); });
+}
+function дашборд(){
+  var t = ДАШ.totals||{}, s = ДАШ.series||{};
+  var показатели = ''
+    + kpi('Игроков', n0(t.users), 'gold')
+    + kpi('Новых сегодня', n0(t.newToday), 'green')
+    + kpi('Новых за 7 дней', n0(t.new7d))
+    + kpi('Заходили за сутки', n0(t.online))
+    + kpi('Активных сегодня', n0(t.dau))
+    + kpi('Закрыт доступ', n0(t.banned), t.banned ? 'red' : '')
+    + kpi('На балансах, ★', n0(t.bal), 'gold')
+    + kpi('Вложено в мощность, ★', n0(t.inv))
+    + kpi('Намайнено всего, ★', n0(t.mined))
+    + kpi('Пополнено за 30 дн, ★', n0(t.topup30), 'green')
+    + kpi('Выведено за 30 дн, ★', n0(t.wd30), 'red')
+    + kpi('Поставлено за 30 дн, ★', n0(t.bet30))
+    + kpi('Выиграно за 30 дн, ★', n0(t.win30))
+    + kpi('Казна с игр за 30 дн, ★', n0(t.ggr30), t.ggr30>=0?'green':'red')
+    + kpi('Бонусы и задания, ★', n0(t.bonus30))
+    + kpi('Рефералам, ★', n0(t.ref30));
+
+  var выводы = ''
+    + kpi('Заявок ждёт', n0(t.wdPending), t.wdPending ? 'gold' : '')
+    + kpi('Ждёт к выплате, ★', n0(t.wdPendingSum), t.wdPending ? 'gold' : '')
+    + kpi('Выплачено заявок', n0(t.wdDone), 'green')
+    + kpi('Выплачено всего, ★', n0(t.wdDoneSum), 'green')
+    + kpi('Отклонено', n0(t.wdRejected), t.wdRejected ? 'red' : '');
+
+  var графики = ''
+    + карточкаГрафика('Новые игроки', столбцы(s.users,'#E4C078'))
+    + карточкаГрафика('Активные игроки за день', столбцы(s.dau,'#8FA6C4'))
+    + карточкаГрафика('Пополнения, ★', столбцы(s.topup,'#7FD1A8'))
+    + карточкаГрафика('Выводы, ★', столбцы(s.withdraw,'#C98F6F'))
+    + карточкаГрафика('Поставлено, ★', линия(s.bet,'#9B8CFF'))
+    + карточкаГрафика('Выиграно, ★', линия(s.win,'#F2D28C'))
+    + карточкаГрафика('Намайнено, ★', линия(s.mine,'#5CD6C0'));
+
+  root.innerHTML = '<div class="wrap">' + шапка()
+    + (ДАШ.truncated ? '<div class="warn">Журнал за 30 дней не поместился целиком — числа за период неполные. Стоит считать их по базе отдельным запросом.</div>' : '')
+    + '<div class="kpis">'+показатели+'</div>'
+    + '<div class="sec-title">Выводы</div><div class="kpis">'+выводы+'</div>'
+    + '<div class="sec-title">Графики</div><div class="grid2">'+графики+'</div>'
+    + '</div>';
+}
+
+/* ── заявки на вывод ──────────────────────────────────────────────── */
+function загрузитьЗаявки(){
+  root.innerHTML = '<div class="wrap">'+шапка()+'<div class="muted">Загрузка…</div></div>';
+  зов('admin_withdrawals',{status:СТАТУС}).then(function(о){
+    if(!о||!о.ok){ сообщение('Не вышло: '+((о&&о.reason)||'?')); return; }
+    ЗАЯВКИ = о.rows||[]; заявки();
+  });
+}
+window.__статус = function(s){ СТАТУС=s; загрузитьЗаявки(); };
+window.__решить = function(id, d){
+  var note = d==='reject' ? (prompt('Причина отказа (не обязательно):')||'') : '';
+  зов('admin_decide',{id:id, decision:d, note:note}).then(function(о){
+    if(о&&о.ok){ ДАШ=null; загрузитьЗаявки(); }
+    else alert('Не вышло: '+((о&&о.reason)||'?'));
+  });
+};
+function заявки(){
+  var вкладки = ['pending','done','rejected'], имена={pending:'В обработке',done:'Выплачено',rejected:'Отклонено'};
+  var seg = '<div class="row">' + вкладки.map(function(s){
+    return '<button class="btn'+(s===СТАТУС?' gold':'')+'" onclick="__статус(\''+s+'\')">'+имена[s]+'</button>'; }).join('') + '</div>';
+
+  var строки = (ЗАЯВКИ||[]).map(function(w){
+    var где = w.method==='gram' ? (w.dest||'—') : '@'+String(w.dest||'').replace(/^@/,'');
+    var действия = w.status==='pending'
+      ? '<button class="btn gold" onclick="__решить('+w.id+',\'done\')">Выплатить</button> '
+        + '<button class="btn red" onclick="__решить('+w.id+',\'reject\')">Отклонить</button>'
+      : '<span class="muted small">'+esc(w.note||'—')+'</span>';
+    return '<tr>'
+      + '<td class="num">'+w.id+'</td>'
+      + '<td>'+esc(w.name||('#'+w.tg_id))+'<div class="small muted num">'+w.tg_id+'</div></td>'
+      + '<td class="num">'+n2(w.amount)+' ★</td>'
+      + '<td class="num">'+n2(w.net)+' '+(w.method==='gram'?'★→GRAM':'★')+'</td>'
+      + '<td class="wide">'+esc(где)+'</td>'
+      + '<td><span class="tag '+w.status+'">'+имена[w.status]+'</span></td>'
+      + '<td class="muted">'+дата(w.created_at)+'</td>'
+      + '<td>'+действия+'</td></tr>';
+  }).join('') || '<tr><td colspan="8" class="muted" style="text-align:center;padding:28px">Заявок нет</td></tr>';
+
+  root.innerHTML = '<div class="wrap">' + шапка() + seg
+    + '<div class="card" style="padding:4px 8px"><div class="tablewrap"><table>'
+    + '<thead><tr><th>№</th><th>Игрок</th><th>Списано</th><th>К выдаче</th><th>Получатель</th><th>Статус</th><th>Создана</th><th></th></tr></thead>'
+    + '<tbody>'+строки+'</tbody></table></div></div></div>';
+}
+
+/* ── игроки ───────────────────────────────────────────────────────── */
+function загрузитьИгроков(q){
+  root.innerHTML = '<div class="wrap">'+шапка()+'<div class="muted">Загрузка…</div></div>';
+  зов('admin_users',{q:q||''}).then(function(о){
+    if(!о||!о.ok){ сообщение('Не вышло: '+((о&&о.reason)||'?')); return; }
+    ИГРОКИ = о.rows||[]; игроки(q||'');
+  });
+}
+window.__искать = function(){ загрузитьИгроков(document.getElementById('q').value); };
+/* Имя в обработчик не подставляем: оно приходит из Telegram и может
+   содержать кавычки и угловые скобки, а склейка такого в атрибут — прямая
+   дыра. Берём его из уже загруженного списка по номеру. */
+function поИмени(id){
+  var u = (ИГРОКИ||[]).filter(function(x){ return String(x.tg_id)===String(id); })[0];
+  return (u && u.name) || ('#'+id);
+}
+window.__правка = function(id){
+  var s = prompt('Начислить игроку «'+поИмени(id)+'» (со знаком минус — списать):','100');
+  if (s===null) return;
+  var v = parseFloat(String(s).replace(',','.'));
+  if (!v) return;
+  var r = prompt('Причина (попадёт в журнал):','правка админом') || '';
+  зов('admin_adjust',{tg_id:id, amount:v, reason:r}).then(function(о){
+    if(о&&о.ok){ ДАШ=null; загрузитьИгроков(document.getElementById('q')?document.getElementById('q').value:''); }
+    else alert('Не вышло: '+((о&&о.reason)||'?'));
+  });
+};
+window.__доступ = function(id, ban){
+  if(!confirm(ban ? 'Закрыть доступ игроку?' : 'Вернуть доступ игроку?')) return;
+  зов('admin_ban',{tg_id:id, banned:ban}).then(function(о){
+    if(о&&о.ok) загрузитьИгроков(document.getElementById('q')?document.getElementById('q').value:'');
+    else alert('Не вышло: '+((о&&о.reason)||'?'));
+  });
+};
+function игроки(q){
+  var строки = (ИГРОКИ||[]).map(function(u){
+    var имя = esc(u.name||'—');
+    return '<tr>'
+      + '<td>'+имя+(u.banned?' <span class="tag ban">закрыт</span>':'')
+        + '<div class="small muted num">'+u.tg_id+'</div></td>'
+      + '<td class="num">'+n2(u.bal)+'</td>'
+      + '<td class="num">'+n2(u.inv)+'</td>'
+      + '<td class="num">'+n2(u.mined)+'</td>'
+      + '<td class="num">'+n0(u.plays)+'</td>'
+      + '<td class="num">'+n2(u.wagered)+'</td>'
+      + '<td class="muted">'+дата(u.created_at)+'</td>'
+      + '<td><button class="btn gold" onclick="__правка('+u.tg_id+')">Начислить</button> '
+        + '<button class="btn'+(u.banned?'':' red')+'" onclick="__доступ('+u.tg_id+','+(u.banned?'false':'true')+')">'
+        + (u.banned?'Вернуть':'Закрыть')+'</button></td></tr>';
+  }).join('') || '<tr><td colspan="8" class="muted" style="text-align:center;padding:28px">Никого не нашлось</td></tr>';
+
+  root.innerHTML = '<div class="wrap">' + шапка()
+    + '<div class="row"><input class="inp" id="q" style="max-width:280px" placeholder="Имя или Telegram ID" value="'+esc(q||'')+'">'
+    + '<button class="btn gold" onclick="__искать()">Найти</button>'
+    + '<span class="muted small">показываем до 100, по убыванию баланса</span></div>'
+    + '<div class="card" style="padding:4px 8px"><div class="tablewrap"><table>'
+    + '<thead><tr><th>Игрок</th><th>Баланс</th><th>Вклад</th><th>Намайнено</th><th>Игр</th><th>Поставлено</th><th>Пришёл</th><th></th></tr></thead>'
+    + '<tbody>'+строки+'</tbody></table></div></div></div>';
+  var поле = document.getElementById('q');
+  if (поле) поле.addEventListener('keydown', function(e){ if(e.key==='Enter') window.__искать(); });
+}
+
+/* ── старт ────────────────────────────────────────────────────────── */
+if (TG && TG.initData) войти({initData: TG.initData});
+else экранВхода('');
+
+})();
+</script>
+</body>
+</html>
