@@ -48,7 +48,7 @@ async function открыть(b, о) {
     if (m.type() !== 'error') return;
     const s = m.text();
     /* песочница не пускает telegram.org; в самом Telegram скрипт грузится */
-    if (/TUNNEL_CONNECTION_FAILED|telegram-web-app/.test(s)) return;
+    if (/TUNNEL_CONNECTION_FAILED|telegram-web-app|tonconnect-ui/.test(s)) return;
     /* Проверки открывают файл с диска, а сервер живёт по относительному
        пути — обращение к нему по file:// браузер ругает сам. Приложение
        такой отказ переживает и работает из памяти телефона; проверки,

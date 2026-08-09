@@ -6,6 +6,12 @@
 <meta name="theme-color" content="#000000" />
 <title>StarsHash</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- TON Connect: подключение кошелька для оплаты переводом. Версия
+     прибита нарочно — из-под плавающего тега в оплату однажды приедет
+     не то, что проверяли. Не загрузится (нет сети, лежит unpkg) —
+     приложение работает как обычно, а перевод уходит прямой ссылкой
+     ton://, её понимают и Кошелёк Telegram, и Tonkeeper. -->
+<script defer src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
 <style>
 /* ══════════════════════════════════════════════════════════════
    StarsHash — Ultra Premium / OLED Black / Luxury FinTech
@@ -1099,6 +1105,13 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
 .wbody{flex:1 1 auto;min-height:0;overflow-y:auto;}
 
 .wmet{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+/* Третий способ оплаты в ту же строку влезает только без кружка-галочки:
+   на 360 пикселях на кнопку остаётся около сотни. Выбранное при этом
+   видно по золотой рамке — она никуда не делась. */
+.wmet.three{grid-template-columns:repeat(3,1fr);gap:8px;}
+.wmet.three button{padding:0 9px;gap:7px;}
+.wmet.three .nm{font-size:13.5px;}
+.wmet.three .rd{display:none;}
 .wmet button{
   display:flex;align-items:center;gap:10px;height:54px;padding:0 12px;
   border-radius:16px;background:#0E0E10;border:1px solid var(--line);
@@ -2477,13 +2490,18 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
       </div>
     </div>
     <div class="wbody">
-      <div class="wmet">
+      <div class="wmet three">
         <button id="dmStars" class="on">
           <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg>
           <span class="nm">Stars</span>
           <span class="rd"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
         </button>
-        <button id="dmGram">
+        <button id="dmTon">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0098EA"/><path d="M12 6.2l4.6 2.7-4.6 8-4.6-8z" fill="#fff"/></svg>
+          <span class="nm">GRAM</span>
+          <span class="rd"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        </button>
+        <button id="dmUsdt">
           <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#26A17B"/><path d="M7 8h10v2.4h-3.6v1.2c2.4.1 4.2.6 4.2 1.2s-1.8 1.1-4.2 1.2v3.4h-2.8v-3.4C8.2 13.9 6.4 13.4 6.4 12.8s1.8-1.1 4.2-1.2v-1.2H7z" fill="#fff"/></svg>
           <span class="nm">USDT</span>
           <span class="rd"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
@@ -2504,7 +2522,7 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
         </div>
       </div>
 
-      <div id="dpGram" hidden>
+      <div id="dpPacks" hidden>
         <div class="wlab"><span data-i18n="d_pick">Выберите пакет</span></div>
         <div class="gpack" id="gpList"></div>
         <label class="gp gpown" id="gpOwnRow">
@@ -2970,6 +2988,10 @@ function вТелеграме(url){
 /* Флаг админа приходит в состоянии; профиль по нему показывает раздел
    обработки заявок. */
 var АДМИН=false;
+/* Курс GRAM к доллару и наличие кошелька для приёма переводов — приходят
+   с состоянием. До первого ответа сервера оба пусты, и вкладка оплаты
+   переводом не показывается: обещать способ, которого нет, нельзя. */
+var ГРАМ_USD=0, ТОН_ЕСТЬ=false;
 
 /* Настройки живут в localStorage, чтобы переключатели что-то значили
    между сессиями. Вибрация включена по умолчанию, звук — нет: звук в
@@ -3030,6 +3052,10 @@ ru:{
  d_crypto_off:'Оплата криптой пока недоступна',
  d_crypto_min:'Криптой — от {n} ★',
  d_wait_pay:'Ждём оплату…', d_paid:'Зачислено {n} ★',
+ d_ton_off:'Оплата переводом пока недоступна',
+ d_ton_sent:'Перевод отправлен, ждём сеть…',
+ d_ton_wait:'Ждём перевод…',
+ d_ton_less:'Пришло {got} GRAM, нужно {need}',
  c_deposit:'Сумма вклада', c_my_bal:'Мой вклад', c_term:'Срок', c_rate:'Ставка доходности',
  c_current:'Текущая', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 год',
  c_p7:'7 дней', c_p30:'30 дней', c_p90:'90 дней', c_py:'год',
@@ -3137,6 +3163,10 @@ en:{
  d_crypto_off:'Crypto payment is not available yet',
  d_crypto_min:'Crypto — from {n} ★',
  d_wait_pay:'Waiting for payment…', d_paid:'{n} ★ credited',
+ d_ton_off:'Wallet transfer is not available yet',
+ d_ton_sent:'Transfer sent, waiting for the network…',
+ d_ton_wait:'Waiting for the transfer…',
+ d_ton_less:'Received {got} GRAM, {need} needed',
  c_deposit:'Deposit amount', c_my_bal:'My deposit', c_term:'Term', c_rate:'Daily rate',
  c_current:'Current', c_d7:'7 d', c_d30:'30 d', c_d90:'90 d', c_y1:'1 year',
  c_p7:'7 days', c_p30:'30 days', c_p90:'90 days', c_py:'a year',
@@ -3244,6 +3274,10 @@ uk:{
  d_crypto_off:'Оплата криптою поки недоступна',
  d_crypto_min:'Криптою — від {n} ★',
  d_wait_pay:'Чекаємо оплату…', d_paid:'Зараховано {n} ★',
+ d_ton_off:'Оплата переказом поки недоступна',
+ d_ton_sent:'Переказ надіслано, чекаємо мережу…',
+ d_ton_wait:'Чекаємо переказ…',
+ d_ton_less:'Надійшло {got} GRAM, потрібно {need}',
  c_deposit:'Сума вкладу', c_my_bal:'Мій вклад', c_term:'Термін', c_rate:'Ставка дохідності',
  c_current:'Поточна', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 рік',
  c_p7:'7 днів', c_p30:'30 днів', c_p90:'90 днів', c_py:'рік',
@@ -3927,6 +3961,8 @@ function применитьСостояние(о){
   if(typeof о.bal==='number') bal=о.bal;
   if(typeof о.inv==='number') inv=о.inv;
   if(typeof о.mined==='number') MN.a=о.mined;     // «намайнено всего» — из журнала сервера
+  if(+о.gram_usd>0) ГРАМ_USD=+о.gram_usd;         // курс для долларовой вкладки
+  if(typeof о.ton==='boolean') ТОН_ЕСТЬ=о.ton;    // есть ли куда принимать перевод
   if(о.bonus){                                     // серия и дата бонуса — серверные
     DL.streak=Math.max(0, +о.bonus.streak||0);
     DL.last=о.bonus.day ? String(о.bonus.day) : '';
@@ -5619,26 +5655,31 @@ var adminReflect;
 (function deposit(){
   var amt=document.getElementById('dpAmt'), chips=document.getElementById('dpChips'),
       go=document.getElementById('dpGo'), hint=document.getElementById('dpHint'),
-      mStars=document.getElementById('dmStars'), mGram=document.getElementById('dmGram'),
-      bStars=document.getElementById('dpStars'), bGram=document.getElementById('dpGram'),
+      mStars=document.getElementById('dmStars'), mTon=document.getElementById('dmTon'),
+      mUsdt=document.getElementById('dmUsdt'),
+      bStars=document.getElementById('dpStars'), bPacks=document.getElementById('dpPacks'),
       gpList=document.getElementById('gpList'),
       gpOwn=document.getElementById('gpOwn'), gpOwnRow=document.getElementById('gpOwnRow'),
       gpOwnG=document.getElementById('gpOwnG');
 
-  /* Лесенка задумана в GRAM: цена звезды в крупном пакете ниже, чем в
-     мелком, одним множителем это не выражается. Но счёт Crypto Pay в GRAM
-     не принимает — у него свой короткий список активов, — поэтому платят
-     долларами по курсу, а владелец при желании меняет их на GRAM в
-     кошельке. Число на экране равно тому, что спишется.
+  /* Лесенка задана в GRAM: цена звезды в крупном пакете ниже, чем в
+     мелком, одним множителем это не выражается. GRAM — родная монета сети
+     TON (бывший Toncoin), поэтому при оплате переводом человек отправляет
+     ровно это число, без всяких пересчётов.
 
-     Курс держим в одном месте; такой же лежит на сервере, и набор
-     `server` следит, чтобы копии не разъехались. */
+     Долларом платят там же, но через @CryptoBot: он GRAM в счетах не
+     принимает — у него свой короткий список активов. Туда цена уходит по
+     курсу. Курс живой, приходит с сервера вместе с состоянием; прибитое
+     число ниже — запасное, на случай когда сервера нет или обозреватель
+     молчит. Такое же лежит на сервере, и набор `server` следит, чтобы
+     копии не разъехались. */
   var PACKS=[[50,1],[100,2],[200,3.7],[500,9],[1000,18],[2500,45],[5000,89]];
   var КУРС_USDT=1.33;
+  function курс(){ var v=+ГРАМ_USD; return v>0 ? v : КУРС_USDT; }
   /* Для своей суммы считаем по той же лесенке: между соседними пакетами
      тянем прямую, за краями продолжаем крайним отрезком. Иначе своя сумма
      жила бы по собственному курсу и расходилась с таблицей. */
-  function вUSDT(звёзд){
+  function вGRAM(звёзд){
     if(!(звёзд>0)) return 0;
     var i, a, b;
     if(звёзд<=PACKS[0][0]) { a=PACKS[0]; b=PACKS[1]; }
@@ -5647,11 +5688,27 @@ var adminReflect;
       for(i=0;i<PACKS.length-1;i++) if(звёзд>=PACKS[i][0] && звёзд<=PACKS[i+1][0]){ a=PACKS[i]; b=PACKS[i+1]; break; }
     }
     var k=(b[1]-a[1])/(b[0]-a[0]);
-    return Math.round(Math.max(0, a[1]+(звёзд-a[0])*k)*КУРС_USDT*100)/100;
+    return Math.max(0, Math.round((a[1]+(звёзд-a[0])*k)*1e6)/1e6);
   }
+  function вUSDT(звёзд){ return Math.round(вGRAM(звёзд)*курс()*100)/100; }
+  /* Что написано справа в строке пакета — зависит от выбранного способа:
+     переводом платят граммами, через криптобота долларами. */
+  function ценник(звёзд){
+    return mode==='usdt' ? вUSDT(звёзд).toFixed(2)+' USDT'
+                         : окр(вGRAM(звёзд))+' GRAM';
+  }
+  function окр(x){ return String(Math.round(x*1e4)/1e4); }
   var mode='stars', gsel=4;                 // по умолчанию 1000 ★
 
-  var sheet=makeSheet('dpSheet','dpTop',{ onShow:preview });
+  /* Вкладку перевода показываем, только когда сервер сказал, что есть
+     куда принимать. Иначе человек нажал бы способ, которого нет. */
+  function способы(){
+    var есть=!!ТОН_ЕСТЬ;
+    mTon.hidden=!есть;
+    mTon.parentNode.classList.toggle('three',есть);
+    if(!есть && mode==='ton') setMode('stars');
+  }
+  var sheet=makeSheet('dpSheet','dpTop',{ onShow:function(){ способы(); preview(); } });
   document.getElementById('dpX').addEventListener('click',sheet.hide);
 
   function num(v){ v=parseFloat(String(v).replace(/\s/g,'').replace(',','.')); return isFinite(v)&&v>0?v:0; }
@@ -5668,11 +5725,11 @@ var adminReflect;
       var el=document.createElement('button');
       el.className='gp'+(i===gsel?' on':'');
       el.innerHTML='<span class="s">'+fmtInt(п[0])+' '+STAR+'</span>'+
-                   '<span class="g">'+вUSDT(п[0]).toFixed(2)+' USDT</span>';
+                   '<span class="g">'+ценник(п[0])+'</span>';
       el.addEventListener('click',function(){
         if(gsel===i) return;
         haptic('light');
-        markPack(i); gpOwn.value=''; gpOwnG.textContent='0.00 USDT'; preview();
+        markPack(i); gpOwn.value=''; gpOwnG.textContent=ценник(0); preview();
       });
       gpList.appendChild(el);
     });
@@ -5700,7 +5757,7 @@ var adminReflect;
   gpOwn.addEventListener('input',function(){
     var v=gpOwn.value.replace(/\D/g,'');
     if(v!==gpOwn.value) gpOwn.value=v;
-    gpOwnG.textContent=вUSDT(num(v)).toFixed(2)+' USDT';
+    gpOwnG.textContent=ценник(num(v));
     if(v) markPack(-1);
     sizeGpOwn(); preview();
   });
@@ -5719,12 +5776,15 @@ var adminReflect;
     if(mode===m) return;
     haptic('light'); mode=m;
     mStars.classList.toggle('on',m==='stars');
-    mGram.classList.toggle('on',m==='gram');
-    bStars.hidden=m!=='stars'; bGram.hidden=m!=='gram';
-    preview();
+    mTon.classList.toggle('on',m==='ton');
+    mUsdt.classList.toggle('on',m==='usdt');
+    bStars.hidden=m!=='stars'; bPacks.hidden=m==='stars';
+    /* Пакеты те же, а цена справа считается по-разному — перерисовываем */
+    buildPacks(); gpOwnG.textContent=ценник(num(gpOwn.value)); preview();
   }
   mStars.addEventListener('click',function(){ setMode('stars'); });
-  mGram.addEventListener('click',function(){ setMode('gram'); });
+  mTon.addEventListener('click',function(){ setMode('ton'); });
+  mUsdt.addEventListener('click',function(){ setMode('usdt'); });
 
   amt.addEventListener('input',preview);
   chips.addEventListener('click',function(e){
@@ -5796,20 +5856,115 @@ var adminReflect;
       });
     },3000);
   }
+  /* ── оплата переводом GRAM ─────────────────────────────────────────
+     Счёта здесь нет вовсе: человек переводит монету со своего кошелька на
+     наш адрес, а узнаём мы платёж по пометке, которую выдал сервер. Он же
+     потом ищет перевод в сети — со слов телефона не зачисляем ничего.
+
+     Кошелёк открываем двумя путями. Если подгрузился TON Connect, ведём
+     через него: кошелёк подключается один раз и дальше платит в два
+     касания. Не подгрузился — уходим ссылкой ton://, её понимают и
+     Кошелёк Telegram, и Tonkeeper. Второй путь проще и потому надёжнее,
+     поэтому он и запасной: оплата не должна зависеть от чужого сервера с
+     библиотекой. */
+  var ПАМЯТЬ_TON='sh_ton';
+  var опросTON=null, tcui=null;
+
+  function tonConnect(){
+    if(tcui) return tcui;
+    try{
+      var UI=window.TON_CONNECT_UI;
+      if(!UI || !UI.TonConnectUI) return null;
+      tcui=new UI.TonConnectUI({ manifestUrl: location.origin+'/tonconnect-manifest.json' });
+      return tcui;
+    }catch(e){ return null; }
+  }
+  function ссылкаКошелька(о){
+    return 'ton://transfer/'+о.address+'?amount='+о.nano+'&text='+encodeURIComponent(о.comment);
+  }
+  function платитьGRAM(о){
+    var ui=tonConnect();
+    if(ui && ui.sendTransaction){
+      ui.sendTransaction({
+        validUntil: о.validUntil,
+        messages: [{ address:о.address, amount:String(о.nano), payload:о.payload }]
+      }).then(function(){
+        hint.textContent=t('d_ton_sent');
+      })['catch'](function(){
+        /* отменил или кошелёк не отозвался — остаётся прямая ссылка */
+        открытьРядом(ссылкаКошелька(о));
+      });
+      return;
+    }
+    открытьРядом(ссылкаКошелька(о));
+  }
+
+  function помнитьTON(c){ try{ localStorage.setItem(ПАМЯТЬ_TON,String(c)); }catch(e){} }
+  function забытьTON(){ try{ localStorage.removeItem(ПАМЯТЬ_TON); }catch(e){} }
+  function зачлиTON(о){
+    забытьTON(); применитьСостояние(о);
+    var n=+о.stars||0; notify('dep',n); Tasks.done('topup');
+    hint.textContent=t('d_paid',{n:fmtInt(n)});
+    haptic('success'); beep(980,0.12,0.045,'triangle');
+    setTimeout(function(){ hint.textContent=''; sheet.hide(); },1200);
+  }
+  /* Сеть подтверждает перевод не мгновенно, поэтому ждём дольше и
+     спрашиваем реже, чем у криптобота: частить незачем. */
+  function ждатьПеревод(c){
+    помнитьTON(c);
+    clearInterval(опросTON);
+    var до=Date.now()+20*60*1000;
+    hint.textContent=t('d_ton_wait');
+    опросTON=setInterval(function(){
+      if(Date.now()>до){ clearInterval(опросTON); hint.textContent=''; return; }
+      SRV.raw('ton_check',{comment:c}).then(function(о){
+        if(!о || !о.ok) return;
+        if(о.credited){ clearInterval(опросTON); зачлиTON(о); return; }
+        if(о.status==='underpaid')
+          hint.textContent=t('d_ton_less',{got:окр(о.got),need:окр(о.need)});
+      });
+    },5000);
+  }
+  function добратьПеревод(){
+    var c; try{ c=localStorage.getItem(ПАМЯТЬ_TON); }catch(e){ return; }
+    if(!c || !онлайн()) return;
+    SRV.raw('ton_check',{comment:c}).then(function(о){
+      if(!о || !о.ok){ if(о && о.reason==='bad_comment') забытьTON(); return; }
+      if(о.credited) зачлиTON(о);
+    });
+  }
+
   /* закрыли шторку — опрашивать больше некого */
-  document.getElementById('dpX').addEventListener('click',function(){ clearInterval(опрос); hint.textContent=''; });
+  document.getElementById('dpX').addEventListener('click',function(){
+    clearInterval(опрос); clearInterval(опросTON); hint.textContent='';
+  });
 
   /* Возвращение из @CryptoBot ловим по двум местам сразу: вкладка снова
      видна — приложение пережило переход; загрузка — не пережило. Оба раза
      спрашиваем про отложенный счёт. Задержка нужна, чтобы дождаться
      первого ответа сервера: до него онлайн() ещё не знает, что сервер есть. */
-  document.addEventListener('visibilitychange',function(){ if(!document.hidden) добратьОплату(); });
-  setTimeout(добратьОплату,2500);
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden) return;
+    добратьОплату(); добратьПеревод();
+  });
+  setTimeout(function(){ добратьОплату(); добратьПеревод(); },2500);
 
   go.addEventListener('click',function(){
     if(go.disabled) return;
     var a=amount(); if(!a) return;
-    if(онлайн() && mode==='gram'){
+    if(онлайн() && mode==='ton'){
+      go.disabled=true;
+      SRV.raw('ton_invoice',{amount:Math.floor(a)}).then(function(о){
+        go.disabled=false;
+        if(о && о.ok && о.address){ платитьGRAM(о); ждатьПеревод(о.comment); haptic('success'); return; }
+        hint.textContent = о && о.reason==='not_configured' ? t('d_ton_off')
+                         : о && о.reason==='bad_amount' ? t('d_crypto_min',{n:(о.min||50)})
+                         : t('w_fail');
+        haptic('warning');
+      });
+      return;
+    }
+    if(онлайн() && mode==='usdt'){
       go.disabled=true;
       SRV.raw('crypto_invoice',{amount:Math.floor(a)}).then(function(о){
         go.disabled=false;

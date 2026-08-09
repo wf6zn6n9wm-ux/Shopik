@@ -21,6 +21,8 @@
 //   top      {period}  → таблица лидеров: day | week | all
 //   topup    {amount}  → счёт на звёзды Telegram; зачисляет бот
 //   crypto_invoice {amount} → счёт @CryptoBot; crypto_check — проверка оплаты
+//   ton_invoice {amount}    → адрес, сумма и пометка для перевода GRAM;
+//                             ton_check {comment} — поиск перевода в сети
 //   withdraw / withdrawals  → заявка на вывод и своя история
 //   admin_*             → дашборд, заявки, игроки (только для админов)
 //
@@ -31,6 +33,8 @@
 //   SH_ADMIN_IDS                 — tg_id админов через запятую (необязательно)
 //   SH_CRYPTOBOT_TOKEN           — ключ @CryptoBot для пополнения криптой
 //   SH_CRYPTO_ASSET              — чем платят: TON, USDT… Без неё крипта выключена
+//   SH_TON_WALLET                — адрес кошелька для приёма GRAM. Без неё выключено
+//   SH_TONAPI_KEY                — ключ tonapi.io: поиск перевода и курс
 // (читаются и без префикса SH_, если отдельные не заданы)
 //
 // Пока ключи не заданы — отвечаем not_configured, и приложение работает
@@ -150,7 +154,7 @@ const КРИПТО_МИН = 50;
 // Активы, которые Crypto Pay действительно принимает. Список короткий, и
 // упереться в него молча — потерять покупателя на ровном месте.
 const КРИПТО_АКТИВЫ = ['USDT', 'TON', 'BTC', 'ETH', 'LTC', 'BNB', 'TRX', 'USDC'];
-function ценаКрипты(звёзд) {
+function вGRAM(звёзд) {
   const n = Math.floor(Number(звёзд) || 0);
   if (!(n >= КРИПТО_МИН)) return 0;
   const L = КРИПТО_ЛЕСЕНКА;
@@ -159,10 +163,67 @@ function ценаКрипты(звёзд) {
   else if (n >= L[L.length - 1][0]) { a = L[L.length - 2]; b = L[L.length - 1]; }
   else for (let i = 0; i < L.length - 1; i++) if (n >= L[i][0] && n <= L[i + 1][0]) { a = L[i]; b = L[i + 1]; break; }
   const k = (b[1] - a[1]) / (b[0] - a[0]);
-  const вGRAM = Math.max(0, a[1] + (n - a[0]) * k);
-  return Math.round(вGRAM * КУРС_USDT * 100) / 100;
+  return Math.max(0, Math.round((a[1] + (n - a[0]) * k) * 1e6) / 1e6);
+}
+function ценаКрипты(звёзд, курс) {
+  return Math.round(вGRAM(звёзд) * (Number(курс) > 0 ? Number(курс) : КУРС_USDT) * 100) / 100;
 }
 const CRYPTOBOT_API = 'https://pay.crypt.bot/api/';
+
+// ── Оплата GRAM напрямую в сети TON ──────────────────────────────────
+//
+// GRAM — это переименованный Toncoin, родная монета сети TON, а не
+// отдельный токен поверх неё. Поэтому здесь лесенка работает как есть, без
+// всякого пересчёта: 50 ★ = 1 GRAM, 5 000 ★ = 89. Человек переводит ровно
+// то число, что видит на экране, — то самое, чего не смог Crypto Pay.
+//
+// Курс нужен теперь только доллару. Прибит он был снимком на день правки,
+// и со временем разъезжается с рынком в любую сторону: подорожает GRAM —
+// владелец недополучит, подешевеет — переплатит покупатель. Поэтому
+// спрашиваем живой, а прежнее число оставляем запасным на случай, когда
+// обозреватель молчит: без цены вкладка была бы просто мертва.
+const TONAPI = 'https://tonapi.io/v2/';
+const НАНО = 1e9;                       // 1 GRAM = миллиард наноединиц
+const КУРС_ЖИТЬ = 5 * 60 * 1000;        // снимок курса годен пять минут
+let _курс = { v: 0, t: 0 };
+async function курсGRAM() {
+  const сейчас = Date.now();
+  if (_курс.v > 0 && сейчас - _курс.t < КУРС_ЖИТЬ) return _курс.v;
+  try {
+    const KEY = env('TONAPI_KEY');
+    const r = await fetch(TONAPI + 'rates?tokens=ton&currencies=usd',
+      { headers: KEY ? { Authorization: 'Bearer ' + KEY } : {} });
+    const d = await r.json();
+    const p = d && d.rates && d.rates.TON && d.rates.TON.prices;
+    const v = p && Number(p.USD);
+    if (v > 0) { _курс = { v: v, t: сейчас }; return v; }
+  } catch (e) {}
+  return КУРС_USDT;
+}
+
+/* Пометка платежа: по ней потом узнаём перевод среди прочих. Внутри —
+   кто платит и за сколько звёзд, чтобы проверка ничего не брала со слов
+   телефона: она пересчитает цену сама и сверит с переведённым. */
+function меткаTON(tg, звёзд) {
+  return 'SH' + tg + '.' + Math.floor(звёзд) + '.' + crypto.randomBytes(4).toString('hex');
+}
+function разобратьМетку(метка) {
+  const m = /^SH(\d{1,20})\.(\d{1,9})\.[0-9a-f]{8}$/.exec(String(метка || ''));
+  return m ? { tg: m[1], звёзд: Number(m[2]) } : null;
+}
+/* Комментарий к переводу кошельки принимают ячейкой TON, а не строкой.
+   Ячейка простая — четыре нулевых байта «это текст» и сам текст, — и
+   собрать её тут дешевле, чем тянуть библиотеку в оплату. */
+function ячейкаКомментария(текст) {
+  const t = Buffer.from(String(текст), 'utf8');
+  if (t.length > 120) return '';
+  const данные = Buffer.concat([Buffer.from([0, 0, 0, 0]), t]);
+  const n = данные.length;
+  return Buffer.concat([
+    Buffer.from([0xB5, 0xEE, 0x9C, 0x72, 0x01, 0x01, 0x01, 0x01, 0x00, 2 + n, 0x00, 0x00, 2 * n]),
+    данные
+  ]).toString('base64');
+}
 
 // Доход идёт и при закрытом приложении, но разрыв ограничиваем месяцем:
 // на большем окне выигрывает съехавшее системное время, а не игрок.
@@ -372,7 +433,11 @@ module.exports = async (req, res) => {
       await приглашение(u);
       const доход = await начислить(u);
       const рефов = await sb('sh_refs?inviter=eq.' + u.tg_id + '&select=invitee');
-      res.status(200).json(наружу(u, { mined_away: доход, ref_n: (рефов || []).length }));
+      /* Курс отдаём вместе с состоянием: цену в долларах приложение
+         рисует до всякого счёта, и считать её оно должно по тому же
+         числу, по которому сервер потом выпишет счёт. */
+      res.status(200).json(наружу(u, { mined_away: доход, ref_n: (рефов || []).length,
+        gram_usd: await курсGRAM(), ton: !!env('TON_WALLET') }));
       return;
     }
 
@@ -482,7 +547,7 @@ module.exports = async (req, res) => {
         res.status(200).json({ ok: false, reason: 'bad_asset', asset: ASSET, allowed: КРИПТО_АКТИВЫ }); return;
       }
       const звёзд = Math.floor(Number(body.amount) || 0);
-      const цена = ценаКрипты(звёзд);
+      const цена = ценаКрипты(звёзд, await курсGRAM());
       if (!(цена > 0)) { res.status(200).json({ ok: false, reason: 'bad_amount', min: КРИПТО_МИН }); return; }
       try {
         const r = await fetch(CRYPTOBOT_API + 'createInvoice', {
@@ -567,6 +632,104 @@ module.exports = async (req, res) => {
         }
       }
       res.status(200).json(наружу(u, { status: 'paid', credited: true, stars: звёзд }));
+      return;
+    }
+
+    // ── пополнение GRAM: перевод в сети TON ──────────────────────────
+    // Счёт тут никто не выписывает: человек переводит монету со своего
+    // кошелька на наш адрес, а узнаём мы платёж по пометке. Всё, что
+    // отдаём телефону, — адрес, сумма и пометка; сам перевод делает
+    // кошелёк, и подтверждает его сеть, а не приложение.
+    if (action === 'ton_invoice') {
+      const WALLET = env('TON_WALLET');
+      if (!WALLET) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
+      const звёзд = Math.floor(Number(body.amount) || 0);
+      const gram = вGRAM(звёзд);
+      if (!(gram > 0)) { res.status(200).json({ ok: false, reason: 'bad_amount', min: КРИПТО_МИН }); return; }
+      const метка = меткаTON(u.tg_id, звёзд);
+      res.status(200).json({ ok: true, address: WALLET, gram: gram,
+        nano: String(Math.round(gram * НАНО)), comment: метка,
+        payload: ячейкаКомментария(метка), stars: звёзд,
+        validUntil: Math.floor(Date.now() / 1000) + 1800 });
+      return;
+    }
+
+    // ── пополнение GRAM: проверка перевода ───────────────────────────
+    // Слово телефона «я перевёл» стоит ровно столько же, сколько и в
+    // случае с криптоботом, — ничего. Перевод ищем в сети сами: среди
+    // событий нашего кошелька должен найтись входящий с этой пометкой и
+    // суммой не меньше запрошенной.
+    if (action === 'ton_check') {
+      const WALLET = env('TON_WALLET');
+      if (!WALLET) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
+      const метка = String(body.comment || '');
+      const р = разобратьМетку(метка);
+      if (!р) { res.status(200).json({ ok: false, reason: 'bad_comment' }); return; }
+      /* Пометка чужая — значит её подложили: свою телефон получил от нас
+         вместе с адресом, и в ней стоит его же tg_id. */
+      if (р.tg !== String(u.tg_id)) { res.status(200).json({ ok: false, reason: 'not_yours' }); return; }
+      const нужно = вGRAM(р.звёзд);
+      if (!(нужно > 0)) { res.status(200).json({ ok: false, reason: 'bad_amount' }); return; }
+
+      let события = [];
+      try {
+        const KEY = env('TONAPI_KEY');
+        const r = await fetch(TONAPI + 'accounts/' + encodeURIComponent(WALLET) + '/events?limit=50',
+          { headers: KEY ? { Authorization: 'Bearer ' + KEY } : {} });
+        const d = await r.json();
+        события = (d && d.events) || [];
+      } catch (e) {
+        res.status(200).json({ ok: false, reason: 'explorer_down' }); return;
+      }
+
+      let нашли = null;
+      for (const e of события) for (const a of (e.actions || [])) {
+        const t = a.TonTransfer;
+        if (!t || String(t.comment || '') !== метка) continue;
+        нашли = { нано: Number(t.amount) || 0, event: String(e.event_id || '') };
+        break;
+      }
+      if (!нашли) { res.status(200).json({ ok: true, status: 'active' }); return; }
+      /* Недоплату не зачисляем и не съедаем: говорим, сколько пришло и
+         сколько нужно, — остальное решает человек. */
+      const нужноНано = Math.round(нужно * НАНО);
+      if (нашли.нано + 1 < нужноНано) {
+        res.status(200).json({ ok: true, status: 'underpaid',
+          got: Math.round(нашли.нано / НАНО * 1e6) / 1e6, need: нужно }); return;
+      }
+
+      /* Дважды по одной пометке не начисляем: она уникальна, и первый же
+         зачёт оставляет её в журнале. */
+      const заряд = 'ton' + метка;
+      const было = await sb('sh_tx?kind=eq.topup&meta->>charge=eq.' + encodeURIComponent(заряд) + '&select=id&limit=1');
+      if (Array.isArray(было) && было.length) {
+        await начислить(u);
+        res.status(200).json(наружу(u, { status: 'paid', credited: true, stars: р.звёзд })); return;
+      }
+
+      u.bal = round6(Number(u.bal) + р.звёзд);
+      await sb('sh_users?tg_id=eq.' + u.tg_id, { method: 'PATCH', body: JSON.stringify({ bal: u.bal }) });
+      await движение(u, 'topup', р.звёзд, { charge: заряд, asset: 'GRAM', amount: нужно, event: нашли.event });
+
+      // доля пригласившему — то же обещание, что и при других пополнениях
+      if (u.ref_by) {
+        const доля = round6(р.звёзд * 0.05);
+        if (доля > 0) {
+          const п = один(await sb('sh_users?tg_id=eq.' + u.ref_by + '&select=bal,ref_earned'));
+          if (п) {
+            const бал = round6(Number(п.bal) + доля);
+            await sb('sh_users?tg_id=eq.' + u.ref_by, { method: 'PATCH',
+              body: JSON.stringify({ bal: бал, ref_earned: round6(Number(п.ref_earned) + доля) }) });
+            await sb('sh_refs?invitee=eq.' + u.tg_id, { method: 'PATCH',
+              body: JSON.stringify({ earned: доля }), headers: Object.assign({}, H, { Prefer: 'return=minimal' }) })
+              .catch(() => {});
+            await sb('sh_tx', { method: 'POST', body: JSON.stringify({
+              tg_id: u.ref_by, kind: 'ref', amount: доля, bal_after: бал,
+              meta: { from: u.tg_id, charge: заряд } }) });
+          }
+        }
+      }
+      res.status(200).json(наружу(u, { status: 'paid', credited: true, stars: р.звёзд }));
       return;
     }
 
@@ -928,3 +1091,8 @@ module.exports.КРИПТО_ЛЕСЕНКА = КРИПТО_ЛЕСЕНКА;
 module.exports.ценаКрипты = ценаКрипты;
 module.exports.КУРС_USDT = КУРС_USDT;
 module.exports.КРИПТО_АКТИВЫ = КРИПТО_АКТИВЫ;
+module.exports.вGRAM = вGRAM;
+module.exports.меткаTON = меткаTON;
+module.exports.разобратьМетку = разобратьМетку;
+module.exports.ячейкаКомментария = ячейкаКомментария;
+module.exports.НАНО = НАНО;
