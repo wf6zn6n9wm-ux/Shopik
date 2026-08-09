@@ -947,7 +947,17 @@ module.exports = async (req, res) => {
       const д10 = s => String(s || '').slice(0, 10);
       const назад = n => new Date(Date.now() - n * СУТКИ).toISOString().slice(0, 10);
       const сегодня = д10(new Date().toISOString());
-      const с30 = new Date(Date.now() - 29 * СУТКИ).toISOString();
+
+      /* Окно считаем месяцем, а не «последними тридцатью днями»: числа за
+         скользящий отрезок не с чем сравнить — вчерашние тридцать дней это
+         уже другой отрезок. Месяц же сравним с прошлым месяцем, и по нему
+         видно, растёт дело или нет. Без месяца отдаём текущий. */
+      const мес = /^\d{4}-(0[1-9]|1[0-2])$/.test(String(body.month || ''))
+        ? String(body.month) : сегодня.slice(0, 7);
+      const [гг, мм] = мес.split('-').map(Number);
+      const начало = new Date(Date.UTC(гг, мм - 1, 1));
+      const конец = new Date(Date.UTC(гг, мм, 1));
+      const с30 = начало.toISOString();
 
       const users = await sb('sh_users?select=tg_id,name,bal,inv,mined,banned,created_at,seen_at&limit=100000') || [];
       /* Журнал за 30 дней тянем целиком: агрегировать на стороне базы
@@ -956,7 +966,8 @@ module.exports = async (req, res) => {
          этом в панели — молча показывать неполные числа нельзя. */
       const ПРЕДЕЛ = 100000;
       const tx = await sb('sh_tx?created_at=gte.' + encodeURIComponent(с30) +
-        '&select=kind,amount,tg_id,created_at&order=created_at.desc&limit=' + ПРЕДЕЛ) || [];
+        '&created_at=lt.' + encodeURIComponent(конец.toISOString()) +
+        '&select=kind,amount,tg_id,meta,created_at&order=created_at.desc&limit=' + ПРЕДЕЛ) || [];
       const wd = await sb('sh_withdrawals?select=status,amount,net,created_at&limit=100000') || [];
 
       const сумма = (arr, f) => arr.reduce((s, r) => s + (Number(f(r)) || 0), 0);
@@ -994,7 +1005,14 @@ module.exports = async (req, res) => {
         wdRejected: wd.filter(w => w.status === 'rejected').length
       };
 
-      const дни = []; for (let i = 29; i >= 0; i--) дни.push(назад(i));
+      /* Дни месяца до сегодняшнего включительно: рисовать пустой хвост
+         будущих чисел значит показывать провал там, где его нет. */
+      const дни = [];
+      for (let d = new Date(начало); d < конец; d.setUTCDate(d.getUTCDate() + 1)) {
+        const s = d.toISOString().slice(0, 10);
+        if (s > сегодня) break;
+        дни.push(s);
+      }
       const ряд = f => дни.map(d => ({ date: d, v: окр(f(d)) }));
       const series = {
         users: ряд(d => users.filter(u => д10(u.created_at) === d).length),
@@ -1006,8 +1024,41 @@ module.exports = async (req, res) => {
         dau: дни.map(d => ({ date: d, v: new Set(tx.filter(r => д10(r.created_at) === d).map(r => r.tg_id)).size }))
       };
 
+      /* Пополнения разбираем по способу оплаты: у звёзд Telegram и у
+         криптосчёта разные комиссии и разные поводы для беспокойства, а
+         в общей сумме они неразличимы. Способ узнаём по номеру платежа:
+         `cb…` — криптобот, `ton…` — перевод, остальное — звёзды. */
+      const способ = r => {
+        const c = String((r.meta && r.meta.charge) || '');
+        return c.slice(0, 3) === 'ton' ? 'gram' : c.slice(0, 2) === 'cb' ? 'crypto' : 'stars';
+      };
+      const пополнения = дни.map(d => {
+        const строки = заДень('topup', d);
+        const по = { stars: 0, crypto: 0, gram: 0 };
+        строки.forEach(r => { по[способ(r)] += Number(r.amount) || 0; });
+        return { date: d, n: строки.length, v: окр(сумма(строки, r => r.amount)),
+          stars: окр(по.stars), crypto: окр(по.crypto), gram: окр(по.gram) };
+      }).reverse();
+
+      /* Список месяцев — от первого заведённого игрока до текущего.
+         Переключаться по стрелкам в пустоту незачем: за месяц до первого
+         игрока там гарантированно нули. */
+      const первыйДень = users.reduce((m, u) => {
+        const d = д10(u.created_at); return (d && (!m || d < m)) ? d : m; }, '');
+      const месяцы = [];
+      {
+        const c = (первыйДень || сегодня).slice(0, 7);
+        let d = new Date(Date.UTC(+c.slice(0, 4), +c.slice(5, 7) - 1, 1));
+        const до = new Date(Date.UTC(+сегодня.slice(0, 4), +сегодня.slice(5, 7) - 1, 1));
+        while (d <= до && месяцы.length < 120) {
+          месяцы.push(d.toISOString().slice(0, 7));
+          d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
+        }
+      }
+
       res.status(200).json({ ok: true, admin: { name: me.name, id: me.id },
-        totals, series, truncated: tx.length >= ПРЕДЕЛ });
+        month: мес, months: месяцы, totals, series, topups: пополнения,
+        truncated: tx.length >= ПРЕДЕЛ });
       return;
     }
 

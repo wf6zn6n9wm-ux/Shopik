@@ -1393,8 +1393,38 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
 .ghrow .ac:active{transform:scale(.94);}
 .ghrow .ac.ok{color:#150F04;background:linear-gradient(180deg,#F7E7C4,var(--gold));border-color:transparent;}
 .ghrow .ac.no{color:#C98F6F;border-color:rgba(201,143,111,.3);}
+/* Админка занимает экран целиком: списки и таблицы в шторке на треть
+   экрана читать невозможно, а листать их приходится подолгу. */
+#adSheet .sheet{height:100dvh;max-height:100dvh;border-radius:0;padding-top:calc(var(--sat) + 8px);}
+#adSheet .sheet-bd{background:#000;backdrop-filter:none;-webkit-backdrop-filter:none;}
+#adSheet .grab{display:none;}
 .adseg{display:flex;}
 .adseg button{flex:1;}
+.adseg.four button{font-size:12px;padding:0 4px;letter-spacing:-.01em;}
+
+/* Переключатель месяца: числа за скользящие тридцать дней не с чем
+   сравнить, а месяцы сравнимы между собой. */
+.admonth{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.admonth b{flex:1;text-align:center;font-size:15px;font-weight:700;letter-spacing:-.01em;}
+.admonth button{
+  width:34px;height:34px;border-radius:11px;flex:0 0 auto;
+  background:var(--card);border:1px solid var(--line);color:var(--gold);
+  font-size:17px;line-height:1;display:grid;place-items:center;
+}
+.admonth button:disabled{color:var(--ink-3);opacity:.45;}
+
+/* Разбивка по дням. Таблица, а не карточки: сравнивать числа между
+   днями глазами удобнее в столбик. */
+.adtab{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;}
+.adtab th{
+  text-align:right;font-weight:600;color:var(--ink-3);font-size:10.5px;
+  padding:6px 4px;border-bottom:1px solid var(--line);white-space:nowrap;
+}
+.adtab th:first-child,.adtab td:first-child{text-align:left;}
+.adtab td{text-align:right;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.045);color:var(--ink);}
+.adtab td.d{color:var(--ink-2);white-space:nowrap;}
+.adtab td.g{color:#7FD1A8;} .adtab td.r{color:#C98F6F;} .adtab td.z{color:var(--ink-3);}
+.adtwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:14px;}
 /* Админка внутри приложения: показатели, поиск и решения по заявкам.
    Подписи тут нарочно только по-русски — панель для владельца, а не для
    игроков, и держать её в трёх словарях значило бы носить лишний груз. */
@@ -2425,13 +2455,21 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
       </div>
     </div>
     <div class="wbody">
-      <div class="lseg adseg" id="adNav" style="width:100%;margin-bottom:12px">
-        <button type="button" class="on" data-v="dash">Дашборд</button>
+      <div class="lseg adseg four" id="adNav" style="width:100%;margin-bottom:12px">
+        <button type="button" class="on" data-v="dash">Обзор</button>
+        <button type="button" data-v="tops">Пополнения</button>
         <button type="button" data-v="wd">Заявки</button>
         <button type="button" data-v="users">Игроки</button>
       </div>
 
+      <div class="admonth" id="adMonth" hidden>
+        <button type="button" id="adPrev" aria-label="Прошлый месяц">‹</button>
+        <b id="adMonthT">—</b>
+        <button type="button" id="adNext" aria-label="Следующий месяц">›</button>
+      </div>
+
       <div id="adDash"><div class="admsg">Загрузка…</div></div>
+      <div id="adTops" hidden><div class="admsg">Загрузка…</div></div>
 
       <div id="adWd" hidden>
         <div class="lseg adseg" id="adSeg" style="width:100%;margin-bottom:12px">
@@ -3745,6 +3783,12 @@ var SAVED=(function(){
     var gl=Array.isArray(gm.l) ? gm.l.filter(function(e){
       return e && typeof e.g==='string' && isFinite(+e.b) && isFinite(+e.w) && isFinite(+e.t);
     }).slice(0,50) : [];
+    /* Лента иксов Краша. Держим её отдельно от журнала игр: там только
+       раунды со ставкой, а по ленте человек решает, ставить ли вообще, —
+       и раунды, которые он просто посмотрел, для этого решения значат
+       столько же. */
+    var ch=Array.isArray(o.ch) ? o.ch.map(Number)
+      .filter(function(v){ return isFinite(v) && v>=1 && v<1000; }).slice(0,12) : [];
     return {bal:b, y:y, seen:t, tk:tk,
             gm:{l:gl, n:Math.round(num(gm.n)), win:Math.round(num(gm.win)),
                 bx:num(gm.bx), bw:num(gm.bw), wag:num(gm.wag), won:num(gm.won)},
@@ -3759,7 +3803,7 @@ var SAVED=(function(){
             bn:{last:num(bn.last), streak:Math.max(0,Math.min(8,+bn.streak||0))},
             rf:{by:String(rf.by||''), n:Math.max(0,Math.round(num(rf.n))), earned:num(rf.earned)},
             fc:{sh:Math.max(0,Math.min(3,Math.round(num(fc.sh)))), sb:fc.sb?1:0, op:fc.op?1:0},
-            inv:iv, nt:{l:nl, seen:num(nt.seen)}};
+            inv:iv, nt:{l:nl, seen:num(nt.seen)}, ch:ch};
   }catch(e){ return null; }
 })();
 
@@ -3774,6 +3818,10 @@ var MN = SAVED ? SAVED.mn : {d:{k:'',v:0}, w:{k:'',v:0}, a:0};
    всё время. n сыграно, win выиграно, bx лучший множитель в Краше,
    bw крупнейший выигрыш, wag поставлено, won получено. */
 var GM = SAVED ? SAVED.gm : {l:[], n:0, win:0, bx:0, bw:0, wag:0, won:0};
+/* Последние множители Краша: та самая лента сверху экрана. Раньше она
+   жила только в памяти открытой страницы, и человек, зайдя заново, видел
+   пустоту — а решает он по ней. */
+var CH = SAVED ? SAVED.ch : [];
 /* d — день, когда шаги новичка всплывали последний раз */
 var FS = SAVED ? SAVED.fs : {d:''};
 /* Ежедневные задания: d — за какой день счёт, p — сколько сделано,
@@ -3970,7 +4018,7 @@ if(SAVED && SAVED.seen && inv>0 && !(TG && TG.initData)){
 function saveState(){
   try{ localStorage.setItem(SKEY, JSON.stringify({v:1, bal:bal, y:YIELD_PCT, seen:Date.now(),
                                                    tk:TK, dl:DL, mn:MN, rf:RF, fc:FC,
-                                                   inv:inv, nt:NT, gm:GM, fs:FS, dt:DT})); }catch(e){}
+                                                   inv:inv, nt:NT, gm:GM, fs:FS, dt:DT, ch:CH})); }catch(e){}
 }
 
 /* Сколько намайнено за `sec` секунд простоя при текущем балансе и ставке */
@@ -4469,7 +4517,7 @@ var FIGHTERS=[
     var BETS=[50,100,250,500,1000];
 
     var phase='waiting', raf=null, cdTimer=null, mult=1, target=0, t0=0, cd=5,
-        bots=[], hist=[], stake=100, joined=false, cashed=false, live=false, autoOn=false, autoAt=2;
+        bots=[], hist=CH.slice(0,12), stake=100, joined=false, cashed=false, live=false, autoOn=false, autoAt=2;
     /* settled — расчёт по серверу уже запрошен (второй раз не шлём);
        capX — потолок множителя, до которого сервер вообще может дотянуть
        обрыв: без него серверный раунд, где точка обрыва скрыта, летел бы
@@ -4665,6 +4713,7 @@ var FIGHTERS=[
       bots.forEach(function(p){ if(p.st==='live') p.st='lose'; });
       renderPlayers();
       hist.unshift(target); if(hist.length>12) hist.pop(); renderHist();
+      CH=hist.slice(0,12); saveState();
       /* проигранный раунд тоже раунд: без него «сыграно» врёт, а история
          состоит из одних побед */
       if(joined&&!cashed) logGame('crash', stake, 0, +target.toFixed(2));
@@ -5510,11 +5559,25 @@ var adminReflect;
   var row=document.getElementById('pAdmin'), badge=document.getElementById('pAdminN'),
       nav=document.getElementById('adNav'),
       dashEl=document.getElementById('adDash'),
+      topsEl=document.getElementById('adTops'),
+      monthEl=document.getElementById('adMonth'), monthT=document.getElementById('adMonthT'),
+      prevB=document.getElementById('adPrev'), nextB=document.getElementById('adNext'),
       wdEl=document.getElementById('adWd'), usersEl=document.getElementById('adUsers'),
       seg=document.getElementById('adSeg'), listEl=document.getElementById('adList'),
       emptyEl=document.getElementById('adEmpty'),
       qEl=document.getElementById('adQ'), uListEl=document.getElementById('adUList');
   var ВИД='dash', st='pending', ИГРОКИ=[];
+  /* Месяц, за который считаем, и список месяцев, в которых вообще есть
+     что показывать: листать стрелками в пустоту до основания времён
+     незачем. ДАННЫЕ — последний ответ сервера: обзор и пополнения
+     считаются одним запросом, и переключать вкладки можно мгновенно. */
+  var МЕС='', МЕСЯЦЫ=[], ДАННЫЕ=null;
+  var МЕСНАЗВ=['Январь','Февраль','Март','Апрель','Май','Июнь',
+               'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  function названиеМесяца(m){
+    var ч=String(m||'').split('-');
+    return (МЕСНАЗВ[+ч[1]-1]||'—')+' '+ч[0];
+  }
   var СТАТУС={ pending:'В обработке', done:'Выплачено', rejected:'Отклонено' };
 
   var sheet=makeSheet('adSheet','adTop',{ onShow:function(){ показать(ВИД, true); } });
@@ -5545,9 +5608,13 @@ var adminReflect;
   function показать(v, перезагрузить){
     ВИД=v;
     nav.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.v===v); });
-    dashEl.hidden = v!=='dash'; wdEl.hidden = v!=='wd'; usersEl.hidden = v!=='users';
+    dashEl.hidden = v!=='dash'; topsEl.hidden = v!=='tops';
+    wdEl.hidden = v!=='wd'; usersEl.hidden = v!=='users';
+    /* Месяц относится к числам, а не к заявкам и не к списку игроков:
+       на их вкладках полосу прячем, чтобы не обещать несуществующего. */
+    monthEl.hidden = !(v==='dash' || v==='tops');
     if(!онлайн()) return;
-    if(v==='dash' && (перезагрузить || !dashEl.dataset.готово)) дашборд();
+    if((v==='dash' || v==='tops') && (перезагрузить || !ДАННЫЕ)) загрузить(МЕС);
     if(v==='wd' && (перезагрузить || !listEl.children.length)) заявки();
     if(v==='users' && (перезагрузить || !ИГРОКИ.length)) игроков('');
   }
@@ -5569,47 +5636,132 @@ var adminReflect;
   function кпи(k,v,cls){
     return '<div class="adkpi"><div class="k">'+k+'</div><div class="v '+(cls||'')+'">'+v+'</div></div>';
   }
-  function дашборд(){
-    dashEl.innerHTML='<div class="admsg">Считаем…</div>';
-    SRV.raw('admin_dash').then(function(о){
+  /* Обзор и пополнения считаются одним запросом: числа там одни и те же,
+     а лишний поход к серверу на каждое переключение вкладки — лишняя
+     секунда ожидания на каждое нажатие. */
+  function загрузить(m){
+    var цель = ВИД==='tops' ? topsEl : dashEl;
+    цель.innerHTML='<div class="admsg">Считаем…</div>';
+    SRV.raw('admin_dash', m ? {month:m} : {}).then(function(о){
       if(!о || !о.ok){
-        dashEl.innerHTML='<div class="admsg">'+(о && о.reason==='forbidden'
+        цель.innerHTML='<div class="admsg">'+(о && о.reason==='forbidden'
           ? 'Нет доступа. Ваш Telegram ID: '+эск(о.yourId)
           : 'Не вышло: '+эск((о&&о.reason)||'?'))+'</div>';
         return;
       }
-      var t=о.totals||{}, s=о.series||{};
-      dashEl.dataset.готово='1';
-      badge.textContent = t.wdPending ? String(t.wdPending) : '';
-      dashEl.innerHTML=
-        (о.truncated ? '<div class="admsg" style="color:#E4C078">Журнал за 30 дней не поместился целиком — числа за период неполные.</div>' : '')
-        + '<div class="adkpis">'
-        + кпи('Игроков', fmtInt(t.users), 'gold')
-        + кпи('Новых сегодня', fmtInt(t.newToday), 'green')
-        + кпи('Новых за 7 дней', fmtInt(t.new7d))
-        + кпи('Заходили за сутки', fmtInt(t.online))
-        + кпи('На балансах, ★', fmtInt(t.bal), 'gold')
-        + кпи('Вложено, ★', fmtInt(t.inv))
-        + кпи('Пополнено за 30 дн', fmtInt(t.topup30), 'green')
-        + кпи('Выведено за 30 дн', fmtInt(t.wd30), 'red')
-        + кпи('Поставлено за 30 дн', fmtInt(t.bet30))
-        + кпи('Выиграно за 30 дн', fmtInt(t.win30))
-        + кпи('Казна с игр', fmtInt(t.ggr30), t.ggr30>=0?'green':'red')
-        + кпи('Закрыт доступ', fmtInt(t.banned), t.banned?'red':'')
-        + '</div>'
-        + '<div class="adsub">Заявки на вывод</div>'
-        + '<div class="adkpis">'
-        + кпи('Ждёт', fmtInt(t.wdPending), t.wdPending?'gold':'')
-        + кпи('Ждёт к выплате, ★', fmtInt(t.wdPendingSum), t.wdPending?'gold':'')
-        + кпи('Выплачено заявок', fmtInt(t.wdDone), 'green')
-        + кпи('Выплачено, ★', fmtInt(t.wdDoneSum), 'green')
-        + '</div>'
-        + '<div class="adsub">За 30 дней</div>'
-        + '<div class="adcard"><div class="k">Новые игроки</div>'+столбцы(s.users,'#E4C078')+'</div>'
-        + '<div class="adcard"><div class="k">Активные за день</div>'+столбцы(s.dau,'#8FA6C4')+'</div>'
-        + '<div class="adcard"><div class="k">Пополнения, ★</div>'+столбцы(s.topup,'#7FD1A8')+'</div>'
-        + '<div class="adcard"><div class="k">Выводы, ★</div>'+столбцы(s.withdraw,'#C98F6F')+'</div>';
+      ДАННЫЕ=о; МЕС=о.month||''; МЕСЯЦЫ=о.months||[];
+      badge.textContent = (о.totals && о.totals.wdPending) ? String(о.totals.wdPending) : '';
+      полосаМесяца(); обзор(); пополнения();
     });
+  }
+  function полосаМесяца(){
+    monthT.textContent=названиеМесяца(МЕС);
+    var i=МЕСЯЦЫ.indexOf(МЕС);
+    prevB.disabled = i<=0;
+    nextB.disabled = i<0 || i>=МЕСЯЦЫ.length-1;
+  }
+  function сдвиг(шаг){
+    var i=МЕСЯЦЫ.indexOf(МЕС); if(i<0) return;
+    var j=i+шаг; if(j<0 || j>=МЕСЯЦЫ.length) return;
+    haptic('light'); МЕС=МЕСЯЦЫ[j]; загрузить(МЕС);
+  }
+  prevB.addEventListener('click',function(){ сдвиг(-1); });
+  nextB.addEventListener('click',function(){ сдвиг(1); });
+
+  function деньК(d){ var ч=String(d).split('-'); return ч[2]+'.'+ч[1]; }
+  /* ноль пишем серым: строка с нулями не должна перетягивать взгляд */
+  function кл(v, цвет){ return v ? (цвет||'') : 'z'; }
+  function поДатам(ряд){
+    var m={}; (ряд||[]).forEach(function(q){ m[q.date]=q.v; }); return m;
+  }
+
+  function обзор(){
+    var о=ДАННЫЕ; if(!о) return;
+    var t=о.totals||{}, s=о.series||{};
+    dashEl.dataset.готово='1';
+    var U=поДатам(s.users), T=поДатам(s.topup), W=поДатам(s.withdraw),
+        B=поДатам(s.bet), V=поДатам(s.win), D=поДатам(s.dau);
+    var дни=(s.users||[]).map(function(q){ return q.date; }).slice().reverse();
+    var строки=дни.map(function(d){
+      var b=B[d]||0, w=V[d]||0, каз=Math.round((b-w)*100)/100;
+      return '<tr><td class="d">'+деньК(d)+'</td>'
+        + '<td class="'+кл(U[d])+'">'+fmtInt(U[d]||0)+'</td>'
+        + '<td class="'+кл(D[d])+'">'+fmtInt(D[d]||0)+'</td>'
+        + '<td class="'+кл(T[d],'g')+'">'+fmtInt(T[d]||0)+'</td>'
+        + '<td class="'+кл(W[d],'r')+'">'+fmtInt(W[d]||0)+'</td>'
+        + '<td class="'+кл(каз, каз>=0?'g':'r')+'">'+fmtInt(каз)+'</td></tr>';
+    }).join('');
+
+    dashEl.innerHTML=
+      (о.truncated ? '<div class="admsg" style="color:#E4C078">Журнал за месяц не поместился целиком — числа неполные.</div>' : '')
+      + '<div class="adsub">Всего, на сегодня</div>'
+      + '<div class="adkpis">'
+      + кпи('Игроков', fmtInt(t.users), 'gold')
+      + кпи('Новых сегодня', fmtInt(t.newToday), 'green')
+      + кпи('Заходили за сутки', fmtInt(t.online))
+      + кпи('Закрыт доступ', fmtInt(t.banned), t.banned?'red':'')
+      + кпи('На балансах, ★', fmtInt(t.bal), 'gold')
+      + кпи('В мощности, ★', fmtInt(t.inv))
+      + '</div>'
+      + '<div class="adsub">За '+эск(названиеМесяца(МЕС))+'</div>'
+      + '<div class="adkpis">'
+      + кпи('Пополнено, ★', fmtInt(t.topup30), 'green')
+      + кпи('Выведено, ★', fmtInt(t.wd30), 'red')
+      + кпи('Поставлено, ★', fmtInt(t.bet30))
+      + кпи('Выиграно, ★', fmtInt(t.win30))
+      + кпи('Казна с игр, ★', fmtInt(t.ggr30), t.ggr30>=0?'green':'red')
+      + кпи('Бонусы и задания, ★', fmtInt(t.bonus30))
+      + '</div>'
+      + '<div class="adsub">Заявки на вывод</div>'
+      + '<div class="adkpis">'
+      + кпи('Ждёт', fmtInt(t.wdPending), t.wdPending?'gold':'')
+      + кпи('Ждёт к выплате, ★', fmtInt(t.wdPendingSum), t.wdPending?'gold':'')
+      + кпи('Выплачено заявок', fmtInt(t.wdDone), 'green')
+      + кпи('Выплачено, ★', fmtInt(t.wdDoneSum), 'green')
+      + '</div>'
+      + '<div class="adsub">По дням</div>'
+      + (строки
+        ? '<div class="adtwrap"><table class="adtab"><thead><tr><th>Дата</th><th>Новых</th>'
+          + '<th>Актив</th><th>Попол.</th><th>Вывод</th><th>Казна</th></tr></thead>'
+          + '<tbody>'+строки+'</tbody></table></div>'
+        : '<div class="admsg">За этот месяц движений не было</div>')
+      + '<div class="adcard"><div class="k">Новые игроки</div>'+столбцы(s.users,'#E4C078')+'</div>'
+      + '<div class="adcard"><div class="k">Активные за день</div>'+столбцы(s.dau,'#8FA6C4')+'</div>'
+      + '<div class="adcard"><div class="k">Пополнения, ★</div>'+столбцы(s.topup,'#7FD1A8')+'</div>'
+      + '<div class="adcard"><div class="k">Выводы, ★</div>'+столбцы(s.withdraw,'#C98F6F')+'</div>';
+  }
+
+  /* Пополнения отдельной вкладкой и с разбивкой по способу оплаты: у
+     звёзд Telegram, криптосчёта и перевода GRAM разные комиссии и разные
+     поводы для беспокойства, а в общей сумме они неразличимы. */
+  function пополнения(){
+    var о=ДАННЫЕ; if(!о) return;
+    var р=о.topups||[];
+    var сум=function(k){ return р.reduce(function(x,q){ return x+(+q[k]||0); },0); };
+    var строки=р.map(function(q){
+      return '<tr><td class="d">'+деньК(q.date)+'</td>'
+        + '<td class="'+кл(q.n)+'">'+fmtInt(q.n)+'</td>'
+        + '<td class="'+кл(q.stars)+'">'+fmtInt(q.stars)+'</td>'
+        + '<td class="'+кл(q.crypto)+'">'+fmtInt(q.crypto)+'</td>'
+        + '<td class="'+кл(q.gram)+'">'+fmtInt(q.gram)+'</td>'
+        + '<td class="'+кл(q.v,'g')+'">'+fmtInt(q.v)+'</td></tr>';
+    }).join('');
+    topsEl.innerHTML=
+      '<div class="adsub">За '+эск(названиеМесяца(МЕС))+'</div>'
+      + '<div class="adkpis">'
+      + кпи('Всего, ★', fmtInt(сум('v')), 'green')
+      + кпи('Платежей', fmtInt(сум('n')))
+      + кпи('Звёздами, ★', fmtInt(сум('stars')))
+      + кпи('Криптой, ★', fmtInt(сум('crypto')))
+      + кпи('Переводом GRAM, ★', fmtInt(сум('gram')))
+      + кпи('Доля пригласившим, ★', fmtInt((о.totals||{}).ref30))
+      + '</div>'
+      + '<div class="adsub">По дням</div>'
+      + (строки
+        ? '<div class="adtwrap"><table class="adtab"><thead><tr><th>Дата</th><th>Плат.</th>'
+          + '<th>Звёзды</th><th>Крипта</th><th>GRAM</th><th>Всего</th></tr></thead>'
+          + '<tbody>'+строки+'</tbody></table></div>'
+        : '<div class="admsg">За этот месяц пополнений не было</div>');
   }
 
   /* ── заявки ── */
@@ -5667,7 +5819,10 @@ var adminReflect;
         return '<div class="ghrow'+(u.banned?' lose':'')+'">'
           + '<span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M12 13.6c-4.1 0-7.4 2.7-7.4 6h14.8c0-3.3-3.3-6-7.4-6Z"/></svg></span>'
           + '<span class="bd"><span class="nm">'+эск(u.name||'—')+(u.banned?' · закрыт':'')+'</span>'
-            + '<span class="tm">'+u.tg_id+' · '+fmtInt(u.bal)+' ★ · вклад '+fmtInt(u.inv)+'</span></span>'
+            /* «вклад» читалось как «внесено денег», хотя это вложение в
+               мощность: админ видел ноль у человека, который только что
+               заплатил, и решал, что оплата не дошла. */
+            + '<span class="tm">'+u.tg_id+' · баланс '+fmtInt(u.bal)+' ★ · в мощности '+fmtInt(u.inv)+'</span></span>'
           + '<span class="adbtns"><button class="ac ok" data-give="'+u.tg_id+'">+★</button>'
           + '<button class="ac'+(u.banned?'':' no')+'" data-ban="'+u.tg_id+'">'+(u.banned?'Вернуть':'Закрыть')+'</button></span></div>';
       }).join('');

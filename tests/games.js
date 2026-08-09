@@ -63,6 +63,19 @@ const { браузер, открыть, жди, состояние, день, О
   о.проверка('баланс, журнал и серия пережили перезагрузку',
     Math.abs(после.bal - до.bal) < 1 && после.gm.n === до.gm.n && после.dl.last === до.dl.last,
     до.bal.toFixed(2) + '→' + после.bal.toFixed(2) + ', раундов ' + после.gm.n);
+  /* Лента иксов сверху — то, по чему человек решает, ставить ли. Жила
+     она только в памяти открытой страницы: зашёл заново — пусто, и
+     решать не по чему. */
+  о.проверка('лента множителей Краша пережила перезагрузку',
+    Array.isArray(после.ch) && после.ch.length > 0 &&
+    JSON.stringify(после.ch) === JSON.stringify(до.ch),
+    (до.ch || []).slice(0, 3).join(', ') + ' → ' + (после.ch || []).slice(0, 3).join(', '));
+  await require('./helpers').закрытьШаги(p);
+  await p.click('.tab[data-p="games"]'); await p.waitForTimeout(300);
+  await p.click('#goCrash'); await p.waitForTimeout(700);
+  о.проверка('и показана на экране Краша сразу при входе',
+    (await p.evaluate(() => document.querySelectorAll('#cHist i').length)) > 0,
+    await p.evaluate(() => document.getElementById('cHist').textContent));
   await require('./helpers').закрытьШаги(p);
   await p.click('.tab[data-p="me"]'); await p.waitForTimeout(400);
   for (const я of ['en', 'uk', 'ru']) {

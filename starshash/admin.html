@@ -363,7 +363,7 @@ function игроки(q){
     + '<button class="btn gold" onclick="__искать()">Найти</button>'
     + '<span class="muted small">показываем до 100, по убыванию баланса</span></div>'
     + '<div class="card" style="padding:4px 8px"><div class="tablewrap"><table>'
-    + '<thead><tr><th>Игрок</th><th>Баланс</th><th>Вклад</th><th>Намайнено</th><th>Игр</th><th>Поставлено</th><th>Пришёл</th><th></th></tr></thead>'
+    + '<thead><tr><th>Игрок</th><th>Баланс</th><th>В мощности</th><th>Намайнено</th><th>Игр</th><th>Поставлено</th><th>Пришёл</th><th></th></tr></thead>'
     + '<tbody>'+строки+'</tbody></table></div></div></div>';
   var поле = document.getElementById('q');
   if (поле) поле.addEventListener('keydown', function(e){ if(e.key==='Enter') window.__искать(); });
