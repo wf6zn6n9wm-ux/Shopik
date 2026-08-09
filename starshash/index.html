@@ -787,11 +787,29 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
 .cpr .nm{flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cpr .bt{font-size:12px;color:var(--ink-3);white-space:nowrap;}
 .cpr .mx{font-size:12px;font-weight:700;color:var(--ink-2);width:52px;text-align:right;flex:0 0 auto;}
-.cpr.me{border-color:rgba(228,192,120,.32);}
-.cpr.win{border-color:rgba(228,192,120,.45);background:linear-gradient(90deg,rgba(228,192,120,.13),rgba(228,192,120,.02));}
-.cpr.win .mx{color:var(--gold);}
-.cpr.lose{opacity:.42;}
-.cpr.lose .mx{color:#C97B62;}
+/* Лента у кнопки: шире, чем в шапке, и переносить её нельзя — иначе
+   строка иксов на узком экране разъедется на две и утащит кнопку вниз. */
+.chist{margin:0 0 10px;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;padding-bottom:1px;}
+.chist::-webkit-scrollbar{display:none;}
+.chist i{flex:0 0 auto;}
+
+/* Итог раунда виден по цвету строки, не вчитываясь в числа: поставил —
+   спокойный синий, забрал — зелёный, не успел — красный. Проигравших
+   больше не гасим прозрачностью: они и так последние, а разглядеть, кто
+   именно сгорел, бывает интереснее всего. */
+.cpr.me{box-shadow:inset 0 0 0 1px rgba(228,192,120,.42);}
+.cpr.bet{border-color:rgba(143,166,196,.34);
+  background:linear-gradient(90deg,rgba(143,166,196,.13),rgba(143,166,196,.02));}
+.cpr.bet .mx{color:#9DB4D0;}
+.cpr.win{border-color:rgba(127,209,168,.44);
+  background:linear-gradient(90deg,rgba(127,209,168,.15),rgba(127,209,168,.02));}
+.cpr.win .mx{color:#7FD1A8;}
+.cpr.win .bt{color:#7FD1A8;opacity:.75;}
+.cpr.lose{border-color:rgba(201,143,111,.34);
+  background:linear-gradient(90deg,rgba(201,143,111,.12),rgba(201,143,111,.015));}
+.cpr.lose .mx{color:#C98F6F;}
+.cpr.lose .bt{color:#C98F6F;opacity:.7;}
 
 /* ── ПВП ── */
 .pxlive{
@@ -981,9 +999,16 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
   display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:14px;
   background:var(--card);border:1px solid var(--line);transition:border-color .2s,background .2s,opacity .2s;
 }
-.prow.me{border-color:rgba(228,192,120,.3);}
-.prow.won{border-color:var(--gold);background:linear-gradient(90deg,rgba(228,192,120,.18),rgba(228,192,120,.03));}
-.prow.out{opacity:.4;}
+/* Итог раунда — цветом строки, как в Краше: забрал банк зелёный,
+   остальные красные. Проигравших не гасим прозрачностью — разглядеть,
+   кто именно проиграл и с какой долей, обычно и интереснее всего. */
+.prow.me{box-shadow:inset 0 0 0 1px rgba(228,192,120,.42);}
+.prow.won{border-color:rgba(127,209,168,.5);
+  background:linear-gradient(90deg,rgba(127,209,168,.17),rgba(127,209,168,.02));}
+.prow.won .st{color:#7FD1A8;}
+.prow.out{border-color:rgba(201,143,111,.32);
+  background:linear-gradient(90deg,rgba(201,143,111,.11),rgba(201,143,111,.015));}
+.prow.out .st,.prow.out .ch{color:#C98F6F;opacity:.8;}
 .prow .av{
   width:30px;height:30px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
   font-size:12px;font-weight:700;color:#150F04;
@@ -2059,7 +2084,6 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
       <div class="ghead">
         <button class="bk" data-back aria-label="Назад"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
         <span class="t" data-i18n="g_crash">Краш</span>
-        <span class="hist" id="cHist"></span>
       </div>
       <div class="cstage" id="cStage">
         <canvas id="cCanvas"></canvas>
@@ -2102,6 +2126,10 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
         <label class="cswitch"><input type="checkbox" id="cAutoChk"><span class="tr"></span></label>
       </div>
 
+      <!-- Прошлые множители держим у самой кнопки: по ним человек и
+           решает, ставить ли, а в шапке экрана они оказывались дальше
+           всего от места, где решение принимается. -->
+      <div class="hist chist" id="cHist"></div>
       <button class="btn-buy" id="cGo">Поставить 100 ★</button>
       <div class="cplayers" id="cPlayers"></div>
     </div>
@@ -4597,14 +4625,19 @@ var FIGHTERS=[
     function renderPlayers(){
       var html='<div class="cph"><span>'+t('players')+' · '+bots.length+'</span><span>'+t('bet_payout')+'</span></div>';
       bots.forEach(function(p){
-        var cls='', mx;
-        if(p.st==='win'){ cls='win'; mx='+'+fmtInt(p.took); }
+        var cls='', mx, ставка=fmtInt(p.bet)+' ★';
+        if(p.st==='win'){
+          cls='win'; mx='+'+fmtInt(p.took);
+          /* на каком множителе забрал — это и есть вся история раунда
+             для него, без неё «+112» ни о чём не говорит */
+          if(p.at && p.at<900) ставка+=' ×'+(+p.at).toFixed(2);
+        }
         else if(p.st==='lose'){ cls='lose'; mx='—'; }
-        else { cls=''; mx='×'+(phase==='flying'?mult:1).toFixed(2); }
+        else { cls=phase==='flying'?'bet':''; mx='×'+(phase==='flying'?mult:1).toFixed(2); }
         html+='<div class="cpr '+cls+(p.me?' me':'')+'">'+
           аватар(p, p.me?'linear-gradient(180deg,#F7E7C4,#B08D4A)':p.c)+
           '<span class="nm">'+p.n+'</span>'+
-          '<span class="bt num">'+fmtInt(p.bet)+' ★</span>'+
+          '<span class="bt num">'+ставка+'</span>'+
           '<span class="mx num">'+mx+'</span></div>';
       });
       listEl.innerHTML=html;
