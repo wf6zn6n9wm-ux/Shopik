@@ -1575,6 +1575,20 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
 
 /* ─────────── Пополнение через GRAM ─────────── */
 .gpack{display:flex;flex-direction:column;gap:8px;}
+/* Реквизиты перевода: три строки и предупреждение про пометку. */
+.tpay{margin-top:12px;border:1px solid var(--line);border-radius:17px;background:var(--card);padding:4px 14px 12px;}
+.tpr{display:flex;align-items:center;gap:10px;min-height:40px;border-bottom:1px solid var(--line);}
+.tpr:last-of-type{border-bottom:0;}
+.tpr .k{font-size:13px;color:var(--ink-3);flex:0 0 auto;}
+.tpr .v{flex:1;min-width:0;text-align:right;font-size:14px;font-weight:600;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tpr .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;letter-spacing:-.02em;}
+.tpr .cp{flex:0 0 auto;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+  color:var(--gold);background:rgba(228,192,120,.1);border:0;}
+.tpr .cp:active{transform:scale(.92);}
+.tpr .cp.ok{background:var(--gold);color:#150F04;}
+.tpn{margin-top:10px;font-size:12.5px;line-height:1.45;color:var(--ink-3);}
+
 .gp{
   display:flex;align-items:center;gap:10px;width:100%;padding:13px 15px;border-radius:17px;
   background:var(--card);border:1px solid var(--line);text-align:left;
@@ -2532,6 +2546,34 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
           <span class="g" id="gpOwnG">0.00 USDT</span>
         </label>
       </div>
+
+      <!-- Реквизиты перевода. Показываем всегда, не только когда кошелёк
+           не открылся: ссылку в мини-аппе может проглотить кто угодно, а
+           переписать три строки руками человек сможет из любого кошелька.
+           Пометка тут важнее адреса — без неё платёж не опознать. -->
+      <div id="dpTonPay" hidden>
+        <div class="tpay">
+          <div class="tpr">
+            <span class="k" data-i18n="d_ton_sum">К переводу</span>
+            <b class="v" id="tpSum">—</b>
+          </div>
+          <div class="tpr">
+            <span class="k" data-i18n="d_ton_addr">Адрес</span>
+            <span class="v mono" id="tpAddr"></span>
+            <button class="cp" id="tpAddrC" data-i18n-a="d_ton_copy" aria-label="Скопировать">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5.5A1.5 1.5 0 0 1 6.5 4H15"/></svg>
+            </button>
+          </div>
+          <div class="tpr">
+            <span class="k" data-i18n="d_ton_memo">Пометка</span>
+            <span class="v mono" id="tpMemo"></span>
+            <button class="cp" id="tpMemoC" data-i18n-a="d_ton_copy" aria-label="Скопировать">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5.5A1.5 1.5 0 0 1 6.5 4H15"/></svg>
+            </button>
+          </div>
+          <div class="tpn" data-i18n="d_ton_note">Пометку обязательно приложите к переводу комментарием — без неё платёж не опознать.</div>
+        </div>
+      </div>
     </div>
     <div class="whint" id="dpHint"></div>
     <button class="btn-buy" id="dpGo">Пополнить</button>
@@ -3056,6 +3098,10 @@ ru:{
  d_ton_sent:'Перевод отправлен, ждём сеть…',
  d_ton_wait:'Ждём перевод…',
  d_ton_less:'Пришло {got} GRAM, нужно {need}',
+ d_ton_sum:'К переводу', d_ton_addr:'Адрес', d_ton_memo:'Пометка',
+ d_ton_copy:'Скопировать', d_ton_copied:'Скопировано',
+ d_ton_open:'Открыть кошелёк',
+ d_ton_note:'Пометку обязательно приложите к переводу комментарием — без неё платёж не опознать.',
  c_deposit:'Сумма вклада', c_my_bal:'Мой вклад', c_term:'Срок', c_rate:'Ставка доходности',
  c_current:'Текущая', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 год',
  c_p7:'7 дней', c_p30:'30 дней', c_p90:'90 дней', c_py:'год',
@@ -3167,6 +3213,10 @@ en:{
  d_ton_sent:'Transfer sent, waiting for the network…',
  d_ton_wait:'Waiting for the transfer…',
  d_ton_less:'Received {got} GRAM, {need} needed',
+ d_ton_sum:'To transfer', d_ton_addr:'Address', d_ton_memo:'Memo',
+ d_ton_copy:'Copy', d_ton_copied:'Copied',
+ d_ton_open:'Open wallet',
+ d_ton_note:'Attach the memo as the transfer comment — without it the payment cannot be matched.',
  c_deposit:'Deposit amount', c_my_bal:'My deposit', c_term:'Term', c_rate:'Daily rate',
  c_current:'Current', c_d7:'7 d', c_d30:'30 d', c_d90:'90 d', c_y1:'1 year',
  c_p7:'7 days', c_p30:'30 days', c_p90:'90 days', c_py:'a year',
@@ -3278,6 +3328,10 @@ uk:{
  d_ton_sent:'Переказ надіслано, чекаємо мережу…',
  d_ton_wait:'Чекаємо переказ…',
  d_ton_less:'Надійшло {got} GRAM, потрібно {need}',
+ d_ton_sum:'До переказу', d_ton_addr:'Адреса', d_ton_memo:'Позначка',
+ d_ton_copy:'Скопіювати', d_ton_copied:'Скопійовано',
+ d_ton_open:'Відкрити гаманець',
+ d_ton_note:'Позначку обовʼязково додайте до переказу коментарем — без неї платіж не розпізнати.',
  c_deposit:'Сума вкладу', c_my_bal:'Мій вклад', c_term:'Термін', c_rate:'Ставка дохідності',
  c_current:'Поточна', c_d7:'7 дн', c_d30:'30 дн', c_d90:'90 дн', c_y1:'1 рік',
  c_p7:'7 днів', c_p30:'30 днів', c_p90:'90 днів', c_py:'рік',
@@ -3373,6 +3427,9 @@ function applyLang(){
   document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent=t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-html]').forEach(function(el){ el.innerHTML=t(el.dataset.i18nHtml); });
   document.querySelectorAll('[data-i18n-ph]').forEach(function(el){ el.placeholder=t(el.dataset.i18nPh); });
+  /* Кнопкам с одной картинкой внутри подпись класть некуда — текст стёр бы
+     значок. Для них переводим aria-label: он для незрячих и есть подпись. */
+  document.querySelectorAll('[data-i18n-a]').forEach(function(el){ el.setAttribute('aria-label',t(el.dataset.i18nA)); });
   RERENDER.forEach(function(fn){ try{ fn(); }catch(e){} });
 }
 function setLang(l){
@@ -5729,6 +5786,8 @@ var adminReflect;
       el.addEventListener('click',function(){
         if(gsel===i) return;
         haptic('light');
+        /* другая сумма — прежние реквизиты уже не те */
+        clearInterval(опросTON); спрятатьРеквизиты(); hint.textContent='';
         markPack(i); gpOwn.value=''; gpOwnG.textContent=ценник(0); preview();
       });
       gpList.appendChild(el);
@@ -5767,6 +5826,9 @@ var adminReflect;
 
   function preview(){
     var a=amount();
+    /* Пока висят реквизиты — кнопка ведёт в кошелёк, а не заводит новый
+       перевод, и подпись про сумму её бы подменила. */
+    if(сейчасTON){ go.disabled=false; go.textContent=t('d_ton_open'); return; }
     hint.textContent = a ? '' : t('w_enter_amt');
     go.disabled=!a;
     go.textContent = a ? t('d_go',{n:fmtInt(a)}) : t('d_title');
@@ -5779,6 +5841,8 @@ var adminReflect;
     mTon.classList.toggle('on',m==='ton');
     mUsdt.classList.toggle('on',m==='usdt');
     bStars.hidden=m!=='stars'; bPacks.hidden=m==='stars';
+    /* Сменили способ — прежний перевод больше не при делах */
+    clearInterval(опросTON); спрятатьРеквизиты(); hint.textContent='';
     /* Пакеты те же, а цена справа считается по-разному — перерисовываем */
     buildPacks(); gpOwnG.textContent=ценник(num(gpOwn.value)); preview();
   }
@@ -5882,7 +5946,23 @@ var adminReflect;
   function ссылкаКошелька(о){
     return 'ton://transfer/'+о.address+'?amount='+о.nano+'&text='+encodeURIComponent(о.comment);
   }
+  /* Ссылку `ton://` Telegram не открывает: openLink умеет только http и
+     https, а чужую схему проглатывает молча — человек жмёт «Пополнить», и
+     не происходит ничего. Поэтому пробуем её обычным переходом, который
+     отдаёт схему системе, а не встроенному браузеру. Не сработает —
+     реквизиты уже на экране, и заплатить можно руками. */
+  function вКошелёк(url){
+    try{
+      var a=document.createElement('a');
+      a.href=url; a.style.display='none';
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ try{ a.remove(); }catch(e){} },0);
+    }catch(e){}
+  }
+  var сейчасTON=null;
   function платитьGRAM(о){
+    сейчасTON=о;
+    реквизиты(о);
     var ui=tonConnect();
     if(ui && ui.sendTransaction){
       ui.sendTransaction({
@@ -5891,18 +5971,62 @@ var adminReflect;
       }).then(function(){
         hint.textContent=t('d_ton_sent');
       })['catch'](function(){
-        /* отменил или кошелёк не отозвался — остаётся прямая ссылка */
-        открытьРядом(ссылкаКошелька(о));
+        /* отменил или кошелёк не отозвался — остаются реквизиты на экране */
       });
       return;
     }
-    открытьРядом(ссылкаКошелька(о));
+    вКошелёк(ссылкаКошелька(о));
   }
+  /* Реквизиты показываем всегда, а не только когда ссылка не сработала:
+     чем открылся кошелёк — отсюда не видно, а три строки на экране
+     выручают в любом случае. */
+  var панель=document.getElementById('dpTonPay'),
+      tpSum=document.getElementById('tpSum'), tpAddr=document.getElementById('tpAddr'),
+      tpMemo=document.getElementById('tpMemo');
+  function реквизиты(о){
+    tpSum.textContent=окр(о.gram)+' GRAM';
+    tpAddr.textContent=о.address;
+    tpMemo.textContent=о.comment;
+    панель.hidden=false;
+    go.textContent=t('d_ton_open');
+  }
+  function спрятатьРеквизиты(){ панель.hidden=true; сейчасTON=null; }
+  function копировать(текст,кнопка){
+    var ок=function(){
+      haptic('light');
+      кнопка.classList.add('ok');
+      hint.textContent=t('d_ton_copied');
+      setTimeout(function(){ кнопка.classList.remove('ok'); },900);
+    };
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(текст).then(ок,function(){ старым(текст,ок); });
+        return;
+      }
+    }catch(e){}
+    старым(текст,ок);
+  }
+  /* Старый способ — на телефонах, где буфер закрыт для мини-аппа */
+  function старым(текст,ок){
+    try{
+      var i=document.createElement('textarea');
+      i.value=текст; i.setAttribute('readonly','');
+      i.style.cssText='position:fixed;top:-1000px;opacity:0';
+      document.body.appendChild(i); i.select(); i.setSelectionRange(0,текст.length);
+      document.execCommand('copy'); i.remove(); ок();
+    }catch(e){}
+  }
+  document.getElementById('tpAddrC').addEventListener('click',function(){
+    if(сейчасTON) копировать(сейчасTON.address,this);
+  });
+  document.getElementById('tpMemoC').addEventListener('click',function(){
+    if(сейчасTON) копировать(сейчасTON.comment,this);
+  });
 
   function помнитьTON(c){ try{ localStorage.setItem(ПАМЯТЬ_TON,String(c)); }catch(e){} }
   function забытьTON(){ try{ localStorage.removeItem(ПАМЯТЬ_TON); }catch(e){} }
   function зачлиTON(о){
-    забытьTON(); применитьСостояние(о);
+    забытьTON(); спрятатьРеквизиты(); применитьСостояние(о);
     var n=+о.stars||0; notify('dep',n); Tasks.done('topup');
     hint.textContent=t('d_paid',{n:fmtInt(n)});
     haptic('success'); beep(980,0.12,0.045,'triangle');
@@ -5937,6 +6061,7 @@ var adminReflect;
   /* закрыли шторку — опрашивать больше некого */
   document.getElementById('dpX').addEventListener('click',function(){
     clearInterval(опрос); clearInterval(опросTON); hint.textContent='';
+    спрятатьРеквизиты();
   });
 
   /* Возвращение из @CryptoBot ловим по двум местам сразу: вкладка снова
@@ -5953,6 +6078,8 @@ var adminReflect;
     if(go.disabled) return;
     var a=amount(); if(!a) return;
     if(онлайн() && mode==='ton'){
+      /* реквизиты уже на экране — кнопка просто зовёт кошелёк ещё раз */
+      if(сейчасTON){ платитьGRAM(сейчасTON); haptic('light'); return; }
       go.disabled=true;
       SRV.raw('ton_invoice',{amount:Math.floor(a)}).then(function(о){
         go.disabled=false;
