@@ -62,6 +62,12 @@ async function открыть(b, о) {
     localStorage.setItem('starshash_prefs', JSON.stringify({ vibro: true, sound: !!window.__звук, lang: я }));
     if (ст && !localStorage.getItem('starshash_state')) localStorage.setItem('starshash_state', ст);
   }, [о.язык || 'ru', о.состояние ? JSON.stringify(о.состояние) : null]);
+  /* Что ещё лежит в памяти телефона к моменту открытия — например
+     отложенный номер счёта, переживший уход на оплату. Подкладываем до
+     загрузки, а не на живой странице: правило из README. */
+  if (о.память) await p.addInitScript(п => {
+    Object.keys(п).forEach(k => localStorage.setItem(k, п[k]));
+  }, о.память);
   if (о.звук) await p.addInitScript(() => { window.__звук = true; });
 
   /* Подделка Telegram: настоящий telegram-web-app.js в песочницу не
