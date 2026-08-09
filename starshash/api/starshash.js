@@ -460,7 +460,10 @@ module.exports = async (req, res) => {
     // TON и USDT нельзя — цена одна и та же, а денег выйдет втрое разно.
     // Пока не задано, приложение показывает «оплата недоступна».
     if (action === 'crypto_invoice') {
-      const CB = env('CRYPTOBOT_TOKEN'), ASSET = env('CRYPTO_ASSET');
+      const CB = env('CRYPTOBOT_TOKEN');
+      // регистр и пробелы: в переменную легко попадает «gram » вместо «GRAM»,
+      // а Crypto Pay принимает только точное имя актива
+      const ASSET = env('CRYPTO_ASSET').trim().toUpperCase();
       if (!CB || !ASSET) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
       const звёзд = Math.floor(Number(body.amount) || 0);
       const цена = ценаКрипты(звёзд);
@@ -478,7 +481,12 @@ module.exports = async (req, res) => {
         });
         const d = await r.json().catch(() => ({}));
         if (!d || !d.ok || !d.result) {
-          res.status(200).json({ ok: false, reason: 'invoice_failed', error: (d && d.error && d.error.name) || '' }); return;
+          /* Причину называем вслух: «не удалось» без подробностей нечем
+             чинить, а тут обычно написано ровно что не так — например,
+             что такого актива у Crypto Pay нет. */
+          const e = d && d.error;
+          const текст = e ? ((e.name || '') + (e.code ? ' (' + e.code + ')' : '')) : '';
+          res.status(200).json({ ok: false, reason: 'invoice_failed', error: текст, asset: ASSET }); return;
         }
         res.status(200).json({ ok: true, invoiceId: d.result.invoice_id,
           link: d.result.mini_app_invoice_url || d.result.bot_invoice_url || d.result.pay_url,
