@@ -2484,8 +2484,8 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
           <span class="rd"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
         </button>
         <button id="dmGram">
-          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#2E9BE8"/><path d="M12 5.4l4.6 4.3L12 18.6 7.4 9.7z" fill="#fff"/><path d="M7.4 9.7h9.2" stroke="#2E9BE8" stroke-width="1.1"/></svg>
-          <span class="nm">GRAM</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#26A17B"/><path d="M7 8h10v2.4h-3.6v1.2c2.4.1 4.2.6 4.2 1.2s-1.8 1.1-4.2 1.2v3.4h-2.8v-3.4C8.2 13.9 6.4 13.4 6.4 12.8s1.8-1.1 4.2-1.2v-1.2H7z" fill="#fff"/></svg>
+          <span class="nm">USDT</span>
           <span class="rd"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
         </button>
       </div>
@@ -2511,7 +2511,7 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
           <span class="s"><input id="gpOwn" type="text" inputmode="numeric" autocomplete="off"
                  maxlength="7" data-i18n-ph="d_own" placeholder="Своя сумма">
             <svg width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-2px" aria-hidden="true"><path d="M12 2.6l2.85 6.02 6.4.85-4.66 4.5 1.2 6.43L12 17.35 6.21 20.4l1.2-6.43-4.66-4.5 6.4-.85z" fill="#E4C078"/></svg></span>
-          <span class="g" id="gpOwnG">0.00 GRAM</span>
+          <span class="g" id="gpOwnG">0.00 USDT</span>
         </label>
       </div>
     </div>
@@ -5611,14 +5611,20 @@ var adminReflect;
       gpOwn=document.getElementById('gpOwn'), gpOwnRow=document.getElementById('gpOwnRow'),
       gpOwnG=document.getElementById('gpOwnG');
 
-  /* Пакеты GRAM заданы парами, а не одним курсом: цена звезды в крупном
-     пакете ниже, чем в мелком, и вывести это из множителя нельзя. Бонусов
-     за пакет нет — сколько звёзд в строке, столько и приходит на баланс. */
+  /* Лесенка задумана в GRAM: цена звезды в крупном пакете ниже, чем в
+     мелком, одним множителем это не выражается. Но счёт Crypto Pay в GRAM
+     не принимает — у него свой короткий список активов, — поэтому платят
+     долларами по курсу, а владелец при желании меняет их на GRAM в
+     кошельке. Число на экране равно тому, что спишется.
+
+     Курс держим в одном месте; такой же лежит на сервере, и набор
+     `server` следит, чтобы копии не разъехались. */
   var PACKS=[[50,1],[100,2],[200,3.7],[500,9],[1000,18],[2500,45],[5000,89]];
+  var КУРС_USDT=1.33;
   /* Для своей суммы считаем по той же лесенке: между соседними пакетами
      тянем прямую, за краями продолжаем крайним отрезком. Иначе своя сумма
      жила бы по собственному курсу и расходилась с таблицей. */
-  function вGRAM(звёзд){
+  function вUSDT(звёзд){
     if(!(звёзд>0)) return 0;
     var i, a, b;
     if(звёзд<=PACKS[0][0]) { a=PACKS[0]; b=PACKS[1]; }
@@ -5627,7 +5633,7 @@ var adminReflect;
       for(i=0;i<PACKS.length-1;i++) if(звёзд>=PACKS[i][0] && звёзд<=PACKS[i+1][0]){ a=PACKS[i]; b=PACKS[i+1]; break; }
     }
     var k=(b[1]-a[1])/(b[0]-a[0]);
-    return Math.max(0, a[1]+(звёзд-a[0])*k);
+    return Math.round(Math.max(0, a[1]+(звёзд-a[0])*k)*КУРС_USDT*100)/100;
   }
   var mode='stars', gsel=4;                 // по умолчанию 1000 ★
 
@@ -5648,7 +5654,7 @@ var adminReflect;
       var el=document.createElement('button');
       el.className='gp'+(i===gsel?' on':'');
       el.innerHTML='<span class="s">'+fmtInt(п[0])+' '+STAR+'</span>'+
-                   '<span class="g">'+(+п[1].toFixed(2))+' GRAM</span>';
+                   '<span class="g">'+вUSDT(п[0]).toFixed(2)+' USDT</span>';
       el.addEventListener('click',function(){
         if(gsel===i) return;
         haptic('light');
@@ -5680,7 +5686,7 @@ var adminReflect;
   gpOwn.addEventListener('input',function(){
     var v=gpOwn.value.replace(/\D/g,'');
     if(v!==gpOwn.value) gpOwn.value=v;
-    gpOwnG.textContent=вGRAM(num(v)).toFixed(2)+' GRAM';
+    gpOwnG.textContent=вUSDT(num(v)).toFixed(2)+' USDT';
     if(v) markPack(-1);
     sizeGpOwn(); preview();
   });

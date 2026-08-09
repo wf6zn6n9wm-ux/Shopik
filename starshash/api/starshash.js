@@ -136,10 +136,20 @@ function расчётВывода(amount) {
 // сам ходит в getInvoices нашим секретным токеном. На serverless это
 // надёжнее вебхука: не нужно ловить сырое тело и сверять подпись.
 //
-// Лесенка цен та же, что нарисована в приложении: цена звезды в крупном
-// пакете ниже, одним множителем это не выражается.
+// Лесенка задумана в GRAM: цена звезды в крупном пакете ниже, одним
+// множителем это не выражается. Но счёт Crypto Pay в GRAM не принимает —
+// отвечает UNSUPPORTED_ASSET, у него свой короткий список активов. Поэтому
+// цену переводим в доллары по курсу, а полученное владелец при желании
+// меняет на GRAM прямо в кошельке @CryptoBot.
+//
+// Курс — снимок на день правки. Поменялся — правьте здесь и в index.html
+// одно число; набор `server` следит, чтобы обе копии совпадали.
 const КРИПТО_ЛЕСЕНКА = [[50, 1], [100, 2], [200, 3.7], [500, 9], [1000, 18], [2500, 45], [5000, 89]];
+const КУРС_USDT = 1.33;
 const КРИПТО_МИН = 50;
+// Активы, которые Crypto Pay действительно принимает. Список короткий, и
+// упереться в него молча — потерять покупателя на ровном месте.
+const КРИПТО_АКТИВЫ = ['USDT', 'TON', 'BTC', 'ETH', 'LTC', 'BNB', 'TRX', 'USDC'];
 function ценаКрипты(звёзд) {
   const n = Math.floor(Number(звёзд) || 0);
   if (!(n >= КРИПТО_МИН)) return 0;
@@ -149,7 +159,8 @@ function ценаКрипты(звёзд) {
   else if (n >= L[L.length - 1][0]) { a = L[L.length - 2]; b = L[L.length - 1]; }
   else for (let i = 0; i < L.length - 1; i++) if (n >= L[i][0] && n <= L[i + 1][0]) { a = L[i]; b = L[i + 1]; break; }
   const k = (b[1] - a[1]) / (b[0] - a[0]);
-  return Math.round(Math.max(0, a[1] + (n - a[0]) * k) * 100) / 100;
+  const вGRAM = Math.max(0, a[1] + (n - a[0]) * k);
+  return Math.round(вGRAM * КУРС_USDT * 100) / 100;
 }
 const CRYPTOBOT_API = 'https://pay.crypt.bot/api/';
 
@@ -465,6 +476,11 @@ module.exports = async (req, res) => {
       // а Crypto Pay принимает только точное имя актива
       const ASSET = env('CRYPTO_ASSET').trim().toUpperCase();
       if (!CB || !ASSET) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
+      /* Актив не из списка Crypto Pay — скажем сразу и по-человечески, а не
+         дадим ему ответить UNSUPPORTED_ASSET после лишнего запроса. */
+      if (КРИПТО_АКТИВЫ.indexOf(ASSET) === -1) {
+        res.status(200).json({ ok: false, reason: 'bad_asset', asset: ASSET, allowed: КРИПТО_АКТИВЫ }); return;
+      }
       const звёзд = Math.floor(Number(body.amount) || 0);
       const цена = ценаКрипты(звёзд);
       if (!(цена > 0)) { res.status(200).json({ ok: false, reason: 'bad_amount', min: КРИПТО_МИН }); return; }
@@ -910,3 +926,5 @@ module.exports.ВЫВОД = ВЫВОД;
 module.exports.расчётВывода = расчётВывода;
 module.exports.КРИПТО_ЛЕСЕНКА = КРИПТО_ЛЕСЕНКА;
 module.exports.ценаКрипты = ценаКрипты;
+module.exports.КУРС_USDT = КУРС_USDT;
+module.exports.КРИПТО_АКТИВЫ = КРИПТО_АКТИВЫ;
