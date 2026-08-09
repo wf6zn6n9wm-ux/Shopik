@@ -320,6 +320,13 @@ const S = require('../starshash/api/starshash.js');
       await p3.click('#dmTon'); await p3.waitForTimeout(300);
       await p3.evaluate(() => {
         window.__куда = [];
+        /* `ton://` уходит обычным переходом, а не через openLink: Telegram
+           умеет только http и https, а чужую схему проглатывает молча.
+           Ловим оба пути сразу — и переход, и вызовы Telegram. */
+        document.addEventListener('click', e => {
+          const a = e.target.closest && e.target.closest('a');
+          if (a && a.href) { window.__куда.push(a.href); e.preventDefault(); }
+        }, true);
         const W = window.Telegram.WebApp;
         W.openLink = u => window.__куда.push(u);
         W.openTelegramLink = u => window.__куда.push(u);
@@ -332,6 +339,35 @@ const S = require('../starshash/api/starshash.js');
         /text=SH6029995640\.1000\.deadbeef/.test(ушло[0]), ушло.join(' | ') || 'никуда');
       о.проверка('пометка отложена на случай закрытия',
         (await p3.evaluate(() => localStorage.getItem('sh_ton'))) === 'SH6029995640.1000.deadbeef');
+
+      /* Ссылку в мини-аппе может проглотить кто угодно: `ton://` Telegram
+         не открывает вовсе. Поэтому реквизиты обязаны быть на экране —
+         переписав три строки, человек заплатит из любого кошелька. */
+      const рекв = await p3.evaluate(() => {
+        const б = document.getElementById('dpTonPay');
+        return { видно: !б.hidden,
+          сумма: document.getElementById('tpSum').textContent,
+          адрес: document.getElementById('tpAddr').textContent,
+          пометка: document.getElementById('tpMemo').textContent,
+          кнопка: document.getElementById('dpGo').textContent };
+      });
+      о.проверка('реквизиты показаны, а не спрятаны за ссылкой', рекв.видно);
+      о.проверка('в реквизитах сумма, адрес и пометка',
+        рекв.сумма === '18 GRAM' && /^UQCpwhvvs/.test(рекв.адрес) &&
+        рекв.пометка === 'SH6029995640.1000.deadbeef',
+        рекв.сумма + ' · ' + рекв.адрес.slice(0, 12) + '… · ' + рекв.пометка);
+      о.проверка('кнопка зовёт кошелёк, а не заводит второй перевод',
+        /кошел/i.test(рекв.кнопка), '«' + рекв.кнопка + '»');
+      о.проверка('пометку можно скопировать', await p3.evaluate(() =>
+        !!document.getElementById('tpMemoC') && !!document.getElementById('tpAddrC')));
+
+      /* Сменил сумму — прежние реквизиты уже не те, и оставлять их на
+         экране опаснее, чем убрать: заплатят по старой пометке. */
+      await p3.click('#gpList .gp:nth-child(2)'); await p3.waitForTimeout(300);
+      о.проверка('другая сумма убирает прежние реквизиты',
+        await p3.evaluate(() => document.getElementById('dpTonPay').hidden));
+      await p3.click('#gpList .gp:nth-child(5)'); await p3.waitForTimeout(200);
+      await p3.click('#dpGo', { force: true }); await p3.waitForTimeout(900);
 
       const пришло = await жди(p3, () => /Зачислено/.test(document.getElementById('dpHint').textContent), 15000);
       о.проверка('перевод найден в сети и зачислен', пришло,
