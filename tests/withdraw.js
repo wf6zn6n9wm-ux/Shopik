@@ -451,9 +451,10 @@ const S = require('../starshash/api/starshash.js');
       admin_withdrawals: { ok: true, status: 'pending', rows: [
         { id: 5, tg_id: 42, name: 'Тест', method: 'stars', amount: 300, fee: 15, net: 285, dest: 'user5', status: 'pending', created_at: '2026-08-08T10:00:00Z' }
       ] },
-      admin_users: { ok: true, rows: [
+      admin_users: { ok: true, month: '2026-08', rows: [
         { tg_id: 42, name: 'Тест', bal: 100, inv: 50, mined: 7, wagered: 20, won: 10,
-          plays: 3, banned: false, created_at: '2026-08-08T10:00:00Z', seen_at: '2026-08-08T10:00:00Z' }
+          plays: 3, banned: false, created_at: '2026-08-08T10:00:00Z', seen_at: '2026-08-08T10:00:00Z',
+          m: { topup: 250, win: 180, bet: 400, wd: 0 } }
       ] },
       admin_decide: { ok: true, wd: { id: 5, status: 'done' } }
     }
@@ -553,6 +554,20 @@ const S = require('../starshash/api/starshash.js');
   о.проверка('раздел «Игроки» с поиском и кнопками',
     игроки.строк === 1 && игроки.начислить && игроки.доступ && игроки.поиск,
     'строк ' + игроки.строк);
+
+  /* «Всего за всё время» не отвечает на вопрос, что человек делал в
+     августе, — а решение о нём принимают именно по этому. */
+  const карточка = await p.evaluate(() => ({
+    текст: document.querySelector('#adUList .ghrow').innerText,
+    месяц: !document.getElementById('adMonth').hidden
+  }));
+  /* «Выиграл 180» само по себе читается как доход, хотя человек поставил
+     400 и ушёл в минус на 220 — итог по играм обязан стоять со знаком. */
+  о.проверка('у игрока видны итоги за месяц',
+    /пополнил\s*250/.test(карточка.текст) && /в играх\s*−?-?220/.test(карточка.текст),
+    карточка.текст.replace(/\n/g, ' · '));
+  о.проверка('и когда он заходил', /заходил/.test(карточка.текст));
+  о.проверка('месяц на этой вкладке тот же, что и на обзоре', карточка.месяц);
   о.проверка('панель не роняет приложение', p.ошибки.length === 0, p.ошибки.join(' | '));
 
   о.раздел('страница админки в браузере');

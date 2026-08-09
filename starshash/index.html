@@ -5621,6 +5621,23 @@ var adminReflect;
   }
   function эск(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  /* Ноль пишем нулём, а не «+0»: знак у нуля сбивает с толку. */
+  function знак(v){
+    v=Math.round(v*100)/100;
+    return (v>0?'+':'')+fmtInt(v)+' ★';
+  }
+  /* «Заходил» читается людьми, а не машинами: «сегодня, 23:40» говорит
+     больше, чем «09.08.26», а для давнего захода наоборот важна дата. */
+  function когда(iso){
+    var t=Date.parse(iso); if(!t) return 'никогда';
+    var р=Date.now()-t;
+    if(р<5*60*1000) return 'сейчас';
+    var d=new Date(t), чм=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+    var сег=new Date(), вчера=new Date(сег.getTime()-86400000);
+    if(d.toDateString()===сег.toDateString()) return 'сегодня, '+чм;
+    if(d.toDateString()===вчера.toDateString()) return 'вчера, '+чм;
+    return датаК(iso)+', '+чм;
+  }
   function датаК(iso){ var d=new Date(iso); if(isNaN(d)) return '—';
     return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+String(d.getFullYear()).slice(-2); }
 
@@ -5643,9 +5660,9 @@ var adminReflect;
     nav.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.v===v); });
     dashEl.hidden = v!=='dash'; topsEl.hidden = v!=='tops';
     wdEl.hidden = v!=='wd'; usersEl.hidden = v!=='users';
-    /* Месяц относится к числам, а не к заявкам и не к списку игроков:
-       на их вкладках полосу прячем, чтобы не обещать несуществующего. */
-    monthEl.hidden = !(v==='dash' || v==='tops');
+    /* Месяц относится к числам: на заявках его прятать, там свой отбор
+       по состоянию, а не по времени. */
+    monthEl.hidden = (v==='wd');
     if(!онлайн()) return;
     if((v==='dash' || v==='tops') && (перезагрузить || !ДАННЫЕ)) загрузить(МЕС);
     if(v==='wd' && (перезагрузить || !listEl.children.length)) заявки();
@@ -5696,7 +5713,8 @@ var adminReflect;
   function сдвиг(шаг){
     var i=МЕСЯЦЫ.indexOf(МЕС); if(i<0) return;
     var j=i+шаг; if(j<0 || j>=МЕСЯЦЫ.length) return;
-    haptic('light'); МЕС=МЕСЯЦЫ[j]; загрузить(МЕС);
+    haptic('light'); МЕС=МЕСЯЦЫ[j];
+    if(ВИД==='users') игроков(qEl.value.trim()); else загрузить(МЕС);
   }
   prevB.addEventListener('click',function(){ сдвиг(-1); });
   nextB.addEventListener('click',function(){ сдвиг(1); });
@@ -5844,18 +5862,29 @@ var adminReflect;
   }
   function игроков(q){
     uListEl.innerHTML='<div class="admsg">Загрузка…</div>';
-    SRV.raw('admin_users',{q:q||''}).then(function(о){
+    SRV.raw('admin_users',{q:q||'', month:МЕС}).then(function(о){
       if(!о || !о.ok){ uListEl.innerHTML='<div class="admsg">Не вышло</div>'; return; }
       ИГРОКИ=о.rows||[];
       if(!ИГРОКИ.length){ uListEl.innerHTML='<div class="admsg">Никого не нашлось</div>'; return; }
       uListEl.innerHTML=ИГРОКИ.map(function(u){
+        var м=u.m||{topup:0,win:0,bet:0,wd:0};
         return '<div class="ghrow'+(u.banned?' lose':'')+'">'
           + '<span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M12 13.6c-4.1 0-7.4 2.7-7.4 6h14.8c0-3.3-3.3-6-7.4-6Z"/></svg></span>'
           + '<span class="bd"><span class="nm">'+эск(u.name||'—')+(u.banned?' · закрыт':'')+'</span>'
             /* «вклад» читалось как «внесено денег», хотя это вложение в
                мощность: админ видел ноль у человека, который только что
                заплатил, и решал, что оплата не дошла. */
-            + '<span class="tm">'+u.tg_id+' · баланс '+fmtInt(u.bal)+' ★ · в мощности '+fmtInt(u.inv)+'</span></span>'
+            + '<span class="tm">'+u.tg_id+' · баланс '+fmtInt(u.bal)+' ★ · в мощности '+fmtInt(u.inv)+'</span>'
+            /* Итоги за месяц отдельной строкой: «всего за всё время»
+               ничего не говорит о том, что человек делал в августе.
+
+               По играм показываем итог со знаком, а ставки и выигрыш —
+               в скобках. «Выиграл 180» само по себе читается как доход,
+               хотя человек мог поставить 400 и уйти в минус на 220. */
+            + '<span class="tm">за месяц: пополнил '+fmtInt(м.topup)+' ★ · вывел '+fmtInt(м.wd)+' ★</span>'
+            + '<span class="tm">в играх '+знак(м.win-м.bet)
+              +' (ставил '+fmtInt(м.bet)+', выиграл '+fmtInt(м.win)+')</span>'
+            + '<span class="tm">заходил '+эск(когда(u.seen_at))+'</span></span>'
           + '<span class="adbtns"><button class="ac ok" data-give="'+u.tg_id+'">+★</button>'
           + '<button class="ac'+(u.banned?'':' no')+'" data-ban="'+u.tg_id+'">'+(u.banned?'Вернуть':'Закрыть')+'</button></span></div>';
       }).join('');
