@@ -5765,8 +5765,11 @@ var adminReflect;
       SRV.raw('crypto_invoice',{amount:Math.floor(a)}).then(function(о){
         go.disabled=false;
         if(о && о.ok && о.link){ открытьРядом(о.link); ждатьОплату(о.invoiceId); haptic('success'); return; }
+        /* Отказ @CryptoBot показываем с его же словами: «не удалось» без
+           подробностей нечем чинить, а там обычно написано, что не так. */
         hint.textContent = о && о.reason==='not_configured' ? t('d_crypto_off')
                          : о && о.reason==='bad_amount' ? t('d_crypto_min',{n:(о.min||50)})
+                         : (о && о.error) ? (t('w_fail')+' · '+о.error)
                          : t('w_fail');
         haptic('warning');
       });
