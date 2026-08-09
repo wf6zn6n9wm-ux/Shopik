@@ -61,6 +61,32 @@ const жди = async (p,усл,мс=30000)=>{ const t0=Date.now();
       document.querySelectorAll('#cHist > *').length>=5),
       await p.evaluate(()=>[...document.querySelectorAll('#cHist > *')].slice(0,5).map(e=>e.textContent).join(' ')));
 
+  /* Лента иксов стоит у кнопки, а не в шапке: по ней человек решает,
+     ставить ли, и держать её на другом конце экрана незачем. */
+  const лента=await p.evaluate(()=>{
+    const h=document.getElementById('cHist').getBoundingClientRect();
+    const g=document.getElementById('cGo').getBoundingClientRect();
+    return {надКнопкой:h.bottom<=g.top+1, зазор:Math.round(g.top-h.bottom)};
+  });
+  say('лента множителей стоит над кнопкой ставки', лента.надКнопкой, 'зазор '+лента.зазор+'px');
+
+  /* Итог раунда виден по цвету строки: забрал — зелёная, не успел —
+     красная. Числа читать для этого не нужно. Смотрим сразу после
+     обрыва: в следующем ожидании состав уже новый и без классов. */
+  await жди(p,()=>!document.getElementById('cGo').disabled &&
+      /Поставить|Ставк|Играть/i.test(document.getElementById('cGo').textContent));
+  await p.click('#cGo');
+  await жди(p,()=>document.getElementById('cMult').className.includes('boom'),35000);
+  const строки=await p.evaluate(()=>[...document.querySelectorAll('#cPlayers .cpr')].map(el=>{
+    const c=getComputedStyle(el);
+    return {кл:el.className, фон:c.backgroundImage!=='none'};
+  }));
+  say('строки раунда подсвечены по итогу',
+      строки.some(r=>/\bwin\b/.test(r.кл)||/\blose\b/.test(r.кл)) &&
+      строки.filter(r=>/\bwin\b|\blose\b/.test(r.кл)).every(r=>r.фон),
+      строки.length+' строк: '+строки.map(r=>r.кл.replace('cpr','').trim()||'—').join(', '));
+  await p.waitForTimeout(2800);
+
   console.log('— авто-вывод по-прежнему срабатывает —');
   await p.fill('#cAutoMult','1.05');
   await p.evaluate(()=>{document.getElementById('cAutoMult').dispatchEvent(new Event('input',{bubbles:true}));

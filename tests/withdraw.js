@@ -431,8 +431,15 @@ const S = require('../starshash/api/starshash.js');
               bal: 1234, inv: 900, mined: 77, topup30: 5000, wd30: 300,
               bet30: 2000, win30: 1750, ggr30: 250, bonus30: 40, ref30: 25,
               wdPending: 1, wdPendingSum: 300, wdDone: 2, wdDoneSum: 570, wdRejected: 0 },
-    series: { users: [{ date: '2026-08-08', v: 3 }], dau: [{ date: '2026-08-08', v: 4 }],
-              topup: [{ date: '2026-08-08', v: 500 }], withdraw: [{ date: '2026-08-08', v: 300 }] },
+    series: { users: [{ date: '2026-08-08', v: 3 }, { date: '2026-08-09', v: 0 }],
+              dau: [{ date: '2026-08-08', v: 4 }, { date: '2026-08-09', v: 2 }],
+              topup: [{ date: '2026-08-08', v: 500 }, { date: '2026-08-09', v: 120 }],
+              withdraw: [{ date: '2026-08-08', v: 300 }, { date: '2026-08-09', v: 0 }],
+              bet: [{ date: '2026-08-08', v: 2000 }, { date: '2026-08-09', v: 0 }],
+              win: [{ date: '2026-08-08', v: 1750 }, { date: '2026-08-09', v: 0 }] },
+    month: '2026-08', months: ['2026-06', '2026-07', '2026-08'],
+    topups: [{ date: '2026-08-09', n: 2, v: 120, stars: 0, crypto: 70, gram: 50 },
+             { date: '2026-08-08', n: 4, v: 500, stars: 400, crypto: 100, gram: 0 }],
     truncated: false
   };
   p = await открыть(b, {
@@ -467,11 +474,60 @@ const S = require('../starshash/api/starshash.js');
     графиков: document.querySelectorAll('#adDash svg.adchart').length,
     текст: document.getElementById('adDash').innerText
   }));
-  о.проверка('открывается на дашборде с тремя разделами', даш.разделов === 3, String(даш.разделов));
+  о.проверка('открывается на обзоре, разделов четыре', даш.разделов === 4, String(даш.разделов));
   о.проверка('показатели и графики нарисованы',
     даш.показателей >= 16 && даш.графиков >= 4,
     'показателей ' + даш.показателей + ', графиков ' + даш.графиков);
   о.проверка('числа с сервера, а не заглушки', /1\s?234/.test(даш.текст) && /\b12\b/.test(даш.текст));
+
+  /* Месяц вместо скользящих тридцати дней: числа за отрезок «последние
+     тридцать» не с чем сравнить, а месяцы сравнимы между собой. */
+  const мес = await p.evaluate(() => ({
+    видно: !document.getElementById('adMonth').hidden,
+    подпись: document.getElementById('adMonthT').textContent,
+    назад: !document.getElementById('adPrev').disabled,
+    вперёд: !document.getElementById('adNext').disabled,
+    строк: document.querySelectorAll('#adDash .adtab tbody tr').length
+  }));
+  о.проверка('месяц назван словами', мес.видно && /Август 2026/.test(мес.подпись), мес.подпись);
+  о.проверка('назад листается, вперёд — некуда', мес.назад && !мес.вперёд,
+    'назад ' + мес.назад + ', вперёд ' + мес.вперёд);
+  о.проверка('разбивка по дням на месте', мес.строк === 2, 'строк ' + мес.строк);
+
+  /* Пополнения — отдельной вкладкой и с разбивкой по способу оплаты: у
+     звёзд, криптосчёта и перевода GRAM разные комиссии, а в общей сумме
+     они неразличимы. */
+  await p.click('#adNav button[data-v="tops"]'); await p.waitForTimeout(500);
+  const поп = await p.evaluate(() => ({
+    видно: !document.getElementById('adTops').hidden,
+    обзорСпрятан: document.getElementById('adDash').hidden,
+    строк: document.querySelectorAll('#adTops .adtab tbody tr').length,
+    текст: document.getElementById('adTops').innerText
+  }));
+  о.проверка('вкладка пополнений открывается отдельно от обзора',
+    поп.видно && поп.обзорСпрятан);
+  о.проверка('способы оплаты разделены', /Звёздами/.test(поп.текст) &&
+    /Криптой/.test(поп.текст) && /GRAM/.test(поп.текст), поп.текст.slice(0, 60));
+  о.проверка('пополнения расписаны по дням', поп.строк === 2, 'строк ' + поп.строк);
+
+  /* Прошлый месяц — это отдельный запрос: показывать июльские числа под
+     подписью «Август» хуже, чем не показывать вовсе. */
+  await p.evaluate(() => {
+    window.__месяцы = [];
+    const f = window.fetch;
+    window.fetch = function (u, init) {
+      try {
+        const b = JSON.parse(init.body);
+        if (b.action === 'admin_dash' && b.month) window.__месяцы.push(b.month);
+      } catch (e) {}
+      return f.apply(this, arguments);
+    };
+  });
+  await p.click('#adPrev'); await p.waitForTimeout(600);
+  о.проверка('переключение месяца спрашивает сервер заново',
+    (await p.evaluate(() => window.__месяцы || [])).indexOf('2026-07') >= 0,
+    (await p.evaluate(() => (window.__месяцы || []).join(', '))) || 'запросов не было');
+  await p.click('#adNav button[data-v="dash"]'); await p.waitForTimeout(400);
 
   await p.click('#adNav button[data-v="wd"]'); await p.waitForTimeout(700);
   const заявка = await p.evaluate(() => {
