@@ -209,18 +209,18 @@ const S = require('../starshash/api/starshash.js');
       телеграм: { user: { id: 6029995640, first_name: 'Андрій' } },
       сервер: {
         state: БАЗА,
-        crypto_invoice: { ok: true, invoiceId: 555, link: 'https://t.me/CryptoBot?start=IV', stars: 500, price: 9, asset: 'TON' },
+        crypto_invoice: { ok: true, invoiceId: 555, link: 'https://t.me/CryptoBot?start=IV', stars: 500, price: 11.97, asset: 'USDT' },
         crypto_check: Object.assign({}, БАЗА, { bal: 500, status: 'paid', credited: true, stars: 500 })
       }
     });
     await p.click('#btnAdd'); await p.waitForTimeout(600);
     await p.click('#dmGram'); await p.waitForTimeout(400);
     const пакеты = await p.evaluate(() => [...document.querySelectorAll('#gpList .gp')].map(e => e.textContent.replace(/\s+/g, ' ').trim()));
-    о.проверка('пакеты GRAM по таблице', пакеты.length === 7 &&
-      /50 .*1 GRAM/.test(пакеты[0]) && /5 000 .*89 GRAM/.test(пакеты[6]),
+    о.проверка('пакеты в USDT по таблице', пакеты.length === 7 &&
+      /50 .*1\.33 USDT/.test(пакеты[0]) && /5 000 .*118\.37 USDT/.test(пакеты[6]),
       пакеты.slice(0, 2).join(' | '));
 
-    await p.click('#gpList .gp:nth-child(4)'); await p.waitForTimeout(300);   // 500 ★ = 9 GRAM
+    await p.click('#gpList .gp:nth-child(4)'); await p.waitForTimeout(300);   // 500 ★ = 11.97 USDT
     await p.click('#dpGo', { force: true }); await p.waitForTimeout(1200);
     const ждём = await p.evaluate(() => document.getElementById('dpHint').textContent);
     о.проверка('после счёта ждём оплату, а не зачисляем сразу', /Ждём оплату/.test(ждём), '«' + ждём + '»');
