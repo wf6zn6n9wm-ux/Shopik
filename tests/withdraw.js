@@ -214,7 +214,7 @@ const S = require('../starshash/api/starshash.js');
       }
     });
     await p.click('#btnAdd'); await p.waitForTimeout(600);
-    await p.click('#dmGram'); await p.waitForTimeout(400);
+    await p.click('#dmUsdt'); await p.waitForTimeout(400);
     const пакеты = await p.evaluate(() => [...document.querySelectorAll('#gpList .gp')].map(e => e.textContent.replace(/\s+/g, ' ').trim()));
     о.проверка('пакеты в USDT по таблице', пакеты.length === 7 &&
       /50 .*1\.33 USDT/.test(пакеты[0]) && /5 000 .*118\.37 USDT/.test(пакеты[6]),
@@ -281,6 +281,85 @@ const S = require('../starshash/api/starshash.js');
       await p2.close();
     }
 
+    о.раздел('пополнение переводом GRAM');
+    {
+      /* GRAM — родная монета сети TON, поэтому платят ровно числом из
+         таблицы, без пересчёта в доллары. Вкладку показываем только когда
+         сервер сказал, что есть куда принимать. */
+      const СОСТ = Object.assign({}, БАЗА, { bal: 0, ton: true, gram_usd: 2 });
+      const p3 = await открыть(b, {
+        состояние: { bal: 0, fs: { d: день() }, dl: { streak: 1, last: день() } },
+        телеграм: { user: { id: 6029995640, first_name: 'Андрій' } },
+        сервер: {
+          state: СОСТ,
+          ton_invoice: { ok: true, address: 'UQCpwhvvs_dccEQWgzUqaueVFAIX612AqrYmm--J2qObDDpK',
+            gram: 18, nano: '18000000000', comment: 'SH6029995640.1000.deadbeef',
+            payload: 'te6cc', stars: 1000, validUntil: 2000000000 },
+          ton_check: Object.assign({}, БАЗА, { bal: 3000, status: 'paid', credited: true, stars: 1000 })
+        }
+      });
+      await p3.click('#btnAdd'); await p3.waitForTimeout(600);
+      const вкладки = await p3.evaluate(() =>
+        [...document.querySelectorAll('#dpSheet .wmet button')].filter(e => !e.hidden).map(e => e.querySelector('.nm').textContent));
+      о.проверка('способов три, включая GRAM', вкладки.length === 3 && вкладки.indexOf('GRAM') > 0,
+        вкладки.join(' | '));
+
+      await p3.click('#dmTon'); await p3.waitForTimeout(400);
+      const пакGRAM = await p3.evaluate(() => [...document.querySelectorAll('#gpList .gp')].map(e => e.textContent.replace(/\s+/g, ' ').trim()));
+      о.проверка('пакеты в GRAM по таблице, без пересчёта', пакGRAM.length === 7 &&
+        /50 .*\b1 GRAM/.test(пакGRAM[0]) && /5 000 .*89 GRAM/.test(пакGRAM[6]),
+        пакGRAM.slice(0, 2).join(' | '));
+
+      /* Курс живой и приходит с сервера: доллар обязан считаться по нему,
+         а не по прибитому числу, иначе на экране одна цена, в счёте другая. */
+      await p3.click('#dmUsdt'); await p3.waitForTimeout(400);
+      const пакUSD = await p3.evaluate(() => [...document.querySelectorAll('#gpList .gp')].map(e => e.textContent.replace(/\s+/g, ' ').trim()));
+      о.проверка('доллар пересчитан по курсу с сервера', /50 .*2\.00 USDT/.test(пакUSD[0]),
+        пакUSD[0]);
+
+      await p3.click('#dmTon'); await p3.waitForTimeout(300);
+      await p3.evaluate(() => {
+        window.__куда = [];
+        const W = window.Telegram.WebApp;
+        W.openLink = u => window.__куда.push(u);
+        W.openTelegramLink = u => window.__куда.push(u);
+      });
+      await p3.click('#gpList .gp:nth-child(5)'); await p3.waitForTimeout(300);   // 1000 ★ = 18 GRAM
+      await p3.click('#dpGo', { force: true }); await p3.waitForTimeout(1200);
+      const ушло = await p3.evaluate(() => window.__куда);
+      о.проверка('кошелёк открыт с адресом, суммой и пометкой', ушло.length === 1 &&
+        /^ton:\/\/transfer\/UQCpwhvvs/.test(ушло[0]) && /amount=18000000000/.test(ушло[0]) &&
+        /text=SH6029995640\.1000\.deadbeef/.test(ушло[0]), ушло.join(' | ') || 'никуда');
+      о.проверка('пометка отложена на случай закрытия',
+        (await p3.evaluate(() => localStorage.getItem('sh_ton'))) === 'SH6029995640.1000.deadbeef');
+
+      const пришло = await жди(p3, () => /Зачислено/.test(document.getElementById('dpHint').textContent), 15000);
+      о.проверка('перевод найден в сети и зачислен', пришло,
+        await p3.evaluate(() => document.getElementById('dpHint').textContent));
+      о.проверка('баланс принят с сервера', близко((await состояние(p3)).bal, 3000, 2));
+      о.проверка('зачтённая пометка убрана',
+        (await p3.evaluate(() => localStorage.getItem('sh_ton'))) === null);
+      о.проверка('ошибок в консоли нет', p3.ошибки.length === 0, p3.ошибки.join(' | '));
+      await p3.close();
+    }
+
+    о.раздел('без кошелька вкладки перевода нет');
+    {
+      /* Обещать способ, которого нет, нельзя: сервер не назвал кошелёк —
+         значит принимать перевод некуда, и вкладка не показывается. */
+      const p4 = await открыть(b, {
+        состояние: { bal: 0, fs: { d: день() }, dl: { streak: 1, last: день() } },
+        телеграм: { user: { id: 6029995640, first_name: 'Андрій' } },
+        сервер: { state: Object.assign({}, БАЗА, { ton: false }) }
+      });
+      await p4.click('#btnAdd'); await p4.waitForTimeout(600);
+      const видно = await p4.evaluate(() =>
+        [...document.querySelectorAll('#dpSheet .wmet button')].filter(e => !e.hidden).map(e => e.querySelector('.nm').textContent));
+      о.проверка('осталось два способа', видно.length === 2 && видно.indexOf('GRAM') < 0, видно.join(' | '));
+      о.проверка('ошибок в консоли нет', p4.ошибки.length === 0, p4.ошибки.join(' | '));
+      await p4.close();
+    }
+
     о.раздел('крипта не настроена — честный отказ');
     p = await открыть(b, {
       состояние: { bal: 0, fs: { d: день() }, dl: { streak: 1, last: день() } },
@@ -288,7 +367,7 @@ const S = require('../starshash/api/starshash.js');
       сервер: { state: БАЗА, crypto_invoice: { ok: false, reason: 'not_configured' } }
     });
     await p.click('#btnAdd'); await p.waitForTimeout(600);
-    await p.click('#dmGram'); await p.waitForTimeout(400);
+    await p.click('#dmUsdt'); await p.waitForTimeout(400);
     await p.click('#dpGo', { force: true }); await p.waitForTimeout(900);
     const отказ = await p.evaluate(() => ({ т: document.getElementById('dpHint').textContent,
       бал: JSON.parse(localStorage.getItem('starshash_state')).bal }));
