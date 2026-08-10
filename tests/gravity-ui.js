@@ -189,12 +189,51 @@ async function кФинишу(стр) {
   ок(зелень.б > 100, 'фон белый, как в оригинале');
   if (снимки) await стр.screenshot({ path: path.join(кудаСнимки, 'gd-ride.png') });
 
+  /* ── Пауза и выход из заезда ────────────────────────────── */
+  console.log('\nпауза');
+  ок(await стр.isVisible('#кнПауза'), 'в заезде есть кнопка паузы');
+  await стр.click('#кнПауза');
+  await стр.waitForTimeout(300);
+  ок(await стр.isVisible('#пауза'), 'по ней открывается шторка паузы');
+  ок((await стр.textContent('#паузаГде')).includes('Уровень 1'), 'на шторке видно, где мы');
+  const времяА = await стр.textContent('#time');
+  const местоА = await где();
+  await стр.waitForTimeout(1200);
+  ок((await стр.textContent('#time')) === времяА, 'на паузе таймер стоит');
+  ок((await где()) === местоА, 'и байк не едет');
+  await стр.click('#паузаДальше');
+  await стр.waitForTimeout(500);
+  ок(!(await стр.isVisible('#пауза')) && (await стр.textContent('#time')) !== времяА,
+    '«Продолжить» снимает паузу и время идёт дальше');
+
+  await стр.keyboard.press('Escape');
+  await стр.waitForTimeout(250);
+  ок(await стр.isVisible('#пауза'), 'Esc тоже открывает паузу');
+  await стр.click('#паузаМеню');
+  await стр.waitForTimeout(300);
+  ок(await стр.isVisible('#экран-главный'), '«В меню» выходит из заезда');
+  ок(!(await стр.isVisible('#кнПауза')), 'в меню кнопки паузы нет');
+
+  /* Возвращаемся в заезд и проверяем «Заново» с паузы. */
+  await стр.click('#btnPlay');
+  await стр.waitForTimeout(250);
+  await стр.keyboard.down('ArrowUp');
+  await стр.waitForTimeout(900);
+  await стр.keyboard.up('ArrowUp');
+  const уехал = await где();
+  await стр.click('#кнПауза');
+  await стр.waitForTimeout(200);
+  await стр.click('#паузаЗаново');
+  await стр.waitForTimeout(300);
+  ок(!(await стр.isVisible('#пауза')) && (await где()) < уехал - 1, '«Заново» с паузы ставит байк на старт');
+
   /* ── Падение ────────────────────────────────────────────── */
   console.log('\nпадение и финиш');
   await стр.evaluate(() => { const б = window.ГД.игра.бк; б.з.y -= 400; б.п.y -= 400; });
   await стр.waitForTimeout(1600);
   ок(await стр.isVisible('#over'), 'после падения показана шторка');
   ок((await стр.textContent('#ovTitle')) === 'Падение', 'шторка про падение');
+  ок(!(await стр.isVisible('#кнПауза')), 'на шторке результата паузы уже нет');
   ок((await стр.textContent('#ovПриз')).trim() === '', 'за падение звёзд не дают');
   if (снимки) await стр.screenshot({ path: path.join(кудаСнимки, 'gd-crash.png') });
   await стр.click('#ovMain');

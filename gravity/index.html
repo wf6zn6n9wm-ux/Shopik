@@ -19,9 +19,18 @@
   /* ── ЭКРАННЫЙ ИНТЕРФЕЙС В ЗАЕЗДЕ ────────────────────────── */
   #hud { position:fixed; inset:0; pointer-events:none; }
   #hud .top {
-    position:absolute; top:calc(8px + env(safe-area-inset-top)); left:12px;
+    position:absolute; top:calc(10px + env(safe-area-inset-top)); left:58px;
     font-size:13px; font-weight:600; color:#222; letter-spacing:.2px;
   }
+  #кнПауза {
+    position:absolute; top:calc(8px + env(safe-area-inset-top)); left:12px;
+    width:38px; height:38px; border-radius:10px; cursor:pointer;
+    border:1px solid rgba(0,0,0,.25); background:rgba(255,255,255,.75);
+    color:#111; font:700 13px/1 inherit; pointer-events:auto;
+    display:flex; align-items:center; justify-content:center; gap:2px;
+  }
+  #кнПауза:active { background:rgba(0,0,0,.08); }
+  #кнПауза i { display:block; width:3px; height:13px; background:#111; border-radius:1px; }
   #hud .top small { display:block; font-weight:400; color:#0a0; font-size:11px; }
   #time {
     position:absolute; right:14px; bottom:calc(14px + env(safe-area-inset-bottom));
@@ -155,27 +164,27 @@
   }
 
   /* ── ШТОРКА РЕЗУЛЬТАТА ──────────────────────────────────── */
-  #over { position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:16px; }
-  #over.on { display:flex; }
-  #over .card {
+  #over, #пауза { position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:16px; }
+  #over.on, #пауза.on { display:flex; }
+  #over .card, #пауза .card {
     background:rgba(255,255,255,.96); border:2px solid #111; border-radius:14px;
     padding:20px 24px; text-align:center; min-width:250px;
     box-shadow:0 12px 34px rgba(0,0,0,.16);
   }
-  #over h2 { font-size:20px; margin-bottom:2px; letter-spacing:.4px; }
+  #over h2, #пауза h2 { font-size:20px; margin-bottom:2px; letter-spacing:.4px; }
   #over .big { font:700 34px/1.1 "DejaVu Sans Mono", Menlo, monospace; margin:8px 0 2px; }
   #over .приз {
     display:inline-flex; align-items:center; gap:6px; margin:6px 0 2px;
     font:800 20px/1 inherit; color:#c98a00;
     background:#fff7e0; border:1px solid #ffd77a; border-radius:20px; padding:7px 14px;
   }
-  #over .sub { font-size:12px; color:#777; margin:10px 0 14px; }
-  #over .row { display:flex; gap:8px; justify-content:center; }
-  #over button {
+  #over .sub, #пауза .sub { font-size:12px; color:#777; margin:10px 0 14px; }
+  #over .row, #пауза .row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  #over button, #пауза button {
     padding:10px 16px; font:700 13px/1 inherit; border-radius:9px; cursor:pointer;
     background:#111; color:#fff; border:1px solid #111;
   }
-  #over button.alt { background:#fff; color:#111; }
+  #over button.alt, #пауза button.alt { background:#fff; color:#111; }
   .rec { color:#0a0; font-weight:700; }
 </style>
 </head>
@@ -184,6 +193,7 @@
 <canvas id="cv"></canvas>
 
 <div id="hud">
+  <button id="кнПауза" aria-label="Пауза"><i></i><i></i></button>
   <div class="top" id="hudName">—<small id="hudBest"></small></div>
   <div id="time">0:00.00</div>
   <div id="bar"><i id="barFill"></i></div>
@@ -233,6 +243,16 @@
 
   </div>
 </div>
+
+<div id="пауза"><div class="card">
+  <h2>Пауза</h2>
+  <div class="sub" id="паузаГде"></div>
+  <div class="row">
+    <button id="паузаДальше">Продолжить</button>
+    <button class="alt" id="паузаЗаново">Заново</button>
+    <button class="alt" id="паузаМеню">В меню</button>
+  </div>
+</div></div>
 
 <div id="over"><div class="card">
   <h2 id="ovTitle">—</h2>
@@ -900,7 +920,10 @@ const КЛАВИШИ = {
 addEventListener('keydown', (e) => {
   if (КЛАВИШИ[e.code]) { жмут[КЛАВИШИ[e.code]] = true; собрать(); звук.старт(); e.preventDefault(); return; }
   if (e.code === 'KeyR') { if (игра.тр) старт(игра.лвл); }
-  if (e.code === 'Escape') вменю();
+  if (e.code === 'Escape') {
+    if (игра.тр) пауза(!$('пауза').classList.contains('on'));
+    else if (экран !== 'главный') наЭкран('главный');
+  }
   if (e.code === 'Space' && $('over').classList.contains('on')) $('ovMain').click();
 });
 addEventListener('keyup', (e) => { if (КЛАВИШИ[e.code]) { жмут[КЛАВИШИ[e.code]] = false; собрать(); e.preventDefault(); } });
@@ -930,6 +953,8 @@ function старт(лвл) {
   игра.идёт = true; игра.шторка = false;
   $('menu').classList.add('off');
   $('over').classList.remove('on');
+  $('пауза').classList.remove('on');
+  $('кнПауза').style.display = '';
   const рек = сейв.рекорды[лвл.н];
   $('hudName').innerHTML = 'Уровень ' + лвл.н + ' / ' + ВСЕГО +
     '<small>' + поТранспорту(сейв.выбран).имя +
@@ -942,6 +967,8 @@ function старт(лвл) {
 function вменю() {
   игра.идёт = false; игра.тр = null;
   звук.тихо();
+  $('пауза').classList.remove('on');
+  $('кнПауза').style.display = 'none';
   $('over').classList.remove('on');
   $('menu').classList.remove('off');
   наЭкран('главный');
@@ -972,11 +999,32 @@ function итог(победа) {
   const дальше = победа && л.н < ВСЕГО;
   $('ovMain').textContent = дальше ? 'Уровень ' + (л.н + 1) : 'Заново';
   $('over').classList.add('on');
+  $('кнПауза').style.display = 'none';
   звук.тихо();
   победа ? звук.туш() : звук.бум();
   $('ovMain').onclick = () => старт(дальше ? уровень(л.н + 1) : л);
 }
 $('ovMenu').onclick = вменю;
+
+/* ── Пауза ────────────────────────────────────────────────────
+   Из заезда нужно уметь выйти и с телефона, где нет Esc. */
+function пауза(вкл) {
+  if (!игра.тр || игра.шторка) return;          // на шторке результата паузы нет
+  игра.идёт = !вкл;
+  $('пауза').classList.toggle('on', вкл);
+  if (вкл) {
+    звук.тихо();
+    $('паузаГде').textContent = 'Уровень ' + игра.лвл.н + ' · ' + игра.бк.т.имя +
+      ' · ' + ммсс(игра.бк.время);
+  } else {
+    прошл = 0; копил = 0;                        // не докручиваем время простоя
+    звук.старт(); звук.собрать(игра.бк.т);
+  }
+}
+$('кнПауза').onclick = () => пауза(!$('пауза').classList.contains('on'));
+$('паузаДальше').onclick = () => пауза(false);
+$('паузаЗаново').onclick = () => { $('пауза').classList.remove('on'); старт(игра.лвл); };
+$('паузаМеню').onclick = () => { $('пауза').classList.remove('on'); вменю(); };
 
 /* ── Меню ─────────────────────────────────────────────────────
    Главный экран — только кнопки; уровни, гараж, настройки и правила
@@ -1031,8 +1079,9 @@ function рисоватьПравила() {
       'Свалился в яму и стоишь без движения пять секунд — «застрял», тоже с начала.</p>' +
     '<h3>Управление</h3><p><span class="кл2">↑</span> газ, <span class="кл2">↓</span> тормоз, ' +
       '<span class="кл2">←</span><span class="кл2">→</span> наклон корпуса назад и вперёд. ' +
-      '<span class="кл2">R</span> заново, <span class="кл2">Esc</span> в меню. ' +
-      'На телефоне — четыре экранных кнопки по углам.</p>' +
+      '<span class="кл2">R</span> заново, <span class="кл2">Esc</span> пауза. ' +
+      'На телефоне — четыре экранных кнопки по углам, а выход из заезда — ' +
+      'кнопка паузы в левом верхнем углу.</p>' +
     '<p>Наклон работает и в воздухе: им выравнивают байк под уклон приземления. ' +
       'Газ задирает переднее колесо, тормоз опускает.</p>' +
     '<h3>Звёзды</h3><p>За <b>первое</b> прохождение уровня дают звёзды: ' +
@@ -1438,7 +1487,7 @@ function кадр() {
 }
 
 /* ── Главный цикл ─────────────────────────────────────────── */
-let прошл = 0, копил = 0;
+let прошл = 0, копил = 0;   // сбрасываются при снятии паузы
 const ШАГ = 1 / 120;
 
 function цикл(t) {
@@ -1476,6 +1525,7 @@ function цикл(t) {
 
 /* ── Пуск ─────────────────────────────────────────────────── */
 размер();
+$('кнПауза').style.display = 'none';
 рисоватьМеню();
 requestAnimationFrame(цикл);
 
