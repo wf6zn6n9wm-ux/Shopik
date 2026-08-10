@@ -111,7 +111,9 @@
     background:#fff; cursor:pointer; display:flex; flex-direction:column;
     align-items:center; justify-content:center; gap:2px; font:inherit; color:#111;
   }
-  .кл b { font:700 17px/1 inherit; }
+  .кл b { font:700 15px/1 inherit; }
+  .кл .мини { width:86%; height:auto; margin:1px 0; }
+  .кл.закр .мини { opacity:.25; }
   .кл .вр { font:600 9px/1 "DejaVu Sans Mono", monospace; color:#888; }
   .кл .нг { display:flex; align-items:center; gap:2px; font:700 10px/1 inherit; color:#c98a00; }
   .кл.готов { border-color:#bfe6bf; background:#f5fff5; }
@@ -221,6 +223,7 @@
       <div class="меню">
         <button id="btnSound">Звук<small>вкл</small></button>
         <button id="btnStyle">Вид транспорта<small>цветной</small></button>
+        <button id="btnLvls">Уровни<small>все открыты</small></button>
         <button id="btnAll">Транспорт<small>всё открыто</small></button>
         <button id="btnReset">Сбросить прогресс<small>звёзды и рекорды</small></button>
       </div>
@@ -657,7 +660,8 @@ const ЗВЕЗДА = '<svg class="zv" viewBox="0 0 24 24" aria-hidden="true">' +
 /* ── Сохранения ───────────────────────────────────────────── */
 const КЛЮЧ = 'gd_v2';
 const ПУСТО = () => ({ рекорды: {}, пройдено: [], звёзды: 0, куплено: ['velo'],
-                       выбран: 'velo', звук: true, стиль: 'цвет', всёОткрыто: true });
+                       выбран: 'velo', звук: true, стиль: 'цвет',
+                       всёОткрыто: true, всеУровни: true });
 let сейв = ПУСТО();
 try {
   const s = JSON.parse(localStorage.getItem(КЛЮЧ) || 'null');
@@ -667,13 +671,15 @@ try {
     if (!Array.isArray(сейв.куплено) || !сейв.куплено.length) сейв.куплено = ['velo'];
     if (typeof сейв.звёзды !== 'number' || !isFinite(сейв.звёзды)) сейв.звёзды = 0;
     сейв.всёОткрыто = сейв.всёОткрыто !== false;
+    сейв.всеУровни = сейв.всеУровни !== false;
   }
 } catch (e) { /* битое сохранение — играем с чистого листа */ }
 function сохранить() { try { localStorage.setItem(КЛЮЧ, JSON.stringify(сейв)); } catch (e) {} }
 
 const пройден = (н) => сейв.пройдено.indexOf(н) >= 0;
-/* Уровень открыт, если пройден предыдущий. */
-const открыт = (н) => н === 1 || пройден(н - 1);
+/* Уровень открыт, если пройден предыдущий. Режим «все открыты» снимает
+   это ограничение — удобно смотреть, что где на трассе. */
+const открыт = (н) => сейв.всеУровни || н === 1 || пройден(н - 1);
 const следующий = () => { for (let н = 1; н <= ВСЕГО; н++) if (!пройден(н)) return н; return ВСЕГО; };
 /* Транспорт доступен: куплен, открыт по достигнутому уровню или включён
    режим «всё открыто» — он нужен, чтобы просто покататься на любом. */
@@ -918,7 +924,7 @@ const игра = { тр: null, бк: null, лвл: null, кам: { x: 0, y: 0, s
 
 function старт(лвл) {
   игра.лвл = лвл;
-  игра.тр = сделатьТрассу(лвл.seed, лвл.diff);
+  игра.тр = трассаДля(лвл.н);
   игра.бк = сделатьБайк(игра.тр, поТранспорту(сейв.выбран));
   игра.кам.x = игра.бк.з.x; игра.кам.y = игра.бк.з.y + 1.5;
   игра.идёт = true; игра.шторка = false;
@@ -1006,6 +1012,8 @@ function рисоватьМеню() {
   $('btnStyle').innerHTML = 'Вид транспорта<small>' + (ИМЕНА[сейв.стиль] || 'цветной') + '</small>';
   $('btnAll').innerHTML = 'Транспорт<small>' +
     (сейв.всёОткрыто ? 'всё открыто' : 'по уровням') + '</small>';
+  $('btnLvls').innerHTML = 'Уровни<small>' +
+    (сейв.всеУровни ? 'все открыты' : 'по порядку') + '</small>';
 
   if (экран === 'уровни') рисоватьТрассы();
   else if (экран === 'гараж') рисоватьГараж();
@@ -1038,6 +1046,35 @@ function рисоватьПравила() {
       'С десятого появляются прыжки через ямы, гребёнка и уступы, дальше только злее.</p>';
 }
 
+/* Трассы для превью считаем один раз и запоминаем — генератор быстрый,
+   но пересчитывать полсотни штук на каждую перерисовку меню незачем. */
+const кэшТрасс = {};
+function трассаДля(н) {
+  if (!кэшТрасс[н]) { const л = уровень(н); кэшТрасс[н] = сделатьТрассу(л.seed, л.diff); }
+  return кэшТрасс[н];
+}
+
+/* Профиль всей трассы в клетке: сразу видно, что за уровень. */
+function профиль(c, тр) {
+  const g = c.getContext('2d');
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const ш = 120, в = 40, поле = 3;
+  c.width = ш * dpr; c.height = в * dpr;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const p = тр.точки;
+  let низ = Infinity, верх = -Infinity;
+  for (const т of p) { if (т.y < низ) низ = т.y; if (т.y > верх) верх = т.y; }
+  const kx = ш / (тр.финиш - тр.старт + 20);
+  const ky = (в - поле * 2) / Math.max(4, верх - низ);
+  g.strokeStyle = ЗЕЛ2; g.lineWidth = 1; g.lineJoin = 'round';
+  g.beginPath();
+  for (let i = 0; i < p.length; i++) {
+    const X = (p[i].x - тр.старт + 10) * kx, Y = в - поле - (p[i].y - низ) * ky;
+    i ? g.lineTo(X, Y) : g.moveTo(X, Y);
+  }
+  g.stroke();
+}
+
 function рисоватьТрассы() {
   const сетка = $('сетка'); сетка.innerHTML = '';
   const текущий = следующий();
@@ -1046,10 +1083,11 @@ function рисоватьТрассы() {
     const ок = открыт(н), готов = пройден(н);
     b.className = 'кл' + (готов ? ' готов' : '') + (ок ? '' : ' закр') + (н === текущий ? ' сейчас' : '');
     const рек = сейв.рекорды[н];
-    b.innerHTML = '<b>' + н + '</b>' + (
+    b.innerHTML = '<b>' + н + '</b><canvas class="мини"></canvas>' + (
       готов ? '<span class="вр">' + (рек ? ммсс(рек) : '') + '</span>'
         : ок ? '<span class="нг">' + награда(н) + ' ' + ЗВЕЗДА + '</span>'
           : '<span class="вр">🔒</span>');
+    профиль(b.querySelector('canvas'), трассаДля(н));
     if (ок) b.onclick = () => { звук.старт(); старт(уровень(н)); };
     сетка.appendChild(b);
   }
@@ -1113,6 +1151,10 @@ function рисоватьГараж() {
   }
 }
 
+$('btnLvls').onclick = () => {
+  сейв.всеУровни = !сейв.всеУровни;
+  сохранить(); рисоватьМеню();
+};
 $('btnAll').onclick = () => {
   сейв.всёОткрыто = !сейв.всёОткрыто;
   if (!сейв.всёОткрыто && !доступен(поТранспорту(сейв.выбран))) сейв.выбран = 'velo';

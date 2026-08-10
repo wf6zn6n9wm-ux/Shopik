@@ -65,15 +65,39 @@ async function кФинишу(стр) {
   /* ── Разделы ────────────────────────────────────────────── */
   console.log('\nразделы');
   await стр.click('[data-экран="уровни"]');
-  await стр.waitForTimeout(200);
+  await стр.waitForTimeout(400);
   ок(await стр.isVisible('#назад'), 'в разделе появляется «назад»');
   ок((await стр.textContent('#заголовок')) === 'Уровни', 'заголовок меняется на название раздела');
   ок((await стр.locator('#сетка .кл').count()) === 50, 'в сетке 50 уровней');
-  ок((await стр.locator('#сетка .кл.закр').count()) === 49, 'открыт только первый уровень');
+  /* По умолчанию все уровни открыты — чтобы можно было посмотреть трассы. */
+  ок((await стр.locator('#сетка .кл.закр').count()) === 0, 'при «все открыты» доступен любой уровень');
   ок((await стр.locator('#сетка .кл').first().textContent()).includes('10'),
     'на первом уровне обещано 10 звёзд');
-  ок((await стр.locator('#сетка .кл').nth(1).textContent()).includes('🔒'),
-    'второй пока закрыт — награда не показана');
+  ок((await стр.locator('#сетка .кл').nth(1).textContent()).includes('5'), 'на втором — уже 5');
+
+  /* В каждой клетке нарисован профиль трассы. */
+  const профили = await стр.evaluate(() => {
+    const кл = [...document.querySelectorAll('#сетка canvas')];
+    return кл.map((c) => {
+      const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+      let n = 0;
+      for (let i = 3; i < d.length; i += 4 * 7) if (d[i] > 30) n++;
+      return n;
+    });
+  });
+  ок(профили.length === 50 && профили.every((n) => n > 5), 'у всех 50 клеток нарисован профиль трассы');
+  ок(профили[49] !== профили[0], 'профили разные — это настоящие трассы, а не картинка-заглушка');
+  if (снимки) await стр.screenshot({ path: path.join(кудаСнимки, 'gd-levels.png'), fullPage: true });
+
+  /* Переключаем на обычный порядок: дальше проверяем открытие прохождением. */
+  await стр.click('#назад');
+  await стр.click('[data-экран="настройки"]');
+  await стр.click('#btnLvls');
+  ок((await стр.textContent('#btnLvls')).includes('по порядку'), 'кнопка возвращает открытие по порядку');
+  await стр.click('#назад');
+  await стр.click('[data-экран="уровни"]');
+  await стр.waitForTimeout(300);
+  ок((await стр.locator('#сетка .кл.закр').count()) === 49, 'теперь открыт только первый уровень');
   ок((await стр.locator('#сетка .кл').nth(49).textContent()).includes('🔒'), 'пятидесятый закрыт');
   await стр.click('#назад');
   ок(await стр.isVisible('#экран-главный'), '«назад» возвращает на главный экран');
@@ -89,8 +113,8 @@ async function кФинишу(стр) {
 
   await стр.click('[data-экран="настройки"]');
   await стр.waitForTimeout(200);
-  ок((await стр.locator('#экран-настройки button').count()) === 4,
-    'в настройках четыре пункта: звук, вид, транспорт, сброс');
+  ок((await стр.locator('#экран-настройки button').count()) === 5,
+    'в настройках пять пунктов: звук, вид, уровни, транспорт, сброс');
   if (снимки) await стр.screenshot({ path: path.join(кудаСнимки, 'gd-settings.png'), fullPage: true });
   await стр.click('#назад');
 
