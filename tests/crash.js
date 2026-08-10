@@ -69,6 +69,17 @@ const жди = async (p,усл,мс=30000)=>{ const t0=Date.now();
     return {надКнопкой:h.bottom<=g.top+1, зазор:Math.round(g.top-h.bottom)};
   });
   say('лента множителей стоит над кнопкой ставки', лента.надКнопкой, 'зазор '+лента.зазор+'px');
+  /* Боковая прокрутка включает и вертикальную: без явной высоты ряд
+     обрезал чипы ровно посередине цифр, и читались они как мусор. */
+  const чип=await p.evaluate(()=>{
+    const h=document.getElementById('cHist'), i=h.querySelector('i');
+    if(!i) return null;
+    const r=h.getBoundingClientRect(), ri=i.getBoundingClientRect();
+    return {цел: ri.top>=r.top-0.5 && ri.bottom<=r.bottom+0.5,
+            высота:Math.round(ri.height), ряд:Math.round(r.height)};
+  });
+  say('множители не обрезаны по высоте', !!чип && чип.цел,
+      чип ? 'чип '+чип.высота+'px в ряду '+чип.ряд+'px' : 'ленты нет');
 
   /* Итог раунда виден по цвету строки: забрал — зелёная, не успел —
      красная. Числа читать для этого не нужно. Смотрим сразу после
@@ -104,6 +115,49 @@ const жди = async (p,усл,мс=30000)=>{ const t0=Date.now();
   }
   say('авто-вывод забрал банк хотя бы раз', сработал);
   await p.close();
+
+  /* Музыка раунда. Внутрь приложения не заглянуть — весь код живёт в
+     замыкании, — поэтому считаем, что слышно снаружи: сколько нот
+     заказано звуковой машине. В полёте их поток идёт, после обрыва
+     обязан прекратиться, иначе музыка останется играть в пустом
+     экране. Звук включаем отдельно: в остальных проверках он выключен. */
+  console.log('— музыка раунда —');
+  {
+    const pm=await b.newPage({viewport:{width:393,height:752}});
+    pm.on('pageerror',e=>errs.push(String(e)));
+    await pm.addInitScript(()=>{
+      localStorage.setItem('starshash_prefs',JSON.stringify({vibro:true,sound:true,lang:'ru'}));
+      localStorage.setItem('starshash_state',JSON.stringify({bal:50000,fs:{d:'2026-08-07'},dl:{streak:0,last:''}}));
+      window.__нот=0;
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(AC){ const f=AC.prototype.createOscillator;
+        AC.prototype.createOscillator=function(){ window.__нот++; return f.apply(this,arguments); }; }
+    });
+    await pm.goto(require('./helpers').АДРЕС); await pm.waitForTimeout(1600);
+    await pm.evaluate(()=>{const x=document.getElementById('stX');
+      if(x&&document.getElementById('stSheet').getAttribute('aria-hidden')==='false') x.click();});
+    await pm.waitForTimeout(300);
+    await pm.click('.tab[data-p="games"]'); await pm.waitForTimeout(400);
+    await pm.click('#goCrash'); await pm.waitForTimeout(500);
+
+    await жди(pm,()=>!document.getElementById('cGo').disabled &&
+        /Поставить|Ставк|Играть/i.test(document.getElementById('cGo').textContent));
+    await pm.click('#cGo');
+    /* дожидаемся именно полёта: до него идёт отсчёт, и музыки там нет */
+    await жди(pm,()=>parseFloat(document.getElementById('cMult').textContent)>1.05,20000);
+    const было=await pm.evaluate(()=>window.__нот);
+    await pm.waitForTimeout(1200);
+    const стало=await pm.evaluate(()=>window.__нот);
+    say('в полёте музыка звучит', стало>было, было+' → '+стало+' нот');
+
+    await жди(pm,()=>document.getElementById('cMult').className.includes('boom'),35000);
+    await pm.waitForTimeout(900);          // дать отзвучать звуку обрыва
+    const после=await pm.evaluate(()=>window.__нот);
+    await pm.waitForTimeout(1500);
+    const тишина=await pm.evaluate(()=>window.__нот);
+    say('после обрыва музыка смолкает', тишина===после, после+' → '+тишина+' нот');
+    await pm.close();
+  }
 
   console.log('ОШИБКИ:', errs.length?JSON.stringify([...new Set(errs)]):'нет');
   process.exitCode = errs.length ? 1 : 0;
