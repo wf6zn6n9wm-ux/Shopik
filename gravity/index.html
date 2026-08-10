@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Gravity Defied</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; overflow:hidden; background:#fff; }
+  body {
+    font:14px/1.35 "Segoe UI", Roboto, system-ui, sans-serif;
+    color:#111; user-select:none; -webkit-user-select:none;
+    touch-action:none; overscroll-behavior:none;
+  }
+  #cv { position:fixed; inset:0; width:100%; height:100%; display:block; }
+
+  /* ── ЭКРАННЫЙ ИНТЕРФЕЙС ─────────────────────────────────── */
+  #hud { position:fixed; inset:0; pointer-events:none; }
+  #hud .top {
+    position:absolute; top:calc(8px + env(safe-area-inset-top)); left:12px;
+    font-size:13px; font-weight:600; color:#222; letter-spacing:.2px;
+  }
+  #hud .top small { display:block; font-weight:400; color:#0a0; font-size:11px; }
+  #time {
+    position:absolute; right:14px; bottom:calc(14px + env(safe-area-inset-bottom));
+    font:700 30px/1 "DejaVu Sans Mono", Menlo, Consolas, monospace;
+    color:#111; letter-spacing:-1px;
+  }
+  /* На телефоне низ экрана занят кнопками — таймер уезжает наверх. */
+  body.сенсор #time {
+    bottom:auto; top:calc(8px + env(safe-area-inset-top)); font-size:24px;
+  }
+  #bar { position:absolute; left:0; right:0; bottom:0; height:6px; background:#eee; }
+  #bar i { display:block; height:100%; width:0; background:#111; transition:width .1s linear; }
+
+  /* ── КНОПКИ УПРАВЛЕНИЯ (сенсор) ─────────────────────────── */
+  #pad { position:fixed; inset:0; pointer-events:none; display:none; }
+  #pad.on { display:block; }
+  #pad b {
+    position:absolute; bottom:calc(22px + env(safe-area-inset-bottom));
+    width:74px; height:74px; border-radius:50%;
+    border:2px solid rgba(0,0,0,.35); background:rgba(255,255,255,.55);
+    display:flex; align-items:center; justify-content:center;
+    font-size:26px; color:#111; pointer-events:auto; backdrop-filter:blur(2px);
+  }
+  #pad b.hit { background:rgba(0,190,0,.35); border-color:#0a0; }
+  #pad .bl { left:16px; } #pad .br { left:104px; }
+  #pad .bu { right:16px; bottom:calc(104px + env(safe-area-inset-bottom)); }
+  #pad .bd { right:16px; }
+
+  /* ── МЕНЮ ───────────────────────────────────────────────── */
+  #menu {
+    position:fixed; inset:0; background:#fff; overflow-y:auto;
+    padding:calc(18px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; align-items:center;
+  }
+  #menu.off { display:none; }
+  .logo { text-align:center; margin:6px 0 14px; }
+  .logo canvas { display:block; width:100%; max-width:440px; height:auto; margin:0 auto -6px; }
+  .logo h1 {
+    font:800 30px/1 "Segoe UI", Roboto, sans-serif; letter-spacing:-1px;
+    text-transform:uppercase; color:#111;
+  }
+  .logo h1 span { color:#0a0; }
+  .logo p { font-size:11px; color:#888; letter-spacing:3px; text-transform:uppercase; margin-top:5px; }
+  .wrap { width:100%; max-width:460px; }
+  .tabs { display:flex; gap:6px; margin-bottom:12px; }
+  .tabs button {
+    flex:1; padding:9px 4px; font:600 13px/1 inherit; color:#444;
+    background:#f2f2f2; border:1px solid #e2e2e2; border-radius:8px; cursor:pointer;
+  }
+  .tabs button.sel { background:#111; border-color:#111; color:#fff; }
+  .lvls { display:flex; flex-direction:column; gap:6px; }
+  .lvl {
+    display:flex; align-items:center; gap:10px; width:100%;
+    padding:11px 13px; background:#fff; border:1px solid #e2e2e2; border-radius:9px;
+    font:inherit; color:#111; cursor:pointer; text-align:left;
+  }
+  .lvl:active { background:#f6f6f6; }
+  .lvl .n { width:22px; font-weight:700; color:#0a0; }
+  .lvl .t { flex:1; font-weight:600; }
+  .lvl .b { font:700 13px/1 "DejaVu Sans Mono", Menlo, monospace; color:#666; }
+  .lvl.lock { color:#bbb; border-style:dashed; cursor:default; }
+  .lvl.lock .n, .lvl.lock .b { color:#ccc; }
+  .keys { margin-top:16px; font-size:12px; color:#777; line-height:1.7; text-align:center; }
+  .keys kbd {
+    display:inline-block; min-width:20px; padding:1px 5px; margin:0 1px;
+    background:#f2f2f2; border:1px solid #ddd; border-radius:4px;
+    font:600 11px/1.5 "DejaVu Sans Mono", monospace; color:#333;
+  }
+  .foot { margin-top:14px; display:flex; gap:8px; justify-content:center; }
+  .foot button {
+    padding:7px 12px; font:600 12px/1 inherit; color:#555;
+    background:#fff; border:1px solid #ddd; border-radius:7px; cursor:pointer;
+  }
+
+  /* ── ШТОРКА РЕЗУЛЬТАТА ──────────────────────────────────── */
+  #over { position:fixed; inset:0; display:none; align-items:center; justify-content:center; }
+  #over.on { display:flex; }
+  #over .card {
+    background:rgba(255,255,255,.94); border:2px solid #111; border-radius:12px;
+    padding:20px 26px; text-align:center; min-width:230px;
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+  }
+  #over h2 { font-size:20px; margin-bottom:4px; letter-spacing:.5px; }
+  #over .big { font:700 34px/1.1 "DejaVu Sans Mono", Menlo, monospace; margin:8px 0 2px; }
+  #over .sub { font-size:12px; color:#777; margin-bottom:14px; }
+  #over .row { display:flex; gap:8px; justify-content:center; }
+  #over button {
+    padding:10px 16px; font:700 13px/1 inherit; border-radius:8px; cursor:pointer;
+    background:#111; color:#fff; border:1px solid #111;
+  }
+  #over button.alt { background:#fff; color:#111; }
+  .rec { color:#0a0; font-weight:700; }
+</style>
+</head>
+<body>
+
+<canvas id="cv"></canvas>
+
+<div id="hud">
+  <div class="top" id="hudName">—<small id="hudBest"></small></div>
+  <div id="time">0:00.00</div>
+  <div id="bar"><i id="barFill"></i></div>
+</div>
+
+<div id="pad">
+  <b class="bl" data-k="leanBack">◀</b>
+  <b class="br" data-k="leanFwd">▶</b>
+  <b class="bu" data-k="gas">▲</b>
+  <b class="bd" data-k="brake">▼</b>
+</div>
+
+<div id="menu">
+  <div class="logo">
+    <canvas id="deco" width="440" height="150"></canvas>
+    <h1>Gravity <span>Defied</span></h1>
+    <p>мототриал</p>
+  </div>
+  <div class="wrap">
+    <div class="tabs" id="tabs"></div>
+    <div class="lvls" id="lvls"></div>
+    <div class="keys">
+      <kbd>↑</kbd> газ &nbsp; <kbd>↓</kbd> тормоз &nbsp; <kbd>←</kbd><kbd>→</kbd> наклон<br>
+      <kbd>R</kbd> заново &nbsp; <kbd>Esc</kbd> меню &nbsp; на телефоне — экранные кнопки
+    </div>
+    <div class="foot">
+      <button id="btnSound">Звук: вкл</button>
+      <button id="btnReset">Сбросить рекорды</button>
+    </div>
+  </div>
+</div>
+
+<div id="over"><div class="card">
+  <h2 id="ovTitle">—</h2>
+  <div class="big" id="ovTime"></div>
+  <div class="sub" id="ovSub"></div>
+  <div class="row">
+    <button id="ovMain">Заново</button>
+    <button class="alt" id="ovMenu">Меню</button>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+
+/* ══════════════════════════════════════════════════════════════
+   ЯДРО: генератор трасс + физика байка.
+   Ничего не знает про DOM — эту часть гоняют проверки в node.
+   ══════════════════════════════════════════════════════════════ */
+//#region ядро
+
+/* Детерминированный генератор случайных чисел: одинаковый уровень у всех. */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* Мир в метрах, ось Y смотрит вверх. */
+const ФИЗ = {
+  G: 20,            // притяжение
+  R: 0.34,          // радиус колеса
+  БАЗА: 1.16,       // колёсная база
+  ТЯГА: 30,         // сила двигателя на заднем колесе
+  ТОРМОЗ: 26,       // сила торможения
+  МОМЕНТ: 11,       // момент от наклона игрока
+  РЕАКЦИЯ: 5.2,     // момент отдачи двигателя (задирает переднее колесо)
+  ГАСИТЬ: 2.6,      // гашение вращения (чтобы не крутило волчком)
+  ОТСКОК: 0.22,     // упругость при ударе о землю
+  КАЧЕНИЕ: 0.2,     // трение качения, доля скорости в секунду
+  ЮЗ: 7,            // трение юзом при торможении, в секунду
+  ВОЗДУХ: 0.012,    // сопротивление воздуха
+  МАКС: 21,         // предельная скорость под тягой
+  ПОТОЛОК: 36,      // абсолютный предел (страховка от разгона на стенках)
+  ГОЛОВА: 0.17      // радиус головы райдера
+};
+
+/* ── Трасса ───────────────────────────────────────────────── */
+
+/* Генерирует полилинию рельефа. diff — сложность 0..1. */
+function сделатьТрассу(seed, diff) {
+  const rnd = mulberry32(seed >>> 0);
+  const R = (a, b) => a + (b - a) * rnd();
+  const точки = [];
+  let x = -18, y = 0;
+  точки.push({ x, y });
+  const доб = (nx, ny) => { x = nx; y = ny; точки.push({ x, y }); };
+
+  const ровно = (len) => доб(x + len, y);
+  /* Плавный переход по косинусу — из таких волн собран весь ландшафт.
+     Высоту режем так, чтобы в самом крутом месте склон не был отвесным:
+     у косинуса максимальный наклон = π·h / (2·len). */
+  const ПРЕДЕЛ = 0.48;
+  const волна = (len, h, шагов) => {
+    h = Math.max(-ПРЕДЕЛ * len, Math.min(ПРЕДЕЛ * len, h));
+    const x0 = x, y0 = y;
+    for (let i = 1; i <= шагов; i++) {
+      const t = i / шагов;
+      доб(x0 + len * t, y0 + h * (1 - Math.cos(Math.PI * t)) / 2);
+    }
+  };
+  /* Прямой склон под заданным углом — так трамплин всегда остаётся трамплином. */
+  const склон = (len, угол) => доб(x + len, y + len * Math.tan(угол));
+  /* Пропасть с почти отвесными стенками. */
+  const пропасть = (w, глуб) => {
+    const верх = y;
+    доб(x + 0.05, y - глуб);
+    ровно(w);
+    доб(x + 0.05, верх + R(-1.4, 0.3));
+  };
+
+  const холмы = (n, амп) => { for (let i = 0; i < n; i++) волна(R(7, 13), R(-амп, амп), 9); };
+  const гребёнка = (n, амп, шаг) => {
+    for (let i = 0; i < n; i++) { волна(шаг / 2, амп, 4); волна(шаг / 2, -амп, 4); }
+  };
+  const УГОЛ = 0.32 + 0.24 * diff;        // крутизна трамплинов, рад (18°…32°)
+  const трамплин = () => {
+    ровно(R(3, 6));                       // место разогнаться перед прыжком
+    склон(R(2.4, 3.6), УГОЛ);
+    пропасть(3 + 5 * diff, 5 + 4 * diff);
+    волна(R(5, 8), -(1 + 1.5 * diff), 6);
+  };
+  const столик = () => {
+    склон(R(2.2, 3.2), УГОЛ);
+    ровно(R(3, 6));
+    склон(R(2.6, 4), -УГОЛ);
+  };
+  const подъём = () => { волна(R(9, 13), 4 + 7 * diff, 8); ровно(R(2, 5)); };
+  const спуск = () => волна(R(9, 13), -(4 + 6 * diff), 8);
+  /* Уступы: крутые, но берутся с разгона на заднем колесе. */
+  const ступени = () => {
+    const n = 3 + Math.floor(rnd() * 3);
+    for (let i = 0; i < n; i++) { ровно(R(2.2, 3.2)); доб(x + 0.4, y + R(0.25, 0.32 + 0.3 * diff)); }
+  };
+
+  ровно(40);                              // разгонная прямая перед первой секцией
+  const цель = 250 + 170 * diff;
+  let было = -1;
+  while (x < цель) {
+    let k = Math.floor(rnd() * 6);
+    if (k === было) k = (k + 1) % 6;      // две одинаковые секции подряд — скучно
+    было = k;
+    if (k === 0) холмы(2, 1.5 + 3 * diff);
+    else if (k === 1) трамплин();
+    else if (k === 2) гребёнка(3 + Math.floor(rnd() * 4), 0.9 + 1.7 * diff, 3.6 - 0.9 * diff);
+    else if (k === 3) столик();
+    else if (k === 4) (rnd() < 0.5 ? подъём : спуск)();
+    else ступени();
+    волна(R(4, 8), R(-1, 1) * (1 + 2 * diff), 6); // связка между секциями
+  }
+  волна(8, -Math.max(0, y) * 0.35, 6);
+  ровно(16);
+  const финиш = x - 8;
+  ровно(10);
+
+  /* Точки строго по возрастанию X — на этом держится весь поиск. */
+  for (let i = 1; i < точки.length; i++) {
+    if (точки[i].x <= точки[i - 1].x) точки[i].x = точки[i - 1].x + 0.01;
+  }
+  let низ = Infinity;
+  for (const p of точки) низ = Math.min(низ, p.y);
+  return { точки, старт: 0, финиш, низ, конец: x };
+}
+
+/* Индекс отрезка, накрывающего X (двоичный поиск). */
+function индекс(тр, x) {
+  const p = тр.точки;
+  let a = 0, b = p.length - 1;
+  while (a < b - 1) { const m = (a + b) >> 1; if (p[m].x <= x) a = m; else b = m; }
+  return a;
+}
+
+/* Высота земли под точкой X. */
+function земля(тр, x) {
+  const p = тр.точки;
+  if (x <= p[0].x) return p[0].y;
+  if (x >= p[p.length - 1].x) return p[p.length - 1].y;
+  const i = индекс(тр, x), a = p[i], b = p[i + 1];
+  const t = (x - a.x) / (b.x - a.x || 1);
+  return a.y + (b.y - a.y) * t;
+}
+
+/* Пересечение круга с рельефом. Возвращает нормаль и глубину или null. */
+function касание(тр, cx, cy, r) {
+  const p = тр.точки;
+  let i = индекс(тр, cx - r), лучше = null;
+  for (; i < p.length - 1; i++) {
+    const a = p[i], b = p[i + 1];
+    if (a.x > cx + r) break;
+    const ex = b.x - a.x, ey = b.y - a.y;
+    const l2 = ex * ex + ey * ey;
+    if (l2 < 1e-12) continue;
+    let t = ((cx - a.x) * ex + (cy - a.y) * ey) / l2;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const qx = a.x + ex * t, qy = a.y + ey * t;
+    const dx = cx - qx, dy = cy - qy;
+    const d = Math.hypot(dx, dy);
+    if (d >= r) continue;
+    /* Нормаль отрезка, всегда наружу (вверх). */
+    let sx = -ey, sy = ex;
+    const sl = Math.hypot(sx, sy); sx /= sl; sy /= sl;
+    if (sy < 0) { sx = -sx; sy = -sy; }
+    const сбоку = dx * sx + dy * sy;
+    let nx, ny, глуб;
+    if (сбоку < 0 || d < 1e-6) { nx = sx; ny = sy; глуб = r + (сбоку < 0 ? d : 0); }
+    else { nx = dx / d; ny = dy / d; глуб = r - d; }
+    if (!лучше || глуб > лучше.глуб) лучше = { nx, ny, глуб };
+  }
+  /* Круг целиком ушёл под рельеф — ближайший отрезок дальше радиуса, и обычная
+     проверка его не видит. Рельеф — функция от X, поэтому «под землёй»
+     определяется однозначно. */
+  if (!лучше && cy < земля(тр, cx)) {
+    const i = индекс(тр, cx), a = p[i], b = p[i + 1];
+    let sx = -(b.y - a.y), sy = b.x - a.x;
+    const sl = Math.hypot(sx, sy) || 1; sx /= sl; sy /= sl;
+    if (sy < 0) { sx = -sx; sy = -sy; }
+    лучше = { nx: sx, ny: sy, глуб: r + (земля(тр, cx) - cy) };
+  }
+  return лучше;
+}
+
+/* ── Байк ─────────────────────────────────────────────────── */
+
+function сделатьБайк(тр) {
+  const x = тр.старт;
+  const кол = (px) => ({
+    x: px, y: земля(тр, px) + ФИЗ.R, vx: 0, vy: 0,
+    ox: 0, oy: 0, на: false, nx: 0, ny: 1
+  });
+  return {
+    з: кол(x), п: кол(x + ФИЗ.БАЗА),   // заднее и переднее колесо
+    спин: 0, упал: false, застрял: false, финиш: false,
+    время: 0, мёртв: 0, макс: 0, стоп: 0
+  };
+}
+
+/* Жёсткая рама: держит расстояние между колёсами. */
+function рама(бк, раз) {
+  const з = бк.з, п = бк.п;
+  for (let i = 0; i < раз; i++) {
+    const dx = п.x - з.x, dy = п.y - з.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const k = (d - ФИЗ.БАЗА) / d * 0.5;
+    з.x += dx * k; з.y += dy * k;
+    п.x -= dx * k; п.y -= dy * k;
+  }
+}
+
+/* Один подшаг физики. */
+function подшаг(бк, тр, вх, h) {
+  const з = бк.з, п = бк.п;
+  let ux = п.x - з.x, uy = п.y - з.y;
+  const L = Math.hypot(ux, uy) || 1;
+  ux /= L; uy /= L;
+  const px = -uy, py = ux;               // перпендикуляр «вверх» от рамы
+
+  const газ = бк.упал ? 0 : вх.gas;
+  const торм = бк.упал ? 0 : вх.brake;
+  const наклон = бк.упал ? 0 : вх.lean;
+
+  /* Притяжение и воздух. */
+  for (const w of [з, п]) {
+    w.vy -= ФИЗ.G * h;
+    const v = Math.hypot(w.vx, w.vy);
+    if (v > 0.01) {
+      const k = ФИЗ.ВОЗДУХ * v * h;
+      w.vx -= w.vx * k; w.vy -= w.vy * k;
+    }
+  }
+
+  /* Момент: наклон игрока + отдача двигателя + гашение вращения. */
+  const ω = ((п.vx - з.vx) * px + (п.vy - з.vy) * py) / L;
+  let M = наклон * ФИЗ.МОМЕНТ + газ * ФИЗ.РЕАКЦИЯ - торм * ФИЗ.РЕАКЦИЯ * 0.5 - ω * ФИЗ.ГАСИТЬ;
+  const F = M / L;
+  п.vx += px * F * h; п.vy += py * F * h;
+  з.vx -= px * F * h; з.vy -= py * F * h;
+
+  /* Тяга и тормоз — вдоль земли под колёсами. */
+  const вдоль = (w) => {
+    let tx = -w.ny, ty = w.nx;
+    if (tx * ux + ty * uy < 0) { tx = -tx; ty = -ty; }   // всегда «вперёд» по раме
+    return [tx, ty];
+  };
+  if (газ > 0 && з.на) {
+    const [tx, ty] = вдоль(з);
+    const v = з.vx * tx + з.vy * ty;
+    const k = v > ФИЗ.МАКС ? 0 : 1 - Math.max(0, v) / ФИЗ.МАКС;
+    з.vx += tx * ФИЗ.ТЯГА * газ * k * h;
+    з.vy += ty * ФИЗ.ТЯГА * газ * k * h;
+  }
+  if (торм > 0) {
+    for (const w of [з, п]) {
+      if (!w.на) continue;
+      const [tx, ty] = вдоль(w);
+      const v = w.vx * tx + w.vy * ty;
+      const d = Math.max(-ФИЗ.ТОРМОЗ * h, Math.min(ФИЗ.ТОРМОЗ * h, v)) * торм;
+      w.vx -= tx * d; w.vy -= ty * d;
+    }
+  }
+
+  /* Предсказание положения. */
+  for (const w of [з, п]) {
+    w.ox = w.x; w.oy = w.y;
+    w.x += w.vx * h; w.y += w.vy * h;
+  }
+
+  рама(бк, 3);
+
+  /* Земля. Порядок важен: сперва берём скорость из перемещения, и только
+     потом выталкиваем колесо наружу. Иначе выталкивание само становится
+     скоростью — на отвесной стенке байк улетал бы как из пращи. */
+  for (const w of [з, п]) {
+    w.vx = (w.x - w.ox) / h; w.vy = (w.y - w.oy) / h;
+    const c = касание(тр, w.x, w.y, ФИЗ.R);
+    if (!c) { w.на = false; continue; }
+    w.на = true; w.nx = c.nx; w.ny = c.ny;
+    const глуб = Math.min(c.глуб, 0.12);
+    w.x += c.nx * глуб; w.y += c.ny * глуб;
+
+    const vn = w.vx * c.nx + w.vy * c.ny;
+    if (vn < 0) {                               // гасим ход внутрь земли
+      const e = vn < -2 ? ФИЗ.ОТСКОК : 0;
+      w.vx -= (1 + e) * vn * c.nx;
+      w.vy -= (1 + e) * vn * c.ny;
+    }
+    const tx = -c.ny, ty = c.nx;                // трение вдоль поверхности
+    const доля = Math.min(1, (торм > 0 ? ФИЗ.ЮЗ : ФИЗ.КАЧЕНИЕ) * h);
+    const vt = (w.vx * tx + w.vy * ty) * доля;
+    w.vx -= tx * vt; w.vy -= ty * vt;
+
+    const vv = Math.hypot(w.vx, w.vy);
+    if (vv > ФИЗ.ПОТОЛОК) { w.vx *= ФИЗ.ПОТОЛОК / vv; w.vy *= ФИЗ.ПОТОЛОК / vv; }
+  }
+
+  /* Выталкивание порвало раму — чиним сразу, пока это не превратилось
+     в скорость на следующем подшаге. */
+  рама(бк, 2);
+}
+
+/* Полный шаг: подшаги + проверка падения и финиша. */
+function шаг(бк, тр, вх, dt) {
+  const N = 4, h = dt / N;
+  for (let i = 0; i < N; i++) подшаг(бк, тр, вх, h);
+
+  const з = бк.з, п = бк.п;
+  let ux = п.x - з.x, uy = п.y - з.y;
+  const L = Math.hypot(ux, uy) || 1; ux /= L; uy /= L;
+  const px = -uy, py = ux;
+
+  /* Вращение колёс — только для картинки. */
+  const скор = Math.hypot(з.vx, з.vy);
+  бк.спин += (з.на ? (з.vx * ux + з.vy * uy) / ФИЗ.R : вх.gas * 22) * dt;
+  бк.макс = Math.max(бк.макс, скор);
+
+  /* Шея. Голова коснулась земли — перелом, как в оригинале. */
+  const hx = з.x + ux * 0.74 + px * 1.16;
+  const hy = з.y + uy * 0.74 + py * 1.16;
+  if (!бк.упал && !бк.финиш) {
+    if (касание(тр, hx, hy, ФИЗ.ГОЛОВА)) бк.упал = true;
+    if (з.y < тр.низ - 25 || п.y < тр.низ - 25) бк.упал = true;
+    /* Свалился в яму и стоит — заезд окончен, чтобы не ждать впустую. */
+    if (з.x > тр.старт + 3) {
+      if (скор < 0.6) бк.стоп += dt; else бк.стоп = 0;
+      if (бк.стоп > 5) { бк.упал = true; бк.застрял = true; }
+    }
+  }
+  if (!бк.упал && !бк.финиш && з.x > тр.финиш) бк.финиш = true;
+  if (бк.упал) бк.мёртв += dt;
+  else if (!бк.финиш) бк.время += dt;
+  return бк;
+}
+
+/* Список уровней: три тура по шесть трасс. */
+const ТУРЫ = [
+  { имя: 'Новичок', слож: [0.00, 0.30] },
+  { имя: 'Любитель', слож: [0.32, 0.62] },
+  { имя: 'Профи', слож: [0.64, 1.00] }
+];
+function уровень(тур, н) {
+  const [a, b] = ТУРЫ[тур].слож;
+  const diff = a + (b - a) * (н / 5);
+  return { id: тур + ':' + н, тур, н, diff, seed: (тур + 1) * 7919 + н * 613 + 17 };
+}
+
+//#endregion ядро
+
+/* ══════════════════════════════════════════════════════════════
+   ЭКРАН, УПРАВЛЕНИЕ, ЗВУК
+   ══════════════════════════════════════════════════════════════ */
+if (typeof document !== 'undefined') (function () {
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const $ = (id) => document.getElementById(id);
+
+let W = 0, H = 0, DPR = 1;
+function размер() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+}
+window.addEventListener('resize', размер);
+
+/* ── Сохранения ───────────────────────────────────────────── */
+const КЛЮЧ = 'gd_v1';
+let сейв = { рекорды: {}, открыто: { '0': 0, '1': 0, '2': 0 }, звук: true };
+try {
+  const s = JSON.parse(localStorage.getItem(КЛЮЧ) || 'null');
+  if (s && typeof s === 'object') сейв = Object.assign(сейв, s);
+} catch (e) { /* битое сохранение — играем с чистого листа */ }
+function сохранить() { try { localStorage.setItem(КЛЮЧ, JSON.stringify(сейв)); } catch (e) {} }
+
+const ммсс = (t) => {
+  const м = Math.floor(t / 60), с = t - м * 60;
+  return м + ':' + (с < 10 ? '0' : '') + с.toFixed(2);
+};
+
+/* ── Звук: простой мотор на осцилляторе ───────────────────── */
+const звук = {
+  ac: null, осц: null, фильтр: null, гейн: null,
+  вкл() {
+    if (this.ac || !сейв.звук) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      this.ac = new AC();
+      this.осц = this.ac.createOscillator(); this.осц.type = 'sawtooth';
+      this.фильтр = this.ac.createBiquadFilter(); this.фильтр.type = 'lowpass'; this.фильтр.frequency.value = 900;
+      this.гейн = this.ac.createGain(); this.гейн.gain.value = 0;
+      this.осц.connect(this.фильтр); this.фильтр.connect(this.гейн); this.гейн.connect(this.ac.destination);
+      this.осц.start();
+    } catch (e) { this.ac = null; }
+  },
+  мотор(об, громко) {
+    if (!this.ac || !сейв.звук) return;
+    const t = this.ac.currentTime;
+    this.осц.frequency.setTargetAtTime(55 + об * 105, t, 0.06);
+    this.гейн.gain.setTargetAtTime(громко * 0.05, t, 0.08);
+  },
+  тихо() { if (this.ac) this.гейн.gain.setTargetAtTime(0, this.ac.currentTime, 0.05); }
+};
+
+/* ── Управление ───────────────────────────────────────────── */
+const вх = { gas: 0, brake: 0, lean: 0 };
+const жмут = { gas: false, brake: false, leanBack: false, leanFwd: false };
+function собрать() {
+  вх.gas = жмут.gas ? 1 : 0;
+  вх.brake = жмут.brake ? 1 : 0;
+  вх.lean = (жмут.leanBack ? 1 : 0) - (жмут.leanFwd ? 1 : 0);
+}
+const КЛАВИШИ = {
+  ArrowUp: 'gas', KeyW: 'gas',
+  ArrowDown: 'brake', KeyS: 'brake',
+  ArrowLeft: 'leanBack', KeyA: 'leanBack',
+  ArrowRight: 'leanFwd', KeyD: 'leanFwd'
+};
+addEventListener('keydown', (e) => {
+  if (КЛАВИШИ[e.code]) { жмут[КЛАВИШИ[e.code]] = true; собрать(); звук.вкл(); e.preventDefault(); return; }
+  if (e.code === 'KeyR') { if (игра.тр) старт(игра.лвл); }
+  if (e.code === 'Escape') вменю();
+  if (e.code === 'Space' && $('over').classList.contains('on')) $('ovMain').click();
+});
+addEventListener('keyup', (e) => { if (КЛАВИШИ[e.code]) { жмут[КЛАВИШИ[e.code]] = false; собрать(); e.preventDefault(); } });
+addEventListener('blur', () => { for (const k in жмут) жмут[k] = false; собрать(); });
+
+/* Экранные кнопки. */
+const сенсор = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
+if (сенсор) { $('pad').classList.add('on'); document.body.classList.add('сенсор'); }
+for (const b of document.querySelectorAll('#pad b')) {
+  const k = b.dataset.k;
+  const вкл = (e) => { e.preventDefault(); жмут[k] = true; b.classList.add('hit'); собрать(); звук.вкл(); };
+  const выкл = (e) => { e.preventDefault(); жмут[k] = false; b.classList.remove('hit'); собрать(); };
+  b.addEventListener('pointerdown', вкл);
+  b.addEventListener('pointerup', выкл);
+  b.addEventListener('pointercancel', выкл);
+  b.addEventListener('pointerleave', выкл);
+}
+
+/* ── Состояние игры ───────────────────────────────────────── */
+const игра = { тр: null, бк: null, лвл: null, кам: { x: 0, y: 0, s: 40 }, идёт: false, шторка: false };
+
+function старт(лвл) {
+  игра.лвл = лвл;
+  игра.тр = сделатьТрассу(лвл.seed, лвл.diff);
+  игра.бк = сделатьБайк(игра.тр);
+  игра.кам.x = игра.бк.з.x; игра.кам.y = игра.бк.з.y + 1.5;
+  игра.идёт = true; игра.шторка = false;
+  $('menu').classList.add('off');
+  $('over').classList.remove('on');
+  const рек = сейв.рекорды[лвл.id];
+  $('hudName').innerHTML = ТУРЫ[лвл.тур].имя + ' · трасса ' + (лвл.н + 1) +
+    '<small>' + (рек ? 'рекорд ' + ммсс(рек) : 'рекорда ещё нет') + '</small>';
+  for (const k in жмут) жмут[k] = false;
+  собрать();
+}
+
+function вменю() {
+  игра.идёт = false; игра.тр = null;
+  звук.тихо();
+  $('over').classList.remove('on');
+  $('menu').classList.remove('off');
+  рисоватьМеню();
+}
+
+function итог(победа) {
+  игра.шторка = true;
+  const л = игра.лвл, t = игра.бк.время;
+  let рекорд = false;
+  if (победа) {
+    const б = сейв.рекорды[л.id];
+    if (!б || t < б) { сейв.рекорды[л.id] = t; рекорд = true; }
+    if (сейв.открыто[л.тур] < Math.min(5, л.н + 1)) сейв.открыто[л.тур] = Math.min(5, л.н + 1);
+    сохранить();
+  }
+  const застрял = игра.бк.застрял;
+  $('ovTitle').textContent = победа ? 'Финиш' : застрял ? 'Застрял' : 'Падение';
+  $('ovTime').textContent = победа ? ммсс(t) : застрял ? '⤾' : '✖';
+  $('ovSub').innerHTML = победа
+    ? (рекорд ? '<span class="rec">новый рекорд!</span>'
+      : 'рекорд ' + ммсс(сейв.рекорды[л.id]))
+    : застрял ? 'отсюда не выбраться — с начала' : 'сломал шею — попробуй мягче';
+  $('ovMain').textContent = победа ? (л.н < 5 ? 'Следующая' : 'Ещё раз') : 'Заново';
+  $('over').classList.add('on');
+  звук.тихо();
+  $('ovMain').onclick = () => {
+    if (победа && л.н < 5) старт(уровень(л.тур, л.н + 1));
+    else старт(л);
+  };
+}
+$('ovMenu').onclick = вменю;
+
+/* ── Меню ─────────────────────────────────────────────────── */
+let тек = 0;
+function рисоватьМеню() {
+  const tabs = $('tabs'); tabs.innerHTML = '';
+  ТУРЫ.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.textContent = t.имя;
+    if (i === тек) b.className = 'sel';
+    b.onclick = () => { тек = i; рисоватьМеню(); };
+    tabs.appendChild(b);
+  });
+  const box = $('lvls'); box.innerHTML = '';
+  for (let н = 0; н <= 5; н++) {
+    const л = уровень(тек, н);
+    const открыт = н <= (сейв.открыто[тек] || 0);
+    const рек = сейв.рекорды[л.id];
+    const b = document.createElement('button');
+    b.className = 'lvl' + (открыт ? '' : ' lock');
+    b.innerHTML = '<span class="n">' + (н + 1) + '</span>' +
+      '<span class="t">' + (открыт ? 'Трасса ' + (н + 1) : 'Закрыто') + '</span>' +
+      '<span class="b">' + (рек ? ммсс(рек) : открыт ? '—' : '🔒') + '</span>';
+    if (открыт) b.onclick = () => { звук.вкл(); старт(л); };
+    box.appendChild(b);
+  }
+}
+$('btnSound').onclick = () => {
+  сейв.звук = !сейв.звук; сохранить();
+  $('btnSound').textContent = 'Звук: ' + (сейв.звук ? 'вкл' : 'выкл');
+  if (!сейв.звук) звук.тихо();
+};
+$('btnSound').textContent = 'Звук: ' + (сейв.звук ? 'вкл' : 'выкл');
+$('btnReset').onclick = () => {
+  сейв = { рекорды: {}, открыто: { '0': 0, '1': 0, '2': 0 }, звук: сейв.звук };
+  сохранить(); рисоватьМеню();
+};
+
+/* ── Отрисовка ────────────────────────────────────────────── */
+const ЗЕЛ = '#00c000', ЗЕЛ2 = '#00e400';
+const ГЛУБ = { x: 0.34, y: -0.95 };   // «толщина» ленты рельефа, как в оригинале
+
+function мир() {
+  const s = игра.кам.s;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.translate(W / 2, H / 2);
+  ctx.scale(s, -s);
+  ctx.translate(-игра.кам.x, -игра.кам.y);
+  return s;
+}
+
+function рельеф(s) {
+  const тр = игра.тр, p = тр.точки;
+  const пол = W / 2 / s + 2;
+  const x0 = игра.кам.x - пол, x1 = игра.кам.x + пол;
+  let i = индекс(тр, x0), j = i;
+  while (j < p.length - 1 && p[j].x < x1) j++;
+  j = Math.min(p.length - 1, j + 1);
+
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+  /* Дальняя кромка ленты. */
+  ctx.strokeStyle = ЗЕЛ; ctx.lineWidth = 1.4 / s;
+  ctx.beginPath();
+  for (let k = i; k <= j; k++) {
+    const X = p[k].x + ГЛУБ.x, Y = p[k].y + ГЛУБ.y;
+    k === i ? ctx.moveTo(X, Y) : ctx.lineTo(X, Y);
+  }
+  ctx.stroke();
+
+  /* Поперечины — они и дают объём. */
+  ctx.beginPath();
+  for (let k = i; k <= j; k++) {
+    ctx.moveTo(p[k].x, p[k].y);
+    ctx.lineTo(p[k].x + ГЛУБ.x, p[k].y + ГЛУБ.y);
+  }
+  ctx.stroke();
+
+  /* Ближняя кромка — по ней и едем. */
+  ctx.strokeStyle = ЗЕЛ2; ctx.lineWidth = 2 / s;
+  ctx.beginPath();
+  for (let k = i; k <= j; k++) k === i ? ctx.moveTo(p[k].x, p[k].y) : ctx.lineTo(p[k].x, p[k].y);
+  ctx.stroke();
+}
+
+function флаг(g, s, x, y, двойной) {
+  const пол = (dx, h) => {
+    g.strokeStyle = ЗЕЛ2; g.lineWidth = 1.6 / s;
+    g.beginPath(); g.moveTo(x + dx, y); g.lineTo(x + dx, y + h); g.stroke();
+    g.fillStyle = ЗЕЛ2;
+    g.beginPath();
+    g.moveTo(x + dx, y + h); g.lineTo(x + dx + 1.5, y + h - 0.45); g.lineTo(x + dx, y + h - 0.9);
+    g.closePath(); g.fill();
+  };
+  пол(0, 3.2);
+  if (двойной) пол(-1.3, 2.4);
+}
+
+function колесо(g, s, cx, cy, спин) {
+  const R = ФИЗ.R;
+  g.save();
+  g.translate(cx, cy); g.rotate(спин);
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(0, 0, R - 0.04, 0, 6.2832); g.fill();
+  g.strokeStyle = '#111'; g.lineWidth = 0.075;                 // покрышка
+  g.beginPath(); g.arc(0, 0, R - 0.04, 0, 6.2832); g.stroke();
+  g.strokeStyle = '#888'; g.lineWidth = 1 / s;                  // обод
+  g.beginPath(); g.arc(0, 0, R - 0.11, 0, 6.2832); g.stroke();
+  g.strokeStyle = '#666'; g.lineWidth = 0.9 / s;                // спицы
+  g.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a = i * Math.PI / 5;
+    g.moveTo(Math.cos(a) * (R - 0.11), Math.sin(a) * (R - 0.11));
+    g.lineTo(-Math.cos(a) * (R - 0.11), -Math.sin(a) * (R - 0.11));
+  }
+  g.stroke();
+  g.fillStyle = '#d22';
+  g.beginPath(); g.arc(0, 0, 0.06, 0, 6.2832); g.fill();        // втулка
+  g.restore();
+}
+
+/* Байк рисуется по двум колёсам: где заднее, где переднее — оттуда и наклон. */
+function байк(g, s, з, п, спин, поза) {
+  const ang = Math.atan2(п.y - з.y, п.x - з.x);
+  колесо(g, s, з.x, з.y, спин);
+  колесо(g, s, п.x, п.y, спин);
+
+  g.save();
+  g.translate(з.x, з.y); g.rotate(ang);
+  const L = ФИЗ.БАЗА;
+  const лин = (t, c, w) => {
+    g.strokeStyle = c; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(t[0][0], t[0][1]);
+    for (let i = 1; i < t.length; i++) g.lineTo(t[i][0], t[i][1]);
+    g.stroke();
+  };
+  const фигура = (t, c) => {
+    g.fillStyle = c; g.beginPath();
+    g.moveTo(t[0][0], t[0][1]);
+    for (let i = 1; i < t.length; i++) g.lineTo(t[i][0], t[i][1]);
+    g.closePath(); g.fill();
+  };
+
+  /* Мотоцикл. */
+  лин([[0.06, 0.44], [0.3, 0.4], [0.44, 0.3]], '#999', 0.07);            // глушитель
+  лин([[0, 0], [0.4, 0.2]], '#444', 0.075);                              // маятник
+  фигура([[0.34, 0.12], [0.66, 0.16], [0.68, 0.44], [0.36, 0.44]], '#3a3a3a'); // мотор
+  лин([[0.4, 0.2], [0.52, 0.64], [0.88, 0.6], [L, 0.02]], '#e03030', 0.07);    // рама и вилка
+  лин([[0.52, 0.64], [0.3, 0.56], [0.38, 0.18]], '#e03030', 0.055);      // подрамник
+  фигура([[0.24, 0.56], [0.58, 0.62], [0.6, 0.71], [0.26, 0.65]], '#141414');  // седло
+  фигура([[0.58, 0.6], [0.8, 0.64], [0.82, 0.72], [0.6, 0.7]], '#e03030');     // бак
+  лин([[0.88, 0.6], [0.97, 0.75]], '#333', 0.055);                       // вынос руля
+  лин([[0.9, 0.79], [1.04, 0.71]], '#333', 0.05);                        // руль
+
+  /* Райдер: чуть отклоняется в сторону наклона. */
+  g.save(); g.translate(0.5, 0.6); g.rotate(поза * 0.18); g.translate(-0.5, -0.6);
+  лин([[0.44, 0.66], [0.63, 0.46], [0.5, 0.26]], '#2f4f8f', 0.11);       // нога
+  лин([[0.44, 0.24], [0.58, 0.26]], '#111', 0.08);                       // ботинок
+  лин([[0.45, 0.66], [0.66, 1.0]], '#4a72b8', 0.15);                     // корпус
+  лин([[0.62, 0.96], [0.8, 0.86], [0.99, 0.74]], '#4a72b8', 0.065);      // рука
+  лин([[0.96, 0.72], [1.02, 0.73]], '#111', 0.06);                       // перчатка
+  g.fillStyle = '#e8c33a';                                               // шлем
+  g.beginPath(); g.arc(0.71, 1.11, 0.155, 0, 6.2832); g.fill();
+  фигура([[0.75, 1.19], [0.87, 1.1], [0.85, 1.02], [0.73, 1.02]], '#e8c33a');  // козырёк
+  g.fillStyle = '#1a1a1a';                                               // визор
+  g.beginPath(); g.arc(0.79, 1.08, 0.062, 0, 6.2832); g.fill();
+  g.restore();
+  g.restore();
+}
+
+/* Картинка в шапке меню: байк на заднем колесе над зелёной лентой. */
+function заставка() {
+  const c = $('deco');
+  if (!c) return;
+  const g = c.getContext('2d');
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const ш = 440, в = 150, s = 42;
+  c.width = ш * dpr; c.height = в * dpr;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, ш, в);
+  g.translate(ш / 2, 108); g.scale(s, -s);
+
+  const f = (x) => 0.5 * Math.sin(x * 0.85 + 0.4) - 0.1 * x;
+  const пт = [];
+  for (let x = -5.6; x <= 5.6; x += 0.9) пт.push({ x, y: f(x) });
+
+  g.lineJoin = g.lineCap = 'round';
+  g.strokeStyle = ЗЕЛ; g.lineWidth = 1.4 / s;
+  g.beginPath();
+  пт.forEach((p, i) => (i ? g.lineTo : g.moveTo).call(g, p.x + ГЛУБ.x, p.y + ГЛУБ.y));
+  g.stroke();
+  g.beginPath();
+  for (const p of пт) { g.moveTo(p.x, p.y); g.lineTo(p.x + ГЛУБ.x, p.y + ГЛУБ.y); }
+  g.stroke();
+  g.strokeStyle = ЗЕЛ2; g.lineWidth = 2 / s;
+  g.beginPath();
+  пт.forEach((p, i) => (i ? g.lineTo : g.moveTo).call(g, p.x, p.y));
+  g.stroke();
+
+  const a = 0.62;                                   // задран нос — вилли
+  const з = { x: -0.5, y: f(-0.5) + ФИЗ.R };
+  const п = { x: з.x + Math.cos(a) * ФИЗ.БАЗА, y: з.y + Math.sin(a) * ФИЗ.БАЗА };
+  байк(g, s, з, п, 0.5, 0.6);
+}
+
+function кадр() {
+  const s = игра.кам.s;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  if (!игра.тр) return;
+  мир();
+  рельеф(s);
+  флаг(ctx, s, игра.тр.старт - 2, земля(игра.тр, игра.тр.старт - 2), false);
+  флаг(ctx, s, игра.тр.финиш, земля(игра.тр, игра.тр.финиш), true);
+  байк(ctx, s, игра.бк.з, игра.бк.п, игра.бк.спин, вх.lean);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+/* ── Главный цикл ─────────────────────────────────────────── */
+let прошл = 0, копил = 0;
+const ШАГ = 1 / 120;
+
+function цикл(t) {
+  requestAnimationFrame(цикл);
+  if (!прошл) прошл = t;
+  const dt = Math.min(0.05, (t - прошл) / 1000);
+  прошл = t;
+  if (!W || cv.clientWidth !== W || cv.clientHeight !== H) размер();
+
+  if (игра.идёт && игра.тр) {
+    копил += dt;
+    let n = 0;
+    while (копил >= ШАГ && n++ < 12) { шаг(игра.бк, игра.тр, вх, ШАГ); копил -= ШАГ; }
+
+    const бк = игра.бк, тр = игра.тр;
+    /* Камера: середина байка + упреждение по скорости. */
+    const cxx = (бк.з.x + бк.п.x) / 2, cyy = (бк.з.y + бк.п.y) / 2;
+    const вперёд = Math.max(-3, Math.min(5, бк.з.vx * 0.32));
+    игра.кам.s = Math.min(W / 11, H / 9);   // видно и байк, и что впереди
+    игра.кам.x += (cxx + вперёд - игра.кам.x) * Math.min(1, dt * 6);
+    игра.кам.y += (cyy + 1.2 - игра.кам.y) * Math.min(1, dt * 4);
+
+    const об = Math.min(1, Math.hypot(бк.з.vx, бк.з.vy) / ФИЗ.МАКС);
+    звук.мотор(бк.упал ? 0.1 : об * 0.7 + вх.gas * 0.3, бк.упал ? 0 : (вх.gas ? 1 : 0.35));
+
+    $('time').textContent = ммсс(бк.время);
+    const дл = тр.финиш - тр.старт;
+    $('barFill').style.width = Math.max(0, Math.min(100, (бк.з.x - тр.старт) / дл * 100)) + '%';
+
+    if (!игра.шторка) {
+      if (бк.финиш) итог(true);
+      else if (бк.упал && бк.мёртв > 0.9) итог(false);
+    }
+  }
+  кадр();
+}
+
+/* ── Пуск ─────────────────────────────────────────────────── */
+размер();
+рисоватьМеню();
+заставка();
+requestAnimationFrame(цикл);
+
+/* Telegram Mini App — если открыли внутри мессенджера. */
+try {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) { tg.ready(); tg.expand(); if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); }
+} catch (e) {}
+
+/* Тап по шторке падения = «заново». */
+$('over').addEventListener('pointerdown', (e) => {
+  if (e.target.tagName !== 'BUTTON' && игра.бк && игра.бк.упал) $('ovMain').click();
+});
+
+window.ГД = { игра, старт, уровень, ФИЗ, сделатьТрассу, сделатьБайк, шаг };
+})();
+</script>
+</body>
+</html>

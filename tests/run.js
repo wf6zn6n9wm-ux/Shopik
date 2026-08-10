@@ -9,7 +9,7 @@ const path = require('path');
 
 const ВСЕ = ['source', 'layout', 'smoke', 'state', 'money', 'games', 'economy',
              'hero', 'bonus', 'referral', 'daily', 'fee', 'crash', 'avatar', 'server',
-             'withdraw'];
+             'withdraw', 'gravity', 'gravity-ui'];
 
 const выбор = process.argv.slice(2);
 const список = выбор.length ? выбор : ВСЕ;
