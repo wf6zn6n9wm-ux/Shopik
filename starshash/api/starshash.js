@@ -1073,7 +1073,33 @@ module.exports = async (req, res) => {
       }
       путь += '&order=' + (q ? 'created_at.desc' : 'bal.desc') + '&limit=100';
       const rows = await sb(путь) || [];
-      res.status(200).json({ ok: true, rows });
+
+      /* К списку добавляем итоги за месяц: `wagered` и `won` в самой
+         строке считаются за всё время и на вопрос «что человек делал в
+         августе» не отвечают. Месяц берём тот же, что и на других
+         вкладках, — иначе числа рядом друг с другом означали бы разное. */
+      const м = /^\d{4}-(0[1-9]|1[0-2])$/.test(String(body.month || ''))
+        ? String(body.month) : new Date().toISOString().slice(0, 7);
+      const [г1, м1] = м.split('-').map(Number);
+      const от = new Date(Date.UTC(г1, м1 - 1, 1)).toISOString();
+      const до = new Date(Date.UTC(г1, м1, 1)).toISOString();
+      const движения = await sb('sh_tx?created_at=gte.' + encodeURIComponent(от) +
+        '&created_at=lt.' + encodeURIComponent(до) +
+        '&select=tg_id,kind,amount&limit=100000') || [];
+      const итог = {};
+      движения.forEach(r => {
+        const id = String(r.tg_id), a = Number(r.amount) || 0;
+        const о = итог[id] || (итог[id] = { topup: 0, win: 0, bet: 0, wd: 0 });
+        if (r.kind === 'topup') о.topup += a;
+        else if (r.kind === 'win') о.win += a;
+        else if (r.kind === 'bet') о.bet += Math.abs(a);
+        else if (r.kind === 'withdraw') о.wd += Math.abs(a);
+      });
+      rows.forEach(u => {
+        const о = итог[String(u.tg_id)] || { topup: 0, win: 0, bet: 0, wd: 0 };
+        u.m = { topup: round6(о.topup), win: round6(о.win), bet: round6(о.bet), wd: round6(о.wd) };
+      });
+      res.status(200).json({ ok: true, month: м, rows });
       return;
     }
 
