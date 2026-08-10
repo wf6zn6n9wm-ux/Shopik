@@ -61,14 +61,20 @@ const жди = async (p,усл,мс=30000)=>{ const t0=Date.now();
       document.querySelectorAll('#cHist > *').length>=5),
       await p.evaluate(()=>[...document.querySelectorAll('#cHist > *')].slice(0,5).map(e=>e.textContent).join(' ')));
 
-  /* Лента иксов стоит у кнопки, а не в шапке: по ней человек решает,
-     ставить ли, и держать её на другом конце экрана незачем. */
+  /* Лента лежит на самой панели, в левом нижнем углу: там же летит
+     ракета, и взгляд не уходит с картинки ради истории. */
   const лента=await p.evaluate(()=>{
+    const c=document.getElementById('cStage').getBoundingClientRect();
     const h=document.getElementById('cHist').getBoundingClientRect();
-    const g=document.getElementById('cGo').getBoundingClientRect();
-    return {надКнопкой:h.bottom<=g.top+1, зазор:Math.round(g.top-h.bottom)};
+    const m=document.getElementById('cMult').getBoundingClientRect();
+    return {внутри: h.left>=c.left-1 && h.right<=c.right+1 && h.bottom<=c.bottom+1 && h.top>=c.top-1,
+            слева: h.left-c.left<20, снизу: c.bottom-h.bottom<20,
+            неНаМножителе: h.right<=m.left+1 || h.top>=m.bottom-1,
+            отступы:Math.round(h.left-c.left)+'/'+Math.round(c.bottom-h.bottom)};
   });
-  say('лента множителей стоит над кнопкой ставки', лента.надКнопкой, 'зазор '+лента.зазор+'px');
+  say('лента лежит на панели слева внизу',
+      лента.внутри && лента.слева && лента.снизу, 'отступы '+лента.отступы);
+  say('лента не налезает на множитель', лента.неНаМножителе);
   /* Боковая прокрутка включает и вертикальную: без явной высоты ряд
      обрезал чипы ровно посередине цифр, и читались они как мусор. */
   const чип=await p.evaluate(()=>{
@@ -98,22 +104,6 @@ const жди = async (p,усл,мс=30000)=>{ const t0=Date.now();
       строки.length+' строк: '+строки.map(r=>r.кл.replace('cpr','').trim()||'—').join(', '));
   await p.waitForTimeout(2800);
 
-  console.log('— авто-вывод по-прежнему срабатывает —');
-  await p.fill('#cAutoMult','1.05');
-  await p.evaluate(()=>{document.getElementById('cAutoMult').dispatchEvent(new Event('input',{bubbles:true}));
-    const c=document.getElementById('cAutoChk'); if(!c.checked) c.click();});
-  let сработал=false;
-  for(let i=0;i<6 && !сработал;i++){
-    await жди(p,()=>!document.getElementById('cGo').disabled &&
-                    /Войти|Ставк|Играть/i.test(document.getElementById('cGo').textContent));
-    const было=await p.evaluate(()=>JSON.parse(localStorage.getItem('starshash_state')).gm.n||0);
-    await p.click('#cGo');
-    await жди(p,()=>document.getElementById('cMult').className.includes('boom'),35000);
-    const з=await p.evaluate(()=>JSON.parse(localStorage.getItem('starshash_state')).gm.l[0]);
-    if(з && з.w>0) сработал=true;
-    await p.waitForTimeout(2600);
-  }
-  say('авто-вывод забрал банк хотя бы раз', сработал);
   await p.close();
 
   /* Музыка раунда. Внутрь приложения не заглянуть — весь код живёт в

@@ -750,19 +750,7 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
 #pChips .ownchip,#cChips .ownchip{padding:0 9px;gap:4px;}
 #pChips .ownchip input,#cChips .ownchip input{width:40px;}
 
-/* авто-вывод */
-.cauto{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
-.cauto .lb{font-size:13px;color:var(--ink-2);font-weight:500;margin-right:auto;}
-.cstep{
-  display:flex;align-items:center;height:40px;padding:0 3px;border-radius:13px;
-  background:#0E0E10;border:1px solid var(--line);
-}
-.cstep button{width:30px;height:100%;color:var(--gold);font-size:18px;font-weight:600;line-height:1;}
-.cstep input{
-  width:46px;background:none;border:0;outline:none;color:var(--ink);text-align:center;
-  font-family:inherit;font-size:13.5px;font-weight:600;
-}
-.cstep .x{color:var(--ink-3);font-size:12px;padding-right:5px;}
+/* переключатель — остался у настроек в профиле */
 .cswitch{position:relative;width:46px;height:27px;flex:0 0 auto;}
 .cswitch input{position:absolute;inset:0;margin:0;opacity:0;}
 .cswitch .tr{position:absolute;inset:0;border-radius:99px;background:#24242B;transition:background .25s;}
@@ -792,13 +780,19 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
 .cpr .mx{font-size:12px;font-weight:700;color:var(--ink-2);width:52px;text-align:right;flex:0 0 auto;}
 /* Лента у кнопки: шире, чем в шапке, и переносить её нельзя — иначе
    строка иксов на узком экране разъедется на две и утащит кнопку вниз. */
-/* Высоту задаём явно: боковая прокрутка включает и вертикальную, и без
-   этого ряд обрезал чипы ровно посередине цифр. */
-.chist{margin:0 0 10px;gap:6px;height:34px;flex:0 0 auto;
+/* Лента лежит на самой панели, в левом нижнем углу — там, где летит
+   ракета, и взгляд не уходит с картинки. Ширину не даём во всю панель:
+   правый край занимает множитель, налезать на него нельзя. Высоту
+   задаём явно — боковая прокрутка включает и вертикальную, а без этого
+   ряд обрезал чипы ровно посередине цифр. */
+.chist{position:absolute;left:10px;bottom:9px;max-width:calc(100% - 20px);
+  z-index:2;gap:4px;height:22px;
   overflow-x:auto;overflow-y:hidden;
   -webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .chist::-webkit-scrollbar{display:none;}
-.chist i{flex:0 0 auto;font-size:12px;padding:6px 10px;border-radius:10px;}
+.chist i{flex:0 0 auto;font-size:9.5px;padding:3px 6px;border-radius:7px;
+  background:rgba(0,0,0,.42);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);}
+.chist i.hi{background:rgba(228,192,120,.2);color:var(--gold);}
 
 /* Итог раунда виден по цвету строки, не вчитываясь в числа: поставил —
    спокойный синий, забрал — зелёный, не успел — красный. Проигравших
@@ -2092,6 +2086,9 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
         <span class="t" data-i18n="g_crash">Краш</span>
       </div>
       <div class="cstage" id="cStage">
+        <!-- Прошлые множители лежат прямо на панели, в левом нижнем углу:
+             там же, где летит ракета, и взгляд не уходит с картинки. -->
+        <div class="hist chist" id="cHist"></div>
         <canvas id="cCanvas"></canvas>
         <div class="cmult num" id="cMult">1.00×</div>
         <div class="cphase" id="cPhase"><i></i><span id="cPhaseTxt">Раунд идёт</span></div>
@@ -2121,21 +2118,6 @@ html[lang="uk"] #cgMult{transform:translate(12px,-17px);}
         <button data-cbet="1000">1000</button>
       </div>
 
-      <div class="cauto">
-        <span class="lb" data-i18n="auto_cash">Авто-вывод</span>
-        <div class="cstep">
-          <button type="button" id="cAutoDn">−</button>
-          <input id="cAutoMult" class="num" inputmode="decimal" value="2.00">
-          <span class="x">×</span>
-          <button type="button" id="cAutoUp">+</button>
-        </div>
-        <label class="cswitch"><input type="checkbox" id="cAutoChk"><span class="tr"></span></label>
-      </div>
-
-      <!-- Прошлые множители держим у самой кнопки: по ним человек и
-           решает, ставить ли, а в шапке экрана они оказывались дальше
-           всего от места, где решение принимается. -->
-      <div class="hist chist" id="cHist"></div>
       <button class="btn-buy" id="cGo">Поставить 100 ★</button>
       <div class="cplayers" id="cPlayers"></div>
     </div>
@@ -3139,7 +3121,7 @@ ru:{
  soon:'Раздел откроется в следующем обновлении',
  g_crash:'Краш', g_crash_d:'Успей забрать до обрыва',
  g_pvp:'ПВП', g_pvp_d:'Победитель забирает банк',
- auto_cash:'Авто-вывод', round_live:'Раунд идёт', round_over:'Раунд окончен',
+ round_live:'Раунд идёт', round_over:'Раунд окончен',
  waiting:'Ожидание', next_round:'Следующий раунд', busted:'Улетел',
  players:'Игроки', bet_payout:'Ставка · выплата',
  pot:'Общий банк', wait_players:'Ждём игроков', draw_in:'Розыгрыш через {n} сек',
@@ -3254,7 +3236,7 @@ en:{
  soon:'This section opens in the next update',
  g_crash:'Crash', g_crash_d:'Cash out before it breaks',
  g_pvp:'PvP', g_pvp_d:'Winner takes the pot',
- auto_cash:'Auto cash-out', round_live:'Round in progress', round_over:'Round over',
+ round_live:'Round in progress', round_over:'Round over',
  waiting:'Waiting', next_round:'Next round', busted:'Busted',
  players:'Players', bet_payout:'Bet · payout',
  pot:'Total pot', wait_players:'Waiting for players', draw_in:'Draw in {n} sec',
@@ -3369,7 +3351,7 @@ uk:{
  soon:'Розділ відкриється в наступному оновленні',
  g_crash:'Краш', g_crash_d:'Встигни забрати до обриву',
  g_pvp:'ПВП', g_pvp_d:'Переможець забирає банк',
- auto_cash:'Авто-виведення', round_live:'Раунд триває', round_over:'Раунд завершено',
+ round_live:'Раунд триває', round_over:'Раунд завершено',
  waiting:'Очікування', next_round:'Наступний раунд', busted:'Обірвався',
  players:'Гравці', bet_payout:'Ставка · виплата',
  pot:'Спільний банк', wait_players:'Чекаємо гравців', draw_in:'Розіграш через {n} сек',
@@ -4613,14 +4595,13 @@ var FIGHTERS=[
         waitRing=document.getElementById('cWaitRing'), waitNum=document.getElementById('cWaitNum'),
         chips=document.getElementById('cChips'), goBtn=document.getElementById('cGo'),
         own=document.getElementById('cOwn'), ownWrap=document.getElementById('cOwnWrap'),
-        histEl=document.getElementById('cHist'), listEl=document.getElementById('cPlayers'),
-        autoInp=document.getElementById('cAutoMult'), autoChk=document.getElementById('cAutoChk');
+        histEl=document.getElementById('cHist'), listEl=document.getElementById('cPlayers');
 
     var COLORS=['#8FA6C4','#C08A9E','#8FC4A8','#C4B08F','#A79AC4'];
     var BETS=[50,100,250,500,1000];
 
     var phase='waiting', raf=null, cdTimer=null, mult=1, target=0, t0=0, cd=5,
-        bots=[], hist=CH.slice(0,12), stake=100, joined=false, cashed=false, live=false, autoOn=false, autoAt=2;
+        bots=[], hist=CH.slice(0,12), stake=100, joined=false, cashed=false, live=false;
     /* settled — расчёт по серверу уже запрошен (второй раз не шлём);
        capX — потолок множителя, до которого сервер вообще может дотянуть
        обрыв: без него серверный раунд, где точка обрыва скрыта, летел бы
@@ -4805,7 +4786,6 @@ var FIGHTERS=[
 
       if(joined&&!cashed){
         updBtn();
-        if(autoOn && mult>=autoAt) cashout();
       }
       /* серверный раунд нельзя тянуть вечно: у потолка просим расчёт, и
          сервер вернёт свою точку обрыва — там лента и лопнет */
@@ -4873,21 +4853,18 @@ var FIGHTERS=[
     }
 
     function войти(){
-      bots.unshift({id:'me',n:t('you'),me:true,bet:stake,at:autoOn?autoAt:999,st:'live',took:0});
+      bots.unshift({id:'me',n:t('you'),me:true,bet:stake,at:999,st:'live',took:0});
       renderPlayers(); updBtn(); haptic('medium');
     }
     function join(){
       if(joined||phase!=='waiting') return;
       if(stake>bal){ haptic('warning'); goBtn.textContent=t('no_stars');
         setTimeout(updBtn,1400); return; }
-      autoOn=autoChk.checked;
-      var am=parseFloat(String(autoInp.value).replace(',','.'));
-      autoAt=(am&&am>1)?am:2;
       if(онлайн()){
         /* ставку принимает сервер: он спишет её и втайне выберет точку
            обрыва. Локально баланс не трогаем. */
         goBtn.disabled=true;
-        SRV.raw('crash_bet',{amount:stake, auto: autoOn?autoAt:0}).then(function(о){
+        SRV.raw('crash_bet',{amount:stake}).then(function(о){
           goBtn.disabled=false;
           if(!о || !о.ok){ haptic('warning');
             if(о && о.reason==='not_enough'){ goBtn.textContent=t('no_stars'); setTimeout(updBtn,1400); }
@@ -4954,14 +4931,6 @@ var FIGHTERS=[
       if(joined || own.value) return;
       preset(100); updBtn();
     });
-    function stepAuto(d){
-      var v=parseFloat(String(autoInp.value).replace(',','.'))||2;
-      v=Math.max(1.1,Math.round((v+d)*10)/10);
-      autoInp.value=v.toFixed(2); haptic('light');
-    }
-    document.getElementById('cAutoUp').addEventListener('click',function(){ stepAuto(0.1); });
-    document.getElementById('cAutoDn').addEventListener('click',function(){ stepAuto(-0.1); });
-
     RERENDER.push(function(){
       sizeOwn();
       phaseTxt.textContent = phase==='waiting'?t('waiting'):phase==='flying'?t('round_live'):t('busted');
