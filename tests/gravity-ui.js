@@ -67,6 +67,18 @@ async function кФинишу(стр) {
   await стр.waitForTimeout(200);
   ок((await стр.locator('#гараж .тр').count()) === 5, 'пять видов транспорта');
   ок((await стр.locator('#гараж .тр.выбран').count()) === 1, 'один выбран — велосипед');
+  /* По умолчанию открыт весь транспорт — чтобы можно было просто покататься. */
+  ок((await стр.locator('#гараж .тр button:not([disabled])').count()) === 4,
+    'при «всё открыто» любой транспорт можно выбрать');
+  ок((await стр.locator('#гараж .тр button').allTextContents()).join(' ').indexOf('Купить') < 0,
+    'кнопок покупки в этом режиме нет');
+
+  /* Переключаем на честные правила: транспорт по уровням и за звёзды. */
+  await стр.locator('#tabs button').nth(0).click();
+  await стр.click('#btnAll');
+  ок((await стр.textContent('#btnAll')).includes('по уровням'), 'кнопка переключает на правила');
+  await стр.locator('#tabs button').nth(1).click();
+  await стр.waitForTimeout(200);
   const ценники = await стр.locator('#гараж .тр button').allTextContents();
   ок(ценники.join(' ').includes('100') && ценники.join(' ').includes('500'),
     'цены видны на кнопках покупки');
@@ -209,6 +221,66 @@ async function кФинишу(стр) {
   ок((await стр.textContent('#btnStyle')).includes('ретро'), 'дальше — ретро');
   await стр.click('#btnStyle');
   ок((await стр.textContent('#btnStyle')).includes('цветной'), 'и по кругу обратно к цветному');
+
+  /* ── Звук ───────────────────────────────────────────────── */
+  console.log('\nзвук');
+  await стр.evaluate(() => { window.ГД.получитьСейв().выбран = 'velo'; window.ГД.сохранить(); });
+  await стр.locator('#сетка .кл').first().click();
+  await стр.waitForTimeout(200);
+  await стр.keyboard.down('ArrowUp');
+  await стр.waitForTimeout(400);
+  await стр.keyboard.up('ArrowUp');
+  const звукВело = await стр.evaluate(() => window.ГД.звук.вид);
+  ок(звукВело === 'вело' || звукВело === null,
+    'на велосипеде собрана велосипедная цепочка' + (звукВело ? '' : ' (звук в этой сборке недоступен)'));
+  if (звукВело) {
+    const узлы = await стр.evaluate(() => Object.keys(window.ГД.звук.у));
+    ок(узлы.indexOf('тик') >= 0 && узлы.indexOf('ветер') >= 0,
+      'у велосипеда трещотка и шелест покрышек, а не мотор');
+    await стр.evaluate(() => window.ГД.вменю());
+    await стр.evaluate(() => { window.ГД.получитьСейв().выбран = 'cross'; window.ГД.сохранить(); });
+    await стр.locator('#сетка .кл').first().click();
+    await стр.waitForTimeout(250);
+    const свед = await стр.evaluate(() => ({ вид: window.ГД.звук.вид, узлы: Object.keys(window.ГД.звук.у) }));
+    ок(свед.вид === 'кросс', 'на кроссовом цепочка пересобралась');
+    ок(свед.узлы.indexOf('выхлоп') >= 0 && свед.узлы.indexOf('тик') < 0,
+      'у мотоцикла выхлоп и мотор вместо трещотки');
+    await стр.evaluate(() => window.ГД.вменю());
+    ок((await стр.evaluate(() => window.ГД.звук.у)) === null, 'в меню звук глушится полностью');
+  }
+
+  /* Громкость меряем объективно: рендерим две секунды каждого транспорта
+     в OfflineAudioContext. Раньше звук резал уши — теперь за этим следит
+     проверка, а не ухо. */
+  const уровни = await стр.evaluate(async () => {
+    const { звук, ТРАНСПОРТ } = window.ГД;
+    const итог = [];
+    for (const т of ТРАНСПОРТ) {
+      const off = new OfflineAudioContext(1, 44100 * 2, 44100);
+      const з = Object.assign(Object.create(Object.getPrototypeOf(звук)), звук);
+      з.ac = off; з.у = null;
+      const мягко = off.createBiquadFilter(); мягко.type = 'lowpass'; мягко.frequency.value = 3200;
+      const жим = off.createDynamicsCompressor(); жим.threshold.value = -18; жим.ratio.value = 6;
+      з.мастер = off.createGain(); з.мастер.gain.value = 1;
+      з.мастер.connect(мягко); мягко.connect(жим); жим.connect(off.destination);
+      з.буфер = off.createBuffer(1, 44100 * 2, 44100);
+      const d = з.буфер.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      з.собрать(т);
+      з.кадр({ т, упал: false, з: { vx: т.макс * 0.7, vy: 0, на: true }, п: { на: true } },
+             { gas: 1, brake: 0, lean: 0 });
+      const ch = (await off.startRendering()).getChannelData(0);
+      let пик = 0, сум = 0;
+      for (let i = 22050; i < ch.length; i++) { const a = Math.abs(ch[i]); if (a > пик) пик = a; сум += ch[i] * ch[i]; }
+      итог.push({ имя: т.имя, пик, rms: Math.sqrt(сум / (ch.length - 22050)) });
+    }
+    return итог;
+  });
+  const тихий = уровни.every((у) => у.пик < 0.5 && у.rms > 0.008 && у.rms < 0.12);
+  ок(тихий, 'звук у всех в безопасной громкости: ' +
+    уровни.map((у) => у.имя.slice(0, 5) + ' ' + у.rms.toFixed(3)).join(', '));
+  const разброс = Math.max(...уровни.map((у) => у.rms)) / Math.min(...уровни.map((у) => у.rms));
+  ок(разброс < 2.5, 'ни один транспорт не громче остальных в разы (разброс ×' + разброс.toFixed(1) + ')');
 
   ок(ошибки.length === 0, 'в консоли пусто' + (ошибки.length ? ': ' + ошибки[0] : ''));
 

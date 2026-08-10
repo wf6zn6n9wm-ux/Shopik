@@ -182,6 +182,7 @@
         <kbd>R</kbd> заново &nbsp; <kbd>Esc</kbd> меню &nbsp; на телефоне — экранные кнопки
       </div>
       <div class="foot">
+        <button id="btnAll">Транспорт: всё открыто</button>
         <button id="btnStyle">Вид: цветной</button>
         <button id="btnSound">Звук: вкл</button>
         <button id="btnReset">Сбросить прогресс</button>
@@ -250,15 +251,15 @@ const ТРАНСПОРТ = [
     о: 'Мотор-колесо и батарея на раме. Тянет в горку сам.' },
   { id: 'moto', имя: 'Мотоцикл', цена: 200, открыт: 20,
     тяга: 31, макс: 19, реакция: 5.2, момент: 11, база: 1.18, r: 0.33, отскок: 0.22,
-    вид: 'мото', рама: '#e03030', акцент: '#a81f1f',
+    вид: 'мото', тон: 1, рама: '#e03030', акцент: '#a81f1f',
     о: 'Обычный дорожный. Первая настоящая тяга и первые вилли.' },
   { id: 'enduro', имя: 'Эндуро', цена: 300, открыт: 30,
     тяга: 37, макс: 22, реакция: 6.1, момент: 10.5, база: 1.26, r: 0.35, отскок: 0.26,
-    вид: 'эндуро', рама: '#f0a020', акцент: '#b87413',
+    вид: 'эндуро', тон: 1.14, рама: '#f0a020', акцент: '#b87413',
     о: 'Длинноходная подвеска и крылья. Держит приземления.' },
   { id: 'cross', имя: 'Кроссовый', цена: 500, открыт: 40,
     тяга: 44, макс: 25.5, реакция: 6.9, момент: 10, база: 1.32, r: 0.37, отскок: 0.3,
-    вид: 'кросс', рама: '#7048e8', акцент: '#4c2fa8',
+    вид: 'кросс', тон: 1.34, рама: '#7048e8', акцент: '#4c2fa8',
     о: 'Злая кроссовая резина и максимум тяги. Для последних туров.' }
 ];
 const поТранспорту = (id) => ТРАНСПОРТ.find((т) => т.id === id) || ТРАНСПОРТ[0];
@@ -615,7 +616,7 @@ const ЗВЕЗДА = '<svg class="zv" viewBox="0 0 24 24" aria-hidden="true">' +
 /* ── Сохранения ───────────────────────────────────────────── */
 const КЛЮЧ = 'gd_v2';
 const ПУСТО = () => ({ рекорды: {}, пройдено: [], звёзды: 0, куплено: ['velo'],
-                       выбран: 'velo', звук: true, стиль: 'цвет' });
+                       выбран: 'velo', звук: true, стиль: 'цвет', всёОткрыто: true });
 let сейв = ПУСТО();
 try {
   const s = JSON.parse(localStorage.getItem(КЛЮЧ) || 'null');
@@ -624,6 +625,7 @@ try {
     if (!Array.isArray(сейв.пройдено)) сейв.пройдено = [];
     if (!Array.isArray(сейв.куплено) || !сейв.куплено.length) сейв.куплено = ['velo'];
     if (typeof сейв.звёзды !== 'number' || !isFinite(сейв.звёзды)) сейв.звёзды = 0;
+    сейв.всёОткрыто = сейв.всёОткрыто !== false;
   }
 } catch (e) { /* битое сохранение — играем с чистого листа */ }
 function сохранить() { try { localStorage.setItem(КЛЮЧ, JSON.stringify(сейв)); } catch (e) {} }
@@ -632,37 +634,206 @@ const пройден = (н) => сейв.пройдено.indexOf(н) >= 0;
 /* Уровень открыт, если пройден предыдущий. */
 const открыт = (н) => н === 1 || пройден(н - 1);
 const следующий = () => { for (let н = 1; н <= ВСЕГО; н++) if (!пройден(н)) return н; return ВСЕГО; };
-/* Транспорт доступен: куплен или открыт по достигнутому уровню. */
-const доступен = (т) => сейв.куплено.indexOf(т.id) >= 0 || следующий() >= т.открыт;
+/* Транспорт доступен: куплен, открыт по достигнутому уровню или включён
+   режим «всё открыто» — он нужен, чтобы просто покататься на любом. */
+const доступен = (т) => сейв.всёОткрыто || сейв.куплено.indexOf(т.id) >= 0 || следующий() >= т.открыт;
 
 const ммсс = (t) => {
   const м = Math.floor(t / 60), с = t - м * 60;
   return м + ':' + (с < 10 ? '0' : '') + с.toFixed(2);
 };
 
-/* ── Звук: простой мотор на осцилляторе ───────────────────── */
+/* ── Звук ─────────────────────────────────────────────────────
+   У каждого транспорта своя цепочка. Велосипед — шелест покрышек,
+   ветер и щелчки трещотки (шум, который «нарезает» квадратный LFO);
+   электро добавляет к этому тихий вой мотор-колеса; мотоциклы — две
+   расстроенные пилы с шумом выхлопа и переключением передач.
+   Всё идёт через мягкий фильтр и компрессор, чтобы не резало уши. */
 const звук = {
-  ac: null, осц: null, фильтр: null, гейн: null,
-  вкл() {
-    if (this.ac || !сейв.звук) return;
+  ac: null, мастер: null, буфер: null, у: null, вид: null,
+
+  старт() {
+    if (this.ac) return;
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     try {
-      this.ac = new AC();
-      this.осц = this.ac.createOscillator(); this.осц.type = 'sawtooth';
-      this.фильтр = this.ac.createBiquadFilter(); this.фильтр.type = 'lowpass'; this.фильтр.frequency.value = 900;
-      this.гейн = this.ac.createGain(); this.гейн.gain.value = 0;
-      this.осц.connect(this.фильтр); this.фильтр.connect(this.гейн); this.гейн.connect(this.ac.destination);
-      this.осц.start();
+      const ac = this.ac = new AC();
+      const мягко = ac.createBiquadFilter();
+      мягко.type = 'lowpass'; мягко.frequency.value = 3200;
+      const жим = ac.createDynamicsCompressor();
+      жим.threshold.value = -18; жим.ratio.value = 6;
+      this.мастер = ac.createGain();
+      this.мастер.gain.value = сейв.звук ? 1 : 0;
+      this.мастер.connect(мягко); мягко.connect(жим); жим.connect(ac.destination);
+      const n = Math.floor(ac.sampleRate * 2);
+      this.буфер = ac.createBuffer(1, n, ac.sampleRate);
+      const d = this.буфер.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
     } catch (e) { this.ac = null; }
+    if (this.ac && игра.бк) this.собрать(игра.бк.т);
   },
-  мотор(об, громко) {
+
+  громкость() { if (this.ac) this.мастер.gain.value = сейв.звук ? 1 : 0; },
+
+  _шум() { const s = this.ac.createBufferSource(); s.buffer = this.буфер; s.loop = true; s.start(); return s; },
+  _ф(тип, част, q) {
+    const f = this.ac.createBiquadFilter();
+    f.type = тип; f.frequency.value = част; if (q != null) f.Q.value = q;
+    return f;
+  },
+  _г(v) { const g = this.ac.createGain(); g.gain.value = v; return g; },
+  _осц(тип, част, расстрой) {
+    const o = this.ac.createOscillator();
+    o.type = тип; o.frequency.value = част;
+    if (расстрой) o.detune.value = расстрой;
+    o.start(); return o;
+  },
+
+  разобрать() {
+    if (!this.у) return;
+    for (const n of this.у.живые) { try { n.stop(); } catch (e) {} try { n.disconnect(); } catch (e) {} }
+    this.у = null; this.вид = null;
+  },
+
+  /* Собирает цепочку под конкретный транспорт. */
+  собрать(т) {
+    if (!this.ac) return;
+    this.разобрать();
+    const у = { живые: [] };
+    const вело = т.вид === 'вело' || т.вид === 'эвело';
+
+    if (вело) {
+      const ист = this._шум(); у.живые.push(ист);
+      у.ветерФ = this._ф('lowpass', 500);
+      у.ветер = this._г(0);
+      ист.connect(у.ветерФ); у.ветерФ.connect(у.ветер); у.ветер.connect(this.мастер);
+      /* Трещотка: узкополосный шум, прерываемый квадратным LFO. */
+      const тб = this._ф('bandpass', 2600, 5);
+      у.тик = this._г(0);
+      ист.connect(тб); тб.connect(у.тик); у.тик.connect(this.мастер);
+      у.лфо = this._осц('square', 6); у.живые.push(у.лфо);
+      у.лфоГейн = this._г(0);
+      у.лфо.connect(у.лфоГейн); у.лфоГейн.connect(у.тик.gain);
+      if (т.вид === 'эвело') {                       // тихий вой мотор-колеса
+        у.мотор = this._г(0);
+        const лп = this._ф('lowpass', 1700);
+        у.о1 = this._осц('triangle', 300); у.о2 = this._осц('sine', 600);
+        у.живые.push(у.о1, у.о2);
+        у.о1.connect(лп); у.о2.connect(лп); лп.connect(у.мотор); у.мотор.connect(this.мастер);
+      }
+    } else {
+      у.мотор = this._г(0);
+      у.лп = this._ф('lowpass', 800);
+      у.о1 = this._осц('sawtooth', 60);
+      у.о2 = this._осц('sawtooth', 60, 12);
+      у.живые.push(у.о1, у.о2);
+      у.о1.connect(у.лп); у.о2.connect(у.лп);
+      if (т.вид === 'кросс') {                       // кроссовому добавляем «звона»
+        у.о3 = this._осц('square', 120, -9); у.живые.push(у.о3);
+        const тише = this._г(0.35); у.о3.connect(тише); тише.connect(у.лп);
+      }
+      у.лп.connect(у.мотор); у.мотор.connect(this.мастер);
+      const ист = this._шум(); у.живые.push(ист);
+      у.выхлопФ = this._ф('bandpass', 800, 1.2);
+      у.выхлоп = this._г(0);
+      ист.connect(у.выхлопФ); у.выхлопФ.connect(у.выхлоп); у.выхлоп.connect(this.мастер);
+    }
+    this.у = у; this.вид = т.вид;
+  },
+
+  /* Каждый кадр подгоняет высоту и громкость под скорость и газ. */
+  кадр(бк, вх) {
+    if (!this.ac || !this.у) return;
+    const у = this.у, т = бк.т, t = this.ac.currentTime;
+    const п = (пар, знач, за) => пар.setTargetAtTime(знач, t, за || 0.08);
+    const v = Math.hypot(бк.з.vx, бк.з.vy);
+    const доля = Math.min(1, v / т.макс);
+    const воздух = !бк.з.на && !бк.п.на;
+    const газ = бк.упал ? 0 : вх.gas;
+    const тишь = бк.упал ? 0.15 : 1;
+
+    if (у.тик) {                                     // велосипед и электро
+      п(у.ветерФ.frequency, 320 + доля * 900);
+      п(у.ветер.gain, доля * доля * 0.3 * тишь);
+      п(у.лфо.frequency, Math.max(1, Math.min(55, v / т.r * 0.75)), 0.05);
+      const щёлк = (воздух ? 0.15 : 1) * (газ ? 0.45 : 1) * Math.min(1, v / 3) * 0.17 * тишь;
+      п(у.тик.gain, щёлк); п(у.лфоГейн.gain, щёлк);
+      if (у.мотор) {
+        п(у.о1.frequency, 250 + доля * 540);
+        п(у.о2.frequency, 500 + доля * 1080);
+        п(у.мотор.gain, (газ ? 0.034 : 0.009) * (воздух ? 0.35 : 1) * тишь);
+      }
+      return;
+    }
+    /* Мотоциклы: четыре «передачи», на каждой обороты растут заново. */
+    const шагС = т.макс / 4;
+    const пер = Math.min(3, Math.floor(v / шагС));
+    const об = Math.min(1, (v - пер * шагС) / шагС);
+    const част = (44 + пер * 6 + об * 58 + (воздух && газ ? 26 : 0)) * (т.тон || 1);
+    п(у.о1.frequency, част, 0.05); п(у.о2.frequency, част * 1.004, 0.05);
+    if (у.о3) п(у.о3.frequency, част * 2, 0.05);
+    п(у.лп.frequency, 380 + газ * 620 + доля * 460);
+    п(у.мотор.gain, (0.026 + газ * 0.045) * тишь);
+    п(у.выхлопФ.frequency, 460 + доля * 850);
+    п(у.выхлоп.gain, (0.005 + газ * 0.017) * (воздух ? 0.6 : 1) * тишь);
+  },
+
+  /* Короткий «рык» при выборе транспорта в гараже — чтобы услышать разницу. */
+  проба(т) {
+    this.старт();
     if (!this.ac || !сейв.звук) return;
-    const t = this.ac.currentTime;
-    this.осц.frequency.setTargetAtTime(55 + об * 105, t, 0.06);
-    this.гейн.gain.setTargetAtTime(громко * 0.05, t, 0.08);
+    this.собрать(т);
+    const у = this.у, t = this.ac.currentTime;
+    const дуга = (пар, а, б, в) => {
+      пар.setValueAtTime(а, t);
+      пар.linearRampToValueAtTime(б, t + 0.5);
+      пар.linearRampToValueAtTime(в, t + 1.2);
+    };
+    if (у.тик) {
+      дуга(у.лфо.frequency, 3, 26, 8);
+      дуга(у.тик.gain, 0.06, 0.16, 0.03); дуга(у.лфоГейн.gain, 0.06, 0.16, 0.03);
+      дуга(у.ветер.gain, 0.02, 0.2, 0.03);
+      if (у.мотор) { дуга(у.о1.frequency, 260, 700, 320); дуга(у.мотор.gain, 0.008, 0.034, 0.008); }
+    } else {
+      const тон = т.тон || 1;
+      дуга(у.о1.frequency, 46 * тон, 150 * тон, 52 * тон);
+      дуга(у.о2.frequency, 46 * тон, 150 * тон, 52 * тон);
+      if (у.о3) дуга(у.о3.frequency, 92 * тон, 300 * тон, 104 * тон);
+      дуга(у.лп.frequency, 400, 1400, 420);
+      дуга(у.мотор.gain, 0.03, 0.07, 0.02);
+      дуга(у.выхлоп.gain, 0.006, 0.022, 0.005);
+    }
+    clearTimeout(this._проба);
+    this._проба = setTimeout(() => this.разобрать(), 1500);
   },
-  тихо() { if (this.ac) this.гейн.gain.setTargetAtTime(0, this.ac.currentTime, 0.05); }
+
+  бум() {
+    if (!this.ac || !сейв.звук) return;
+    const ac = this.ac, t = ac.currentTime, s = this._шум();
+    const f = this._ф('lowpass', 1900);
+    f.frequency.exponentialRampToValueAtTime(150, t + 0.5);
+    const g = this._г(0.2);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+    s.connect(f); f.connect(g); g.connect(this.мастер);
+    s.stop(t + 0.7);
+  },
+
+  туш() {
+    if (!this.ac || !сейв.звук) return;
+    const ac = this.ac, t = ac.currentTime;
+    [0, 0.13, 0.26].forEach((з, i) => {
+      const o = ac.createOscillator();
+      o.type = 'triangle'; o.frequency.value = [523, 659, 784][i];
+      const g = this._г(0);
+      g.gain.setValueAtTime(0, t + з);
+      g.gain.linearRampToValueAtTime(0.09, t + з + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + з + 0.45);
+      o.connect(g); g.connect(this.мастер);
+      o.start(t + з); o.stop(t + з + 0.5);
+    });
+  },
+
+  тихо() { this.разобрать(); }
 };
 
 /* ── Управление ───────────────────────────────────────────── */
@@ -680,7 +851,7 @@ const КЛАВИШИ = {
   ArrowRight: 'leanFwd', KeyD: 'leanFwd'
 };
 addEventListener('keydown', (e) => {
-  if (КЛАВИШИ[e.code]) { жмут[КЛАВИШИ[e.code]] = true; собрать(); звук.вкл(); e.preventDefault(); return; }
+  if (КЛАВИШИ[e.code]) { жмут[КЛАВИШИ[e.code]] = true; собрать(); звук.старт(); e.preventDefault(); return; }
   if (e.code === 'KeyR') { if (игра.тр) старт(игра.лвл); }
   if (e.code === 'Escape') вменю();
   if (e.code === 'Space' && $('over').classList.contains('on')) $('ovMain').click();
@@ -693,7 +864,7 @@ const сенсор = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in
 if (сенсор) { $('pad').classList.add('on'); document.body.classList.add('сенсор'); }
 for (const b of document.querySelectorAll('#pad b')) {
   const k = b.dataset.k;
-  const вкл = (e) => { e.preventDefault(); жмут[k] = true; b.classList.add('hit'); собрать(); звук.вкл(); };
+  const вкл = (e) => { e.preventDefault(); жмут[k] = true; b.classList.add('hit'); собрать(); звук.старт(); };
   const выкл = (e) => { e.preventDefault(); жмут[k] = false; b.classList.remove('hit'); собрать(); };
   b.addEventListener('pointerdown', вкл);
   b.addEventListener('pointerup', выкл);
@@ -718,6 +889,7 @@ function старт(лвл) {
     (рек ? ' · рекорд ' + ммсс(рек) : ' · награда ' + награда(лвл.н) + ' ★') + '</small>';
   for (const k in жмут) жмут[k] = false;
   собрать();
+  звук.собрать(игра.бк.т);
 }
 
 function вменю() {
@@ -754,6 +926,7 @@ function итог(победа) {
   $('ovMain').textContent = дальше ? 'Уровень ' + (л.н + 1) : 'Заново';
   $('over').classList.add('on');
   звук.тихо();
+  победа ? звук.туш() : звук.бум();
   $('ovMain').onclick = () => старт(дальше ? уровень(л.н + 1) : л);
 }
 $('ovMenu').onclick = вменю;
@@ -767,6 +940,7 @@ for (const b of document.querySelectorAll('#tabs button')) {
 function рисоватьМеню() {
   $('звёзды').textContent = сейв.звёзды;
   $('btnStyle').textContent = 'Вид: ' + (ИМЕНА[сейв.стиль] || 'цветной');
+  $('btnAll').textContent = 'Транспорт: ' + (сейв.всёОткрыто ? 'всё открыто' : 'по уровням');
   $('звИкон').innerHTML = ЗВЕЗДА;
   for (const b of document.querySelectorAll('#tabs button')) b.classList.toggle('sel', b.dataset.t === вкладка);
   $('трассы').style.display = вкладка === 'трассы' ? '' : 'none';
@@ -786,7 +960,7 @@ function рисоватьТрассы() {
       готов ? '<span class="вр">' + (рек ? ммсс(рек) : '') + '</span>'
         : ок ? '<span class="нг">' + награда(н) + ' ' + ЗВЕЗДА + '</span>'
           : '<span class="вр">🔒</span>');
-    if (ок) b.onclick = () => { звук.вкл(); старт(уровень(н)); };
+    if (ок) b.onclick = () => { звук.старт(); старт(уровень(н)); };
     сетка.appendChild(b);
   }
 }
@@ -797,7 +971,7 @@ function рисоватьГараж() {
   for (const т of ТРАНСПОРТ) {
     const куплен = сейв.куплено.indexOf(т.id) >= 0;
     const свободен = текущий >= т.открыт;
-    const есть = куплен || свободен;
+    const есть = доступен(т);
     const выбран = сейв.выбран === т.id;
 
     const d = document.createElement('div');
@@ -820,9 +994,12 @@ function рисоватьГараж() {
       b.className = выбран ? 'свой' : '';
       b.textContent = выбран ? 'Выбран' : 'Выбрать';
       b.disabled = выбран;
-      b.onclick = () => { сейв.выбран = т.id; сохранить(); рисоватьГараж(); };
+      /* При выборе даём послушать мотор — так слышно, чем они отличаются. */
+      b.onclick = () => { сейв.выбран = т.id; сохранить(); рисоватьГараж(); звук.проба(т); };
       низ.appendChild(b);
-      if (!куплен) низ.insertAdjacentHTML('beforeend',
+      if (!куплен && !свободен) низ.insertAdjacentHTML('beforeend',
+        '<span class="замок">открыт для проб · по правилам с ' + т.открыт + '-го уровня или ' + т.цена + ' ★</span>');
+      else if (!куплен) низ.insertAdjacentHTML('beforeend',
         '<span class="замок">открыт с ' + т.открыт + '-го уровня</span>');
     } else {
       const b = document.createElement('button');
@@ -834,7 +1011,7 @@ function рисоватьГараж() {
         сейв.звёзды -= т.цена;
         сейв.куплено.push(т.id);
         сейв.выбран = т.id;
-        сохранить(); рисоватьМеню();
+        сохранить(); рисоватьМеню(); звук.проба(т);
       };
       низ.appendChild(b);
       низ.insertAdjacentHTML('beforeend',
@@ -846,6 +1023,11 @@ function рисоватьГараж() {
   }
 }
 
+$('btnAll').onclick = () => {
+  сейв.всёОткрыто = !сейв.всёОткрыто;
+  if (!сейв.всёОткрыто && !доступен(поТранспорту(сейв.выбран))) сейв.выбран = 'velo';
+  сохранить(); рисоватьМеню(); заставка();
+};
 $('btnStyle').onclick = () => {
   const порядок = Object.keys(СТИЛИ);
   сейв.стиль = порядок[(порядок.indexOf(сейв.стиль) + 1) % порядок.length];
@@ -854,7 +1036,7 @@ $('btnStyle').onclick = () => {
 $('btnSound').onclick = () => {
   сейв.звук = !сейв.звук; сохранить();
   $('btnSound').textContent = 'Звук: ' + (сейв.звук ? 'вкл' : 'выкл');
-  if (!сейв.звук) звук.тихо();
+  звук.громкость();
 };
 $('btnSound').textContent = 'Звук: ' + (сейв.звук ? 'вкл' : 'выкл');
 $('btnReset').onclick = () => {
@@ -1147,8 +1329,7 @@ function цикл(t) {
     игра.кам.x += (cxx + вперёд - игра.кам.x) * Math.min(1, dt * 6);
     игра.кам.y += (cyy + 1.2 - игра.кам.y) * Math.min(1, dt * 4);
 
-    const об = Math.min(1, Math.hypot(бк.з.vx, бк.з.vy) / бк.т.макс);
-    звук.мотор(бк.упал ? 0.1 : об * 0.7 + вх.gas * 0.3, бк.упал ? 0 : (вх.gas ? 1 : 0.35));
+    звук.кадр(бк, вх);
 
     $('time').textContent = ммсс(бк.время);
     const дл = тр.финиш - тр.старт;
@@ -1179,7 +1360,7 @@ $('over').addEventListener('pointerdown', (e) => {
   if (e.target.tagName !== 'BUTTON' && игра.бк && игра.бк.упал) $('ovMain').click();
 });
 
-window.ГД = { игра, старт, вменю, уровень, награда, ВСЕГО, ТРАНСПОРТ, ФИЗ, СТИЛИ,
+window.ГД = { игра, старт, вменю, уровень, награда, ВСЕГО, ТРАНСПОРТ, ФИЗ, СТИЛИ, звук,
               сделатьТрассу, сделатьБайк, шаг, сохранить, рисоватьМеню, заставка,
               байк, витрина, получитьСейв: () => сейв, ставитьСтиль: (с) => { сейв.стиль = с; } };
 })();
