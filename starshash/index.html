@@ -6318,6 +6318,19 @@ var adminReflect;
       });
     },5000);
   }
+  /* Запасной путь: криптобот не выписал счёт — платим переводом прямо на
+     кошелёк владельца. Дороже для человека в движениях, зато не зависит
+     ни от чьей чужой службы. */
+  function переводом(звёзд){
+    SRV.raw('ton_invoice',{amount:звёзд}).then(function(о){
+      go.disabled=false;
+      if(о && о.ok && о.address){ платитьGRAM(о); ждатьПеревод(о.comment); haptic('success'); return; }
+      hint.textContent = о && о.reason==='not_configured' ? t('d_ton_off')
+                       : о && о.reason==='bad_amount' ? t('d_crypto_min',{n:(о.min||50)})
+                       : t('w_fail');
+      haptic('warning');
+    });
+  }
   function добратьПеревод(){
     var c; try{ c=localStorage.getItem(ПАМЯТЬ_TON); }catch(e){ return; }
     if(!c || !онлайн()) return;
@@ -6350,19 +6363,21 @@ var adminReflect;
       /* реквизиты уже на экране — кнопка просто зовёт кошелёк ещё раз */
       if(сейчасTON){ платитьGRAM(сейчасTON); haptic('light'); return; }
       go.disabled=true;
-      SRV.raw('ton_invoice',{amount:Math.floor(a)}).then(function(о){
-        go.disabled=false;
-        if(о && о.ok && о.address){ платитьGRAM(о); ждатьПеревод(о.comment); haptic('success'); return; }
-        hint.textContent = о && о.reason==='not_configured' ? t('d_ton_off')
-                         : о && о.reason==='bad_amount' ? t('d_crypto_min',{n:(о.min||50)})
-                         : t('w_fail');
-        haptic('warning');
+      /* Сначала счёт @CryptoBot: человеку одна кнопка вместо копирования
+         адреса и пометки, а зачисление приходит само. В API монета зовётся
+         `TON` — это тот же GRAM, переименование до кода не доехало.
+         Не выйдет счёт — уходим в перевод, он работает и без криптобота. */
+      SRV.raw('crypto_invoice',{amount:Math.floor(a), asset:'TON'}).then(function(о){
+        if(о && о.ok && о.link){
+          go.disabled=false; вТелеграме(о.link); ждатьОплату(о.invoiceId); haptic('success'); return;
+        }
+        переводом(Math.floor(a));
       });
       return;
     }
     if(онлайн() && mode==='usdt'){
       go.disabled=true;
-      SRV.raw('crypto_invoice',{amount:Math.floor(a)}).then(function(о){
+      SRV.raw('crypto_invoice',{amount:Math.floor(a), asset:'USDT'}).then(function(о){
         go.disabled=false;
         if(о && о.ok && о.link){ вТелеграме(о.link); ждатьОплату(о.invoiceId); haptic('success'); return; }
         /* Отказ @CryptoBot показываем с его же словами: «не удалось» без

@@ -300,6 +300,9 @@ const S = require('../starshash/api/starshash.js');
         телеграм: { user: { id: 6029995640, first_name: 'Андрій' } },
         сервер: {
           state: СОСТ,
+          /* криптобот молчит — проверяем именно запасной путь: перевод
+             прямо на кошелёк владельца */
+          crypto_invoice: { ok: false, reason: 'not_configured' },
           ton_invoice: { ok: true, address: 'UQCpwhvvs_dccEQWgzUqaueVFAIX612AqrYmm--J2qObDDpK',
             gram: 18, nano: '18000000000', comment: 'SH6029995640.1000.deadbeef',
             payload: 'te6cc', stars: 1000, validUntil: 2000000000 },
@@ -385,6 +388,52 @@ const S = require('../starshash/api/starshash.js');
         (await p3.evaluate(() => localStorage.getItem('sh_ton'))) === null);
       о.проверка('ошибок в консоли нет', p3.ошибки.length === 0, p3.ошибки.join(' | '));
       await p3.close();
+    }
+
+    о.раздел('GRAM платится счётом, когда криптобот отвечает');
+    {
+      /* Счёт — одна кнопка вместо копирования адреса и пометки, поэтому
+         он идёт первым. В API монета зовётся `TON`: @CryptoBot показывает
+         в кошельке «GRAM», а на `asset: 'GRAM'` отвечает отказом. */
+      const p5 = await открыть(b, {
+        состояние: { bal: 0, fs: { d: день() }, dl: { streak: 1, last: день() } },
+        телеграм: { user: { id: 6029995640, first_name: 'Андрій' } },
+        сервер: {
+          state: Object.assign({}, БАЗА, { bal: 0, ton: true }),
+          crypto_invoice: { ok: true, invoiceId: 777, link: 'https://t.me/CryptoBot?start=IV7',
+            stars: 50, price: 1, asset: 'TON' },
+          crypto_check: Object.assign({}, БАЗА, { bal: 50, status: 'paid', credited: true, stars: 50 })
+        }
+      });
+      await p5.click('#btnAdd'); await p5.waitForTimeout(600);
+      await p5.click('#dmTon'); await p5.waitForTimeout(400);
+      await p5.evaluate(() => {
+        window.__актив = null;
+        const f = window.fetch;
+        window.fetch = function (u, init) {
+          try {
+            const b = JSON.parse(init.body);
+            if (b.action === 'crypto_invoice') window.__актив = b.asset;
+          } catch (e) {}
+          return f.apply(this, arguments);
+        };
+        window.__куда = [];
+        window.Telegram.WebApp.openTelegramLink = u => window.__куда.push(u);
+        window.Telegram.WebApp.openLink = u => window.__куда.push(u);
+      });
+      await p5.click('#gpList .gp:nth-child(1)'); await p5.waitForTimeout(300);
+      await p5.click('#dpGo', { force: true }); await p5.waitForTimeout(1000);
+      о.проверка('счёт просят в TON — это и есть GRAM',
+        (await p5.evaluate(() => window.__актив)) === 'TON',
+        String(await p5.evaluate(() => window.__актив)));
+      о.проверка('открылся счёт, а не реквизиты перевода',
+        (await p5.evaluate(() => window.__куда.length === 1 && /CryptoBot/.test(window.__куда[0]))) &&
+        (await p5.evaluate(() => document.getElementById('dpTonPay').hidden)));
+      const пришло = await жди(p5, () => /Зачислено/.test(document.getElementById('dpHint').textContent), 12000);
+      о.проверка('оплата зачислена сама, без копирования', пришло,
+        await p5.evaluate(() => document.getElementById('dpHint').textContent));
+      о.проверка('ошибок в консоли нет', p5.ошибки.length === 0, p5.ошибки.join(' | '));
+      await p5.close();
     }
 
     о.раздел('без кошелька вкладки перевода нет');
