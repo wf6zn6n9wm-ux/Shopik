@@ -539,7 +539,20 @@ module.exports = async (req, res) => {
       const CB = env('CRYPTOBOT_TOKEN');
       // регистр и пробелы: в переменную легко попадает «gram » вместо «GRAM»,
       // а Crypto Pay принимает только точное имя актива
-      const ASSET = env('CRYPTO_ASSET').trim().toUpperCase();
+      /* Чем платить, выбирает вкладка. Список закрытый и короткий: у
+         каждого актива своя цена, и пустить сюда любое имя значило бы
+         выписать счёт в биткойнах по долларовому числу.
+
+         GRAM в API зовётся `TON`: монету переименовали, но код остался
+         прежним — @CryptoBot показывает в кошельке «GRAM», а на
+         `asset: 'GRAM'` отвечает UNSUPPORTED_ASSET. */
+      const ЦЕНЫ = {
+        TON:  n => вGRAM(n),                       // GRAM = лесенка как есть
+        USDT: n => ценаКрипты(n, курс)             // доллар — по живому курсу
+      };
+      const курс = await курсGRAM();
+      const просят = String(body.asset || '').trim().toUpperCase();
+      const ASSET = ЦЕНЫ[просят] ? просят : env('CRYPTO_ASSET').trim().toUpperCase();
       if (!CB || !ASSET) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
       /* Актив не из списка Crypto Pay — скажем сразу и по-человечески, а не
          дадим ему ответить UNSUPPORTED_ASSET после лишнего запроса. */
@@ -547,7 +560,7 @@ module.exports = async (req, res) => {
         res.status(200).json({ ok: false, reason: 'bad_asset', asset: ASSET, allowed: КРИПТО_АКТИВЫ }); return;
       }
       const звёзд = Math.floor(Number(body.amount) || 0);
-      const цена = ценаКрипты(звёзд, await курсGRAM());
+      const цена = (ЦЕНЫ[ASSET] || ЦЕНЫ.USDT)(звёзд);
       if (!(цена > 0)) { res.status(200).json({ ok: false, reason: 'bad_amount', min: КРИПТО_МИН }); return; }
       try {
         const r = await fetch(CRYPTOBOT_API + 'createInvoice', {
@@ -1029,8 +1042,12 @@ module.exports = async (req, res) => {
          в общей сумме они неразличимы. Способ узнаём по номеру платежа:
          `cb…` — криптобот, `ton…` — перевод, остальное — звёзды. */
       const способ = r => {
-        const c = String((r.meta && r.meta.charge) || '');
-        return c.slice(0, 3) === 'ton' ? 'gram' : c.slice(0, 2) === 'cb' ? 'crypto' : 'stars';
+        const м = r.meta || {}, c = String(м.charge || '');
+        if (c.slice(0, 3) === 'ton') return 'gram';          // перевод на кошелёк
+        if (c.slice(0, 2) !== 'cb') return 'stars';          // счёт Telegram
+        /* Счёт @CryptoBot бывает в GRAM и в долларах: в общей сумме они
+           неразличимы, а комиссии и поводы для беспокойства разные. */
+        return String(м.asset || '').toUpperCase() === 'TON' ? 'gram' : 'crypto';
       };
       const пополнения = дни.map(d => {
         const строки = заДень('topup', d);
