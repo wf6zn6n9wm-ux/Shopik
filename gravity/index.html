@@ -59,8 +59,13 @@
     padding:calc(10px + env(safe-area-inset-top)) 0 8px;
     display:flex; align-items:center; justify-content:space-between; gap:10px;
   }
-  .шапка .назв { font:800 17px/1 "Segoe UI", Roboto, sans-serif; letter-spacing:-.4px; text-transform:uppercase; }
+  .шапка .назв { flex:1; font:800 17px/1 "Segoe UI", Roboto, sans-serif; letter-spacing:-.4px; text-transform:uppercase; }
   .шапка .назв i { color:#0a0; font-style:normal; }
+  .шапка .назад {
+    width:34px; height:34px; flex:none; border:1px solid #e2e2e2; border-radius:9px;
+    background:#fff; font:600 17px/1 inherit; color:#111; cursor:pointer; display:none;
+  }
+  .шапка .назад.on { display:block; }
   .баланс {
     display:flex; align-items:center; gap:5px; font:700 15px/1 inherit; color:#111;
     background:#fff7e0; border:1px solid #ffd77a; border-radius:20px; padding:6px 12px;
@@ -68,12 +73,36 @@
   .logo { text-align:center; margin:2px 0 10px; width:100%; }
   .logo canvas { display:block; width:100%; max-width:440px; height:auto; margin:0 auto; }
   .wrap { width:100%; max-width:480px; }
-  .tabs { display:flex; gap:6px; margin-bottom:12px; }
-  .tabs button {
-    flex:1; padding:10px 4px; font:600 13px/1 inherit; color:#444;
-    background:#f2f2f2; border:1px solid #e2e2e2; border-radius:9px; cursor:pointer;
+  /* главное меню */
+  .меню { display:flex; flex-direction:column; gap:8px; }
+  .меню button {
+    width:100%; padding:15px 18px; font:700 16px/1.2 inherit; text-align:left;
+    background:#fff; color:#111; border:1px solid #e2e2e2; border-radius:12px; cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
   }
-  .tabs button.sel { background:#111; border-color:#111; color:#fff; }
+  .меню button:active { background:#f6f6f6; }
+  .меню button small { font:400 12px/1 inherit; color:#888; }
+  .меню button.главная {
+    background:#111; color:#fff; border-color:#111; font-size:18px; padding:18px;
+  }
+  .меню button.главная small { color:#9fdf9f; }
+  .меню button .стрелка { color:#c0c0c0; font-weight:400; }
+
+  /* правила */
+  .правила h3 { font-size:15px; margin:16px 0 6px; }
+  .правила h3:first-child { margin-top:2px; }
+  .правила p, .правила li { font-size:13.5px; line-height:1.6; color:#333; }
+  .правила ul { margin:4px 0 0 18px; }
+  .правила li { margin:3px 0; }
+  .правила b { color:#111; }
+  .правила .кл2 {
+    display:inline-block; min-width:20px; padding:1px 6px; margin:0 1px;
+    background:#f2f2f2; border:1px solid #ddd; border-radius:4px;
+    font:600 11px/1.6 "DejaVu Sans Mono", monospace;
+  }
+  .правила table { width:100%; border-collapse:collapse; margin-top:6px; font-size:13px; }
+  .правила td { padding:5px 4px; border-bottom:1px solid #eee; }
+  .правила td:last-child { text-align:right; white-space:nowrap; color:#c98a00; font-weight:700; }
 
   /* сетка 50 уровней */
   .сетка { display:grid; grid-template-columns:repeat(5,1fr); gap:7px; }
@@ -167,28 +196,38 @@
 
 <div id="menu">
   <div class="шапка">
-    <div class="назв">Gravity <i>Defied</i></div>
+    <button class="назад" id="назад">←</button>
+    <div class="назв" id="заголовок">Gravity <i>Defied</i></div>
     <div class="баланс"><span id="звёзды">0</span><span id="звИкон"></span></div>
   </div>
   <div class="wrap">
-    <div class="logo"><canvas id="deco" width="440" height="140"></canvas></div>
-    <div class="tabs" id="tabs">
-      <button data-t="трассы" class="sel">Трассы</button>
-      <button data-t="гараж">Гараж</button>
-    </div>
-    <div id="трассы"><div class="сетка" id="сетка"></div>
-      <div class="keys">
-        <kbd>↑</kbd> газ &nbsp; <kbd>↓</kbd> тормоз &nbsp; <kbd>←</kbd><kbd>→</kbd> наклон<br>
-        <kbd>R</kbd> заново &nbsp; <kbd>Esc</kbd> меню &nbsp; на телефоне — экранные кнопки
-      </div>
-      <div class="foot">
-        <button id="btnAll">Транспорт: всё открыто</button>
-        <button id="btnStyle">Вид: цветной</button>
-        <button id="btnSound">Звук: вкл</button>
-        <button id="btnReset">Сбросить прогресс</button>
+
+    <div id="экран-главный">
+      <div class="logo"><canvas id="deco" width="440" height="140"></canvas></div>
+      <div class="меню">
+        <button class="главная" id="btnPlay">Играть<small id="playПодпись"></small></button>
+        <button data-экран="уровни">Уровни<span class="стрелка" id="уровниПодпись"></span></button>
+        <button data-экран="гараж">Гараж<span class="стрелка" id="гаражПодпись"></span></button>
+        <button data-экран="настройки">Настройки<span class="стрелка">›</span></button>
+        <button data-экран="правила">Как играть<span class="стрелка">›</span></button>
       </div>
     </div>
-    <div id="гараж" style="display:none"></div>
+
+    <div id="экран-уровни" style="display:none"><div class="сетка" id="сетка"></div></div>
+
+    <div id="экран-гараж" style="display:none"><div id="гараж"></div></div>
+
+    <div id="экран-настройки" style="display:none">
+      <div class="меню">
+        <button id="btnSound">Звук<small>вкл</small></button>
+        <button id="btnStyle">Вид транспорта<small>цветной</small></button>
+        <button id="btnAll">Транспорт<small>всё открыто</small></button>
+        <button id="btnReset">Сбросить прогресс<small>звёзды и рекорды</small></button>
+      </div>
+    </div>
+
+    <div id="экран-правила" style="display:none"><div class="правила" id="правила"></div></div>
+
   </div>
 </div>
 
@@ -266,16 +305,18 @@ const поТранспорту = (id) => ТРАНСПОРТ.find((т) => т.id =
 
 /* ── Уровни и награда ───────────────────────────────────────── */
 const ВСЕГО = 50;
-/* Сложность растёт ровно от первого уровня к пятидесятому. */
+/* Сложность: первые девять уровней — разминка на велосипеде, с десятого
+   она резко идёт вверх и дальше растёт до предела к пятидесятому. */
+const РАЗМИНКА = 9, ПОРОГ = 0.3;
 function уровень(н) {
-  const diff = (н - 1) / (ВСЕГО - 1);
+  const diff = н <= РАЗМИНКА
+    ? (н - 1) / РАЗМИНКА * 0.18
+    : ПОРОГ + (н - РАЗМИНКА - 1) / (ВСЕГО - РАЗМИНКА - 1) * (1 - ПОРОГ);
   return { н, diff, seed: 7919 + н * 613 };
 }
-/* Награда за первое прохождение: 10 звёзд за первый уровень, 50 за
-   пятидесятый, между ними ровный рост шагами по пять. */
-function награда(н) {
-  return Math.round((10 + (н - 1) * 40 / (ВСЕГО - 1)) / 5) * 5;
-}
+/* Награда за первое прохождение: 10 звёзд за первый уровень и по 5 за
+   каждый следующий — всего 255 за игру. */
+function награда(н) { return н === 1 ? 10 : 5; }
 
 /* ── Трасса ───────────────────────────────────────────────── */
 
@@ -292,7 +333,7 @@ function сделатьТрассу(seed, diff) {
   /* Плавный переход по косинусу — из таких волн собран весь ландшафт.
      Высоту режем так, чтобы в самом крутом месте склон не был отвесным:
      у косинуса максимальный наклон = π·h / (2·len). */
-  const ПРЕДЕЛ = 0.32 + 0.3 * diff;
+  const ПРЕДЕЛ = 0.32 + 0.36 * diff;
   const волна = (len, h, шагов) => {
     h = Math.max(-ПРЕДЕЛ * len, Math.min(ПРЕДЕЛ * len, h));
     const x0 = x, y0 = y;
@@ -315,11 +356,11 @@ function сделатьТрассу(seed, diff) {
   const гребёнка = (n, амп, шаг) => {
     for (let i = 0; i < n; i++) { волна(шаг / 2, амп, 4); волна(шаг / 2, -амп, 4); }
   };
-  const УГОЛ = 0.32 + 0.24 * diff;        // крутизна трамплинов, рад (18°…32°)
+  const УГОЛ = 0.32 + 0.3 * diff;         // крутизна трамплинов, рад (18°…36°)
   const трамплин = () => {
     ровно(R(3, 6));                       // место разогнаться перед прыжком
     склон(R(2.4, 3.6), УГОЛ);
-    пропасть(2.6 + 4.4 * diff, 5 + 4 * diff);
+    пропасть(2.6 + 5.4 * diff, 5 + 5 * diff);
     волна(R(5, 8), -(1 + 1.5 * diff), 6);
   };
   const столик = () => {
@@ -327,28 +368,28 @@ function сделатьТрассу(seed, diff) {
     ровно(R(3, 6));
     склон(R(2.6, 4), -УГОЛ);
   };
-  const подъём = () => { волна(R(9, 13), 4 + 7 * diff, 8); ровно(R(2, 5)); };
-  const спуск = () => волна(R(9, 13), -(4 + 6 * diff), 8);
+  const подъём = () => { волна(R(9, 13), 4 + 9 * diff, 8); ровно(R(2, 5)); };
+  const спуск = () => волна(R(9, 13), -(4 + 8 * diff), 8);
   /* Уступы: крутые, но берутся с разгона на заднем колесе. */
   const ступени = () => {
     const n = 3 + Math.floor(rnd() * 3);
-    for (let i = 0; i < n; i++) { ровно(R(2.2, 3.2)); доб(x + 0.4, y + R(0.25, 0.32 + 0.3 * diff)); }
+    for (let i = 0; i < n; i++) { ровно(R(1.9, 3)); доб(x + 0.45, y + R(0.25, 0.3 + 0.38 * diff)); }
   };
 
   /* Чем выше уровень, тем чаще выпадают тяжёлые секции: на первых трассах
      это в основном холмы и столики, на последних — пропасти и гребёнка. */
   const секции = [
-    ['холмы', 1.7 - 1.4 * diff, () => холмы(2, 1.5 + 3 * diff)],
+    ['холмы', 1.7 - 1.5 * diff, () => холмы(2, 1.5 + 3.5 * diff)],
     ['столик', 1.1 - 0.5 * diff, столик],
     ['склоны', 1.0 - 0.4 * diff, () => (rnd() < 0.5 ? подъём : спуск)()],
-    ['ступени', 0.25 + 0.75 * diff, ступени],
+    ['ступени', 0.25 + 0.95 * diff, ступени],
     ['гребёнка', 0.15 + 1.05 * diff,
-      () => гребёнка(3 + Math.floor(rnd() * 4), 0.9 + 1.7 * diff, 3.6 - 0.9 * diff)],
-    ['трамплин', 0.1 + 1.5 * diff, трамплин]
+      () => гребёнка(3 + Math.floor(rnd() * 5), 0.9 + 2.1 * diff, 3.6 - 1.1 * diff)],
+    ['трамплин', diff < 0.12 ? 0 : 0.1 + 1.7 * diff, трамплин]
   ];
 
   ровно(40);                              // разгонная прямая перед первой секцией
-  const цель = 210 + 210 * diff;
+  const цель = 210 + 240 * diff;
   let было = -1;
   while (x < цель) {
     let сумма = 0;
@@ -897,7 +938,7 @@ function вменю() {
   звук.тихо();
   $('over').classList.remove('on');
   $('menu').classList.remove('off');
-  рисоватьМеню();
+  наЭкран('главный');
 }
 
 function итог(победа) {
@@ -931,21 +972,70 @@ function итог(победа) {
 }
 $('ovMenu').onclick = вменю;
 
-/* ── Меню ─────────────────────────────────────────────────── */
-let вкладка = 'трассы';
-for (const b of document.querySelectorAll('#tabs button')) {
-  b.onclick = () => { вкладка = b.dataset.t; рисоватьМеню(); };
+/* ── Меню ─────────────────────────────────────────────────────
+   Главный экран — только кнопки; уровни, гараж, настройки и правила
+   открываются отдельными разделами с возвратом назад. */
+const ЭКРАНЫ = ['главный', 'уровни', 'гараж', 'настройки', 'правила'];
+const ЗАГОЛОВКИ = { уровни: 'Уровни', гараж: 'Гараж', настройки: 'Настройки', правила: 'Как играть' };
+let экран = 'главный';
+
+function наЭкран(имя) {
+  экран = имя;
+  рисоватьМеню();
+  $('menu').scrollTop = 0;
 }
+for (const b of document.querySelectorAll('#экран-главный [data-экран]')) {
+  b.onclick = () => { звук.старт(); наЭкран(b.dataset.экран); };
+}
+$('назад').onclick = () => наЭкран('главный');
+$('btnPlay').onclick = () => { звук.старт(); старт(уровень(следующий())); };
 
 function рисоватьМеню() {
   $('звёзды').textContent = сейв.звёзды;
-  $('btnStyle').textContent = 'Вид: ' + (ИМЕНА[сейв.стиль] || 'цветной');
-  $('btnAll').textContent = 'Транспорт: ' + (сейв.всёОткрыто ? 'всё открыто' : 'по уровням');
   $('звИкон').innerHTML = ЗВЕЗДА;
-  for (const b of document.querySelectorAll('#tabs button')) b.classList.toggle('sel', b.dataset.t === вкладка);
-  $('трассы').style.display = вкладка === 'трассы' ? '' : 'none';
-  $('гараж').style.display = вкладка === 'гараж' ? '' : 'none';
-  вкладка === 'трассы' ? рисоватьТрассы() : рисоватьГараж();
+  for (const имя of ЭКРАНЫ) $('экран-' + имя).style.display = имя === экран ? '' : 'none';
+  $('назад').classList.toggle('on', экран !== 'главный');
+  $('заголовок').innerHTML = экран === 'главный'
+    ? 'Gravity <i>Defied</i>' : ЗАГОЛОВКИ[экран];
+
+  const н = следующий();
+  $('playПодпись').textContent = пройден(ВСЕГО) ? 'все уровни пройдены' : 'уровень ' + н;
+  $('уровниПодпись').textContent = сейв.пройдено.length + ' / ' + ВСЕГО + '  ›';
+  $('гаражПодпись').textContent = поТранспорту(сейв.выбран).имя + '  ›';
+  $('btnSound').innerHTML = 'Звук<small>' + (сейв.звук ? 'вкл' : 'выкл') + '</small>';
+  $('btnStyle').innerHTML = 'Вид транспорта<small>' + (ИМЕНА[сейв.стиль] || 'цветной') + '</small>';
+  $('btnAll').innerHTML = 'Транспорт<small>' +
+    (сейв.всёОткрыто ? 'всё открыто' : 'по уровням') + '</small>';
+
+  if (экран === 'уровни') рисоватьТрассы();
+  else if (экран === 'гараж') рисоватьГараж();
+  else if (экран === 'правила') рисоватьПравила();
+  else заставка();
+}
+
+/* Правила пишем из тех же чисел, что и в игре, — расходиться нечему. */
+function рисоватьПравила() {
+  const строки = ТРАНСПОРТ.map((т) =>
+    '<tr><td><b>' + т.имя + '</b><br><span style="color:#888">' + т.о + '</span></td>' +
+    '<td>' + (т.цена ? 'с ' + т.открыт + '-го<br>или ' + т.цена + ' ' + ЗВЕЗДА : 'с начала') + '</td></tr>').join('');
+  $('правила').innerHTML =
+    '<h3>Задача</h3><p>Доехать до флага и не сломать шею. <b>Голова коснулась земли — заезд окончен.</b> ' +
+      'Свалился в яму и стоишь без движения пять секунд — «застрял», тоже с начала.</p>' +
+    '<h3>Управление</h3><p><span class="кл2">↑</span> газ, <span class="кл2">↓</span> тормоз, ' +
+      '<span class="кл2">←</span><span class="кл2">→</span> наклон корпуса назад и вперёд. ' +
+      '<span class="кл2">R</span> заново, <span class="кл2">Esc</span> в меню. ' +
+      'На телефоне — четыре экранных кнопки по углам.</p>' +
+    '<p>Наклон работает и в воздухе: им выравнивают байк под уклон приземления. ' +
+      'Газ задирает переднее колесо, тормоз опускает.</p>' +
+    '<h3>Звёзды</h3><p>За <b>первое</b> прохождение уровня дают звёзды: ' +
+      '<b>10 ' + ЗВЕЗДА + '</b> за первый уровень и <b>по 5 ' + ЗВЕЗДА + '</b> за каждый следующий. ' +
+      'Повторный заезд звёзд не приносит, но обновляет рекорд времени.</p>' +
+    '<h3>Транспорт</h3><p>Каждый следующий быстрее и тянет сильнее. Открывается сам по мере ' +
+      'прохождения — или покупается за звёзды раньше срока, чтобы пройти дальше быстрее.</p>' +
+    '<table>' + строки + '</table>' +
+    '<h3>Уровни</h3><p>Всего ' + ВСЕГО + ' уровней, каждый следующий сложнее. ' +
+      'Первые девять — разминка на велосипеде, без пропастей. ' +
+      'С десятого появляются прыжки через ямы, гребёнка и уступы, дальше только злее.</p>';
 }
 
 function рисоватьТрассы() {
@@ -1026,21 +1116,20 @@ function рисоватьГараж() {
 $('btnAll').onclick = () => {
   сейв.всёОткрыто = !сейв.всёОткрыто;
   if (!сейв.всёОткрыто && !доступен(поТранспорту(сейв.выбран))) сейв.выбран = 'velo';
-  сохранить(); рисоватьМеню(); заставка();
+  сохранить(); рисоватьМеню();
 };
 $('btnStyle').onclick = () => {
   const порядок = Object.keys(СТИЛИ);
   сейв.стиль = порядок[(порядок.indexOf(сейв.стиль) + 1) % порядок.length];
-  сохранить(); рисоватьМеню(); заставка();
+  сохранить(); рисоватьМеню();
 };
 $('btnSound').onclick = () => {
   сейв.звук = !сейв.звук; сохранить();
-  $('btnSound').textContent = 'Звук: ' + (сейв.звук ? 'вкл' : 'выкл');
-  звук.громкость();
+  звук.старт(); звук.громкость(); рисоватьМеню();
 };
-$('btnSound').textContent = 'Звук: ' + (сейв.звук ? 'вкл' : 'выкл');
 $('btnReset').onclick = () => {
-  const з = сейв.звук; сейв = ПУСТО(); сейв.звук = з;
+  const з = сейв.звук, ст = сейв.стиль; сейв = ПУСТО();
+  сейв.звук = з; сейв.стиль = ст;
   сохранить(); рисоватьМеню();
 };
 
@@ -1346,7 +1435,6 @@ function цикл(t) {
 /* ── Пуск ─────────────────────────────────────────────────── */
 размер();
 рисоватьМеню();
-заставка();
 requestAnimationFrame(цикл);
 
 /* Telegram Mini App — если открыли внутри мессенджера. */

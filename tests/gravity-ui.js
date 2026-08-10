@@ -51,19 +51,52 @@ async function кФинишу(стр) {
   await стр.waitForTimeout(400);
 
   ок(await стр.isVisible('#menu'), 'меню открыто при запуске');
+  ок(await стр.isVisible('#экран-главный'), 'сразу виден главный экран, а не сетка уровней');
+  ок(!(await стр.isVisible('#экран-уровни')), 'уровни спрятаны за кнопкой');
+  ок((await стр.locator('#экран-главный .меню button').count()) === 5,
+    'пять кнопок: играть, уровни, гараж, настройки, как играть');
+  ок((await стр.textContent('#btnPlay')).includes('уровень 1'), '«Играть» ведёт на текущий уровень');
+  ок((await стр.textContent('#уровниПодпись')).includes('0 / 50'), 'у «Уровней» счётчик пройденных');
+  ок((await стр.textContent('#звёзды')) === '0', 'звёзд поначалу нет');
+  ок((await стр.locator('.баланс svg').count()) === 1, 'в шапке телеграм-звезда картинкой');
+  ок(!(await стр.isVisible('#назад')), 'на главном экране кнопки «назад» нет');
+  if (снимки) await стр.screenshot({ path: path.join(кудаСнимки, 'gd-menu.png'), fullPage: true });
+
+  /* ── Разделы ────────────────────────────────────────────── */
+  console.log('\nразделы');
+  await стр.click('[data-экран="уровни"]');
+  await стр.waitForTimeout(200);
+  ок(await стр.isVisible('#назад'), 'в разделе появляется «назад»');
+  ок((await стр.textContent('#заголовок')) === 'Уровни', 'заголовок меняется на название раздела');
   ок((await стр.locator('#сетка .кл').count()) === 50, 'в сетке 50 уровней');
   ок((await стр.locator('#сетка .кл.закр').count()) === 49, 'открыт только первый уровень');
-  ок((await стр.textContent('#звёзды')) === '0', 'звёзд поначалу нет');
   ок((await стр.locator('#сетка .кл').first().textContent()).includes('10'),
     'на первом уровне обещано 10 звёзд');
-  ок((await стр.locator('#сетка .кл').nth(49).textContent()).includes('🔒'),
-    'пятидесятый закрыт');
-  ок((await стр.locator('.баланс svg').count()) === 1, 'в шапке телеграм-звезда картинкой');
-  if (снимки) await стр.screenshot({ path: path.join(кудаСнимки, 'gd-menu.png'), fullPage: true });
+  ок((await стр.locator('#сетка .кл').nth(1).textContent()).includes('🔒'),
+    'второй пока закрыт — награда не показана');
+  ок((await стр.locator('#сетка .кл').nth(49).textContent()).includes('🔒'), 'пятидесятый закрыт');
+  await стр.click('#назад');
+  ок(await стр.isVisible('#экран-главный'), '«назад» возвращает на главный экран');
+
+  await стр.click('[data-экран="правила"]');
+  await стр.waitForTimeout(200);
+  const правила = await стр.textContent('#правила');
+  ок(правила.includes('10') && правила.includes('по 5'), 'в правилах написано про 10 и по 5 звёзд');
+  ок(правила.includes('100') && правила.includes('500'), 'и про цены транспорта');
+  ок(правила.includes('шею'), 'и про то, чем заканчивается касание головой');
+  if (снимки) await стр.screenshot({ path: path.join(кудаСнимки, 'gd-rules.png'), fullPage: true });
+  await стр.click('#назад');
+
+  await стр.click('[data-экран="настройки"]');
+  await стр.waitForTimeout(200);
+  ок((await стр.locator('#экран-настройки button').count()) === 4,
+    'в настройках четыре пункта: звук, вид, транспорт, сброс');
+  if (снимки) await стр.screenshot({ path: path.join(кудаСнимки, 'gd-settings.png'), fullPage: true });
+  await стр.click('#назад');
 
   /* ── Гараж ──────────────────────────────────────────────── */
   console.log('\nгараж');
-  await стр.locator('#tabs button').nth(1).click();
+  await стр.click('[data-экран="гараж"]');
   await стр.waitForTimeout(200);
   ок((await стр.locator('#гараж .тр').count()) === 5, 'пять видов транспорта');
   ок((await стр.locator('#гараж .тр.выбран').count()) === 1, 'один выбран — велосипед');
@@ -74,10 +107,12 @@ async function кФинишу(стр) {
     'кнопок покупки в этом режиме нет');
 
   /* Переключаем на честные правила: транспорт по уровням и за звёзды. */
-  await стр.locator('#tabs button').nth(0).click();
+  await стр.click('#назад');
+  await стр.click('[data-экран="настройки"]');
   await стр.click('#btnAll');
   ок((await стр.textContent('#btnAll')).includes('по уровням'), 'кнопка переключает на правила');
-  await стр.locator('#tabs button').nth(1).click();
+  await стр.click('#назад');
+  await стр.click('[data-экран="гараж"]');
   await стр.waitForTimeout(200);
   const ценники = await стр.locator('#гараж .тр button').allTextContents();
   ок(ценники.join(' ').includes('100') && ценники.join(' ').includes('500'),
@@ -95,10 +130,11 @@ async function кФинишу(стр) {
   });
   ок(нарисовано > 20, 'картинка транспорта не пустая (' + нарисовано + ' точек)');
   if (снимки) await стр.screenshot({ path: path.join(кудаСнимки, 'gd-garage.png'), fullPage: true });
-  await стр.locator('#tabs button').nth(0).click();
+  await стр.click('#назад');
 
   /* ── Заезд ──────────────────────────────────────────────── */
   console.log('\nзаезд');
+  await стр.click('[data-экран="уровни"]');
   await стр.locator('#сетка .кл').first().click();
   await стр.waitForTimeout(300);
   ок(!(await стр.isVisible('#menu')), 'по клику на уровень меню уходит');
@@ -156,8 +192,13 @@ async function кФинишу(стр) {
   /* Второй заезд по тому же уровню звёзд больше не приносит. */
   await стр.click('#ovMenu');
   await стр.waitForTimeout(200);
-  ок((await стр.locator('#сетка .кл.закр').count()) === 48, 'открылся второй уровень');
   ок((await стр.textContent('#звёзды')) === '10', 'баланс в шапке обновился');
+  ок((await стр.textContent('#btnPlay')).includes('уровень 2'), '«Играть» ведёт уже на второй уровень');
+  await стр.click('[data-экран="уровни"]');
+  await стр.waitForTimeout(150);
+  ок((await стр.locator('#сетка .кл.закр').count()) === 48, 'открылся второй уровень');
+  ок((await стр.locator('#сетка .кл').nth(1).textContent()).includes('5'),
+    'и обещает 5 звёзд, а не 10');
   await стр.locator('#сетка .кл').first().click();
   await стр.waitForTimeout(200);
   await кФинишу(стр);
@@ -170,7 +211,7 @@ async function кФинишу(стр) {
   await стр.evaluate(() => {
     window.ГД.получитьСейв().звёзды = 350; window.ГД.сохранить(); window.ГД.рисоватьМеню();
   });
-  await стр.locator('#tabs button').nth(1).click();
+  await стр.click('[data-экран="гараж"]');
   await стр.waitForTimeout(200);
   const можно = await стр.locator('#гараж .тр button:not([disabled])').count();
   ок(можно === 3, 'на 350 звёзд доступны велосипед, электро за 100 и мотоцикл за 200');
@@ -179,8 +220,8 @@ async function кФинишу(стр) {
   ок((await стр.textContent('#звёзды')) === '250', 'после покупки за 100 осталось 250');
   ок((await стр.locator('#гараж .тр').nth(1).getAttribute('class')).includes('выбран'),
     'купленный транспорт сразу выбран');
-  await стр.locator('#tabs button').nth(0).click();
-  await стр.locator('#сетка .кл').first().click();
+  await стр.click('#назад');
+  await стр.click('#btnPlay');
   await стр.waitForTimeout(300);
   ок((await стр.textContent('#hudName')).includes('Электровелосипед'), 'в заезд едем на купленном');
   await стр.evaluate(() => window.ГД.вменю());
@@ -206,26 +247,30 @@ async function кФинишу(стр) {
     for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200) набор.add(d[i] + ',' + d[i + 1] + ',' + d[i + 2]);
     return набор.size;
   });
-  await стр.locator('#tabs button').nth(1).click();
+  await стр.click('[data-экран="гараж"]');
   await стр.waitForTimeout(200);
   const цветных = await цвета();
-  await стр.locator('#tabs button').nth(0).click();
+  await стр.click('#назад');
+  await стр.click('[data-экран="настройки"]');
   await стр.click('#btnStyle');
   ок((await стр.textContent('#btnStyle')).includes('силуэт'), 'кнопка переключает вид на силуэт');
-  await стр.locator('#tabs button').nth(1).click();
+  await стр.click('#назад');
+  await стр.click('[data-экран="гараж"]');
   await стр.waitForTimeout(200);
   const силуэтных = await цвета();
   ок(силуэтных < цветных, 'в силуэте оттенков меньше, чем в цветном (' + силуэтных + ' < ' + цветных + ')');
-  await стр.locator('#tabs button').nth(0).click();
+  await стр.click('#назад');
+  await стр.click('[data-экран="настройки"]');
   await стр.click('#btnStyle');
   ок((await стр.textContent('#btnStyle')).includes('ретро'), 'дальше — ретро');
   await стр.click('#btnStyle');
   ок((await стр.textContent('#btnStyle')).includes('цветной'), 'и по кругу обратно к цветному');
+  await стр.click('#назад');
 
   /* ── Звук ───────────────────────────────────────────────── */
   console.log('\nзвук');
   await стр.evaluate(() => { window.ГД.получитьСейв().выбран = 'velo'; window.ГД.сохранить(); });
-  await стр.locator('#сетка .кл').first().click();
+  await стр.click('#btnPlay');
   await стр.waitForTimeout(200);
   await стр.keyboard.down('ArrowUp');
   await стр.waitForTimeout(400);
@@ -239,7 +284,7 @@ async function кФинишу(стр) {
       'у велосипеда трещотка и шелест покрышек, а не мотор');
     await стр.evaluate(() => window.ГД.вменю());
     await стр.evaluate(() => { window.ГД.получитьСейв().выбран = 'cross'; window.ГД.сохранить(); });
-    await стр.locator('#сетка .кл').first().click();
+    await стр.click('#btnPlay');
     await стр.waitForTimeout(250);
     const свед = await стр.evaluate(() => ({ вид: window.ГД.звук.вид, узлы: Object.keys(window.ГД.звук.у) }));
     ок(свед.вид === 'кросс', 'на кроссовом цепочка пересобралась');
