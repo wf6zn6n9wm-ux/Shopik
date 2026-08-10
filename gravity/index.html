@@ -14,8 +14,9 @@
     touch-action:none; overscroll-behavior:none;
   }
   #cv { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  .zv { display:inline-block; vertical-align:-0.14em; width:1em; height:1em; }
 
-  /* ── ЭКРАННЫЙ ИНТЕРФЕЙС ─────────────────────────────────── */
+  /* ── ЭКРАННЫЙ ИНТЕРФЕЙС В ЗАЕЗДЕ ────────────────────────── */
   #hud { position:fixed; inset:0; pointer-events:none; }
   #hud .top {
     position:absolute; top:calc(8px + env(safe-area-inset-top)); left:12px;
@@ -27,14 +28,11 @@
     font:700 30px/1 "DejaVu Sans Mono", Menlo, Consolas, monospace;
     color:#111; letter-spacing:-1px;
   }
-  /* На телефоне низ экрана занят кнопками — таймер уезжает наверх. */
-  body.сенсор #time {
-    bottom:auto; top:calc(8px + env(safe-area-inset-top)); font-size:24px;
-  }
+  body.сенсор #time { bottom:auto; top:calc(8px + env(safe-area-inset-top)); font-size:24px; }
   #bar { position:absolute; left:0; right:0; bottom:0; height:6px; background:#eee; }
   #bar i { display:block; height:100%; width:0; background:#111; transition:width .1s linear; }
 
-  /* ── КНОПКИ УПРАВЛЕНИЯ (сенсор) ─────────────────────────── */
+  /* ── КНОПКИ УПРАВЛЕНИЯ ──────────────────────────────────── */
   #pad { position:fixed; inset:0; pointer-events:none; display:none; }
   #pad.on { display:block; }
   #pad b {
@@ -42,7 +40,7 @@
     width:74px; height:74px; border-radius:50%;
     border:2px solid rgba(0,0,0,.35); background:rgba(255,255,255,.55);
     display:flex; align-items:center; justify-content:center;
-    font-size:26px; color:#111; pointer-events:auto; backdrop-filter:blur(2px);
+    font-size:26px; color:#111; pointer-events:auto;
   }
   #pad b.hit { background:rgba(0,190,0,.35); border-color:#0a0; }
   #pad .bl { left:16px; } #pad .br { left:104px; }
@@ -51,64 +49,99 @@
 
   /* ── МЕНЮ ───────────────────────────────────────────────── */
   #menu {
-    position:fixed; inset:0; background:#fff; overflow-y:auto;
-    padding:calc(18px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+    position:fixed; inset:0; background:#fff; overflow-y:auto; overscroll-behavior:contain;
+    touch-action:pan-y; padding:0 14px calc(28px + env(safe-area-inset-bottom));
     display:flex; flex-direction:column; align-items:center;
   }
   #menu.off { display:none; }
-  .logo { text-align:center; margin:6px 0 14px; }
-  .logo canvas { display:block; width:100%; max-width:440px; height:auto; margin:0 auto -6px; }
-  .logo h1 {
-    font:800 30px/1 "Segoe UI", Roboto, sans-serif; letter-spacing:-1px;
-    text-transform:uppercase; color:#111;
+  .шапка {
+    position:sticky; top:0; z-index:5; width:100%; max-width:480px; background:#fff;
+    padding:calc(10px + env(safe-area-inset-top)) 0 8px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
   }
-  .logo h1 span { color:#0a0; }
-  .logo p { font-size:11px; color:#888; letter-spacing:3px; text-transform:uppercase; margin-top:5px; }
-  .wrap { width:100%; max-width:460px; }
+  .шапка .назв { font:800 17px/1 "Segoe UI", Roboto, sans-serif; letter-spacing:-.4px; text-transform:uppercase; }
+  .шапка .назв i { color:#0a0; font-style:normal; }
+  .баланс {
+    display:flex; align-items:center; gap:5px; font:700 15px/1 inherit; color:#111;
+    background:#fff7e0; border:1px solid #ffd77a; border-radius:20px; padding:6px 12px;
+  }
+  .logo { text-align:center; margin:2px 0 10px; width:100%; }
+  .logo canvas { display:block; width:100%; max-width:440px; height:auto; margin:0 auto; }
+  .wrap { width:100%; max-width:480px; }
   .tabs { display:flex; gap:6px; margin-bottom:12px; }
   .tabs button {
-    flex:1; padding:9px 4px; font:600 13px/1 inherit; color:#444;
-    background:#f2f2f2; border:1px solid #e2e2e2; border-radius:8px; cursor:pointer;
+    flex:1; padding:10px 4px; font:600 13px/1 inherit; color:#444;
+    background:#f2f2f2; border:1px solid #e2e2e2; border-radius:9px; cursor:pointer;
   }
   .tabs button.sel { background:#111; border-color:#111; color:#fff; }
-  .lvls { display:flex; flex-direction:column; gap:6px; }
-  .lvl {
-    display:flex; align-items:center; gap:10px; width:100%;
-    padding:11px 13px; background:#fff; border:1px solid #e2e2e2; border-radius:9px;
-    font:inherit; color:#111; cursor:pointer; text-align:left;
+
+  /* сетка 50 уровней */
+  .сетка { display:grid; grid-template-columns:repeat(5,1fr); gap:7px; }
+  .кл {
+    position:relative; aspect-ratio:1/1; border:1px solid #e2e2e2; border-radius:10px;
+    background:#fff; cursor:pointer; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:2px; font:inherit; color:#111;
   }
-  .lvl:active { background:#f6f6f6; }
-  .lvl .n { width:22px; font-weight:700; color:#0a0; }
-  .lvl .t { flex:1; font-weight:600; }
-  .lvl .b { font:700 13px/1 "DejaVu Sans Mono", Menlo, monospace; color:#666; }
-  .lvl.lock { color:#bbb; border-style:dashed; cursor:default; }
-  .lvl.lock .n, .lvl.lock .b { color:#ccc; }
+  .кл b { font:700 17px/1 inherit; }
+  .кл .вр { font:600 9px/1 "DejaVu Sans Mono", monospace; color:#888; }
+  .кл .нг { display:flex; align-items:center; gap:2px; font:700 10px/1 inherit; color:#c98a00; }
+  .кл.готов { border-color:#bfe6bf; background:#f5fff5; }
+  .кл.закр { color:#c9c9c9; border-style:dashed; cursor:default; }
+  .кл.сейчас { border-color:#111; box-shadow:0 0 0 2px rgba(0,0,0,.08); }
+
+  /* гараж */
+  .тр {
+    display:flex; gap:12px; align-items:center; padding:11px;
+    border:1px solid #e2e2e2; border-radius:12px; margin-bottom:8px; background:#fff;
+  }
+  .тр canvas { width:104px; height:66px; flex:none; }
+  .тр .сер { flex:1; min-width:0; }
+  .тр .имя { font-weight:700; font-size:15px; margin-bottom:4px; }
+  .тр .пол { display:flex; align-items:center; gap:6px; font-size:10px; color:#888; margin:2px 0; }
+  .тр .пол u { flex:1; height:4px; background:#eee; border-radius:3px; overflow:hidden; text-decoration:none; }
+  .тр .пол u i { display:block; height:100%; background:#0a0; }
+  .тр .низ { margin-top:7px; display:flex; align-items:center; gap:8px; }
+  .тр button {
+    padding:8px 12px; font:700 12px/1 inherit; border-radius:8px; cursor:pointer;
+    background:#111; color:#fff; border:1px solid #111; white-space:nowrap;
+    display:flex; align-items:center; gap:5px; flex:none;
+  }
+  .тр button[disabled] { background:#f2f2f2; color:#aaa; border-color:#e2e2e2; cursor:default; }
+  .тр button.свой { background:#fff; color:#0a0; border-color:#8fd08f; }
+  .тр .замок { font-size:11px; color:#999; }
+  .тр.выбран { border-color:#111; }
+
   .keys { margin-top:16px; font-size:12px; color:#777; line-height:1.7; text-align:center; }
   .keys kbd {
     display:inline-block; min-width:20px; padding:1px 5px; margin:0 1px;
     background:#f2f2f2; border:1px solid #ddd; border-radius:4px;
     font:600 11px/1.5 "DejaVu Sans Mono", monospace; color:#333;
   }
-  .foot { margin-top:14px; display:flex; gap:8px; justify-content:center; }
+  .foot { margin-top:12px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
   .foot button {
     padding:7px 12px; font:600 12px/1 inherit; color:#555;
     background:#fff; border:1px solid #ddd; border-radius:7px; cursor:pointer;
   }
 
   /* ── ШТОРКА РЕЗУЛЬТАТА ──────────────────────────────────── */
-  #over { position:fixed; inset:0; display:none; align-items:center; justify-content:center; }
+  #over { position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:16px; }
   #over.on { display:flex; }
   #over .card {
-    background:rgba(255,255,255,.94); border:2px solid #111; border-radius:12px;
-    padding:20px 26px; text-align:center; min-width:230px;
-    box-shadow:0 10px 30px rgba(0,0,0,.15);
+    background:rgba(255,255,255,.96); border:2px solid #111; border-radius:14px;
+    padding:20px 24px; text-align:center; min-width:250px;
+    box-shadow:0 12px 34px rgba(0,0,0,.16);
   }
-  #over h2 { font-size:20px; margin-bottom:4px; letter-spacing:.5px; }
+  #over h2 { font-size:20px; margin-bottom:2px; letter-spacing:.4px; }
   #over .big { font:700 34px/1.1 "DejaVu Sans Mono", Menlo, monospace; margin:8px 0 2px; }
-  #over .sub { font-size:12px; color:#777; margin-bottom:14px; }
+  #over .приз {
+    display:inline-flex; align-items:center; gap:6px; margin:6px 0 2px;
+    font:800 20px/1 inherit; color:#c98a00;
+    background:#fff7e0; border:1px solid #ffd77a; border-radius:20px; padding:7px 14px;
+  }
+  #over .sub { font-size:12px; color:#777; margin:10px 0 14px; }
   #over .row { display:flex; gap:8px; justify-content:center; }
   #over button {
-    padding:10px 16px; font:700 13px/1 inherit; border-radius:8px; cursor:pointer;
+    padding:10px 16px; font:700 13px/1 inherit; border-radius:9px; cursor:pointer;
     background:#111; color:#fff; border:1px solid #111;
   }
   #over button.alt { background:#fff; color:#111; }
@@ -133,28 +166,35 @@
 </div>
 
 <div id="menu">
-  <div class="logo">
-    <canvas id="deco" width="440" height="150"></canvas>
-    <h1>Gravity <span>Defied</span></h1>
-    <p>мототриал</p>
+  <div class="шапка">
+    <div class="назв">Gravity <i>Defied</i></div>
+    <div class="баланс"><span id="звёзды">0</span><span id="звИкон"></span></div>
   </div>
   <div class="wrap">
-    <div class="tabs" id="tabs"></div>
-    <div class="lvls" id="lvls"></div>
-    <div class="keys">
-      <kbd>↑</kbd> газ &nbsp; <kbd>↓</kbd> тормоз &nbsp; <kbd>←</kbd><kbd>→</kbd> наклон<br>
-      <kbd>R</kbd> заново &nbsp; <kbd>Esc</kbd> меню &nbsp; на телефоне — экранные кнопки
+    <div class="logo"><canvas id="deco" width="440" height="140"></canvas></div>
+    <div class="tabs" id="tabs">
+      <button data-t="трассы" class="sel">Трассы</button>
+      <button data-t="гараж">Гараж</button>
     </div>
-    <div class="foot">
-      <button id="btnSound">Звук: вкл</button>
-      <button id="btnReset">Сбросить рекорды</button>
+    <div id="трассы"><div class="сетка" id="сетка"></div>
+      <div class="keys">
+        <kbd>↑</kbd> газ &nbsp; <kbd>↓</kbd> тормоз &nbsp; <kbd>←</kbd><kbd>→</kbd> наклон<br>
+        <kbd>R</kbd> заново &nbsp; <kbd>Esc</kbd> меню &nbsp; на телефоне — экранные кнопки
+      </div>
+      <div class="foot">
+        <button id="btnStyle">Вид: цветной</button>
+        <button id="btnSound">Звук: вкл</button>
+        <button id="btnReset">Сбросить прогресс</button>
+      </div>
     </div>
+    <div id="гараж" style="display:none"></div>
   </div>
 </div>
 
 <div id="over"><div class="card">
   <h2 id="ovTitle">—</h2>
   <div class="big" id="ovTime"></div>
+  <div id="ovПриз"></div>
   <div class="sub" id="ovSub"></div>
   <div class="row">
     <button id="ovMain">Заново</button>
@@ -166,7 +206,7 @@
 "use strict";
 
 /* ══════════════════════════════════════════════════════════════
-   ЯДРО: генератор трасс + физика байка.
+   ЯДРО: транспорт, генератор трасс, физика байка, экономика.
    Ничего не знает про DOM — эту часть гоняют проверки в node.
    ══════════════════════════════════════════════════════════════ */
 //#region ядро
@@ -181,24 +221,60 @@ function mulberry32(a) {
   };
 }
 
-/* Мир в метрах, ось Y смотрит вверх. */
+/* Мир в метрах, ось Y смотрит вверх. Общее для любого транспорта. */
 const ФИЗ = {
   G: 20,            // притяжение
-  R: 0.34,          // радиус колеса
-  БАЗА: 1.16,       // колёсная база
-  ТЯГА: 30,         // сила двигателя на заднем колесе
-  ТОРМОЗ: 26,       // сила торможения
   МОМЕНТ: 11,       // момент от наклона игрока
-  РЕАКЦИЯ: 5.2,     // момент отдачи двигателя (задирает переднее колесо)
   ГАСИТЬ: 2.6,      // гашение вращения (чтобы не крутило волчком)
-  ОТСКОК: 0.22,     // упругость при ударе о землю
+  ТОРМОЗ: 26,       // сила торможения
   КАЧЕНИЕ: 0.2,     // трение качения, доля скорости в секунду
   ЮЗ: 7,            // трение юзом при торможении, в секунду
   ВОЗДУХ: 0.012,    // сопротивление воздуха
-  МАКС: 21,         // предельная скорость под тягой
-  ПОТОЛОК: 36,      // абсолютный предел (страховка от разгона на стенках)
-  ГОЛОВА: 0.17      // радиус головы райдера
+  ПОТОЛОК: 45,      // аварийный предел скорости
+  ГОЛОВА: 0.12,     // радиус головы райдера
+  /* Где сидит голова — в долях колёсной базы, вдоль рамы и вверх от неё.
+     Этими же числами она и рисуется, иначе шея ломалась бы не там, где видно. */
+  ШЕЯ_X: 0.72, ШЕЯ_Y: 0.88
 };
+
+/* ── Транспорт ────────────────────────────────────────────────
+   Открывается по уровню либо покупается за звёзды раньше срока. */
+const ТРАНСПОРТ = [
+  { id: 'velo', имя: 'Велосипед', цена: 0, открыт: 1,
+    тяга: 17, макс: 12.5, реакция: 3.4, момент: 12, база: 1.05, r: 0.35, отскок: 0.18,
+    вид: 'вело', рама: '#1f8fd0', акцент: '#0f6ea8',
+    о: 'Педали и вера в себя. Медленно, зато лёгкий и вёрткий.' },
+  { id: 'evelo', имя: 'Электровелосипед', цена: 100, открыт: 10,
+    тяга: 24, макс: 15.5, реакция: 4.2, момент: 11.5, база: 1.1, r: 0.35, отскок: 0.2,
+    вид: 'эвело', рама: '#12b886', акцент: '#0b7a5c',
+    о: 'Мотор-колесо и батарея на раме. Тянет в горку сам.' },
+  { id: 'moto', имя: 'Мотоцикл', цена: 200, открыт: 20,
+    тяга: 31, макс: 19, реакция: 5.2, момент: 11, база: 1.18, r: 0.33, отскок: 0.22,
+    вид: 'мото', рама: '#e03030', акцент: '#a81f1f',
+    о: 'Обычный дорожный. Первая настоящая тяга и первые вилли.' },
+  { id: 'enduro', имя: 'Эндуро', цена: 300, открыт: 30,
+    тяга: 37, макс: 22, реакция: 6.1, момент: 10.5, база: 1.26, r: 0.35, отскок: 0.26,
+    вид: 'эндуро', рама: '#f0a020', акцент: '#b87413',
+    о: 'Длинноходная подвеска и крылья. Держит приземления.' },
+  { id: 'cross', имя: 'Кроссовый', цена: 500, открыт: 40,
+    тяга: 44, макс: 25.5, реакция: 6.9, момент: 10, база: 1.32, r: 0.37, отскок: 0.3,
+    вид: 'кросс', рама: '#7048e8', акцент: '#4c2fa8',
+    о: 'Злая кроссовая резина и максимум тяги. Для последних туров.' }
+];
+const поТранспорту = (id) => ТРАНСПОРТ.find((т) => т.id === id) || ТРАНСПОРТ[0];
+
+/* ── Уровни и награда ───────────────────────────────────────── */
+const ВСЕГО = 50;
+/* Сложность растёт ровно от первого уровня к пятидесятому. */
+function уровень(н) {
+  const diff = (н - 1) / (ВСЕГО - 1);
+  return { н, diff, seed: 7919 + н * 613 };
+}
+/* Награда за первое прохождение: 10 звёзд за первый уровень, 50 за
+   пятидесятый, между ними ровный рост шагами по пять. */
+function награда(н) {
+  return Math.round((10 + (н - 1) * 40 / (ВСЕГО - 1)) / 5) * 5;
+}
 
 /* ── Трасса ───────────────────────────────────────────────── */
 
@@ -215,7 +291,7 @@ function сделатьТрассу(seed, diff) {
   /* Плавный переход по косинусу — из таких волн собран весь ландшафт.
      Высоту режем так, чтобы в самом крутом месте склон не был отвесным:
      у косинуса максимальный наклон = π·h / (2·len). */
-  const ПРЕДЕЛ = 0.48;
+  const ПРЕДЕЛ = 0.32 + 0.3 * diff;
   const волна = (len, h, шагов) => {
     h = Math.max(-ПРЕДЕЛ * len, Math.min(ПРЕДЕЛ * len, h));
     const x0 = x, y0 = y;
@@ -242,7 +318,7 @@ function сделатьТрассу(seed, diff) {
   const трамплин = () => {
     ровно(R(3, 6));                       // место разогнаться перед прыжком
     склон(R(2.4, 3.6), УГОЛ);
-    пропасть(3 + 5 * diff, 5 + 4 * diff);
+    пропасть(2.6 + 4.4 * diff, 5 + 4 * diff);
     волна(R(5, 8), -(1 + 1.5 * diff), 6);
   };
   const столик = () => {
@@ -258,19 +334,32 @@ function сделатьТрассу(seed, diff) {
     for (let i = 0; i < n; i++) { ровно(R(2.2, 3.2)); доб(x + 0.4, y + R(0.25, 0.32 + 0.3 * diff)); }
   };
 
+  /* Чем выше уровень, тем чаще выпадают тяжёлые секции: на первых трассах
+     это в основном холмы и столики, на последних — пропасти и гребёнка. */
+  const секции = [
+    ['холмы', 1.7 - 1.4 * diff, () => холмы(2, 1.5 + 3 * diff)],
+    ['столик', 1.1 - 0.5 * diff, столик],
+    ['склоны', 1.0 - 0.4 * diff, () => (rnd() < 0.5 ? подъём : спуск)()],
+    ['ступени', 0.25 + 0.75 * diff, ступени],
+    ['гребёнка', 0.15 + 1.05 * diff,
+      () => гребёнка(3 + Math.floor(rnd() * 4), 0.9 + 1.7 * diff, 3.6 - 0.9 * diff)],
+    ['трамплин', 0.1 + 1.5 * diff, трамплин]
+  ];
+
   ровно(40);                              // разгонная прямая перед первой секцией
-  const цель = 250 + 170 * diff;
+  const цель = 210 + 210 * diff;
   let было = -1;
   while (x < цель) {
-    let k = Math.floor(rnd() * 6);
-    if (k === было) k = (k + 1) % 6;      // две одинаковые секции подряд — скучно
+    let сумма = 0;
+    for (let i = 0; i < секции.length; i++) if (i !== было) сумма += Math.max(0, секции[i][1]);
+    let жребий = rnd() * сумма, k = 0;
+    for (let i = 0; i < секции.length; i++) {
+      if (i === было) continue;           // две одинаковые секции подряд — скучно
+      жребий -= Math.max(0, секции[i][1]);
+      if (жребий <= 0) { k = i; break; }
+    }
     было = k;
-    if (k === 0) холмы(2, 1.5 + 3 * diff);
-    else if (k === 1) трамплин();
-    else if (k === 2) гребёнка(3 + Math.floor(rnd() * 4), 0.9 + 1.7 * diff, 3.6 - 0.9 * diff);
-    else if (k === 3) столик();
-    else if (k === 4) (rnd() < 0.5 ? подъём : спуск)();
-    else ступени();
+    секции[k][2]();
     волна(R(4, 8), R(-1, 1) * (1 + 2 * diff), 6); // связка между секциями
   }
   волна(8, -Math.max(0, y) * 0.35, 6);
@@ -346,14 +435,15 @@ function касание(тр, cx, cy, r) {
 
 /* ── Байк ─────────────────────────────────────────────────── */
 
-function сделатьБайк(тр) {
+function сделатьБайк(тр, т) {
+  т = т || ТРАНСПОРТ[0];
   const x = тр.старт;
   const кол = (px) => ({
-    x: px, y: земля(тр, px) + ФИЗ.R, vx: 0, vy: 0,
+    x: px, y: земля(тр, px) + т.r, vx: 0, vy: 0,
     ox: 0, oy: 0, на: false, nx: 0, ny: 1
   });
   return {
-    з: кол(x), п: кол(x + ФИЗ.БАЗА),   // заднее и переднее колесо
+    т, з: кол(x), п: кол(x + т.база),   // заднее и переднее колесо
     спин: 0, упал: false, застрял: false, финиш: false,
     время: 0, мёртв: 0, макс: 0, стоп: 0
   };
@@ -365,7 +455,7 @@ function рама(бк, раз) {
   for (let i = 0; i < раз; i++) {
     const dx = п.x - з.x, dy = п.y - з.y;
     const d = Math.hypot(dx, dy) || 1;
-    const k = (d - ФИЗ.БАЗА) / d * 0.5;
+    const k = (d - бк.т.база) / d * 0.5;
     з.x += dx * k; з.y += dy * k;
     п.x -= dx * k; п.y -= dy * k;
   }
@@ -373,7 +463,7 @@ function рама(бк, раз) {
 
 /* Один подшаг физики. */
 function подшаг(бк, тр, вх, h) {
-  const з = бк.з, п = бк.п;
+  const з = бк.з, п = бк.п, т = бк.т;
   let ux = п.x - з.x, uy = п.y - з.y;
   const L = Math.hypot(ux, uy) || 1;
   ux /= L; uy /= L;
@@ -395,7 +485,7 @@ function подшаг(бк, тр, вх, h) {
 
   /* Момент: наклон игрока + отдача двигателя + гашение вращения. */
   const ω = ((п.vx - з.vx) * px + (п.vy - з.vy) * py) / L;
-  let M = наклон * ФИЗ.МОМЕНТ + газ * ФИЗ.РЕАКЦИЯ - торм * ФИЗ.РЕАКЦИЯ * 0.5 - ω * ФИЗ.ГАСИТЬ;
+  const M = наклон * т.момент + газ * т.реакция - торм * т.реакция * 0.5 - ω * ФИЗ.ГАСИТЬ;
   const F = M / L;
   п.vx += px * F * h; п.vy += py * F * h;
   з.vx -= px * F * h; з.vy -= py * F * h;
@@ -409,9 +499,9 @@ function подшаг(бк, тр, вх, h) {
   if (газ > 0 && з.на) {
     const [tx, ty] = вдоль(з);
     const v = з.vx * tx + з.vy * ty;
-    const k = v > ФИЗ.МАКС ? 0 : 1 - Math.max(0, v) / ФИЗ.МАКС;
-    з.vx += tx * ФИЗ.ТЯГА * газ * k * h;
-    з.vy += ty * ФИЗ.ТЯГА * газ * k * h;
+    const k = v > т.макс ? 0 : 1 - Math.max(0, v) / т.макс;
+    з.vx += tx * т.тяга * газ * k * h;
+    з.vy += ty * т.тяга * газ * k * h;
   }
   if (торм > 0) {
     for (const w of [з, п]) {
@@ -436,7 +526,7 @@ function подшаг(бк, тр, вх, h) {
      скоростью — на отвесной стенке байк улетал бы как из пращи. */
   for (const w of [з, п]) {
     w.vx = (w.x - w.ox) / h; w.vy = (w.y - w.oy) / h;
-    const c = касание(тр, w.x, w.y, ФИЗ.R);
+    const c = касание(тр, w.x, w.y, т.r);
     if (!c) { w.на = false; continue; }
     w.на = true; w.nx = c.nx; w.ny = c.ny;
     const глуб = Math.min(c.глуб, 0.12);
@@ -444,7 +534,7 @@ function подшаг(бк, тр, вх, h) {
 
     const vn = w.vx * c.nx + w.vy * c.ny;
     if (vn < 0) {                               // гасим ход внутрь земли
-      const e = vn < -2 ? ФИЗ.ОТСКОК : 0;
+      const e = vn < -2 ? т.отскок : 0;
       w.vx -= (1 + e) * vn * c.nx;
       w.vy -= (1 + e) * vn * c.ny;
     }
@@ -467,19 +557,19 @@ function шаг(бк, тр, вх, dt) {
   const N = 4, h = dt / N;
   for (let i = 0; i < N; i++) подшаг(бк, тр, вх, h);
 
-  const з = бк.з, п = бк.п;
+  const з = бк.з, п = бк.п, т = бк.т;
   let ux = п.x - з.x, uy = п.y - з.y;
   const L = Math.hypot(ux, uy) || 1; ux /= L; uy /= L;
   const px = -uy, py = ux;
 
   /* Вращение колёс — только для картинки. */
   const скор = Math.hypot(з.vx, з.vy);
-  бк.спин += (з.на ? (з.vx * ux + з.vy * uy) / ФИЗ.R : вх.gas * 22) * dt;
+  бк.спин += (з.на ? (з.vx * ux + з.vy * uy) / т.r : вх.gas * 22) * dt;
   бк.макс = Math.max(бк.макс, скор);
 
   /* Шея. Голова коснулась земли — перелом, как в оригинале. */
-  const hx = з.x + ux * 0.74 + px * 1.16;
-  const hy = з.y + uy * 0.74 + py * 1.16;
+  const hx = з.x + ux * ФИЗ.ШЕЯ_X * т.база + px * ФИЗ.ШЕЯ_Y * т.база;
+  const hy = з.y + uy * ФИЗ.ШЕЯ_X * т.база + py * ФИЗ.ШЕЯ_Y * т.база;
   if (!бк.упал && !бк.финиш) {
     if (касание(тр, hx, hy, ФИЗ.ГОЛОВА)) бк.упал = true;
     if (з.y < тр.низ - 25 || п.y < тр.низ - 25) бк.упал = true;
@@ -493,18 +583,6 @@ function шаг(бк, тр, вх, dt) {
   if (бк.упал) бк.мёртв += dt;
   else if (!бк.финиш) бк.время += dt;
   return бк;
-}
-
-/* Список уровней: три тура по шесть трасс. */
-const ТУРЫ = [
-  { имя: 'Новичок', слож: [0.00, 0.30] },
-  { имя: 'Любитель', слож: [0.32, 0.62] },
-  { имя: 'Профи', слож: [0.64, 1.00] }
-];
-function уровень(тур, н) {
-  const [a, b] = ТУРЫ[тур].слож;
-  const diff = a + (b - a) * (н / 5);
-  return { id: тур + ':' + н, тур, н, diff, seed: (тур + 1) * 7919 + н * 613 + 17 };
 }
 
 //#endregion ядро
@@ -526,14 +604,36 @@ function размер() {
 }
 window.addEventListener('resize', размер);
 
+/* Звезда в стиле Telegram Stars. */
+const ЗВЕЗДА = '<svg class="zv" viewBox="0 0 24 24" aria-hidden="true">' +
+  '<defs><linearGradient id="zvg" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">' +
+  '<stop offset="0" stop-color="#FFE07A"/><stop offset=".45" stop-color="#FFC01F"/>' +
+  '<stop offset="1" stop-color="#F08A0C"/></linearGradient></defs>' +
+  '<path fill="url(#zvg)" d="M12.9 1.6c-.4-.8-1.5-.8-1.9 0L8.3 7.3l-6.2.9c-.9.1-1.2 1.2-.6 1.8l4.5 4.4-1.1 6.2c-.1.9.8 1.5 1.6 1.1l5.5-2.9 5.5 2.9c.8.4 1.7-.2 1.6-1.1l-1.1-6.2 4.5-4.4c.6-.6.3-1.7-.6-1.8l-6.2-.9z"/>' +
+  '<path fill="#fff" opacity=".35" d="M11.6 3.6 9.4 8.1l-4.9.7 3.5 3.5-.8 4.9 4.4-2.3z"/></svg>';
+
 /* ── Сохранения ───────────────────────────────────────────── */
-const КЛЮЧ = 'gd_v1';
-let сейв = { рекорды: {}, открыто: { '0': 0, '1': 0, '2': 0 }, звук: true };
+const КЛЮЧ = 'gd_v2';
+const ПУСТО = () => ({ рекорды: {}, пройдено: [], звёзды: 0, куплено: ['velo'],
+                       выбран: 'velo', звук: true, стиль: 'цвет' });
+let сейв = ПУСТО();
 try {
   const s = JSON.parse(localStorage.getItem(КЛЮЧ) || 'null');
-  if (s && typeof s === 'object') сейв = Object.assign(сейв, s);
+  if (s && typeof s === 'object') {
+    сейв = Object.assign(ПУСТО(), s);
+    if (!Array.isArray(сейв.пройдено)) сейв.пройдено = [];
+    if (!Array.isArray(сейв.куплено) || !сейв.куплено.length) сейв.куплено = ['velo'];
+    if (typeof сейв.звёзды !== 'number' || !isFinite(сейв.звёзды)) сейв.звёзды = 0;
+  }
 } catch (e) { /* битое сохранение — играем с чистого листа */ }
 function сохранить() { try { localStorage.setItem(КЛЮЧ, JSON.stringify(сейв)); } catch (e) {} }
+
+const пройден = (н) => сейв.пройдено.indexOf(н) >= 0;
+/* Уровень открыт, если пройден предыдущий. */
+const открыт = (н) => н === 1 || пройден(н - 1);
+const следующий = () => { for (let н = 1; н <= ВСЕГО; н++) if (!пройден(н)) return н; return ВСЕГО; };
+/* Транспорт доступен: куплен или открыт по достигнутому уровню. */
+const доступен = (т) => сейв.куплено.indexOf(т.id) >= 0 || следующий() >= т.открыт;
 
 const ммсс = (t) => {
   const м = Math.floor(t / 60), с = t - м * 60;
@@ -607,14 +707,15 @@ const игра = { тр: null, бк: null, лвл: null, кам: { x: 0, y: 0, s
 function старт(лвл) {
   игра.лвл = лвл;
   игра.тр = сделатьТрассу(лвл.seed, лвл.diff);
-  игра.бк = сделатьБайк(игра.тр);
+  игра.бк = сделатьБайк(игра.тр, поТранспорту(сейв.выбран));
   игра.кам.x = игра.бк.з.x; игра.кам.y = игра.бк.з.y + 1.5;
   игра.идёт = true; игра.шторка = false;
   $('menu').classList.add('off');
   $('over').classList.remove('on');
-  const рек = сейв.рекорды[лвл.id];
-  $('hudName').innerHTML = ТУРЫ[лвл.тур].имя + ' · трасса ' + (лвл.н + 1) +
-    '<small>' + (рек ? 'рекорд ' + ммсс(рек) : 'рекорда ещё нет') + '</small>';
+  const рек = сейв.рекорды[лвл.н];
+  $('hudName').innerHTML = 'Уровень ' + лвл.н + ' / ' + ВСЕГО +
+    '<small>' + поТранспорту(сейв.выбран).имя +
+    (рек ? ' · рекорд ' + ммсс(рек) : ' · награда ' + награда(лвл.н) + ' ★') + '</small>';
   for (const k in жмут) жмут[k] = false;
   собрать();
 }
@@ -630,55 +731,126 @@ function вменю() {
 function итог(победа) {
   игра.шторка = true;
   const л = игра.лвл, t = игра.бк.время;
-  let рекорд = false;
+  let рекорд = false, приз = 0;
   if (победа) {
-    const б = сейв.рекорды[л.id];
-    if (!б || t < б) { сейв.рекорды[л.id] = t; рекорд = true; }
-    if (сейв.открыто[л.тур] < Math.min(5, л.н + 1)) сейв.открыто[л.тур] = Math.min(5, л.н + 1);
+    const б = сейв.рекорды[л.н];
+    if (!б || t < б) { сейв.рекорды[л.н] = t; рекорд = true; }
+    if (!пройден(л.н)) {
+      сейв.пройдено.push(л.н);
+      приз = награда(л.н);
+      сейв.звёзды += приз;
+    }
     сохранить();
   }
   const застрял = игра.бк.застрял;
   $('ovTitle').textContent = победа ? 'Финиш' : застрял ? 'Застрял' : 'Падение';
   $('ovTime').textContent = победа ? ммсс(t) : застрял ? '⤾' : '✖';
+  $('ovПриз').innerHTML = приз ? '<div class="приз">+' + приз + ' ' + ЗВЕЗДА + '</div>' : '';
   $('ovSub').innerHTML = победа
-    ? (рекорд ? '<span class="rec">новый рекорд!</span>'
-      : 'рекорд ' + ммсс(сейв.рекорды[л.id]))
+    ? (рекорд ? '<span class="rec">новый рекорд!</span>' : 'рекорд ' + ммсс(сейв.рекорды[л.н])) +
+      (приз ? '' : ' · звёзды за уровень уже получены')
     : застрял ? 'отсюда не выбраться — с начала' : 'сломал шею — попробуй мягче';
-  $('ovMain').textContent = победа ? (л.н < 5 ? 'Следующая' : 'Ещё раз') : 'Заново';
+  const дальше = победа && л.н < ВСЕГО;
+  $('ovMain').textContent = дальше ? 'Уровень ' + (л.н + 1) : 'Заново';
   $('over').classList.add('on');
   звук.тихо();
-  $('ovMain').onclick = () => {
-    if (победа && л.н < 5) старт(уровень(л.тур, л.н + 1));
-    else старт(л);
-  };
+  $('ovMain').onclick = () => старт(дальше ? уровень(л.н + 1) : л);
 }
 $('ovMenu').onclick = вменю;
 
 /* ── Меню ─────────────────────────────────────────────────── */
-let тек = 0;
+let вкладка = 'трассы';
+for (const b of document.querySelectorAll('#tabs button')) {
+  b.onclick = () => { вкладка = b.dataset.t; рисоватьМеню(); };
+}
+
 function рисоватьМеню() {
-  const tabs = $('tabs'); tabs.innerHTML = '';
-  ТУРЫ.forEach((t, i) => {
+  $('звёзды').textContent = сейв.звёзды;
+  $('btnStyle').textContent = 'Вид: ' + (ИМЕНА[сейв.стиль] || 'цветной');
+  $('звИкон').innerHTML = ЗВЕЗДА;
+  for (const b of document.querySelectorAll('#tabs button')) b.classList.toggle('sel', b.dataset.t === вкладка);
+  $('трассы').style.display = вкладка === 'трассы' ? '' : 'none';
+  $('гараж').style.display = вкладка === 'гараж' ? '' : 'none';
+  вкладка === 'трассы' ? рисоватьТрассы() : рисоватьГараж();
+}
+
+function рисоватьТрассы() {
+  const сетка = $('сетка'); сетка.innerHTML = '';
+  const текущий = следующий();
+  for (let н = 1; н <= ВСЕГО; н++) {
     const b = document.createElement('button');
-    b.textContent = t.имя;
-    if (i === тек) b.className = 'sel';
-    b.onclick = () => { тек = i; рисоватьМеню(); };
-    tabs.appendChild(b);
-  });
-  const box = $('lvls'); box.innerHTML = '';
-  for (let н = 0; н <= 5; н++) {
-    const л = уровень(тек, н);
-    const открыт = н <= (сейв.открыто[тек] || 0);
-    const рек = сейв.рекорды[л.id];
-    const b = document.createElement('button');
-    b.className = 'lvl' + (открыт ? '' : ' lock');
-    b.innerHTML = '<span class="n">' + (н + 1) + '</span>' +
-      '<span class="t">' + (открыт ? 'Трасса ' + (н + 1) : 'Закрыто') + '</span>' +
-      '<span class="b">' + (рек ? ммсс(рек) : открыт ? '—' : '🔒') + '</span>';
-    if (открыт) b.onclick = () => { звук.вкл(); старт(л); };
-    box.appendChild(b);
+    const ок = открыт(н), готов = пройден(н);
+    b.className = 'кл' + (готов ? ' готов' : '') + (ок ? '' : ' закр') + (н === текущий ? ' сейчас' : '');
+    const рек = сейв.рекорды[н];
+    b.innerHTML = '<b>' + н + '</b>' + (
+      готов ? '<span class="вр">' + (рек ? ммсс(рек) : '') + '</span>'
+        : ок ? '<span class="нг">' + награда(н) + ' ' + ЗВЕЗДА + '</span>'
+          : '<span class="вр">🔒</span>');
+    if (ок) b.onclick = () => { звук.вкл(); старт(уровень(н)); };
+    сетка.appendChild(b);
   }
 }
+
+function рисоватьГараж() {
+  const box = $('гараж'); box.innerHTML = '';
+  const текущий = следующий();
+  for (const т of ТРАНСПОРТ) {
+    const куплен = сейв.куплено.indexOf(т.id) >= 0;
+    const свободен = текущий >= т.открыт;
+    const есть = куплен || свободен;
+    const выбран = сейв.выбран === т.id;
+
+    const d = document.createElement('div');
+    d.className = 'тр' + (выбран ? ' выбран' : '');
+    const шкала = (имя, знач) =>
+      '<div class="пол">' + имя + '<u><i style="width:' + Math.round(знач * 100) + '%"></i></u></div>';
+    d.innerHTML =
+      '<canvas width="208" height="132" data-вид="' + т.id + '"></canvas>' +
+      '<div class="сер">' +
+        '<div class="имя">' + т.имя + '</div>' +
+        шкала('скорость', (т.макс - 10) / 17) +
+        шкала('тяга', (т.тяга - 14) / 32) +
+        шкала('устойчивость', (т.база - 1) / 0.35) +
+        '<div class="низ"></div>' +
+      '</div>';
+    const низ = d.querySelector('.низ');
+
+    if (есть) {
+      const b = document.createElement('button');
+      b.className = выбран ? 'свой' : '';
+      b.textContent = выбран ? 'Выбран' : 'Выбрать';
+      b.disabled = выбран;
+      b.onclick = () => { сейв.выбран = т.id; сохранить(); рисоватьГараж(); };
+      низ.appendChild(b);
+      if (!куплен) низ.insertAdjacentHTML('beforeend',
+        '<span class="замок">открыт с ' + т.открыт + '-го уровня</span>');
+    } else {
+      const b = document.createElement('button');
+      const хватает = сейв.звёзды >= т.цена;
+      b.innerHTML = 'Купить ' + т.цена + ' ' + ЗВЕЗДА;
+      b.disabled = !хватает;
+      b.onclick = () => {
+        if (сейв.звёзды < т.цена) return;
+        сейв.звёзды -= т.цена;
+        сейв.куплено.push(т.id);
+        сейв.выбран = т.id;
+        сохранить(); рисоватьМеню();
+      };
+      низ.appendChild(b);
+      низ.insertAdjacentHTML('beforeend',
+        '<span class="замок">' + (хватает ? 'или бесплатно с ' + т.открыт + '-го уровня'
+          : 'не хватает ' + (т.цена - сейв.звёзды) + ' ★ · бесплатно с ' + т.открыт + '-го') + '</span>');
+    }
+    box.appendChild(d);
+    витрина(d.querySelector('canvas'), т);
+  }
+}
+
+$('btnStyle').onclick = () => {
+  const порядок = Object.keys(СТИЛИ);
+  сейв.стиль = порядок[(порядок.indexOf(сейв.стиль) + 1) % порядок.length];
+  сохранить(); рисоватьМеню(); заставка();
+};
 $('btnSound').onclick = () => {
   сейв.звук = !сейв.звук; сохранить();
   $('btnSound').textContent = 'Звук: ' + (сейв.звук ? 'вкл' : 'выкл');
@@ -686,7 +858,7 @@ $('btnSound').onclick = () => {
 };
 $('btnSound').textContent = 'Звук: ' + (сейв.звук ? 'вкл' : 'выкл');
 $('btnReset').onclick = () => {
-  сейв = { рекорды: {}, открыто: { '0': 0, '1': 0, '2': 0 }, звук: сейв.звук };
+  const з = сейв.звук; сейв = ПУСТО(); сейв.звук = з;
   сохранить(); рисоватьМеню();
 };
 
@@ -713,8 +885,7 @@ function рельеф(s) {
 
   ctx.lineJoin = 'round'; ctx.lineCap = 'round';
 
-  /* Дальняя кромка ленты. */
-  ctx.strokeStyle = ЗЕЛ; ctx.lineWidth = 1.4 / s;
+  ctx.strokeStyle = ЗЕЛ; ctx.lineWidth = 1.4 / s;      // дальняя кромка ленты
   ctx.beginPath();
   for (let k = i; k <= j; k++) {
     const X = p[k].x + ГЛУБ.x, Y = p[k].y + ГЛУБ.y;
@@ -722,16 +893,14 @@ function рельеф(s) {
   }
   ctx.stroke();
 
-  /* Поперечины — они и дают объём. */
-  ctx.beginPath();
+  ctx.beginPath();                                      // поперечины дают объём
   for (let k = i; k <= j; k++) {
     ctx.moveTo(p[k].x, p[k].y);
     ctx.lineTo(p[k].x + ГЛУБ.x, p[k].y + ГЛУБ.y);
   }
   ctx.stroke();
 
-  /* Ближняя кромка — по ней и едем. */
-  ctx.strokeStyle = ЗЕЛ2; ctx.lineWidth = 2 / s;
+  ctx.strokeStyle = ЗЕЛ2; ctx.lineWidth = 2 / s;        // ближняя кромка — по ней едем
   ctx.beginPath();
   for (let k = i; k <= j; k++) k === i ? ctx.moveTo(p[k].x, p[k].y) : ctx.lineTo(p[k].x, p[k].y);
   ctx.stroke();
@@ -750,77 +919,159 @@ function флаг(g, s, x, y, двойной) {
   if (двойной) пол(-1.3, 2.4);
 }
 
-function колесо(g, s, cx, cy, спин) {
-  const R = ФИЗ.R;
+/* ── Транспорт: колёса и корпус ───────────────────────────── */
+
+/* Стиль отрисовки транспорта. Цвета не перечисляются заново для каждого
+   стиля: исходный цвет переводится в оттенок палитры по своей светлоте,
+   поэтому рисунок не теряет контраста. */
+const СТИЛИ = { цвет: null, силуэт: ['#111111', '#444444', '#7a7a7a'], ретро: ['#0a5f0a', '#0f8f0f', '#41c141'] };
+const ИМЕНА = { цвет: 'цветной', силуэт: 'силуэт', ретро: 'ретро' };
+function светлота(c) {
+  let h = c.slice(1);
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  const n = parseInt(h, 16);
+  return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+}
+function цвет(c) {
+  const пал = СТИЛИ[сейв.стиль] || null;
+  if (!пал || c === '#fff') return c;
+  const L = светлота(c);
+  return L < 0.32 ? пал[0] : L < 0.62 ? пал[1] : пал[2];
+}
+
+function колесо(g, s, cx, cy, спин, т) {
+  const R = т.r, тонкое = т.вид === 'вело' || т.вид === 'эвело';
   g.save();
   g.translate(cx, cy); g.rotate(спин);
   g.fillStyle = '#fff';
-  g.beginPath(); g.arc(0, 0, R - 0.04, 0, 6.2832); g.fill();
-  g.strokeStyle = '#111'; g.lineWidth = 0.075;                 // покрышка
+  g.beginPath(); g.arc(0, 0, R - 0.03, 0, 6.2832); g.fill();
+  g.strokeStyle = цвет('#111'); g.lineWidth = тонкое ? 0.045 : 0.075;      // покрышка
   g.beginPath(); g.arc(0, 0, R - 0.04, 0, 6.2832); g.stroke();
-  g.strokeStyle = '#888'; g.lineWidth = 1 / s;                  // обод
+  if (т.вид === 'кросс' || т.вид === 'эндуро') {                     // грунтозацепы
+    g.lineWidth = 0.9 / s;
+    g.beginPath();
+    for (let i = 0; i < 16; i++) {
+      const a = i * Math.PI / 8;
+      g.moveTo(Math.cos(a) * (R - 0.09), Math.sin(a) * (R - 0.09));
+      g.lineTo(Math.cos(a) * (R + 0.02), Math.sin(a) * (R + 0.02));
+    }
+    g.stroke();
+  }
+  g.strokeStyle = цвет('#888'); g.lineWidth = 1 / s;                        // обод
   g.beginPath(); g.arc(0, 0, R - 0.11, 0, 6.2832); g.stroke();
-  g.strokeStyle = '#666'; g.lineWidth = 0.9 / s;                // спицы
+  g.strokeStyle = цвет('#666'); g.lineWidth = 0.9 / s;                      // спицы
   g.beginPath();
-  for (let i = 0; i < 5; i++) {
-    const a = i * Math.PI / 5;
+  const спиц = тонкое ? 7 : 5;
+  for (let i = 0; i < спиц; i++) {
+    const a = i * Math.PI / спиц;
     g.moveTo(Math.cos(a) * (R - 0.11), Math.sin(a) * (R - 0.11));
     g.lineTo(-Math.cos(a) * (R - 0.11), -Math.sin(a) * (R - 0.11));
   }
   g.stroke();
-  g.fillStyle = '#d22';
-  g.beginPath(); g.arc(0, 0, 0.06, 0, 6.2832); g.fill();        // втулка
+  g.fillStyle = т.вид === 'эвело' ? цвет('#333') : цвет('#d22');
+  g.beginPath(); g.arc(0, 0, т.вид === 'эвело' ? 0.11 : 0.06, 0, 6.2832); g.fill();  // втулка
   g.restore();
 }
 
-/* Байк рисуется по двум колёсам: где заднее, где переднее — оттуда и наклон. */
-function байк(g, s, з, п, спин, поза) {
-  const ang = Math.atan2(п.y - з.y, п.x - з.x);
-  колесо(g, s, з.x, з.y, спин);
-  колесо(g, s, п.x, п.y, спин);
-
-  g.save();
-  g.translate(з.x, з.y); g.rotate(ang);
-  const L = ФИЗ.БАЗА;
+/* Рисуется в локальных долях базы: 0 — заднее колесо, 1 — переднее. */
+function корпус(g, т, поза, фаза) {
+  const B = т.база;
   const лин = (t, c, w) => {
-    g.strokeStyle = c; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.strokeStyle = c; g.lineWidth = w * B; g.lineCap = 'round'; g.lineJoin = 'round';
     g.beginPath();
-    g.moveTo(t[0][0], t[0][1]);
-    for (let i = 1; i < t.length; i++) g.lineTo(t[i][0], t[i][1]);
+    g.moveTo(t[0][0] * B, t[0][1] * B);
+    for (let i = 1; i < t.length; i++) g.lineTo(t[i][0] * B, t[i][1] * B);
     g.stroke();
   };
-  const фигура = (t, c) => {
+  const фиг = (t, c) => {
     g.fillStyle = c; g.beginPath();
-    g.moveTo(t[0][0], t[0][1]);
-    for (let i = 1; i < t.length; i++) g.lineTo(t[i][0], t[i][1]);
+    g.moveTo(t[0][0] * B, t[0][1] * B);
+    for (let i = 1; i < t.length; i++) g.lineTo(t[i][0] * B, t[i][1] * B);
     g.closePath(); g.fill();
   };
+  const круг = (x, y, r, c) => {
+    g.fillStyle = c; g.beginPath(); g.arc(x * B, y * B, r * B, 0, 6.2832); g.fill();
+  };
+  const вело = т.вид === 'вело' || т.вид === 'эвело';
 
-  /* Мотоцикл. */
-  лин([[0.06, 0.44], [0.3, 0.4], [0.44, 0.3]], '#999', 0.07);            // глушитель
-  лин([[0, 0], [0.4, 0.2]], '#444', 0.075);                              // маятник
-  фигура([[0.34, 0.12], [0.66, 0.16], [0.68, 0.44], [0.36, 0.44]], '#3a3a3a'); // мотор
-  лин([[0.4, 0.2], [0.52, 0.64], [0.88, 0.6], [L, 0.02]], '#e03030', 0.07);    // рама и вилка
-  лин([[0.52, 0.64], [0.3, 0.56], [0.38, 0.18]], '#e03030', 0.055);      // подрамник
-  фигура([[0.24, 0.56], [0.58, 0.62], [0.6, 0.71], [0.26, 0.65]], '#141414');  // седло
-  фигура([[0.58, 0.6], [0.8, 0.64], [0.82, 0.72], [0.6, 0.7]], '#e03030');     // бак
-  лин([[0.88, 0.6], [0.97, 0.75]], '#333', 0.055);                       // вынос руля
-  лин([[0.9, 0.79], [1.04, 0.71]], '#333', 0.05);                        // руль
+  if (вело) {
+    /* Велосипедная рама: треугольник + вилка. */
+    лин([[0, 0], [0.34, 0.52], [0.72, 0.52], [1, 0.04]], цвет(т.рама), 0.045);
+    лин([[0, 0], [0.42, 0.14], [0.72, 0.52]], цвет(т.рама), 0.045);
+    лин([[0.34, 0.52], [0.42, 0.14]], цвет(т.акцент), 0.04);
+    лин([[0.3, 0.56], [0.4, 0.56]], цвет('#111'), 0.05);                 // седло
+    лин([[0.7, 0.56], [0.82, 0.62]], цвет('#333'), 0.035);               // вынос
+    лин([[0.74, 0.66], [0.88, 0.58]], цвет('#333'), 0.03);               // руль
+    if (т.вид === 'эвело') {
+      фиг([[0.36, 0.2], [0.62, 0.44], [0.58, 0.5], [0.33, 0.27]], цвет('#2b2b2b'));   // батарея
+      круг(0.5, 0.34, 0.03, цвет('#7ee787'));                                          // индикатор
+    }
+    /* Педали крутятся вместе с колесом. */
+    const ф = фаза;
+    круг(0.42, 0.14, 0.045, цвет('#444'));
+    лин([[0.42, 0.14], [0.42 + Math.cos(ф) * 0.13, 0.14 + Math.sin(ф) * 0.13]], цвет('#555'), 0.03);
+    лин([[0.42, 0.14], [0.42 - Math.cos(ф) * 0.13, 0.14 - Math.sin(ф) * 0.13]], цвет('#555'), 0.03);
+  } else {
+    /* Мотоцикл: маятник, мотор, рама, вилка. */
+    лин([[0.05, 0.38], [0.28, 0.35], [0.4, 0.26]], цвет('#9a9a9a'), 0.06);            // глушитель
+    лин([[0, 0], [0.36, 0.17]], цвет('#444'), 0.065);                                 // маятник
+    фиг([[0.3, 0.1], [0.58, 0.14], [0.6, 0.38], [0.31, 0.38]], цвет('#3a3a3a'));      // мотор
+    лин([[0.36, 0.17], [0.45, 0.55], [0.76, 0.52], [1, 0.02]], цвет(т.рама), 0.06);   // рама и вилка
+    лин([[0.45, 0.55], [0.26, 0.48], [0.33, 0.16]], цвет(т.рама), 0.048);             // подрамник
+    фиг([[0.2, 0.48], [0.5, 0.53], [0.52, 0.61], [0.22, 0.56]], цвет('#141414'));     // седло
+    фиг([[0.5, 0.51], [0.7, 0.55], [0.71, 0.62], [0.52, 0.6]], цвет(т.рама));         // бак
+    лин([[0.76, 0.52], [0.84, 0.65]], цвет('#333'), 0.048);                           // вынос руля
+    лин([[0.78, 0.68], [0.9, 0.61]], цвет('#333'), 0.042);                            // руль
+    if (т.вид === 'эндуро' || т.вид === 'кросс') {
+      лин([[0.82, 0.36], [0.95, 0.42], [1.06, 0.36]], цвет(т.акцент), 0.035);         // переднее крыло
+      лин([[0.02, 0.5], [0.14, 0.55], [0.24, 0.53]], цвет(т.акцент), 0.035);          // заднее крыло
+    }
+    if (т.вид === 'кросс') фиг([[0.86, 0.6], [0.98, 0.66], [0.94, 0.74], [0.83, 0.68]], '#fff'); // номер
+  }
 
-  /* Райдер: чуть отклоняется в сторону наклона. */
-  g.save(); g.translate(0.5, 0.6); g.rotate(поза * 0.18); g.translate(-0.5, -0.6);
-  лин([[0.44, 0.66], [0.63, 0.46], [0.5, 0.26]], '#2f4f8f', 0.11);       // нога
-  лин([[0.44, 0.24], [0.58, 0.26]], '#111', 0.08);                       // ботинок
-  лин([[0.45, 0.66], [0.66, 1.0]], '#4a72b8', 0.15);                     // корпус
-  лин([[0.62, 0.96], [0.8, 0.86], [0.99, 0.74]], '#4a72b8', 0.065);      // рука
-  лин([[0.96, 0.72], [1.02, 0.73]], '#111', 0.06);                       // перчатка
-  g.fillStyle = '#e8c33a';                                               // шлем
-  g.beginPath(); g.arc(0.71, 1.11, 0.155, 0, 6.2832); g.fill();
-  фигура([[0.75, 1.19], [0.87, 1.1], [0.85, 1.02], [0.73, 1.02]], '#e8c33a');  // козырёк
-  g.fillStyle = '#1a1a1a';                                               // визор
-  g.beginPath(); g.arc(0.79, 1.08, 0.062, 0, 6.2832); g.fill();
+  /* Райдер пригнулся к рулю и чуть отклоняется в сторону наклона.
+     Голова стоит ровно там, где её проверяет физика (ФИЗ.ШЕЯ_X / ШЕЯ_Y). */
+  g.save();
+  g.translate(0.42 * B, 0.5 * B); g.rotate(поза * 0.18); g.translate(-0.42 * B, -0.5 * B);
+  const кач = вело ? Math.sin(фаза) : 0;
+  лин([[0.38, 0.5], [0.55, 0.3 + кач * 0.05], [0.44, 0.15 + кач * 0.09]],
+      цвет('#2f4f8f'), 0.08);                                                         // нога
+  лин([[0.42, 0.14 + кач * 0.09], [0.53, 0.15 + кач * 0.09]], цвет('#111'), 0.055);   // ботинок
+  лин([[0.38, 0.5], [0.69, 0.81]], цвет('#4a72b8'), 0.11);                            // корпус
+  лин([[0.65, 0.76], [0.77, 0.69], [0.87, 0.62]], цвет('#4a72b8'), 0.05);             // рука
+  круг(ФИЗ.ШЕЯ_X, ФИЗ.ШЕЯ_Y, ФИЗ.ГОЛОВА / B, цвет('#e8c33a'));                        // шлем
+  фиг([[0.79, 0.93], [0.88, 0.87], [0.87, 0.82], [0.78, 0.82]], цвет('#e8c33a'));     // козырёк
+  круг(0.79, 0.86, 0.038, цвет('#1a1a1a'));                                           // визор
   g.restore();
+}
+
+/* Транспорт целиком по двум колёсам. */
+function байк(g, s, з, п, спин, поза, т) {
+  const ang = Math.atan2(п.y - з.y, п.x - з.x);
+  колесо(g, s, з.x, з.y, спин, т);
+  колесо(g, s, п.x, п.y, спин, т);
+  g.save();
+  g.translate(з.x, з.y); g.rotate(ang);
+  корпус(g, т, поза, спин * 0.6);
   g.restore();
+}
+
+/* Транспорт в карточке гаража и в заставке. */
+function витрина(c, т) {
+  const g = c.getContext('2d');
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const ш = c.width, в = c.height;
+  c.width = ш * dpr; c.height = в * dpr;
+  c.style.width = ''; c.style.height = '';
+  /* Общий масштаб для всех карточек: так видно, что кроссовый крупнее велосипеда. */
+  let макс = 0;
+  for (const к of ТРАНСПОРТ) макс = Math.max(макс, к.база + 2 * к.r);
+  const s = (ш - 16) / (макс + 0.2);
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, ш, в);
+  g.translate(8 + т.r * s, в - 12);
+  g.scale(s, -s);
+  байк(g, s, { x: 0, y: 0 }, { x: т.база, y: 0 }, 0.4, 0, т);
 }
 
 /* Картинка в шапке меню: байк на заднем колесе над зелёной лентой. */
@@ -829,11 +1080,12 @@ function заставка() {
   if (!c) return;
   const g = c.getContext('2d');
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const ш = 440, в = 150, s = 42;
+  const ш = 440, в = 140;
   c.width = ш * dpr; c.height = в * dpr;
+  const т = поТранспорту(сейв.выбран), s = 40;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, ш, в);
-  g.translate(ш / 2, 108); g.scale(s, -s);
+  g.translate(ш / 2, 106); g.scale(s, -s);
 
   const f = (x) => 0.5 * Math.sin(x * 0.85 + 0.4) - 0.1 * x;
   const пт = [];
@@ -853,9 +1105,9 @@ function заставка() {
   g.stroke();
 
   const a = 0.62;                                   // задран нос — вилли
-  const з = { x: -0.5, y: f(-0.5) + ФИЗ.R };
-  const п = { x: з.x + Math.cos(a) * ФИЗ.БАЗА, y: з.y + Math.sin(a) * ФИЗ.БАЗА };
-  байк(g, s, з, п, 0.5, 0.6);
+  const з = { x: -0.5, y: f(-0.5) + т.r };
+  const п = { x: з.x + Math.cos(a) * т.база, y: з.y + Math.sin(a) * т.база };
+  байк(g, s, з, п, 0.5, 0.6, т);
 }
 
 function кадр() {
@@ -868,7 +1120,7 @@ function кадр() {
   рельеф(s);
   флаг(ctx, s, игра.тр.старт - 2, земля(игра.тр, игра.тр.старт - 2), false);
   флаг(ctx, s, игра.тр.финиш, земля(игра.тр, игра.тр.финиш), true);
-  байк(ctx, s, игра.бк.з, игра.бк.п, игра.бк.спин, вх.lean);
+  байк(ctx, s, игра.бк.з, игра.бк.п, игра.бк.спин, вх.lean, игра.бк.т);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
 
@@ -889,14 +1141,13 @@ function цикл(t) {
     while (копил >= ШАГ && n++ < 12) { шаг(игра.бк, игра.тр, вх, ШАГ); копил -= ШАГ; }
 
     const бк = игра.бк, тр = игра.тр;
-    /* Камера: середина байка + упреждение по скорости. */
     const cxx = (бк.з.x + бк.п.x) / 2, cyy = (бк.з.y + бк.п.y) / 2;
     const вперёд = Math.max(-3, Math.min(5, бк.з.vx * 0.32));
     игра.кам.s = Math.min(W / 11, H / 9);   // видно и байк, и что впереди
     игра.кам.x += (cxx + вперёд - игра.кам.x) * Math.min(1, dt * 6);
     игра.кам.y += (cyy + 1.2 - игра.кам.y) * Math.min(1, dt * 4);
 
-    const об = Math.min(1, Math.hypot(бк.з.vx, бк.з.vy) / ФИЗ.МАКС);
+    const об = Math.min(1, Math.hypot(бк.з.vx, бк.з.vy) / бк.т.макс);
     звук.мотор(бк.упал ? 0.1 : об * 0.7 + вх.gas * 0.3, бк.упал ? 0 : (вх.gas ? 1 : 0.35));
 
     $('time').textContent = ммсс(бк.время);
@@ -928,7 +1179,9 @@ $('over').addEventListener('pointerdown', (e) => {
   if (e.target.tagName !== 'BUTTON' && игра.бк && игра.бк.упал) $('ovMain').click();
 });
 
-window.ГД = { игра, старт, уровень, ФИЗ, сделатьТрассу, сделатьБайк, шаг };
+window.ГД = { игра, старт, вменю, уровень, награда, ВСЕГО, ТРАНСПОРТ, ФИЗ, СТИЛИ,
+              сделатьТрассу, сделатьБайк, шаг, сохранить, рисоватьМеню, заставка,
+              байк, витрина, получитьСейв: () => сейв, ставитьСтиль: (с) => { сейв.стиль = с; } };
 })();
 </script>
 </body>
