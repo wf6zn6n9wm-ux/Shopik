@@ -1,0 +1,16 @@
+{
+  "name": "holodylnyk-scanner",
+  "version": "0.1.0",
+  "description": "Розпізнавання українських касових чеків для «Холодильник+»",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node test/run.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0"
+  }
+}

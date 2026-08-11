@@ -3,3 +3,9 @@ dist
 .DS_Store
 *.log
 .vercel
+
+# Холодильник+ · збірка
+holodylnyk/app/app.dist.html
+holodylnyk/app/index.html
+holodylnyk/design/system.html
+holodylnyk/scanner/node_modules/

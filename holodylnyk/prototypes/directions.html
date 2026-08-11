@@ -1,0 +1,544 @@
+<title>Холодильник+ · десять напрямків</title>
+<style>
+/*FONTS*/
+
+/* ── Оболонка: навмисно без голосу ────────────────────────────────────
+   Десять напрямків сперечаються між собою. Якщо сторінка навколо теж
+   має характер, порівняти їх стає неможливо. Тому вся хром-частина —
+   системний гротеск, ахроматична, без жодного акцентного кольору.
+   Колір на цій сторінці є лише всередині зразків. */
+:root{
+  --bg:#E8E8E4; --pane:#F4F4F1; --ink:#16171A; --mut:#65686D; --ln:#C7C8C3;
+  --sh:0 1px 0 rgba(20,22,26,.06), 0 18px 40px -28px rgba(20,22,26,.5);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#121317; --pane:#1A1B20; --ink:#E9E9E6; --mut:#8B8E95; --ln:#2B2D33;
+    --sh:0 1px 0 rgba(0,0,0,.4), 0 22px 48px -30px #000;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121317; --pane:#1A1B20; --ink:#E9E9E6; --mut:#8B8E95; --ln:#2B2D33;
+  --sh:0 1px 0 rgba(0,0,0,.4), 0 22px 48px -30px #000;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,'Segoe UI',ui-sans-serif,system-ui,sans-serif;
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:44px 22px 80px}
+
+.eyebrow{font-family:'Mono';font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--mut);margin:0 0 14px}
+h1{font-family:'Caps';font-weight:400;font-size:clamp(30px,5.6vw,50px);line-height:1.06;
+  letter-spacing:.01em;margin:0 0 16px;text-wrap:balance}
+.lede{max-width:60ch;font-size:17px;color:var(--ink);margin:0 0 8px}
+.lede b{font-weight:700}
+p{max-width:64ch}
+
+hr{border:0;border-top:1px solid var(--ln);margin:44px 0}
+
+h2{font-family:'Caps';font-weight:400;font-size:24px;letter-spacing:.02em;margin:0 0 12px}
+.diag{display:grid;gap:14px;margin:20px 0 0;padding:0;list-style:none;max-width:64ch}
+.diag li{display:grid;grid-template-columns:26px 1fr;gap:14px;align-items:start}
+.diag .n{font-family:'Mono';font-size:12px;color:var(--mut);padding-top:4px}
+.diag b{display:block;font-weight:700}
+.diag span.t{color:var(--mut);font-size:15px}
+
+/* ── Картка напрямку ───────────────────────────────────────────────── */
+.card{display:grid;grid-template-columns:360px minmax(0,1fr);gap:36px;align-items:start;
+  padding:34px 0;border-top:1px solid var(--ln)}
+@media (max-width:840px){ .card{grid-template-columns:1fr;gap:22px} }
+.meta .num{font-family:'Mono';font-size:12px;letter-spacing:.16em;color:var(--mut);
+  display:block;margin-bottom:6px}
+.meta h3{font-family:'Caps';font-weight:400;font-size:30px;letter-spacing:.03em;margin:0 0 4px}
+.meta .mech{font-size:15px;color:var(--ink);margin:0 0 14px;max-width:52ch}
+.meta .mech b{font-weight:700}
+.meta dl{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;
+  font-size:13.5px;max-width:56ch}
+.meta dt{font-family:'Mono';font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--mut);padding-top:4px;white-space:nowrap}
+.meta dd{margin:0;color:var(--ink)}
+.meta dd.cost{color:var(--mut)}
+
+.frame{background:var(--pane);padding:12px;box-shadow:var(--sh);overflow:hidden}
+/* Зразок не міняє палітру разом із темою читача: це знімок дизайну,
+   а не інтерфейс. Кожен несе свій ґрунт і свої кольори завжди. */
+.sp{width:100%;font-synthesis:none;overflow:hidden}
+.sp .ph{padding:18px 17px 22px}
+
+.rec{margin-top:56px;border-top:2px solid var(--ink);padding-top:26px}
+.rec .pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:26px;margin-top:20px}
+.rec .pair>div{border-left:3px solid var(--ink);padding-left:16px}
+.rec h4{font-family:'Caps';font-weight:400;font-size:20px;letter-spacing:.02em;margin:0 0 6px}
+.rec p{font-size:15px;margin:0}
+.foot{margin-top:50px;color:var(--mut);font-size:13.5px;max-width:64ch}
+
+/* ══ 1 · МАРКЕР ═══════════════════════════════════════════════════════ */
+.d1{background:#FAF7EF;color:#1A1712;font-family:'Lora',serif}
+.d1 .hd{display:flex;justify-content:space-between;align-items:baseline;
+  padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid #D8D2C2}
+.d1 .hd b{font-size:19px;font-weight:700;letter-spacing:.01em}
+.d1 .hd i{font-family:'Mono';font-style:normal;font-size:11px;color:#6E6857}
+.d1 .r{padding:9px 0;font-size:16px}
+.d1 .r .nm{font-weight:600}
+.d1 .r .u{display:block;font-family:'Mono';font-size:11px;color:#6E6857;margin-top:3px}
+.d1 .ph2{margin:18px 0 0;font-size:15.5px;line-height:1.75;padding-top:14px;
+  border-top:1px solid #D8D2C2}
+/* Мазок маркера: нерівні краї, легкий нахил, під текстом — як на папері. */
+.d1 mark{background:none;color:inherit;position:relative;padding:0 2px;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone}
+.d1 mark::before{content:'';position:absolute;left:-2px;right:-3px;top:2px;bottom:-1px;
+  background:#F7E14A;transform:rotate(-.5deg);z-index:-1;
+  clip-path:polygon(1% 6%,99% 0,100% 92%,2% 100%)}
+.d1 mark.pk::before{background:#FFA8BC;transform:rotate(.6deg)}
+.d1 mark.gn::before{background:#B9E8A0;transform:rotate(-.3deg)}
+.d1 .r,.d1 .ph2,.d1 .hd{position:relative;z-index:0}
+
+/* ══ 2 · ПЛАШКА ═══════════════════════════════════════════════════════ */
+.d2{background:#FFFFFF;color:#0B0B0C;font-family:'Jura',sans-serif;font-weight:500}
+.d2 .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.d2 .hd b{font-size:15px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  background:#0B0B0C;color:#fff;padding:5px 9px}
+.d2 .hd i{font-family:'Mono';font-style:normal;font-size:11px;letter-spacing:.06em}
+.d2 .r{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:11px 0;border-bottom:1px solid #E2E2E0}
+.d2 .r .nm{font-size:16px;font-weight:700;letter-spacing:.01em}
+.d2 .r .u{display:block;font-family:'Mono';font-size:10.5px;color:#0B0B0C;
+  opacity:.62;margin-top:2px;letter-spacing:.04em}
+.d2 .pl{font-family:'Mono';font-size:10px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;padding:5px 7px;white-space:nowrap;background:#0B0B0C;color:#fff}
+.d2 .pl.cr{background:#E5231B}
+.d2 .pl.gh{background:none;color:#0B0B0C;box-shadow:inset 0 0 0 1.5px #0B0B0C}
+.d2 .ph2{margin:18px 0 0;font-size:15px;line-height:1.9}
+.d2 .ph2 b{font-weight:700;background:#0B0B0C;color:#fff;padding:2px 5px;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone}
+.d2 .ph2 b.cr{background:#E5231B}
+
+/* ══ 3 · ГАЗЕТА ═══════════════════════════════════════════════════════ */
+.d3{background:#F3F0E8;color:#14130F;font-family:'PSerif',serif}
+.d3 .kicker{font-family:'Caps';font-size:13px;letter-spacing:.2em;
+  border-top:3px solid #14130F;border-bottom:1px solid #14130F;padding:5px 0;
+  display:flex;justify-content:space-between;margin-bottom:14px}
+.d3 h4{font-size:27px;font-weight:700;line-height:1.1;margin:0 0 12px;letter-spacing:-.01em}
+.d3 .r{padding:8px 0;border-bottom:1px solid #D5D0C1;font-size:15px;line-height:1.5}
+.d3 .r b{font-weight:700}
+.d3 .r i{font-style:italic;color:#4A463C}
+.d3 .r .cr{color:#B3271E;font-weight:700;font-style:normal}
+.d3 .ph2{margin:16px 0 0;font-size:16px;line-height:1.6;column-count:1}
+.d3 .ph2::first-letter{float:left;font-size:38px;line-height:.9;font-weight:700;
+  padding:3px 6px 0 0}
+.d3 .ph2 b{font-weight:700}
+.d3 .ph2 .cr{color:#B3271E;font-weight:700}
+
+/* ══ 4 · ТАБЛО ════════════════════════════════════════════════════════ */
+.d4{background:#0C0E0D;color:#8A928E;font-family:'Tektur',sans-serif}
+.d4 .hd{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.2em;
+  text-transform:uppercase;padding-bottom:10px;border-bottom:1px solid #232826;margin-bottom:4px}
+.d4 .r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:11px 0;border-bottom:1px solid #1B201E}
+.d4 .r .nm{font-size:15px;letter-spacing:.05em;text-transform:uppercase;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d4 .r .u{display:block;font-family:'GMono';font-size:10px;letter-spacing:.08em;
+  color:#5C6663;margin-top:3px;text-transform:none}
+.d4 .r .v{font-family:'GMono';font-size:13px;font-weight:700;letter-spacing:.06em;
+  font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.d4 .cr .nm,.d4 .cr .v{color:#FF4D4D}
+.d4 .am .nm,.d4 .am .v{color:#FFB020}
+.d4 .ok .nm,.d4 .ok .v{color:#4CD07A}
+.d4 .ph2{margin:16px 0 0;font-family:'GMono';font-size:12.5px;line-height:1.85;
+  letter-spacing:.02em;color:#78807D}
+.d4 .ph2 b{font-weight:400;color:#FFB020}
+.d4 .ph2 b.cr{color:#FF4D4D}
+
+/* ══ 5 · ЦІННИК ═══════════════════════════════════════════════════════ */
+.d5{background:#FFFFFF;color:#101010;font-family:'Tektur',sans-serif}
+.d5 .hd{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#101010;
+  display:flex;justify-content:space-between;margin-bottom:14px}
+.d5 .big{background:#FFE500;padding:12px 14px 14px;transform:rotate(-1.2deg);
+  margin:0 0 16px;display:flex;align-items:center;gap:14px}
+.d5 .big .num{font-size:52px;line-height:.8;font-weight:500;color:#E30613;
+  font-variant-numeric:tabular-nums}
+.d5 .big .tx b{display:block;font-size:15px;letter-spacing:.06em;text-transform:uppercase;
+  line-height:1.15}
+.d5 .big .tx s{display:block;text-decoration:none;font-family:'Mono';font-size:10.5px;
+  margin-top:4px;letter-spacing:.04em}
+.d5 .r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:10px 0;border-bottom:1px solid #E6E6E4}
+.d5 .r .nm{font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+.d5 .r .u{display:block;font-family:'Mono';font-size:10px;color:#6C6C6A;margin-top:3px;
+  letter-spacing:.03em;text-transform:none}
+.d5 .r .v{font-size:22px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.d5 .r.am .v{color:#E30613}
+.d5 .ph2{margin:16px 0 0;font-family:'Mono';font-size:12.5px;line-height:1.8;color:#101010}
+.d5 .ph2 b{font-weight:700;font-size:16px}
+.d5 .ph2 b.cr{color:#E30613;font-size:19px}
+
+/* ══ 6 · ФОРМУЛЯР ═════════════════════════════════════════════════════ */
+.d6{background:#F7F6F1;color:#191B1F;font-family:'PSerif',serif}
+.d6 .hd{font-family:'PMono';font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  display:flex;justify-content:space-between;padding-bottom:8px;
+  border-bottom:2px solid #191B1F;margin-bottom:6px;color:#4C5057}
+.d6 .r{display:flex;align-items:baseline;gap:6px;padding:10px 0 9px;
+  border-bottom:1px solid #DEDCD3}
+.d6 .r .nm{font-size:16px;white-space:nowrap}
+.d6 .r .dots{flex:1;border-bottom:1.5px dotted #B7B4A8;transform:translateY(-4px)}
+.d6 .r .v{font-family:'PMono';font-size:12px;white-space:nowrap;letter-spacing:.02em}
+/* Підкреслення лежить ПІД літерами, не перерізаючи виносні елементи. */
+.d6 u{text-decoration:none;box-shadow:inset 0 -4px 0 #1F4FD8;padding-bottom:1px}
+.d6 u.cr{box-shadow:inset 0 -4px 0 #C8102E}
+.d6 .ph2{margin:16px 0 0;font-size:15.5px;line-height:1.95}
+
+/* ══ 7 · ТЕРМОЧЕК ═════════════════════════════════════════════════════ */
+.d7{background:#EDEBE3;color:#242424;font-family:'Mono';font-size:12.5px;line-height:1.7}
+.d7 .ph{padding:20px 18px 24px}
+.d7 .ct{text-align:center;letter-spacing:.24em;font-weight:700;margin-bottom:2px}
+.d7 .cs{text-align:center;font-size:10.5px;color:#5E5C56;letter-spacing:.06em}
+.d7 .sep{color:#9B978C;letter-spacing:.08em;overflow:hidden;white-space:nowrap;margin:10px 0}
+.d7 .r{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.d7 .r .u{color:#5E5C56;font-size:10.5px;padding-left:0}
+.d7 .st{display:inline-block;background:#242424;color:#EDEBE3;padding:1px 6px;
+  font-weight:700;letter-spacing:.1em;font-size:10.5px}
+.d7 .st.gh{background:none;color:#242424;box-shadow:inset 0 0 0 1.5px #242424}
+.d7 .ph2{margin:12px 0 0;line-height:1.85;font-size:12px}
+.d7 .ph2 b{font-weight:700;letter-spacing:.06em}
+.d7 .ph2 b.iv{background:#242424;color:#EDEBE3;padding:1px 5px}
+
+/* ══ 8 · ОБВЕДЕННЯ ════════════════════════════════════════════════════ */
+.d8{background:#FFFFFF;color:#0F1013;font-family:'PSerif',serif}
+.d8 .hd{display:flex;justify-content:space-between;align-items:baseline;
+  border-bottom:2px solid #0F1013;padding-bottom:9px;margin-bottom:2px}
+.d8 .hd b{font-size:17px;font-weight:700;letter-spacing:.01em}
+.d8 .hd i{font-family:'PMono';font-style:normal;font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:#565A61}
+.d8 .r{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:11px 0;border-bottom:1px solid #E7E7E5}
+.d8 .r .nm{font-size:16px;position:relative;display:inline-block}
+.d8 .r .u{display:block;font-family:'PMono';font-size:10.5px;color:#565A61;margin-top:2px}
+.d8 .r .v{font-family:'PMono';font-size:11.5px;white-space:nowrap;position:relative}
+.d8 .mk{position:absolute;overflow:visible;pointer-events:none}
+.d8 .strike{left:-6px;top:0;width:calc(100% + 12px);height:100%}
+.d8 .ring{left:-13px;top:-9px;width:calc(100% + 26px);height:calc(100% + 18px)}
+.d8 .ph2{margin:16px 0 0;font-size:15.5px;line-height:1.9;position:relative}
+.d8 .ph2 b{font-weight:700}
+
+/* ══ 9 · СВІТЛОФОР ════════════════════════════════════════════════════ */
+.d9{background:#111214;color:#F2F2F0;font-family:'Jura',sans-serif;font-weight:500}
+.d9 .ph{padding:0 0 18px}
+.d9 .hd{display:flex;justify-content:space-between;padding:16px 17px 14px;
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9A9DA2}
+.d9 .r{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:15px 17px;margin-bottom:3px}
+.d9 .r .nm{font-size:17px;font-weight:700;letter-spacing:.01em}
+.d9 .r .u{display:block;font-family:'GMono';font-size:10.5px;margin-top:3px;opacity:.8}
+.d9 .r .v{font-family:'GMono';font-size:11px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;white-space:nowrap;text-align:right}
+.d9 .cr{background:#D42A1E;color:#FFF}
+.d9 .am{background:#E8A317;color:#1A1400}
+.d9 .ok{background:#2E8B57;color:#FFF}
+.d9 .ph2{margin:14px 17px 0;font-size:14.5px;line-height:1.8;color:#C9CCD1}
+.d9 .ph2 b{font-weight:700;color:#E8A317}
+
+/* ══ 10 · ЩІЛЬНИЙ ═════════════════════════════════════════════════════ */
+.d10{background:#FFFFFF;color:#000000;font-family:'PMono',monospace}
+.d10 .hd{font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  display:flex;justify-content:space-between;padding-bottom:20px}
+.d10 .r{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px;
+  padding:0 0 16px}
+.d10 .r .nm{font-family:'Tektur',sans-serif;font-size:30px;line-height:.95;
+  letter-spacing:-.01em;text-transform:uppercase;word-break:break-word}
+.d10 .r .u{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  margin-top:7px}
+.d10 .r .v{font-family:'Tektur',sans-serif;font-size:44px;line-height:.8;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.d10 .r.cr .nm,.d10 .r.cr .v{color:#FF3B00}
+.d10 .ph2{margin:8px 0 0;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  line-height:2.1;border-top:2px solid #000;padding-top:14px}
+.d10 .ph2 b{font-family:'Tektur',sans-serif;font-size:19px;letter-spacing:0;
+  text-transform:none}
+.d10 .ph2 b.cr{color:#FF3B00}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+</style>
+
+<div class="wrap">
+
+<p class="eyebrow">Холодильник+ · перегляд дизайну · 11.08.2026</p>
+<h1>Десять напрямків, у яких слова мають вагу</h1>
+<p class="lede">Претензія була конкретна: <b>розмито й немає виділень у самих словах</b>. Вона справедлива, і ось чому — три причини нижче. Далі десять напрямків, кожен з яких лікує це <b>іншим механізмом</b>, а не іншим кольором.</p>
+
+<h2 style="margin-top:38px">Що саме не так зараз</h2>
+<ol class="diag">
+  <li><span class="n">01</span><span><b>Сірий текст 10–11 px на кожному другому рядку.</b>
+    <span class="t">Вага, грам, полиця, підказки — усе навмисно приглушене. Це приблизно 60% усіх слів на екрані. Коли більшість тексту навмисно тьмяна, екран читається як тьмяний.</span></span></li>
+  <li><span class="n">02</span><span><b>Усередині речень немає жодного виділення.</b>
+    <span class="t">«Сьогодні треба з’їсти молоко і шпинат» — усі слова одної ваги. Око не має за що зачепитися, і речення перетворюється на сіру смугу.</span></span></li>
+  <li><span class="n">03</span><span><b>Колір живе тільки на плашках статусу.</b>
+    <span class="t">Червоне й жовте є на блоках «Прострочено», але жодне слово ніколи не червоне. Колір відірваний від тексту.</span></span></li>
+</ol>
+<p style="margin-top:22px;color:var(--mut);font-size:15px">Тому кожен зразок нижче показує <b style="color:var(--ink)">один і той самий екран і одну й ту саму фразу</b> — щоб порівнювати механізм виділення, а не контент.</p>
+
+<hr>
+
+<!-- ═══ 1 ═══════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="frame"><div class="sp d1"><div class="ph">
+    <div class="hd"><b>Холодильник</b><i>14 позицій · ВТ 11.08</i></div>
+    <div class="r"><span class="nm"><mark class="pk">Фарш яловичий</mark></span>
+      <span class="u">400 г · морозилка · прострочено вчора</span></div>
+    <div class="r"><span class="nm"><mark>Молоко 2,5%</mark></span>
+      <span class="u">1 л · дверцята · останній день</span></div>
+    <div class="r"><span class="nm"><mark>Шпинат</mark></span>
+      <span class="u">1 пачка · ящик · ще 1 день</span></div>
+    <div class="r"><span class="nm">Сир Гауда</span>
+      <span class="u">200 г · полиця 2 · до 29.08</span></div>
+    <p class="ph2">Сьогодні треба з’їсти <mark>молоко</mark> і <mark>шпинат</mark> — інакше <mark class="pk">77 ₴</mark> підуть у смітник.</p>
+  </div></div></div>
+  <div class="meta">
+    <span class="num">НАПРЯМОК 01</span>
+    <h3>Маркер</h3>
+    <p class="mech">Виділення — це <b>фізичний мазок маркера під словом</b>: нерівні краї, легкий нахил, три кольори. Рядки не мають рамок узагалі — єдина структура на екрані створена маркером.</p>
+    <dl>
+      <dt>Шрифт</dt><dd>Lora + IBM Plex Mono на цифрах</dd>
+      <dt>Ґрунт</dt><dd>Тепла крейда, жодного сірого тексту</dd>
+      <dt>Ціна</dt><dd class="cost">Красиво на списку з чотирьох позицій. На двадцяти перетворюється на різнобарвний шум — доведеться жорстко обмежити: не більше трьох мазків на екран.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ═══ 2 ═══════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="frame"><div class="sp d2"><div class="ph">
+    <div class="hd"><b>Холодильник</b><i>14 · ВТ 11.08</i></div>
+    <div class="r"><span><span class="nm">Фарш яловичий</span><span class="u">400 г · морозилка</span></span>
+      <span class="pl cr">Вчора</span></div>
+    <div class="r"><span><span class="nm">Молоко 2,5%</span><span class="u">1 л · дверцята</span></span>
+      <span class="pl">Сьогодні</span></div>
+    <div class="r"><span><span class="nm">Шпинат</span><span class="u">1 пачка · ящик</span></span>
+      <span class="pl">+1 день</span></div>
+    <div class="r"><span><span class="nm">Сир Гауда</span><span class="u">200 г · полиця 2</span></span>
+      <span class="pl gh">29.08</span></div>
+    <p class="ph2">Сьогодні треба з’їсти <b>молоко</b> і <b>шпинат</b> — інакше <b class="cr">77 ₴</b> підуть у смітник.</p>
+  </div></div></div>
+  <div class="meta">
+    <span class="num">НАПРЯМОК 02</span>
+    <h3>Плашка</h3>
+    <p class="mech">Ключове слово <b>вивертається навиворіт</b>: біле по суцільному чорному чи червоному, прямо посеред речення. Сірого немає ніде — другорядне зменшено в розмірі, але лишається чорним.</p>
+    <dl>
+      <dt>Шрифт</dt><dd>Jura — геометричний, з української підтримкою</dd>
+      <dt>Ґрунт</dt><dd>Чистий білий, два кольори всього</dd>
+      <dt>Ціна</dt><dd class="cost">Максимальна помітність із тих, що взагалі можливі. Але екран, засипаний плашками, читається як лог помилок — правило «не більше двох плашок на екран» тут не побажання, а умова.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ═══ 3 ═══════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="frame"><div class="sp d3"><div class="ph">
+    <div class="kicker"><span>Холодильник</span><span>ВТ 11.08</span></div>
+    <h4>Чотирнадцять позицій, три з них горять</h4>
+    <div class="r"><b>Фарш яловичий.</b> <span class="cr">Прострочено вчора</span> <i>— 400 г, морозилка.</i></div>
+    <div class="r"><b>Молоко 2,5%.</b> Останній день <i>— 1 л, дверцята.</i></div>
+    <div class="r"><b>Шпинат.</b> Ще один день <i>— 1 пачка, ящик.</i></div>
+    <div class="r"><b>Сир Гауда.</b> До 29 серпня <i>— 200 г, полиця 2.</i></div>
+    <p class="ph2">Сьогодні треба з’їсти <b>молоко</b> і <b>шпинат</b> — інакше <span class="cr">77 ₴</span> підуть у смітник.</p>
+  </div></div></div>
+  <div class="meta">
+    <span class="num">НАПРЯМОК 03</span>
+    <h3>Газета</h3>
+    <p class="mech">Рядок перестає бути таблицею і стає <b>реченням із врізним жирним початком</b>. Назва — жирна, причина — курсив, критичне — червоне. Виділення робить сама типографіка, без жодної плашки.</p>
+    <dl>
+      <dt>Шрифт</dt><dd>IBM Plex Serif — прямий, курсив, жирний</dd>
+      <dt>Ґрунт</dt><dd>Газетний папір, приглушений червоний</dd>
+      <dt>Ціна</dt><dd class="cost">Найкраще з усіх десяти читається як текст — ідеально для тижневого звіту. Але список із двадцяти позицій стає суцільною стіною прози, у якій нічого не знайти поглядом.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ═══ 4 ═══════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="frame"><div class="sp d4"><div class="ph">
+    <div class="hd"><span>Холодильник</span><span>ВТ 11.08</span></div>
+    <div class="r cr"><span><span class="nm">Фарш яловичий</span><span class="u">400 г · морозилка</span></span><span class="v">−1 ДН</span></div>
+    <div class="r am"><span><span class="nm">Молоко 2,5%</span><span class="u">1 л · дверцята</span></span><span class="v">СЬОГОДНІ</span></div>
+    <div class="r am"><span><span class="nm">Шпинат</span><span class="u">1 пачка · ящик</span></span><span class="v">+1 ДН</span></div>
+    <div class="r ok"><span><span class="nm">Сир Гауда</span><span class="u">200 г · полиця 2</span></span><span class="v">29.08</span></div>
+    <p class="ph2">Сьогодні треба з’їсти <b>молоко</b> і <b>шпинат</b> — інакше <b class="cr">77 ₴</b> підуть у смітник.</p>
+  </div></div></div>
+  <div class="meta">
+    <span class="num">НАПРЯМОК 04</span>
+    <h3>Табло</h3>
+    <p class="mech">Кольором світиться <b>саме слово, а не підкладка під ним</b>. Назва продукту червона, бурштинова або зелена — це і є статус. Жодних плашок, рамок і заливок.</p>
+    <dl>
+      <dt>Шрифт</dt><dd>Tektur великими + Geist Mono на числах</dd>
+      <dt>Ґрунт</dt><dd>Постійно темний, три сигнальні кольори</dd>
+      <dt>Ціна</dt><dd class="cost">Зчитується з іншого кінця кухні — жоден інший напрямок так не вміє. Але довгі українські назви доводиться обрізати, і світлої теми тут не буде ніколи: на білому це не працює.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ═══ 5 ═══════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="frame"><div class="sp d5"><div class="ph">
+    <div class="hd"><span>Холодильник</span><span>14 · ВТ 11.08</span></div>
+    <div class="big"><span class="num">−1</span>
+      <span class="tx"><b>Фарш яловичий</b><s>400 г · морозилка · прострочено вчора</s></span></div>
+    <div class="r am"><span><span class="nm">Молоко 2,5%</span><span class="u">1 л · дверцята</span></span><span class="v">0</span></div>
+    <div class="r am"><span><span class="nm">Шпинат</span><span class="u">1 пачка · ящик</span></span><span class="v">1</span></div>
+    <div class="r"><span><span class="nm">Сир Гауда</span><span class="u">200 г · полиця 2</span></span><span class="v">18</span></div>
+    <p class="ph2">Сьогодні треба з’їсти <b>молоко</b> і <b>шпинат</b> — інакше <b class="cr">77 ₴</b> підуть у смітник.</p>
+  </div></div></div>
+  <div class="meta">
+    <span class="num">НАПРЯМОК 05</span>
+    <h3>Цінник</h3>
+    <p class="mech">Виділення — це <b>стрибок розміру в п’ять разів</b>. Днів до кінця — 52 px, назва — 14 px. Найгостріше стоїть на жовтій наліпці під кутом, як акційний цінник у супермаркеті.</p>
+    <dl>
+      <dt>Шрифт</dt><dd>Tektur — щільний, майже вузький</dd>
+      <dt>Ґрунт</dt><dd>Білий, справжній супермаркетний червоний</dd>
+      <dt>Ціна</dt><dd class="cost">Число неможливо не побачити. Але це один гучний голос на весь застосунок: на екрані налаштувань чи в списку покупок така мова звучить недоречно, доведеться тримати два регістри.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ═══ 6 ═══════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="frame"><div class="sp d6"><div class="ph">
+    <div class="hd"><span>Холодильник · опис</span><span>11.08.2026</span></div>
+    <div class="r"><span class="nm">Фарш яловичий</span><span class="dots"></span>
+      <span class="v"><u class="cr">прострочено вчора</u></span></div>
+    <div class="r"><span class="nm">Молоко 2,5%</span><span class="dots"></span>
+      <span class="v"><u>останній день</u></span></div>
+    <div class="r"><span class="nm">Шпинат</span><span class="dots"></span>
+      <span class="v"><u>ще 1 день</u></span></div>
+    <div class="r"><span class="nm">Сир Гауда</span><span class="dots"></span>
+      <span class="v">до 29.08</span></div>
+    <p class="ph2">Сьогодні треба з’їсти <u>молоко</u> і <u>шпинат</u> — інакше <u class="cr">77 ₴</u> підуть у смітник.</p>
+  </div></div></div>
+  <div class="meta">
+    <span class="num">НАПРЯМОК 06</span>
+    <h3>Формуляр</h3>
+    <p class="mech">Екран — це <b>заповнений бланк</b>: пунктирні виноски від назви до значення, а виділення — товста лінія, що лежить <b>під літерами</b>, не перерізаючи хвостики «у» і «р».</p>
+    <dl>
+      <dt>Шрифт</dt><dd>IBM Plex Serif + IBM Plex Mono на значеннях</dd>
+      <dt>Ґрунт</dt><dd>Світлий папір, синій і червоний «від руки»</dd>
+      <dt>Ціна</dt><dd class="cost">Тихо, точно, дуже добре читається. Але підкреслення підсвідомо обіцяє, що на слово можна натиснути — доведеться або зробити його справді клікабельним, або відмовитися від підкреслення в назвах.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ═══ 7 ═══════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="frame"><div class="sp d7">
+    <div class="ph">
+      <div class="ct">ХОЛОДИЛЬНИК</div>
+      <div class="cs">11.08.2026 · ВТ · 14 ПОЗИЦІЙ</div>
+      <div class="sep">·······································</div>
+      <div class="r"><span>ФАРШ ЯЛОВИЧИЙ</span><span class="st">ВЧОРА</span></div>
+      <div class="r"><span class="u">400 Г · МОРОЗИЛКА</span><span class="u">79,00</span></div>
+      <div class="r" style="margin-top:7px"><span>МОЛОКО 2,5%</span><span class="st">СЬОГОДНІ</span></div>
+      <div class="r"><span class="u">1 Л · ДВЕРЦЯТА</span><span class="u">42,00</span></div>
+      <div class="r" style="margin-top:7px"><span>ШПИНАТ</span><span class="st gh">+1 ДН</span></div>
+      <div class="r"><span class="u">1 ПАЧКА · ЯЩИК</span><span class="u">35,00</span></div>
+      <div class="r" style="margin-top:7px"><span>СИР ГАУДА</span><span class="u">29.08</span></div>
+      <div class="r"><span class="u">200 Г · ПОЛИЦЯ 2</span><span class="u">112,00</span></div>
+      <div class="sep">·······································</div>
+      <p class="ph2">СЬОГОДНІ ТРЕБА З’ЇСТИ <b>МОЛОКО</b> І <b>ШПИНАТ</b> — ІНАКШЕ <b class="iv">77,00 ₴</b> ПІДУТЬ У СМІТНИК.</p>
+    </div>
+  </div></div>
+  <div class="meta">
+    <span class="num">НАПРЯМОК 07</span>
+    <h3>Термочек</h3>
+    <p class="mech">Застосунок стає <b>тим самим чеком, який він читає</b>. Виділення — рівно ті два прийоми, які вміє касовий апарат: <b>ВЕЛИКІ ЛІТЕРИ</b> і вивернутий штамп. Більше нічого не існує.</p>
+    <dl>
+      <dt>Шрифт</dt><dd>JetBrains Mono — і тільки він</dd>
+      <dt>Ґрунт</dt><dd>Термопапір, друк ніколи не чорний</dd>
+      <dt>Ціна</dt><dd class="cost">Ідеально по темі і найдешевше в розробці — вся сітка на одному моноширинному кеглі. Але моноширинний шрифт погано переносить довгі назви, а вся типографіка обмежена одним накресленням.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ═══ 8 ═══════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="frame"><div class="sp d8"><div class="ph">
+    <div class="hd"><b>Холодильник</b><i>14 позицій · ВТ 11.08</i></div>
+    <div class="r"><span><span class="nm">Фарш яловичий<svg class="mk strike" viewBox="0 0 200 30" preserveAspectRatio="none" aria-hidden="true"><path d="M3 19 C42 12, 78 22, 114 14 S168 18, 197 11" fill="none" stroke="#E2382B" stroke-width="2.4" stroke-linecap="round"/></svg></span>
+      <span class="u">400 г · морозилка</span></span><span class="v">вчора</span></div>
+    <div class="r"><span><span class="nm">Молоко 2,5%</span><span class="u">1 л · дверцята</span></span>
+      <span class="v">сьогодні<svg class="mk ring" viewBox="0 0 120 44" preserveAspectRatio="none" aria-hidden="true"><path d="M62 4 C93 3, 116 11, 115 22 C114 34, 84 41, 56 40 C27 39, 5 32, 6 21 C7 10, 33 4, 63 5" fill="none" stroke="#E2382B" stroke-width="2.2" stroke-linecap="round"/></svg></span></div>
+    <div class="r"><span><span class="nm">Шпинат</span><span class="u">1 пачка · ящик</span></span><span class="v">ще 1 день</span></div>
+    <div class="r"><span><span class="nm">Сир Гауда</span><span class="u">200 г · полиця 2</span></span><span class="v">до 29.08</span></div>
+    <p class="ph2">Сьогодні треба з’їсти <b>молоко</b> і <b>шпинат</b> — інакше <b style="position:relative;display:inline-block">77 ₴<svg class="mk ring" viewBox="0 0 120 44" preserveAspectRatio="none" aria-hidden="true"><path d="M60 3 C92 2, 117 12, 114 23 C111 35, 82 42, 54 40 C26 38, 4 30, 7 19 C10 9, 34 4, 61 4" fill="none" stroke="#E2382B" stroke-width="2.4" stroke-linecap="round"/></svg></b> підуть у смітник.</p>
+  </div></div></div>
+  <div class="meta">
+    <span class="num">НАПРЯМОК 08</span>
+    <h3>Обведення</h3>
+    <p class="mech">Під низом — строга швейцарська сітка без жодного акценту. Увесь голос віддано <b>намальованим від руки позначкам</b>: закреслене прострочене, обведене термінове, стрілка до суми.</p>
+    <dl>
+      <dt>Шрифт</dt><dd>IBM Plex Serif на чистій сітці</dd>
+      <dt>Ґрунт</dt><dd>Білий, один колір олівця</dd>
+      <dt>Ціна</dt><dd class="cost">Найзапам’ятовуваніший із десяти. Але позначки треба генерувати щоразу різними — однаковий овал, повторений сорок разів, миттєво видає підробку. Це справжня робота, а не декор. І на п’ятдесятому запуску жарт втомлює.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ═══ 9 ═══════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="frame"><div class="sp d9"><div class="ph">
+    <div class="hd"><span>Холодильник</span><span>14 · ВТ 11.08</span></div>
+    <div class="r cr"><span><span class="nm">Фарш яловичий</span><span class="u">400 г · морозилка</span></span><span class="v">Вчора</span></div>
+    <div class="r am"><span><span class="nm">Молоко 2,5%</span><span class="u">1 л · дверцята</span></span><span class="v">Сьогодні</span></div>
+    <div class="r am"><span><span class="nm">Шпинат</span><span class="u">1 пачка · ящик</span></span><span class="v">+1 день</span></div>
+    <div class="r ok"><span><span class="nm">Сир Гауда</span><span class="u">200 г · полиця 2</span></span><span class="v">29.08</span></div>
+    <p class="ph2">Сьогодні треба з’їсти <b>молоко</b> і <b>шпинат</b> — інакше <b>77 ₴</b> підуть у смітник.</p>
+  </div></div></div>
+  <div class="meta">
+    <span class="num">НАПРЯМОК 09</span>
+    <h3>Світлофор</h3>
+    <p class="mech">Єдиний напрямок, де виділення живе <b>не в тексті, а в ґрунті під ним</b>. Уся типографіка однакова; статус несе суцільне кольорове поле на всю ширину рядка. Включений навмисно — щоб було від чого відштовхнутися.</p>
+    <dl>
+      <dt>Шрифт</dt><dd>Jura + Geist Mono, одна вага на все</dd>
+      <dt>Ґрунт</dt><dd>Темний, три суцільні поля</dd>
+      <dt>Ціна</dt><dd class="cost">Стан зчитується боковим зором, без читання. Але людина з дальтонізмом втрачає всю систему разом — сам по собі цей напрямок непридатний, потрібен другий носій статусу поруч із кольором.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ═══ 10 ══════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="frame"><div class="sp d10"><div class="ph">
+    <div class="hd"><span>Холодильник</span><span>ВТ 11.08</span></div>
+    <div class="r cr"><span><span class="nm">Фарш<br>яловичий</span><span class="u">400 г · морозилка</span></span><span class="v">−1</span></div>
+    <div class="r"><span><span class="nm">Молоко</span><span class="u">1 л · дверцята</span></span><span class="v">0</span></div>
+    <div class="r"><span><span class="nm">Шпинат</span><span class="u">1 пачка · ящик</span></span><span class="v">1</span></div>
+    <p class="ph2">Сьогодні треба з’їсти <b>молоко</b> і <b>шпинат</b> — інакше <b class="cr">77 ₴</b> підуть у смітник.</p>
+  </div></div></div>
+  <div class="meta">
+    <span class="num">НАПРЯМОК 10</span>
+    <h3>Щільний</h3>
+    <p class="mech">На екрані існує <b>рівно два кеглі</b>: 44 px і 10 px. Виділення — це розмір і нічого більше: ні жирності, ні плашок, ні другого кольору, крім одного сигнального.</p>
+    <dl>
+      <dt>Шрифт</dt><dd>Tektur великим + IBM Plex Mono дрібним</dd>
+      <dt>Ґрунт</dt><dd>Білий, чорний, один сигнал</dd>
+      <dt>Ціна</dt><dd class="cost">Найбільш «дизайнерський» і найкрихкіший. «Йогурт грецький із чорницею» на 44 px рве композицію на другому ж рядку — доведеться або скорочувати назви, або приймати, що екран дихає нерівно.</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="rec">
+  <h2>Що я б узяв</h2>
+  <p style="margin-top:10px">Претензія була не про красу, а про те, що <b>око не має за що зачепитися</b>. Це лікують три речі одразу, і будь-який напрямок згори мусить їх зробити: прибрати сірий текст як стан за замовчуванням, дати кожному рядку <b>рівно один</b> виділений елемент, і дозволити кольору жити на самих словах, а не тільки на підкладках.</p>
+  <div class="pair">
+    <div>
+      <h4>07 Термочек + 02 Плашка</h4>
+      <p>Найчесніший вибір: застосунок про чеки виглядає як чек. Термочек дає ґрунт і сітку, плашка — вивернуті штампи там, де щось горить. Дешево будувати, неможливо сплутати з жодним конкурентом.</p>
+    </div>
+    <div>
+      <h4>03 Газета + 01 Маркер</h4>
+      <p>Тепліший шлях. Газета робить рядки реченнями, маркер підсвічує в них головне. Виглядає як записка на дверцятах, а не як система обліку — але список на двадцять позицій доведеться проєктувати окремо.</p>
+    </div>
+  </div>
+  <p class="foot">Усі десять зразків показують той самий список і ту саму фразу — відрізняється лише механізм виділення. Виняток один: у «Щільному» вміщається три позиції замість чотирьох, і це не недогляд, а власне результат — кегль 44 px стільки й дозволяє. Зразки не перемикають палітру разом із темою пристрою: це знімки дизайну, а не робочий інтерфейс. Шрифти в кожному — реальні, з українськими «і», «ї», «є», «ґ», перевіреними по таблиці символів, тож так це й виглядатиме. Оболонка сторінки навмисно без характеру: десять голосів сперечаються між собою, і одинадцятий тут зайвий.</p>
+</div>
+
+</div>
