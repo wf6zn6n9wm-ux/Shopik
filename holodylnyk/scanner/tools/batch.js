@@ -19,15 +19,17 @@
  * Що НЕ вимірюється автоматично: чи правильно прочитані назви. Для цього
  * потрібне око — тому в звіті є розділ для ручної звірки з фото.
  *
- * Модель і глибина мислення беруться з AI_MODEL та AI_EFFORT — щоб можна
- * було прогнати ту саму пачку двічі й порівняти точність із ціною:
+ * Модель, запасна модель і глибина мислення беруться з AI_MODEL,
+ * AI_MODEL_FALLBACK та AI_EFFORT — щоб можна було прогнати ту саму пачку
+ * кілька разів і порівняти точність із ціною:
  *
- *   AI_EFFORT=low  ANTHROPIC_API_KEY=… node tools/batch.js ./photos
+ *   node tools/batch.js ./photos                          сходинками
+ *   AI_MODEL_FALLBACK= node tools/batch.js ./photos        тільки дешева
+ *   AI_MODEL=claude-opus-5 AI_MODEL_FALLBACK= …            тільки дорога
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { extract, MODEL } from '../api/receipt.js';
-import { build } from '../lib/pipeline.js';
+import { read, MODEL, FALLBACK } from '../api/receipt.js';
 import { tally, summarize, report, pct } from '../lib/batchstats.js';
 import { money } from '../lib/cost.js';
 
@@ -64,19 +66,18 @@ async function main() {
     process.stderr.write(`[${k + 1}/${files.length}] ${file} … `);
     try {
       const bytes = await fs.readFile(path.join(dir, file));
-      const { raw, usage } = await extract(
-        `data:image/${MIME[ext]};base64,${bytes.toString('base64')}`,
-      );
-      const row = tally(file, build(raw), usage);
+      const result = await read(`data:image/${MIME[ext]};base64,${bytes.toString('base64')}`);
+      const row = tally(file, result, result.attempts);
       rows.push(row);
-      process.stderr.write(`${row.items} позицій · ${row.verdict}\n`);
+      const up = result.attempts.length > 1 ? ' · ескалація' : '';
+      process.stderr.write(`${row.items} позицій · ${row.verdict}${up}\n`);
     } catch (e) {
       failed.push({ name: file, error: e.message });
       process.stderr.write(`помилка: ${e.message}\n`);
     }
   }
 
-  const sum = summarize(rows, MODEL);
+  const sum = summarize(rows);
   const out = path.join(dir, 'report.md');
   await fs.writeFile(out, report(rows, sum, failed), 'utf8');
 
@@ -86,6 +87,7 @@ async function main() {
   console.log(`Словник знав: ${sum.src.dictionary}/${sum.positions} (${pct(sum.dict_share)})`);
   console.log(`Нових слів для словника: ${sum.unknown_tokens.length}`);
   if (sum.spend) {
+    console.log(`Ескалацій на ${FALLBACK}: ${sum.spend.escalated}/${sum.spend.receipts}`);
     console.log(`Один чек коштує: ${money(sum.spend.per_receipt_usd)}`);
     console.log(`Уся пачка: ${money(sum.spend.usd)}`);
   }

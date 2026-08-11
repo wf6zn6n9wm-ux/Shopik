@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import { build } from '../lib/pipeline.js';
 import { tally, summarize, report } from '../lib/batchstats.js';
-import { costOf, UAH_PER_USD } from '../lib/cost.js';
+import { costOf, costOfAttempts, modelInfo, UAH_PER_USD } from '../lib/cost.js';
 import { isGlobalEan, cleanName, firstToken } from '../lib/normalize.js';
 import { ATB_COMPLETE, CROPPED_RECEIPT, WITH_SERVICE_LINES } from './fixtures.js';
 
@@ -136,33 +136,67 @@ check('гривні = долари × курс',
   round(costOf({ input_tokens: 6000, output_tokens: 3000 }, 'claude-opus-5').uah),
   round(0.105 * UAH_PER_USD));
 
-const paid = [
-  tally('a.jpg', r1, { input_tokens: 6000, output_tokens: 3000 }),
-  tally('b.jpg', r2, { input_tokens: 4000, output_tokens: 2000 }),
+// ── Сходинки: дешева модель, дорога лише за потреби ────────────────────
+section('Сходинки');
+
+check('Haiku не приймає effort', modelInfo('claude-haiku-4-5').effort, false);
+check('Haiku не думає без прохання', modelInfo('claude-haiku-4-5').thinking, 'off');
+check('Opus 5 думає завжди', modelInfo('claude-opus-5').thinking, 'adaptive');
+check('невідома модель — null', modelInfo('невідомо'), null);
+
+// Дешевий чек, який зійшовся сам із собою: одна спроба, ціна Haiku.
+const cheap = [{ model: 'claude-haiku-4-5', usage: { input_tokens: 3600, output_tokens: 1200 } }];
+check('одна спроба на Haiku', round(costOfAttempts(cheap).usd), 0.0096);
+
+// Чек, який довелося перечитати Opus: платимо за обидві спроби.
+const both = [
+  ...cheap,
+  { model: 'claude-opus-5', usage: { input_tokens: 6200, output_tokens: 3200 } },
 ];
-const paidSum = summarize(paid, 'claude-opus-5');
-check('usage доїхав до рядка', paid[0].usage.input_tokens, 6000);
-check('пачка: усього', round(paidSum.spend.usd), 0.175);
-check('пачка: середнє на чек', round(paidSum.spend.per_receipt_usd), 0.0875);
-check('пачка: вхідних на чек', paidSum.spend.in_per_receipt, 5000);
-check('без моделі гроші не рахуються', summarize(paid).spend, null);
-check('без usage гроші не рахуються', summarize(rows, 'claude-opus-5').spend, null);
+check('дві спроби — ціна обох', round(costOfAttempts(both).usd), round(0.0096 + 0.111));
+check('ескалація дорожча за дешевий шлях',
+  costOfAttempts(both).usd > costOfAttempts(cheap).usd, true);
+check('спроби з невідомою моделлю не рахуються',
+  costOfAttempts([{ model: 'невідомо', usage: { input_tokens: 9 } }]), null);
+check('порожній список спроб', costOfAttempts([]), null);
+
+const paid = [tally('a.jpg', r1, cheap), tally('b.jpg', r2, both)];
+const paidSum = summarize(paid);
+check('спроби доїхали до рядка', paid[0].attempts.length, 1);
+check('пачка: усього', round(paidSum.spend.usd), round(0.0096 * 2 + 0.111));
+check('пачка: ескалацій', paidSum.spend.escalated, 1);
+check('пачка: частка ескалацій', paidSum.spend.escalation_share, 0.5);
+check('пачка: розклад по моделях', paidSum.spend.by_model.map((m) => m.model),
+  ['claude-opus-5', 'claude-haiku-4-5']);
+check('пачка: викликів Haiku', paidSum.spend.by_model[1].calls, 2);
+check('без спроб гроші не рахуються', summarize(rows).spend, null);
 check('рахуються лише оплачені чеки',
-  summarize([...paid, tally('c.jpg', r1)], 'claude-opus-5').spend.receipts, 2);
+  summarize([...paid, tally('c.jpg', r1)]).spend.receipts, 2);
 
 const paidMd = report(paid, paidSum, []);
 check('звіт: є розділ про гроші', paidMd.includes('## Скільки це коштує'), true);
 check('звіт: ціна чека у гривнях', paidMd.includes('₴)**'), true);
-check('звіт: без usage розділу немає', report(rows, sum, []).includes('Скільки це коштує'), false);
+check('звіт: видно частку ескалацій', paidMd.includes('**1 з 2** (50%)'), true);
+check('звіт: без спроб розділу немає', report(rows, sum, []).includes('Скільки це коштує'), false);
 
 // Прогін пачки й ендпоінт живуть у різних файлах і не можуть перевірити
 // один одного офлайн: api/receipt.js тягне SDK. Тому контракт між ними
 // перевіряється по тексту — саме на цьому шві `extract` уже віддавав
 // { raw, usage }, а batch.js передавав цю обгортку далі як чек.
 const batchSrc = fs.readFileSync(new URL('../tools/batch.js', import.meta.url), 'utf8');
-check('batch.js розпаковує { raw, usage }',
-  /const \{ raw, usage \} = await extract\(/.test(batchSrc), true);
-check('batch.js віддає usage у tally', /tally\(file, build\(raw\), usage\)/.test(batchSrc), true);
+check('batch.js бере готовий чек із read()', /await read\(/.test(batchSrc), true);
+check('batch.js віддає спроби у tally',
+  /tally\(file, result, result\.attempts\)/.test(batchSrc), true);
+check('batch.js не розбирає витяг сам', /build\(/.test(batchSrc), false);
+
+// Ескалація має спрацьовувати рівно на 'partial': на 'reshoot' чек
+// обрізаний фізично, і друга модель побачить те саме — це викинуті гроші.
+const apiSrc = fs.readFileSync(new URL('../api/receipt.js', import.meta.url), 'utf8');
+check('ескалація лише на partial',
+  /verdict === 'partial' && FALLBACK/.test(apiSrc), true);
+check('effort не летить у модель, яка його не знає',
+  /modelInfo\(model\)\?\.effort/.test(apiSrc), true);
+check('дешева модель стоїть першою', /AI_MODEL \|\| 'claude-haiku-4-5'/.test(apiSrc), true);
 
 const md = report(rows, sum, [{ name: 'bad.heic', error: 'формат' }]);
 check('звіт: є заголовок', md.startsWith('# Прогін чеків'), true);

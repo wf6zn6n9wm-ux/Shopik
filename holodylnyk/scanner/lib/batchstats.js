@@ -1,14 +1,16 @@
 // Підрахунок по пачці чеків. Навмисно без жодної залежності від SDK:
 // усе тут детерміноване й перевіряється офлайн, без ключа і без мережі.
 import { firstToken } from './normalize.js';
-import { costOf, money, priceOf } from './cost.js';
+import { costOfAttempts, money } from './cost.js';
 
 /**
  * Один розібраний чек → рядок статистики. Чиста функція, тестується офлайн.
  *
- * @param {object} [usage] usage від API, якщо чек справді ганяли через модель
+ * @param {Array<{model:string,usage:object}>} [attempts] спроби моделей,
+ *        якщо чек справді ганяли через API. Їх може бути дві: дешева
+ *        модель і ескалація на дорогу.
  */
-function tally(name, result, usage) {
+function tally(name, result, attempts) {
   const items = result.items || [];
   const by = { dictionary: 0, model: 0, unknown: 0 };
   for (const i of items) by[i.category_source] = (by[i.category_source] || 0) + 1;
@@ -24,7 +26,7 @@ function tally(name, result, usage) {
     items: items.length,
     skipped: (result.skipped || []).length,
     by,
-    usage: usage || null,
+    attempts: attempts && attempts.length ? attempts : null,
     // Позиції, яких не знає словник — саме вони поповнять його наступними.
     unknown_tokens: items
       .filter((i) => i.category_source !== 'dictionary')
@@ -34,36 +36,56 @@ function tally(name, result, usage) {
 }
 
 /**
- * Скільки коштувала пачка. Рахується лише по тих чеках, де є usage:
+ * Скільки коштувала пачка. Рахується лише по тих чеках, де є спроби:
  * порахувати середнє по половині вибірки — гірше, ніж не рахувати.
+ *
+ * Окремо рахується, скільки чеків довелося перечитувати дорогою моделлю.
+ * Саме ця частка й вирішує, скільки коштує сходинкова схема: якщо дешева
+ * модель справляється з дев'ятьма чеками з десяти — ви платите майже
+ * дешеву ціну за майже дорогу якість.
  */
-function spend(rows, model) {
-  const priced = rows.filter((r) => r.usage);
-  if (!priced.length || !priceOf(model)) return null;
+function spend(rows) {
+  const priced = rows.filter((r) => r.attempts);
+  if (!priced.length) return null;
   const total = { usd: 0, uah: 0, in: 0, out: 0 };
+  const byModel = new Map();
+  let escalated = 0;
+  let counted = 0;
+
   for (const r of priced) {
-    const c = costOf(r.usage, model);
+    const c = costOfAttempts(r.attempts);
+    if (!c) continue;
+    counted += 1;
     total.usd += c.usd;
     total.uah += c.uah;
     total.in += c.in;
     total.out += c.out;
+    if (r.attempts.length > 1) escalated += 1;
+    for (const a of r.attempts) {
+      const cur = byModel.get(a.model) || { calls: 0, usd: 0 };
+      cur.calls += 1;
+      cur.usd += costOfAttempts([a])?.usd || 0;
+      byModel.set(a.model, cur);
+    }
   }
+  if (!counted) return null;
+
   return {
-    model,
-    receipts: priced.length,
+    receipts: counted,
+    escalated,
+    escalation_share: escalated / counted,
     ...total,
-    per_receipt_usd: total.usd / priced.length,
-    in_per_receipt: Math.round(total.in / priced.length),
-    out_per_receipt: Math.round(total.out / priced.length),
+    per_receipt_usd: total.usd / counted,
+    in_per_receipt: Math.round(total.in / counted),
+    out_per_receipt: Math.round(total.out / counted),
+    by_model: [...byModel.entries()]
+      .map(([model, v]) => ({ model, ...v }))
+      .sort((a, b) => b.usd - a.usd),
   };
 }
 
-/**
- * Підсумок по всій пачці. Теж чиста функція.
- *
- * @param {string} [model] модель, якою гнали — без неї гроші не рахуються
- */
-function summarize(rows, model) {
+/** Підсумок по всій пачці. Теж чиста функція. */
+function summarize(rows) {
   const n = rows.length;
   const src = rows.reduce(
     (a, r) => ({
@@ -95,7 +117,7 @@ function summarize(rows, model) {
     positions,
     src,
     dict_share: positions ? src.dictionary / positions : 0,
-    spend: spend(rows, model),
+    spend: spend(rows),
     unknown_tokens: [...tokens.entries()]
       .map(([token, v]) => ({ token, ...v }))
       .sort((a, b) => b.count - a.count),
@@ -137,10 +159,22 @@ function report(rows, sum, failed) {
   if (sum.spend) {
     const s = sum.spend;
     L.push('## Скільки це коштує\n');
-    L.push(`Модель: \`${s.model}\`. Порахували по ${s.receipts} чеках.\n`);
+    L.push(`Порахували по ${s.receipts} чеках, з реального \`usage\` від API.\n`);
     L.push(`- **Один чек: ${money(s.per_receipt_usd)}**`);
     L.push(`- Токенів на чек: ${s.in_per_receipt} вхідних, ${s.out_per_receipt} вихідних`);
     L.push(`- Уся пачка: ${money(s.usd)}\n`);
+
+    L.push('| Модель | Викликів | Витрачено |');
+    L.push('|---|--:|--:|');
+    for (const m of s.by_model) L.push(`| \`${m.model}\` | ${m.calls} | ${money(m.usd)} |`);
+    L.push('');
+    L.push(
+      `Дешева модель не впоралась і довелося перечитувати дорогою: ` +
+        `**${s.escalated} з ${s.receipts}** (${pct(s.escalation_share)}). ` +
+        `Саме ця частка й визначає ціну — чим більший словник і чим кращі ` +
+        `фото, тим вона нижча.\n`,
+    );
+
     L.push('Прикидка на місяць, якщо людина фотографує 6 чеків:\n');
     L.push('| Активних людей | За місяць |');
     L.push('|--:|--:|');
