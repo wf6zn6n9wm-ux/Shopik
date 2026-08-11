@@ -3,6 +3,7 @@
 //   node test/run.js
 
 import { build } from '../lib/pipeline.js';
+import { tally, summarize, report } from '../lib/batchstats.js';
 import { isGlobalEan, cleanName, firstToken } from '../lib/normalize.js';
 import { ATB_COMPLETE, CROPPED_RECEIPT, WITH_SERVICE_LINES } from './fixtures.js';
 
@@ -84,6 +85,34 @@ check('порожній код', isGlobalEan(''), false);
 check('перший токен ігнорує кількість', firstToken('2. X 24,90 = Точилка-гумка'), 'точилка');
 check('арт. прибирається', cleanName('Точилка-гумка 2 в 1, арт. МР58320'), 'Точилка-гумка 2 в 1');
 check('м/уп прибирається', cleanName('Цукерки 80 г жувальні Bebeto Worms м/уп'), 'Цукерки 80 г жувальні Bebeto Worms');
+
+// ── Прогін пачки: підрахунок на тих самих справжніх чеках ──────────────
+// Скрипт tools/batch.js людина запустить один раз, маючи ключ. Якщо він
+// на той момент виявиться зламаним, це з'ясується найгіршим способом —
+// тому рахунок перевіряється тут, офлайн.
+const rows = [tally('atb.jpg', r1), tally('cut.jpg', r2)];
+const sum = summarize(rows);
+
+check('пачка: чеків пораховано', sum.receipts, 2);
+check('пачка: повний чек зійшовся', rows[0].sum_ok, true);
+check('пачка: обрізаний не зійшовся', rows[1].sum_ok, false);
+check('пачка: вердикт обрізаного', rows[1].verdict, 'reshoot');
+check('пачка: зійшовся рівно один', sum.sum_ok, 1);
+check('пачка: позицій усього', sum.positions, r1.items.length + r2.items.length);
+check('пачка: словник + модель + невідомі сходяться',
+  sum.src.dictionary + sum.src.model + sum.src.unknown, sum.positions);
+check('пачка: частка словника між 0 і 1', sum.dict_share > 0 && sum.dict_share <= 1, true);
+check('пачка: «Ролліні» потрапило у список невідомих',
+  sum.unknown_tokens.some((t) => t.token === 'ролліні'), true);
+check('пачка: у невідомого є приклад із чека',
+  sum.unknown_tokens[0].examples.length > 0, true);
+
+const md = report(rows, sum, [{ name: 'bad.heic', error: 'формат' }]);
+check('звіт: є заголовок', md.startsWith('# Прогін чеків'), true);
+check('звіт: є розділ словника', md.includes('Слова, яких немає у словнику'), true);
+check('звіт: є розділ ручної звірки', md.includes('Для ручної звірки'), true);
+check('звіт: невдачі не загубились', md.includes('bad.heic'), true);
+check('звіт: назви позицій виписані', md.includes(r1.items[0].name), true);
 
 // ── Підсумок ───────────────────────────────────────────────────────────
 const total = r1.items.length + r2.items.length + r3.items.length;
