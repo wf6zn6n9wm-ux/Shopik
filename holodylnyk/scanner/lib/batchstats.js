@@ -1,9 +1,14 @@
 // Підрахунок по пачці чеків. Навмисно без жодної залежності від SDK:
 // усе тут детерміноване й перевіряється офлайн, без ключа і без мережі.
 import { firstToken } from './normalize.js';
+import { costOf, money, priceOf } from './cost.js';
 
-/** Один розібраний чек → рядок статистики. Чиста функція, тестується офлайн. */
-function tally(name, result) {
+/**
+ * Один розібраний чек → рядок статистики. Чиста функція, тестується офлайн.
+ *
+ * @param {object} [usage] usage від API, якщо чек справді ганяли через модель
+ */
+function tally(name, result, usage) {
   const items = result.items || [];
   const by = { dictionary: 0, model: 0, unknown: 0 };
   for (const i of items) by[i.category_source] = (by[i.category_source] || 0) + 1;
@@ -19,6 +24,7 @@ function tally(name, result) {
     items: items.length,
     skipped: (result.skipped || []).length,
     by,
+    usage: usage || null,
     // Позиції, яких не знає словник — саме вони поповнять його наступними.
     unknown_tokens: items
       .filter((i) => i.category_source !== 'dictionary')
@@ -27,8 +33,37 @@ function tally(name, result) {
   };
 }
 
-/** Підсумок по всій пачці. Теж чиста функція. */
-function summarize(rows) {
+/**
+ * Скільки коштувала пачка. Рахується лише по тих чеках, де є usage:
+ * порахувати середнє по половині вибірки — гірше, ніж не рахувати.
+ */
+function spend(rows, model) {
+  const priced = rows.filter((r) => r.usage);
+  if (!priced.length || !priceOf(model)) return null;
+  const total = { usd: 0, uah: 0, in: 0, out: 0 };
+  for (const r of priced) {
+    const c = costOf(r.usage, model);
+    total.usd += c.usd;
+    total.uah += c.uah;
+    total.in += c.in;
+    total.out += c.out;
+  }
+  return {
+    model,
+    receipts: priced.length,
+    ...total,
+    per_receipt_usd: total.usd / priced.length,
+    in_per_receipt: Math.round(total.in / priced.length),
+    out_per_receipt: Math.round(total.out / priced.length),
+  };
+}
+
+/**
+ * Підсумок по всій пачці. Теж чиста функція.
+ *
+ * @param {string} [model] модель, якою гнали — без неї гроші не рахуються
+ */
+function summarize(rows, model) {
   const n = rows.length;
   const src = rows.reduce(
     (a, r) => ({
@@ -60,6 +95,7 @@ function summarize(rows) {
     positions,
     src,
     dict_share: positions ? src.dictionary / positions : 0,
+    spend: spend(rows, model),
     unknown_tokens: [...tokens.entries()]
       .map(([token, v]) => ({ token, ...v }))
       .sort((a, b) => b.count - a.count),
@@ -98,6 +134,25 @@ function report(rows, sum, failed) {
     L.push('');
   }
 
+  if (sum.spend) {
+    const s = sum.spend;
+    L.push('## Скільки це коштує\n');
+    L.push(`Модель: \`${s.model}\`. Порахували по ${s.receipts} чеках.\n`);
+    L.push(`- **Один чек: ${money(s.per_receipt_usd)}**`);
+    L.push(`- Токенів на чек: ${s.in_per_receipt} вхідних, ${s.out_per_receipt} вихідних`);
+    L.push(`- Уся пачка: ${money(s.usd)}\n`);
+    L.push('Прикидка на місяць, якщо людина фотографує 6 чеків:\n');
+    L.push('| Активних людей | За місяць |');
+    L.push('|--:|--:|');
+    for (const users of [100, 1000, 10000]) {
+      L.push(`| ${users} | ${money(s.per_receipt_usd * 6 * users)} |`);
+    }
+    L.push('');
+    L.push('Вихідні токени дорожчі за вхідні вп\'ятеро, і «мислення» рахується');
+    L.push('саме як вихід. Якщо цифра завелика — перший важіль `AI_EFFORT`,');
+    L.push('другий `AI_MODEL`, і лише третій — стискати фото.\n');
+  }
+
   L.push('## Для ручної звірки\n');
   L.push('Автоматично перевірити, чи вірно прочитані **назви**, неможливо —');
   L.push('порівняйте кілька чеків із фото очима.\n');
@@ -115,4 +170,4 @@ function report(rows, sum, failed) {
   return L.join('\n');
 }
 
-export { tally, summarize, report, pct };
+export { tally, summarize, spend, report, pct };

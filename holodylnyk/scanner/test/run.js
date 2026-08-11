@@ -2,8 +2,10 @@
 //
 //   node test/run.js
 
+import fs from 'node:fs';
 import { build } from '../lib/pipeline.js';
 import { tally, summarize, report } from '../lib/batchstats.js';
+import { costOf, UAH_PER_USD } from '../lib/cost.js';
 import { isGlobalEan, cleanName, firstToken } from '../lib/normalize.js';
 import { ATB_COMPLETE, CROPPED_RECEIPT, WITH_SERVICE_LINES } from './fixtures.js';
 
@@ -106,6 +108,61 @@ check('пачка: «Ролліні» потрапило у список нев�
   sum.unknown_tokens.some((t) => t.token === 'ролліні'), true);
 check('пачка: у невідомого є приклад із чека',
   sum.unknown_tokens[0].examples.length > 0, true);
+
+// ── Гроші ──────────────────────────────────────────────────────────────
+// Ціна одного фото — не деталь реалізації, а те, від чого залежить, чи
+// зійдеться бізнес. Тому арифметика перевіряється, а не приймається на віру.
+section('Гроші');
+
+const round = (x) => Math.round(x * 1e6) / 1e6;
+
+check('Opus 5: 6000 вх + 3000 вих',
+  round(costOf({ input_tokens: 6000, output_tokens: 3000 }, 'claude-opus-5').usd), 0.105);
+check('Haiku 4.5 дешевший рівно вп\'ятеро',
+  round(costOf({ input_tokens: 6000, output_tokens: 3000 }, 'claude-haiku-4-5').usd), 0.021);
+check('кеш: запис 1.25×, читання 0.1×',
+  round(costOf({
+    input_tokens: 1000,
+    cache_creation_input_tokens: 2000,
+    cache_read_input_tokens: 4000,
+    output_tokens: 1000,
+  }, 'claude-opus-5').usd), 0.0445);
+check('вихід дорожчий за вхід — саме там мислення',
+  costOf({ input_tokens: 0, output_tokens: 1000 }, 'claude-opus-5').usd >
+  costOf({ input_tokens: 1000, output_tokens: 0 }, 'claude-opus-5').usd, true);
+check('невідома модель — не тихий нуль', costOf({ input_tokens: 1 }, 'gpt-невідомо'), null);
+check('без usage — теж null', costOf(null, 'claude-opus-5'), null);
+check('гривні = долари × курс',
+  round(costOf({ input_tokens: 6000, output_tokens: 3000 }, 'claude-opus-5').uah),
+  round(0.105 * UAH_PER_USD));
+
+const paid = [
+  tally('a.jpg', r1, { input_tokens: 6000, output_tokens: 3000 }),
+  tally('b.jpg', r2, { input_tokens: 4000, output_tokens: 2000 }),
+];
+const paidSum = summarize(paid, 'claude-opus-5');
+check('usage доїхав до рядка', paid[0].usage.input_tokens, 6000);
+check('пачка: усього', round(paidSum.spend.usd), 0.175);
+check('пачка: середнє на чек', round(paidSum.spend.per_receipt_usd), 0.0875);
+check('пачка: вхідних на чек', paidSum.spend.in_per_receipt, 5000);
+check('без моделі гроші не рахуються', summarize(paid).spend, null);
+check('без usage гроші не рахуються', summarize(rows, 'claude-opus-5').spend, null);
+check('рахуються лише оплачені чеки',
+  summarize([...paid, tally('c.jpg', r1)], 'claude-opus-5').spend.receipts, 2);
+
+const paidMd = report(paid, paidSum, []);
+check('звіт: є розділ про гроші', paidMd.includes('## Скільки це коштує'), true);
+check('звіт: ціна чека у гривнях', paidMd.includes('₴)**'), true);
+check('звіт: без usage розділу немає', report(rows, sum, []).includes('Скільки це коштує'), false);
+
+// Прогін пачки й ендпоінт живуть у різних файлах і не можуть перевірити
+// один одного офлайн: api/receipt.js тягне SDK. Тому контракт між ними
+// перевіряється по тексту — саме на цьому шві `extract` уже віддавав
+// { raw, usage }, а batch.js передавав цю обгортку далі як чек.
+const batchSrc = fs.readFileSync(new URL('../tools/batch.js', import.meta.url), 'utf8');
+check('batch.js розпаковує { raw, usage }',
+  /const \{ raw, usage \} = await extract\(/.test(batchSrc), true);
+check('batch.js віддає usage у tally', /tally\(file, build\(raw\), usage\)/.test(batchSrc), true);
 
 const md = report(rows, sum, [{ name: 'bad.heic', error: 'формат' }]);
 check('звіт: є заголовок', md.startsWith('# Прогін чеків'), true);

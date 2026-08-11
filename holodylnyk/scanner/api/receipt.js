@@ -11,6 +11,10 @@ import { RECEIPT_SCHEMA, SYSTEM_PROMPT } from '../lib/schema.js';
 import { build } from '../lib/pipeline.js';
 
 const MODEL = process.env.AI_MODEL || 'claude-opus-5';
+// Мислення рахується як вихідні токени, а вони вп'ятеро дорожчі за вхідні.
+// Тому саме це — головний регулятор ціни одного чека, і його треба мати
+// змогу покрутити, не чіпаючи код: high | medium | low.
+const EFFORT = process.env.AI_EFFORT || 'high';
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
 let client;
@@ -46,7 +50,7 @@ async function extract(image) {
     max_tokens: 32000,
     system: SYSTEM_PROMPT,
     output_config: {
-      effort: 'high',
+      effort: EFFORT,
       format: { type: 'json_schema', schema: RECEIPT_SCHEMA },
     },
     messages: [
@@ -113,4 +117,4 @@ export default async function handler(req, res) {
   }
 }
 
-export { extract, parseDataUrl };
+export { extract, parseDataUrl, MODEL };
