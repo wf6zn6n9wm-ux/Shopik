@@ -1,0 +1,112 @@
+# Прогін пачки справжніх чеків через модель.
+#
+# Потрібен, щоб перевірити сканер, не маючи під рукою комп'ютера: фото
+# лежать у теці репозиторію, кнопка «Run workflow» тиснеться з телефона,
+# звіт забирається як artifact.
+#
+# УВАГА, ГРОШІ. Кожен запуск — платні виклики API. Тому запускається
+# ТІЛЬКИ вручну: жодного push, жодного schedule.
+#
+# УВАГА, ПРИВАТНІСТЬ. На чеку видно магазин, дату, покупки, а часто й
+# останні цифри картки. У публічному репозиторії ці фото побачить будь-хто
+# і залишаться вони в історії назавжди. Тримайте їх лише в приватному.
+name: Прогін чеків
+
+on:
+  workflow_dispatch:
+    inputs:
+      folder:
+        description: 'Тека з фото чеків'
+        default: 'receipts'
+        required: true
+      mode:
+        description: 'Режим прогону'
+        default: 'all'
+        required: true
+        type: choice
+        options:
+          - all          # усі три, щоб було з чим порівнювати
+          - ladder       # сходинками: дешева, дорога за потреби
+          - cheap        # тільки дешева модель
+          - expensive    # тільки дорога модель
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Зупинитись до першого платного виклику, а не після нього.
+      - name: Перевірити, що є ключ і фото
+        env:
+          KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::Немає секрету ANTHROPIC_API_KEY."
+            echo "Settings → Secrets and variables → Actions → New repository secret"
+            exit 1
+          fi
+          DIR="${{ inputs.folder }}"
+          if [ ! -d "$DIR" ]; then
+            echo "::error::Теки '$DIR' немає в репозиторії."
+            exit 1
+          fi
+          N=$(find "$DIR" -maxdepth 1 -type f \
+                \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) | wc -l)
+          HEIC=$(find "$DIR" -maxdepth 1 -type f -iname '*.heic' | wc -l)
+          echo "Придатних фото: $N"
+          if [ "$HEIC" -gt 0 ]; then
+            echo "::warning::Файлів .heic: $HEIC — модель їх не приймає, переведіть у JPEG."
+          fi
+          if [ "$N" -eq 0 ]; then
+            echo "::error::У теці '$DIR' немає жодного JPEG або PNG."
+            exit 1
+          fi
+
+      - name: Поставити SDK
+        working-directory: holodylnyk/scanner
+        run: npm install --no-audit --no-fund
+
+      - name: Перевірити себе перед тим, як витрачати гроші
+        working-directory: holodylnyk/scanner
+        run: npm test
+
+      - name: Прогін
+        working-directory: holodylnyk/scanner
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DIR: ${{ github.workspace }}/${{ inputs.folder }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -e
+          R="$GITHUB_WORKSPACE/reports"
+          mkdir -p "$R"
+          # Змінні ставляться перед самим node, а не перед функцією:
+          # у різних оболонках префікс перед функцією поводиться по-різному.
+          if [ "$MODE" = "all" ] || [ "$MODE" = "ladder" ]; then
+            echo '── сходинками ──'
+            node tools/batch.js "$DIR" "$R/ladder.md"
+          fi
+          if [ "$MODE" = "all" ] || [ "$MODE" = "cheap" ]; then
+            echo '── тільки дешева ──'
+            AI_MODEL_FALLBACK='' node tools/batch.js "$DIR" "$R/cheap.md"
+          fi
+          if [ "$MODE" = "all" ] || [ "$MODE" = "expensive" ]; then
+            echo '── тільки дорога ──'
+            AI_MODEL=claude-opus-5 AI_MODEL_FALLBACK='' \
+              node tools/batch.js "$DIR" "$R/expensive.md"
+          fi
+
+      # Звіт містить назви позицій із чеків, тому він теж приватний —
+      # artifact видно лише тому, хто має доступ до репозиторію.
+      - name: Забрати звіти
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: reports/
+          retention-days: 7

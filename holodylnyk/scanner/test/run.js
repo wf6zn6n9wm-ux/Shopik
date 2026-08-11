@@ -2,7 +2,6 @@
 //
 //   node test/run.js
 
-import fs from 'node:fs';
 import { build } from '../lib/pipeline.js';
 import { tally, summarize, report } from '../lib/batchstats.js';
 import { costOf, costOfAttempts, modelInfo, UAH_PER_USD } from '../lib/cost.js';
@@ -179,24 +178,9 @@ check('звіт: ціна чека у гривнях', paidMd.includes('₴)**')
 check('звіт: видно частку ескалацій', paidMd.includes('**1 з 2** (50%)'), true);
 check('звіт: без спроб розділу немає', report(rows, sum, []).includes('Скільки це коштує'), false);
 
-// Прогін пачки й ендпоінт живуть у різних файлах і не можуть перевірити
-// один одного офлайн: api/receipt.js тягне SDK. Тому контракт між ними
-// перевіряється по тексту — саме на цьому шві `extract` уже віддавав
-// { raw, usage }, а batch.js передавав цю обгортку далі як чек.
-const batchSrc = fs.readFileSync(new URL('../tools/batch.js', import.meta.url), 'utf8');
-check('batch.js бере готовий чек із read()', /await read\(/.test(batchSrc), true);
-check('batch.js віддає спроби у tally',
-  /tally\(file, result, result\.attempts\)/.test(batchSrc), true);
-check('batch.js не розбирає витяг сам', /build\(/.test(batchSrc), false);
-
-// Ескалація має спрацьовувати рівно на 'partial': на 'reshoot' чек
-// обрізаний фізично, і друга модель побачить те саме — це викинуті гроші.
-const apiSrc = fs.readFileSync(new URL('../api/receipt.js', import.meta.url), 'utf8');
-check('ескалація лише на partial',
-  /verdict === 'partial' && FALLBACK/.test(apiSrc), true);
-check('effort не летить у модель, яка його не знає',
-  /modelInfo\(model\)\?\.effort/.test(apiSrc), true);
-check('дешева модель стоїть першою', /AI_MODEL \|\| 'claude-haiku-4-5'/.test(apiSrc), true);
+// Поведінку сходинок перевіряє test/ladder.js — там підставляється
+// підробний клієнт і викликається справжній read(), а не шукаються
+// потрібні рядки в тексті файлу.
 
 const md = report(rows, sum, [{ name: 'bad.heic', error: 'формат' }]);
 check('звіт: є заголовок', md.startsWith('# Прогін чеків'), true);

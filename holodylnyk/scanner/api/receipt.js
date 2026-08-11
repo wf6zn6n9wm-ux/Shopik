@@ -6,7 +6,6 @@
 //
 // Ключ береться з ANTHROPIC_API_KEY; у коді його немає.
 
-import Anthropic from '@anthropic-ai/sdk';
 import { RECEIPT_SCHEMA, SYSTEM_PROMPT } from '../lib/schema.js';
 import { build } from '../lib/pipeline.js';
 import { modelInfo } from '../lib/cost.js';
@@ -16,17 +15,34 @@ import { modelInfo } from '../lib/cost.js';
 // зійшлася з надрукованим підсумком. Платимо за розум тільки там, де
 // його справді забракло.
 const MODEL = process.env.AI_MODEL || 'claude-haiku-4-5';
-const FALLBACK = process.env.AI_MODEL_FALLBACK || 'claude-opus-5';
+// Саме `??`, а не `||`: порожнє значення має вимикати другу сходинку,
+// а не мовчки повертати її ж за замовчуванням. З `||` команда
+// `AI_MODEL_FALLBACK= node …` робила б рівно протилежне обіцяному.
+const FALLBACK = process.env.AI_MODEL_FALLBACK ?? 'claude-opus-5';
 // Мислення рахується як вихідні токени, а вони вп'ятеро дорожчі за вхідні.
 // Тому саме це — головний регулятор ціни: high | medium | low.
 const EFFORT = process.env.AI_EFFORT || 'medium';
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
 let client;
-/** Клієнт створюється ліниво, щоб модуль імпортувався без ключа. */
-function getClient() {
-  if (!client) client = new Anthropic();
+
+/**
+ * Клієнт створюється ліниво, і SDK підвантажується теж ліниво — щоб цей
+ * модуль можна було імпортувати без ключа, без мережі й без node_modules.
+ * Інакше сходинки з дешевої моделі на дорогу довелося б перевіряти по
+ * тексту файлу, а це не перевірка.
+ */
+async function getClient() {
+  if (!client) {
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
+    client = new Anthropic();
+  }
   return client;
+}
+
+/** Підмінити клієнта. Потрібно тестам; у роботі не викликається. */
+function setClient(c) {
+  client = c;
 }
 
 function fail(message, status) {
@@ -57,7 +73,7 @@ async function extract(image, model = MODEL) {
   // Довгий чек дає десятки позицій, а на моделях 4.6+ мислення увімкнене
   // за замовчуванням і теж рахується в max_tokens. Тому стрімимо: інакше
   // велика відповідь впирається в HTTP-таймаут.
-  const stream = getClient().messages.stream({
+  const stream = (await getClient()).messages.stream({
     model,
     max_tokens: 32000,
     system: SYSTEM_PROMPT,
@@ -157,4 +173,4 @@ export default async function handler(req, res) {
   }
 }
 
-export { extract, read, parseDataUrl, MODEL, FALLBACK };
+export { extract, read, parseDataUrl, setClient, MODEL, FALLBACK };

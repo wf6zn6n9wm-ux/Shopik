@@ -38,8 +38,11 @@ const MIME = { '.jpg': 'jpeg', '.jpeg': 'jpeg', '.png': 'png', '.webp': 'webp' }
 
 async function main() {
   const dir = process.argv[2];
+  // Другий аргумент — куди покласти звіт. Потрібен, щоб прогнати ту саму
+  // пачку в кількох режимах і не затерти попередній звіт наступним.
+  const out = process.argv[3] || path.join(dir || '.', 'report.md');
   if (!dir) {
-    console.error('вкажіть теку з фото:  node tools/batch.js ./photos');
+    console.error('вкажіть теку з фото:  node tools/batch.js ./photos [звіт.md]');
     return 1;
   }
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -78,7 +81,7 @@ async function main() {
   }
 
   const sum = summarize(rows);
-  const out = path.join(dir, 'report.md');
+  await fs.mkdir(path.dirname(out), { recursive: true });
   await fs.writeFile(out, report(rows, sum, failed), 'utf8');
 
   console.log('');
