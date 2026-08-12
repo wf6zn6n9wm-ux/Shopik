@@ -52,7 +52,7 @@
   }
 
   /* ── LIGHT ── */
-  html[data-theme="light"]{
+  :root, html[data-theme="light"]{
     --bg:#F5F5F9; --bg-2:#FFFFFF;
     --surface:#FFFFFF; --surface-2:#F1F1F6; --surface-3:#E9E9F1;
     --ink:#12121A; --ink-2:#5A5A6B; --ink-3:#8C8C9C; --ink-4:#B4B4C2;
@@ -105,7 +105,7 @@
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
 
   /* ══════════ оболонка ══════════ */
-  .app{min-height:100vh;padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + 14px);}
+  .app{min-height:100vh;padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + 80px);}
   .screen{padding:0 18px 18px;animation:screenIn .34s var(--ease);}
   @keyframes screenIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
@@ -480,7 +480,7 @@ const valid = d => { const x = new Date(d); return isNaN(+x) ? null : x; };
 /* биті або порожні дати не мають роняти екран */
 const fmt = (d, o) => { const x = valid(d); return x ? new Intl.DateTimeFormat(I18n.intl(), o).format(x) : '—'; };
 const fmtTime  = d => fmt(d, {hour:'2-digit', minute:'2-digit', hour12:false});
-const fmtLong  = d => cap(fmt(d, {weekday:'long', day:'numeric', month:'long'}));
+const fmtLong  = d => valid(d) ? cap(fmt(d, {weekday:'long'})) + ', ' + fmt(d, {day:'numeric', month:'long'}) : '—';
 const fmtDM    = d => fmt(d, {day:'numeric', month:'long'});
 const fmtDMs   = d => fmt(d, {day:'2-digit', month:'2-digit'});
 const fmtMon   = d => cap(fmt(d, {month:'long', year:'numeric'}));
