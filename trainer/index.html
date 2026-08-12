@@ -300,6 +300,11 @@
   .cal-day.out{color:var(--ink-4);}
   .cal-day.today{color:var(--accent);}
   .cal-day.on{background:var(--accent);color:#fff;}
+  .cal-day.rng{background:var(--accent-soft);border-radius:0;color:var(--ink);}
+  .cal-day.rng.a{border-radius:12px 0 0 12px;}
+  .cal-day.rng.b{border-radius:0 12px 12px 0;}
+  .cal-day.edge{background:var(--accent);color:#fff;border-radius:12px;}
+  .cal-day.edge .pips i{background:#fff;}
   .cal-day .pips{display:flex;gap:2px;height:4px;}
   .cal-day .pips i{width:4px;height:4px;border-radius:50%;background:var(--accent);}
   .cal-day.on .pips i{background:#fff;}
@@ -682,6 +687,30 @@ function deltaFor(db, kind, base){
   const prev = stats(db, pFrom, new Date(+pFrom + slice));
   return prev.net ? Math.round((cur.net - prev.net) / prev.net * 1000) / 10 : (cur.net ? 100 : 0);
 }
+
+/* довільний період: {kind:'custom', from:'2026-08-05', to:'2026-08-12'} */
+function periodOf(p){
+  if (p && p.kind === 'custom' && p.from){
+    const from = d0(new Date(p.from + 'T00:00:00'));
+    const to = d0(new Date((p.to || p.from) + 'T00:00:00'));
+    return [from, addDays(to, 1)];
+  }
+  return periodRange((p && p.kind) || 'month', new Date());
+}
+/* динаміка проти попереднього відрізка такої ж довжини */
+function deltaRange(db, from, to){
+  const len = +to - +from;
+  const slice = clamp(+addDays(d0(new Date()), 1) - +from, DAY, len);
+  const cur = stats(db, from, new Date(+from + slice));
+  const pFrom = new Date(+from - len);
+  const prev = stats(db, pFrom, new Date(+pFrom + slice));
+  return prev.net ? Math.round((cur.net - prev.net) / prev.net * 1000) / 10 : (cur.net ? 100 : 0);
+}
+const periodLabel = (p, from, to) => {
+  if (!p || p.kind !== 'custom') return '';
+  const last = addDays(to, -1);
+  return sameDay(from, last) ? fmtDM(from) : fmtDMs(from) + ' — ' + fmtDMs(last);
+};
 
 /* борг — проведене й неоплачене тренування поза абонементом */
 const isDebt = s => s.status === 'done' && !s.paid && !s.subId;
@@ -3406,6 +3435,102 @@ const PackagesPage = ({params, onClose}) => {
   );
 };
 
+/* ─────────── вибір періоду: пресети + діапазон у календарі ─────────── */
+const RangeSheet = ({open, onClose, value, onPick}) => {
+  const start = value && value.kind === 'custom' && value.from ? d0(new Date(value.from + 'T00:00:00')) : null;
+  const [cur, setCur] = useState(() => d0(start || new Date()));
+  const [a, setA] = useState(start);
+  const [b, setB] = useState(value && value.kind === 'custom' && value.to ? d0(new Date(value.to + 'T00:00:00')) : null);
+
+  const cells = useMemo(() => {
+    const first = new Date(cur.getFullYear(), cur.getMonth(), 1);
+    const s0 = addDays(first, -((first.getDay() + 6) % 7));
+    return Array.from({length: 42}, (_, i) => addDays(s0, i));
+  }, [cur]);
+
+  const take = d => {
+    if (!a || (a && b)){ setA(d0(d)); setB(null); return; }
+    if (+d0(d) < +a){ setB(a); setA(d0(d)); return; }
+    setB(d0(d));
+  };
+  const pick = (from, to) => { onPick({kind:'custom', from: iso(from), to: iso(to)}); onClose(); };
+  const inRng = d => a && b && +d0(d) > +a && +d0(d) < +b;
+  const isEdge = d => (a && sameDay(d, a)) || (b && sameDay(d, b));
+
+  const presets = [
+    [t('rng.today','Сьогодні'), () => pick(new Date(), new Date())],
+    [t('rng.yest','Учора'), () => pick(addDays(new Date(), -1), addDays(new Date(), -1))],
+    [t('rng.7','Останні 7 днів'), () => pick(addDays(new Date(), -6), new Date())],
+    [t('rng.30','Останні 30 днів'), () => pick(addDays(new Date(), -29), new Date())],
+    [t('rng.mon','Цей місяць'), () => { const [f, tt] = periodRange('month', new Date()); pick(f, addDays(tt, -1)); }],
+    [t('rng.prev','Минулий місяць'), () => { const [f] = periodRange('month', addMonths(new Date(), -1)); pick(f, addDays(addMonths(f, 1), -1)); }],
+  ];
+
+  return (
+    <Sheet open={open} onClose={onClose} title={t('rng.title','Свій період')}
+           sub={a ? (b ? fmtDM(a) + ' — ' + fmtDM(b) : fmtDM(a) + ' — ' + t('rng.pick2','оберіть другу дату'))
+                  : t('rng.pick1','Оберіть початок і кінець періоду')} tall>
+      <div className="chips" style={{flexWrap:'wrap', gap:8, marginBottom:14}}>
+        {presets.map(([tx, fn]) => (
+          <button key={tx} className="chip" onClick={fn}>{tx}</button>
+        ))}
+      </div>
+
+      <div className="between" style={{marginBottom:6}}>
+        <button className="iconbtn" onClick={() => setCur(addMonths(cur, -1))} aria-label="−"><Ic.left size={20}/></button>
+        <b style={{fontSize:15}}>{fmtMon(cur)}</b>
+        <button className="iconbtn" onClick={() => setCur(addMonths(cur, 1))} aria-label="+"><Ic.right size={20}/></button>
+      </div>
+      <div className="cal-grid">
+        {['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].map(d => <div key={d} className="cal-dow">{d}</div>)}
+      </div>
+      <div className="cal-grid">
+        {cells.map((d, i) => (
+          <button key={i} onClick={() => take(d)}
+                  className={cx('cal-day',
+                    d.getMonth() !== cur.getMonth() && 'out',
+                    sameDay(d, new Date()) && 'today',
+                    inRng(d) && 'rng',
+                    isEdge(d) && 'edge')}>
+            <span className="num">{d.getDate()}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid2" style={{marginTop:16}}>
+        <Btn kind="sec" onClick={() => { setA(null); setB(null); onPick({kind:'month'}); onClose(); }}>
+          {t('rng.reset','Скинути')}
+        </Btn>
+        <Btn kind="pri" disabled={!a} onClick={() => pick(a, b || a)}>{t('common.done','Готово')}</Btn>
+      </div>
+    </Sheet>
+  );
+};
+
+const PeriodBar = ({value, onChange}) => {
+  const [open, setOpen] = useState(false);
+  const [from, to] = periodOf(value);
+  return (
+    <Fragment>
+      <div style={{display:'flex', gap:8, alignItems:'center'}}>
+        <div style={{flex:1, minWidth:0}}>
+          <Segm value={value.kind} onChange={k => onChange({kind: k})} items={PERIODS()}/>
+        </div>
+        <button className={cx('iconbtn boxed')} onClick={() => setOpen(true)} aria-label={t('rng.title','Свій період')}
+                style={value.kind === 'custom' ? {background:'var(--accent)', borderColor:'var(--accent)'} : null}>
+          <Ic.cal size={20} style={{color: value.kind === 'custom' ? '#fff' : 'var(--accent)'}}/>
+        </button>
+      </div>
+      {value.kind === 'custom' && (
+        <button className="chip on" style={{marginTop:10}} onClick={() => onChange({kind:'month'})}>
+          {periodLabel(value, from, to)}<Ic.x size={14}/>
+        </button>
+      )}
+      <RangeSheet open={open} onClose={() => setOpen(false)} value={value} onPick={onChange}/>
+    </Fragment>
+  );
+};
+
 /* ─────────── 13. ФІНАНСИ ─────────── */
 const PERIODS = () => ([
   {v:'day',   t:t('common.today','Сьогодні')},
@@ -3417,26 +3542,31 @@ const PERIODS = () => ([
 const Finance = ({onClose}) => {
   const db = useDB();
   const nav = useNav();
-  const [p, setP] = useState('month');
-  const [from, to] = periodRange(p, new Date());
+  const [p, setP] = useState({kind:'month'});
+  const [from, to] = useMemo(() => periodOf(p), [p]);
   const st = stats(db, from, to);
-  const delta = useMemo(() => deltaFor(db, p), [db, p]);
+  const delta = useMemo(() => deltaRange(db, from, to), [db, p]);
+  const days = Math.max(1, Math.round((+to - +from) / DAY));
+  const byMonth = p.kind === 'year' || days > 62;
 
-  /* серія: по днях (день/тиждень/місяць) або по місяцях (рік) */
+  /* серія: по днях, а для довгих періодів — по місяцях */
   const series = useMemo(() => {
-    if (p === 'year'){
-      return Array.from({length:12}, (_, i) => {
-        const m = new Date(from.getFullYear(), i, 1);
-        const s = stats(db, m, addMonths(m, 1));
-        return {label: fmtMonS(m), v: s.net};
-      });
+    if (byMonth){
+      const out = [];
+      let m = new Date(from.getFullYear(), from.getMonth(), 1);
+      while (+m < +to){
+        const next = addMonths(m, 1);
+        out.push({label: fmtMonS(m), v: stats(db, m, +next < +to ? next : to).net});
+        m = next;
+      }
+      return out;
     }
-    const days = p === 'day' ? 7 : Math.round((+to - +from) / DAY);
-    const start = p === 'day' ? addDays(from, -6) : from;
-    return Array.from({length: days}, (_, i) => {
+    const count = p.kind === 'day' ? 7 : days;
+    const start = p.kind === 'day' ? addDays(from, -6) : from;
+    return Array.from({length: count}, (_, i) => {
       const d = addDays(start, i);
-      const s = stats(db, d, addDays(d, 1));
-      return {label: p === 'month' ? String(d.getDate()) : fmtDow(d), v: s.net, on: sameDay(d, new Date())};
+      return {label: count > 10 ? String(d.getDate()) : fmtDow(d),
+              v: stats(db, d, addDays(d, 1)).net, on: sameDay(d, new Date())};
     });
   }, [db, p]);
 
@@ -3448,11 +3578,14 @@ const Finance = ({onClose}) => {
   return (
     <Page title={t('menu.fin','Фінанси')} onClose={onClose}
           right={<button className="iconbtn" onClick={() => nav.go('stats')} aria-label={t('menu.stats')}><Ic.chart size={20}/></button>}>
-      <Segm value={p} onChange={setP} items={PERIODS()}/>
+      <PeriodBar value={p} onChange={setP}/>
 
       <div className="hero" style={{marginTop:14}}>
         <div className="between">
-          <span className="lbl">{t('fin.total','Загальний дохід')}</span>
+          <span className="lbl">
+            {t('fin.total','Загальний дохід')}
+            {p.kind === 'custom' ? ' · ' + periodLabel(p, from, to) : ''}
+          </span>
           <span className={cx('delta', delta >= 0 ? 'pos' : 'neg')}>{pct(delta)}</span>
         </div>
         <div className="val num">{money(st.total)}</div>
@@ -3468,7 +3601,7 @@ const Finance = ({onClose}) => {
         {st.debt > 0 && <Rowline k={t('fin.debt','Не сплачено клієнтами')} v={money(st.debt)} tone="var(--neg)"/>}
       </div>
 
-      <div className="sechead"><div className="h2">{p === 'year' ? t('fin.bymonth','Дохід по місяцях') : t('fin.byday','Дохід по днях')}</div></div>
+      <div className="sechead"><div className="h2">{byMonth ? t('fin.bymonth','Дохід по місяцях') : t('fin.byday','Дохід по днях')}</div></div>
       <div className="card pad">
         {series.every(s => !s.v)
           ? <Empty icon={<Ic.chart size={28}/>} title={t('fin.nodata','Даних поки немає')}
@@ -3515,8 +3648,8 @@ const Finance = ({onClose}) => {
 const Stats = ({onClose}) => {
   const db = useDB();
   const nav = useNav();
-  const [p, setP] = useState('month');
-  const [from, to] = periodRange(p, new Date());
+  const [p, setP] = useState({kind:'month'});
+  const [from, to] = useMemo(() => periodOf(p), [p]);
   const st = stats(db, from, to);
 
   const top = useMemo(() => db.clients.map(c => {
@@ -3556,7 +3689,12 @@ const Stats = ({onClose}) => {
   return (
     <Page title={t('menu.stats','Статистика')} onClose={onClose}
           right={<button className="iconbtn" onClick={() => nav.go('finance')} aria-label={t('menu.fin')}><Ic.wallet size={20}/></button>}>
-      <Segm value={p} onChange={setP} items={PERIODS()}/>
+      <PeriodBar value={p} onChange={setP}/>
+      {p.kind === 'custom' && (
+        <div className="muted" style={{fontSize:12.5, fontWeight:700, marginTop:10, marginLeft:2}}>
+          {periodLabel(p, from, to)} · {nDays(Math.max(1, Math.round((+to - +from) / DAY)))}
+        </div>
+      )}
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:9, marginTop:14}}>
         {cards.map((c, i) => (

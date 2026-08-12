@@ -95,7 +95,7 @@ function sandbox(){
 }
 
 const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, clientStats, clientFeed, isDebt,
-  clientPrice, typedPrice,
+  clientPrice, typedPrice, periodOf, periodLabel, deltaRange, RangeSheet, PeriodBar, iso, addDays,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
@@ -230,6 +230,25 @@ try {
   const card0 = textOf(T.ROUTES['client']({params: {id: 'cl_0'}, onClose(){}}));
   ok('без своєї ціни картка каже «за замовчуванням»', card0.includes('за замовчуванням'));
 } catch (e){ ok('ціна в екранах', false, e.message); }
+
+part('свій період');
+const rng = T.periodOf({kind:'custom', from:'2026-08-05', to:'2026-08-12'});
+ok('діапазон включає обидві межі', Math.round((+rng[1] - +rng[0]) / 86400000) === 8,
+   Math.round((+rng[1] - +rng[0]) / 86400000) + ' днів');
+ok('без діапазону — звичайний період', +T.periodOf({kind:'month'})[0] === +T.periodRange('month', new Date())[0]);
+ok('один день теж діапазон', Math.round((+T.periodOf({kind:'custom', from:'2026-08-05'})[1] - +T.periodOf({kind:'custom', from:'2026-08-05'})[0]) / 86400000) === 1);
+ok('підпис періоду', T.periodLabel({kind:'custom'}, rng[0], rng[1]).includes('—'), T.periodLabel({kind:'custom'}, rng[0], rng[1]));
+{
+  const [wf, wt] = T.periodOf({kind:'custom', from: T.iso(T.addDays(new Date(), -6)), to: T.iso(new Date())});
+  const whole = T.stats(db, wf, wt);
+  let byDay = 0;
+  for (let i = 0; i < 7; i++){ const d = T.addDays(wf, i); byDay += T.stats(db, d, T.addDays(d, 1)).net; }
+  ok('сума по днях сходиться з періодом', whole.net === byDay, T.money(whole.net) + ' = ' + T.money(byDay));
+  ok('динаміка рахується на довільному відрізку', Number.isFinite(T.deltaRange(db, wf, wt)));
+}
+screen('шторка вибору періоду', () => el(T.RangeSheet, {open: true, onClose(){}, onPick(){},
+  value: {kind: 'custom', from: '2026-08-05', to: '2026-08-12'}}));
+screen('панель періоду', () => el(T.PeriodBar, {value: {kind: 'custom', from: '2026-08-05', to: '2026-08-12'}, onChange(){}}));
 
 part('екрани на демоданих');
 T.Store.init(T.seedDB({name: 'Олександр'}));
