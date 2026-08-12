@@ -330,6 +330,9 @@
   .ev.t3{border-left-color:var(--accent-3);background:color-mix(in srgb,var(--accent-3) 12%,transparent);}
   .ev.done{opacity:.62;}
   .ev.canceled{opacity:.5;text-decoration:line-through;}
+  .ev.noshow{opacity:.72;border-left-style:dashed;border-left-color:var(--neg);background:var(--neg-soft);}
+  .ev .go{flex:none;height:30px;padding:0 10px;border-radius:9px;background:var(--accent);color:#fff;
+    font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:5px;}
 
   /* ══════════ графіки ══════════ */
   .chart{width:100%;display:block;overflow:visible;}
@@ -580,6 +583,31 @@ const Vault = {
   },
 };
 
+const BACKUP_KEY = KEY + '.backup';
+/* Резервна копія — знімок бази поруч з робочими даними плюс файл на вимогу.
+   Автоматична копія робиться раз на добу, коли застосунок відкритий. */
+const Backups = {
+  make(){
+    try {
+      localStorage.setItem(BACKUP_KEY, JSON.stringify({ts: Date.now(), db: Store.state}));
+      Act.markBackup();
+      return true;
+    } catch { return false; }
+  },
+  read(){ try { return JSON.parse(localStorage.getItem(BACKUP_KEY) || 'null'); } catch { return null; } },
+  file(){
+    try {
+      const blob = new Blob([JSON.stringify(Store.state, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'protrainer-' + iso(new Date()) + '.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      return true;
+    } catch { return false; }
+  },
+};
+
 const Disk = {
   readMeta(){ try { return JSON.parse(localStorage.getItem(KEY + '.meta') || 'null'); } catch { return null; } },
   writeMeta(m){ try { localStorage.setItem(KEY + '.meta', JSON.stringify(m)); } catch {} },
@@ -639,7 +667,13 @@ function split(gross, s){
   return {gross:g, gym, net:g - gym};
 }
 /* тренування, які реально приносять гроші (скасовані — ні) */
-const isBillable = s => s.status !== 'canceled';
+const isBillable = s => s.status !== 'canceled' && s.status !== 'noshow';
+const SES_STATUS = {
+  planned:  {t:'Заплановано', tone:'acc'},
+  done:     {t:'Проведено',   tone:'pos'},
+  canceled: {t:'Скасовано',   tone:'mut'},
+  noshow:   {t:'Не прийшов',  tone:'neg'},
+};
 const inRange = (ts, from, to) => ts >= +from && ts < +to;
 
 function periodRange(kind, base){
@@ -664,13 +698,14 @@ function stats(db, from, to){
   });
   const uniq = new Set(ses.map(s => s.clientId));
   const newC = db.clients.filter(c => inRange(c.createdAt, from, to)).length;
+  const subsSold = sum(db.subs.filter(x => inRange(x.ts, from, to)), x => x.price);
   const done = ses.filter(s => s.status === 'done').length;
   const debt = sum(ses.filter(isDebt), s => s.price);
   return {
     gross, gym, net: gross - gym, count: ses.length, done,
     avg: ses.length ? Math.round(gross / ses.length) : 0,
     salesRevenue, salesProfit, salesCount: sum(sales, x => x.qty),
-    clients: uniq.size, newClients: newC,
+    clients: uniq.size, newClients: newC, subsSold,
     perClient: uniq.size ? Math.round((gross - gym) / uniq.size) : 0,
     sesPerClient: uniq.size ? Math.round(ses.length / uniq.size * 10) / 10 : 0,
     total: gross - gym + salesProfit, debt,
@@ -783,7 +818,9 @@ function emptyDB(){
       price: 800, gymMode: 'percent', gymPercent: 15, gymFixed: 0,
       currency: '₴', lang: 'uk', theme: 'system', lapseDays: 10, dayStart: 7, dayEnd: 22,
       syncUrl: '', secure: false,
-      notif: {before20: true, before5: true, booked: true, canceled: true, lapsed: true, packageEnd: true, stock: true, debt: true},
+      backup: {auto: true, lastAt: 0},
+      notif: {before: [60, 15], client: true, booked: true, canceled: true,
+              lapsed: true, packageEnd: true, stock: true, debt: true},
     },
     clients: [], sessions: [], products: [], sales: [], packages: [], subs: [], notes: [], notifs: [],
     onboarded: false, auth: null, fired: {},
@@ -888,6 +925,23 @@ const Act = {
       return {...db, sessions: db.sessions.map(x => x.id === id ? {...x, status:'canceled', paid:false} : x), subs};
     }, {name:'session.cancel', data:{id}});
   },
+
+  /* клієнт не прийшов: тренування лишається в історії, але не в доході */
+  noshow(id){
+    Store.patch(db => {
+      const s = byId(db.sessions, id);
+      const subs = s && s.subId && s.status === 'done'
+        ? db.subs.map(x => x.id === s.subId ? {...x, used: Math.max(0, x.used - 1)} : x) : db.subs;
+      return {...db, sessions: db.sessions.map(x => x.id === id ? {...x, status:'noshow', paid:false} : x), subs};
+    }, {name:'session.noshow', data:{id}});
+  },
+  /* закрити всі борги клієнта одним дотиком */
+  payClient(clientId){
+    Store.patch(db => ({...db, sessions: db.sessions.map(s =>
+      (s.clientId === clientId && isDebt(s)) ? {...s, paid:true, paidAt: Date.now()} : s)}),
+      {name:'client.payAll', data:{clientId}});
+  },
+  markBackup(){ Store.patch(db => ({...db, settings:{...db.settings, backup:{...db.settings.backup, lastAt: Date.now()}}})); },
 
   addProduct(p){
     const pr = {id: uid('pr'), name:'', price:0, cost:0, stock:0, sold:0, icon:'💊', createdAt: Date.now(), ...p};
@@ -1371,16 +1425,24 @@ const Spark = ({data}) => {
 
 /* ─────────────────── дрібні блоки ─────────────────── */
 const StatusDot = ({s}) => {
-  const c = s.status === 'canceled' ? 'var(--neg)'
+  const c = s.status === 'canceled' ? 'var(--ink-4)'
+          : s.status === 'noshow' ? 'var(--neg)'
           : s.status === 'done' ? (s.paid || s.subId ? 'var(--pos)' : 'var(--neg)')
           : (s.paid || s.subId ? 'var(--pos)' : 'var(--warn)');
   return <i className="dot-st" style={{background:c}} title={payLabel(s)}/>;
 };
+/* статус рядка: майбутнє тренування — «Заплановано», а не «Не оплачено» */
 const payLabel = s =>
   s.status === 'canceled' ? 'Скасовано'
+  : s.status === 'noshow' ? 'Не прийшов'
   : s.subId ? 'З абонемента'
   : s.paid ? 'Оплачено'
-  : s.status === 'done' ? 'Борг' : 'Не оплачено';
+  : s.status === 'done' ? 'Борг'
+  : +new Date(s.start) > Date.now() ? 'Заплановано' : 'Не оплачено';
+const payTone = s =>
+  s.status === 'canceled' ? 'mut' : s.status === 'noshow' ? 'neg'
+  : s.subId ? 'acc' : s.paid ? 'pos' : s.status === 'done' ? 'neg'
+  : +new Date(s.start) > Date.now() ? 'mut' : 'warn';
 
 const Money = ({v, size = 17, tone}) => (
   <span className="money num" style={{fontSize:size, color: tone}}>{money(v)}</span>
@@ -1562,39 +1624,40 @@ const Onboarding = ({onDone}) => {
 };
 
 /* ─────────────────── 2. ВХІД / РЕЄСТРАЦІЯ ─────────────────── */
-const Auth = ({onReady}) => {
+const Auth = ({onReady, save}) => {
   const [mode, setMode] = useState('reg');       // reg | login
   const [f, setF] = useState({login:'', pass:''});
+  const [protect, setProtect] = useState(false); // пароль — за бажанням
+  const [askPass, setAskPass] = useState(false); // на вході, якщо кабінет захищений
   const [show, setShow] = useState(false);
   const [err, setErr] = useState({});
   const [busy, setBusy] = useState(false);
   const meta0 = Disk.readMeta();
   const hasAcc = !!(meta0 && meta0.account);
 
-  useEffect(() => { if (hasAcc) setMode('login'); }, [hasAcc]);
+  useEffect(() => { if (hasAcc && !save) setMode('login'); }, [hasAcc, save]);
   const set = (k, v) => { setF(x => ({...x, [k]: v})); setErr(x => ({...x, [k]: null})); };
 
   async function submit(){
     const e = {};
     const login = f.login.trim();
     if (!isLogin(login)) e.login = t('auth.err.login','Введіть пошту або номер телефону');
-    if (f.pass.length < 4) e.pass = t('auth.err.pass','Пароль — від 4 символів');
+    if ((protect || askPass) && f.pass.length < 4) e.pass = t('auth.err.pass','Пароль — від 4 символів');
     setErr(e);
     if (Object.keys(e).length) return;
     setBusy(true);
     try {
       const meta = Disk.readMeta() || {};
       const salt = meta.salt || b64(crypto.getRandomValues(new Uint8Array(16)));
-      const hash = await Vault.hash(f.pass, salt);
       const norm = normLogin(login);
+      const hash = (protect || askPass) ? await Vault.hash(f.pass, salt) : null;
+
       if (mode === 'login'){
         const a = meta.account;
-        const match = a && (a.login === norm || a.email === norm);   /* старі кабінети зберігали пошту */
-        if (!match || a.hash !== hash){
-          setErr({pass: t('auth.err.bad','Логін або пароль не підходять')});
-          setBusy(false);
-          return;
-        }
+        const match = a && (a.login === norm || a.email === norm);
+        if (!match){ setErr({login: t('auth.err.nouser','Такого кабінету на цьому пристрої немає')}); setBusy(false); return; }
+        if (a.hash && !askPass){ setAskPass(true); setBusy(false); return; }   /* кабінет під паролем */
+        if (a.hash && a.hash !== hash){ setErr({pass: t('auth.err.bad','Пароль не підходить')}); setBusy(false); return; }
         onReady({account: a, fresh:false});
       } else {
         const account = {login: norm, raw: login, kind: isEmail(login) ? 'email' : 'phone',
@@ -1608,42 +1671,54 @@ const Auth = ({onReady}) => {
     }
   }
 
+  const title = save ? t('auth.save','Зберегти дані')
+              : mode === 'reg' ? t('auth.reg','Створити кабінет') : t('auth.login','З поверненням');
+  const sub = save ? t('auth.save.sub','Кабінет прив’яжеться до вашої пошти або номера — дані з демо залишаться на місці.')
+            : mode === 'reg' ? t('auth.reg.sub','Достатньо пошти або номера — жодних кодів і підтверджень. Пароль можна не вигадувати.')
+            : t('auth.login.sub','Введіть логін, з яким створювали кабінет.');
+
   return (
     <div className="ob fade-in">
       <div className="brand" style={{marginBottom:24}}><div className="mark"><Ic.dumb size={21}/></div><b>PRO Trainer</b></div>
       <div style={{flex:1}}>
-        <div className="dsp" style={{fontSize:27, fontWeight:800, letterSpacing:'-.035em'}}>
-          {mode === 'reg' ? t('auth.reg','Створити кабінет') : t('auth.login','З поверненням')}
-        </div>
-        <p className="muted" style={{fontSize:14, marginTop:8}}>
-          {mode === 'reg'
-            ? t('auth.reg.sub','Логін і пароль ви придумуєте самі — жодних кодів і підтверджень. Дані клієнтів лишаються на цьому пристрої.')
-            : t('auth.login.sub','Введіть логін і пароль, які придумали під час реєстрації.')}
-        </p>
+        <div className="dsp" style={{fontSize:27, fontWeight:800, letterSpacing:'-.035em'}}>{title}</div>
+        <p className="muted" style={{fontSize:14, marginTop:8}}>{sub}</p>
 
-        <Field label={t('auth.loginlbl','Логін — пошта або телефон')} hint={err.login} bad>
+        <Field label={t('auth.loginlbl','Пошта або телефон')} hint={err.login} bad>
           <Input value={f.login} onChange={e => set('login', e.target.value)}
                  placeholder="trainer@mail.com або 067 123 45 67"
                  autoCapitalize="off" autoCorrect="off" spellCheck="false" bad={!!err.login}/>
         </Field>
-        <Field label={t('auth.pass','Пароль')} hint={err.pass || (mode === 'reg' ? t('auth.pass.hint','Мінімум 4 символи. Він потрібен лише щоб відкрити кабінет на цьому пристрої.') : null)} bad={!!err.pass}>
-          <Input value={f.pass} onChange={e => set('pass', e.target.value)}
-                 type={show ? 'text' : 'password'} placeholder="••••" bad={!!err.pass}
-                 suffix={
-                   <button onClick={() => setShow(!show)} style={{color:'var(--accent)', fontWeight:700, fontSize:12.5}}>
-                     {show ? t('auth.hide','Сховати') : t('auth.show','Показати')}
-                   </button>}/>
-        </Field>
+
+        {(protect || askPass) && (
+          <Field label={t('auth.pass','Пароль')} hint={err.pass || (protect ? t('auth.pass.hint','Мінімум 4 символи. Знадобиться лише щоб відкрити кабінет на цьому пристрої.') : null)} bad={!!err.pass}>
+            <Input value={f.pass} onChange={e => set('pass', e.target.value)} autoFocus
+                   type={show ? 'text' : 'password'} placeholder="••••" bad={!!err.pass}
+                   suffix={
+                     <button onClick={() => setShow(!show)} style={{color:'var(--accent)', fontWeight:700, fontSize:12.5}}>
+                       {show ? t('auth.hide','Сховати') : t('auth.show','Показати')}
+                     </button>}/>
+          </Field>
+        )}
+
+        {mode === 'reg' && !protect && (
+          <button className="btn ghost sm" style={{marginTop:10, paddingLeft:0}} onClick={() => setProtect(true)}>
+            <Ic.lock size={16}/>{t('auth.protect','Захистити паролем (не обов’язково)')}
+          </button>
+        )}
       </div>
 
       <div style={{marginTop:20}}>
         <Btn kind="pri" size="lg" wide onClick={submit} disabled={busy}>
-          {busy ? t('auth.wait','Хвилинку…') : mode === 'reg' ? t('auth.create','Створити кабінет') : t('auth.enter','Увійти')}
+          {busy ? t('auth.wait','Хвилинку…') : mode === 'reg' ? t('auth.go','Продовжити') : t('auth.enter','Увійти')}
         </Btn>
-        <button className="btn ghost wide" style={{marginTop:6}} onClick={() => { setErr({}); setMode(mode === 'reg' ? 'login' : 'reg'); }}>
-          {mode === 'reg' ? t('auth.have','Вже є кабінет — увійти') : t('auth.no','Немає кабінету — створити')}
-        </button>
-        {!hasAcc && (
+        {!save && (
+          <button className="btn ghost wide" style={{marginTop:6}}
+                  onClick={() => { setErr({}); setAskPass(false); setMode(mode === 'reg' ? 'login' : 'reg'); }}>
+            {mode === 'reg' ? t('auth.have','Вже є кабінет — увійти') : t('auth.no','Немає кабінету — створити')}
+          </button>
+        )}
+        {!hasAcc && !save && (
           <button className="btn ghost wide" style={{color:'var(--ink-3)'}} onClick={() => onReady({account:null, fresh:true})}>
             {t('auth.guest','Спробувати без реєстрації')}
           </button>
@@ -1763,24 +1838,38 @@ const Setup = ({account, onDone}) => {
 };
 
 /* ─────────────────── 3. ГОЛОВНА ─────────────────── */
-const SessionRow = ({s, onOpen}) => {
+const SessionRow = ({s, onOpen, quick}) => {
   const db = useDB();
   const c = byId(db.clients, s.clientId);
+  /* тренування вже минуло, але не відмічене — даємо провести одним дотиком */
+  const canDone = quick && s.status === 'planned' && +new Date(s.start) <= Date.now();
   return (
-    <button className="row" onClick={() => onOpen(s)}>
-      <Avatar name={c ? c.name : '?'} photo={c && c.photo} size={42}/>
-      <div className="tm num">{fmtTime(s.start)}</div>
-      <div style={{flex:1, minWidth:0}}>
-        <div className="nm" style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c ? c.name : '—'}</div>
-        <div className="ds">
-          {sameDay(s.start, new Date())
-            ? (SES_TYPES[s.type] || SES_TYPES.personal).title + ' · ' + s.dur + ' хв'
-            : cap(relDay(s.start)) + ' · ' + (SES_TYPES[s.type] || SES_TYPES.personal).title}
+    <div className="row" style={{gap:10}}>
+      <button onClick={() => onOpen(s)}
+              style={{display:'flex', alignItems:'center', gap:12, flex:1, minWidth:0, textAlign:'left'}}>
+        <Avatar name={c ? c.name : '?'} photo={c && c.photo} size={42}/>
+        <div className="tm num">{fmtTime(s.start)}</div>
+        <div style={{flex:1, minWidth:0}}>
+          <div className="nm" style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c ? c.name : '—'}</div>
+          <div className="ds">
+            {sameDay(s.start, new Date())
+              ? (SES_TYPES[s.type] || SES_TYPES.personal).title + ' · ' + s.dur + ' хв'
+              : cap(relDay(s.start)) + ' · ' + (SES_TYPES[s.type] || SES_TYPES.personal).title}
+          </div>
         </div>
-      </div>
-      <StatusDot s={s}/>
-      <Ic.right size={17} className="chev"/>
-    </button>
+      </button>
+      {canDone ? (
+        <button className="btn soft sm" style={{height:34, padding:'0 11px'}}
+                onClick={() => { Act.complete(s.id, !!s.subId); Toaster.ok(t('ses.done.ok','Проведено') + ' · ' + money(s.price)); }}>
+          <Ic.check size={16}/>{t('ses.done','Проведено')}
+        </button>
+      ) : (
+        <Fragment>
+          <span className={cx('badge', payTone(s))}>{payLabel(s)}</span>
+          <Ic.right size={17} className="chev"/>
+        </Fragment>
+      )}
+    </div>
   );
 };
 
@@ -1789,6 +1878,7 @@ const Home = ({loading}) => {
   const nav = useNav();
   const [menu, setMenu] = useState(false);
   const [sesOpen, setSesOpen] = useState(null);
+  const [fin, setFin] = useState(false);
   const now = new Date();
 
   const S = db.settings;
@@ -1829,6 +1919,7 @@ const Home = ({loading}) => {
   }).filter(x => x.lapsedDays !== null && x.lapsedDays >= S.lapseDays && !x.next)
     .sort((a, b) => b.lapsedDays - a.lapsedDays), [db]);
 
+  const ending = db.subs.filter(x => x.used < x.total && x.total - x.used <= 2);
   const unread = db.notifs.filter(n => !n.read).length;
 
   if (loading) return <SkScreen/>;
@@ -1881,7 +1972,7 @@ const Home = ({loading}) => {
             {k: t('home.gym','Залу'),        v: month.gym,   ic: <Ic.bank size={19}/>},
             {k: t('home.net','Чистими'),     v: month.net,   ic: <Ic.wallet size={19}/>},
           ].map((x, i) => (
-            <button key={i} className="kpi press" style={{textAlign:'left'}} onClick={() => nav.go('finance')}>
+            <button key={i} className="kpi press" style={{textAlign:'left'}} onClick={() => setFin(true)}>
               <div className="k">{x.k}</div>
               <div className="v num">{moneyShort(x.v)}</div>
               <div className="ic">{x.ic}</div>
@@ -1902,7 +1993,7 @@ const Home = ({loading}) => {
                              <Ic.plus size={17}/>{t('session.new','Нове тренування')}</Btn>}/>
           </div>
         ) : (
-          <div className="rows">{list.map(s => <SessionRow key={s.id} s={s} onOpen={setSesOpen}/>)}</div>
+          <div className="rows">{list.map(s => <SessionRow key={s.id} s={s} onOpen={setSesOpen} quick/>)}</div>
         )}
 
         {/* борги — блок з'являється лише коли вони є */}
@@ -1914,6 +2005,39 @@ const Home = ({loading}) => {
             </div>
             <div className="stack">
               {debtByClient.slice(0, 2).map(d => <DebtCard key={d.clientId} d={d}/>)}
+            </div>
+          </Fragment>
+        )}
+
+        {/* абонементи, що добігають кінця */}
+        {ending.length > 0 && (
+          <Fragment>
+            <div className="sechead">
+              <div className="h2">{t('home.subs','Закінчується абонемент')}</div>
+              {ending.length > 2 && <button className="link" onClick={() => nav.go('packages')}>{t('home.all','Дивитись усі')}</button>}
+            </div>
+            <div className="stack">
+              {ending.slice(0, 2).map(x => {
+                const c = byId(db.clients, x.clientId);
+                if (!c) return null;
+                return (
+                  <div key={x.id} className="card pad" style={{display:'flex', alignItems:'center', gap:12}}>
+                    <button onClick={() => nav.go('client', {id: c.id})}
+                            style={{display:'flex', alignItems:'center', gap:12, flex:1, minWidth:0, textAlign:'left'}}>
+                      <Avatar name={c.name} photo={c.photo} size={42}/>
+                      <div style={{minWidth:0}}>
+                        <div className="nm" style={{fontWeight:700, fontSize:14.5}}>{c.name}</div>
+                        <div style={{fontSize:12.5, color:'var(--warn)', fontWeight:700, marginTop:2}}>
+                          {t('subs.left','Залишилось')} {nSessions(x.total - x.used)}
+                        </div>
+                      </div>
+                    </button>
+                    <Btn kind="soft" size="sm" onClick={() => nav.go('packages', {clientId: c.id})}>
+                      {t('subs.renew','Продовжити')}
+                    </Btn>
+                  </div>
+                );
+              })}
             </div>
           </Fragment>
         )}
@@ -1931,6 +2055,30 @@ const Home = ({loading}) => {
           </Fragment>
         )}
       </div>
+
+      <Sheet open={fin} onClose={() => setFin(false)} title={t('home.fin','Гроші')}
+             sub={t('home.fin.sub','Як склалась сума за сьогодні та за місяць')}>
+        <div className="card pad">
+          <div className="muted" style={{fontSize:12.5, fontWeight:700, marginBottom:4}}>{t('common.today','Сьогодні')}</div>
+          <Rowline k={t('home.turnover','Оборот')} v={money(today.gross)} strong/>
+          <Rowline k={t('home.gym','Залу')} v={'−' + money(today.gym)} tone="var(--ink-2)"/>
+          <Rowline k={t('home.net','Чистими')} v={money(today.net)} tone="var(--accent)" strong/>
+          <Rowline k={t('fin.count','Тренувань')} v={today.count}/>
+        </div>
+        <div className="card pad" style={{marginTop:9}}>
+          <div className="muted" style={{fontSize:12.5, fontWeight:700, marginBottom:4}}>
+            {t('home.month','Цього місяця')} · {fmtMonth(now).toLowerCase()}
+          </div>
+          <Rowline k={t('home.turnover','Оборот')} v={money(month.gross)} strong/>
+          <Rowline k={t('home.gym','Залу')} v={'−' + money(month.gym)} tone="var(--ink-2)"/>
+          <Rowline k={t('home.net','Чистими')} v={money(month.net)} tone="var(--accent)" strong/>
+          {month.salesProfit > 0 && <Rowline k={t('fin.goods','Товари')} v={money(month.salesProfit)} tone="var(--pos)"/>}
+          {month.debt > 0 && <Rowline k={t('fin.debt','Не сплачено клієнтами')} v={money(month.debt)} tone="var(--neg)"/>}
+        </div>
+        <Btn kind="pri" size="lg" wide style={{marginTop:12}} onClick={() => { setFin(false); setTimeout(() => nav.go('finance'), 60); }}>
+          <Ic.wallet size={18}/>{t('home.fin.open','Відкрити фінанси')}
+        </Btn>
+      </Sheet>
 
       <MainMenu open={menu} onClose={() => setMenu(false)}/>
       {sesOpen && <SessionSheet id={sesOpen.id} onClose={() => setSesOpen(null)}/>}
@@ -1950,9 +2098,9 @@ const DebtCard = ({d}) => {
         <Avatar name={c.name} photo={c.photo} size={42}/>
         <div style={{minWidth:0}}>
           <div className="nm" style={{fontWeight:700, fontSize:14.5}}>{c.name}</div>
-          <div style={{fontSize:12.5, color:'var(--neg)', fontWeight:700, marginTop:2,
-                       whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-            {money(d.sum)}{days > 0 ? ' · ' + nDays(days) + ' ' + t('debt.overdue','прострочено') : ''}
+          <div className="money num" style={{fontSize:16, color:'var(--neg)', marginTop:3}}>{money(d.sum)}</div>
+          <div style={{fontSize:12.5, color:'var(--neg)', fontWeight:600, opacity:.85}}>
+            {days > 0 ? nDays(days) + ' ' + t('debt.overdue','прострочено') : t('debt.today','сьогодні')}
           </div>
         </div>
       </button>
@@ -1999,6 +2147,7 @@ const MainMenu = ({open, onClose}) => {
           ['debts',   <Ic.card size={19}/>,   t('menu.debts','Борги'),      t('menu.debts.s','Хто і скільки винен')],
           ['notifs',  <Ic.bell size={19}/>,   t('menu.notif','Сповіщення'), t('menu.notif.s','Нагадування про тренування')],
           ['settings',<Ic.gear size={19}/>,   t('menu.set','Налаштування'), t('menu.set.s','Ціна, комісія, мова, захист')],
+          ['backup',  <Ic.dl size={19}/>,     t('bk.title','Резервна копія'), t('bk.menu.s','Копія даних і відновлення')],
         ].map(([r, ic, tt, ds]) => (
           <button key={r} className="setrow" onClick={() => go(r)}>
             <div className="ic">{ic}</div>
@@ -2121,14 +2270,19 @@ const SessionSheet = ({id, onClose}) => {
 
       <div className="stack" style={{marginTop:12}}>
         {s.status === 'planned' && (
-          <div className="grid2">
-            <Btn kind="pri" onClick={() => act(() => { Act.complete(s.id, true); Toaster.ok(t('session.done.paid','Проведено та оплачено')); })}>
-              <Ic.check size={18}/>{t('session.done1','Провів, оплачено')}
+          <Fragment>
+            <div className="grid2">
+              <Btn kind="pri" onClick={() => act(() => { Act.complete(s.id, true); Toaster.ok(t('session.done.paid','Проведено та оплачено')); })}>
+                <Ic.check size={18}/>{t('session.done1','Провів, оплачено')}
+              </Btn>
+              <Btn kind="sec" onClick={() => act(() => { Act.complete(s.id, false); Toaster.show(t('session.done.debt','Проведено, лишився борг')); })}>
+                {t('session.done2','Провів, без оплати')}
+              </Btn>
+            </div>
+            <Btn kind="sec" wide onClick={() => act(() => { Act.noshow(s.id); Toaster.show(t('session.noshow','Позначено: клієнт не прийшов')); })}>
+              {t('session.noshow.btn','Клієнт не прийшов')}
             </Btn>
-            <Btn kind="sec" onClick={() => act(() => { Act.complete(s.id, false); Toaster.show(t('session.done.debt','Проведено, лишився борг')); })}>
-              {t('session.done2','Провів, без оплати')}
-            </Btn>
-          </div>
+          </Fragment>
         )}
         {s.status === 'done' && !s.paid && !s.subId && (
           <Btn kind="pri" wide onClick={() => act(() => { Act.pay(s.id); Toaster.ok(t('session.paid','Оплату записано')); })}>
@@ -2408,12 +2562,20 @@ const Calendar = ({loading}) => {
                   <div className="lab num">{String(h).padStart(2,'0')}:00</div>
                   {items.map(s => {
                     const c = byId(db.clients, s.clientId);
+                    const canDone = s.status === 'planned' && +new Date(s.start) <= Date.now();
                     return (
-                      <button key={s.id} className={cx('ev', (SES_TYPES[s.type] || SES_TYPES.personal).hue, s.status)}
-                              style={{width:'100%', textAlign:'left'}} onClick={() => setOpen(s)}>
-                        <b>{fmtTime(s.start)} · {c ? c.name : '—'}</b>
-                        <span>{(SES_TYPES[s.type] || SES_TYPES.personal).title} · {money(s.price)} · {payLabel(s)}</span>
-                      </button>
+                      <div key={s.id} className={cx('ev', (SES_TYPES[s.type] || SES_TYPES.personal).hue, s.status)}
+                           style={{display:'flex', alignItems:'center', gap:10}}>
+                        <button style={{flex:1, minWidth:0, textAlign:'left'}} onClick={() => setOpen(s)}>
+                          <b>{fmtTime(s.start)} · {c ? c.name : '—'}</b>
+                          <span>{(SES_TYPES[s.type] || SES_TYPES.personal).title} · {money(s.price)} · {payLabel(s)}</span>
+                        </button>
+                        {canDone && (
+                          <button className="go" onClick={() => { Act.complete(s.id, !!s.subId); Toaster.ok(t('ses.done.ok','Проведено') + ' · ' + money(s.price)); }}>
+                            <Ic.check size={14}/>{t('ses.done','Проведено')}
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -2422,7 +2584,7 @@ const Calendar = ({loading}) => {
           </div>
         ) : (
           <div className="rows" style={{marginTop:12}}>
-            {dayList.map(s => <SessionRow key={s.id} s={s} onOpen={setOpen}/>)}
+            {dayList.map(s => <SessionRow key={s.id} s={s} onOpen={setOpen} quick/>)}
           </div>
         )}
       </div>
@@ -2443,12 +2605,17 @@ const Clients = ({loading}) => {
   const [sort, setSort] = useState('next');
 
   const rows = useMemo(() => db.clients.filter(c => !c.archived).map(c => ({c, st: clientStats(db, c.id)})), [db]);
-  const filtered = rows.filter(({c}) => (c.name + ' ' + (c.phone || '') + ' ' + (c.goal || ''))
+  const found = rows.filter(({c}) => (c.name + ' ' + (c.phone || '') + ' ' + (c.goal || ''))
     .toLowerCase().includes(q.trim().toLowerCase()));
+  /* «З боргом» і «Без тренування» — це фільтри, а не просто порядок */
+  const filtered = found.filter(({st}) =>
+    sort === 'debt' ? st.debt > 0
+    : sort === 'lapsed' ? (!st.next && (st.lapsedDays === null || st.lapsedDays >= db.settings.lapseDays))
+    : true);
   const sorted = [...filtered].sort((a, b) => {
     if (sort === 'name') return a.c.name.localeCompare(b.c.name, 'uk');
     if (sort === 'debt') return b.st.debt - a.st.debt;
-    if (sort === 'top')  return b.st.spent - a.st.spent;
+    if (sort === 'lapsed') return (b.st.lapsedDays || 9999) - (a.st.lapsedDays || 9999);
     const an = a.st.next ? +new Date(a.st.next.start) : Infinity;
     const bn = b.st.next ? +new Date(b.st.next.start) : Infinity;
     return an - bn;
@@ -2474,7 +2641,7 @@ const Clients = ({loading}) => {
 
         <div className="chips" style={{marginTop:10}}>
           {[['next', t('client.sort.next','Найближчі')], ['name', t('client.sort.name','За іменем')],
-            ['debt', t('client.sort.debt','З боргом')], ['top', t('client.sort.top','Найцінніші')]].map(([v, tx]) => (
+            ['debt', t('client.sort.debt','З боргом')], ['lapsed', t('client.sort.lapsed','Без тренування')]].map(([v, tx]) => (
             <button key={v} className={cx('chip', sort === v && 'on')} onClick={() => setSort(v)}>{tx}</button>
           ))}
         </div>
@@ -2483,6 +2650,12 @@ const Clients = ({loading}) => {
           <Empty icon={<Ic.users size={30}/>} title={t('client.empty','Ще немає клієнтів')}
                  text={t('client.empty.t','Додайте першого клієнта — і зможете планувати тренування та рахувати дохід.')}
                  action={<Btn kind="pri" onClick={() => nav.go('client.new')}><Ic.plus size={18}/>{t('client.new','Новий клієнт')}</Btn>}/>
+        ) : sorted.length === 0 && (sort === 'debt' || sort === 'lapsed') ? (
+          <Empty icon={<Ic.check size={28}/>}
+                 title={sort === 'debt' ? t('client.nodebt','Боргів немає') : t('client.nolapsed','Усі на місці')}
+                 text={sort === 'debt' ? t('client.nodebt.t','Усі проведені тренування оплачені.')
+                                       : t('client.nolapsed.t','Кожен клієнт або тренувався нещодавно, або вже записаний.')}
+                 action={<Btn kind="soft" size="sm" onClick={() => setSort('next')}>{t('client.all','Показати всіх')}</Btn>}/>
         ) : sorted.length === 0 ? (
           <Empty icon={<Ic.search size={28}/>} title={t('client.nofind','Нікого не знайшли')}
                  text={t('client.nofind.t','Перевірте запит або створіть нового клієнта.')}
@@ -2542,13 +2715,19 @@ const ClientPage = ({params, onClose}) => {
           {c.phone && <a href={telHref(c.phone)} className="num" style={{fontSize:13.5, fontWeight:700}}>{c.phone}</a>}
           <div className="muted" style={{fontSize:12.5, marginTop:2}}>
             {t('client.since','З нами')} {fmtDM(c.createdAt)}
+            {c.birthday ? ' · ' + t('client.bd','др') + ' ' + fmtDM(c.birthday + 'T00:00:00') : ''}
           </div>
         </div>
       </div>
 
       <div className="grid2" style={{marginTop:14}}>
         <Btn kind="pri" onClick={() => nav.go('session.new', {clientId: c.id})}><Ic.plus size={18}/>{t('client.book','Записати')}</Btn>
-        <Btn kind="sec" onClick={() => nav.go('remind', {clientId: c.id})}><Ic.msg size={18}/>{t('client.write','Написати')}</Btn>
+        <Btn kind="sec" disabled={!st.debt}
+             onClick={() => { Act.payClient(c.id); Toaster.ok(t('client.paid','Оплату записано') + ' · ' + money(st.debt)); }}>
+          <Ic.wallet size={18}/>{t('client.pay','Оплата')}
+        </Btn>
+        <Btn kind="sec" onClick={() => nav.go('packages', {clientId: c.id})}><Ic.ticket size={18}/>{t('client.sub2','Абонемент')}</Btn>
+        <Btn kind="sec" onClick={() => nav.go('remind', {clientId: c.id})}><Ic.msg size={18}/>{t('client.write','Нагадати')}</Btn>
       </div>
 
       <div className="kpis" style={{marginTop:12}}>
@@ -2589,9 +2768,13 @@ const ClientPage = ({params, onClose}) => {
           <div className="between">
             <div>
               <div className="muted" style={{fontSize:12.5, fontWeight:700}}>{t('client.sub','Абонемент')}</div>
-              <b style={{fontSize:15}}>{st.sub.used} / {st.sub.total} {t('client.sub.used','використано')}</b>
+              <b style={{fontSize:15}}>
+                {t('client.sub.left','Залишилось')} {st.sub.total - st.sub.used} {t('common.of','з')} {st.sub.total}
+              </b>
             </div>
-            <span className="badge acc">{t('client.sub.left','Залишилось')} {st.sub.total - st.sub.used}</span>
+            <span className={cx('badge', st.sub.total - st.sub.used <= 2 ? 'warn' : 'acc')}>
+              {st.sub.used} / {st.sub.total}
+            </span>
           </div>
           <div style={{height:8, borderRadius:6, background:'var(--surface-2)', marginTop:10, overflow:'hidden'}}>
             <div style={{height:'100%', width: Math.round(st.sub.used / st.sub.total * 100) + '%',
@@ -2713,6 +2896,7 @@ const ClientForm = ({params, onClose}) => {
     photo: edit ? edit.photo : '',
     note: edit ? edit.note : '',
     price: edit && edit.price ? String(edit.price) : '',
+    birthday: edit ? (edit.birthday || '') : '',
   });
   const [err, setErr] = useState({});
   const set = (k, v) => { setF(x => ({...x, [k]: v})); setErr(x => ({...x, [k]: null})); };
@@ -2772,6 +2956,9 @@ const ClientForm = ({params, onClose}) => {
         <Input value={f.price} onChange={e => set('price', e.target.value.replace(/\D/g,''))}
                inputMode="numeric" placeholder={String(db.settings.price)} suffix={db.settings.currency}/>
       </Field>
+      <Field label={t('client.bd.full','Дата народження')} hint={t('client.bd.hint','Необов’язково — нагадає привітати')}>
+        <Input type="date" value={f.birthday} onChange={e => set('birthday', e.target.value)}/>
+      </Field>
       <Field label={t('client.goal','Мета')}>
         <div className="chips">
           {GOALS.map(g => (
@@ -2793,7 +2980,13 @@ const Remind = ({params, onClose}) => {
   const c = byId(db.clients, params.clientId);
   const st = c ? clientStats(db, c.id) : null;
   const name = c ? c.name.split(' ')[0] : '';
-  const tpl = params.kind === 'lapsed'
+  const next = st && st.next ? st.next : null;
+  const tpl = params.kind === 'tomorrow' && next
+    ? [
+        `${name}, привіт! Нагадую про тренування ${relDay(next.start).toLowerCase()} о ${fmtTime(next.start)}. Буду чекати!`,
+        `${name}, доброго дня! Підтвердіть, будь ласка, тренування ${relDay(next.start).toLowerCase()} о ${fmtTime(next.start)}.`,
+      ]
+    : params.kind === 'lapsed'
     ? [
         `${name}, привіт! Давно вас не було в залі — усе гаразд? Є вільні місця на цьому тижні, можу поставити ваш звичний час.`,
         `${name}, доброго дня! Пропоную повернутись до тренувань — почнемо з легкого відновлювального. Коли зручно?`,
@@ -3122,6 +3315,7 @@ const ProductForm = ({params, onClose}) => {
   const set = (k, v) => { setF(x => ({...x, [k]: v})); setErr(x => ({...x, [k]: null})); };
   const profit = f.price - f.cost;
   const sold = edit ? (edit.sold || 0) : 0;
+  const history = edit ? db.sales.filter(x => x.productId === edit.id).sort((a, b) => b.ts - a.ts).slice(0, 30) : [];
 
   function save(){
     const e = {};
@@ -3178,6 +3372,37 @@ const ProductForm = ({params, onClose}) => {
         <Rowline k={t('goods.profit1','Прибуток з одиниці')} v={money(profit)} tone={profit >= 0 ? 'var(--accent)' : 'var(--neg)'} strong/>
         <Rowline k={t('goods.margin','Націнка')} v={f.cost ? Math.round(profit / f.cost * 100) + '%' : '—'}/>
       </div>
+
+      {edit && (
+        <Fragment>
+          <div className="sechead"><div className="h2">{t('goods.hist','Історія продажів')}</div></div>
+          {history.length === 0 ? (
+            <div className="card"><Empty icon={<Ic.bag size={26}/>} title={t('goods.hist.none','Продажів ще не було')}
+                 text={t('goods.hist.none.t','Щойно продасте товар — покупки з’являться тут.')}/></div>
+          ) : (
+            <div className="rows">
+              {history.map(x => {
+                const cl = byId(db.clients, x.clientId);
+                return (
+                  <div key={x.id} className="row">
+                    <Avatar name={cl ? cl.name : '?'} photo={cl && cl.photo} size={36}/>
+                    <div style={{flex:1, minWidth:0}}>
+                      <div className="nm">{cl ? cl.name : t('goods.hist.noclient','Без клієнта')}</div>
+                      <div className="ds">{fmtDM(x.ts)} · {x.qty} × {money(x.price)}</div>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <div className="money num" style={{fontSize:14.5}}>{money(x.price * x.qty)}</div>
+                      <div style={{fontSize:11.5, color:'var(--pos)', fontWeight:700}}>
+                        +{money((x.price - edit.cost) * x.qty)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Fragment>
+      )}
 
       {edit && (
         <div className="stack" style={{marginTop:16}}>
@@ -3574,6 +3799,7 @@ const Finance = ({onClose}) => {
     {t: t('fin.sessions','Тренування'), v: st.net, c:'var(--accent)'},
     {t: t('fin.goods','Товари'), v: st.salesProfit, c:'var(--accent-2)'},
   ];
+  const allDebt = sum(db.sessions.filter(isDebt), x => x.price);
 
   return (
     <Page title={t('menu.fin','Фінанси')} onClose={onClose}
@@ -3594,12 +3820,32 @@ const Finance = ({onClose}) => {
 
       <div className="card pad" style={{marginTop:12}}>
         <Rowline k={t('home.turnover','Оборот')} v={money(st.gross)} strong/>
-        <Rowline k={t('home.gym','Залу')} v={'−' + money(st.gym)} tone="var(--ink-2)"/>
+        <Rowline k={t('fin.fee','Комісія залу')} v={'−' + money(st.gym)} tone="var(--ink-2)"/>
         <Rowline k={t('home.net','Чистими')} v={money(st.net)} tone="var(--accent)" strong/>
-        <Rowline k={t('fin.count','Тренувань')} v={st.count}/>
-        <Rowline k={t('fin.avg','Середня вартість')} v={money(st.avg)}/>
-        {st.debt > 0 && <Rowline k={t('fin.debt','Не сплачено клієнтами')} v={money(st.debt)} tone="var(--neg)"/>}
       </div>
+
+      <div className="sechead"><div className="h2">{t('fin.where','Звідки дохід')}</div></div>
+      <div className="card pad">
+        <Rowline k={t('fin.fromses','Тренування')} v={money(st.net)} strong/>
+        <Rowline k={t('fin.fromgoods','Продажі товарів')} v={money(st.salesProfit)} tone={st.salesProfit ? 'var(--pos)' : null}/>
+        <Rowline k={t('fin.fromsubs','Абонементи (передоплата)')} v={money(st.subsSold)}/>
+        <div className="muted" style={{fontSize:12, marginTop:8, lineHeight:1.45}}>
+          {t('fin.subs.note','Абонемент — це передоплата: гроші зараховуються в дохід у міру проведення тренувань, тому сума покупок показана окремо.')}
+        </div>
+      </div>
+
+      <button className="card pad press" style={{marginTop:9, width:'100%', display:'flex', alignItems:'center', gap:12, textAlign:'left'}}
+              onClick={() => nav.go('debts')}>
+        <div style={{width:38, height:38, borderRadius:12, flex:'none', display:'grid', placeItems:'center',
+                     background: allDebt ? 'var(--neg-soft)' : 'var(--pos-soft)', color: allDebt ? 'var(--neg)' : 'var(--pos)'}}>
+          <Ic.card size={19}/>
+        </div>
+        <div style={{flex:1}}>
+          <div className="muted" style={{fontSize:12.5, fontWeight:700}}>{t('fin.debts','Борги клієнтів')}</div>
+          <b className="money num" style={{fontSize:16, color: allDebt ? 'var(--neg)' : 'var(--ink)'}}>{money(allDebt)}</b>
+        </div>
+        <Ic.right size={17} className="chev"/>
+      </button>
 
       <div className="sechead"><div className="h2">{byMonth ? t('fin.bymonth','Дохід по місяцях') : t('fin.byday','Дохід по днях')}</div></div>
       <div className="card pad">
@@ -3656,7 +3902,7 @@ const Stats = ({onClose}) => {
     const ses = db.sessions.filter(s => s.clientId === c.id && isBillable(s) && inRange(+new Date(s.start), from, to));
     const sales = db.sales.filter(x => x.clientId === c.id && inRange(x.ts, from, to));
     return {c, n: ses.length, v: sum(ses, s => s.price) + sum(sales, x => x.price * x.qty)};
-  }).filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 5), [db, p]);
+  }).filter(x => x.n > 0).sort((a, b) => b.n - a.n || b.v - a.v).slice(0, 5), [db, p]);
 
   const byType = useMemo(() => {
     const m = {};
@@ -3665,25 +3911,24 @@ const Stats = ({onClose}) => {
     return Object.entries(m).map(([k, v]) => ({t: (SES_TYPES[k] || SES_TYPES.personal).title, v}));
   }, [db, p]);
 
+  /* у статистиці рахуємо навантаження — кількість тренувань, а не гроші */
   const dow = useMemo(() => {
     const names = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
     const m = new Array(7).fill(0);
     db.sessions.filter(s => isBillable(s) && inRange(+new Date(s.start), from, to))
-      .forEach(s => { const d = (new Date(s.start).getDay() + 6) % 7; m[d] += s.price; });
+      .forEach(s => { const d = (new Date(s.start).getDay() + 6) % 7; m[d] += 1; });
     return m.map((v, i) => ({label: names[i], v, on: i === (new Date().getDay() + 6) % 7}));
   }, [db, p]);
 
   const cards = [
-    {k: t('st.income','Дохід'), v: money(st.gross), ic:<Ic.refresh size={18}/>},
-    {k: t('st.net','Чистий дохід'), v: money(st.net), ic:<Ic.wallet size={18}/>, tone:'var(--accent)'},
-    {k: t('st.gym','Віддано залу'), v: money(st.gym), ic:<Ic.bank size={18}/>},
     {k: t('st.count','Тренувань'), v: st.count, ic:<Ic.dumb size={18}/>},
-    {k: t('st.clients','Клієнтів'), v: st.clients, ic:<Ic.users size={18}/>},
+    {k: t('st.clients2','Клієнтів усього'), v: db.clients.filter(c => !c.archived).length, ic:<Ic.users size={18}/>},
+    {k: t('st.active','Активних клієнтів'), v: st.clients, ic:<Ic.fire size={18}/>, tone:'var(--accent)'},
     {k: t('st.new','Нових клієнтів'), v: st.newClients, ic:<Ic.star size={18}/>, tone:'var(--pos)'},
-    {k: t('st.sales','Продажів'), v: st.salesCount, ic:<Ic.bag size={18}/>},
-    {k: t('st.gprofit','Прибуток з товарів'), v: money(st.salesProfit), ic:<Ic.box size={18}/>, tone:'var(--pos)'},
     {k: t('st.avg','Середній чек'), v: money(st.avg), ic:<Ic.card size={18}/>},
     {k: t('st.per','Тренувань на клієнта'), v: st.sesPerClient, ic:<Ic.target size={18}/>},
+    {k: t('st.sales','Продажів'), v: st.salesCount, ic:<Ic.bag size={18}/>},
+    {k: t('st.done','Проведено'), v: st.done, ic:<Ic.check size={18}/>},
   ];
 
   return (
@@ -3706,14 +3951,14 @@ const Stats = ({onClose}) => {
         ))}
       </div>
 
-      <div className="sechead"><div className="h2">{t('st.dow','Дохід по днях тижня')}</div></div>
+      <div className="sechead"><div className="h2">{t('st.dow2','Тренування по днях тижня')}</div></div>
       <div className="card pad">
         {dow.every(d => !d.v)
           ? <Empty icon={<Ic.chart size={28}/>} title={t('fin.nodata','Даних поки немає')}/>
-          : <Bars data={dow}/>}
+          : <Bars data={dow} fmtV={v => nSessions(v)}/>}
       </div>
 
-      <div className="sechead"><div className="h2">{t('st.top','Найцінніші клієнти')}</div></div>
+      <div className="sechead"><div className="h2">{t('st.top2','Найактивніші клієнти')}</div></div>
       {top.length === 0 ? (
         <div className="card"><Empty icon={<Ic.users size={28}/>} title={t('st.top.none','Поки порожньо')}
              text={t('st.top.none.t','За цей період ще не було оплачених тренувань.')}/></div>
@@ -3727,7 +3972,7 @@ const Stats = ({onClose}) => {
                 <div className="nm">{c.name}</div>
                 <div className="ds">{nSessions(n)}</div>
               </div>
-              <span className="money num" style={{fontSize:15}}>{money(v)}</span>
+              <span className="num" style={{fontSize:15, fontWeight:800}}>{n}</span>
             </button>
           ))}
         </div>
@@ -3774,6 +4019,9 @@ const Profile = ({loading}) => {
   const [mFrom, mTo] = periodRange('month', new Date());
   const st = stats(db, mFrom, mTo);
   const S = db.settings;
+  const debtAll = sum(db.sessions.filter(isDebt), x => x.price);
+  const meta = Disk.readMeta();
+  const hasAccount = !!(meta && meta.account);
 
   function photo(e){
     const file = e.target.files && e.target.files[0];
@@ -3821,18 +4069,13 @@ const Profile = ({loading}) => {
         <div className="rows">
           <button className="setrow" onClick={() => nav.go('finance')}>
             <div className="ic"><Ic.wallet size={19}/></div>
-            <div className="tx"><b>{t('menu.fin','Фінанси')}</b><span>{t('profile.fin.s','Дохід за день, тиждень, місяць і рік')}</span></div>
-            <Ic.right size={17} className="chev"/>
-          </button>
-          <button className="setrow" onClick={() => nav.go('stats')}>
-            <div className="ic"><Ic.chart size={19}/></div>
-            <div className="tx"><b>{t('menu.stats','Статистика')}</b><span>{t('profile.stats.s','Клієнти, продажі, середній чек')}</span></div>
+            <div className="tx"><b>{t('menu.fin','Фінанси')}</b><span>{t('profile.fin.s','Оборот, комісія залу, чистий дохід')}</span></div>
             <Ic.right size={17} className="chev"/>
           </button>
           <button className="setrow" onClick={() => nav.go('debts')}>
             <div className="ic"><Ic.card size={19}/></div>
             <div className="tx"><b>{t('menu.debts','Борги')}</b><span>{t('profile.debts.s','Хто і скільки винен')}</span></div>
-            <span className="rt">{money(sum(db.sessions.filter(isDebt), s => s.price))}</span>
+            <span className="rt" style={{color: debtAll ? 'var(--neg)' : 'var(--ink-3)'}}>{money(debtAll)}</span>
           </button>
         </div>
 
@@ -3859,6 +4102,11 @@ const Profile = ({loading}) => {
             {db.notifs.filter(n => !n.read).length > 0 && <span className="badge acc">{db.notifs.filter(n => !n.read).length}</span>}
             <Ic.right size={17} className="chev"/>
           </button>
+          <button className="setrow" onClick={() => nav.go('stats')}>
+            <div className="ic"><Ic.chart size={19}/></div>
+            <div className="tx"><b>{t('menu.stats','Статистика')}</b><span>{t('profile.stats.s','Клієнти, навантаження, середній чек')}</span></div>
+            <Ic.right size={17} className="chev"/>
+          </button>
         </div>
 
         <div className="sechead tight"><div className="h2">{t('profile.app','Застосунок')}</div></div>
@@ -3882,13 +4130,22 @@ const Profile = ({loading}) => {
             <div className="tx"><b>{t('menu.set','Налаштування')}</b><span>{t('profile.set.s','Мова, валюта, захист, резервна копія')}</span></div>
             <Ic.right size={17} className="chev"/>
           </button>
-          <div className="setrow">
-            <div className="ic"><Ic.refresh size={19}/></div>
-            <div className="tx"><b>{t('profile.sync','Синхронізація')}</b>
-              <span>{S.syncUrl
-                ? (syncSt === 'ok' ? t('sync.ok','Все синхронізовано') : syncSt === 'error' ? t('sync.err','Немає зв’язку — спробуємо пізніше') : t('sync.queue','У черзі') + ': ' + Sync.outbox.length)
-                : t('sync.local','Локальний режим — дані лише на пристрої')}</span></div>
-          </div>
+          <button className="setrow" onClick={() => nav.go('backup')}>
+            <div className="ic"><Ic.dl size={19}/></div>
+            <div className="tx"><b>{t('bk.title','Резервна копія')}</b>
+              <span>{S.backup && S.backup.lastAt
+                ? t('bk.last','Остання копія') + ': ' + cap(relDay(S.backup.lastAt)).toLowerCase() + ', ' + fmtTime(S.backup.lastAt)
+                : t('bk.none','Копію ще не робили')}</span></div>
+            <Ic.right size={17} className="chev"/>
+          </button>
+          {!hasAccount && (
+            <button className="setrow" onClick={() => nav.go('register')}>
+              <div className="ic" style={{background:'var(--pos-soft)', color:'var(--pos)'}}><Ic.shield size={19}/></div>
+              <div className="tx"><b>{t('profile.save','Зберегти дані')}</b>
+                <span>{t('profile.save.s','Створити кабінет — демо-дані залишаться')}</span></div>
+              <Ic.right size={17} className="chev"/>
+            </button>
+          )}
         </div>
 
         <div className="muted" style={{textAlign:'center', fontSize:12, marginTop:22}}>
@@ -4042,18 +4299,37 @@ const Settings = ({onClose}) => {
             </div>
           </button>
         )}
+        <div className="card pad" style={{marginTop:9}}>
+          <div style={{fontSize:14, fontWeight:700}}>{t('n.before.title','Нагадати перед тренуванням')}</div>
+          <div className="muted" style={{fontSize:12.5, marginTop:4}}>
+            {t('n.before.sub','Оберіть, за скільки попереджати. Можна кілька.')}
+          </div>
+          <div className="chips" style={{marginTop:10}}>
+            {[60, 30, 15, 5].map(m => {
+              const on = (S.notif.before || []).includes(m);
+              return (
+                <button key={m} className={cx('chip', on && 'on')} onClick={() => {
+                  const cur = S.notif.before || [];
+                  Act.settings({notif: {...S.notif, before: on ? cur.filter(x => x !== m) : [...cur, m].sort((a, b) => b - a)}});
+                }}>
+                  {on && <Ic.check size={14}/>}{m >= 60 ? (m / 60) + ' год' : m + ' хв'}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="rows" style={{marginTop:9}}>
           {[
-            ['before20', t('n.b20','За 20 хвилин до тренування')],
-            ['before5',  t('n.b5','За 5 хвилин до тренування')],
-            ['booked',   t('n.booked','Клієнт записався або скасував')],
-            ['debt',     t('n.debt','З’явилась заборгованість')],
-            ['lapsed',   t('n.lapsed','Клієнт давно не приходив')],
-            ['packageEnd', t('n.pack','Закінчується абонемент')],
-            ['stock',    t('n.stock','Закінчується товар')],
-          ].map(([k, tx]) => (
+            ['client',   t('n.client','Нагадування клієнту'), t('n.client.s','Увечері підкажемо, кому написати про завтра')],
+            ['booked',   t('n.booked','Клієнт записався або скасував'), ''],
+            ['debt',     t('n.debt','З’явилась заборгованість'), ''],
+            ['lapsed',   t('n.lapsed','Клієнт давно не приходив'), ''],
+            ['packageEnd', t('n.pack','Закінчується абонемент'), ''],
+            ['stock',    t('n.stock','Закінчується товар'), ''],
+          ].map(([k, tx, ds]) => (
             <div key={k} className="setrow">
-              <div className="tx"><b style={{fontWeight:600, fontSize:14}}>{tx}</b></div>
+              <div className="tx"><b style={{fontWeight:600, fontSize:14}}>{tx}</b>{ds && <span>{ds}</span>}</div>
               <Switch on={S.notif[k]} onChange={v => Act.settings({notif: {...S.notif, [k]: v}})}/>
             </div>
           ))}
@@ -4091,16 +4367,11 @@ const Settings = ({onClose}) => {
 
         <div className="sechead"><div className="h2">{t('set.data','Дані')}</div></div>
         <div className="rows">
-          <button className="setrow" onClick={exportJson}>
+          <button className="setrow" onClick={() => nav.go('backup')}>
             <div className="ic"><Ic.dl size={19}/></div>
-            <div className="tx"><b>{t('set.backup','Зберегти резервну копію')}</b><span>{t('set.backup.s','Один файл із клієнтами, тренуваннями та фінансами')}</span></div>
+            <div className="tx"><b>{t('bk.title','Резервна копія')}</b><span>{t('bk.menu.s','Копія даних і відновлення')}</span></div>
             <Ic.right size={17} className="chev"/>
           </button>
-          <label className="setrow" style={{cursor:'pointer'}}>
-            <div className="ic"><Ic.ul size={19}/></div>
-            <div className="tx"><b>{t('set.restore','Відновити з копії')}</b><span>{t('set.restore.s','Поточні дані буде замінено')}</span></div>
-            <input type="file" accept="application/json" onChange={importJson} style={{display:'none'}}/>
-          </label>
           <div className="setrow">
             <div className="ic"><Ic.refresh size={19}/></div>
             <div className="tx" style={{flex:1}}>
@@ -4139,19 +4410,108 @@ const Settings = ({onClose}) => {
   );
 };
 
+/* ─────────── 17. РЕЗЕРВНА КОПІЯ ─────────── */
+const Backup = ({onClose}) => {
+  const db = useDB();
+  const B = db.settings.backup || {auto: true, lastAt: 0};
+  const local = Backups.read();
+  const [syncSt, setSyncSt] = useState(Sync.status);
+  const [restore, setRestore] = useState(false);
+  useEffect(() => { const fn = st => setSyncSt(st); Sync.listeners.add(fn); return () => Sync.listeners.delete(fn); }, []);
+
+  const when = ts => ts ? cap(relDay(ts)) + ', ' + fmtTime(ts) : t('bk.never','ще не робили');
+
+  function importFile(e){
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(r.result);
+        if (!data || !Array.isArray(data.clients)) throw new Error('bad');
+        Store.patch(() => ({...emptyDB(), ...data}));
+        Toaster.ok(t('bk.restored','Дані відновлено'));
+        onClose();
+      } catch { Toaster.bad(t('bk.badfile','Файл не схожий на копію PRO Trainer')); }
+    };
+    r.readAsText(file);
+  }
+
+  return (
+    <Page title={t('bk.title','Резервна копія')} onClose={onClose}>
+      <div className="card pad" style={{marginTop:4}}>
+        <div className="muted" style={{fontSize:12.5, fontWeight:700}}>{t('bk.last','Остання копія')}</div>
+        <div className="dsp" style={{fontSize:20, fontWeight:800, marginTop:2}}>{when(B.lastAt)}</div>
+        <div className="muted" style={{fontSize:12.5, marginTop:6, lineHeight:1.45}}>
+          {t('bk.what','Копія містить клієнтів, тренування, продажі, абонементи й налаштування.')}
+        </div>
+        <Btn kind="pri" size="lg" wide style={{marginTop:14}}
+             onClick={() => { const ok = Backups.make(); Backups.file(); Toaster[ok ? 'ok' : 'bad'](ok ? t('bk.done','Копію створено') : t('bk.fail','Не вдалося створити копію')); }}>
+          <Ic.dl size={18}/>{t('bk.now','Створити копію зараз')}
+        </Btn>
+      </div>
+
+      <div className="rows" style={{marginTop:12}}>
+        <div className="setrow">
+          <div className="ic"><Ic.refresh size={19}/></div>
+          <div className="tx"><b>{t('bk.auto','Автоматична копія')}</b>
+            <span>{t('bk.auto.s','Раз на добу, коли застосунок відкритий')}</span></div>
+          <Switch on={B.auto !== false} onChange={v => Act.settings({backup: {...B, auto: v}})}/>
+        </div>
+        <label className="setrow" style={{cursor:'pointer'}}>
+          <div className="ic"><Ic.ul size={19}/></div>
+          <div className="tx"><b>{t('bk.fromfile','Відновити з файлу')}</b>
+            <span>{t('bk.fromfile.s','Поточні дані буде замінено')}</span></div>
+          <input type="file" accept="application/json" onChange={importFile} style={{display:'none'}}/>
+        </label>
+        {local && (
+          <button className="setrow" onClick={() => setRestore(true)}>
+            <div className="ic"><Ic.clock size={19}/></div>
+            <div className="tx"><b>{t('bk.fromlocal','Відновити останню копію')}</b>
+              <span>{when(local.ts)}</span></div>
+            <Ic.right size={17} className="chev"/>
+          </button>
+        )}
+        <div className="setrow">
+          <div className="ic"><Ic.globe size={19}/></div>
+          <div className="tx"><b>{t('bk.sync','Синхронізація')}</b>
+            <span>{db.settings.syncUrl
+              ? (syncSt === 'ok' ? t('sync.ok','Все синхронізовано')
+                 : syncSt === 'error' ? t('sync.err','Немає зв’язку — спробуємо пізніше')
+                 : t('sync.queue','У черзі') + ': ' + Sync.outbox.length)
+              : t('bk.sync.off','Вимкнена — копія зберігається на пристрої')}</span></div>
+        </div>
+      </div>
+
+      <Sheet open={restore} onClose={() => setRestore(false)} title={t('bk.restore.q','Відновити останню копію?')}
+             sub={local ? when(local.ts) : ''}>
+        <p className="muted" style={{fontSize:13.5, lineHeight:1.5}}>
+          {t('bk.restore.t','Поточні дані буде замінено даними з копії. Якщо після копії щось змінювалось — ці зміни зникнуть.')}
+        </p>
+        <div className="grid2" style={{marginTop:12}}>
+          <Btn kind="sec" onClick={() => setRestore(false)}>{t('common.cancel','Скасувати')}</Btn>
+          <Btn kind="pri" onClick={() => {
+            if (local && local.db){ Store.patch(() => ({...emptyDB(), ...local.db})); Toaster.ok(t('bk.restored','Дані відновлено')); onClose(); }
+          }}>{t('bk.restore.go','Відновити')}</Btn>
+        </div>
+      </Sheet>
+    </Page>
+  );
+};
+
 /* ─────────── швидке додавання (FAB на головній) ─────────── */
 const QuickAdd = ({open, onClose}) => {
   const nav = useNav();
   const go = (r, p) => { onClose(); setTimeout(() => nav.go(r, p), 60); };
   return (
-    <Sheet open={open} onClose={onClose} title={t('quick.title','Що додаємо?')}>
+    <Sheet open={open} onClose={onClose} title={t('quick.title','Додати')}>
       <div className="rows" style={{marginTop:4}}>
         {[
-          ['session.new', <Ic.dumb size={19}/>, t('session.new','Нове тренування'), t('quick.ses','Клієнт, час і вартість — за кілька дотиків')],
-          ['client.new',  <Ic.users size={19}/>, t('client.new','Новий клієнт'),    t('quick.cl','Ім’я, телефон і мета')],
-          ['sell',        <Ic.bag size={19}/>,   t('goods.sell','Продати товар'),    t('quick.sell','Спише залишок і додасть дохід')],
-          ['packages',    <Ic.ticket size={19}/>,t('subs.give','Оформити абонемент'),t('quick.sub','Пакет тренувань для клієнта')],
-          ['debts',       <Ic.card size={19}/>,  t('quick.pay','Відмітити оплату'),  t('quick.pay.s','Закрити борг клієнта')],
+          ['session.new', <Ic.dumb size={19}/>, t('quick.ses.t','Тренування'), t('quick.ses','Клієнт, час і вартість — за кілька дотиків')],
+          ['client.new',  <Ic.users size={19}/>, t('quick.cl.t','Клієнта'),    t('quick.cl','Ім’я, телефон, ціна й мета')],
+          ['sell',        <Ic.bag size={19}/>,   t('quick.sell.t','Продаж'),    t('quick.sell','Спише залишок і додасть дохід')],
+          ['packages',    <Ic.ticket size={19}/>,t('quick.sub.t','Абонемент'),  t('quick.sub','Пакет тренувань для клієнта')],
+          ['debts',       <Ic.card size={19}/>,  t('quick.pay.t','Оплату'),     t('quick.pay.s','Закрити борг клієнта')],
         ].map(([r, ic, tt, ds]) => (
           <button key={r} className="setrow" onClick={() => go(r)}>
             <div className="ic">{ic}</div>
@@ -4163,6 +4523,22 @@ const QuickAdd = ({open, onClose}) => {
     </Sheet>
   );
 };
+
+/* демо-режим → повноцінний кабінет, дані лишаються на місці */
+const Register = ({onClose}) => (
+  <div className="page">
+    <div className="appbar">
+      <button className="iconbtn" onClick={onClose} aria-label={t('common.back','Назад')}><Ic.left/></button>
+      <div style={{flex:1}}/>
+    </div>
+    <Auth save onReady={acc => {
+      Act.profile({email: acc.account && acc.account.kind === 'email' ? acc.account.login : '',
+                   phone: acc.account && acc.account.kind === 'phone' ? phoneMask(acc.account.login) : Store.state.profile.phone});
+      Toaster.ok(t('auth.saved','Кабінет створено — дані збережено'));
+      onClose();
+    }}/>
+  </div>
+);
 
 /* ─────────── нагадування ───────────
    Поки застосунок відкритий — планувальник щохвилини перевіряє розклад
@@ -4184,22 +4560,36 @@ function useReminders(db){
       if (!alive || !Store.state) return;
       const s = Store.state, N = s.settings.notif, now = Date.now();
 
+      const mins = m => m >= 60 ? (m / 60) + ' год' : m + ' хв';
       s.sessions.filter(x => x.status === 'planned').forEach(x => {
         const dt = +new Date(x.start) - now;
         const c = byId(s.clients, x.clientId);
         const nm = c ? c.name : t('session.one','Тренування');
-        if (N.before20 && dt > 14 * 60000 && dt <= 20 * 60000)
-          fire('b20_' + x.id, {title:'🏋️ ' + t('n.soon','Тренування за 20 хвилин'),
-            body: nm + ' · ' + fmtTime(x.start), type:'session', clientId: x.clientId});
-        if (N.before5 && dt > 0 && dt <= 5 * 60000)
-          fire('b5_' + x.id, {title:'🏋️ ' + t('n.soon5','Тренування за 5 хвилин'),
-            body: nm + ' · ' + fmtTime(x.start), type:'session', clientId: x.clientId});
+        (N.before || []).forEach(m => {
+          const at = m * 60000;
+          if (dt <= at && dt > at - 90000)              /* вікно = крок планувальника */
+            fire('b' + m + '_' + x.id, {title:'🏋️ ' + t('n.before','Тренування за') + ' ' + mins(m),
+              body: nm + ' · ' + fmtTime(x.start), type:'session', clientId: x.clientId});
+        });
       });
+
+      /* увечері підказуємо нагадати завтрашнім клієнтам */
+      if (N.client && new Date().getHours() >= 18){
+        const tomorrow = addDays(new Date(), 1);
+        s.sessions.filter(x => x.status === 'planned' && sameDay(x.start, tomorrow)).forEach(x => {
+          const c = byId(s.clients, x.clientId);
+          if (!c) return;
+          fire('tmr_' + x.id, {title: t('n.tomorrow','Нагадайте про завтра'),
+            body: c.name + ' · ' + fmtTime(x.start), type:'booked', clientId: c.id});
+        });
+      }
 
       /* щоденні перевірки — раз на добу */
       const dayKey = iso(new Date());
       if (!s.fired['day_' + dayKey]){
         Act.markFired('day_' + dayKey);
+        const B = s.settings.backup || {};
+        if (B.auto !== false && Date.now() - (B.lastAt || 0) > 20 * 3600 * 1000) Backups.make();
         if (N.debt){
           const debts = s.sessions.filter(isDebt);
           const total = sum(debts, x => x.price);
@@ -4270,6 +4660,8 @@ const ROUTES = {
   'package.new': p => <PackageForm {...p}/>,
   'packages':    p => <PackagesPage {...p}/>,
   'remind':      p => <Remind {...p}/>,
+  'backup':      p => <Backup {...p}/>,
+  'register':    p => <Register {...p}/>,
 };
 
 const TABS = [
@@ -4378,7 +4770,20 @@ const Boot = () => {
   }, []);
 
   function boot(data){
-    const db = {...emptyDB(), ...data, settings: {...emptyDB().settings, ...(data.settings || {})}};
+    const base = emptyDB();
+    const db = {...base, ...data, settings: {...base.settings, ...(data.settings || {})}};
+    /* кабінети попередніх версій: прапорці нагадувань → список інтервалів */
+    const n = db.settings.notif || {};
+    if (!Array.isArray(n.before)){
+      const before = [];
+      if (n.before20 !== false) before.push(60);
+      if (n.before5 !== false) before.push(15);
+      db.settings.notif = {...base.settings.notif, ...n, before: before.length ? before : [60, 15]};
+      delete db.settings.notif.before20;
+      delete db.settings.notif.before5;
+    }
+    if (!db.settings.backup) db.settings.backup = base.settings.backup;
+    db.clients = db.clients.map(c => ({birthday:'', price:null, ...c}));
     I18n.set(db.settings.lang);
     Store.init(db);
     setPhase(db.onboarded ? 'app' : 'onboard');

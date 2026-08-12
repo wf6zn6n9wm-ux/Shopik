@@ -231,6 +231,59 @@ try {
   ok('без своєї ціни картка каже «за замовчуванням»', card0.includes('за замовчуванням'));
 } catch (e){ ok('ціна в екранах', false, e.message); }
 
+part('наскрізний сценарій');
+{
+  const base = T.emptyDB();
+  T.Store.init({...base, onboarded: true, settings: {...base.settings, price: 800, gymMode: 'percent', gymPercent: 15}});
+  const S = () => T.Store.state;
+  const [df2, dt2] = T.periodRange('day', new Date());
+  const now = () => new Date().toISOString();
+
+  const cl = T.Act.addClient({name: 'Наскрізний Клієнт', price: 900});
+  ok('клієнт створений з власною ціною', T.clientPrice(S(), cl.id) === 900);
+
+  const ses = T.Act.addSession({clientId: cl.id, price: T.clientPrice(S(), cl.id), start: now()});
+  T.Act.complete(ses.id, false);
+  let st = T.stats(S(), df2, dt2);
+  ok('дохід порахований з ціни клієнта', st.gross === 900, T.money(st.gross));
+  ok('комісія 15% знята', st.gym === 135 && st.net === 765, T.money(st.gym) + ' / ' + T.money(st.net));
+  ok('неоплачене стало боргом', st.debt === 900, T.money(st.debt));
+
+  T.Act.payClient(cl.id);
+  ok('оплата закрила борг', T.stats(S(), df2, dt2).debt === 0);
+
+  const pkg = T.Act.addPackage({title: '8 тренувань', sessions: 8, price: 5600, days: 60});
+  const sub = T.Act.buyPackage(cl.id, pkg);
+  const ses2 = T.Act.addSession({clientId: cl.id, subId: sub.id, price: Math.round(pkg.price / pkg.sessions), start: now()});
+  T.Act.complete(ses2.id, false);
+  ok('абонемент списав заняття', S().subs.find(x => x.id === sub.id).used === 1);
+  ok('тренування з абонемента не створює борг', T.stats(S(), df2, dt2).debt === 0);
+  ok('покупка абонемента врахована окремо', T.stats(S(), df2, dt2).subsSold === 5600);
+
+  const pr = T.Act.addProduct({name: 'Протеїн', price: 1400, cost: 1000, stock: 2});
+  T.Act.sell({clientId: cl.id, productId: pr.id, qty: 1, price: 1400});
+  st = T.stats(S(), df2, dt2);
+  ok('продаж зменшив залишок', S().products.find(x => x.id === pr.id).stock === 1);
+  ok('прибуток з товару в фінансах', st.salesProfit === 400, T.money(st.salesProfit));
+  ok('товар не обкладається комісією залу', st.gym === T.split(st.gross, S().settings).gym);
+
+  const before = T.stats(S(), df2, dt2).net;
+  T.Act.settings({gymMode: 'none'});
+  st = T.stats(S(), df2, dt2);
+  ok('зміна комісії перерахувала дохід', st.net === st.gross && st.net > before, T.money(before) + ' → ' + T.money(st.net));
+  T.Act.settings({gymMode: 'percent'});
+
+  st = T.stats(S(), df2, dt2);
+  ok('статистика бачить клієнта і навантаження', st.clients === 1 && st.count === 2 && st.sesPerClient === 2,
+     st.clients + ' клієнт, ' + st.count + ' трен.');
+  ok('історія клієнта зібрала все', T.clientFeed(S(), cl.id).length === 4,
+     T.clientFeed(S(), cl.id).length + ' записів');
+
+  const ses3 = T.Act.addSession({clientId: cl.id, price: 900, start: now()});
+  T.Act.noshow(ses3.id);
+  ok('«не прийшов» не потрапляє в дохід', T.stats(S(), df2, dt2).count === 2);
+}
+
 part('свій період');
 const rng = T.periodOf({kind:'custom', from:'2026-08-05', to:'2026-08-12'});
 ok('діапазон включає обидві межі', Math.round((+rng[1] - +rng[0]) / 86400000) === 8,
