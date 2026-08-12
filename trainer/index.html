@@ -361,6 +361,20 @@
   .toast.ok{background:var(--pos);color:#fff;} .toast.bad{background:var(--neg);color:#fff;}
   @keyframes toastIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
+  /* тарифи */
+  .plan{display:flex;align-items:center;gap:12px;padding:14px;width:100%;text-align:left;
+    border-radius:var(--r-lg);background:var(--surface);border:1.5px solid var(--line);
+    transition:.16s var(--ease);}
+  .plan.on{border-color:var(--accent);background:var(--accent-soft);}
+  .plan .radio{width:22px;height:22px;border-radius:50%;border:2px solid var(--line-2);flex:none;
+    display:grid;place-items:center;}
+  .plan.on .radio{border-color:var(--accent);}
+  .plan.on .radio i{width:12px;height:12px;border-radius:50%;background:var(--accent);display:block;}
+  .plan .pr{font-family:'Onest',sans-serif;font-weight:800;font-size:18px;letter-spacing:-.03em;}
+  .feat{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:14.5px;font-weight:600;}
+  .feat .ok{width:22px;height:22px;border-radius:50%;background:var(--pos-soft);color:var(--pos);
+    display:grid;place-items:center;flex:none;}
+
   /* онбординг / авторизація */
   .ob{min-height:100vh;display:flex;flex-direction:column;padding:calc(var(--safe-top) + 20px) 22px calc(22px + var(--safe-bottom));}
   .ob-art{flex:1;display:grid;place-items:center;padding:14px 0;}
@@ -613,7 +627,15 @@ const Disk = {
   writeMeta(m){ try { localStorage.setItem(KEY + '.meta', JSON.stringify(m)); } catch {} },
   readRaw(){ try { return localStorage.getItem(KEY); } catch { return null; } },
   writeRaw(s){ try { localStorage.setItem(KEY, s); return true; } catch { return false; } },
-  clear(){ try { localStorage.removeItem(KEY); localStorage.removeItem(KEY + '.meta'); } catch {} },
+  /* дані стираємо, а акаунт і пробний період лишаємо: інакше очищення
+     даних дало б новий безкоштовний період */
+  clear(){
+    try {
+      const m = Disk.readMeta() || {};
+      localStorage.removeItem(KEY);
+      localStorage.setItem(KEY + '.meta', JSON.stringify({salt: m.salt, account: m.account, access: m.access}));
+    } catch {}
+  },
 };
 
 /* ─────────────────── синхронізація ───────────────────
@@ -652,6 +674,160 @@ const Sync = {
   },
 };
 window.addEventListener('online', () => Sync.flush());
+
+/* ═══════════════════ ДОСТУП І ПІДПИСКА ═══════════════════
+   14 днів повного доступу, далі — платний план. Безкоштовного тарифу
+   після пробного періоду немає, як і окремих «преміум-функцій»:
+   усередині застосунку доступно все або нічого.
+
+   Стан доступу рахується в одному місці (Access.state()), екрани лише
+   питають його — жодних перевірок «по місцях».                        */
+const TRIAL_DAYS = 14;
+
+/* Product ID мають збігатися з тим, що заведено в App Store Connect і
+   Google Play Console. Змінюються тут — більше ніде не зашиті. */
+const PLANS = [
+  {id:'monthly',   productId:'pro_trainer_monthly',   title:'1 місяць',  per:'/ місяць',  price:4.99,  months:1},
+  {id:'quarterly', productId:'pro_trainer_quarterly', title:'3 місяці',  per:'/ 3 місяці', price:12.99, months:3,  badge:'Вигідніше'},
+  {id:'yearly',    productId:'pro_trainer_yearly',    title:'1 рік',     per:'/ рік',      price:49.99, months:12, badge:'Найкраща ціна'},
+];
+const planById = id => PLANS.find(p => p.id === id) || null;
+const usd = v => '$' + Number(v).toFixed(2);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ─── міст до магазину ───
+   Реальні покупки живуть у нативній оболонці: StoreKit 2 (iOS) або
+   Play Billing (Android). Оболонка має покласти у window.ProTrainerIAP
+   об'єкт із методами platform / buy / restore — застосунок працює через
+   них і більше нічого про магазин не знає. Поки моста немає, працює
+   демо-реалізація: вона імітує покупку й зберігає її окремо від даних
+   застосунку, щоб можна було перевірити «Відновити покупку». */
+const DEMO_IAP_KEY = 'protrainer.iap.demo';
+const IAP = {
+  bridge(){ return (typeof window !== 'undefined' && window.ProTrainerIAP) || null; },
+  platform(){ const b = IAP.bridge(); return b ? (b.platform || 'native') : 'demo'; },
+  connected(){ return !!IAP.bridge(); },
+  demo: {fail: false},
+  demoRead(){ try { return JSON.parse(localStorage.getItem(DEMO_IAP_KEY) || 'null'); } catch { return null; } },
+  demoWrite(v){ try { localStorage.setItem(DEMO_IAP_KEY, JSON.stringify(v)); } catch {} },
+  async buy(productId){
+    const b = IAP.bridge();
+    if (b) return b.buy(productId);
+    await sleep(600);
+    if (IAP.demo.fail) return {ok:false, error:'payment_declined'};
+    const rec = {productId, transactionId: 'demo_' + uid('tx'), ts: Date.now()};
+    IAP.demoWrite(rec);
+    return {ok:true, transactionId: rec.transactionId, ts: rec.ts};
+  },
+  async restore(){
+    const b = IAP.bridge();
+    if (b) return b.restore();
+    await sleep(500);
+    const rec = IAP.demoRead();
+    return {ok:true, purchases: rec ? [rec] : []};
+  },
+};
+
+const Access = {
+  listeners: new Set(),
+  emit(){ Access.listeners.forEach(f => f()); Store.emit(); },
+  read(){ const m = Disk.readMeta() || {}; return m.access || {}; },
+  write(patch){
+    const m = Disk.readMeta() || {};
+    const access = {...(m.access || {}), ...patch};
+    Disk.writeMeta({...m, access});
+    Sync.push('access', access);          /* сервер стане джерелом правди, коли з'явиться */
+    Access.emit();
+    return access;
+  },
+  /* пробний період прив'язаний до акаунта і стартує один раз */
+  startTrial(){
+    const a = Access.read();
+    if (a.trialStartedAt) return a;
+    return Access.write({trialStartedAt: Date.now(), status:'trial'});
+  },
+  trialEnds(){ const a = Access.read(); return a.trialStartedAt ? a.trialStartedAt + TRIAL_DAYS * DAY : 0; },
+
+  state(now){
+    const a = Access.read();
+    const t = now || Date.now();
+    const sub = (a.expiresAt && a.plan)
+      ? (t < a.expiresAt
+          ? {kind: a.autoRenew === false ? 'SUBSCRIPTION_CANCELLED' : 'SUBSCRIPTION_ACTIVE',
+             allowed:true, until:a.expiresAt, plan:a.plan}
+          : {kind:'SUBSCRIPTION_EXPIRED', allowed:false, until:a.expiresAt, plan:a.plan})
+      : null;
+    if (sub && sub.allowed) return sub;
+
+    const trial = a.trialStartedAt ? (() => {
+      const ends = a.trialStartedAt + TRIAL_DAYS * DAY;
+      const left = Math.max(0, Math.ceil((ends - t) / DAY));
+      return left > 0
+        ? {kind:'TRIAL_ACTIVE', allowed:true, left, until:ends}
+        : {kind:'TRIAL_EXPIRED', allowed:false, until:ends};
+    })() : null;
+    if (trial && trial.allowed) return trial;
+
+    if (a.status === 'pending') return {kind:'PAYMENT_PENDING', allowed:true, plan:a.pendingPlan};
+    if (a.status === 'failed')  return {kind:'PAYMENT_FAILED', allowed:false, error:a.error, plan:a.pendingPlan};
+    return sub || trial || {kind:'TRIAL_NOT_STARTED', allowed:true};
+  },
+  allowed(){ return Access.state().allowed; },
+
+  async purchase(planId){
+    const plan = planById(planId);
+    if (!plan) return {ok:false, error:'unknown_plan'};
+    Access.write({status:'pending', pendingPlan: planId, error:null});
+    try {
+      const r = await IAP.buy(plan.productId);
+      if (!r || !r.ok) throw new Error((r && r.error) || 'payment_failed');
+      /* продовження додається до чинного строку, а не обнуляє його */
+      const from = Math.max(Date.now(), Access.read().expiresAt || 0);
+      Access.write({status:'active', plan: plan.id, productId: plan.productId,
+        purchasedAt: Date.now(), expiresAt: +addMonths(new Date(from), plan.months),
+        autoRenew: true, transactionId: r.transactionId, lastVerifiedAt: Date.now(),
+        pendingPlan: null, error: null});
+      return {ok:true};
+    } catch (e){
+      /* дані недоторкані — лише позначаємо, що оплата не пройшла */
+      Access.write({status:'failed', error: String((e && e.message) || e)});
+      return {ok:false, error: String((e && e.message) || e)};
+    }
+  },
+  async restore(){
+    try {
+      const r = await IAP.restore();
+      const list = (r && r.purchases) || [];
+      if (!list.length) return {ok:false, error:'nothing_to_restore'};
+      const rec = list[list.length - 1];
+      const plan = PLANS.find(p => p.productId === rec.productId);
+      if (!plan) return {ok:false, error:'unknown_product'};
+      const expires = +addMonths(new Date(rec.ts || Date.now()), plan.months);
+      Access.write({status: expires > Date.now() ? 'active' : 'expired', plan: plan.id, productId: plan.productId,
+        purchasedAt: rec.ts || Date.now(), expiresAt: expires, autoRenew: true,
+        transactionId: rec.transactionId, lastVerifiedAt: Date.now(), error: null});
+      return {ok: expires > Date.now(), expiresAt: expires};
+    } catch (e){ return {ok:false, error: String((e && e.message) || e)}; }
+  },
+  cancel(){ return Access.write({autoRenew: false}); },        /* доступ лишається до дати */
+  resume(){ return Access.write({autoRenew: true}); },
+  /* без мережі нічого не блокуємо: працюємо за локальним записом,
+     а щойно з'явиться зв'язок — перевіряємо статус у магазині */
+  async verify(){
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return {ok:false, offline:true};
+    const a = Access.read();
+    if (!a.plan) return {ok:false};
+    const r = await IAP.restore();
+    if (!r || !r.ok) return {ok:false};
+    Access.write({lastVerifiedAt: Date.now()});
+    return {ok:true};
+  },
+};
+function useAccess(){
+  const [, force] = useState(0);
+  useEffect(() => { const f = () => force(x => x + 1); Access.listeners.add(f); return () => Access.listeners.delete(f); }, []);
+  return Access.state();
+}
 
 /* ─────────────────── фінансовий рушій ───────────────────
    Оборот   — скільки заплатив клієнт.
@@ -1945,6 +2121,8 @@ const Home = ({loading}) => {
           </button>
         </div>
 
+        <TrialBar/>
+
         {/* дохід */}
         <button className="hero press" style={{marginTop:16, width:'100%', textAlign:'left', display:'block'}}
                 onClick={() => nav.go('finance')}>
@@ -2086,6 +2264,33 @@ const Home = ({loading}) => {
   );
 };
 
+/* Нагадування без тиску: з'являється лише в останні дні або якщо оплата
+   не пройшла, і не повторюється частіше ніж раз на день. */
+const TrialBar = () => {
+  const acc = useAccess();
+  const nav = useNav();
+  const key = 'bar_' + acc.kind + '_' + (acc.left || 0) + '_' + iso(new Date());
+  const [hidden, setHidden] = useState(() => { try { return sessionStorage.getItem(key) === '1'; } catch { return false; } });
+  const show = (acc.kind === 'TRIAL_ACTIVE' && acc.left <= 3) || acc.kind === 'PAYMENT_FAILED'
+            || (acc.kind === 'SUBSCRIPTION_CANCELLED' && acc.until - Date.now() < 5 * DAY);
+  if (!show || hidden) return null;
+  const text = acc.kind === 'PAYMENT_FAILED' ? t('bar.failed','Оплата не пройшла — дані на місці')
+    : acc.kind === 'SUBSCRIPTION_CANCELLED' ? t('bar.cancel','Підписка діє до') + ' ' + fmtDM(acc.until)
+    : acc.left === 1 ? t('bar.last','Завтра завершується пробний період')
+    : t('bar.left','Залишилось') + ' ' + nDays(acc.left) + ' ' + t('bar.free','безкоштовного доступу');
+  return (
+    <div className="card pad" style={{marginTop:14, display:'flex', alignItems:'center', gap:10,
+         background:'var(--accent-soft)', borderColor:'transparent'}}>
+      <Ic.star size={18} style={{color:'var(--accent)', flex:'none'}}/>
+      <div style={{flex:1, minWidth:0, fontSize:13, fontWeight:700, color:'var(--accent)'}}>{text}</div>
+      <Btn kind="soft" size="sm" onClick={() => nav.go('plans')}>{t('bar.go','Обрати план')}</Btn>
+      <button className="mute3" aria-label="×" onClick={() => { try { sessionStorage.setItem(key, '1'); } catch {} setHidden(true); }}>
+        <Ic.x size={16}/>
+      </button>
+    </div>
+  );
+};
+
 const DebtCard = ({d}) => {
   const db = useDB();
   const nav = useNav();
@@ -2148,6 +2353,7 @@ const MainMenu = ({open, onClose}) => {
           ['notifs',  <Ic.bell size={19}/>,   t('menu.notif','Сповіщення'), t('menu.notif.s','Нагадування про тренування')],
           ['settings',<Ic.gear size={19}/>,   t('menu.set','Налаштування'), t('menu.set.s','Ціна, комісія, мова, захист')],
           ['backup',  <Ic.dl size={19}/>,     t('bk.title','Резервна копія'), t('bk.menu.s','Копія даних і відновлення')],
+          ['subscription', <Ic.star size={19}/>, t('sub.title','Підписка'),   t('sub.menu.s','Пробний період, план і оплата')],
         ].map(([r, ic, tt, ds]) => (
           <button key={r} className="setrow" onClick={() => go(r)}>
             <div className="ic">{ic}</div>
@@ -4058,6 +4264,8 @@ const Profile = ({loading}) => {
           <button className="iconbtn" onClick={() => { setF(db.profile); setEdit(true); }} aria-label={t('common.edit')}><Ic.edit size={19}/></button>
         </div>
 
+        <AccessCard/>
+
         <div className="kpis" style={{marginTop:12}}>
           <div className="kpi"><div className="k">{t('profile.month','Цього місяця')}</div>
             <div className="v num" style={{color:'var(--accent)'}}>{moneyShort(st.net)}</div></div>
@@ -4172,6 +4380,36 @@ const Profile = ({loading}) => {
         </Btn>
       </Sheet>
     </Fragment>
+  );
+};
+
+/* картка доступу в профілі — без зміни структури екрана */
+const AccessCard = () => {
+  const acc = useAccess();
+  const nav = useNav();
+  const active = acc.kind === 'SUBSCRIPTION_ACTIVE' || acc.kind === 'SUBSCRIPTION_CANCELLED';
+  const need = !acc.allowed || acc.kind === 'PAYMENT_FAILED';
+  const line =
+    acc.kind === 'TRIAL_ACTIVE' ? t('acc.left','Залишилось') + ' ' + nDays(acc.left)
+    : active ? t('sub.until','Діє до') + ' ' + fmtDM(acc.until) + ' ' + new Date(acc.until).getFullYear()
+    : acc.kind === 'PAYMENT_PENDING' ? t('acc.pending.s','Чекаємо підтвердження магазину')
+    : t('acc.need','Оберіть план, щоб продовжити роботу');
+  return (
+    <button className="card pad press" style={{marginTop:9, width:'100%', display:'flex', gap:12, alignItems:'center', textAlign:'left'}}
+            onClick={() => nav.go(active || acc.kind === 'TRIAL_ACTIVE' ? 'subscription' : 'plans')}>
+      <div style={{width:38, height:38, borderRadius:12, flex:'none', display:'grid', placeItems:'center',
+                   background: need ? 'var(--neg-soft)' : 'var(--accent-soft)', color: need ? 'var(--neg)' : 'var(--accent)'}}>
+        <Ic.star size={19}/>
+      </div>
+      <div style={{flex:1, minWidth:0}}>
+        <div className="between">
+          <b style={{fontSize:15}}>PRO Trainer</b>
+          <span className={cx('badge', active ? 'pos' : acc.kind === 'TRIAL_ACTIVE' ? 'acc' : 'neg')}>{ACCESS_LABEL(acc)}</span>
+        </div>
+        <div className="muted" style={{fontSize:12.5, marginTop:3}}>{line}</div>
+      </div>
+      <Ic.right size={17} className="chev"/>
+    </button>
   );
 };
 
@@ -4499,6 +4737,218 @@ const Backup = ({onClose}) => {
   );
 };
 
+/* ═══════════ ДОСТУП: пробний період і тарифи ═══════════ */
+const FEATURES = ['Клієнти','Календар','Тренування','Фінанси','Борги','Абонементи','Продажі','Статистика','Нагадування','Резервна копія'];
+
+const FeatureList = ({items}) => (
+  <div style={{marginTop:6}}>
+    {(items || FEATURES).map(f => (
+      <div key={f} className="feat"><span className="ok"><Ic.check size={13}/></span>{f}</div>
+    ))}
+  </div>
+);
+
+const PlanCards = ({value, onPick}) => (
+  <div className="stack">
+    {PLANS.map(p => (
+      <button key={p.id} className={cx('plan press', value === p.id && 'on')} onClick={() => onPick(p.id)}>
+        <span className="radio">{value === p.id && <i/>}</span>
+        <span style={{flex:1, minWidth:0}}>
+          <b style={{fontSize:15.5, display:'block'}}>{p.title}</b>
+          <span className="muted" style={{fontSize:12.5}}>
+            {p.months === 1 ? t('pay.permonth','щомісяця') : '≈ ' + usd(p.price / p.months) + ' ' + t('pay.amonth','на місяць')}
+          </span>
+        </span>
+        {p.badge && <span className="badge acc">{p.badge}</span>}
+        <span className="pr num">{usd(p.price)}</span>
+      </button>
+    ))}
+  </div>
+);
+
+/* Екран перед стартом: 14 днів безкоштовно, без відчуття, що вже треба платити */
+const TrialIntro = ({onStart}) => (
+  <div className="ob fade-in">
+    <div className="brand" style={{marginBottom:18}}><div className="mark"><Ic.dumb size={21}/></div><b>PRO Trainer</b></div>
+    <div style={{flex:1, overflowY:'auto'}}>
+      <div className="dsp" style={{fontSize:30, fontWeight:800, letterSpacing:'-.035em'}}>
+        {t('pay.trial.title','14 днів безкоштовно')}
+      </div>
+      <p className="muted" style={{fontSize:14.5, marginTop:8}}>
+        {t('pay.trial.sub','Повний доступ до всіх функцій. Оплата — тільки після завершення пробного періоду.')}
+      </p>
+      <FeatureList/>
+      <div className="card pad" style={{marginTop:14, background:'var(--accent-soft)', borderColor:'transparent'}}>
+        <div style={{fontSize:13.5, fontWeight:700, color:'var(--accent)'}}>
+          {t('pay.trial.after','Далі від')} {usd(4.99)} {t('pay.trial.month','на місяць')}
+        </div>
+        <div className="muted" style={{fontSize:12.5, marginTop:4}}>
+          {t('pay.trial.note','Нічого не спишеться автоматично: план ви оберете самі, коли пробний період завершиться.')}
+        </div>
+      </div>
+    </div>
+    <Btn kind="pri" size="lg" wide style={{marginTop:16}} onClick={onStart}>
+      {t('pay.trial.go','Почати безкоштовно')}
+    </Btn>
+  </div>
+);
+
+/* Вибір плану. mode: gate — після завершення пробного, choose — з профілю */
+const Paywall = ({mode, onClose}) => {
+  const acc = useAccess();
+  const [plan, setPlan] = useState('quarterly');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(acc.kind === 'PAYMENT_FAILED' ? t('pay.err','Не вдалося завершити оплату') : '');
+  const [okMsg, setOkMsg] = useState('');
+
+  async function buy(){
+    setErr(''); setBusy(true);
+    const r = await Access.purchase(plan);
+    setBusy(false);
+    if (r.ok){ Toaster.ok(t('pay.ok','Підписка активна')); if (onClose) onClose(); }
+    else setErr(t('pay.err','Не вдалося завершити оплату'));
+  }
+  async function restore(){
+    setErr(''); setBusy(true);
+    const r = await Access.restore();
+    setBusy(false);
+    if (r.ok){ Toaster.ok(t('pay.restored','Покупку відновлено')); if (onClose) onClose(); }
+    else setErr(r.error === 'nothing_to_restore'
+      ? t('pay.norestore','Активних покупок не знайшли')
+      : t('pay.err','Не вдалося завершити оплату'));
+  }
+
+  const expired = acc.kind === 'TRIAL_EXPIRED';
+  const body = (
+    <Fragment>
+      <div className="dsp" style={{fontSize:26, fontWeight:800, letterSpacing:'-.035em'}}>
+        {expired ? t('pay.gate.title','Пробний період завершено')
+                 : acc.kind === 'SUBSCRIPTION_EXPIRED' ? t('pay.sub.expired','Підписка завершилась')
+                 : t('pay.choose','Оберіть план')}
+      </div>
+      <p className="muted" style={{fontSize:14, marginTop:8, lineHeight:1.5}}>
+        {expired || acc.kind === 'SUBSCRIPTION_EXPIRED'
+          ? t('pay.gate.sub','Усі ваші клієнти, тренування та фінансові дані збережені. Оберіть план, щоб продовжити роботу.')
+          : t('pay.choose.sub','Повний доступ до всіх функцій PRO Trainer.')}
+      </p>
+
+      <div style={{marginTop:16}}><PlanCards value={plan} onPick={setPlan}/></div>
+
+      {err && (
+        <div className="card pad" style={{marginTop:12, borderColor:'var(--neg)'}}>
+          <b style={{fontSize:14.5, color:'var(--neg)'}}>{err}</b>
+          <p className="muted" style={{fontSize:13, margin:'6px 0 0'}}>
+            {t('pay.err.sub','Дані на місці — нічого не втрачено. Спробуйте ще раз або оберіть інший план.')}
+          </p>
+        </div>
+      )}
+      {okMsg && <div className="card pad" style={{marginTop:12}}>{okMsg}</div>}
+
+      <Btn kind="pri" size="lg" wide style={{marginTop:14}} onClick={buy} disabled={busy}>
+        {busy ? t('pay.wait','Обробляємо…') : err ? t('pay.retry','Спробувати ще раз') : t('pay.go','Продовжити')}
+      </Btn>
+      <button className="btn ghost wide" style={{marginTop:4}} onClick={restore} disabled={busy}>
+        {t('pay.restore','Відновити покупку')}
+      </button>
+      <div className="muted" style={{fontSize:11.5, textAlign:'center', marginTop:10, lineHeight:1.5}}>
+        {IAP.connected()
+          ? t('pay.store','Оплата проходить через магазин застосунків, керувати підпискою можна в його налаштуваннях.')
+          : t('pay.demo','Демо-режим: магазин ще не підключено, покупка імітується для перевірки сценарію.')}
+      </div>
+    </Fragment>
+  );
+
+  if (mode === 'gate') return (
+    <div className="ob fade-in" style={{overflowY:'auto'}}>
+      <div className="brand" style={{marginBottom:18}}><div className="mark"><Ic.dumb size={21}/></div><b>PRO Trainer</b></div>
+      {body}
+      <div style={{height:20}}/>
+    </div>
+  );
+  return <Page title={t('pay.title','Тарифи')} onClose={onClose}>{body}</Page>;
+};
+
+/* Керування підпискою */
+const Subscription = ({onClose}) => {
+  const acc = useAccess();
+  const nav = useNav();
+  const raw = Access.read();
+  const plan = planById(raw.plan);
+  const [busy, setBusy] = useState(false);
+  const active = acc.kind === 'SUBSCRIPTION_ACTIVE' || acc.kind === 'SUBSCRIPTION_CANCELLED';
+
+  return (
+    <Page title={t('sub.title','Підписка')} onClose={onClose}>
+      <div className="card pad" style={{marginTop:4}}>
+        <div className="between">
+          <div>
+            <div className="muted" style={{fontSize:12.5, fontWeight:700}}>PRO Trainer</div>
+            <div className="dsp" style={{fontSize:20, fontWeight:800, marginTop:2}}>
+              {active ? t('sub.active','Активна')
+                : acc.kind === 'TRIAL_ACTIVE' ? t('sub.trial','Пробний період')
+                : t('sub.none','Потрібне продовження')}
+            </div>
+          </div>
+          <span className={cx('badge', active ? 'pos' : acc.kind === 'TRIAL_ACTIVE' ? 'acc' : 'neg')}>
+            {acc.kind === 'SUBSCRIPTION_CANCELLED' ? t('sub.till','Діє до дати') : ACCESS_LABEL(acc)}
+          </span>
+        </div>
+        <div style={{marginTop:12}}>
+          {plan && <Rowline k={t('sub.plan','План')} v={plan.title + ' · ' + usd(plan.price)}/>}
+          {acc.until && <Rowline k={active ? t('sub.until','Діє до') : t('sub.ended','Завершилась')} v={fmtDM(acc.until) + ' ' + new Date(acc.until).getFullYear()}/>}
+          {acc.kind === 'TRIAL_ACTIVE' && <Rowline k={t('sub.left','Залишилось')} v={nDays(acc.left)}/>}
+          <Rowline k={t('sub.renew','Автопродовження')} v={raw.autoRenew === false ? t('common.off','вимкнено') : t('common.on','увімкнено')}/>
+        </div>
+      </div>
+
+      {acc.kind === 'SUBSCRIPTION_CANCELLED' && (
+        <div className="card pad" style={{marginTop:9, background:'var(--warn-soft)', borderColor:'transparent'}}>
+          <b style={{fontSize:14, color:'var(--warn)'}}>{t('sub.cancelled','Автопродовження вимкнено')}</b>
+          <p className="muted" style={{fontSize:13, margin:'6px 0 0'}}>
+            {t('sub.cancelled.t','Доступ працює повністю до')} {fmtDM(acc.until)}. {t('sub.cancelled.t2','Після цієї дати потрібно буде обрати план.')}
+          </p>
+        </div>
+      )}
+
+      <div className="stack" style={{marginTop:12}}>
+        <Btn kind="pri" wide onClick={() => nav.go('plans')}>
+          {active ? t('sub.change','Змінити план') : t('pay.choose','Обрати план')}
+        </Btn>
+        {active && raw.autoRenew !== false && (
+          <Btn kind="sec" wide onClick={() => { Access.cancel(); Toaster.show(t('sub.off','Автопродовження вимкнено — доступ до кінця періоду')); }}>
+            {t('sub.cancel','Вимкнути автопродовження')}
+          </Btn>
+        )}
+        {raw.autoRenew === false && active && (
+          <Btn kind="sec" wide onClick={() => { Access.resume(); Toaster.ok(t('sub.on','Автопродовження увімкнено')); }}>
+            {t('sub.resume','Увімкнути автопродовження')}
+          </Btn>
+        )}
+        <Btn kind="sec" wide disabled={busy} onClick={async () => {
+          setBusy(true);
+          const r = await Access.restore();
+          setBusy(false);
+          Toaster[r.ok ? 'ok' : 'bad'](r.ok ? t('pay.restored','Покупку відновлено') : t('pay.norestore','Активних покупок не знайшли'));
+        }}>{t('pay.restore','Відновити покупку')}</Btn>
+      </div>
+
+      <div className="muted" style={{fontSize:12, marginTop:16, lineHeight:1.5}}>
+        {t('sub.note','Дані клієнтів, тренування та фінанси зберігаються незалежно від підписки — вони нікуди не зникають.')}
+      </div>
+    </Page>
+  );
+};
+
+const ACCESS_LABEL = a =>
+  a.kind === 'TRIAL_ACTIVE' ? t('acc.trial','Пробний період')
+  : a.kind === 'TRIAL_EXPIRED' ? t('acc.trial.end','Пробний завершено')
+  : a.kind === 'SUBSCRIPTION_ACTIVE' ? t('acc.active','Активна')
+  : a.kind === 'SUBSCRIPTION_CANCELLED' ? t('acc.cancel','Без автопродовження')
+  : a.kind === 'SUBSCRIPTION_EXPIRED' ? t('acc.expired','Завершилась')
+  : a.kind === 'PAYMENT_PENDING' ? t('acc.pending','Оплата обробляється')
+  : a.kind === 'PAYMENT_FAILED' ? t('acc.failed','Оплата не пройшла')
+  : t('acc.none','Немає доступу');
+
 /* ─────────── швидке додавання (FAB на головній) ─────────── */
 const QuickAdd = ({open, onClose}) => {
   const nav = useNav();
@@ -4558,6 +5008,7 @@ function useReminders(db){
     };
     const tick = () => {
       if (!alive || !Store.state) return;
+      if (!Access.allowed()) Access.emit();      /* строк вийшов, поки застосунок відкритий */
       const s = Store.state, N = s.settings.notif, now = Date.now();
 
       const mins = m => m >= 60 ? (m / 60) + ' год' : m + ' хв';
@@ -4590,6 +5041,14 @@ function useReminders(db){
         Act.markFired('day_' + dayKey);
         const B = s.settings.backup || {};
         if (B.auto !== false && Date.now() - (B.lastAt || 0) > 20 * 3600 * 1000) Backups.make();
+        const acc = Access.state();
+        if (acc.kind === 'TRIAL_ACTIVE' && [7, 3, 1].indexOf(acc.left) >= 0)
+          fire('trial_' + acc.left, {
+            title: acc.left === 1 ? t('n.trial1','Завтра завершується пробний період')
+                 : t('n.trial','Пробний період завершується'),
+            body: acc.left === 1 ? t('n.trial1.b','Оберіть план, щоб продовжити роботу без перерви')
+                 : t('n.trial.b','Залишилось') + ' ' + nDays(acc.left) + ' ' + t('n.trial.b2','безкоштовного доступу'),
+            type:'info', tone: acc.left === 1 ? 'warn' : null, to:'plans'});
         if (N.debt){
           const debts = s.sessions.filter(isDebt);
           const total = sum(debts, x => x.price);
@@ -4661,6 +5120,8 @@ const ROUTES = {
   'packages':    p => <PackagesPage {...p}/>,
   'remind':      p => <Remind {...p}/>,
   'backup':      p => <Backup {...p}/>,
+  'plans':       p => <Paywall {...p} mode="page"/>,
+  'subscription':p => <Subscription {...p}/>,
   'register':    p => <Register {...p}/>,
 };
 
@@ -4745,6 +5206,30 @@ const Shell = () => {
       </div>
     </NavCtx.Provider>
   );
+};
+
+/* Доступ вирішується в одному місці: показуємо застосунок, вступ до
+   пробного періоду або вибір плану. Дані при цьому не чіпаються. */
+const AppGate = () => {
+  const acc = useAccess();
+  const [intro, setIntro] = useState(() => !Access.read().trialStartedAt);
+  useEffect(() => {
+    Access.verify().catch(() => {});
+    /* строк може вийти, поки застосунок згорнутий — перевіряємо на поверненні */
+    const recheck = () => { Access.emit(); Access.verify().catch(() => {}); };
+    const onVis = () => { if (!document.hidden) recheck(); };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('focus', recheck);
+    const id = setInterval(recheck, 30000);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('focus', recheck);
+      clearInterval(id);
+    };
+  }, []);
+  if (intro) return <TrialIntro onStart={() => { Access.startTrial(); setIntro(false); }}/>;
+  if (!acc.allowed) return <Paywall mode="gate"/>;
+  return <Shell/>;
 };
 
 /* ─────────── запуск ─────────── */
@@ -4832,7 +5317,7 @@ const Boot = () => {
       setPhase('app');
     }}/>
   );
-  return <Shell/>;
+  return <AppGate/>;
 };
 
 /* сервіс-воркер: офлайн-режим і швидкий старт */

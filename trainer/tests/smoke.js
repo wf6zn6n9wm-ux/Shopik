@@ -96,6 +96,7 @@ function sandbox(){
 
 const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, clientStats, clientFeed, isDebt,
   clientPrice, typedPrice, periodOf, periodLabel, deltaRange, RangeSheet, PeriodBar, iso, addDays,
+  Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
@@ -142,6 +143,9 @@ const screen = (name, make) => {
   try { const n = walk(make()); ok(name, n > 3, n + ' вузлів'); }
   catch (e){ ok(name, false, e.message); }
 };
+
+/* далі — сценарії; частина з них асинхронна (покупки), тому в async-обгортці */
+(async () => {
 
 part('демодані');
 const db = T.seedDB({name: 'Олександр Тренер'});
@@ -324,6 +328,99 @@ T.Store.init({...T.emptyDB(), onboarded: true,
 SCREENS.slice(0, 6).forEach(([n, f]) => screen(n + ' витримує биті дані', f));
 screen('картка клієнта витримує биті дані', () => T.ROUTES['client']({params: {id: 'x'}, onClose(){}}));
 
+part('доступ: пробний період');
+{
+  const day = 86400000;
+  const setTrial = daysAgo => { const m = T.Disk.readMeta() || {}; T.Disk.writeMeta({...m, access: {trialStartedAt: Date.now() - daysAgo * day, status: 'trial'}}); };
+
+  T.Disk.writeMeta({});                              /* новий кабінет */
+  ok('до старту доступ не блокується', T.Access.state().kind === 'TRIAL_NOT_STARTED' && T.Access.allowed());
+  T.Access.startTrial();
+  let a = T.Access.state();
+  ok('пробний стартував на 14 днів', a.kind === 'TRIAL_ACTIVE' && a.left === T.TRIAL_DAYS, a.left + ' днів');
+  const startedAt = T.Access.read().trialStartedAt;
+  T.Access.startTrial();
+  ok('повторний старт не подовжує пробний', T.Access.read().trialStartedAt === startedAt);
+
+  setTrial(1);  ok('день 1 — повний доступ', T.Access.state().allowed && T.Access.state().left === 13, T.Access.state().left + ' днів');
+  setTrial(7);  ok('день 7 — залишилось 7', T.Access.state().left === 7);
+  setTrial(13); ok('день 13 — залишився 1 день', T.Access.state().left === 1);
+  setTrial(14);
+  a = T.Access.state();
+  ok('день 14 — пробний завершено', a.kind === 'TRIAL_EXPIRED' && !a.allowed);
+  ok('дані після завершення на місці', T.Store.state.clients.length > 0 && T.Store.state.sessions.length > 0,
+     T.Store.state.clients.length + ' клієнтів');
+}
+
+part('доступ: підписка');
+{
+  const day = 86400000;
+  T.IAP.demo.fail = false;
+  const r = await T.Access.purchase('quarterly');
+  let a = T.Access.state();
+  ok('покупка активувала підписку', r.ok && a.kind === 'SUBSCRIPTION_ACTIVE' && a.allowed);
+  ok('строк ~3 місяці', a.until - Date.now() > 80 * day && a.until - Date.now() < 95 * day,
+     Math.round((a.until - Date.now()) / day) + ' днів');
+  ok('план записаний', T.Access.read().plan === 'quarterly' && T.Access.read().productId === 'pro_trainer_quarterly');
+
+  const was = T.Access.read().expiresAt;
+  await T.Access.purchase('monthly');
+  ok('продовження додається до чинного строку', T.Access.read().expiresAt > was + 25 * day,
+     Math.round((T.Access.read().expiresAt - was) / day) + ' днів зверху');
+
+  T.Access.cancel();
+  a = T.Access.state();
+  ok('після скасування доступ лишається до дати', a.kind === 'SUBSCRIPTION_CANCELLED' && a.allowed);
+  T.Access.resume();
+  ok('автопродовження можна повернути', T.Access.state().kind === 'SUBSCRIPTION_ACTIVE');
+
+  T.Access.write({expiresAt: Date.now() - day});
+  a = T.Access.state();
+  ok('після дати — потрібне продовження', a.kind === 'SUBSCRIPTION_EXPIRED' && !a.allowed);
+  ok('дані підписка не чіпає', T.Store.state.clients.length > 0);
+}
+
+part('доступ: відновлення, помилка, офлайн');
+{
+  const day = 86400000;
+  const m = T.Disk.readMeta() || {};
+  T.Disk.writeMeta({...m, access: {}});               /* ніби перевстановили застосунок */
+  ok('після перевстановлення доступу немає', !T.Access.state().allowed || T.Access.state().kind === 'TRIAL_NOT_STARTED');
+  const rest = await T.Access.restore();
+  ok('покупка відновлюється з магазину', rest.ok && T.Access.state().kind === 'SUBSCRIPTION_ACTIVE',
+     T.Access.state().kind);
+
+  T.Access.write({plan: null, expiresAt: 0, status: null});
+  T.IAP.demo.fail = true;
+  const bad = await T.Access.purchase('monthly');
+  const af = T.Access.state();
+  ok('невдала оплата не ламає акаунт', !bad.ok && af.kind === 'PAYMENT_FAILED' && !af.allowed, af.kind);
+  ok('дані після невдалої оплати на місці', T.Store.state.clients.length > 0);
+  T.IAP.demo.fail = false;
+  const retry = await T.Access.purchase('monthly');
+  ok('повторна спроба спрацювала', retry.ok && T.Access.state().kind === 'SUBSCRIPTION_ACTIVE');
+
+  const online = ctx.navigator.onLine;
+  ctx.navigator.onLine = false;
+  const v = await T.Access.verify();
+  ok('без мережі доступ не блокується', v.offline === true && T.Access.state().allowed);
+  ctx.navigator.onLine = online;
+
+  T.Access.write({trialStartedAt: Date.now() - 3 * day});
+  T.Disk.clear();
+  ok('очищення даних не дає новий пробний період', !!(T.Disk.readMeta() || {}).access.trialStartedAt);
+}
+
+part('доступ: екрани');
+screen('вступ до пробного періоду', () => el(T.TrialIntro, {onStart(){}}));
+screen('вибір плану (після пробного)', () => el(T.Paywall, {mode: 'gate'}));
+screen('вибір плану (з профілю)', () => el(T.Paywall, {mode: 'page', onClose(){}}));
+screen('керування підпискою', () => el(T.Subscription, {onClose(){}}));
+screen('картка доступу в профілі', () => el(T.AccessCard, {}));
+ok('усі три плани на місці', T.PLANS.length === 3 && T.PLANS.every(p => p.productId.indexOf('pro_trainer_') === 0),
+   T.PLANS.map(p => p.productId + ' $' + p.price).join(', '));
+ok('ціни саме ті', T.planById('monthly').price === 4.99 && T.planById('quarterly').price === 12.99 && T.planById('yearly').price === 49.99);
+
 part('мови');
 ['uk', 'ru', 'en', 'pl'].forEach(l => {
   T.I18n.set(l);
@@ -341,3 +438,5 @@ ok('дата з великої літери', /^[А-ЯІЇЄҐ]/.test(T.fmtLong(
 
 console.log('\n══════ ' + (checks - fails) + ' з ' + checks + (fails ? ' · є замечання' : ' · все чисто') + ' ══════');
 process.exit(fails ? 1 : 0);
+
+})();
