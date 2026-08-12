@@ -461,10 +461,12 @@ const num = n => {
   return String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, NBSP);
 };
 const money = (n, cur) => (Number(n) < 0 ? '−' : '') + num(n) + NBSP + (cur === false ? '' : CUR());
+/* скорочуємо лише справді довгі суми, щоб в одному рядку не стояли
+   «49k ₴» і «7 332 ₴» — це читається як помилка */
 const moneyShort = n => {
   const v = Math.abs(Math.round(Number(n) || 0));
   if (v >= 1000000) return (v / 1000000).toFixed(1).replace('.0','') + 'M' + NBSP + CUR();
-  if (v >= 10000)   return Math.round(v / 1000) + 'k' + NBSP + CUR();
+  if (v >= 100000)  return Math.round(v / 1000) + 'k' + NBSP + CUR();
   return money(n);
 };
 const pct = n => (n > 0 ? '+' : '') + (Math.abs(n) >= 10 ? Math.round(n) : Math.round(n * 10) / 10) + '%';
@@ -523,6 +525,18 @@ const phoneMask = v => {
   if (dg.length > 5) out += ' ' + dg.slice(5,7);
   if (dg.length > 7) out += ' ' + dg.slice(7,9);
   return out;
+};
+/* логін — це або пошта, або номер: жодних кодів і підтверджень */
+const isEmail = v => /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(String(v || '').trim());
+const isPhone = v => String(v || '').replace(/\D/g,'').length >= 9;
+const isLogin = v => isEmail(v) || isPhone(v);
+const normLogin = v => {
+  const s = String(v || '').trim();
+  if (s.indexOf('@') > 0) return s.toLowerCase();
+  const d = s.replace(/\D/g,'');
+  if (!d) return s.toLowerCase();
+  if (d.length === 9) return '380' + d;
+  return d.replace(/^0/, '380');
 };
 const telHref = p => 'tel:' + String(p || '').replace(/[^\d+]/g,'');
 const smsHref = (p, txt) => 'sms:' + String(p || '').replace(/[^\d+]/g,'') + '?&body=' + encodeURIComponent(txt || '');
@@ -1505,24 +1519,21 @@ const Onboarding = ({onDone}) => {
 /* ─────────────────── 2. ВХІД / РЕЄСТРАЦІЯ ─────────────────── */
 const Auth = ({onReady}) => {
   const [mode, setMode] = useState('reg');       // reg | login
-  const [f, setF] = useState({name:'', phone:'+380 ', email:'', pass:''});
+  const [f, setF] = useState({login:'', pass:''});
+  const [show, setShow] = useState(false);
   const [err, setErr] = useState({});
   const [busy, setBusy] = useState(false);
-  const acc = Disk.readMeta();
-  const hasAcc = !!(acc && acc.account);
+  const meta0 = Disk.readMeta();
+  const hasAcc = !!(meta0 && meta0.account);
 
   useEffect(() => { if (hasAcc) setMode('login'); }, [hasAcc]);
-
   const set = (k, v) => { setF(x => ({...x, [k]: v})); setErr(x => ({...x, [k]: null})); };
 
   async function submit(){
     const e = {};
-    if (mode === 'reg'){
-      if (f.name.trim().length < 2) e.name = t('auth.err.name','Вкажіть ім’я');
-      if (f.phone.replace(/\D/g,'').length < 12) e.phone = t('auth.err.phone','Невірний номер');
-    }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(f.email)) e.email = t('auth.err.mail','Невірна пошта');
-    if (f.pass.length < 6) e.pass = t('auth.err.pass','Мінімум 6 символів');
+    const login = f.login.trim();
+    if (!isLogin(login)) e.login = t('auth.err.login','Введіть пошту або номер телефону');
+    if (f.pass.length < 4) e.pass = t('auth.err.pass','Пароль — від 4 символів');
     setErr(e);
     if (Object.keys(e).length) return;
     setBusy(true);
@@ -1530,15 +1541,19 @@ const Auth = ({onReady}) => {
       const meta = Disk.readMeta() || {};
       const salt = meta.salt || b64(crypto.getRandomValues(new Uint8Array(16)));
       const hash = await Vault.hash(f.pass, salt);
+      const norm = normLogin(login);
       if (mode === 'login'){
-        if (!meta.account || meta.account.email !== f.email.trim().toLowerCase() || meta.account.hash !== hash){
-          setErr({pass: t('auth.err.bad','Пошта або пароль не підходять')});
+        const a = meta.account;
+        const match = a && (a.login === norm || a.email === norm);   /* старі кабінети зберігали пошту */
+        if (!match || a.hash !== hash){
+          setErr({pass: t('auth.err.bad','Логін або пароль не підходять')});
           setBusy(false);
           return;
         }
-        onReady({account: meta.account, fresh:false});
+        onReady({account: a, fresh:false});
       } else {
-        const account = {email: f.email.trim().toLowerCase(), hash, name: f.name.trim(), phone: f.phone, createdAt: Date.now()};
+        const account = {login: norm, raw: login, kind: isEmail(login) ? 'email' : 'phone',
+                         hash, createdAt: Date.now()};
         Disk.writeMeta({...meta, salt, account});
         onReady({account, fresh:true});
       }
@@ -1557,26 +1572,22 @@ const Auth = ({onReady}) => {
         </div>
         <p className="muted" style={{fontSize:14, marginTop:8}}>
           {mode === 'reg'
-            ? t('auth.reg.sub','Дані клієнтів зберігаються на вашому пристрої. Пароль потрібен, щоб ніхто інший не відкрив кабінет.')
-            : t('auth.login.sub','Увійдіть, щоб відкрити свій кабінет на цьому пристрої.')}
+            ? t('auth.reg.sub','Логін і пароль ви придумуєте самі — жодних кодів і підтверджень. Дані клієнтів лишаються на цьому пристрої.')
+            : t('auth.login.sub','Введіть логін і пароль, які придумали під час реєстрації.')}
         </p>
 
-        {mode === 'reg' && (
-          <Fragment>
-            <Field label={t('auth.name','Ім’я та прізвище')} hint={err.name} bad>
-              <Input value={f.name} onChange={e => set('name', e.target.value)} placeholder="Олександр Тренер" bad={!!err.name}/>
-            </Field>
-            <Field label={t('auth.phone','Телефон')} hint={err.phone} bad>
-              <Input value={f.phone} onChange={e => set('phone', phoneMask(e.target.value))} inputMode="tel" bad={!!err.phone}/>
-            </Field>
-          </Fragment>
-        )}
-        <Field label={t('auth.email','Пошта')} hint={err.email} bad>
-          <Input value={f.email} onChange={e => set('email', e.target.value)} type="email" inputMode="email"
-                 autoCapitalize="off" placeholder="trainer@mail.com" bad={!!err.email}/>
+        <Field label={t('auth.loginlbl','Логін — пошта або телефон')} hint={err.login} bad>
+          <Input value={f.login} onChange={e => set('login', e.target.value)}
+                 placeholder="trainer@mail.com або 067 123 45 67"
+                 autoCapitalize="off" autoCorrect="off" spellCheck="false" bad={!!err.login}/>
         </Field>
-        <Field label={t('auth.pass','Пароль')} hint={err.pass} bad>
-          <Input value={f.pass} onChange={e => set('pass', e.target.value)} type="password" placeholder="••••••" bad={!!err.pass}/>
+        <Field label={t('auth.pass','Пароль')} hint={err.pass || (mode === 'reg' ? t('auth.pass.hint','Мінімум 4 символи. Він потрібен лише щоб відкрити кабінет на цьому пристрої.') : null)} bad={!!err.pass}>
+          <Input value={f.pass} onChange={e => set('pass', e.target.value)}
+                 type={show ? 'text' : 'password'} placeholder="••••" bad={!!err.pass}
+                 suffix={
+                   <button onClick={() => setShow(!show)} style={{color:'var(--accent)', fontWeight:700, fontSize:12.5}}>
+                     {show ? t('auth.hide','Сховати') : t('auth.show','Показати')}
+                   </button>}/>
         </Field>
       </div>
 
@@ -1634,16 +1645,20 @@ const PinLock = ({mode, onPin, onCancel, error}) => {
 
 /* Майстер налаштувань після реєстрації */
 const Setup = ({account, onDone}) => {
-  const [s, setS] = useState({price:800, gymMode:'percent', gymPercent:15, gymFixed:0, demo:true});
+  const [s, setS] = useState({price:800, gymMode:'percent', gymPercent:15, gymFixed:0, demo:true, name:''});
   const sp = split(s.price, s);
   return (
     <div className="ob fade-in">
       <div className="brand" style={{marginBottom:20}}><div className="mark"><Ic.dumb size={21}/></div><b>PRO Trainer</b></div>
       <div style={{flex:1, overflowY:'auto'}}>
-        <div className="dsp" style={{fontSize:26, fontWeight:800, letterSpacing:'-.035em'}}>{t('setup.title','Налаштуємо гроші')}</div>
+        <div className="dsp" style={{fontSize:26, fontWeight:800, letterSpacing:'-.035em'}}>{t('setup.title','Останній крок')}</div>
         <p className="muted" style={{fontSize:14, marginTop:8}}>
-          {t('setup.sub','Ці два числа підставлятимуться в кожне тренування. Змінити можна будь-коли в профілі.')}
+          {t('setup.sub','Ці числа підставлятимуться в кожне тренування. Змінити можна будь-коли в профілі.')}
         </p>
+
+        <Field label={t('setup.name','Як вас звати')}>
+          <Input value={s.name} onChange={e => setS({...s, name: e.target.value})} placeholder="Олександр Тренер"/>
+        </Field>
 
         <Field label={t('setup.price','Вартість тренування')}>
           <Input value={s.price} onChange={e => setS({...s, price: +e.target.value.replace(/\D/g,'') || 0})}
@@ -1693,7 +1708,8 @@ const Setup = ({account, onDone}) => {
         </button>
       </div>
       <Btn kind="pri" size="lg" wide style={{marginTop:16}}
-           onClick={() => onDone({price:s.price, gymMode:s.gymMode, gymPercent:s.gymPercent, gymFixed:s.gymFixed}, s.demo, account)}>
+           onClick={() => onDone({price:s.price, gymMode:s.gymMode, gymPercent:s.gymPercent, gymFixed:s.gymFixed},
+                                 s.demo, account, s.name.trim())}>
         {t('setup.go','Готово, до роботи')}
       </Btn>
     </div>
@@ -1733,6 +1749,8 @@ const Home = ({loading}) => {
   const [dFrom, dTo] = periodRange('day', now);
   const today = stats(db, dFrom, dTo);
   const delta = deltaFor(db, 'day');
+  const [mFrom, mTo] = periodRange('month', now);
+  const month = stats(db, mFrom, mTo);
 
   const spark = useMemo(() => Array.from({length:7}, (_, i) => {
     const [f, tt] = periodRange('day', addDays(now, i - 6));
@@ -1804,12 +1822,18 @@ const Home = ({loading}) => {
           <Spark data={spark}/>
         </button>
 
-        {/* три метрики */}
-        <div className="kpis">
+        {/* три метрики — за поточний місяць */}
+        <div className="sechead tight">
+          <div className="h2" style={{fontSize:14, color:'var(--ink-2)'}}>
+            {t('home.month','Цього місяця')} · {fmtMonth(now).toLowerCase()}
+          </div>
+          <button className="link" onClick={() => nav.go('finance')}>{t('home.details','Деталі')}</button>
+        </div>
+        <div className="kpis" style={{marginTop:0}}>
           {[
-            {k: t('home.turnover','Оборот'), v: today.gross, ic: <Ic.refresh size={19}/>},
-            {k: t('home.gym','Залу'),        v: today.gym,   ic: <Ic.bank size={19}/>},
-            {k: t('home.net','Чистими'),     v: today.net,   ic: <Ic.wallet size={19}/>},
+            {k: t('home.turnover','Оборот'), v: month.gross, ic: <Ic.refresh size={19}/>},
+            {k: t('home.gym','Залу'),        v: month.gym,   ic: <Ic.bank size={19}/>},
+            {k: t('home.net','Чистими'),     v: month.net,   ic: <Ic.wallet size={19}/>},
           ].map((x, i) => (
             <button key={i} className="kpi press" style={{textAlign:'left'}} onClick={() => nav.go('finance')}>
               <div className="k">{x.k}</div>
@@ -4202,11 +4226,12 @@ const Boot = () => {
   if (phase === 'onboard') return <Onboarding onDone={() => setPhase('auth')}/>;
   if (phase === 'auth') return <Auth onReady={r => { setAccount(r.account); setPhase('setup'); }}/>;
   if (phase === 'setup') return (
-    <Setup account={account} onDone={(settings, demo, acc) => {
-      const base = demo ? seedDB({name: acc ? acc.name : '', phone: acc ? acc.phone : '', email: acc ? acc.email : ''}) : emptyDB();
+    <Setup account={account} onDone={(settings, demo, acc, name) => {
+      const phone = acc && acc.kind === 'phone' ? phoneMask(acc.login) : '';
+      const email = acc && acc.kind === 'email' ? acc.login : '';
+      const base = demo ? seedDB({name, phone, email}) : emptyDB();
       const db = {...base, onboarded: true,
-        profile: {...base.profile, name: acc ? acc.name : base.profile.name, phone: acc ? acc.phone : base.profile.phone,
-                  email: acc ? acc.email : ''},
+        profile: {...base.profile, name: name || base.profile.name, phone, email},
         settings: {...base.settings, ...settings}};
       I18n.set(db.settings.lang);
       Store.init(db);
