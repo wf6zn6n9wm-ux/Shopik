@@ -95,6 +95,7 @@ function sandbox(){
 }
 
 const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, clientStats, clientFeed, isDebt,
+  clientPrice, typedPrice,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
@@ -123,6 +124,20 @@ function walk(node){
   }
   return 1 + walk(props && props.children);
 }
+/* увесь текст піддерева — щоб перевіряти, що саме бачить тренер */
+function textOf(node){
+  if (node == null || node === false || node === true) return '';
+  if (typeof node === 'string' || typeof node === 'number') return ' ' + node;
+  if (Array.isArray(node)) return node.map(textOf).join('');
+  if (!node.__el) return '';
+  const {type, props} = node;
+  if (typeof type === 'function'){
+    const out = (type.prototype && type.prototype.isReactComponent) ? new type(props).render() : type(props);
+    return textOf(out);
+  }
+  return textOf(props && props.children);
+}
+
 const screen = (name, make) => {
   try { const n = walk(make()); ok(name, n > 3, n + ' вузлів'); }
   catch (e){ ok(name, false, e.message); }
@@ -200,6 +215,21 @@ const ROUTES = [
   ['debts', {}], ['lapsed', {}], ['sell', {}], ['product.new', {id: 'pr_1'}], ['product.new', {}],
   ['package.new', {}], ['packages', {}], ['remind', {clientId: 'cl_1', sum: 800}],
 ];
+
+part('ціна тренування');
+ok('своя ціна клієнта', T.clientPrice(db, 'cl_6') === 900, T.money(T.clientPrice(db, 'cl_6')));
+ok('без своєї — ціна за замовчуванням', T.clientPrice(db, 'cl_0') === db.settings.price);
+ok('невідомий клієнт не ламає розрахунок', T.clientPrice(db, 'нема') === db.settings.price);
+ok('тип коригує суму', T.typedPrice(800, 'online') === 560 && T.typedPrice(800, 'split') === 1120 && T.typedPrice(800, 'personal') === 800,
+   [T.typedPrice(800,'online'), T.typedPrice(800,'personal'), T.typedPrice(800,'split')].join(' / '));
+try {
+  const form = textOf(T.ROUTES['session.new']({params: {clientId: 'cl_6'}, onClose(){}}));
+  ok('форма підставляє ціну клієнта', /900/.test(form) && !/ 800 /.test(form.split('Вартість')[1] || ''));
+  const card = textOf(T.ROUTES['client']({params: {id: 'cl_6'}, onClose(){}}));
+  ok('картка показує закріплену ціну', /900/.test(card));
+  const card0 = textOf(T.ROUTES['client']({params: {id: 'cl_0'}, onClose(){}}));
+  ok('без своєї ціни картка каже «за замовчуванням»', card0.includes('за замовчуванням'));
+} catch (e){ ok('ціна в екранах', false, e.message); }
 
 part('екрани на демоданих');
 T.Store.init(T.seedDB({name: 'Олександр'}));

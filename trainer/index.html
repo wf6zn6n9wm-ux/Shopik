@@ -726,6 +726,17 @@ function clientFeed(db, id){
   return out.sort((a,b) => b.ts - a.ts);
 }
 
+/* ціна одного тренування: за замовчуванням із налаштувань, але якщо за
+   клієнтом закріплена своя — беремо її; тип лише коригує суму */
+const clientPrice = (db, clientId) => {
+  const c = clientId ? byId(db.clients, clientId) : null;
+  return (c && c.price) || db.settings.price;
+};
+const typedPrice = (base, type) =>
+  type === 'online' ? Math.round(base * .7)
+  : type === 'split' ? Math.round(base * 1.4)
+  : Math.round(base);
+
 const SES_TYPES = {
   personal: {title:'Персональна', hue:'t1', dur:60},
   pair:     {title:'Парна',       hue:'t2', dur:60},
@@ -792,7 +803,8 @@ const Act = {
   profile(patch){ Store.patch(db => ({...db, profile:{...db.profile, ...patch}}), {name:'profile', data:patch}); },
 
   addClient(c){
-    const client = {id: uid('cl'), name:'', phone:'', goal:'', photo:'', note:'', createdAt: Date.now(), archived:false, ...c};
+    const client = {id: uid('cl'), name:'', phone:'', goal:'', photo:'', note:'', price: null,
+                    createdAt: Date.now(), archived:false, ...c};
     Store.patch(db => ({...db, clients:[client, ...db.clients]}), {name:'client.add', data:client});
     return client;
   },
@@ -909,9 +921,12 @@ function seedDB(profile){
     ['Анна Мельник','Рельєф'], ['Софія Ткаченко','Здоров’я спини'], ['Дмитро Шевчук','Витривалість'],
     ['Ольга Кравець','Схуднення'], ['Артем Лисенко','Набір маси'],
   ];
+  /* у двох клієнтів своя закріплена ціна — так видно, що сума не однакова для всіх */
+  const ownPrice = {cl_6: 900, cl_7: 700};
   db.clients = names.map(([name, goal], i) => ({
     id: 'cl_' + i, name, goal, phone: phoneMask('0' + (63 + i % 6) + String(1000000 + Math.floor(rnd() * 8999999)).slice(0,7)),
-    photo:'', note:'', createdAt: Date.now() - (120 - i * 11) * DAY, archived:false,
+    photo:'', note:'', price: ownPrice['cl_' + i] || null,
+    createdAt: Date.now() - (120 - i * 11) * DAY, archived:false,
   }));
 
   db.products = [
@@ -950,8 +965,9 @@ function seedDB(profile){
       const c = pick(db.clients);
       const type = rnd() > .86 ? pick(['pair','online','split']) : 'personal';
       const sub = db.subs.find(x => x.clientId === c.id && rnd() > .6);
+      const own = c.price || price;
       list.push(mk(c.id, day, Math.floor(s), (s % 1) * 60, {
-        type, price: SES_TYPES[type].dur === 90 ? Math.round(price * 1.4) : (type === 'online' ? Math.round(price * .7) : price),
+        type, price: type === 'split' ? Math.round(own * 1.4) : (type === 'online' ? Math.round(own * .7) : own),
         dur: SES_TYPES[type].dur,
         subId: sub ? sub.id : null,
         paid: sub ? true : (d > 12 ? true : rnd() > .3),
@@ -974,7 +990,7 @@ function seedDB(profile){
     for (let i = 0; i < count; i++){
       let s; do { s = pick(slots); } while (used.includes(s)); used.push(s);
       const c = pick(db.clients);
-      list.push(mk(c.id, day, Math.floor(s), (s % 1) * 60, {status:'planned', paid:false,
+      list.push(mk(c.id, day, Math.floor(s), (s % 1) * 60, {status:'planned', paid:false, price: c.price || price,
         subId: db.subs.find(x => x.clientId === c.id) ? db.subs.find(x => x.clientId === c.id).id : null}));
     }
   }
@@ -1660,7 +1676,8 @@ const Setup = ({account, onDone}) => {
           <Input value={s.name} onChange={e => setS({...s, name: e.target.value})} placeholder="Олександр Тренер"/>
         </Field>
 
-        <Field label={t('setup.price','Вартість тренування')}>
+        <Field label={t('setup.price','Вартість тренування за замовчуванням')}
+               hint={t('setup.price.hint','Сума підставляється в нове тренування — її можна змінити в будь-якому тренуванні або закріпити окрему ціну за клієнтом.')}>
           <Input value={s.price} onChange={e => setS({...s, price: +e.target.value.replace(/\D/g,'') || 0})}
                  inputMode="numeric" suffix="₴"/>
         </Field>
@@ -2138,7 +2155,7 @@ const SessionForm = ({params, onClose}) => {
     clientId: edit ? edit.clientId : (params.clientId || ''),
     when: base,
     type: edit ? edit.type : 'personal',
-    price: edit ? edit.price : S.price,
+    price: edit ? edit.price : clientPrice(db, params.clientId || ''),
     paid: edit ? edit.paid : false,
     subId: edit ? edit.subId : null,
     note: edit ? edit.note : '',
@@ -2149,19 +2166,19 @@ const SessionForm = ({params, onClose}) => {
 
   /* абонемент клієнта підставляється сам */
   const sub = useMemo(() => db.subs.find(x => x.clientId === f.clientId && x.used < x.total), [db.subs, f.clientId]);
+  const who = f.clientId ? byId(db.clients, f.clientId) : null;
+  const base$ = clientPrice(db, f.clientId);          /* ціна клієнта або за замовчуванням */
+
   useEffect(() => {
-    if (!f.clientId) return;
-    if (sub && !edit) setF(x => ({...x, subId: sub.id, paid: true, price: Math.round(sub.price / sub.total)}));
-    else if (!sub && !edit) setF(x => ({...x, subId: null, price: S.price}));
+    if (!f.clientId || edit) return;
+    if (sub) setF(x => ({...x, subId: sub.id, paid: true, price: Math.round(sub.price / sub.total)}));
+    else setF(x => ({...x, subId: null, price: typedPrice(base$, x.type)}));
   }, [f.clientId]);
 
   useEffect(() => {
     if (edit) return;
-    const d = SES_TYPES[f.type];
-    setF(x => ({...x, dur: d.dur,
-      price: x.subId ? x.price
-        : f.type === 'online' ? Math.round(S.price * .7)
-        : f.type === 'split' ? Math.round(S.price * 1.4) : S.price}));
+    setF(x => ({...x, dur: SES_TYPES[f.type].dur,
+      price: x.subId ? x.price : typedPrice(base$, f.type)}));
   }, [f.type]);
 
   const taken = db.sessions
@@ -2207,8 +2224,19 @@ const SessionForm = ({params, onClose}) => {
         </div>
       </Field>
 
-      <Field label={t('session.price','Вартість')}>
-        <Input value={f.price} onChange={e => set('price', +e.target.value.replace(/\D/g,'') || 0)} inputMode="numeric" suffix="₴"/>
+      <Field label={t('session.price','Вартість')}
+             hint={f.subId ? t('session.price.sub','Ціна одного заняття з абонемента')
+                   : who && who.price ? t('session.price.fix','Закріплена ціна цього клієнта — можна змінити для цього тренування')
+                   : t('session.price.def','Підставлено ціну за замовчуванням — змініть, якщо сьогодні інша сума')}>
+        <Input value={f.price} onChange={e => set('price', +e.target.value.replace(/\D/g,'') || 0)} inputMode="numeric" suffix={S.currency}/>
+        {!f.subId && (
+          <div className="chips" style={{marginTop:8}}>
+            {[...new Set([base$, S.price, Math.round(base$ * 1.25), Math.round(base$ * .75)])]
+              .filter(v => v > 0).sort((a, b) => a - b).map(v => (
+              <button key={v} className={cx('chip', f.price === v && 'on')} onClick={() => set('price', v)}>{money(v)}</button>
+            ))}
+          </div>
+        )}
       </Field>
 
       <Field label={t('session.payment','Оплата')}>
@@ -2501,6 +2529,18 @@ const ClientPage = ({params, onClose}) => {
           <div className="v num" style={{color: st.debt ? 'var(--neg)' : 'var(--ink)'}}>{moneyShort(st.debt)}</div></div>
       </div>
 
+      <button className="card pad press" style={{marginTop:9, width:'100%', display:'flex', gap:12, alignItems:'center', textAlign:'left'}}
+              onClick={() => nav.go('client.new', {id: c.id})}>
+        <div style={{width:38, height:38, borderRadius:12, background:'var(--accent-soft)', color:'var(--accent)',
+                     display:'grid', placeItems:'center', flex:'none'}}><Ic.wallet size={19}/></div>
+        <div style={{flex:1, minWidth:0}}>
+          <div className="muted" style={{fontSize:12.5, fontWeight:700}}>{t('client.price','Вартість тренування')}</div>
+          <b style={{fontSize:15}}>{money(c.price || db.settings.price)}</b>
+          {!c.price && <span className="mute3" style={{fontSize:12.5, fontWeight:600}}> · {t('client.price.default','за замовчуванням')}</span>}
+        </div>
+        <Ic.right size={17} className="chev"/>
+      </button>
+
       {st.next && (
         <button className="card pad press" style={{marginTop:12, width:'100%', display:'flex', gap:12, alignItems:'center', textAlign:'left'}}
                 onClick={() => setOpen(st.next)}>
@@ -2643,6 +2683,7 @@ const ClientForm = ({params, onClose}) => {
     goal: edit ? edit.goal : '',
     photo: edit ? edit.photo : '',
     note: edit ? edit.note : '',
+    price: edit && edit.price ? String(edit.price) : '',
   });
   const [err, setErr] = useState({});
   const set = (k, v) => { setF(x => ({...x, [k]: v})); setErr(x => ({...x, [k]: null})); };
@@ -2662,12 +2703,13 @@ const ClientForm = ({params, onClose}) => {
     if (f.name.trim().length < 2) e.name = t('client.err.name','Вкажіть ім’я');
     setErr(e);
     if (Object.keys(e).length) return;
+    const data = {...f, name: f.name.trim(), price: f.price ? +f.price : null};
     if (edit){
-      Act.updClient(edit.id, {...f, name: f.name.trim()});
+      Act.updClient(edit.id, data);
       Toaster.ok(t('client.saved','Зміни збережено'));
       onClose();
     } else {
-      const c = Act.addClient({...f, name: f.name.trim()});
+      const c = Act.addClient(data);
       Toaster.ok(t('client.added','Клієнта додано'));
       onClose();
       if (params.then === 'session') setTimeout(() => nav.go('session.new', {clientId: c.id}), 80);
@@ -2693,6 +2735,13 @@ const ClientForm = ({params, onClose}) => {
       </Field>
       <Field label={t('client.phone','Телефон')}>
         <Input value={f.phone} onChange={e => set('phone', phoneMask(e.target.value))} inputMode="tel"/>
+      </Field>
+      <Field label={t('client.price','Вартість тренування')}
+             hint={f.price
+               ? t('client.price.fix','Ця сума підставлятиметься в кожне тренування з цим клієнтом')
+               : t('client.price.def','Порожньо — береться ціна за замовчуванням, ') + money(db.settings.price)}>
+        <Input value={f.price} onChange={e => set('price', e.target.value.replace(/\D/g,''))}
+               inputMode="numeric" placeholder={String(db.settings.price)} suffix={db.settings.currency}/>
       </Field>
       <Field label={t('client.goal','Мета')}>
         <div className="chips">
@@ -3653,7 +3702,7 @@ const Profile = ({loading}) => {
         <div className="rows">
           <button className="setrow" onClick={() => nav.go('settings', {focus:'price'})}>
             <div className="ic"><Ic.dumb size={19}/></div>
-            <div className="tx"><b>{t('setup.price','Вартість тренування')}</b><span>{t('profile.price.s','Підставляється в кожне тренування')}</span></div>
+            <div className="tx"><b>{t('setup.price','Вартість тренування')}</b><span>{t('profile.price.s','За замовчуванням — у клієнта може бути своя')}</span></div>
             <span className="rt num">{money(S.price)}</span>
           </button>
           <button className="setrow" onClick={() => nav.go('settings', {focus:'gym'})}>
@@ -3791,7 +3840,8 @@ const Settings = ({onClose}) => {
       <Page title={t('menu.set','Налаштування')} onClose={onClose}>
         <div className="sechead tight"><div className="h2">{t('set.money','Гроші')}</div></div>
         <div className="card pad">
-          <Field label={t('setup.price','Вартість тренування')}>
+          <Field label={t('setup.price','Вартість тренування за замовчуванням')}
+                 hint={t('setup.price.hint','Сума підставляється в нове тренування — її можна змінити в будь-якому тренуванні або закріпити окрему ціну за клієнтом.')}>
             <Input value={S.price} onChange={e => Act.settings({price: +e.target.value.replace(/\D/g,'') || 0})}
                    inputMode="numeric" suffix={S.currency} autoFocus={false}/>
           </Field>
