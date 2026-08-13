@@ -711,6 +711,7 @@ const PHRASES = [
   ['прострочено', 'просрочено', 'overdue', 'po terminie'],
   ['Анна Мельник', 'Анна Мельник', 'Anna Melnyk', 'Anna Melnyk'],
   ['Борг закрито', 'Долг закрыт', 'Debt cleared', 'Dług spłacony'],
+  ['Оплатив', 'Оплатил', 'Paid', 'Zapłacił'],
   ['Боргів немає', 'Долгов нет', 'No debts', 'Brak długów'],
   ['Ваш прибуток', 'Ваша прибыль', 'Your profit', 'Twój zysk'],
   ['Витривалість', 'Выносливость', 'Endurance', 'Wytrzymałość'],
@@ -770,7 +771,7 @@ const PHRASES = [
   ['день|дні|днів', 'день|дня|дней', 'day|days', 'dzień|dni|dni'],
   ['за тренування', 'за тренировку', 'per session', 'za trening'],
   ['Активних немає', 'Активных нет', 'None active', 'Brak aktywnych'],
-  ['Без тренування', 'Без тренировок', 'Not training', 'Bez treningów'],
+  ['Давно не був', 'Давно не был', 'Long absent', 'Dawno nie był'],
   ['Борги клієнтів', 'Долги клиентов', 'Client debts', 'Długi klientów'],
   ['Вигода клієнта', 'Выгода клиента', 'Client saves', 'Oszczędność klienta'],
   ['Видалити пакет', 'Удалить пакет', 'Delete package', 'Usuń pakiet'],
@@ -3737,9 +3738,17 @@ const DebtCard = ({d}) => {
           </div>
         </div>
       </button>
-      <Btn kind="soft" size="sm" onClick={() => nav.go('remind', {clientId: c.id, sum: d.sum})}>
-        {t('debt.remind','Нагадати')}
-      </Btn>
+      {/* борг найчастіше закривається тим, що клієнт віддав гроші на місці —
+          заради цього не варто заходити в картку й шукати кожне тренування */}
+      <div style={{display:'flex', flexDirection:'column', gap:6}}>
+        <Btn kind="pri" size="sm" onClick={() => {
+          Act.payClient(c.id);
+          Toaster.ok(t('debt.paid.ok','Борг закрито') + ' · ' + money(d.sum));
+        }}>{t('debt.paid','Оплатив')}</Btn>
+        <Btn kind="soft" size="sm" onClick={() => nav.go('remind', {clientId: c.id, sum: d.sum})}>
+          {t('debt.remind','Нагадати')}
+        </Btn>
+      </div>
     </div>
   );
 };
@@ -4331,7 +4340,7 @@ const Clients = ({loading}) => {
 
         <div className="chips" style={{marginTop:10}}>
           {[['next', t('client.sort.next','Найближчі')], ['name', t('client.sort.name','За іменем')],
-            ['debt', t('client.sort.debt','З боргом')], ['lapsed', t('client.sort.lapsed','Без тренування')]].map(([v, tx]) => (
+            ['debt', t('client.sort.debt','З боргом')], ['lapsed', t('client.sort.lapsed','Давно не був')]].map(([v, tx]) => (
             <button key={v} className={cx('chip', sort === v && 'on')} onClick={() => setSort(v)}>{tx}</button>
           ))}
         </div>
@@ -4351,6 +4360,15 @@ const Clients = ({loading}) => {
                  text={t('client.nofind.t','Перевірте запит або створіть нового клієнта.')}
                  action={<Btn kind="soft" size="sm" onClick={() => nav.go('client.new', {name: q})}>
                            <Ic.plus size={17}/>{t('client.new','Новий клієнт')}</Btn>}/>
+        ) : (
+          sort === 'lapsed' ? (
+          /* у цьому фільтрі головне не перегляд, а написати — тому картка
+             з кнопкою, а не звичайний рядок списку */
+          <div className="stack" style={{marginTop:12}}>
+            {sorted.map(({c, st}) => (
+              <LapsedCard key={c.id} c={c} days={st.lapsedDays === null ? 0 : st.lapsedDays} last={st.last}/>
+            ))}
+          </div>
         ) : (
           <div className="rows" style={{marginTop:12}}>
             {sorted.map(({c, st}) => (
@@ -4372,6 +4390,7 @@ const Clients = ({loading}) => {
               </button>
             ))}
           </div>
+          )
         )}
       </div>
 
