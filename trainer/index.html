@@ -1131,7 +1131,6 @@ const PHRASES = [
   ['Ціна, комісія, мова, захист', 'Цена, комиссия, язык, защита', 'Price, fee, language, security', 'Cena, prowizja, język, ochrona'],
   ['Позначено: клієнт не прийшов', 'Отмечено: клиент не пришёл', 'Marked: the client did not come', 'Oznaczono: klient nie przyszedł'],
   ['Дані зберігаються на пристрої', 'Данные хранятся на устройстве', 'Data is stored on your device', 'Dane są na urządzeniu'],
-  ['Клієнт записався або скасував', 'Клиент записался или отменил', 'Client booked or cancelled', 'Klient zapisał się lub odwołał'],
   ['Нагадування перед тренуванням', 'Напоминания перед тренировкой', 'Reminders before a session', 'Przypomnienia przed treningiem'],
   ['Пошук за іменем або телефоном', 'Поиск по имени или телефону', 'Search by name or phone', 'Szukaj po imieniu lub telefonie'],
   ['Пробний період, план і оплата', 'Пробный период, план и оплата', 'Trial, plan and payment', 'Okres próbny, plan i płatność'],
@@ -2471,7 +2470,9 @@ function emptyDB(){
       currency: '₴', lang: 'uk', theme: 'system', lapseDays: 10, dayStart: 7, dayEnd: 22, dayGoal: 8,
       syncUrl: '', secure: false,
       backup: {auto: true, lastAt: 0},
-      notif: {before: [60, 15], client: true, booked: true, canceled: true,
+      /* тільки те, що застосунок справді вміє надіслати: записатись сам
+         клієнт не може — клієнтського застосунку немає */
+      notif: {before: [60, 15], client: true,
               lapsed: true, packageEnd: true, stock: true, debt: true},
     },
     clients: [], sessions: [], products: [], sales: [], packages: [], subs: [], notes: [], notifs: [],
@@ -6777,7 +6778,6 @@ const Settings = ({onClose}) => {
         <div className="rows" style={{marginTop:9}}>
           {[
             ['client',   t('n.client','Нагадування клієнту'), t('n.client.s','Увечері підкажемо, кому написати про завтра')],
-            ['booked',   t('n.booked','Клієнт записався або скасував'), ''],
             ['debt',     t('n.debt','З’явилась заборгованість'), ''],
             ['lapsed',   t('n.lapsed','Клієнт давно не приходив'), ''],
             ['packageEnd', t('n.pack','Закінчується абонемент'), ''],
