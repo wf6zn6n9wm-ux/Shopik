@@ -699,6 +699,7 @@ const PHRASES = [
   ['Видалити товар', 'Удалить товар', 'Delete product', 'Usuń produkt'],
   ['Додати нотатку', 'Добавить заметку', 'Add a note', 'Dodaj notatkę'],
   ['Дохід сьогодні', 'Доход сегодня', 'Income today', 'Dochód dzisiaj'],
+  ['Заплановано до', 'Запланировано до', 'Scheduled until', 'Zaplanowane do'],
   ['Здоров’я спини', 'Здоровье спины', 'Back health', 'Zdrowe plecy'],
   ['Клієнта додано', 'Клиент добавлен', 'Client added', 'Klient dodany'],
   ['Копію створено', 'Копия создана', 'Backup created', 'Kopia utworzona'],
@@ -983,6 +984,7 @@ const PHRASES = [
   ['Дані клієнтів на пристрої будуть зашифровані AES-256', 'Данные клиентов на устройстве будут зашифрованы AES-256', 'Client data on the device will be encrypted with AES-256', 'Dane klientów na urządzeniu zostaną zaszyfrowane AES-256'],
   ['Напр.: збільшити робочу вагу на наступному тренуванні', 'Напр.: увеличить рабочий вес на следующей тренировке', 'E.g. increase working weight next session', 'Np.: zwiększyć ciężar roboczy na kolejnym treningu'],
   ['Уже куплені абонементи клієнтів залишаться активними.', 'Уже купленные абонементы клиентов останутся активными.', 'Packages clients already bought stay active.', 'Już kupione karnety klientów pozostaną aktywne.'],
+  ['далі нагадування оновляться, коли відкриєте застосунок', 'дальше напоминания обновятся, когда откроете приложение', 'after that reminders refresh when you open the app', 'potem przypomnienia odświeżą się, gdy otworzysz aplikację'],
   ['Інтерфейс перекладено; юридичні документи — українською', 'Интерфейс переведён; юридические документы — на украинском', 'The interface is translated; legal documents are in Ukrainian', 'Interfejs przetłumaczony; dokumenty prawne po ukraińsku'],
   ['Збільшити робочу вагу в присіді на наступному тренуванні.', 'Увеличить рабочий вес в приседе на следующей тренировке.', 'Increase working weight in the squat next session.', 'Zwiększyć ciężar roboczy w przysiadzie na kolejnym treningu.'],
   ['Кожен клієнт або тренувався нещодавно, або вже записаний.', 'Каждый клиент либо тренировался недавно, либо уже записан.', 'Every client either trained recently or is already booked.', 'Każdy klient albo niedawno trenował, albo jest już zapisany.'],
@@ -992,6 +994,7 @@ const PHRASES = [
   ['Не вдалося показати цей блок. Дані на пристрої не втрачені.', 'Не удалось показать этот блок. Данные на устройстве не потеряны.', 'Couldn’t render this block. Your data on the device is intact.', 'Nie udało się wyświetlić tego bloku. Dane na urządzeniu są całe.'],
   ['Ця сума підставлятиметься в кожне тренування з цим клієнтом', 'Эта сумма будет подставляться в каждую тренировку с этим клиентом', 'This amount will be prefilled for every session with this client', 'Ta kwota będzie wstawiana do każdego treningu z tym klientem'],
   ['Воно лишиться в історії як скасоване і не потрапить у дохід.', 'Она останется в истории как отменённая и не попадёт в доход.', 'It stays in history as cancelled and won’t count as income.', 'Zostanie w historii jako odwołany i nie wliczy się do dochodu.'],
+  ['Відкрийте застосунок, щоб оновити нагадування на наступні дні', 'Откройте приложение, чтобы обновить напоминания на следующие дни', 'Open the app to refresh reminders for the coming days', 'Otwórz aplikację, aby odświeżyć przypomnienia na kolejne dni'],
   ['Оформіть абонемент клієнту з його картки або зі списку пакетів.', 'Оформите абонемент клиенту из его карточки или из списка пакетов.', 'Issue a package from a client’s card or from the packages list.', 'Wystaw karnet z karty klienta lub z listy pakietów.'],
   ['Такі клієнти з’являться на головній у блоці «Кому час написати»', 'Такие клиенты появятся на главной в блоке «Кому пора написать»', 'Such clients appear on the home screen under “Time to text”', 'Tacy klienci pojawią się na ekranie głównym w bloku „Czas napisać”'],
   ['Тренувань не заплановано. Гарний момент, щоб запросити клієнта.', 'Тренировок не запланировано. Хороший момент, чтобы пригласить клиента.', 'No sessions planned. A good moment to invite a client.', 'Brak zaplanowanych treningów. Dobry moment, żeby zaprosić klienta.'],
@@ -1629,6 +1632,10 @@ const Web = {
    тоді вони приходять і з закритим застосунком. Розклад перескладається
    щоразу, коли змінюються тренування або налаштування.                  */
 const NOTIF_KEY = KEY + '.notif';
+const NOTIF_LIMIT = 56;      /* iOS тримає не більше 64 на застосунок — лишаємо запас */
+const NOTIF_DAYS  = 30;      /* далі планувати немає сенсу: розклад ще зміниться */
+const NOTIF_EXTRA = 0.4;     /* яку частку бюджету можна віддати другим інтервалам */
+const NOTIF_EXTRA_DAYS = 2;  /* короткий інтервал корисний лише найближчим дням */
 const minsLabel = m => m >= 60 ? (m / 60) + ' ' + t('unit.hour','год') : m + ' ' + t('unit.min','хв');
 
 const Notifier = {
@@ -1672,21 +1679,92 @@ const Notifier = {
     for (let i = 0; i < src.length; i++) h = (h * 31 + src.charCodeAt(i)) % 2000000000;
     return h + 1;
   },
-  /* що саме треба нагадати найближчим тижнем */
-  plan(db){
-    const out = [], now = Date.now(), horizon = now + 7 * DAY;
-    (db.settings.notif.before || []).forEach(m => {
-      db.sessions.filter(x => x.status === 'planned').forEach(x => {
-        const at = +new Date(x.start) - m * 60000;
-        if (at > now + 30000 && at < horizon){
-          const c = byId(db.clients, x.clientId);
-          out.push({id: Notifier.id(x.id, m), at: new Date(at),
-            title: '🏋️ ' + t('n.before','Тренування за') + ' ' + minsLabel(m),
-            body: (c ? c.name : t('session.one','Тренування')) + ' · ' + fmtTime(x.start)});
-        }
-      });
-    });
-    return out.sort((a, b) => a.at - b.at).slice(0, 60);   /* у плагінів є ліміти */
+  /* Розклад наперед.
+
+     iOS тримає не більше 64 запланованих сповіщень на застосунок, тож
+     бюджет — головне обмеження, а не горизонт. Раніше ми брали перші 60
+     за часом: у тренера з шістьма тренуваннями на день два інтервали
+     з'їдали бюджет за п'ять днів, а далі тиша. Тому спершу даємо по
+     одному сповіщенню на кожне тренування — так розклад тягнеться на
+     тижні, — і лише залишком бюджету додаємо другий інтервал найближчим.
+
+     Якщо тренувань більше, ніж слотів, останнім ставимо нагадування
+     відкрити застосунок: без нього тренер просто перестав би отримувати
+     сповіщення й не дізнався б про це.                                */
+  build(db){
+    const now = Date.now(), horizon = now + NOTIF_DAYS * DAY;
+    const mins = [...(db.settings.notif.before || [])].sort((a, b) => b - a);
+    if (!mins.length) return {list: [], until: 0, truncated: false};
+
+    const ses = db.sessions
+      .filter(x => x.status === 'planned' && +new Date(x.start) > now && +new Date(x.start) < horizon)
+      .sort((a, b) => +new Date(a.start) - +new Date(b.start));
+
+    const make = (x, m) => {
+      const at = +new Date(x.start) - m * 60000;
+      if (at <= now + 30000 || at >= horizon) return null;
+      const c = byId(db.clients, x.clientId);
+      return {id: Notifier.id(x.id, m), at: new Date(at),
+        title: '🏋️ ' + t('n.before','Тренування за') + ' ' + minsLabel(m),
+        body: (c ? c.name : t('session.one','Тренування')) + ' · ' + fmtTime(x.start)};
+    };
+
+    /* Другий, короткий інтервал («за 15 хвилин») має сенс лише для
+       найближчих днів — саме він рятує від запізнення. Тому місце під
+       нього резервуємо наперед, інакше покриття дальніх днів забрало б
+       увесь бюджет і другий інтервал не дістався б нікому. */
+    const near = ses.filter(x => +new Date(x.start) < now + NOTIF_EXTRA_DAYS * DAY);
+    const reserve = mins.length > 1
+      ? Math.min(near.length * (mins.length - 1), Math.round(NOTIF_LIMIT * NOTIF_EXTRA))
+      : 0;
+
+    const out = [], covered = [];
+    const taken = new Set();
+    const push = n => { out.push(n); taken.add(n.id); };
+    /* найбільший інтервал головний, але для тренування «вже за 20 хвилин»
+       він у минулому — тоді беремо наступний, що ще попереду */
+    const primary = x => mins.map(m => make(x, m)).find(n => n && !taken.has(n.id));
+
+    let i = 0;
+    for (; i < ses.length && out.length < NOTIF_LIMIT - reserve; i++){
+      const n = primary(ses[i]);
+      if (n){ push(n); covered.push(ses[i]); }
+    }
+    /* Найближчі визначають лише розмір резерву. Витрачаємо його по
+       черзі з найранішого: при вільному розкладі другий інтервал має
+       дістатись усім, а не тільки тренуванням на два дні вперед. */
+    for (const x of covered){
+      if (out.length >= NOTIF_LIMIT) break;
+      for (let k = 0; k < mins.length && out.length < NOTIF_LIMIT; k++){
+        const n = make(x, mins[k]);
+        if (n && !taken.has(n.id)) push(n);
+      }
+    }
+    /* якщо резерв не знадобився — дотягуємо покриття далі */
+    for (; i < ses.length && out.length < NOTIF_LIMIT; i++){
+      const n = primary(ses[i]);
+      if (n){ push(n); covered.push(ses[i]); }
+    }
+
+    const truncated = ses.length > covered.length;
+    const until = covered.length ? +new Date(covered[covered.length - 1].start) : 0;
+    if (truncated && until){
+      /* вранці наступного дня після останнього покритого тренування */
+      const at = new Date(until);
+      at.setDate(at.getDate() + 1);
+      at.setHours(9, 0, 0, 0);
+      if (+at > now) out.push({id: Notifier.id('refresh', 0), at,
+        title: '🏋️ PRO Trainer',
+        body: t('n.refresh','Відкрийте застосунок, щоб оновити нагадування на наступні дні')});
+    }
+    out.sort((a, b) => a.at - b.at);
+    return {list: out, until, truncated};
+  },
+  plan(db){ return Notifier.build(db).list; },
+  /* що показати в налаштуваннях: до якої дати розклад справді дотягується */
+  coverage(db){
+    const r = Notifier.build(db);
+    return {count: r.list.length, until: r.until, truncated: r.truncated};
   },
   async sync(db){
     const P = Notifier.plugin();
@@ -5577,6 +5655,7 @@ const Settings = ({onClose}) => {
   const [pinMode, setPinMode] = useState(null);       // set | confirm
   const [pin1, setPin1] = useState('');
   const [perm, setPerm] = useState(Notifier.permission());
+  const cover = useMemo(() => Notifier.coverage(db), [db.sessions, db.settings.notif]);
 
   async function askPerm(){
     if (Notifier.permission() === 'unsupported'){ Toaster.bad(t('set.notif.no','Цей пристрій не вміє показувати сповіщення')); return; }
@@ -5706,6 +5785,14 @@ const Settings = ({onClose}) => {
               );
             })}
           </div>
+          {/* до якої дати розклад справді дотягується: без цього тренер
+              не дізнався б, що сповіщення закінчились */}
+          {Notifier.native() && cover.count > 0 && (
+            <div className="muted" style={{fontSize:12, marginTop:10, lineHeight:1.45}}>
+              {t('n.plan.till','Заплановано до')} {fmtDM(cover.until)}
+              {cover.truncated && ' · ' + t('n.plan.more','далі нагадування оновляться, коли відкриєте застосунок')}
+            </div>
+          )}
         </div>
 
         <div className="rows" style={{marginTop:9}}>

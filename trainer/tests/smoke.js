@@ -521,9 +521,44 @@ part('нагадування наперед');
   ok('скасоване тренування знімається з розкладу', r2.ok && box.scheduled.length === 0 && box.cancelled.length === 2,
      'знято ' + box.cancelled.length);
 
-  const far = T.Act.addSession({clientId: cl.id, start: new Date(Date.now() + 30 * 86400000).toISOString(), price: 800});
-  ok('далі тижня наперед не плануємо', T.Notifier.plan(T.Store.state).length === 0);
+  const far = T.Act.addSession({clientId: cl.id, start: new Date(Date.now() + 45 * 86400000).toISOString(), price: 800});
+  ok('далі місяця наперед не плануємо — розклад ще зміниться', T.Notifier.plan(T.Store.state).length === 0);
   T.Act.delSession(far.id);
+
+  /* Бюджет. iOS тримає не більше 64 запланованих на застосунок, тож
+     головне питання не «як далеко», а «на що витратити слоти». */
+  const DAY_MS = 86400000;
+  const busy = [];
+  for (let d = 0; d < 30; d++) for (let h = 0; h < 6; h++){
+    const when = new Date(Date.now() + d * DAY_MS);
+    when.setHours(8 + h * 2, 0, 0, 0);
+    if (+when > Date.now()) busy.push(T.Act.addSession({clientId: cl.id, start: when.toISOString(), price: 800}));
+  }
+  const big = T.Notifier.plan(T.Store.state);
+  const cov = T.Notifier.coverage(T.Store.state);
+  ok('у ліміт вкладаємось', big.length <= 57, big.length + ' сповіщень');
+  const days = (cov.until - Date.now()) / DAY_MS;
+  /* раніше два інтервали на кожне тренування з'їдали бюджет за 5 днів */
+  ok('розклад тягнеться далеко за п’ять днів', days > 7, days.toFixed(1) + ' дн.');
+  ok('чесно кажемо, що розклад обрізаний', cov.truncated === true);
+  const refresh = big.filter(x => x.body.indexOf('Відкрийте застосунок') >= 0);
+  ok('останнім — нагадування відкрити застосунок', refresh.length === 1, refresh.length + ' шт.');
+  ok('воно стоїть після останнього покритого тренування', +refresh[0].at > cov.until);
+
+  /* найближчим тренуванням другий інтервал усе одно дістається */
+  const soonest = busy.filter(x => +new Date(x.start) < Date.now() + 2 * DAY_MS);
+  const twice = soonest.filter(x => big.some(n => n.id === T.Notifier.id(x.id, 60)) &&
+                                    big.some(n => n.id === T.Notifier.id(x.id, 15)));
+  ok('найближчі тренування зберігають обидва інтервали', twice.length >= Math.min(3, soonest.length),
+     twice.length + ' з ' + soonest.length);
+
+  /* а коли тренувань мало — ніяких обрізань і зайвих нагадувань */
+  busy.forEach(x => T.Act.delSession(x.id));
+  const calm = T.Act.addSession({clientId: cl.id, start: new Date(Date.now() + 3 * DAY_MS).toISOString(), price: 800});
+  const small = T.Notifier.plan(T.Store.state);
+  ok('вільний розклад — обидва інтервали й без зайвих нагадувань',
+     small.length === 2 && !T.Notifier.coverage(T.Store.state).truncated, small.length + ' шт.');
+  T.Act.delSession(calm.id);
 
   delete ctx.window.Capacitor;
   T.Box.cache.clear();
