@@ -195,6 +195,10 @@
   .btn.wide{width:100%;}
   .btn.sm{height:40px;font-size:13.5px;padding:0 14px;border-radius:var(--r-sm);}
   .btn.lg{height:56px;font-size:16px;border-radius:var(--r-lg);}
+  /* оплата на сайті: назва і причина, чому дешевше — у два рядки */
+  .btn.webpay{height:auto;padding:12px 16px;gap:10px;}
+  .btn.webpay span{display:flex;flex-direction:column;align-items:flex-start;gap:2px;line-height:1.25;}
+  .btn.webpay i{font-style:normal;font-weight:600;font-size:12px;color:var(--ink-3);}
 
   .fab{position:fixed;right:calc(50% - min(50vw,var(--shell)/2) + 18px);
     bottom:calc(var(--nav-h) + var(--safe-bottom) + 18px);z-index:35;
@@ -561,6 +565,7 @@ const PHRASES = [
   ['Підписка', 'Подписка', 'Subscription', 'Subskrypcja'],
   ['Сьогодні', 'Сегодня', 'Today', 'Dzisiaj'],
   ['вимкнено', 'выключено', 'off', 'wyłączone'],
+  ['на сайті', 'на сайте', 'the website', 'na stronie'],
   ['сьогодні', 'сегодня', 'today', 'dzisiaj'],
   ['щомісяця', 'ежемесячно', 'monthly', 'miesięcznie'],
   ['Абонемент', 'Абонемент', 'Package', 'Karnet'],
@@ -574,6 +579,7 @@ const PHRASES = [
   ['Копіювати', 'Копировать', 'Copy', 'Kopiuj'],
   ['Кількість', 'Количество', 'Quantity', 'Ilość'],
   ['Найближчі', 'Ближайшие', 'Upcoming', 'Najbliżsi'],
+  ['Оформлена', 'Оформлена', 'Purchased via', 'Wykupiona'],
   ['Поки тихо', 'Пока тихо', 'Nothing yet', 'Na razie cisza'],
   ['Проведено', 'Проведено', 'Completed', 'Odbyty'],
   ['Рукавички', 'Перчатки', 'Gloves', 'Rękawiczki'],
@@ -673,6 +679,7 @@ const PHRASES = [
   ['Спеціалізація', 'Специализация', 'Specialization', 'Specjalizacja'],
   ['Спробувати ще', 'Попробовать ещё', 'Try again', 'Spróbuj ponownie'],
   ['Тренування за', 'Тренировка через', 'Session in', 'Trening za'],
+  ['Я вже оплатив', 'Я уже оплатил', 'I have already paid', 'Już zapłaciłem'],
   ['без тренувань', 'без тренировок', 'without sessions', 'bez treningów'],
   ['день|дні|днів', 'день|дня|дней', 'day|days', 'dzień|dni|dni'],
   ['за тренування', 'за тренировку', 'per session', 'za trening'],
@@ -731,6 +738,7 @@ const PHRASES = [
   ['Є заборгованість', 'Есть задолженность', 'There is a debt', 'Jest zadłużenie'],
   ['Ім’я та прізвище', 'Имя и фамилия', 'Full name', 'Imię i nazwisko'],
   ['Історія продажів', 'История продаж', 'Sales history', 'Historia sprzedaży'],
+  ['Активувати у WEB', 'Активировать в WEB', 'Activate on the web', 'Aktywuj w WEB'],
   ['Базу зашифровано', 'База зашифрована', 'Database encrypted', 'Baza zaszyfrowana'],
   ['Видалити клієнта', 'Удалить клиента', 'Delete the client', 'Usuń klienta'],
   ['Відкрити фінанси', 'Открыть финансы', 'Open finances', 'Otwórz finanse'],
@@ -803,6 +811,7 @@ const PHRASES = [
   ['ОСЬ ЯК ЦЕ РАХУЄТЬСЯ', 'ВОТ КАК ЭТО СЧИТАЕТСЯ', 'HOW THIS IS CALCULATED', 'TAK TO SIĘ LICZY'],
   ['Оплата обробляється', 'Оплата обрабатывается', 'Payment processing', 'Płatność w toku'],
   ['Пароль не підходить', 'Пароль не подходит', 'Wrong password', 'Hasło nie pasuje'],
+  ['Перевіряємо оплату…', 'Проверяем оплату…', 'Checking your payment…', 'Sprawdzamy płatność…'],
   ['Персональний тренер', 'Персональный тренер', 'Personal trainer', 'Trener personalny'],
   ['Продажів ще не було', 'Продаж ещё не было', 'No sales yet', 'Nie było jeszcze sprzedaży'],
   ['Хто і скільки винен', 'Кто и сколько должен', 'Who owes and how much', 'Kto i ile jest winien'],
@@ -827,6 +836,7 @@ const PHRASES = [
   ['Тренування скасовано', 'Тренировка отменена', 'Session cancelled', 'Trening odwołany'],
   ['Тренувань на клієнта', 'Тренировок на клиента', 'Sessions per client', 'Treningów na klienta'],
   ['Залишок після продажу', 'Остаток после продажи', 'Stock after the sale', 'Stan po sprzedaży'],
+  ['Зменшена вартість від', 'Сниженная цена от', 'Reduced price from', 'Niższa cena od'],
   ['Не сплачено клієнтами', 'Не оплачено клиентами', 'Unpaid by clients', 'Nieopłacone przez klientów'],
   ['Нотатка до тренування', 'Заметка к тренировке', 'Session note', 'Notatka do treningu'],
   ['Проведено та оплачено', 'Проведено и оплачено', 'Completed and paid', 'Odbyty i opłacony'],
@@ -838,6 +848,7 @@ const PHRASES = [
   ['Закінчується абонемент', 'Заканчивается абонемент', 'Package is running out', 'Kończy się karnet'],
   ['Налаштувати сповіщення', 'Настроить уведомления', 'Set up notifications', 'Ustaw powiadomienia'],
   ['Скільки віддаєте клубу', 'Сколько отдаёте клубу', 'What you give the club', 'Ile oddajesz klubowi'],
+  ['у магазині застосунків', 'в магазине приложений', 'the app store', 'w sklepie z aplikacjami'],
   ['Є неоплачені тренування', 'Есть неоплаченные тренировки', 'There are unpaid sessions', 'Są nieopłacone treningi'],
   ['Відновити останню копію', 'Восстановить последнюю копию', 'Restore the last backup', 'Przywróć ostatnią kopię'],
   ['Зберегти резервну копію', 'Сохранить резервную копию', 'Save a backup', 'Zapisz kopię zapasową'],
@@ -880,6 +891,7 @@ const PHRASES = [
   ['Активних покупок не знайшли', 'Активных покупок не нашли', 'No active purchases found', 'Nie znaleziono aktywnych zakupów'],
   ['Ваш день — на одному екрані', 'Ваш день — на одном экране', 'Your day on one screen', 'Twój dzień na jednym ekranie'],
   ['Дохід, оборот, комісія залу', 'Доход, оборот, комиссия зала', 'Income, gross, gym fee', 'Dochód, obrót, prowizja klubu'],
+  ['Керувати підпискою на сайті', 'Управлять подпиской на сайте', 'Manage subscription on the website', 'Zarządzaj subskrypcją na stronie'],
   ['На цей час уже є тренування', 'На это время уже есть тренировка', 'There is already a session at this time', 'O tej porze jest już trening'],
   ['На цю дату тренувань немає.', 'На эту дату тренировок нет.', 'No sessions on this date.', 'Na ten dzień nie ma treningów.'],
   ['Не вдалося завершити оплату', 'Не удалось завершить оплату', 'Payment could not be completed', 'Nie udało się dokończyć płatności'],
@@ -915,6 +927,7 @@ const PHRASES = [
   ['4 цифри, щоб відкрити базу клієнтів', '4 цифры, чтобы открыть базу клиентов', '4 digits to unlock your client list', '4 cyfry, aby otworzyć bazę klientów'],
   ['Клієнти, навантаження, середній чек', 'Клиенты, нагрузка, средний чек', 'Clients, workload, average check', 'Klienci, obciążenie, średni rachunek'],
   ['Оберіть план, щоб продовжити роботу', 'Выберите план, чтобы продолжить работу', 'Choose a plan to keep working', 'Wybierz plan, aby kontynuować pracę'],
+  ['Оплати за цим логіном поки не видно', 'Оплаты по этому логину пока не видно', 'No payment found for this login yet', 'Nie widać jeszcze płatności dla tego loginu'],
   ['Файл не схожий на копію PRO Trainer', 'Файл не похож на копию PRO Trainer', 'This file doesn’t look like a PRO Trainer backup', 'Plik nie wygląda na kopię PRO Trainer'],
   ['Фіксована сума з кожного тренування', 'Фиксированная сумма с каждой тренировки', 'A fixed amount from every session', 'Stała kwota z każdego treningu'],
   ['Вартість тренування за замовчуванням', 'Стоимость тренировки по умолчанию', 'Default session price', 'Domyślna cena treningu'],
@@ -940,6 +953,7 @@ const PHRASES = [
   ['Порожньо — береться ціна за замовчуванням, ', 'Пусто — берётся цена по умолчанию, ', 'Empty — the default price is used, ', 'Puste — używana jest cena domyślna, '],
   ['Увечері підкажемо, кому написати про завтра', 'Вечером подскажем, кому написать про завтра', 'In the evening we’ll suggest who to text about tomorrow', 'Wieczorem podpowiemy, do kogo napisać o jutrze'],
   ['Не вистачає місця — збережіть резервну копію', 'Не хватает места — сохраните резервную копию', 'Not enough space — save a backup', 'Brak miejsca — zapisz kopię zapasową'],
+  ['Немає зв’язку із сервером — спробуйте ще раз', 'Нет связи с сервером — попробуйте ещё раз', 'No connection to the server — please try again', 'Brak połączenia z serwerem — spróbuj ponownie'],
   ['Перевірте запит або створіть нового клієнта.', 'Проверьте запрос или создайте нового клиента.', 'Check the search or add a new client.', 'Sprawdź zapytanie lub dodaj nowego klienta.'],
   ['За цей період ще не було оплачених тренувань.', 'За этот период ещё не было оплаченных тренировок.', 'No paid sessions in this period yet.', 'W tym okresie nie było jeszcze opłaconych treningów.'],
   ['Скаржиться на праве коліно — прибрати випади.', 'Жалуется на правое колено — убрать выпады.', 'Complains about the right knee — drop lunges.', 'Skarży się na prawe kolano — usunąć wykroki.'],
@@ -967,6 +981,8 @@ const PHRASES = [
   ['Оформіть абонемент клієнту з його картки або зі списку пакетів.', 'Оформите абонемент клиенту из его карточки или из списка пакетов.', 'Issue a package from a client’s card or from the packages list.', 'Wystaw karnet z karty klienta lub z listy pakietów.'],
   ['Такі клієнти з’являться на головній у блоці «Кому час написати»', 'Такие клиенты появятся на главной в блоке «Кому пора написать»', 'Such clients appear on the home screen under “Time to text”', 'Tacy klienci pojawią się na ekranie głównym w bloku „Czas napisać”'],
   ['Тренувань не заплановано. Гарний момент, щоб запросити клієнта.', 'Тренировок не запланировано. Хороший момент, чтобы пригласить клиента.', 'No sessions planned. A good moment to invite a client.', 'Brak zaplanowanych treningów. Dobry moment, żeby zaprosić klienta.'],
+  ['Оплату ще не бачимо. Якщо ви платили — натисніть «Я вже оплатив»', 'Оплату пока не видим. Если вы платили — нажмите «Я уже оплатил»', 'We don’t see the payment yet. If you have paid, tap “I have already paid”', 'Nie widzimy jeszcze płatności. Jeśli zapłaciłeś — naciśnij „Już zapłaciłem”'],
+  ['Підписка вже працює на іншому пристрої — звільніть місце на сайті', 'Подписка уже работает на другом устройстве — освободите место на сайте', 'The subscription is already in use on another device — free up a slot on the website', 'Subskrypcja działa już na innym urządzeniu — zwolnij miejsce na stronie'],
   ['Закріплена ціна цього клієнта — можна змінити для цього тренування', 'Закреплённая цена этого клиента — можно изменить для этой тренировки', 'This client’s pinned price — you can change it for this session', 'Przypisana cena tego klienta — można zmienić dla tego treningu'],
   ['Спочатку додайте товар — потім його можна буде продавати клієнтам.', 'Сначала добавьте товар — потом его можно будет продавать клиентам.', 'Add a product first — then you can sell it to clients.', 'Najpierw dodaj towar — potem będzie można go sprzedawać klientom.'],
   ['{name}, привіт! Нагадую про тренування {when} о {time}. Буду чекати!', '{name}, привет! Напоминаю о тренировке {when} в {time}. Буду ждать!', 'Hi {name}! A reminder about your session {when} at {time}. See you!', 'Cześć {name}! Przypominam o treningu {when} o {time}. Czekam!'],
@@ -1001,10 +1017,12 @@ const PHRASES = [
   ['Дані клієнтів, тренування та фінанси зберігаються незалежно від підписки — вони нікуди не зникають.', 'Данные клиентов, тренировки и финансы хранятся независимо от подписки — они никуда не исчезают.', 'Client data, sessions and finances are stored regardless of the subscription — nothing disappears.', 'Dane klientów, treningi i finanse są przechowywane niezależnie od subskrypcji — nic nie znika.'],
   ['{name}, доброго дня! Пропоную повернутись до тренувань — почнемо з легкого відновлювального. Коли зручно?', '{name}, добрый день! Предлагаю вернуться к тренировкам — начнём с лёгкой восстановительной. Когда удобно?', 'Hello {name}! How about getting back to training — we can start with an easy recovery session. When suits you?', 'Dzień dobry {name}! Proponuję wrócić do treningów — zaczniemy od lekkiego, regeneracyjnego. Kiedy Ci pasuje?'],
   ['Схоже, збережена база пошкоджена. Можна почати з чистого аркуша — або відновити з резервної копії пізніше.', 'Похоже, сохранённая база повреждена. Можно начать с чистого листа — или восстановить из резервной копии позже.', 'The saved database looks damaged. You can start fresh — or restore from a backup later.', 'Wygląda na to, że zapisana baza jest uszkodzona. Można zacząć od zera — albo później odtworzyć z kopii.'],
+  ['Підписку оформлено на сайті: скасувати автопродовження можна там само, доступ діє до кінця оплаченого періоду.', 'Подписка оформлена на сайте: отменить автопродление можно там же, доступ действует до конца оплаченного периода.', 'The subscription was purchased on the website: turn off auto-renewal there; access lasts until the end of the paid period.', 'Subskrypcja została wykupiona na stronie: tam też wyłączysz automatyczne odnawianie, dostęp działa do końca opłaconego okresu.'],
   ['Клієнти, тренування, продажі та налаштування зникнуть із цього пристрою. Радимо спершу зберегти резервну копію.', 'Клиенты, тренировки, продажи и настройки исчезнут с этого устройства. Советуем сначала сохранить резервную копию.', 'Clients, sessions, sales and settings will be erased from this device. Save a backup first.', 'Klienci, treningi, sprzedaż i ustawienia znikną z tego urządzenia. Radzimy najpierw zapisać kopię.'],
   ['{name}, привіт! Давно вас не було в залі — усе гаразд? Є вільні місця на цьому тижні, можу поставити ваш звичний час.', '{name}, привет! Давно вас не было в зале — всё в порядке? На этой неделе есть свободные места, могу поставить ваше привычное время.', 'Hi {name}! Haven’t seen you at the gym for a while — all good? I have slots free this week and can keep your usual time.', 'Cześć {name}! Dawno Cię nie było na siłowni — wszystko w porządku? W tym tygodniu mam wolne terminy, mogę zarezerwować Twoją zwykłą godzinę.'],
   ['Абонемент — це передоплата: гроші зараховуються в дохід у міру проведення тренувань, тому сума покупок показана окремо.', 'Абонемент — это предоплата: деньги зачисляются в доход по мере проведения тренировок, поэтому сумма покупок показана отдельно.', 'A package is prepayment: the money counts as income as sessions are completed, so purchases are shown separately.', 'Karnet to przedpłata: pieniądze wliczają się do dochodu w miarę odbywania treningów, dlatego kwota zakupów jest pokazana osobno.'],
   ['Сума підставляється в нове тренування — її можна змінити в будь-якому тренуванні або закріпити окрему ціну за клієнтом.', 'Сумма подставляется в новую тренировку — её можно изменить в любой тренировке или закрепить отдельную цену за клиентом.', 'The amount prefills a new session — you can change it in any session or pin a separate price per client.', 'Kwota jest wstawiana do nowego treningu — można ją zmienić w każdym treningu lub przypisać osobną cenę klientowi.'],
+  ['Оплата на сайті дешевша, бо не містить комісії магазину: підписка прив’язується до вашого логіна й діє на {n} пристроях.', 'Оплата на сайте дешевле, потому что не содержит комиссии магазина: подписка привязывается к вашему логину и действует на {n} устройствах.', 'Paying on the website is cheaper because it carries no store commission: the subscription is tied to your login and works on {n} devices.', 'Płatność na stronie jest tańsza, bo nie zawiera prowizji sklepu: subskrypcja jest przypisana do Twojego loginu i działa na {n} urządzeniach.'],
   ['Оплата проходить через магазин застосунків, керувати підпискою можна в його налаштуваннях. Підписка продовжується автоматично, доки ви не вимкнете автопродовження.', 'Оплата проходит через магазин приложений, управлять подпиской можно в его настройках. Подписка продлевается автоматически, пока вы не выключите автопродление.', 'Payment goes through the app store; you can manage the subscription in its settings. It renews automatically until you turn off auto-renewal.', 'Płatność przechodzi przez sklep z aplikacjami, subskrypcją zarządzasz w jego ustawieniach. Odnawia się automatycznie, dopóki nie wyłączysz automatycznego odnawiania.'],
 ];
 
@@ -1294,7 +1312,7 @@ const Disk = {
   clear(){
     const m = Disk.readMeta() || {};
     Box.remove(KEY);
-    Box.set(META_KEY, JSON.stringify({salt: m.salt, account: m.account, access: m.access}));
+    Box.set(META_KEY, JSON.stringify({salt: m.salt, account: m.account, access: m.access, device: m.device}));
   },
 };
 
@@ -1446,9 +1464,9 @@ const LEGAL = {
 /* Product ID мають збігатися з тим, що заведено в App Store Connect і
    Google Play Console. Змінюються тут — більше ніде не зашиті. */
 const PLANS = [
-  {id:'monthly',   productId:'pro_trainer_monthly',   title:'1 місяць', price:4.99,  months:1},
-  {id:'quarterly', productId:'pro_trainer_quarterly', title:'3 місяці', price:12.99, months:3,  badge:'Вигідніше'},
-  {id:'yearly',    productId:'pro_trainer_yearly',    title:'1 рік',    price:49.99, months:12, badge:'Найкраща ціна'},
+  {id:'monthly',   productId:'pro_trainer_monthly',   title:'1 місяць', price:4.99,  web:3.29,  months:1},
+  {id:'quarterly', productId:'pro_trainer_quarterly', title:'3 місяці', price:12.99, web:8.49,  months:3,  badge:'Вигідніше'},
+  {id:'yearly',    productId:'pro_trainer_yearly',    title:'1 рік',    price:49.99, web:32.99, months:12, badge:'Найкраща ціна'},
 ];
 const planById = id => PLANS.find(p => p.id === id) || null;
 const planTitle = p => t('plan.' + p.id, p.title);
@@ -1495,6 +1513,71 @@ const IAP = {
     const rec = IAP.demoRead();
     return {ok:true, purchases: rec ? [rec] : []};
   },
+};
+
+/* ─── оплата у вебі ───
+   Магазин утримує 15–30% з кожного платежу, тому та сама підписка на сайті
+   коштує дешевше — це те, що застосунок пропонує кнопкою «Активувати у WEB».
+   Карток застосунок не бачить: він лише відкриває сторінку оплати в браузері,
+   а потім питає сервер, чи з'явилась ліцензія на цей логін.
+
+   Підписка живе на сервері й прив'язана до логіна, а доступ — до пристроїв:
+   їх не більше WEB.devices, інакше знання чужої пошти давало б чужу підписку.
+
+   ⚠️ Перед публікацією в App Store: посилання на зовнішню оплату з
+   iOS-застосунку потребує окремого дозволу Apple (External Purchase Link
+   Entitlement; у ЄС — DMA). Без нього кнопку слід лишити тільки у вебі —
+   для цього достатньо не задавати WEB.base у нативній збірці.          */
+const WEB = {
+  base: '',            /* напр. 'https://pro-trainer.vercel.app'; порожньо — той самий домен */
+  devices: 3,          /* скільки пристроїв на одну підписку */
+  poll: 4000,          /* як часто питати сервер, поки чекаємо оплату */
+  wait: 10 * 60 * 1000,/* скільки всього чекати */
+};
+
+const Web = {
+  base(){
+    if (WEB.base) return WEB.base.replace(/\/+$/, '');
+    if (typeof location !== 'undefined' && /^https?:/.test(location.protocol)) return location.origin;
+    return '';                                  /* нативна збірка без заданого домену */
+  },
+  enabled(){ return !!Web.base(); },
+  login(){ const m = Disk.readMeta() || {}; return (m.account && m.account.login) || ''; },
+  /* ідентифікатор пристрою переживає очищення даних — інакше кожне
+     «Видалити всі дані» з'їдало б слот у ліцензії */
+  device(){
+    const m = Disk.readMeta() || {};
+    if (m.device) return m.device;
+    const id = uid('dev');
+    Disk.writeMeta({...m, device: id});
+    return id;
+  },
+  query(extra){
+    return new URLSearchParams({login: Web.login(), device: Web.device(), lang: I18n.get(), ...(extra || {})});
+  },
+  payUrl(planId){ return Web.base() + '/pay?' + Web.query({plan: planId}); },
+  accountUrl(){ return Web.base() + '/account?' + Web.query(); },
+  open(url){
+    if (typeof window === 'undefined') return;
+    const C = window.Capacitor;
+    const B = C && C.Plugins && C.Plugins.Browser;
+    if (B && B.open) { B.open({url}); return; }   /* нативна оболонка: системний браузер */
+    window.open(url, '_blank', 'noopener');
+  },
+  async ask(path, params){
+    const base = Web.base();
+    if (!base) return {ok:false, error:'web_disabled'};
+    try {
+      const q = new URLSearchParams({login: Web.login(), device: Web.device(), ...(params || {})});
+      const r = await fetch(base + path + '?' + q, {headers:{'accept':'application/json'}});
+      if (!r.ok) return {ok:false, error:'http_' + r.status};
+      return await r.json();
+    } catch (e){ return {ok:false, error:'network'}; }
+  },
+  /* {ok, active, plan, expiresAt, autoRenew, devices, error} */
+  licence(){ return Web.ask('/api/licence'); },
+  /* прив'язати цей пристрій до вже оплаченої підписки */
+  claim(){ return Web.ask('/api/claim'); },
 };
 
 /* ─── нагадування ───
@@ -1649,6 +1732,13 @@ const Access = {
   },
   async restore(){
     try {
+      /* підписку могли оформити на сайті — тоді її треба прив'язати
+         до цього пристрою, а не шукати в магазині */
+      if (Web.enabled() && Web.login()){
+        const c = await Web.claim();
+        if (c && c.active) return Access.fromWeb(c);
+        if (c && c.error === 'device_limit') return {ok:false, error:'device_limit'};
+      }
       const r = await IAP.restore();
       const list = (r && r.purchases) || [];
       if (!list.length) return {ok:false, error:'nothing_to_restore'};
@@ -1662,6 +1752,28 @@ const Access = {
       return {ok: expires > Date.now(), expiresAt: expires};
     } catch (e){ return {ok:false, error: String((e && e.message) || e)}; }
   },
+  /* ліцензія з сайту: сервер — джерело правди, дату рахує він */
+  fromWeb(lic){
+    if (!lic || !lic.active) return {ok:false};
+    const plan = planById(lic.plan);
+    Access.write({status:'active', source:'web', plan: lic.plan,
+      productId: plan ? plan.productId : null,
+      purchasedAt: lic.purchasedAt || Date.now(), expiresAt: lic.expiresAt,
+      autoRenew: lic.autoRenew !== false, transactionId: lic.orderId || null,
+      lastVerifiedAt: Date.now(), pendingPlan: null, error: null});
+    return {ok:true, expiresAt: lic.expiresAt};
+  },
+  /* чекаємо, поки на сайті пройде оплата; кожні WEB.poll питаємо сервер */
+  async awaitWeb(onTick){
+    const till = Date.now() + WEB.wait;
+    while (Date.now() < till){
+      const lic = await Web.licence();
+      if (lic && lic.active) return Access.fromWeb(lic);
+      if (onTick && onTick() === false) return {ok:false, error:'cancelled'};
+      await sleep(WEB.poll);
+    }
+    return {ok:false, error:'timeout'};
+  },
   cancel(){ return Access.write({autoRenew: false}); },        /* доступ лишається до дати */
   resume(){ return Access.write({autoRenew: true}); },
   /* без мережі нічого не блокуємо: працюємо за локальним записом,
@@ -1670,6 +1782,15 @@ const Access = {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return {ok:false, offline:true};
     const a = Access.read();
     if (!a.plan) return {ok:false};
+    if (a.source === 'web'){
+      const lic = await Web.licence();
+      if (!lic || lic.ok === false) return {ok:false};
+      if (lic.active) return Access.fromWeb(lic);
+      /* сервер — джерело правди для веб-підписки: якщо він каже «немає»,
+         то й строку немає, інакше локальний запис пережив би скасування */
+      Access.write({status:'expired', autoRenew:false, expiresAt: Date.now(), lastVerifiedAt: Date.now()});
+      return {ok:true, active:false};
+    }
     /* магазин знає про продовження й скасування — його відповідь головніша */
     const st = await IAP.status();
     if (st && st.ok){
@@ -5759,6 +5880,31 @@ const Paywall = ({mode, onClose}) => {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(acc.kind === 'PAYMENT_FAILED' ? t('pay.err','Не вдалося завершити оплату') : '');
   const [okMsg, setOkMsg] = useState('');
+  const [webWait, setWebWait] = useState(false);
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+
+  /* оплата на сайті: відкриваємо сторінку і чекаємо, поки сервер
+     підтвердить ліцензію. Повернення у застосунок теж перевіряємо. */
+  async function payWeb(){
+    setErr(''); setOkMsg('');
+    Web.open(Web.payUrl(plan));
+    setWebWait(true);
+    const r = await Access.awaitWeb(() => alive.current);
+    if (!alive.current) return;
+    setWebWait(false);
+    if (r.ok){ Toaster.ok(t('pay.ok','Підписка активна')); if (onClose) onClose(); }
+    else if (r.error === 'timeout') setErr(t('pay.web.wait','Оплату ще не бачимо. Якщо ви платили — натисніть «Я вже оплатив»'));
+  }
+  async function checkWeb(){
+    setErr(''); setBusy(true);
+    const lic = await Web.licence();
+    setBusy(false);
+    if (lic && lic.active){ Access.fromWeb(lic); Toaster.ok(t('pay.ok','Підписка активна')); if (onClose) onClose(); }
+    else setErr(lic && lic.error === 'network'
+      ? t('pay.web.net','Немає зв’язку із сервером — спробуйте ще раз')
+      : t('pay.web.none','Оплати за цим логіном поки не видно'));
+  }
 
   async function buy(){
     setErr(''); setBusy(true);
@@ -5774,6 +5920,8 @@ const Paywall = ({mode, onClose}) => {
     if (r.ok){ Toaster.ok(t('pay.restored','Покупку відновлено')); if (onClose) onClose(); }
     else setErr(r.error === 'nothing_to_restore'
       ? t('pay.norestore','Активних покупок не знайшли')
+      : r.error === 'device_limit'
+      ? t('pay.web.limit','Підписка вже працює на іншому пристрої — звільніть місце на сайті')
       : t('pay.err','Не вдалося завершити оплату'));
   }
 
@@ -5806,6 +5954,17 @@ const Paywall = ({mode, onClose}) => {
       <Btn kind="pri" size="lg" wide style={{marginTop:14}} onClick={buy} disabled={busy}>
         {busy ? t('pay.wait','Обробляємо…') : err ? t('pay.retry','Спробувати ще раз') : t('pay.go','Продовжити')}
       </Btn>
+      {Web.enabled() && (
+        <button className="btn sec wide webpay" style={{marginTop:8}} onClick={webWait ? checkWeb : payWeb} disabled={busy}>
+          <Ic.globe size={18}/>
+          <span>
+            <b>{webWait ? t('pay.web.done','Я вже оплатив') : t('pay.web.go','Активувати у WEB')}</b>
+            <i>{webWait
+              ? t('pay.web.checking','Перевіряємо оплату…')
+              : t('pay.web.from','Зменшена вартість від') + ' ' + usd(Math.min(...PLANS.map(p => p.web)))}</i>
+          </span>
+        </button>
+      )}
       <button className="btn ghost wide" style={{marginTop:4}} onClick={restore} disabled={busy}>
         {t('pay.restore','Відновити покупку')}
       </button>
@@ -5813,6 +5972,7 @@ const Paywall = ({mode, onClose}) => {
         {IAP.connected()
           ? t('pay.store','Оплата проходить через магазин застосунків, керувати підпискою можна в його налаштуваннях. Підписка продовжується автоматично, доки ви не вимкнете автопродовження.')
           : t('pay.demo','Демо-режим: магазин ще не підключено, покупка імітується для перевірки сценарію.')}
+        {Web.enabled() && ' ' + t('pay.web.note','Оплата на сайті дешевша, бо не містить комісії магазину: підписка прив’язується до вашого логіна й діє на {n} пристроях.').replace('{n}', WEB.devices)}
       </div>
       <div style={{display:'flex', gap:16, justifyContent:'center', marginTop:8}}>
         <button className="link" style={{fontSize:12.5}} onClick={() => go('terms')}>{t('legal.terms','Умови використання')}</button>
@@ -5842,6 +6002,8 @@ const Subscription = ({onClose}) => {
   const plan = planById(raw.plan);
   const [busy, setBusy] = useState(false);
   const active = acc.kind === 'SUBSCRIPTION_ACTIVE' || acc.kind === 'SUBSCRIPTION_CANCELLED';
+  /* веб-підписку скасовують на сайті — застосунок не має до неї доступу */
+  const web = raw.source === 'web';
 
   return (
     <Page title={t('sub.title','Підписка')} onClose={onClose}>
@@ -5860,7 +6022,8 @@ const Subscription = ({onClose}) => {
           </span>
         </div>
         <div style={{marginTop:12}}>
-          {plan && <Rowline k={t('sub.plan','План')} v={planTitle(plan) + ' · ' + usd(plan.price)}/>}
+          {plan && <Rowline k={t('sub.plan','План')} v={planTitle(plan) + ' · ' + usd(web ? plan.web : plan.price)}/>}
+          {raw.plan && <Rowline k={t('sub.where','Оформлена')} v={web ? t('sub.where.web','на сайті') : t('sub.where.store','у магазині застосунків')}/>}
           {acc.until && <Rowline k={active ? t('sub.until','Діє до') : t('sub.ended','Завершилась')} v={fmtDM(acc.until) + ' ' + new Date(acc.until).getFullYear()}/>}
           {acc.kind === 'TRIAL_ACTIVE' && <Rowline k={t('sub.left','Залишилось')} v={nDays(acc.left)}/>}
           <Rowline k={t('sub.renew','Автопродовження')} v={raw.autoRenew === false ? t('common.off','вимкнено') : t('common.on','увімкнено')}/>
@@ -5880,12 +6043,17 @@ const Subscription = ({onClose}) => {
         <Btn kind="pri" wide onClick={() => nav.go('plans')}>
           {active ? t('sub.change','Змінити план') : t('pay.choose','Обрати план')}
         </Btn>
-        {active && raw.autoRenew !== false && (
+        {active && web && (
+          <Btn kind="sec" wide onClick={() => Web.open(Web.accountUrl())}>
+            <Ic.globe size={18}/>{t('sub.manage.web','Керувати підпискою на сайті')}
+          </Btn>
+        )}
+        {active && !web && raw.autoRenew !== false && (
           <Btn kind="sec" wide onClick={() => { Access.cancel(); Toaster.show(t('sub.off','Автопродовження вимкнено — доступ до кінця періоду')); }}>
             {t('sub.cancel','Вимкнути автопродовження')}
           </Btn>
         )}
-        {raw.autoRenew === false && active && (
+        {!web && raw.autoRenew === false && active && (
           <Btn kind="sec" wide onClick={() => { Access.resume(); Toaster.ok(t('sub.on','Автопродовження увімкнено')); }}>
             {t('sub.resume','Увімкнути автопродовження')}
           </Btn>
@@ -5900,6 +6068,7 @@ const Subscription = ({onClose}) => {
 
       <div className="muted" style={{fontSize:12, marginTop:16, lineHeight:1.5}}>
         {t('sub.note','Дані клієнтів, тренування та фінанси зберігаються незалежно від підписки — вони нікуди не зникають.')}
+        {web && ' ' + t('sub.note.web','Підписку оформлено на сайті: скасувати автопродовження можна там само, доступ діє до кінця оплаченого періоду.')}
       </div>
     </Page>
   );

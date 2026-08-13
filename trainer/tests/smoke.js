@@ -71,7 +71,7 @@ function sandbox(){
   };
   const ctx = {
     console, setTimeout, clearTimeout, clearInterval, setInterval: () => 0,
-    Intl, Date, Math, JSON, URL, TextEncoder, TextDecoder,
+    Intl, Date, Math, JSON, URL, URLSearchParams, TextEncoder, TextDecoder,
     crypto: webcrypto,
     btoa: s => Buffer.from(s, 'binary').toString('base64'),
     atob: s => Buffer.from(s, 'base64').toString('binary'),
@@ -83,7 +83,7 @@ function sandbox(){
     },
     React, ReactDOM: {createRoot: () => ({render(){}})},
     navigator: {onLine: true},
-    location: {protocol: 'http:', reload(){}},
+    location: {protocol: 'https:', origin: 'https://protrainer.test', reload(){}},
     history: {pushState(){}, back(){}, go(){}, state: null},
     document: doc,
     fetch: async () => ({ok: true}),
@@ -97,7 +97,7 @@ function sandbox(){
 const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, clientStats, clientFeed, isDebt,
   clientPrice, typedPrice, periodOf, periodLabel, deltaRange, RangeSheet, PeriodBar, iso, addDays,
   Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Box, Notifier, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
-  Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES, Toaster, Photo, PHOTO,
+  Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES, Toaster, Photo, PHOTO, Web, WEB,
   PHRASES, LANGS, detectLang, t, _seen, statusTitle, typeTitle, goalTitle, fill, monthWord,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
@@ -551,6 +551,74 @@ part('доступ: міст до магазину');
   ok('відновлення через міст', rr.ok && T.Access.read().productId === 'pro_trainer_yearly');
   delete ctx.window.ProTrainerIAP;
   ok('без моста повертаємось у демо-режим', !T.IAP.connected() && T.IAP.platform() === 'demo');
+}
+
+part('оплата на сайті');
+{
+  /* Застосунок не бачить карток: він відкриває сторінку оплати і потім
+     питає сервер, чи з'явилась ліцензія. Тут сервер — заглушка. */
+  const calls = [];
+  let licence = {ok: true, active: false};
+  ctx.fetch = async url => { calls.push(String(url)); return {ok: true, json: async () => licence}; };
+
+  T.Box.cache.clear();
+  T.Disk.writeMeta({account: {login: 'trainer@mail.com', kind: 'email'}, access: {}});
+  T.Store.init(T.seedDB({name: 'Олександр'}));
+
+  ok('кнопка вмикається, коли є домен', T.Web.enabled(), T.Web.base());
+  const url = T.Web.payUrl('yearly');
+  ok('у посилання їде план, логін і пристрій',
+     url.includes('plan=yearly') && url.includes('trainer%40mail.com') && /device=dev_/.test(url), url.slice(0, 80));
+  ok('ідентифікатор пристрою сталий', T.Web.device() === T.Web.device(), T.Web.device());
+  const dev = T.Web.device();
+  T.Disk.clear();
+  ok('очищення даних не з’їдає слот пристрою', T.Web.device() === dev);
+
+  T.Disk.writeMeta({...(T.Disk.readMeta() || {}), account: {login: 'trainer@mail.com', kind: 'email'}});
+  ok('ціни на сайті нижчі за магазинні', T.PLANS.every(p => p.web < p.price),
+     T.PLANS.map(p => '$' + p.web + '<' + p.price).join(', '));
+
+  /* оплата ще не пройшла → доступу немає */
+  const nope = await T.Access.awaitWeb(() => false);
+  ok('поки оплати немає — доступ не видаємо', !nope.ok);
+
+  /* сервер підтвердив ліцензію */
+  const until = Date.now() + 300 * 86400000;
+  licence = {ok: true, active: true, plan: 'yearly', expiresAt: until, autoRenew: true, orderId: 'pt_1'};
+  const got = await T.Access.awaitWeb(() => true);
+  const st = T.Access.state();
+  ok('ліцензія з сайту вмикає доступ', got.ok && st.kind === 'SUBSCRIPTION_ACTIVE', st.kind);
+  ok('джерело записано як web', T.Access.read().source === 'web');
+  ok('строк узятий із сервера, а не порахований', T.Access.read().expiresAt === until);
+
+  /* перевірка статусу йде на сайт, а не в магазин */
+  calls.length = 0;
+  await T.Access.verify();
+  ok('статус веб-підписки питаємо в сервера', calls.some(u => u.includes('/api/licence')), calls[0]);
+
+  /* сервер каже, що підписки більше немає */
+  licence = {ok: true, active: false};
+  await T.Access.verify();
+  ok('коли сервер каже «неактивна» — доступ закінчується',
+     T.Access.state().kind === 'SUBSCRIPTION_EXPIRED', T.Access.state().kind);
+
+  /* відновлення на новому пристрої */
+  licence = {ok: true, active: true, plan: 'monthly', expiresAt: Date.now() + 20 * 86400000, autoRenew: true};
+  calls.length = 0;
+  const back = await T.Access.restore();
+  ok('«Відновити покупку» спершу питає сайт', back.ok && calls.some(u => u.includes('/api/claim')), calls[0]);
+
+  /* ліміт пристроїв доїжджає до застосунку окремою помилкою */
+  licence = {ok: true, active: false, error: 'device_limit'};
+  T.IAP.demoWrite(null);
+  const limit = await T.Access.restore();
+  ok('ліміт пристроїв повертається окремою помилкою', limit.error === 'device_limit', limit.error);
+
+  /* без мережі нічого не ламається */
+  ctx.fetch = async () => { throw new Error('offline'); };
+  const off = await T.Web.licence();
+  ok('без зв’язку з сервером просто немає відповіді', off.ok === false && off.error === 'network');
+  ctx.fetch = async () => ({ok: true, json: async () => licence});
 }
 
 part('доступ: екрани');

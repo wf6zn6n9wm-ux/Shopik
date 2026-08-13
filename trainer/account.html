@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="uk" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>PRO Trainer</title>
+<meta name="robots" content="noindex" />
+<link rel="stylesheet" href="/pay.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24"><path d="M4 9v6M8 6.5v11M16 6.5v11M20 9v6M8 12h8"/></svg></div>
+    <b>PRO Trainer</b>
+  </div>
+  <h1 id="h1">Підписка</h1>
+  <p class="sub" id="sub">Стан підписки й автопродовження.</p>
+  <div class="who" id="box">…</div>
+  <button class="go" id="off" hidden></button>
+  <p class="note" id="note"></p>
+</div>
+<script>
+var Q = new URLSearchParams(location.search);
+var LANG = ['uk','ru','en','pl'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'uk';
+document.documentElement.lang = LANG;
+var T = {
+  uk:{h:'Підписка', s:'Стан підписки й автопродовження.', off:'Вимкнути автопродовження',
+      active:'Активна до', renew:'Автопродовження увімкнено', norenew:'Автопродовження вимкнено',
+      none:'Активної підписки за цим логіном не знайшли.', done:'Автопродовження вимкнено. Доступ діє до кінця оплаченого періоду.',
+      err:'Не вдалося змінити підписку — спробуйте пізніше.',
+      n:'Гроші повертає банк за своїми правилами. Дані застосунку зберігаються незалежно від підписки.'},
+  ru:{h:'Подписка', s:'Состояние подписки и автопродления.', off:'Выключить автопродление',
+      active:'Активна до', renew:'Автопродление включено', norenew:'Автопродление выключено',
+      none:'Активной подписки по этому логину не нашли.', done:'Автопродление выключено. Доступ действует до конца оплаченного периода.',
+      err:'Не удалось изменить подписку — попробуйте позже.',
+      n:'Возврат средств делает банк по своим правилам. Данные приложения хранятся независимо от подписки.'},
+  en:{h:'Subscription', s:'Subscription status and auto-renewal.', off:'Turn off auto-renewal',
+      active:'Active until', renew:'Auto-renewal is on', norenew:'Auto-renewal is off',
+      none:'No active subscription found for this login.', done:'Auto-renewal is off. Access lasts until the end of the paid period.',
+      err:'Could not change the subscription — please try later.',
+      n:'Refunds are handled by the bank under its own rules. Your app data is stored regardless of the subscription.'},
+  pl:{h:'Subskrypcja', s:'Stan subskrypcji i automatycznego odnawiania.', off:'Wyłącz automatyczne odnawianie',
+      active:'Aktywna do', renew:'Automatyczne odnawianie włączone', norenew:'Automatyczne odnawianie wyłączone',
+      none:'Nie znaleziono aktywnej subskrypcji dla tego loginu.', done:'Automatyczne odnawianie wyłączone. Dostęp działa do końca opłaconego okresu.',
+      err:'Nie udało się zmienić subskrypcji — spróbuj później.',
+      n:'Zwroty realizuje bank według własnych zasad. Dane aplikacji są przechowywane niezależnie od subskrypcji.'},
+}[LANG];
+document.getElementById('h1').textContent = T.h;
+document.getElementById('sub').textContent = T.s;
+document.getElementById('note').textContent = T.n;
+document.getElementById('off').textContent = T.off;
+
+var login = (Q.get('login') || '').trim(), device = (Q.get('device') || '').trim();
+var box = document.getElementById('box'), off = document.getElementById('off');
+var fmt = ts => new Date(ts).toLocaleDateString(LANG === 'uk' ? 'uk-UA' : LANG === 'ru' ? 'ru-RU' : LANG === 'pl' ? 'pl-PL' : 'en-GB',
+  {day:'numeric', month:'long', year:'numeric'});
+
+function show(lic){
+  if (!lic || !(lic.active || lic.needsClaim)){ box.textContent = T.none; off.hidden = true; return; }
+  box.innerHTML = '<b>' + T.active + ' ' + fmt(lic.expiresAt) + '</b><br>' + (lic.autoRenew ? T.renew : T.norenew);
+  off.hidden = !lic.autoRenew;
+}
+function load(){
+  if (!login){ box.textContent = T.none; return; }
+  fetch('/api/licence?' + new URLSearchParams({login: login, device: device}))
+    .then(r => r.json()).then(show).catch(() => { box.textContent = T.err; });
+}
+off.onclick = function(){
+  off.disabled = true;
+  fetch('/api/unsubscribe?' + new URLSearchParams({login: login, device: device}))
+    .then(r => r.json())
+    .then(function(lic){ off.disabled = false; if (lic && lic.ok === false){ box.textContent = T.err; return; } show(lic); box.innerHTML += '<br>' + T.done; })
+    .catch(function(){ off.disabled = false; box.textContent = T.err; });
+};
+load();
+</script>
+</body>
+</html>

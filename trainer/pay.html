@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="uk" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>PRO Trainer — оформлення підписки</title>
+<meta name="robots" content="noindex" />
+<link rel="stylesheet" href="/pay.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24"><path d="M4 9v6M8 6.5v11M16 6.5v11M20 9v6M8 12h8"/></svg></div>
+    <b>PRO Trainer</b>
+  </div>
+  <h1 id="h1">Оформлення підписки</h1>
+  <p class="sub" id="sub">Оплата на сайті дешевша: у ній немає комісії магазину застосунків.</p>
+  <div class="who" id="who" hidden></div>
+  <div class="plans" id="plans"></div>
+  <button class="go" id="go">Перейти до оплати</button>
+  <p class="note" id="note"></p>
+  <div class="err" id="err" hidden></div>
+</div>
+
+<script>
+/* Сторінка навмисне автономна: ніяких бібліотек, лише вибір плану
+   і перехід на /api/checkout, який уже підписує запит для LiqPay. */
+var Q = new URLSearchParams(location.search);
+var LANG = ['uk','ru','en','pl'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'uk';
+document.documentElement.lang = LANG;
+
+var T = {
+  uk:{title:'Оформлення підписки', sub:'Оплата на сайті дешевша: у ній немає комісії магазину застосунків.',
+      go:'Перейти до оплати', month:'щомісяця', once:'разова оплата, без автопродовження',
+      year:'раз на рік', per:'на місяць', save:'Економія', store:'у магазині',
+      who:'Підписка прив’яжеться до логіна <b>{login}</b> — тим самим, яким ви входите в застосунку.',
+      note:'Оплата проходить через LiqPay. Підписка з періодом 1 місяць і 1 рік продовжується автоматично — вимкнути можна на сторінці підписки або в застосунку. Доступ діє на 3 пристроях.',
+      nologin:'Не бачимо, для якого логіна оформляти підписку. Відкрийте цю сторінку кнопкою «Активувати у WEB» у застосунку.'},
+  ru:{title:'Оформление подписки', sub:'Оплата на сайте дешевле: в ней нет комиссии магазина приложений.',
+      go:'Перейти к оплате', month:'ежемесячно', once:'разовая оплата, без автопродления',
+      year:'раз в год', per:'в месяц', save:'Экономия', store:'в магазине',
+      who:'Подписка привяжется к логину <b>{login}</b> — тому же, которым вы входите в приложении.',
+      note:'Оплата проходит через LiqPay. Подписка на 1 месяц и 1 год продлевается автоматически — отключить можно на странице подписки или в приложении. Доступ действует на 3 устройствах.',
+      nologin:'Не видим, для какого логина оформлять подписку. Откройте эту страницу кнопкой «Активировать в WEB» в приложении.'},
+  en:{title:'Subscribe', sub:'Paying here is cheaper: there is no app store commission.',
+      go:'Go to payment', month:'monthly', once:'one-off payment, no auto-renewal',
+      year:'once a year', per:'per month', save:'You save', store:'in the store',
+      who:'The subscription will be tied to <b>{login}</b> — the same login you use in the app.',
+      note:'Payment is handled by LiqPay. The 1-month and 1-year plans renew automatically — you can turn that off on the subscription page or in the app. Access works on 3 devices.',
+      nologin:'We can’t tell which login to subscribe. Open this page with “Activate on the web” in the app.'},
+  pl:{title:'Wykup subskrypcję', sub:'Płatność tutaj jest tańsza: nie zawiera prowizji sklepu z aplikacjami.',
+      go:'Przejdź do płatności', month:'co miesiąc', once:'płatność jednorazowa, bez odnawiania',
+      year:'raz w roku', per:'miesięcznie', save:'Oszczędzasz', store:'w sklepie',
+      who:'Subskrypcja zostanie przypisana do loginu <b>{login}</b> — tego samego, którym logujesz się w aplikacji.',
+      note:'Płatność obsługuje LiqPay. Plany 1-miesięczny i roczny odnawiają się automatycznie — możesz to wyłączyć na stronie subskrypcji lub w aplikacji. Dostęp działa na 3 urządzeniach.',
+      nologin:'Nie wiemy, dla jakiego loginu wykupić subskrypcję. Otwórz tę stronę przyciskiem „Aktywuj w WEB” w aplikacji.'},
+};
+var t = T[LANG];
+
+/* ціни мають збігатися з PLANS у index.html */
+var PLANS = [
+  {id:'monthly',   months:1,  web:3.29,  store:4.99},
+  {id:'quarterly', months:3,  web:8.49,  store:12.99},
+  {id:'yearly',    months:12, web:32.99, store:49.99},
+];
+var TITLE = {
+  uk:{monthly:'1 місяць', quarterly:'3 місяці', yearly:'1 рік'},
+  ru:{monthly:'1 месяц',  quarterly:'3 месяца', yearly:'1 год'},
+  en:{monthly:'1 month',  quarterly:'3 months', yearly:'1 year'},
+  pl:{monthly:'1 miesiąc',quarterly:'3 miesiące',yearly:'1 rok'},
+};
+var usd = function(v){ return '$' + v.toFixed(2); };
+var login = (Q.get('login') || '').trim();
+var device = (Q.get('device') || '').trim();
+var picked = 'yearly';
+
+document.getElementById('h1').textContent = t.title;
+document.getElementById('sub').textContent = t.sub;
+document.getElementById('go').textContent = t.go;
+document.getElementById('note').textContent = t.note;
+if (login){
+  var who = document.getElementById('who');
+  who.innerHTML = t.who.replace('{login}', login.replace(/[<>&]/g, ''));
+  who.hidden = false;
+}
+
+function draw(){
+  var box = document.getElementById('plans');
+  box.innerHTML = '';
+  PLANS.forEach(function(p){
+    var b = document.createElement('button');
+    b.className = 'plan' + (p.id === picked ? ' on' : '');
+    b.onclick = function(){ picked = p.id; draw(); };
+    var period = p.months === 1 ? t.month : p.months === 12 ? t.year : t.once;
+    var save = p.store - p.web;
+    b.innerHTML =
+      '<span class="radio">' + (p.id === picked ? '<i></i>' : '') + '</span>' +
+      '<span class="t"><b>' + TITLE[LANG][p.id] + '</b><span>' + period +
+        (p.months > 1 ? ' · ' + usd(p.web / p.months) + ' ' + t.per : '') + '</span>' +
+        '<span class="save">' + t.save + ' ' + usd(save) + ' ' + t.store + '</span></span>' +
+      '<span class="p"><b>' + usd(p.web) + '</b><s>' + usd(p.store) + '</s></span>';
+    box.appendChild(b);
+  });
+}
+draw();
+
+document.getElementById('go').onclick = function(){
+  if (!login){
+    var e = document.getElementById('err');
+    e.textContent = t.nologin;
+    e.hidden = false;
+    return;
+  }
+  var q = new URLSearchParams({plan: picked, login: login, device: device, lang: LANG});
+  location.href = '/api/checkout?' + q;
+};
+</script>
+</body>
+</html>
