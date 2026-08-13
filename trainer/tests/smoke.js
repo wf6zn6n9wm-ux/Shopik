@@ -99,7 +99,7 @@ const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, 
   Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Box, Notifier, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES, Toaster, Photo, PHOTO, Web, WEB,
   financeCsv, Files, inRange, LEGAL, LEGAL_DOCS, Legal, netByBucket,
-  PHRASES, LANGS, t, _seen, statusTitle, typeTitle, goalTitle, fill, monthWord,
+  PHRASES, LANGS, t, _seen, statusTitle, typeTitle, goalTitle, fill, monthWord, byGroup,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
 const {ctx, el} = sandbox();
@@ -198,6 +198,17 @@ ok('скасування повертає заняття', T.Store.state.subs.fi
 const stock = T.Store.state.products[0].stock;
 T.Act.sell({clientId: c.id, productId: T.Store.state.products[0].id, qty: 2, price: 1400});
 ok('продаж зменшує залишок', T.Store.state.products[0].stock === stock - 2);
+/* групове тренування показується однією подією, а не трьома рядками */
+{
+  const at = new Date().toISOString();
+  const g = [{id:'a', groupId:'g1', start:at}, {id:'b', groupId:'g1', start:at},
+             {id:'c', start:at}, {id:'d', groupId:'g1', start:at}];
+  const rows = T.byGroup(g);
+  ok('група склеюється в один рядок', rows.length === 2, rows.length + ' рядки');
+  ok('усі учасники лишаються всередині', rows[0].length === 3 && rows[1].length === 1);
+  ok('порядок подій зберігається', rows[0][0].id === 'a' && rows[1][0].id === 'c');
+}
+
 /* серія: знімаємо тільки заплановане попереду, історію не чіпаємо */
 const rep = 'rep_test';
 const DAY_MS = 86400000;
