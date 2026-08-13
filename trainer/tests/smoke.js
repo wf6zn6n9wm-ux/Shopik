@@ -198,6 +198,27 @@ ok('скасування повертає заняття', T.Store.state.subs.fi
 const stock = T.Store.state.products[0].stock;
 T.Act.sell({clientId: c.id, productId: T.Store.state.products[0].id, qty: 2, price: 1400});
 ok('продаж зменшує залишок', T.Store.state.products[0].stock === stock - 2);
+/* заміри — необов'язкові, тому головне, щоб без них нічого не ламалось */
+{
+  const c5 = T.Act.addClient({name: 'Замір Тестовий'});
+  ok('нова база має список замірів', Array.isArray(T.emptyDB().measures));
+  /* кабінет попередньої версії просто не має цього поля */
+  const oldDb = T.emptyDB();
+  delete oldDb.measures;
+  ok('стара база без поля не ламає підрахунки', T.clientStats(oldDb, c5.id).debt === 0);
+
+  const m1 = T.Act.addMeasure({clientId: c5.id, weight: 82.4, waist: 88});
+  const m2 = T.Act.addMeasure({clientId: c5.id, weight: 80.1, waist: 84});
+  ok('замір зберігається', T.Store.state.measures.length === 2);
+  ok('найновіший перший', T.Store.state.measures[0].id === m2.id);
+  ok('порожні поля лишаються нулями', m1.chest === 0 && m1.hip === 0);
+  T.Act.delMeasure(m1.id);
+  ok('замір видаляється', T.Store.state.measures.length === 1);
+  T.Act.delClient(c5.id);
+  ok('разом із клієнтом ідуть і його заміри',
+     !T.Store.state.measures.some(m => m.clientId === c5.id));
+}
+
 /* перенесення тренування */
 {
   const c3 = T.Act.addClient({name: 'Перенос Тестовий'});
