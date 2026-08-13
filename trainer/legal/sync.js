@@ -87,7 +87,7 @@ const htmlOf = (doc, v, other) => `<!doctype html>
 ${doc.blocks.map(([h, tx]) => '  <h2>' + esc(h) + '</h2>\n' +
     fill(tx, v).split('\n\n').map(par => '  <p>' + esc(par) + '</p>').join('\n')).join('\n')}
   <p class="note">${esc(v.company)} · <a href="mailto:${esc(v.email)}">${esc(v.email)}</a><br>
-  ${esc(other.title)} — <a href="/${other.file}">${esc(other.title.toLowerCase())}</a></p>
+  <a href="/${other.file}">${esc(other.title.toLowerCase())}</a> · <a href="/support">підтримка</a> · <a href="/delete">видалення даних</a></p>
 </div>
 </body>
 </html>
@@ -124,7 +124,7 @@ const deleteHtml = v => `<!doctype html>
   <p>Разом із записом зникне й активна підписка: доступ доведеться оформлювати заново, а пробний період не поновиться. Дані про оплати ми зобов'язані зберігати стільки, скільки вимагає податкове законодавство.</p>
 
   <p class="note">${esc(v.company)} · <a href="mailto:${esc(v.email)}">${esc(v.email)}</a><br>
-  <a href="/privacy">політика конфіденційності</a> · <a href="/terms">умови використання</a></p>
+  <a href="/privacy">політика конфіденційності</a> · <a href="/terms">умови використання</a> · <a href="/support">підтримка</a></p>
 </div>
 </body>
 </html>

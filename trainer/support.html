@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>PRO Trainer — підтримка</title>
+<link rel="stylesheet" href="/pay.css" />
+</head>
+<body>
+<div class="wrap doc">
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24"><path d="M4 9v6M8 6.5v11M16 6.5v11M20 9v6M8 12h8"/></svg></div>
+    <b>PRO Trainer</b>
+  </div>
+  <h1 id="h1">Підтримка</h1>
+  <p class="sub" id="sub"></p>
+  <div class="who" id="contact"></div>
+  <div id="faq"></div>
+  <p class="note" id="note"></p>
+</div>
+
+<script>
+/* Сторінка, яку магазини вимагають як Support URL, і водночас перше
+   місце, куди піде тренер, коли щось не зрозуміло. Тому не «форма
+   звернення», а відповіді на те, що справді питають. */
+var Q = new URLSearchParams(location.search);
+var LANG = ['uk','ru','en','pl'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang')
+  : (['uk','ru','en','pl'].indexOf((navigator.language || 'uk').slice(0,2)) >= 0
+      ? (navigator.language || 'uk').slice(0,2) : 'uk');
+document.documentElement.lang = LANG;
+
+var MAIL = 'andreymenedger01@gmail.com';
+
+var T = {
+uk: {
+  title: 'Підтримка',
+  sub: 'PRO Trainer — робочий кабінет персонального тренера: клієнти, розклад, гроші й продажі в одному місці.',
+  contact: 'Питання, проблема, повернення коштів — пишіть на <a href="mailto:' + MAIL + '">' + MAIL + '</a>. Відповідаємо протягом 5 робочих днів, зазвичай швидше. Опишіть, що саме сталося й на якому пристрої — так вийде швидше.',
+  note: 'Умови використання · Політика конфіденційності · Видалення даних',
+  faq: [
+   ['Як почати', 'Відкрийте застосунок, створіть кабінет — і ви отримаєте 14 днів повного доступу. Картку вводити не потрібно, нічого не спишеться. Оплату ви обираєте самі, коли пробний період завершиться.'],
+   ['Скільки коштує', 'У магазині застосунків: 1 місяць — $4.99, 3 місяці — $12.99, 1 рік — $49.99. На сайті дешевше, бо там немає комісії магазину: $4.49, $11.99 і $48.99. Кнопка «Активувати у WEB» — на екрані тарифів.'],
+   ['Купив підписку, а на новому телефоні її немає', 'Натисніть «Відновити покупку» на екрані тарифів. Підписка з магазину повернеться з вашого облікового запису, підписка з сайту — за логіном, яким ви входите в застосунку. Підписка з сайту працює на трьох пристроях одночасно; якщо місця скінчились, звільніть його на сторінці підписки.'],
+   ['Як скасувати підписку', 'Якщо платили в магазині — у налаштуваннях підписок App Store або Google Play. Якщо на сайті — у застосунку, Профіль → Підписка → «Керувати підпискою на сайті». Доступ працює до кінця вже оплаченого періоду.'],
+   ['Дані зникнуть, якщо не продовжити підписку?', 'Ні. Клієнти, тренування й фінанси лишаються на пристрої. Зупиняється лише доступ до застосунку — щойно підписка відновиться, усе на місці.'],
+   ['Як перенести дані на інший телефон', 'Профіль → Резервна копія → «Створити копію зараз»: збережеться файл. На новому телефоні відкрийте той самий екран і оберіть «Відновити з файлу». Синхронізації між пристроями поки немає — дані живуть на пристрої, а не в нас.'],
+   ['Не приходять нагадування', 'Перевірте дозвіл: Налаштування → «Дозволити сповіщення на цьому пристрої». Далі — інтервали (за годину, 30, 15 або 5 хвилин). Розклад складається наперед, і в налаштуваннях написано, до якої дати він дотягується; якщо не відкривати застосунок дуже довго, нагадування закінчаться — застосунок попередить про це окремо.'],
+   ['Як віддати звіт бухгалтеру', 'Екран «Фінанси» → «Вивантажити в CSV». Файл за той період, який зараз обрано на екрані: тренування, товари й абонементи окремими рядками.'],
+   ['Як видалити дані', 'Клієнта з усією історією — кнопка в його картці. Усе одразу — Налаштування → «Видалити всі дані». Записи про підписку з нашого сервера видаляємо на запит: напишіть на пошту вище.'],
+  ],
+},
+ru: {
+  title: 'Поддержка',
+  sub: 'PRO Trainer — рабочий кабинет персонального тренера: клиенты, расписание, деньги и продажи в одном месте.',
+  contact: 'Вопрос, проблема, возврат средств — пишите на <a href="mailto:' + MAIL + '">' + MAIL + '</a>. Отвечаем в течение 5 рабочих дней, обычно быстрее. Опишите, что именно произошло и на каком устройстве — так получится быстрее.',
+  note: 'Условия использования · Политика конфиденциальности · Удаление данных',
+  faq: [
+   ['Как начать', 'Откройте приложение, создайте кабинет — и получите 14 дней полного доступа. Карту вводить не нужно, ничего не спишется. Оплату вы выбираете сами, когда пробный период закончится.'],
+   ['Сколько стоит', 'В магазине приложений: 1 месяц — $4.99, 3 месяца — $12.99, 1 год — $49.99. На сайте дешевле, потому что там нет комиссии магазина: $4.49, $11.99 и $48.99. Кнопка «Активировать в WEB» — на экране тарифов.'],
+   ['Купил подписку, а на новом телефоне её нет', 'Нажмите «Восстановить покупку» на экране тарифов. Подписка из магазина вернётся из вашей учётной записи, подписка с сайта — по логину, которым вы входите в приложении. Подписка с сайта работает на трёх устройствах одновременно; если места кончились, освободите его на странице подписки.'],
+   ['Как отменить подписку', 'Если платили в магазине — в настройках подписок App Store или Google Play. Если на сайте — в приложении, Профиль → Подписка → «Управлять подпиской на сайте». Доступ работает до конца уже оплаченного периода.'],
+   ['Данные исчезнут, если не продлить подписку?', 'Нет. Клиенты, тренировки и финансы остаются на устройстве. Останавливается только доступ к приложению — как только подписка возобновится, всё на месте.'],
+   ['Как перенести данные на другой телефон', 'Профиль → Резервная копия → «Создать копию сейчас»: сохранится файл. На новом телефоне откройте тот же экран и выберите «Восстановить из файла». Синхронизации между устройствами пока нет — данные живут на устройстве, а не у нас.'],
+   ['Не приходят напоминания', 'Проверьте разрешение: Настройки → «Разрешить уведомления на этом устройстве». Дальше — интервалы (за час, 30, 15 или 5 минут). Расписание составляется заранее, и в настройках написано, до какой даты оно дотягивается; если очень долго не открывать приложение, напоминания закончатся — приложение предупредит об этом отдельно.'],
+   ['Как отдать отчёт бухгалтеру', 'Экран «Финансы» → «Выгрузить в CSV». Файл за тот период, который сейчас выбран на экране: тренировки, товары и абонементы отдельными строками.'],
+   ['Как удалить данные', 'Клиента со всей историей — кнопка в его карточке. Всё сразу — Настройки → «Удалить все данные». Записи о подписке с нашего сервера удаляем по запросу: напишите на почту выше.'],
+  ],
+},
+en: {
+  title: 'Support',
+  sub: 'PRO Trainer is the back office of a personal trainer: clients, schedule, money and sales in one place.',
+  contact: 'Questions, problems, refunds — write to <a href="mailto:' + MAIL + '">' + MAIL + '</a>. We reply within 5 business days, usually sooner. Tell us what happened and on which device — that makes it faster.',
+  note: 'Terms of use · Privacy policy · Data deletion',
+  faq: [
+   ['Getting started', 'Open the app, create an account, and you get 14 days of full access. No card required, nothing is charged. You choose a plan yourself when the trial ends.'],
+   ['What it costs', 'In the app stores: 1 month $4.99, 3 months $12.99, 1 year $49.99. On the website it is cheaper because there is no store commission: $4.49, $11.99 and $48.99. The “Activate on the web” button is on the plans screen.'],
+   ['I bought a subscription but my new phone does not see it', 'Tap “Restore purchase” on the plans screen. A store subscription comes back from your store account; a website subscription is found by the login you use in the app. A website subscription works on three devices at once — if the slots are full, free one up on the subscription page.'],
+   ['How to cancel', 'If you paid in a store — in the App Store or Google Play subscription settings. If you paid on the website — in the app: Profile → Subscription → “Manage subscription on the website”. Access lasts until the end of the paid period.'],
+   ['Will my data disappear if I stop paying?', 'No. Clients, sessions and finances stay on the device. Only access to the app pauses — everything is there the moment the subscription resumes.'],
+   ['Moving to another phone', 'Profile → Backup → “Create backup now” saves a file. On the new phone open the same screen and choose “Restore from file”. There is no sync between devices yet — the data lives on your device, not with us.'],
+   ['Reminders do not arrive', 'Check the permission: Settings → “Allow notifications on this device”, then the intervals (an hour, 30, 15 or 5 minutes before). The schedule is built ahead, and the settings show the date it reaches; if you do not open the app for a very long time, reminders run out — the app warns you about that separately.'],
+   ['Giving a report to an accountant', 'Finances screen → “Export to CSV”. The file covers the period currently selected on screen: sessions, products and packages as separate rows.'],
+   ['Deleting data', 'A client with their whole history — the button in their card. Everything at once — Settings → “Delete all data”. Subscription records on our server are deleted on request: write to the address above.'],
+  ],
+},
+pl: {
+  title: 'Pomoc',
+  sub: 'PRO Trainer to zaplecze trenera personalnego: klienci, grafik, pieniądze i sprzedaż w jednym miejscu.',
+  contact: 'Pytania, problemy, zwroty — pisz na <a href="mailto:' + MAIL + '">' + MAIL + '</a>. Odpowiadamy w ciągu 5 dni roboczych, zwykle szybciej. Opisz, co się stało i na jakim urządzeniu — tak pójdzie szybciej.',
+  note: 'Warunki korzystania · Polityka prywatności · Usunięcie danych',
+  faq: [
+   ['Jak zacząć', 'Otwórz aplikację, załóż konto — dostaniesz 14 dni pełnego dostępu. Karty nie trzeba podawać, nic nie zostanie pobrane. Plan wybierzesz sam, gdy okres próbny się skończy.'],
+   ['Ile to kosztuje', 'W sklepach: 1 miesiąc $4.99, 3 miesiące $12.99, 1 rok $49.99. Na stronie taniej, bo nie ma prowizji sklepu: $4.49, $11.99 i $48.99. Przycisk „Aktywuj w WEB” jest na ekranie planów.'],
+   ['Kupiłem subskrypcję, a nowy telefon jej nie widzi', 'Naciśnij „Przywróć zakup” na ekranie planów. Subskrypcja ze sklepu wróci z Twojego konta, subskrypcja ze strony — po loginie, którym logujesz się w aplikacji. Subskrypcja ze strony działa na trzech urządzeniach naraz; jeśli miejsca się skończyły, zwolnij je na stronie subskrypcji.'],
+   ['Jak anulować', 'Jeśli płaciłeś w sklepie — w ustawieniach subskrypcji App Store lub Google Play. Jeśli na stronie — w aplikacji: Profil → Subskrypcja → „Zarządzaj subskrypcją na stronie”. Dostęp działa do końca opłaconego okresu.'],
+   ['Czy dane znikną, jeśli nie przedłużę?', 'Nie. Klienci, treningi i finanse zostają na urządzeniu. Wstrzymuje się tylko dostęp do aplikacji — po wznowieniu subskrypcji wszystko jest na miejscu.'],
+   ['Przeniesienie na inny telefon', 'Profil → Kopia zapasowa → „Utwórz kopię teraz” zapisze plik. Na nowym telefonie otwórz ten sam ekran i wybierz „Przywróć z pliku”. Synchronizacji między urządzeniami jeszcze nie ma — dane są na urządzeniu, nie u nas.'],
+   ['Nie przychodzą przypomnienia', 'Sprawdź zgodę: Ustawienia → „Zezwól na powiadomienia na tym urządzeniu”, potem odstępy (godzina, 30, 15 lub 5 minut). Grafik układany jest z wyprzedzeniem, a w ustawieniach widać, do jakiej daty sięga; jeśli bardzo długo nie otworzysz aplikacji, przypomnienia się skończą — aplikacja ostrzeże o tym osobno.'],
+   ['Raport dla księgowej', 'Ekran „Finanse” → „Pobierz w CSV”. Plik obejmuje okres wybrany na ekranie: treningi, towary i karnety w osobnych wierszach.'],
+   ['Usuwanie danych', 'Klienta wraz z historią — przycisk w jego karcie. Wszystko naraz — Ustawienia → „Usuń wszystkie dane”. Zapisy o subskrypcji na naszym serwerze usuwamy na żądanie: napisz na adres powyżej.'],
+  ],
+},
+};
+
+var t = T[LANG];
+var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+document.getElementById('h1').textContent = t.title;
+document.getElementById('sub').textContent = t.sub;
+document.getElementById('contact').innerHTML = t.contact;
+document.getElementById('faq').innerHTML = t.faq
+  .map(function(qa){ return '<h2>' + esc(qa[0]) + '</h2><p>' + esc(qa[1]) + '</p>'; }).join('');
+var links = t.note.split(' · ');
+document.getElementById('note').innerHTML =
+  '<a href="/terms">' + esc(links[0]) + '</a> · <a href="/privacy">' + esc(links[1]) + '</a> · ' +
+  '<a href="/delete">' + esc(links[2]) + '</a><br><a href="/">' + esc(t.title === 'Support' ? 'Open the app' :
+    t.title === 'Pomoc' ? 'Otwórz aplikację' : t.title === 'Поддержка' ? 'Открыть приложение' : 'Відкрити застосунок') + '</a>';
+</script>
+</body>
+</html>

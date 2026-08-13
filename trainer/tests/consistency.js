@@ -86,6 +86,7 @@ part('юридичні реквізити');
   const LEGAL = decl(app, 'LEGAL');
   ok('заглушок не лишилось', !/\[НАЗВА|\[EMAIL|\[САЙТ/.test(JSON.stringify(LEGAL)),
      LEGAL.company + ' · ' + LEGAL.email);
+  ok('пошта на сторінці підтримки та сама', read('support.html').includes(LEGAL.email), LEGAL.email);
   ['terms.html', 'privacy.html', 'delete.html'].forEach(f => {
     const page = read(f);
     ok('на сторінці ' + f + ' ті самі реквізити',
