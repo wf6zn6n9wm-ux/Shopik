@@ -57,10 +57,9 @@ jobs:
     needs: tests
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    # тот же корень, что и Root Directory проекта
-    defaults:
-      run:
-        working-directory: trainer
+    # Заливаем корень репозитория, а не папку trainer: Root Directory в
+    # проекте уже указывает на trainer, и если зайти туда самим, Vercel
+    # ищет trainer/trainer и падает.
     steps:
       - uses: actions/checkout@v4
 
@@ -73,7 +72,10 @@ jobs:
           TOKEN: ${{ secrets.VERCEL_TOKEN }}
           SCOPE: wf6zn6n9wm-uxs-projects
           PROJECT: pro-trainer
+        # pipefail обязателен: без него `| tee` съедает код возврата, и
+        # шаг рапортует об успехе, когда сборка на самом деле упала.
         run: |
+          set -o pipefail
           if [ -z "$TOKEN" ]; then
             echo '::warning::VERCEL_TOKEN не задан — выкладывать придётся руками'
             exit 0
