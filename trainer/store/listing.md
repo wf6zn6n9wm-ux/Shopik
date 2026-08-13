@@ -1,8 +1,8 @@
 # PRO Trainer — тексты для App Store и Google Play
 
-Всё готово к копированию. Что нужно подставить своё: `[САЙТ]`, `[EMAIL
-ПІДТРИМКИ]` и ссылки на документы — те же значения, что в `LEGAL` в
-`trainer/index.html`.
+Всё готово к копированию. Подставить своё нужно только `[САЙТ]` — домен, который
+выдаст Vercel после деплоя. Остальные реквизиты уже заполнены в `LEGAL` в
+`trainer/index.html`: ФОП Мозолевич Андрей, andreymenedger01@gmail.com.
 
 Скриншоты — `node trainer/store/shots.js` (см. в конце).
 
@@ -16,10 +16,10 @@
 | Категория | App Store: **Business**, вторая — Health & Fitness · Google Play: **Business** |
 | Возрастной рейтинг | 4+ / Everyone |
 | Языки | українська, русский, English, polski |
-| Support URL | `[САЙТ]/support` |
+| Support URL | `[САЙТ]` (страница приложения; почта — andreymenedger01@gmail.com) |
 | Marketing URL | `[САЙТ]` |
-| Privacy Policy URL | `[САЙТ]/privacy` |
-| Terms (EULA) | `[САЙТ]/terms` |
+| Privacy Policy URL | `[САЙТ]/privacy` — страница есть, отдаётся с деплоя |
+| Terms (EULA) | `[САЙТ]/terms` — страница есть, отдаётся с деплоя |
 
 **Подписки** (те же ID, что в `PLANS`):
 
@@ -418,8 +418,10 @@ node trainer/store/shots.js uk en    # только выбранные
 Проверки по магазинам расписаны в `trainer/native/README.md`. Коротко, что
 нельзя забыть:
 
-1. Заполнить `LEGAL` в `trainer/index.html` — сейчас там `[НАЗВА ФОП /
-   КОМПАНІЇ]` и `[EMAIL ПІДТРИМКИ]`. Apple проверяет, что данные настоящие.
+1. Дать юристу `trainer/legal/terms.md` и `privacy.md`, вернуть правки
+   командой `node trainer/legal/sync.js import` и обновить страницы
+   `export`. Реквизиты уже заполнены, но текст под вашу юрисдикцию должен
+   вычитать юрист.
 2. Подписать Paid Apps Agreement, заполнить банковские и налоговые данные —
    без этого покупки не работают даже в sandbox.
 3. Ссылки на «Умови» и «Політику» указать и в метаданных, не только в

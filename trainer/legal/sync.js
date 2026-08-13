@@ -1,0 +1,176 @@
+/* ──────────────────────────────────────────────────────────────────
+   Юридичні документи: винести з коду й повернути назад.
+
+     node trainer/legal/sync.js export
+        legal/terms.md, legal/privacy.md   — щоб віддати юристу
+        terms.html, privacy.html           — публічні сторінки для магазинів
+
+     node trainer/legal/sync.js import
+        читає виправлені .md і переписує LEGAL_DOCS у index.html
+
+   Єдине джерело правди лишається в index.html: документи мають бути
+   всередині застосунку, бо він працює без інтернету. Скрипт лише
+   возить текст туди й назад — правки юриста повертаються командою, а
+   не переписуванням коду вручну.
+
+   Реквізити в тексті лишаються підстановками — {{company}}, {{email}},
+   {{updated}}, {{trialDays}}. Юрист бачить, що це змінні, а в застосунку
+   й на сторінках вони підставляються з LEGAL.
+   ────────────────────────────────────────────────────────────────── */
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const ROOT = path.join(__dirname, '..');
+const APP = path.join(ROOT, 'index.html');
+const MARKS = {company: '{{company}}', email: '{{email}}', updated: '{{updated}}'};
+
+/* ─────────── читання ─────────── */
+function block(src, start){
+  /* від `const X = {` до рядка, що закриває об'єкт на нульовому рівні */
+  const from = src.indexOf(start);
+  if (from < 0) throw new Error('не знайшов ' + start);
+  let i = src.indexOf('{', from), depth = 0;
+  for (; i < src.length; i++){
+    if (src[i] === '{') depth++;
+    else if (src[i] === '}'){ depth--; if (!depth) return {from, to: i + 2, text: src.slice(from, i + 2)}; }
+  }
+  throw new Error('не знайшов кінець ' + start);
+}
+
+function readDocs(){
+  const src = fs.readFileSync(APP, 'utf8');
+  const b = block(src, 'const LEGAL_DOCS = {');
+  /* виконуємо з мітками замість реквізитів — тоді підстановки самі
+     перетворяться на {{...}}, і жодного розбору шаблонних рядків */
+  const ctx = {LEGAL: MARKS, TRIAL_DAYS: '{{trialDays}}'};
+  vm.createContext(ctx);
+  vm.runInContext(b.text + ';globalThis.__docs = LEGAL_DOCS;', ctx);
+  return {src, b, docs: ctx.__docs};
+}
+
+/* ─────────── export ─────────── */
+const mdOf = doc => '# ' + doc.title + '\n\n' +
+  doc.blocks.map(([h, tx]) => '## ' + h + '\n\n' + tx + '\n').join('\n') +
+  '\n---\n\n_Підстановки: {{company}}, {{email}}, {{updated}}, {{trialDays}} — ' +
+  'застосунок підставляє їх сам, лишайте як є._\n';
+
+function legalValues(src){
+  const b = block(src, 'const LEGAL = {');
+  const ctx = {};
+  vm.createContext(ctx);
+  vm.runInContext(b.text + ';globalThis.__legal = LEGAL;', ctx);
+  const trial = (src.match(/const TRIAL_DAYS = (\d+)/) || [, '14'])[1];
+  return {...ctx.__legal, trialDays: trial};
+}
+
+const fill = (tx, v) => tx.replace(/\{\{(\w+)\}\}/g, (_, k) => (v[k] !== undefined ? v[k] : ''));
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const htmlOf = (doc, v, other) => `<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>PRO Trainer — ${esc(doc.title)}</title>
+<link rel="stylesheet" href="/pay.css" />
+</head>
+<body>
+<div class="wrap doc">
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24"><path d="M4 9v6M8 6.5v11M16 6.5v11M20 9v6M8 12h8"/></svg></div>
+    <b>PRO Trainer</b>
+  </div>
+  <h1>${esc(doc.title)}</h1>
+${doc.blocks.map(([h, tx]) => '  <h2>' + esc(h) + '</h2>\n  <p>' + esc(fill(tx, v)) + '</p>').join('\n')}
+  <p class="note">${esc(v.company)} · <a href="mailto:${esc(v.email)}">${esc(v.email)}</a><br>
+  ${esc(other.title)} — <a href="/${other.file}">${esc(other.title.toLowerCase())}</a></p>
+</div>
+</body>
+</html>
+`;
+
+function doExport(){
+  const {src, docs} = readDocs();
+  const v = legalValues(src);
+  fs.mkdirSync(__dirname, {recursive: true});
+  const pair = {terms: {key: 'privacy', file: 'privacy'}, privacy: {key: 'terms', file: 'terms'}};
+  Object.keys(docs).forEach(k => {
+    fs.writeFileSync(path.join(__dirname, k + '.md'), mdOf(docs[k]));
+    const o = pair[k];
+    fs.writeFileSync(path.join(ROOT, k + '.html'),
+      htmlOf(docs[k], v, {title: docs[o.key].title, file: o.file}));
+    console.log('  ✓ legal/' + k + '.md  ·  ' + k + '.html');
+  });
+  console.log('\nЮристу — файли .md. Магазинам — посилання на /terms і /privacy.');
+}
+
+/* ─────────── import ─────────── */
+function parseMd(text){
+  const lines = text.replace(/\r/g, '').split('\n');
+  let title = '';
+  const blocks = [];
+  let head = null, buf = [];
+  const flush = () => {
+    if (head === null) return;
+    const tx = buf.join('\n').trim().replace(/\n{2,}/g, '\n\n');
+    if (tx) blocks.push([head, tx]);
+    buf = [];
+  };
+  for (const ln of lines){
+    if (ln.startsWith('# ')){ title = ln.slice(2).trim(); continue; }
+    if (ln.startsWith('## ')){ flush(); head = ln.slice(3).trim(); continue; }
+    if (ln.startsWith('---') || /^_Підстановки/.test(ln)) { flush(); head = null; continue; }
+    buf.push(ln);
+  }
+  flush();
+  if (!title || !blocks.length) throw new Error('не схоже на документ: немає заголовка або розділів');
+  return {title, blocks};
+}
+
+/* назад у JS: рядок із підстановками стає шаблонним, решта — звичайним */
+function jsString(s){
+  const withVars = s.replace(/\{\{(\w+)\}\}/g,
+    (_, k) => (k === 'trialDays' ? '${TRIAL_DAYS}' : '${LEGAL.' + k + '}'));
+  if (withVars.indexOf('${') >= 0)
+    return '`' + withVars.replace(/`/g, '\\`') + '`';
+  return "'" + withVars.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+}
+
+function doImport(){
+  const {src, b, docs} = readDocs();
+  const next = {};
+  Object.keys(docs).forEach(k => {
+    const file = path.join(__dirname, k + '.md');
+    if (!fs.existsSync(file)) throw new Error('немає ' + path.relative(ROOT, file) + ' — спершу export');
+    next[k] = parseMd(fs.readFileSync(file, 'utf8'));
+  });
+
+  const body = Object.keys(next).map(k => {
+    const d = next[k];
+    return '  ' + k + ': {\n    title: ' + jsString(d.title) + ',\n    blocks: [\n' +
+      d.blocks.map(([h, tx]) => '      [' + jsString(h) + ', ' + jsString(tx) + '],').join('\n') +
+      '\n    ],\n  },';
+  }).join('\n');
+
+  const text = 'const LEGAL_DOCS = {\n' + body + '\n};';
+  fs.writeFileSync(APP, src.slice(0, b.from) + text + src.slice(b.to - 1));
+
+  /* перевіряємо, що вийшло читабельним для самого застосунку */
+  const check = readDocs().docs;
+  Object.keys(next).forEach(k => {
+    if (check[k].blocks.length !== next[k].blocks.length)
+      throw new Error('після запису розділи не збіглись у ' + k);
+  });
+  Object.keys(check).forEach(k => console.log('  ✓ ' + k + ' — ' + check[k].blocks.length + ' розділів'));
+  console.log('\nЗаписано в index.html. Далі: node trainer/legal/sync.js export — оновити публічні сторінки.');
+}
+
+const cmd = process.argv[2];
+if (cmd === 'export') doExport();
+else if (cmd === 'import') doImport();
+else {
+  console.log('node trainer/legal/sync.js export   — винести документи (юристу + публічні сторінки)');
+  console.log('node trainer/legal/sync.js import   — повернути виправлені .md у застосунок');
+  process.exit(1);
+}

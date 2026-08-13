@@ -45,3 +45,10 @@
   .err{margin-top:14px;padding:12px 14px;border-radius:14px;border:1px solid #d2544f;
     color:#ff8a85;font-size:13.5px;}
   a{color:var(--accent);text-decoration:none;}
+
+  /* публічні сторінки документів: /terms і /privacy */
+  .doc h1{margin-bottom:6px;}
+  .doc h2{margin-top:26px;font-size:16px;font-weight:800;letter-spacing:-.01em;}
+  .doc p{margin-top:8px;font-size:14.5px;line-height:1.6;color:var(--ink-2);}
+  .doc .note{margin-top:32px;padding-top:16px;border-top:1px solid var(--line);
+    font-size:12.5px;line-height:1.6;}
