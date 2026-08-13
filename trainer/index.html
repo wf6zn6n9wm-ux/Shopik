@@ -744,6 +744,15 @@ const PHRASES = [
   ['Свій період', 'Свой период', 'Custom range', 'Własny okres'],
   ['Групове', 'Групповая', 'Group', 'Grupowy'],
   ['Додати учасника', 'Добавить участника', 'Add a participant', 'Dodaj uczestnika'],
+  ['Перенести', 'Перенести', 'Reschedule', 'Przenieś'],
+  ['Перенести на', 'Перенести на', 'Move to', 'Przenieś na'],
+  ['Перенесено', 'Перенесено', 'Rescheduled', 'Przeniesiono'],
+  ['+1 день', '+1 день', '+1 day', '+1 dzień'],
+  ['+1 тиждень', '+1 неделя', '+1 week', '+1 tydzień'],
+  ['Групове переноситься цілком, з усіма учасниками',
+   'Групповая переносится целиком, со всеми участниками',
+   'A group session moves as a whole, with all participants',
+   'Trening grupowy przenosi się w całości, ze wszystkimi uczestnikami'],
   ['Учасника додано', 'Участник добавлен', 'Participant added', 'Uczestnik dodany'],
   ['Цей клієнт уже в тренуванні', 'Этот клиент уже в тренировке', 'This client is already in the session', 'Ten klient już jest na treningu'],
   ['Повторювати', 'Повторять', 'Repeat', 'Powtarzaj'],
@@ -2537,6 +2546,19 @@ const Act = {
       return {...db, sessions: db.sessions.map(x => x.id === id ? {...x, status:'noshow', paid:false} : x), subs};
     }, {name:'session.noshow', data:{id}});
   },
+  /* Перенести тренування. Групове рухаємо цілком: це одне заняття, і
+     лишити одного учасника на старому часі означало б розірвати групу
+     мовчки. Щоб перенести когось одного, його прибирають з групи. */
+  moveSession(id, when){
+    const s = byId(Store.state.sessions, id);
+    if (!s) return;
+    const start = new Date(when).toISOString();
+    const hit = x => x.id === id || (s.groupId && x.groupId === s.groupId);
+    Store.patch(db => ({...db, sessions: db.sessions.map(x =>
+      hit(x) ? {...x, start, status: x.status === 'canceled' ? x.status : 'planned'} : x)}),
+      {name:'session.move', data:{id, start}});
+  },
+
   /* Дописати клієнта в уже створене тренування. Якщо воно було
      одиночним — стає груповим, тому groupId проставляється і першому.
      Новому учаснику ставимо «не оплачено»: він щойно приєднався, і
@@ -4141,6 +4163,8 @@ const SessionSheet = ({id, onClose}) => {
   const s = byId(db.sessions, id);
   const [confirm, setConfirm] = useState(false);
   const [join, setJoin] = useState(false);
+  const [move, setMove] = useState(false);
+  const [when, setWhen] = useState(() => new Date());
   if (!s) return null;
   const c = byId(db.clients, s.clientId);
   const sp = split(s.price, db.settings);
@@ -4223,6 +4247,14 @@ const SessionSheet = ({id, onClose}) => {
             <Ic.wallet size={18}/>{t('session.pay','Позначити оплату')} · {money(s.price)}
           </Btn>
         )}
+        {/* найчастіше прохання клієнта — перенести. Заради цього не варто
+            відкривати повне редагування */}
+        {s.status !== 'canceled' && (
+          <Btn kind="sec" wide onClick={() => { setWhen(new Date(s.start)); setMove(true); }}>
+            <Ic.cal size={17}/>{t('session.move','Перенести')}
+          </Btn>
+        )}
+
         {/* тренування вже йде, а прийшов ще один — дописати його сюди,
             а не заводити окреме на той самий час */}
         {s.status !== 'canceled' && !join && (
@@ -4253,6 +4285,33 @@ const SessionSheet = ({id, onClose}) => {
             {t('session.series.del','Прибрати всі наступні')} · {ahead}
           </Btn>
         )}
+        <Sheet open={move} onClose={() => setMove(false)} title={t('session.move','Перенести')}
+               sub={mates.length > 0 ? t('session.move.group','Групове переноситься цілком, з усіма учасниками')
+                                     : (c ? c.name : '')}>
+          <div className="chips" style={{marginBottom:12}}>
+            {[[1, t('session.move.d1','+1 день')], [7, t('session.move.w1','+1 тиждень')]].map(([d, tx]) => (
+              <button key={d} className="chip" onClick={() => setWhen(addDays(when, d))}>{tx}</button>
+            ))}
+          </div>
+          <Field label={t('common.date','Дата')}>
+            <DatePick value={when} onChange={setWhen}/>
+          </Field>
+          <Field label={t('session.time','Час')}>
+            <TimePick value={when} onChange={setWhen}
+                      taken={db.sessions.filter(x => x.status !== 'canceled' && sameDay(x.start, when)
+                                                     && x.id !== s.id && x.groupId !== s.groupId)
+                                        .map(x => fmtTime(x.start))}/>
+          </Field>
+          <Btn kind="pri" size="lg" wide style={{marginTop:12}} onClick={() => {
+            Act.moveSession(s.id, when);
+            setMove(false);
+            onClose();
+            Toaster.ok(t('session.moved','Перенесено') + ' · ' + fmtDM(when) + ', ' + fmtTime(when));
+          }}>
+            {t('session.move.do','Перенести на')} {fmtDM(when)}, {fmtTime(when)}
+          </Btn>
+        </Sheet>
+
         {confirm && (
           <div className="card pad" style={{borderColor:'var(--neg)'}}>
             <b style={{fontSize:14.5}}>{t('session.cancel.q','Скасувати тренування?')}</b>
