@@ -198,6 +198,21 @@ ok('скасування повертає заняття', T.Store.state.subs.fi
 const stock = T.Store.state.products[0].stock;
 T.Act.sell({clientId: c.id, productId: T.Store.state.products[0].id, qty: 2, price: 1400});
 ok('продаж зменшує залишок', T.Store.state.products[0].stock === stock - 2);
+/* серія: знімаємо тільки заплановане попереду, історію не чіпаємо */
+const rep = 'rep_test';
+const DAY_MS = 86400000;
+const back = new Date(Date.now() - 7 * DAY_MS).toISOString();
+const soon = new Date(Date.now() + 7 * DAY_MS).toISOString();
+const later = new Date(Date.now() + 14 * DAY_MS).toISOString();
+const past = T.Act.addSession({clientId: c.id, price: 800, start: back, repeatId: rep, status: 'done'});
+T.Act.addSession({clientId: c.id, price: 800, start: soon, repeatId: rep});
+T.Act.addSession({clientId: c.id, price: 800, start: later, repeatId: rep});
+T.Act.delSeries(rep, Date.now());
+const rest = T.Store.state.sessions.filter(x => x.repeatId === rep);
+ok('серія знімається одним дотиком', rest.length === 1 && rest[0].id === past.id,
+   rest.length + ' лишилось');
+ok('проведене з серії лишається в історії', rest[0].status === 'done');
+
 T.Act.delClient(c.id);
 ok('видалення прибирає й тренування клієнта',
    !T.Store.state.sessions.some(x => x.clientId === c.id));

@@ -731,6 +731,23 @@ const PHRASES = [
   ['Персональна', 'Персональная', 'Personal', 'Personalny'],
   ['Свій період', 'Свой период', 'Custom range', 'Własny okres'],
   ['Групове', 'Групповая', 'Group', 'Grupowy'],
+  ['Повторювати', 'Повторять', 'Repeat', 'Powtarzaj'],
+  ['Разово', 'Разово', 'Once', 'Jednorazowo'],
+  ['Щотижня', 'Каждую неделю', 'Weekly', 'Co tydzień'],
+  ['Через тиждень', 'Через неделю', 'Every 2 weeks', 'Co dwa tygodnie'],
+  ['разів', 'раз', 'times', 'razy'],
+  ['Останнє', 'Последняя', 'Last one', 'Ostatni'],
+  ['Створено тренувань', 'Создано тренировок', 'Sessions created', 'Utworzono treningów'],
+  ['Прибрати всі наступні', 'Убрать все следующие', 'Remove all upcoming', 'Usuń wszystkie kolejne'],
+  ['Прибрано з розкладу', 'Убрано из расписания', 'Removed from the schedule', 'Usunięto z grafiku'],
+  ['Якщо клієнт ходить у той самий день і час, не заводьте кожне окремо',
+   'Если клиент ходит в тот же день и время, не заводите каждую отдельно',
+   'If the client comes on the same day and time, don’t add each one separately',
+   'Jeśli klient przychodzi w ten sam dzień i godzinę, nie dodawaj każdego osobno'],
+  ['Тренування створяться наперед — кожне окремим записом, змінити чи скасувати можна будь-яке',
+   'Тренировки создадутся наперёд — каждая отдельной записью, изменить или отменить можно любую',
+   'The sessions are created in advance — each a separate entry, any of them can be changed or cancelled',
+   'Treningi powstaną z wyprzedzeniem — każdy osobnym wpisem, każdy można zmienić lub odwołać'],
   ['тренувань', 'тренировок', 'sessions', 'treningów'],
   ['завантаження дня', 'загрузка дня', 'of the day booked', 'obłożenia dnia'],
   ['зайнято', 'занято', 'booked', 'zajęte'],
@@ -2451,7 +2468,7 @@ const Act = {
        ціна, оплата й борг, тож гроші рахуються так само, як завжди. */
     const ses = {id: uid('ses'), clientId:'', start: new Date().toISOString(), dur:60, type:'personal',
                  price: Store.state.settings.price, paid:false, status:'planned', subId:null, groupId:null,
-                 note:'', createdAt: Date.now(), ...s};
+                 repeatId:null, note:'', createdAt: Date.now(), ...s};
     Store.patch(db => {
       let subs = db.subs;
       if (ses.subId) subs = subs.map(x => x.id === ses.subId ? {...x, used: Math.min(x.total, x.used + (ses.status === 'done' ? 1 : 0))} : x);
@@ -2499,6 +2516,14 @@ const Act = {
       return {...db, sessions: db.sessions.map(x => x.id === id ? {...x, status:'noshow', paid:false} : x), subs};
     }, {name:'session.noshow', data:{id}});
   },
+  /* Прибрати решту серії. Проведені не чіпаємо — вони вже в історії й у
+     доході; знімаємо тільки заплановані, починаючи з цього. */
+  delSeries(repeatId, fromTs){
+    Store.patch(db => ({...db, sessions: db.sessions.filter(s =>
+      !(s.repeatId === repeatId && s.status === 'planned' && +new Date(s.start) >= fromTs))}),
+      {name:'session.series.del', data:{repeatId, fromTs}});
+  },
+
   /* закрити всі борги клієнта одним дотиком */
   payClient(clientId){
     Store.patch(db => ({...db, sessions: db.sessions.map(s =>
@@ -4016,6 +4041,11 @@ const SessionSheet = ({id, onClose}) => {
     ? db.sessions.filter(x => x.groupId === s.groupId && x.id !== s.id)
         .map(x => (byId(db.clients, x.clientId) || {}).name).filter(Boolean)
     : [];
+  /* скільки ще попереду в цій серії, разом із цим */
+  const ahead = s.repeatId
+    ? db.sessions.filter(x => x.repeatId === s.repeatId && x.status === 'planned'
+                              && +new Date(x.start) >= +new Date(s.start)).length
+    : 0;
 
   const close = () => { onClose(); };
   const act = fn => { fn(); onClose(); };
@@ -4084,6 +4114,16 @@ const SessionSheet = ({id, onClose}) => {
             <Ic.x size={17}/>{t('session.cancel','Скасувати тренування')}
           </Btn>
         )}
+        {/* клієнт пішов у відпустку або перестав ходити — знімати кожне
+            тренування окремо надто довго */}
+        {s.repeatId && ahead > 1 && (
+          <Btn kind="sec" wide onClick={() => act(() => {
+            Act.delSeries(s.repeatId, +new Date(s.start));
+            Toaster.show(t('session.series.gone','Прибрано з розкладу') + ': ' + ahead);
+          })}>
+            {t('session.series.del','Прибрати всі наступні')} · {ahead}
+          </Btn>
+        )}
         {confirm && (
           <div className="card pad" style={{borderColor:'var(--neg)'}}>
             <b style={{fontSize:14.5}}>{t('session.cancel.q','Скасувати тренування?')}</b>
@@ -4127,6 +4167,11 @@ const SessionForm = ({params, onClose}) => {
     subId: edit ? edit.subId : null,
     note: edit ? edit.note : '',
     dur: edit ? edit.dur : 60,
+    /* розклад у тренера здебільшого постійний: той самий клієнт, той
+       самий день тижня, той самий час. Заводити це руками щотижня —
+       найчастіша дурна робота, яку застосунок може зняти. */
+    every: 0,          /* через скільки тижнів повторювати; 0 — не повторювати */
+    times: 8,          /* скільки разів разом із першим */
   });
   const [err, setErr] = useState('');
   const set = (k, v) => setF(x => ({...x, [k]: v}));
@@ -4177,12 +4222,27 @@ const SessionForm = ({params, onClose}) => {
       onClose();
       return;
     }
-    const status = +f.when < Date.now() ? 'done' : 'planned';
     /* один запис на учасника, спільний groupId — так у кожного лишається
        своя оплата, а в календарі вони показуються однією карткою */
     const groupId = many ? uid('grp') : null;
-    f.ids.forEach(id => Act.addSession({...common, clientId: id, subId: many ? null : f.subId, groupId, status}));
-    Toaster.ok(many ? t('session.added.many','Групове тренування додано') : t('session.added','Тренування додано'));
+    const repeatId = f.every ? uid('rep') : null;
+    const n = f.every ? clamp(f.times, 1, 52) : 1;
+    let made = 0;
+    for (let k = 0; k < n; k++){
+      const when = addDays(f.when, k * 7 * f.every);
+      /* абонемент списується за фактом проведення, тож наперед його не
+         розписуємо — інакше залишок з'їдався б наступними тижнями */
+      const subId = many || k > 0 ? null : f.subId;
+      f.ids.forEach(id => Act.addSession({
+        ...common, clientId: id, subId, groupId, repeatId,
+        start: when.toISOString(),
+        status: +when < Date.now() ? 'done' : 'planned',
+      }));
+      made++;
+    }
+    Toaster.ok(made > 1 ? t('session.added.rep','Створено тренувань') + ': ' + made
+               : many ? t('session.added.many','Групове тренування додано')
+               : t('session.added','Тренування додано'));
     onClose();
   }
 
@@ -4267,6 +4327,34 @@ const SessionForm = ({params, onClose}) => {
         {S.gymMode !== 'none' && <Rowline k={t('home.gym','Залу')} v={'−' + money(sp.gym)} tone="var(--ink-2)"/>}
         <Rowline k={t('session.toyou','Тренеру')} v={money(sp.net)} tone="var(--accent)" strong/>
       </div>
+
+      {!edit && (
+        <Field label={t('session.repeat','Повторювати')}
+               hint={f.every ? t('session.repeat.h','Тренування створяться наперед — кожне окремим записом, змінити чи скасувати можна будь-яке')
+                             : t('session.repeat.h0','Якщо клієнт ходить у той самий день і час, не заводьте кожне окремо')}>
+          <div className="segm">
+            {[[0, t('session.repeat.no','Разово')],
+              [1, t('session.repeat.1','Щотижня')],
+              [2, t('session.repeat.2','Через тиждень')]].map(([v, tx]) => (
+              <button key={v} className={cx(f.every === v && 'on')} onClick={() => set('every', v)}>{tx}</button>
+            ))}
+          </div>
+          {f.every > 0 && (
+            <div className="chips" style={{marginTop:10}}>
+              {[4, 8, 12, 24].map(v => (
+                <button key={v} className={cx('chip', f.times === v && 'on')} onClick={() => set('times', v)}>
+                  {v} {t('session.repeat.times','разів')}
+                </button>
+              ))}
+            </div>
+          )}
+          {f.every > 0 && (
+            <div className="muted" style={{fontSize:12.5, marginTop:8, marginLeft:2}}>
+              {t('session.repeat.last','Останнє')}: {fmtDM(addDays(f.when, (clamp(f.times, 1, 52) - 1) * 7 * f.every))}
+            </div>
+          )}
+        </Field>
+      )}
 
       <Field label={t('session.note','Нотатка до тренування')}>
         <textarea className="inp" value={f.note} onChange={e => set('note', e.target.value)}
