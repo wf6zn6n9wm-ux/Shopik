@@ -496,7 +496,15 @@ const pct = n => (n > 0 ? '+' : '') + (Math.abs(n) >= 10 ? Math.round(n) : Math.
 const DAY = 86400000;
 const d0  = d => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+/* для сітки календаря: перше число потрібного місяця */
 const addMonths = (d, n) => { const x = new Date(d); x.setDate(1); x.setMonth(x.getMonth() + n); return x; };
+/* для строків підписки: те саме число наступного місяця (31-е → останнє) */
+const addMonthsKeep = (d, n) => {
+  const x = new Date(d), day = x.getDate();
+  x.setDate(1); x.setMonth(x.getMonth() + n);
+  x.setDate(Math.min(day, new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate()));
+  return x;
+};
 const sameDay = (a, b) => d0(a).getTime() === d0(b).getTime();
 const iso = d => { const x = valid(d) || new Date(); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); };
 const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
@@ -684,6 +692,17 @@ window.addEventListener('online', () => Sync.flush());
    питають його — жодних перевірок «по місцях».                        */
 const TRIAL_DAYS = 14;
 
+/* Реквізити для «Умов» і «Політики». Підставте свої перед публікацією —
+   магазини перевіряють, що ці дані справжні й що документи доступні
+   з екрана оплати. Текст нижче — робочий шаблон, дайте його вичитати
+   юристу під вашу юрисдикцію. */
+const LEGAL = {
+  company: '[НАЗВА ФОП / КОМПАНІЇ]',
+  email: '[EMAIL ПІДТРИМКИ]',
+  site: '[САЙТ]',
+  updated: '13 серпня 2026',
+};
+
 /* Product ID мають збігатися з тим, що заведено в App Store Connect і
    Google Play Console. Змінюються тут — більше ніде не зашиті. */
 const PLANS = [
@@ -703,10 +722,18 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
    демо-реалізація: вона імітує покупку й зберігає її окремо від даних
    застосунку, щоб можна було перевірити «Відновити покупку». */
 const DEMO_IAP_KEY = 'protrainer.iap.demo';
+/* Контракт моста (native/iap-bridge.js реалізує його для Capacitor):
+     platform            'ios' | 'android'
+     buy(productId)   →  {ok, transactionId?, ts?, expiresAt?, error?}
+     restore()        →  {ok, purchases:[{productId, transactionId, ts, expiresAt?}]}
+     status()         →  {ok, active, productId?, expiresAt?, autoRenew?}   (необов'язково)
+   Якщо магазин повідомляє expiresAt — беремо його, він знає про продовження
+   й скасування більше, ніж застосунок. */
 const IAP = {
   bridge(){ return (typeof window !== 'undefined' && window.ProTrainerIAP) || null; },
   platform(){ const b = IAP.bridge(); return b ? (b.platform || 'native') : 'demo'; },
   connected(){ return !!IAP.bridge(); },
+  async status(){ const b = IAP.bridge(); return b && b.status ? b.status() : {ok:false}; },
   demo: {fail: false},
   demoRead(){ try { return JSON.parse(localStorage.getItem(DEMO_IAP_KEY) || 'null'); } catch { return null; } },
   demoWrite(v){ try { localStorage.setItem(DEMO_IAP_KEY, JSON.stringify(v)); } catch {} },
@@ -783,8 +810,9 @@ const Access = {
       if (!r || !r.ok) throw new Error((r && r.error) || 'payment_failed');
       /* продовження додається до чинного строку, а не обнуляє його */
       const from = Math.max(Date.now(), Access.read().expiresAt || 0);
+      const until = r.expiresAt || +addMonthsKeep(new Date(from), plan.months);
       Access.write({status:'active', plan: plan.id, productId: plan.productId,
-        purchasedAt: Date.now(), expiresAt: +addMonths(new Date(from), plan.months),
+        purchasedAt: Date.now(), expiresAt: until,
         autoRenew: true, transactionId: r.transactionId, lastVerifiedAt: Date.now(),
         pendingPlan: null, error: null});
       return {ok:true};
@@ -802,7 +830,7 @@ const Access = {
       const rec = list[list.length - 1];
       const plan = PLANS.find(p => p.productId === rec.productId);
       if (!plan) return {ok:false, error:'unknown_product'};
-      const expires = +addMonths(new Date(rec.ts || Date.now()), plan.months);
+      const expires = rec.expiresAt || +addMonthsKeep(new Date(rec.ts || Date.now()), plan.months);
       Access.write({status: expires > Date.now() ? 'active' : 'expired', plan: plan.id, productId: plan.productId,
         purchasedAt: rec.ts || Date.now(), expiresAt: expires, autoRenew: true,
         transactionId: rec.transactionId, lastVerifiedAt: Date.now(), error: null});
@@ -817,6 +845,17 @@ const Access = {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return {ok:false, offline:true};
     const a = Access.read();
     if (!a.plan) return {ok:false};
+    /* магазин знає про продовження й скасування — його відповідь головніша */
+    const st = await IAP.status();
+    if (st && st.ok){
+      Access.write({
+        expiresAt: st.expiresAt || a.expiresAt,
+        autoRenew: st.autoRenew === undefined ? a.autoRenew : st.autoRenew,
+        status: st.active ? 'active' : 'expired',
+        lastVerifiedAt: Date.now(),
+      });
+      return {ok:true, active: st.active};
+    }
     const r = await IAP.restore();
     if (!r || !r.ok) return {ok:false};
     Access.write({lastVerifiedAt: Date.now()});
@@ -4625,6 +4664,20 @@ const Settings = ({onClose}) => {
           </button>
         </div>
 
+        <div className="sechead"><div className="h2">{t('set.about','Про застосунок')}</div></div>
+        <div className="rows">
+          <button className="setrow" onClick={() => nav.go('legal', {doc:'terms'})}>
+            <div className="ic"><Ic.info size={19}/></div>
+            <div className="tx"><b>{t('legal.terms','Умови використання')}</b><span>{t('legal.terms.s','Підписка, пробний період, відповідальність')}</span></div>
+            <Ic.right size={17} className="chev"/>
+          </button>
+          <button className="setrow" onClick={() => nav.go('legal', {doc:'privacy'})}>
+            <div className="ic"><Ic.shield size={19}/></div>
+            <div className="tx"><b>{t('legal.privacy','Політика конфіденційності')}</b><span>{t('legal.privacy.s','Які дані зберігаються і де')}</span></div>
+            <Ic.right size={17} className="chev"/>
+          </button>
+        </div>
+
         <div className="muted" style={{textAlign:'center', fontSize:12, margin:'22px 0 4px'}}>
           PRO Trainer · v1.0
         </div>
@@ -4737,6 +4790,54 @@ const Backup = ({onClose}) => {
   );
 };
 
+/* ═══════════ ЮРИДИЧНІ ЕКРАНИ ═══════════ */
+const LEGAL_DOCS = {
+  terms: {
+    title: 'Умови використання',
+    blocks: [
+      ['Хто надає послугу', `Застосунок PRO Trainer надає ${LEGAL.company}. Питання й запити — на ${LEGAL.email}.`],
+      ['Що це за застосунок', 'PRO Trainer — робочий інструмент персонального тренера: облік клієнтів, розкладу, оплат, товарів і абонементів. Застосунок не надає медичних, тренувальних чи фінансових порад і не є засобом бухгалтерського обліку.'],
+      ['Пробний період', `Після створення кабінету ви отримуєте ${TRIAL_DAYS} днів повного доступу до всіх функцій. Оплата в цей час не списується. Пробний період надається один раз на акаунт.`],
+      ['Підписка та оплата', 'Після завершення пробного періоду робота із застосунком продовжується за підпискою: 1 місяць — $4.99, 3 місяці — $12.99, 1 рік — $49.99. Оплата проходить через App Store або Google Play і підпорядковується правилам відповідного магазину. Підписка продовжується автоматично, якщо не вимкнути автопродовження щонайменше за 24 години до кінця періоду.'],
+      ['Скасування й повернення', 'Автопродовження вимикається в налаштуваннях підписки — у застосунку або в обліковому записі магазину. Доступ зберігається до кінця оплаченого періоду. Повернення коштів здійснює магазин за своїми правилами; ми не маємо технічної можливості повернути платіж самостійно.'],
+      ['Ваші дані', 'Дані, які ви вносите (клієнти, тренування, оплати), належать вам. Завершення підписки не видаляє їх: доступ до застосунку призупиняється, дані лишаються на пристрої й доступні одразу після відновлення підписки. Ви будь-коли можете зробити резервну копію у файл.'],
+      ['Відповідальність', 'Застосунок надається «як є». Ми не відповідаємо за втрачену вигоду, помилки в розрахунках через некоректно введені дані та за втрату даних на пристрої — тому радимо регулярно робити резервні копії.'],
+      ['Зміни умов', `Ми можемо оновлювати ці умови; актуальна редакція завжди доступна в застосунку. Дата останнього оновлення — ${LEGAL.updated}.`],
+    ],
+  },
+  privacy: {
+    title: 'Політика конфіденційності',
+    blocks: [
+      ['Головне', 'Дані ваших клієнтів зберігаються на вашому пристрої. Ми не збираємо їх, не передаємо третім сторонам і не використовуємо для реклами.'],
+      ['Які дані обробляються', 'У застосунку ви створюєте записи про клієнтів (ім’я, телефон, за бажанням — дата народження, фото, нотатки), тренування, оплати, товари й абонементи. Усе це лежить у сховищі застосунку на пристрої.'],
+      ['Обліковий запис', 'Для входу використовується ваша пошта або номер телефону. Пароль необов’язковий; якщо ви його встановили, зберігається лише його хеш із «сіллю» — відновити пароль із нього неможливо.'],
+      ['Захист', 'За бажанням базу можна зашифрувати PIN-кодом (AES-256, ключ утворюється з PIN і не зберігається). Тоді на пристрої лишається лише шифротекст.'],
+      ['Синхронізація', 'За замовчуванням застосунок працює автономно й нічого не надсилає. Якщо ви увімкнете синхронізацію та вкажете адресу сервера, зміни надсилатимуться туди — на сервер, який контролюєте ви або ваш постачальник послуг.'],
+      ['Оплати', 'Платежі обробляють App Store і Google Play. Ми не бачимо й не зберігаємо дані вашої картки — застосунок отримує від магазину лише факт активної підписки та її строк.'],
+      ['Ваші клієнти', 'Ви вносите дані інших людей, тож саме ви є їх розпорядником: попереджайте клієнтів, для чого зберігаєте контакти, і видаляйте записи на їхню вимогу — у застосунку є повне видалення клієнта разом з історією.'],
+      ['Видалення й копії', 'Ви можете будь-коли видалити окремого клієнта, очистити всі дані застосунку або зберегти резервну копію у файл, який лишається у вас.'],
+      ['Контакти', `Питання щодо приватності — ${LEGAL.email}. Дата останнього оновлення — ${LEGAL.updated}.`],
+    ],
+  },
+};
+
+const Legal = ({params, onClose}) => {
+  const doc = LEGAL_DOCS[params.doc] || LEGAL_DOCS.terms;
+  return (
+    <Page title={doc.title} onClose={onClose}>
+      {doc.blocks.map(([h, tx], i) => (
+        <div key={i} className="card pad" style={{marginTop: i ? 9 : 4}}>
+          <b style={{fontSize:15}}>{h}</b>
+          <p className="muted" style={{fontSize:13.5, lineHeight:1.55, margin:'7px 0 0'}}>{tx}</p>
+        </div>
+      ))}
+      <div className="muted" style={{fontSize:12, textAlign:'center', margin:'18px 0 4px'}}>
+        {LEGAL.company} · {LEGAL.email}
+      </div>
+    </Page>
+  );
+};
+
 /* ═══════════ ДОСТУП: пробний період і тарифи ═══════════ */
 const FEATURES = ['Клієнти','Календар','Тренування','Фінанси','Борги','Абонементи','Продажі','Статистика','Нагадування','Резервна копія'];
 
@@ -4796,6 +4897,9 @@ const TrialIntro = ({onStart}) => (
 /* Вибір плану. mode: gate — після завершення пробного, choose — з профілю */
 const Paywall = ({mode, onClose}) => {
   const acc = useAccess();
+  const nav = useNav();
+  const [legal, setLegal] = useState(null);          /* у шлюзі навігації ще немає */
+  const go = doc => { if (mode === 'gate') setLegal(doc); else nav.go('legal', {doc}); };
   const [plan, setPlan] = useState('quarterly');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(acc.kind === 'PAYMENT_FAILED' ? t('pay.err','Не вдалося завершити оплату') : '');
@@ -4852,18 +4956,25 @@ const Paywall = ({mode, onClose}) => {
       </button>
       <div className="muted" style={{fontSize:11.5, textAlign:'center', marginTop:10, lineHeight:1.5}}>
         {IAP.connected()
-          ? t('pay.store','Оплата проходить через магазин застосунків, керувати підпискою можна в його налаштуваннях.')
+          ? t('pay.store','Оплата проходить через магазин застосунків, керувати підпискою можна в його налаштуваннях. Підписка продовжується автоматично, доки ви не вимкнете автопродовження.')
           : t('pay.demo','Демо-режим: магазин ще не підключено, покупка імітується для перевірки сценарію.')}
+      </div>
+      <div style={{display:'flex', gap:16, justifyContent:'center', marginTop:8}}>
+        <button className="link" style={{fontSize:12.5}} onClick={() => go('terms')}>{t('legal.terms','Умови використання')}</button>
+        <button className="link" style={{fontSize:12.5}} onClick={() => go('privacy')}>{t('legal.privacy','Політика конфіденційності')}</button>
       </div>
     </Fragment>
   );
 
   if (mode === 'gate') return (
-    <div className="ob fade-in" style={{overflowY:'auto'}}>
-      <div className="brand" style={{marginBottom:18}}><div className="mark"><Ic.dumb size={21}/></div><b>PRO Trainer</b></div>
-      {body}
-      <div style={{height:20}}/>
-    </div>
+    <Fragment>
+      <div className="ob fade-in" style={{overflowY:'auto'}}>
+        <div className="brand" style={{marginBottom:18}}><div className="mark"><Ic.dumb size={21}/></div><b>PRO Trainer</b></div>
+        {body}
+        <div style={{height:20}}/>
+      </div>
+      {legal && <Legal params={{doc: legal}} onClose={() => setLegal(null)}/>}
+    </Fragment>
   );
   return <Page title={t('pay.title','Тарифи')} onClose={onClose}>{body}</Page>;
 };
@@ -5122,6 +5233,7 @@ const ROUTES = {
   'backup':      p => <Backup {...p}/>,
   'plans':       p => <Paywall {...p} mode="page"/>,
   'subscription':p => <Subscription {...p}/>,
+  'legal':       p => <Legal {...p}/>,
   'register':    p => <Register {...p}/>,
 };
 

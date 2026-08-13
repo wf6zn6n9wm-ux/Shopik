@@ -359,8 +359,10 @@ part('доступ: підписка');
   const r = await T.Access.purchase('quarterly');
   let a = T.Access.state();
   ok('покупка активувала підписку', r.ok && a.kind === 'SUBSCRIPTION_ACTIVE' && a.allowed);
-  ok('строк ~3 місяці', a.until - Date.now() > 80 * day && a.until - Date.now() < 95 * day,
+  ok('строк — рівно 3 місяці', a.until - Date.now() > 87 * day && a.until - Date.now() < 93 * day,
      Math.round((a.until - Date.now()) / day) + ' днів');
+  ok('дата продовження — те саме число місяця', new Date(a.until).getDate() === new Date().getDate(),
+     new Date(a.until).toISOString().slice(0, 10));
   ok('план записаний', T.Access.read().plan === 'quarterly' && T.Access.read().productId === 'pro_trainer_quarterly');
 
   const was = T.Access.read().expiresAt;
@@ -409,6 +411,30 @@ part('доступ: відновлення, помилка, офлайн');
   T.Access.write({trialStartedAt: Date.now() - 3 * day});
   T.Disk.clear();
   ok('очищення даних не дає новий пробний період', !!(T.Disk.readMeta() || {}).access.trialStartedAt);
+}
+
+part('доступ: міст до магазину');
+{
+  const day = 86400000;
+  const until = Date.now() + 200 * day;
+  ctx.window.ProTrainerIAP = {
+    platform: 'ios',
+    async buy(productId){ return {ok:true, transactionId:'tx_native', ts:Date.now(), expiresAt: until}; },
+    async restore(){ return {ok:true, purchases:[{productId:'pro_trainer_yearly', transactionId:'tx_native', ts:Date.now(), expiresAt: until}]}; },
+    async status(){ return {ok:true, active:true, productId:'pro_trainer_yearly', expiresAt: until, autoRenew:false}; },
+  };
+  ok('міст видно застосунку', T.IAP.connected() && T.IAP.platform() === 'ios');
+  await T.Access.purchase('yearly');
+  ok('строк береться з магазину, а не рахується', T.Access.read().expiresAt === until,
+     Math.round((T.Access.read().expiresAt - Date.now()) / day) + ' днів');
+  await T.Access.verify();
+  ok('статус із магазину підхоплюється', T.Access.state().kind === 'SUBSCRIPTION_CANCELLED',
+     T.Access.state().kind);
+  T.Access.write({expiresAt: 0, plan: null, status: null, autoRenew: true});
+  const rr = await T.Access.restore();
+  ok('відновлення через міст', rr.ok && T.Access.read().productId === 'pro_trainer_yearly');
+  delete ctx.window.ProTrainerIAP;
+  ok('без моста повертаємось у демо-режим', !T.IAP.connected() && T.IAP.platform() === 'demo');
 }
 
 part('доступ: екрани');
