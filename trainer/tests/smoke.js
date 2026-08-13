@@ -99,7 +99,7 @@ const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, 
   Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Box, Notifier, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES, Toaster, Photo, PHOTO, Web, WEB,
   financeCsv, Files, inRange, LEGAL, LEGAL_DOCS, Legal, netByBucket,
-  PHRASES, LANGS, t, _seen, statusTitle, typeTitle, goalTitle, fill, monthWord, byGroup,
+  PHRASES, LANGS, t, _seen, statusTitle, typeTitle, goalTitle, fill, monthWord, byGroup, bdIn, owed,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
 const {ctx, el} = sandbox();
@@ -198,6 +198,17 @@ ok('скасування повертає заняття', T.Store.state.subs.fi
 const stock = T.Store.state.products[0].stock;
 T.Act.sell({clientId: c.id, productId: T.Store.state.products[0].id, qty: 2, price: 1400});
 ok('продаж зменшує залишок', T.Store.state.products[0].stock === stock - 2);
+/* день народження: у налаштуваннях обіцяно нагадати, тож рахунок днів
+   має бути правильним і на межі року */
+{
+  const at = new Date(2026, 7, 14);            /* 14 серпня */
+  ok('сьогоднішній день народження — нуль днів', T.bdIn('1990-08-14', at) === 0, String(T.bdIn('1990-08-14', at)));
+  ok('через тиждень', T.bdIn('1990-08-21', at) === 7, String(T.bdIn('1990-08-21', at)));
+  ok('минулий цього року рахується на наступний', T.bdIn('1990-08-13', at) === 364, String(T.bdIn('1990-08-13', at)));
+  ok('через новий рік', T.bdIn('1990-01-05', at) > 100 && T.bdIn('1990-01-05', at) < 200, String(T.bdIn('1990-01-05', at)));
+  ok('без дати — нічого не рахуємо', T.bdIn('', at) === null && T.bdIn(null, at) === null);
+}
+
 /* заміри — необов'язкові, тому головне, щоб без них нічого не ламалось */
 {
   const c5 = T.Act.addClient({name: 'Замір Тестовий'});
