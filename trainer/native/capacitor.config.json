@@ -1,0 +1,19 @@
+{
+  "appId": "com.protrainer.app",
+  "appName": "PRO Trainer",
+  "webDir": "www",
+  "backgroundColor": "#08080b",
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#08080b"
+  },
+  "android": {
+    "backgroundColor": "#08080b"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon",
+      "iconColor": "#6B4DFF"
+    }
+  }
+}

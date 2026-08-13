@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="uk" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>PRO Trainer</title>
+<meta name="robots" content="noindex" />
+<link rel="stylesheet" href="/pay.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24"><path d="M4 9v6M8 6.5v11M16 6.5v11M20 9v6M8 12h8"/></svg></div>
+    <b>PRO Trainer</b>
+  </div>
+  <h1 id="h1">Оплата пройшла</h1>
+  <p class="sub" id="sub">Поверніться в застосунок — доступ уже активний. Якщо він ще не помітив оплату, натисніть там «Я вже оплатив».</p>
+  <a class="go" id="go" href="/">Відкрити застосунок</a>
+  <p class="note" id="note"></p>
+</div>
+<script>
+var Q = new URLSearchParams(location.search);
+var LANG = ['uk','ru','en','pl'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'uk';
+document.documentElement.lang = LANG;
+var T = {
+  uk:{h:'Оплата пройшла', s:'Поверніться в застосунок — доступ уже активний. Якщо він ще не помітив оплату, натисніть там «Я вже оплатив».', g:'Відкрити застосунок', n:'Квитанція прийде на пошту від банку. Керувати підпискою можна на сторінці підписки.'},
+  ru:{h:'Оплата прошла', s:'Вернитесь в приложение — доступ уже активен. Если оно ещё не заметило оплату, нажмите там «Я уже оплатил».', g:'Открыть приложение', n:'Квитанция придёт на почту от банка. Управлять подпиской можно на странице подписки.'},
+  en:{h:'Payment received', s:'Go back to the app — your access is already active. If the app has not noticed yet, tap “I have already paid”.', g:'Open the app', n:'The bank will email you a receipt. You can manage the subscription on the subscription page.'},
+  pl:{h:'Płatność przyjęta', s:'Wróć do aplikacji — dostęp jest już aktywny. Jeśli aplikacja jeszcze tego nie zauważyła, naciśnij tam „Już zapłaciłem”.', g:'Otwórz aplikację', n:'Bank wyśle potwierdzenie na e-mail. Subskrypcją zarządzasz na stronie subskrypcji.'},
+}[LANG];
+document.getElementById('h1').textContent = T.h;
+document.getElementById('sub').textContent = T.s;
+document.getElementById('go').textContent = T.g;
+document.getElementById('note').textContent = T.n;
+</script>
+</body>
+</html>
