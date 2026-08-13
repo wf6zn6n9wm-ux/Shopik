@@ -747,6 +747,9 @@ const PHRASES = [
   ['Перенести', 'Перенести', 'Reschedule', 'Przenieś'],
   ['Заміри', 'Замеры', 'Measurements', 'Pomiary'],
   ['Дні народження', 'Дни рождения', 'Birthdays', 'Urodziny'],
+  ['День народження клієнта', 'День рождения клиента', 'Client birthday', 'Urodziny klienta'],
+  ['День народження', 'День рождения', 'Birthday', 'Urodziny'],
+  ['завтра', 'завтра', 'tomorrow', 'jutro'],
   ['Привітати', 'Поздравить', 'Send wishes', 'Złóż życzenia'],
   ['через', 'через', 'in', 'za'],
   ['{name}, з днем народження! Бажаю сил, здоров’я і легких тренувань. Чекаю в залі!',
@@ -2472,7 +2475,7 @@ function emptyDB(){
       backup: {auto: true, lastAt: 0},
       /* тільки те, що застосунок справді вміє надіслати: записатись сам
          клієнт не може — клієнтського застосунку немає */
-      notif: {before: [60, 15], client: true,
+      notif: {before: [60, 15], client: true, birthday: true,
               lapsed: true, packageEnd: true, stock: true, debt: true},
     },
     clients: [], sessions: [], products: [], sales: [], packages: [], subs: [], notes: [], notifs: [],
@@ -4503,6 +4506,22 @@ const SessionForm = ({params, onClose}) => {
   const sp = split(f.price * Math.max(1, f.ids.length), S);   /* у групі ціна — з кожного */
   const conflict = taken.includes(fmtTime(f.when));
 
+  /* Серія на 12 тижнів легко наїжджає на вже зайняті години, і мовчки
+     створювати накладки — найгірше, що тут можна зробити: тренер
+     побачить це аж у розкладі, коли клієнт уже прийшов. */
+  const clash = useMemo(() => {
+    if (edit || !f.every) return [];
+    const at = fmtTime(f.when);
+    const busy = new Set(db.sessions.filter(x => x.status !== 'canceled')
+      .map(x => iso(new Date(x.start)) + ' ' + fmtTime(x.start)));
+    const out = [];
+    for (let k = 1; k < clamp(f.times, 1, 52); k++){
+      const d = addDays(f.when, k * 7 * f.every);
+      if (busy.has(iso(d) + ' ' + at)) out.push(d);
+    }
+    return out;
+  }, [db.sessions, f.when, f.every, f.times, edit]);
+
   function save(){
     if (!f.ids.length){ setErr(t('session.err.client','Оберіть клієнта')); return; }
     const common = {start: f.when.toISOString(), type: f.type, price: f.price,
@@ -4646,6 +4665,11 @@ const SessionForm = ({params, onClose}) => {
           {f.every > 0 && (
             <div className="muted" style={{fontSize:12.5, marginTop:8, marginLeft:2}}>
               {t('session.repeat.last','Останнє')}: {fmtDM(addDays(f.when, (clamp(f.times, 1, 52) - 1) * 7 * f.every))}
+            </div>
+          )}
+          {clash.length > 0 && (
+            <div style={{fontSize:12.5, marginTop:6, marginLeft:2, color:'var(--warn)', fontWeight:600}}>
+              {t('session.repeat.clash','На цей час уже є тренування')}: {clash.map(fmtDM).join(', ')}
             </div>
           )}
         </Field>
@@ -6780,6 +6804,7 @@ const Settings = ({onClose}) => {
             ['client',   t('n.client','Нагадування клієнту'), t('n.client.s','Увечері підкажемо, кому написати про завтра')],
             ['debt',     t('n.debt','З’явилась заборгованість'), ''],
             ['lapsed',   t('n.lapsed','Клієнт давно не приходив'), ''],
+            ['birthday', t('n.bd','День народження клієнта'), ''],
             ['packageEnd', t('n.pack','Закінчується абонемент'), ''],
             ['stock',    t('n.stock','Закінчується товар'), ''],
           ].map(([k, tx, ds]) => (
@@ -7425,6 +7450,19 @@ function useReminders(db){
                 title: c.name.split(' ')[0] + ' ' + t('n.lapsed.t','давно не тренувався'),
                 body: t('lapse.last','Востаннє') + ': ' + (cs.last ? fmtDM(cs.last.start) : '—'),
                 type:'lapsed', clientId: c.id});
+          });
+        }
+        /* обіцянку «нагадає привітати» тримає саме це: побачити блок на
+           головній тренер може й не встигнути, а день народження буває
+           раз на рік і другого шансу не дає */
+        if (N.birthday){
+          s.clients.filter(c => !c.archived && c.birthday).forEach(c => {
+            const days = bdIn(c.birthday);
+            if (days === 0 || days === 1)
+              fire('bd_' + c.id + '_' + new Date().getFullYear(), {
+                title: t('n.bd.t','День народження'),
+                body: c.name + ' · ' + (days === 0 ? t('home.bd.today','сьогодні') : t('n.bd.tmr','завтра')),
+                type:'info', clientId: c.id});
           });
         }
         if (N.packageEnd){
