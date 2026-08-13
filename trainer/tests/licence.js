@@ -142,6 +142,33 @@ part('скасування й повернення');
      (await call(API('licence.js'), {query: {login: LOGIN, device: DEV_A}})).json.ok === true);
 }
 
+part('пробний період');
+{
+  const NEW = 'newbie@mail.com';
+  const first = (await call(API('trial.js'), {query: {login: NEW, device: 'dev_1'}})).json;
+  ok('доти пробний не починався', first.started === false);
+
+  const started = (await call(API('trial.js'), {query: {login: NEW, device: 'dev_1', start: '1'}})).json;
+  ok('пробний період починається', started.started === true && started.days === 14);
+  ok('кінець рахується від старту', started.endsAt === started.startedAt + 14 * 86400000);
+  ok('щойно почався — не прострочений', started.expired === false);
+
+  /* саме те, заради чого все це: перевстановлення застосунку */
+  const again = (await call(API('trial.js'), {query: {login: NEW, device: 'dev_ІНШИЙ', start: '1'}})).json;
+  ok('перевстановлення не дає нових 14 днів', again.startedAt === started.startedAt,
+     new Date(again.startedAt).toISOString().slice(0, 16));
+
+  /* той самий логін іншим написанням — це той самий тренер */
+  const same = (await call(API('trial.js'), {query: {login: '  NewBie@Mail.com ', start: '1'}})).json;
+  ok('логін нормалізується — регістр і пробіли не обманюють', same.startedAt === started.startedAt);
+
+  const peek = (await call(API('trial.js'), {query: {login: 'nobody@mail.com'}})).json;
+  ok('без start пробний не починається сам', peek.started === false);
+
+  const nolog = await call(API('trial.js'), {query: {start: '1'}});
+  ok('без логіна нічого не пишемо', nolog.code === 400, String(nolog.code));
+}
+
 part('без ключів');
 {
   const keep = process.env.LIQPAY_PRIVATE_KEY;

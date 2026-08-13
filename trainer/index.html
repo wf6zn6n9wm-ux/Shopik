@@ -1576,6 +1576,9 @@ const Web = {
   },
   /* {ok, active, plan, expiresAt, autoRenew, devices, error} */
   licence(){ return Web.ask('/api/licence'); },
+  /* {ok, started, startedAt, endsAt, expired} — дата першого запуску
+     живе на сервері, інакше перевстановлення давало б нові 14 днів */
+  trial(start){ return Web.ask('/api/trial', start ? {start: '1'} : null); },
   /* прив'язати цей пристрій до вже оплаченої підписки */
   claim(){ return Web.ask('/api/claim'); },
 };
@@ -1675,11 +1678,26 @@ const Access = {
     Access.emit();
     return access;
   },
-  /* пробний період прив'язаний до акаунта і стартує один раз */
+  /* Пробний період прив'язаний до акаунта і стартує один раз. Локальну
+     дату ставимо одразу — застосунок має працювати й без мережі, — а
+     сервер запам'ятовує її як справжню: інакше перевстановлення давало б
+     нові 14 днів скільки завгодно разів. */
   startTrial(){
     const a = Access.read();
     if (a.trialStartedAt) return a;
-    return Access.write({trialStartedAt: Date.now(), status:'trial'});
+    const next = Access.write({trialStartedAt: Date.now(), status:'trial'});
+    if (Web.enabled() && Web.login()) Web.trial(true).then(Access.fromTrial, () => {});
+    return next;
+  },
+  /* відповідь сервера про пробний період головніша за локальну дату,
+     але лише в один бік: підсунути пізнішу дату й подовжити собі
+     пробний період не вийде */
+  fromTrial(r){
+    if (!r || !r.started || !r.startedAt) return {ok:false};
+    const a = Access.read();
+    if (a.trialStartedAt && a.trialStartedAt <= r.startedAt) return {ok:true, kept:true};
+    Access.write({trialStartedAt: r.startedAt, status: a.status || 'trial'});
+    return {ok:true, moved:true};
   },
   trialEnds(){ const a = Access.read(); return a.trialStartedAt ? a.trialStartedAt + TRIAL_DAYS * DAY : 0; },
 
@@ -1781,6 +1799,13 @@ const Access = {
   async verify(){
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return {ok:false, offline:true};
     const a = Access.read();
+    /* спершу пробний період: він міг початись на іншому пристрої,
+       та й після перевстановлення локальної дати просто немає */
+    if (Web.enabled() && Web.login() && !a.expiresAt){
+      const r = await Web.trial(false);
+      if (r && r.started) Access.fromTrial(r);
+      else if (r && r.ok && !r.started && a.trialStartedAt) Web.trial(true).then(Access.fromTrial, () => {});
+    }
     if (!a.plan) return {ok:false};
     if (a.source === 'web'){
       const lic = await Web.licence();
@@ -6367,7 +6392,11 @@ const AppGate = () => {
       clearInterval(id);
     };
   }, []);
-  if (intro) return <TrialIntro onStart={() => { Access.startTrial(); setIntro(false); }}/>;
+  /* Дивимось на живий запис, а не на початковий стан: після
+     перевстановлення локальної дати немає, і вступ показався б навіть
+     тоді, коли сервер уже сказав, що пробний період давно почався. */
+  if (intro && !Access.read().trialStartedAt)
+    return <TrialIntro onStart={() => { Access.startTrial(); setIntro(false); }}/>;
   if (!acc.allowed) return <Paywall mode="gate"/>;
   return <Shell/>;
 };

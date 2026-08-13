@@ -621,6 +621,67 @@ part('оплата на сайті');
   ctx.fetch = async () => ({ok: true, json: async () => licence});
 }
 
+part('пробний період не переживає перевстановлення');
+{
+  /* Раніше дата старту лежала тільки на пристрої: видалив застосунок —
+     отримав нові 14 днів. Тепер її пам'ятає сервер. */
+  const DAY = 86400000;
+  let trial = {ok: true, started: false};
+  const asked = [];
+  ctx.fetch = async url => {
+    asked.push(String(url));
+    return {ok: true, json: async () => (String(url).includes('/api/trial') ? trial : {ok: true, active: false})};
+  };
+
+  T.Box.cache.clear();
+  T.Disk.writeMeta({account: {login: 'trainer@mail.com', kind: 'email'}, access: {}});
+  T.Store.init(T.seedDB({name: 'Олександр'}));
+
+  T.Access.startTrial();
+  ok('пробний період починається локально, не чекаючи сервера',
+     T.Access.state().kind === 'TRIAL_ACTIVE', T.Access.state().kind);
+  await new Promise(r => setTimeout(r, 20));
+  ok('серверу сказали, що пробний почався', asked.some(u => u.includes('/api/trial') && u.includes('start=1')), asked[0]);
+
+  /* сервер пам'ятає, що насправді все почалось 10 днів тому */
+  const real = Date.now() - 10 * DAY;
+  trial = {ok: true, started: true, startedAt: real, endsAt: real + 14 * DAY, expired: false};
+  await T.Access.verify();
+  ok('дата з сервера головніша за локальну', T.Access.read().trialStartedAt === real);
+  ok('лишилось 4 дні, а не 14', T.Access.state().left === 4, T.Access.state().left + ' дн.');
+
+  /* підсунути пізнішу дату й подовжити собі пробний не вийде */
+  trial = {ok: true, started: true, startedAt: Date.now(), endsAt: Date.now() + 14 * DAY, expired: false};
+  await T.Access.verify();
+  ok('пізнішою датою пробний не подовжується', T.Access.read().trialStartedAt === real);
+
+  /* ось воно: перевстановлення — локальних даних немає, логін той самий */
+  T.Disk.clear();
+  T.Box.cache.clear();
+  T.Disk.writeMeta({account: {login: 'trainer@mail.com', kind: 'email'}, access: {}});
+  ok('після перевстановлення локальної дати немає', !T.Access.read().trialStartedAt);
+  trial = {ok: true, started: true, startedAt: real, endsAt: real + 14 * DAY, expired: false};
+  await T.Access.verify();
+  ok('сервер повертає ту саму дату — нових 14 днів немає',
+     T.Access.state().kind === 'TRIAL_ACTIVE' && T.Access.state().left === 4, T.Access.state().left + ' дн.');
+
+  /* а якщо пробний уже вигорів — одразу вибір плану */
+  const long = Date.now() - 30 * DAY;
+  trial = {ok: true, started: true, startedAt: long, endsAt: long + 14 * DAY, expired: true};
+  await T.Access.verify();
+  ok('вигорілий пробний не перезапускається', T.Access.state().kind === 'TRIAL_EXPIRED', T.Access.state().kind);
+
+  /* найважливіше: без мережі застосунок працює як раніше */
+  ctx.fetch = async () => { throw new Error('offline'); };
+  T.Box.cache.clear();
+  T.Disk.writeMeta({account: {login: 'trainer@mail.com', kind: 'email'}, access: {}});
+  T.Access.startTrial();
+  await T.Access.verify();
+  ok('без сервера пробний період усе одно працює',
+     T.Access.state().kind === 'TRIAL_ACTIVE' && T.Access.state().allowed, T.Access.state().kind);
+  ctx.fetch = async () => ({ok: true, json: async () => ({ok: true, active: false})});
+}
+
 part('доступ: екрани');
 screen('вступ до пробного періоду', () => el(T.TrialIntro, {onStart(){}}));
 screen('вибір плану (після пробного)', () => el(T.Paywall, {mode: 'gate'}));

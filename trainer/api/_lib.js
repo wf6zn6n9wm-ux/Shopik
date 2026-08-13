@@ -141,6 +141,7 @@ const json = (res, code, body) => {
 
 module.exports = {
   ENV, configured, PLANS, DEVICES,
+  store: {get, set},                 /* спільне сховище для інших ендпоінтів */
   sign, pack, unpack, verify,
   normLogin, readLicence, writeLicence, view, applyPayment, addMonths, json,
 };
