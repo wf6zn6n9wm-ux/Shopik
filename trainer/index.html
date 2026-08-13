@@ -795,6 +795,10 @@ const PHRASES = [
   ['Анна Мельник', 'Анна Мельник', 'Anna Melnyk', 'Anna Melnyk'],
   ['Борг закрито', 'Долг закрыт', 'Debt cleared', 'Dług spłacony'],
   ['Оплатив', 'Оплатил', 'Paid', 'Zapłacił'],
+  ['Скільки віддав клієнт', 'Сколько отдал клиент', 'How much the client paid', 'Ile klient zapłacił'],
+  ['Уся сума', 'Вся сумма', 'Full amount', 'Cała kwota'],
+  ['Лишиться', 'Останется', 'Left', 'Zostanie'],
+  ['Записати оплату', 'Записать оплату', 'Record payment', 'Zapisz płatność'],
   ['Боргів немає', 'Долгов нет', 'No debts', 'Brak długów'],
   ['Ваш прибуток', 'Ваша прибыль', 'Your profit', 'Twój zysk'],
   ['Витривалість', 'Выносливость', 'Endurance', 'Wytrzymałość'],
@@ -2191,7 +2195,7 @@ function stats(db, from, to){
   const newC = db.clients.filter(c => inRange(c.createdAt, from, to)).length;
   const subsSold = sum(db.subs.filter(x => inRange(x.ts, from, to)), x => x.price);
   const done = ses.filter(s => s.status === 'done').length;
-  const debt = sum(ses.filter(isDebt), s => s.price);
+  const debt = sum(ses.filter(isDebt), owed);
   return {
     gross, gym, net: gross - gym, count: ses.length, done,
     avg: ses.length ? Math.round(gross / ses.length) : 0,
@@ -2325,6 +2329,8 @@ const periodLabel = (p, from, to) => {
 
 /* борг — проведене й неоплачене тренування поза абонементом */
 const isDebt = s => s.status === 'done' && !s.paid && !s.subId;
+/* скільки ще винен за це тренування: клієнт міг віддати частину */
+const owed = s => Math.max(0, s.price - (s.paidPart || 0));
 const debtDays = s => Math.max(0, Math.floor((Date.now() - +new Date(s.start)) / DAY));
 
 function clientStats(db, id){
@@ -2332,7 +2338,7 @@ function clientStats(db, id){
   const done = ses.filter(s => s.status === 'done');
   const sales = db.sales.filter(x => x.clientId === id);
   const spent = sum(done, s => s.price) + sum(sales, x => x.price * x.qty);
-  const debt = sum(db.sessions.filter(s => s.clientId === id && isDebt(s)), s => s.price);
+  const debt = sum(db.sessions.filter(s => s.clientId === id && isDebt(s)), owed);
   const future = db.sessions.filter(s => s.clientId === id && s.status === 'planned' && +new Date(s.start) >= Date.now())
                             .sort((a,b) => +new Date(a.start) - +new Date(b.start));
   const last = done.sort((a,b) => +new Date(b.start) - +new Date(a.start))[0];
@@ -2483,7 +2489,7 @@ const Act = {
        ціна, оплата й борг, тож гроші рахуються так само, як завжди. */
     const ses = {id: uid('ses'), clientId:'', start: new Date().toISOString(), dur:60, type:'personal',
                  price: Store.state.settings.price, paid:false, status:'planned', subId:null, groupId:null,
-                 repeatId:null, note:'', createdAt: Date.now(), ...s};
+                 repeatId:null, paidPart:0, note:'', createdAt: Date.now(), ...s};
     Store.patch(db => {
       let subs = db.subs;
       if (ses.subId) subs = subs.map(x => x.id === ses.subId ? {...x, used: Math.min(x.total, x.used + (ses.status === 'done' ? 1 : 0))} : x);
@@ -2559,10 +2565,28 @@ const Act = {
   },
 
   /* закрити всі борги клієнта одним дотиком */
-  payClient(clientId){
-    Store.patch(db => ({...db, sessions: db.sessions.map(s =>
-      (s.clientId === clientId && isDebt(s)) ? {...s, paid:true, paidAt: Date.now()} : s)}),
-      {name:'client.payAll', data:{clientId}});
+  /* Клієнт віддав гроші. Без суми — закриваємо весь борг; із сумою
+     гасимо тренування від найстарішого, і те, на яке грошей не
+     вистачило, лишається з часткою — інакше борг у списку не зменшився б
+     на віддане. */
+  payClient(clientId, amount){
+    Store.patch(db => {
+      const queue = db.sessions
+        .filter(s => s.clientId === clientId && isDebt(s))
+        .sort((a, b) => +new Date(a.start) - +new Date(b.start));
+      let rest = amount == null ? Infinity : Math.max(0, amount);
+      const done = new Map();
+      queue.forEach(s => {
+        if (rest <= 0) return;
+        const left = owed(s);
+        const take = Math.min(left, rest);
+        rest -= take;
+        done.set(s.id, take >= left
+          ? {...s, paid: true, paidAt: Date.now(), paidPart: 0}
+          : {...s, paidPart: (s.paidPart || 0) + take});
+      });
+      return {...db, sessions: db.sessions.map(x => done.get(x.id) || x)};
+    }, {name:'client.payAll', data:{clientId, amount}});
   },
   markBackup(){ Store.patch(db => ({...db, settings:{...db.settings, backup:{...db.settings.backup, lastAt: Date.now()}}})); },
 
@@ -3707,7 +3731,7 @@ const Home = ({loading}) => {
     const m = new Map();
     debts.forEach(s => {
       const cur = m.get(s.clientId) || {clientId: s.clientId, sum:0, oldest: s.start, n:0};
-      cur.sum += s.price; cur.n++;
+      cur.sum += owed(s); cur.n++;
       if (+new Date(s.start) < +new Date(cur.oldest)) cur.oldest = s.start;
       m.set(s.clientId, cur);
     });
@@ -3930,6 +3954,8 @@ const DebtCard = ({d}) => {
   const db = useDB();
   const nav = useNav();
   const c = byId(db.clients, d.clientId);
+  const [pay, setPay] = useState(false);
+  const [sum, setSum] = useState(0);
   if (!c) return null;
   const days = Math.floor((Date.now() - +new Date(d.oldest)) / DAY);
   return (
@@ -3947,14 +3973,43 @@ const DebtCard = ({d}) => {
       {/* борг найчастіше закривається тим, що клієнт віддав гроші на місці —
           заради цього не варто заходити в картку й шукати кожне тренування */}
       <div style={{display:'flex', flexDirection:'column', gap:6}}>
-        <Btn kind="pri" size="sm" onClick={() => {
-          Act.payClient(c.id);
-          Toaster.ok(t('debt.paid.ok','Борг закрито') + ' · ' + money(d.sum));
-        }}>{t('debt.paid','Оплатив')}</Btn>
+        <Btn kind="pri" size="sm" onClick={() => { setSum(d.sum); setPay(true); }}>
+          {t('debt.paid','Оплатив')}
+        </Btn>
         <Btn kind="soft" size="sm" onClick={() => nav.go('remind', {clientId: c.id, sum: d.sum})}>
           {t('debt.remind','Нагадати')}
         </Btn>
       </div>
+
+      {/* клієнт не завжди віддає все одразу: приніс частину — решта має
+          лишитись у боргу, а не зникнути й не висіти повністю */}
+      <Sheet open={pay} onClose={() => setPay(false)} title={c.name}
+             sub={t('debt.pay.sub','Скільки віддав клієнт')}>
+        <Field label={t('debt.pay.sum','Сума')}>
+          <Input value={sum} inputMode="numeric" suffix={db.settings.currency}
+                 onChange={e => setSum(Math.min(d.sum, +e.target.value.replace(/\D/g,'') || 0))}/>
+          <div className="chips" style={{marginTop:8}}>
+            {[...new Set([Math.round(d.sum / 2), d.sum])].filter(v => v > 0).map(v => (
+              <button key={v} className={cx('chip', sum === v && 'on')} onClick={() => setSum(v)}>
+                {v === d.sum ? t('debt.pay.all','Уся сума') : money(v)}
+              </button>
+            ))}
+          </div>
+        </Field>
+        <div className="card pad">
+          <Rowline k={t('debt.pay.was','Борг')} v={money(d.sum)}/>
+          <Rowline k={t('debt.pay.left','Лишиться')} v={money(Math.max(0, d.sum - sum))}
+                   tone={d.sum - sum > 0 ? 'var(--neg)' : 'var(--pos)'} strong/>
+        </div>
+        <Btn kind="pri" size="lg" wide style={{marginTop:12}} disabled={sum <= 0} onClick={() => {
+          Act.payClient(c.id, sum >= d.sum ? null : sum);
+          setPay(false);
+          Toaster.ok((sum >= d.sum ? t('debt.paid.ok','Борг закрито') : t('debt.paid.part','Оплату записано'))
+                     + ' · ' + money(sum));
+        }}>
+          {t('debt.pay.do','Записати оплату')} · {money(sum)}
+        </Btn>
+      </Sheet>
     </div>
   );
 };
@@ -5072,7 +5127,7 @@ const Debts = ({onClose}) => {
     const m = new Map();
     db.sessions.filter(isDebt).forEach(s => {
       const cur = m.get(s.clientId) || {clientId: s.clientId, sum:0, n:0, oldest: s.start, list:[]};
-      cur.sum += s.price; cur.n++; cur.list.push(s);
+      cur.sum += owed(s); cur.n++; cur.list.push(s);
       if (+new Date(s.start) < +new Date(cur.oldest)) cur.oldest = s.start;
       m.set(s.clientId, cur);
     });
@@ -5847,7 +5902,7 @@ const Finance = ({onClose}) => {
     {t: t('fin.sessions','Тренування'), v: st.net, c:'var(--accent)'},
     {t: t('fin.goods','Товари'), v: st.salesProfit, c:'var(--accent-2)'},
   ];
-  const allDebt = sum(db.sessions.filter(isDebt), x => x.price);
+  const allDebt = sum(db.sessions.filter(isDebt), owed);
 
   /* вивантажуємо рівно той період, який зараз на екрані */
   async function csv(){
@@ -6089,7 +6144,7 @@ const Profile = ({loading}) => {
   const [mFrom, mTo] = periodRange('month', new Date());
   const st = stats(db, mFrom, mTo);
   const S = db.settings;
-  const debtAll = sum(db.sessions.filter(isDebt), x => x.price);
+  const debtAll = sum(db.sessions.filter(isDebt), owed);
   const meta = Disk.readMeta();
   const hasAccount = !!(meta && meta.account);
 
@@ -7068,7 +7123,7 @@ function useReminders(db){
             type:'info', tone: acc.left === 1 ? 'warn' : null, to:'plans'});
         if (N.debt){
           const debts = s.sessions.filter(isDebt);
-          const total = sum(debts, x => x.price);
+          const total = sum(debts, owed);
           if (total > 0) fire('debt_' + dayKey, {title: t('n.debt.t','Є неоплачені тренування'),
             body: money(total) + ' · ' + nClients(new Set(debts.map(x => x.clientId)).size), type:'debt', tone:'bad', to:'debts'});
         }
