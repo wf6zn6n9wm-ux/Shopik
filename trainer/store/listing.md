@@ -93,8 +93,13 @@ PRO Trainer — не фітнес-трекер, а робочий кабінет
 клієнтом можна закріпити свою.
 
 КЛІЄНТИ Й РОЗКЛАД
-Картка клієнта з історією, боргами, абонементом і нотатками. Календар на день,
-тиждень і місяць. Нове тренування — за кілька дотиків.
+Картка клієнта з історією, боргами, абонементом, нотатками й замірами.
+Календар на день, тиждень і місяць. Нове тренування — за кілька дотиків.
+
+РОЗКЛАД, ЯКИЙ НЕ ТРЕБА ЗАВОДИТИ ЩОТИЖНЯ
+Постійний клієнт ходить у той самий день і час — поставте повтор на 4, 8, 12
+чи 24 тижні. Групове тренування на кількох клієнтів — одна картка, а гроші
+рахуються кожному окремо. Перенести — два дотики, з готовим повідомленням.
 
 ТОВАРИ Й АБОНЕМЕНТИ
 Протеїн, шейкери, резинки: залишок і прибуток рахуються самі. Абонемент
@@ -125,10 +130,12 @@ PIN-кодом (AES-256) і будь-коли зробити резервну к
 
 **Що нового:**
 ```
-• Інтерфейс чотирма мовами: українська, російська, англійська, польська
-• Вивантаження фінансів у CSV для бухгалтера
-• Нагадування плануються на тижні наперед
-• Фото клієнтів стискаються — база більше не переповнюється
+• Групові тренування: кілька клієнтів на одному занятті
+• Повторюваний розклад: щотижня або через тиждень
+• Перенесення тренування у два дотики
+• Часткова оплата боргу — клієнт віддав половину
+• Заміри клієнта: вага й обхвати з різницею до минулого разу
+• Дні народження клієнтів на головній
 ```
 
 **Підписи до скриншотів:**
@@ -177,8 +184,13 @@ PRO Trainer — не фитнес-трекер, а рабочий кабинет
 клиентом можно закрепить свою.
 
 КЛИЕНТЫ И РАСПИСАНИЕ
-Карточка клиента с историей, долгами, абонементом и заметками. Календарь на
-день, неделю и месяц. Новая тренировка — за пару касаний.
+Карточка клиента с историей, долгами, абонементом, заметками и замерами.
+Календарь на день, неделю и месяц. Новая тренировка — за пару касаний.
+
+РАСПИСАНИЕ, КОТОРОЕ НЕ НАДО ЗАВОДИТЬ КАЖДУЮ НЕДЕЛЮ
+Постоянный клиент ходит в тот же день и час — поставьте повтор на 4, 8, 12 или
+24 недели. Групповая тренировка на несколько человек — одна карточка, а деньги
+считаются каждому отдельно. Перенести — два касания, с готовым сообщением.
 
 ТОВАРЫ И АБОНЕМЕНТЫ
 Протеин, шейкеры, резинки: остаток и прибыль считаются сами. Абонемент
@@ -208,10 +220,12 @@ PIN-кодом (AES-256) и в любой момент сохранить рез
 
 **Что нового:**
 ```
-• Интерфейс на четырёх языках: украинский, русский, английский, польский
-• Выгрузка финансов в CSV для бухгалтера
-• Напоминания планируются на недели вперёд
-• Фото клиентов сжимаются — база больше не переполняется
+• Групповые тренировки: несколько клиентов на одном занятии
+• Повторяющееся расписание: каждую неделю или через неделю
+• Перенос тренировки в два касания
+• Частичная оплата долга — клиент отдал половину
+• Замеры клиента: вес и обхваты с разницей к прошлому разу
+• Дни рождения клиентов на главной
 ```
 
 **Подписи к скриншотам:**
@@ -260,8 +274,14 @@ calculated automatically. You enter the price per session yourself, and you
 can pin a separate price to a regular client.
 
 CLIENTS AND SCHEDULE
-A client card with history, debts, packages and notes. Day, week and month
-calendar. A new session takes a few taps.
+A client card with history, debts, packages, notes and measurements. Day, week
+and month calendar. A new session takes a few taps.
+
+A SCHEDULE YOU DON'T RE-ENTER EVERY WEEK
+A regular client comes on the same day and time — set a repeat for 4, 8, 12 or
+24 weeks. A group session with several people is one card, while the money is
+counted for each of them separately. Rescheduling takes two taps, with a ready
+message for the client.
 
 PRODUCTS AND PACKAGES
 Protein, shakers, bands: stock and profit are tracked for you. A package is
@@ -292,10 +312,12 @@ trainer,coach,personal training,clients,schedule,income,fitness,gym,booking,paym
 
 **What's New:**
 ```
-• Interface in four languages: Ukrainian, Russian, English, Polish
-• CSV export of finances for your bookkeeper
-• Reminders are now scheduled weeks ahead
-• Client photos are compressed — the database no longer fills up
+• Group sessions: several clients in one training
+• Repeating schedule: weekly or every two weeks
+• Rescheduling in two taps
+• Partial debt payment — when the client pays half
+• Client measurements: weight and girths with the change since last time
+• Client birthdays on the home screen
 ```
 
 **Screenshot captions:**
@@ -344,8 +366,13 @@ automatycznie. Cenę za trening wpisujesz sam, a stałemu klientowi możesz
 przypisać własną.
 
 KLIENCI I GRAFIK
-Karta klienta z historią, długami, karnetem i notatkami. Kalendarz dzienny,
-tygodniowy i miesięczny. Nowy trening w kilka dotknięć.
+Karta klienta z historią, długami, karnetem, notatkami i pomiarami. Kalendarz
+dzienny, tygodniowy i miesięczny. Nowy trening w kilka dotknięć.
+
+GRAFIK, KTÓREGO NIE TRZEBA WPISYWAĆ CO TYDZIEŃ
+Stały klient przychodzi w ten sam dzień i godzinę — ustaw powtórzenie na 4, 8,
+12 albo 24 tygodnie. Trening grupowy dla kilku osób to jedna karta, a pieniądze
+liczone są każdemu osobno. Przeniesienie to dwa dotknięcia, z gotową wiadomością.
 
 TOWARY I KARNETY
 Odżywki, shakery, gumy: stan i zysk liczą się same. Karnet odlicza się
@@ -376,10 +403,12 @@ trener,personalny,klienci,grafik,dochód,karnet,fitness,siłownia,rezerwacja,pł
 
 **Co nowego:**
 ```
-• Interfejs w czterech językach: ukraiński, rosyjski, angielski, polski
-• Eksport finansów do CSV dla księgowej
-• Przypomnienia planowane na tygodnie do przodu
-• Zdjęcia klientów są kompresowane — baza się nie przepełnia
+• Treningi grupowe: kilku klientów na jednych zajęciach
+• Powtarzalny grafik: co tydzień albo co dwa tygodnie
+• Przeniesienie treningu w dwa dotknięcia
+• Częściowa spłata długu — klient oddał połowę
+• Pomiary klienta: waga i obwody z różnicą do poprzedniego razu
+• Urodziny klientów na ekranie głównym
 ```
 
 **Podpisy pod zrzutami:**
