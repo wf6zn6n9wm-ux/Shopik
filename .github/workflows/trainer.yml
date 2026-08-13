@@ -45,3 +45,26 @@ jobs:
           node trainer/legal/sync.js export
           git diff --exit-code -- trainer/legal trainer/terms.html trainer/privacy.html trainer/delete.html \
             || { echo '::error::terms/privacy/delete не пересобраны — запустите node trainer/legal/sync.js export'; exit 1; }
+
+  # Vercel сам продакшн из main не пересобирает: несколько раз подряд
+  # смерженное молча оставалось на сайте в старой версии, без ошибки и без
+  # записи в списке деплоев. Поэтому дёргаем сборку сами — и только после
+  # зелёных тестов, чтобы на сайт не уехало сломанное.
+  deploy:
+    needs: tests
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Запустить сборку на Vercel
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo '::warning::VERCEL_DEPLOY_HOOK не задан — сборку придётся запускать руками'
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/hook.json -w '%{http_code}' -X POST "$HOOK")
+          cat /tmp/hook.json
+          echo
+          [ "$code" = "201" ] || [ "$code" = "200" ] \
+            || { echo "::error::Vercel ответил $code"; exit 1; }
