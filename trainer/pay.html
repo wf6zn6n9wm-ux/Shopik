@@ -59,9 +59,9 @@ var t = T[LANG];
 
 /* ціни мають збігатися з PLANS у index.html */
 var PLANS = [
-  {id:'monthly',   months:1,  web:3.29,  store:4.99},
-  {id:'quarterly', months:3,  web:8.49,  store:12.99},
-  {id:'yearly',    months:12, web:32.99, store:49.99},
+  {id:'monthly',   months:1,  web:4.49,  store:4.99},
+  {id:'quarterly', months:3,  web:11.99, store:12.99},
+  {id:'yearly',    months:12, web:48.99, store:49.99},
 ];
 var TITLE = {
   uk:{monthly:'1 місяць', quarterly:'3 місяці', yearly:'1 рік'},
@@ -92,12 +92,13 @@ function draw(){
     b.className = 'plan' + (p.id === picked ? ' on' : '');
     b.onclick = function(){ picked = p.id; draw(); };
     var period = p.months === 1 ? t.month : p.months === 12 ? t.year : t.once;
-    var save = p.store - p.web;
+    /* Різницю показує закреслена ціна магазину поруч. Окремий зелений
+       бейдж «Економія $0.50» лише привертав би увагу до того, наскільки
+       вона мала — при більшому розриві його варто повернути. */
     b.innerHTML =
       '<span class="radio">' + (p.id === picked ? '<i></i>' : '') + '</span>' +
       '<span class="t"><b>' + TITLE[LANG][p.id] + '</b><span>' + period +
-        (p.months > 1 ? ' · ' + usd(p.web / p.months) + ' ' + t.per : '') + '</span>' +
-        '<span class="save">' + t.save + ' ' + usd(save) + ' ' + t.store + '</span></span>' +
+        (p.months > 1 ? ' · ' + usd(p.web / p.months) + ' ' + t.per : '') + '</span></span>' +
       '<span class="p"><b>' + usd(p.web) + '</b><s>' + usd(p.store) + '</s></span>';
     box.appendChild(b);
   });

@@ -24,9 +24,9 @@ const configured = () => !!(ENV.pub && ENV.priv);
    3 місяці продається разовим платежем — і на сторінці оплати про це
    написано прямо, а не дрібним шрифтом. */
 const PLANS = {
-  monthly:   {id: 'monthly',   months: 1,  usd: 3.29,  period: 'month'},
-  quarterly: {id: 'quarterly', months: 3,  usd: 8.49,  period: null},
-  yearly:    {id: 'yearly',    months: 12, usd: 32.99, period: 'year'},
+  monthly:   {id: 'monthly',   months: 1,  usd: 4.49,  period: 'month'},
+  quarterly: {id: 'quarterly', months: 3,  usd: 11.99, period: null},
+  yearly:    {id: 'yearly',    months: 12, usd: 48.99, period: 'year'},
 };
 const DEVICES = 3;                 /* стільки ж, скільки WEB.devices у застосунку */
 const GRACE_DAYS = 3;              /* запас на випадок, якщо банк спише з затримкою */

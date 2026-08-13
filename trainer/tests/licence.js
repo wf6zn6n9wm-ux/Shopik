@@ -68,7 +68,7 @@ part('оплата');
   const p = L.unpack(data);
   order = p.order_id;
   ok('річний план — регулярне списання', p.action === 'subscribe' && p.subscribe_periodicity === 'year', p.action + '/' + p.subscribe_periodicity);
-  ok('ціна веб, а не магазину', p.amount === 32.99, '$' + p.amount);
+  ok('ціна веб, а не магазину', p.amount === 48.99, '$' + p.amount);
   ok('приватний ключ у браузер не потрапляє', !r.text.includes('test_priv'));
   ok('логін і пристрій їдуть у info', JSON.parse(p.info).login === 'trainer@mail.com' && JSON.parse(p.info).device === DEV_A);
 

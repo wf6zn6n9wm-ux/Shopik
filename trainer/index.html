@@ -1464,9 +1464,9 @@ const LEGAL = {
 /* Product ID мають збігатися з тим, що заведено в App Store Connect і
    Google Play Console. Змінюються тут — більше ніде не зашиті. */
 const PLANS = [
-  {id:'monthly',   productId:'pro_trainer_monthly',   title:'1 місяць', price:4.99,  web:3.29,  months:1},
-  {id:'quarterly', productId:'pro_trainer_quarterly', title:'3 місяці', price:12.99, web:8.49,  months:3,  badge:'Вигідніше'},
-  {id:'yearly',    productId:'pro_trainer_yearly',    title:'1 рік',    price:49.99, web:32.99, months:12, badge:'Найкраща ціна'},
+  {id:'monthly',   productId:'pro_trainer_monthly',   title:'1 місяць', price:4.99,  web:4.49,  months:1},
+  {id:'quarterly', productId:'pro_trainer_quarterly', title:'3 місяці', price:12.99, web:11.99, months:3,  badge:'Вигідніше'},
+  {id:'yearly',    productId:'pro_trainer_yearly',    title:'1 рік',    price:49.99, web:48.99, months:12, badge:'Найкраща ціна'},
 ];
 const planById = id => PLANS.find(p => p.id === id) || null;
 const planTitle = p => t('plan.' + p.id, p.title);
