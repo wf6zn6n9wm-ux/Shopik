@@ -49,9 +49,20 @@ const verify = (data, signature) => {
    функції дані не переживуть. Для продакшену KV обов'язковий.        */
 let mem = new Map();
 let kvPromise = null;
+
+/* Ім'я змінних залежить від того, під яким префіксом Upstash під'єднали
+   до проєкту. Замість того щоб вгадувати одне, беремо перше, що є, і
+   створюємо клієнта явно — тоді перейменування в панелі нічого не ламає. */
+const first = (...names) => { for (const n of names) if (process.env[n]) return process.env[n]; return ''; };
+const REST = {
+  url: first('KV_REST_API_URL', 'UPSTASH_REDIS_REST_URL', 'STORAGE_REST_API_URL', 'REDIS_REST_API_URL'),
+  token: first('KV_REST_API_TOKEN', 'UPSTASH_REDIS_REST_TOKEN', 'STORAGE_REST_API_TOKEN', 'REDIS_REST_API_TOKEN'),
+};
 async function kv(){
-  if (!process.env.KV_REST_API_URL) return null;
-  if (!kvPromise) kvPromise = import('@vercel/kv').then(m => m.kv).catch(() => null);
+  if (!REST.url || !REST.token) return null;
+  if (!kvPromise) kvPromise = import('@vercel/kv')
+    .then(m => m.createClient({url: REST.url, token: REST.token}))
+    .catch(() => null);
   return kvPromise;
 }
 async function get(key){
@@ -141,7 +152,8 @@ const json = (res, code, body) => {
 
 module.exports = {
   ENV, configured, PLANS, DEVICES,
-  store: {get, set},                 /* спільне сховище для інших ендпоінтів */
+  /* live() — чи це справжнє сховище, а не пам'ять процесу */
+  store: {get, set, live: async () => !!(await kv())},
   sign, pack, unpack, verify,
   normLogin, readLicence, writeLicence, view, applyPayment, addMonths, json,
 };
