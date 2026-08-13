@@ -198,6 +198,23 @@ ok('скасування повертає заняття', T.Store.state.subs.fi
 const stock = T.Store.state.products[0].stock;
 T.Act.sell({clientId: c.id, productId: T.Store.state.products[0].id, qty: 2, price: 1400});
 ok('продаж зменшує залишок', T.Store.state.products[0].stock === stock - 2);
+/* дописати клієнта в уже створене тренування */
+{
+  const a = T.Act.addClient({name: 'Учасник Один'});
+  const b = T.Act.addClient({name: 'Учасник Два'});
+  const base = T.Act.addSession({clientId: a.id, price: 700, start: new Date().toISOString(), paid: true});
+  const mate = T.Act.joinSession(base.id, b.id);
+  const now0 = T.Store.state.sessions;
+  const first = now0.find(x => x.id === base.id);
+  ok('одиночне стає груповим', !!mate && !!first.groupId && mate.groupId === first.groupId);
+  ok('новий учасник ще не платив', mate.paid === false && mate.subId === null);
+  ok('оплата першого не чіпається', first.paid === true);
+  ok('ціна й час беруться з тренування', mate.price === 700 && mate.start === first.start);
+  ok('двічі того самого не додати', T.Act.joinSession(base.id, b.id) === null);
+  ok('самого себе не додати', T.Act.joinSession(base.id, a.id) === null);
+  T.Act.delClient(a.id); T.Act.delClient(b.id);
+}
+
 /* групове тренування показується однією подією, а не трьома рядками */
 {
   const at = new Date().toISOString();
