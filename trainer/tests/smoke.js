@@ -198,6 +198,13 @@ ok('скасування повертає заняття', T.Store.state.subs.fi
 const stock = T.Store.state.products[0].stock;
 T.Act.sell({clientId: c.id, productId: T.Store.state.products[0].id, qty: 2, price: 1400});
 ok('продаж зменшує залишок', T.Store.state.products[0].stock === stock - 2);
+/* напоминание о дне рождения живёт в списке уведомлений */
+ok('день народження є серед вимикачів сповіщень',
+   T.emptyDB().settings.notif.birthday === true);
+ok('мертвих вимикачів не лишилось',
+   !('booked' in T.emptyDB().settings.notif) && !('canceled' in T.emptyDB().settings.notif),
+   Object.keys(T.emptyDB().settings.notif).join(', '));
+
 /* день народження: у налаштуваннях обіцяно нагадати, тож рахунок днів
    має бути правильним і на межі року */
 {
