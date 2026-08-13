@@ -13,7 +13,9 @@
 
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- версію фіксуємо: без неї CDN одного дня віддасть наступний мажор,
+     і застосунок перестане компілюватись без жодної нашої зміни -->
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Onest:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -409,11 +411,70 @@
   .money{font-family:'Onest',sans-serif;font-weight:800;letter-spacing:-.03em;}
   .fade-in{animation:fade .3s ease both;}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+  /* ── екран завантаження ──
+     Застосунок компілюється в браузері, і на слабкому зв'язку це помітно.
+     Порожній білий аркуш виглядає як поламаний застосунок, тож поки код
+     готується — показуємо назву, а якщо щось впало — причину. */
+  .boot{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:14px;padding:30px;text-align:center;}
+  .boot-mark{width:56px;height:56px;border-radius:16px;background:var(--accent);
+    display:flex;align-items:center;justify-content:center;}
+  .boot-mark svg{width:30px;height:30px;stroke:#fff;fill:none;stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round;}
+  .boot-name{font-family:'Onest',sans-serif;font-size:19px;font-weight:800;letter-spacing:-.02em;}
+  .boot-note{font-size:13.5px;color:var(--ink-3);max-width:300px;line-height:1.5;}
+  .boot-err .boot-mark{background:var(--neg);}
+  .boot-err .boot-note{color:var(--neg);word-break:break-word;}
 </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="root">
+  <div class="boot" id="boot">
+    <div class="boot-mark">
+      <svg viewBox="0 0 192 192" aria-hidden="true">
+        <path d="M40 76v40M62 66v60M130 66v60M152 76v40M62 96h68"/>
+      </svg>
+    </div>
+    <div class="boot-name">PRO Trainer</div>
+    <div class="boot-note" id="bootNote">Завантаження…</div>
+  </div>
+</div>
 <noscript>Для роботи застосунку потрібен JavaScript.</noscript>
+
+<script>
+/* Якщо застосунок не запустився, білий екран нічого не пояснює — ані
+   тренеру, ані нам. Пишемо причину просто на екран: не завантажилась
+   бібліотека, впав скрипт чи просто немає мережі. Коли React вималює
+   застосунок, він замінить вміст #root — і цей блок зникне сам. */
+(function(){
+  var alive = function(){ return !!document.getElementById('boot'); };
+  var shown = false;
+  function fail(text){
+    if (shown || !alive()) return;
+    shown = true;
+    document.getElementById('boot').className = 'boot boot-err';
+    document.getElementById('bootNote').textContent = text;
+  }
+  window.addEventListener('error', function(e){
+    if (e.target && e.target.tagName === 'SCRIPT')
+      return fail('Не вдалося завантажити ' + String(e.target.src || '').split('/').slice(2, 3) +
+                  '. Перевірте зв\'язок і оновіть сторінку.');
+    fail(String((e.message || 'Помилка')) + ' · ' +
+         String(e.filename || '').split('/').pop() + ':' + (e.lineno || 0));
+  }, true);
+  window.addEventListener('unhandledrejection', function(e){
+    var r = e.reason;
+    fail('Помилка: ' + String((r && r.message) || r));
+  });
+  setTimeout(function(){
+    if (!alive()) return;
+    if (!window.React) return fail('Бібліотека React не завантажилась. Перевірте зв\'язок і оновіть сторінку.');
+    if (!window.Babel) return fail('Бібліотека Babel не завантажилась. Перевірте зв\'язок і оновіть сторінку.');
+    document.getElementById('bootNote').textContent = 'Готуємо застосунок…';
+  }, 8000);
+})();
+</script>
 
 <script type="text/babel" data-presets="react">
 /* ══════════════════════════════════════════════════════════════════
@@ -6685,6 +6746,9 @@ const Boot = () => {
   const [account, setAccount] = useState(null);
   const [pinErr, setPinErr] = useState('');
   const [, force] = useState(0);
+
+  /* застосунок на екрані — прибираємо заставку завантаження */
+  useEffect(() => { const b = document.getElementById('boot'); if (b) b.remove(); }, []);
 
   useEffect(() => {
     (async () => {
