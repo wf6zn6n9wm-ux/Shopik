@@ -745,6 +745,29 @@ const PHRASES = [
   ['Групове', 'Групповая', 'Group', 'Grupowy'],
   ['Додати учасника', 'Добавить участника', 'Add a participant', 'Dodaj uczestnika'],
   ['Перенести', 'Перенести', 'Reschedule', 'Przenieś'],
+  ['Заміри', 'Замеры', 'Measurements', 'Pomiary'],
+  ['Замір збережено', 'Замер сохранён', 'Measurement saved', 'Pomiar zapisany'],
+  ['Замір видалено', 'Замер удалён', 'Measurement deleted', 'Pomiar usunięty'],
+  ['Замірів ще немає', 'Замеров ещё нет', 'No measurements yet', 'Nie ma jeszcze pomiarów'],
+  ['Додати замір', 'Добавить замер', 'Add a measurement', 'Dodaj pomiar'],
+  ['Останній замір', 'Последний замер', 'Latest measurement', 'Ostatni pomiar'],
+  ['Заповніть хоча б одне поле', 'Заполните хотя бы одно поле', 'Fill in at least one field', 'Wypełnij co najmniej jedno pole'],
+  ['Заповніть те, що знімаєте — решту можна лишити порожнім',
+   'Заполните то, что снимаете — остальное можно оставить пустым',
+   'Fill in what you actually measure — the rest can stay empty',
+   'Wypełnij to, co mierzysz — resztę można zostawić pustą'],
+  ['Необов’язково. Але якщо записувати вагу й обхвати раз на місяць, клієнт побачить, що змінилось — і це найкращий привід продовжити.',
+   'Необязательно. Но если записывать вес и обхваты раз в месяц, клиент увидит, что изменилось — и это лучший повод продлить.',
+   'Optional. But if you record weight and girths once a month, the client sees what changed — and that is the best reason to continue.',
+   'Opcjonalne. Ale jeśli raz w miesiącu zapisywać wagę i obwody, klient zobaczy, co się zmieniło — i to najlepszy powód, by kontynuować.'],
+  ['Вага', 'Вес', 'Weight', 'Waga'],
+  ['Груди', 'Грудь', 'Chest', 'Klatka'],
+  ['Талія', 'Талия', 'Waist', 'Talia'],
+  ['Стегна', 'Бёдра', 'Hips', 'Biodra'],
+  ['кг', 'кг', 'kg', 'kg'],
+  ['см', 'см', 'cm', 'cm'],
+  ['Нотатка', 'Заметка', 'Note', 'Notatka'],
+  ['Напр.: зранку, натще', 'Напр.: утром, натощак', 'e.g. morning, before breakfast', 'np. rano, na czczo'],
   ['Перенести на', 'Перенести на', 'Move to', 'Przenieś na'],
   ['Перенесено', 'Перенесено', 'Rescheduled', 'Przeniesiono'],
   ['+1 день', '+1 день', '+1 day', '+1 dzień'],
@@ -2420,6 +2443,7 @@ function emptyDB(){
               lapsed: true, packageEnd: true, stock: true, debt: true},
     },
     clients: [], sessions: [], products: [], sales: [], packages: [], subs: [], notes: [], notifs: [],
+    measures: [],
     onboarded: false, auth: null, fired: {},
   };
 }
@@ -2488,6 +2512,7 @@ const Act = {
       sessions: db.sessions.filter(s => s.clientId !== id),
       sales: db.sales.filter(s => s.clientId !== id),
       subs: db.subs.filter(s => s.clientId !== id),
+      measures: (db.measures || []).filter(m => m.clientId !== id),
       notes: db.notes.filter(n => n.clientId !== id),
     }), {name:'client.del', data:{id}});
   },
@@ -2641,6 +2666,19 @@ const Act = {
                  price: pkg.price, ts: Date.now(), expiresAt: Date.now() + (pkg.days || 60) * DAY};
     Store.patch(db => ({...db, subs:[...db.subs, sub]}), {name:'sub.add', data:sub});
     return sub;
+  },
+
+  /* Заміри — річ добровільна: тренер або веде їх, або ні. Тому це не
+     обов'язкове поле в картці, а окремий запис, якого може не бути
+     жодного, і застосунок від цього нічого не втрачає. */
+  addMeasure(m){
+    const rec = {id: uid('ms'), ts: Date.now(), weight:0, waist:0, chest:0, hip:0, note:'', ...m};
+    Store.patch(db => ({...db, measures: [rec, ...(db.measures || [])]}), {name:'measure.add', data:rec});
+    return rec;
+  },
+  delMeasure(id){
+    Store.patch(db => ({...db, measures: (db.measures || []).filter(m => m.id !== id)}),
+      {name:'measure.del', data:{id}});
   },
 
   addNote(clientId, text){
@@ -4832,6 +4870,117 @@ const Clients = ({loading}) => {
 };
 
 /* ─────────── 7. КАРТКА КЛІЄНТА ─────────── */
+/* Заміри. Не обов'язкові: тренер або веде їх, або ні — тому це окрема
+   вкладка, а не поле в картці. Сенс у різниці: сам по собі обхват талії
+   нічого не каже, каже «−4 см за два місяці». */
+const FIELDS = [
+  {k: 'weight', title: 'Вага',   unit: 'кг'},
+  {k: 'chest',  title: 'Груди',  unit: 'см'},
+  {k: 'waist',  title: 'Талія',  unit: 'см'},
+  {k: 'hip',    title: 'Стегна', unit: 'см'},
+];
+const num1 = v => {
+  const x = String(v).replace(',', '.').replace(/[^\d.]/g, '');
+  return Math.round((parseFloat(x) || 0) * 10) / 10;
+};
+const MeasureTab = ({client}) => {
+  const db = useDB();
+  const list = (db.measures || []).filter(m => m.clientId === client.id).sort((a, b) => b.ts - a.ts);
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({});
+  const last = list[0], prev = list[1];
+
+  const add = () => {
+    const vals = {};
+    FIELDS.forEach(x => { vals[x.k] = num1(f[x.k] || 0); });
+    if (!FIELDS.some(x => vals[x.k] > 0)){ Toaster.bad(t('ms.err','Заповніть хоча б одне поле')); return; }
+    Act.addMeasure({clientId: client.id, ...vals, note: (f.note || '').trim()});
+    setF({}); setOpen(false);
+    Toaster.ok(t('ms.added','Замір збережено'));
+  };
+  /* −4 см це добре, а −4 кг може бути й погано: оцінку лишаємо тренеру,
+     тому показуємо саму зміну без кольору «добре / погано» */
+  const diff = k => (last && prev && last[k] > 0 && prev[k] > 0)
+    ? Math.round((last[k] - prev[k]) * 10) / 10 : null;
+
+  return (
+    <div style={{marginTop:12}}>
+      {list.length === 0 ? (
+        <Empty icon={<Ic.chart size={28}/>} title={t('ms.empty','Замірів ще немає')}
+               text={t('ms.empty.t','Необов’язково. Але якщо записувати вагу й обхвати раз на місяць, клієнт побачить, що змінилось — і це найкращий привід продовжити.')}
+               action={<Btn kind="pri" size="sm" onClick={() => setOpen(true)}>
+                         <Ic.plus size={17}/>{t('ms.add','Додати замір')}</Btn>}/>
+      ) : (
+        <Fragment>
+          <div className="card pad">
+            <div className="between">
+              <div className="muted" style={{fontSize:12.5, fontWeight:700}}>{t('ms.last','Останній замір')}</div>
+              <div className="muted" style={{fontSize:12.5, fontWeight:700}}>{fmtDM(last.ts)}</div>
+            </div>
+            <div className="kpis" style={{marginTop:10}}>
+              {FIELDS.filter(x => last[x.k] > 0).map(x => {
+                const d = diff(x.k);
+                return (
+                  <div key={x.k} className="kpi">
+                    <div className="k">{t('ms.' + x.k, x.title)}</div>
+                    <div className="v num">{last[x.k]}<span style={{fontSize:12, fontWeight:700}}> {t('ms.u.' + x.unit, x.unit)}</span></div>
+                    {d !== null && d !== 0 && (
+                      <div style={{fontSize:11.5, fontWeight:800, color:'var(--ink-2)'}}>
+                        {d > 0 ? '+' : '−'}{Math.abs(d)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {last.note && <div className="muted" style={{fontSize:13, marginTop:10}}>{last.note}</div>}
+          </div>
+          <Btn kind="soft" wide style={{marginTop:10}} onClick={() => setOpen(true)}>
+            <Ic.plus size={17}/>{t('ms.add','Додати замір')}
+          </Btn>
+          {list.length > 1 && (
+            <div className="rows" style={{marginTop:12}}>
+              {list.map(m => (
+                <div key={m.id} className="row">
+                  <div style={{flex:1, minWidth:0}}>
+                    <div className="nm">{fmtDM(m.ts)}</div>
+                    <div className="ds">
+                      {FIELDS.filter(x => m[x.k] > 0)
+                             .map(x => t('ms.' + x.k, x.title) + ' ' + m[x.k]).join(' · ')}
+                    </div>
+                  </div>
+                  <button className="iconbtn" aria-label={t('common.delete','Видалити')}
+                          onClick={() => { Act.delMeasure(m.id); Toaster.show(t('ms.gone','Замір видалено')); }}>
+                    <Ic.trash size={17}/>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Fragment>
+      )}
+
+      <Sheet open={open} onClose={() => setOpen(false)} title={t('ms.add','Додати замір')}
+             sub={t('ms.sub','Заповніть те, що знімаєте — решту можна лишити порожнім')}>
+        <div className="grid2">
+          {FIELDS.map(x => (
+            <Field key={x.k} label={t('ms.' + x.k, x.title)}>
+              <Input value={f[x.k] || ''} inputMode="decimal" suffix={t('ms.u.' + x.unit, x.unit)}
+                     onChange={e => setF({...f, [x.k]: e.target.value})}
+                     placeholder={last && last[x.k] > 0 ? String(last[x.k]) : ''}/>
+            </Field>
+          ))}
+        </div>
+        <Field label={t('ms.note','Нотатка')}>
+          <Input value={f.note || ''} onChange={e => setF({...f, note: e.target.value})}
+                 placeholder={t('ms.note.ph','Напр.: зранку, натще')}/>
+        </Field>
+        <Btn kind="pri" size="lg" wide style={{marginTop:8}} onClick={add}>{t('common.save','Зберегти')}</Btn>
+      </Sheet>
+    </div>
+  );
+};
+
 const ClientPage = ({params, onClose}) => {
   const db = useDB();
   const nav = useNav();
@@ -4937,9 +5086,13 @@ const ClientPage = ({params, onClose}) => {
         </div>
       )}
 
-      <Tabs value={tab} onChange={setTab} items={[{v:'history', t:t('client.tab.h','Історія')}, {v:'notes', t:t('client.tab.n','Нотатки')}]}/>
+      <Tabs value={tab} onChange={setTab} items={[{v:'history', t:t('client.tab.h','Історія')},
+                                                  {v:'notes', t:t('client.tab.n','Нотатки')},
+                                                  {v:'measures', t:t('client.tab.m','Заміри')}]}/>
 
-      {tab === 'history' ? (
+      {tab === 'measures' ? (
+        <MeasureTab client={c}/>
+      ) : tab === 'history' ? (
         feed.length === 0 ? (
           <Empty icon={<Ic.clock size={28}/>} title={t('client.hist.empty','Історія порожня')}
                  text={t('client.hist.empty.t','Тут з’являться тренування, покупки й абонементи.')}
