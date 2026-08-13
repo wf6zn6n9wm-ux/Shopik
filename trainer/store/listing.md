@@ -1,7 +1,7 @@
 # PRO Trainer — тексты для App Store и Google Play
 
 Всё готово к копированию. Подставить своё нужно только `[САЙТ]` — домен, который
-выдаст Vercel после деплоя. Остальные реквизиты уже заполнены в `LEGAL` в
+выдаст Vercel после деплоя (бесплатного `*.vercel.app` магазинам достаточно). Остальные реквизиты уже заполнены в `LEGAL` в
 `trainer/index.html`: ФОП Мозолевич Андрей, andreymenedger01@gmail.com.
 
 Скриншоты — `node trainer/store/shots.js` (см. в конце).
@@ -16,8 +16,8 @@
 | Категория | App Store: **Business**, вторая — Health & Fitness · Google Play: **Business** |
 | Возрастной рейтинг | 4+ / Everyone |
 | Языки | українська, русский, English, polski |
-| Support URL | `[САЙТ]` (страница приложения; почта — andreymenedger01@gmail.com) |
-| Marketing URL | `[САЙТ]` |
+| Support URL | `[САЙТ]/support` — страница с ответами и почтой, есть в деплое |
+| Marketing URL | `[САЙТ]` — открывается само приложение, его можно потрогать в браузере |
 | Privacy Policy URL | `[САЙТ]/privacy` — страница есть, отдаётся с деплоя |
 | Terms (EULA) | `[САЙТ]/terms` — страница есть, отдаётся с деплоя |
 | Data deletion URL (Google Play) | `[САЙТ]/delete` — обязательное поле, страница есть |
