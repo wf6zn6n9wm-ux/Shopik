@@ -735,6 +735,17 @@ part('оплата на сайті');
   T.Store.init(T.seedDB({name: 'Олександр'}));
 
   ok('кнопка вмикається, коли є домен', T.Web.enabled(), T.Web.base());
+
+  /* Нативна оболонка на Android відкриває WebView на https://localhost —
+     якщо взяти цю адресу за домен, кнопка поведе в нікуди. Поки домен
+     не заданий, кнопки не має бути взагалі. */
+  ctx.window.Capacitor = {getPlatform: () => 'android', Plugins: {}};
+  ok('у нативній збірці без домену кнопки немає', !T.Web.enabled(), T.Web.base() || 'порожньо');
+  T.WEB.base = 'https://pro-trainer.test';
+  ok('із заданим доменом кнопка працює і в нативній', T.Web.base() === 'https://pro-trainer.test');
+  T.WEB.base = '';
+  delete ctx.window.Capacitor;
+  ok('у вебі домен, як і раніше, береться з адреси', T.Web.base() === 'https://protrainer.test', T.Web.base());
   const url = T.Web.payUrl('yearly');
   ok('у посилання їде план, логін і пристрій',
      url.includes('plan=yearly') && url.includes('trainer%40mail.com') && /device=dev_/.test(url), url.slice(0, 80));

@@ -1597,8 +1597,14 @@ const WEB = {
 const Web = {
   base(){
     if (WEB.base) return WEB.base.replace(/\/+$/, '');
+    /* У нативній оболонці WebView теж відкритий по https — але на localhost,
+       де лежить сам застосунок, а не сайт. Брати цю адресу за домен не можна:
+       на Android кнопка вела б на https://localhost/pay, тобто в нікуди.
+       Без заданого WEB.base кнопки оплати на сайті просто не буде. */
+    const C = typeof window !== 'undefined' && window.Capacitor;
+    if (C && C.getPlatform && C.getPlatform() !== 'web') return '';
     if (typeof location !== 'undefined' && /^https?:/.test(location.protocol)) return location.origin;
-    return '';                                  /* нативна збірка без заданого домену */
+    return '';
   },
   enabled(){ return !!Web.base(); },
   login(){ const m = Disk.readMeta() || {}; return (m.account && m.account.login) || ''; },
