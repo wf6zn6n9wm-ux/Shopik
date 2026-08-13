@@ -845,7 +845,6 @@ const PHRASES = [
   ['Почати з чистого аркуша', 'Начать с чистого листа', 'Start from scratch', 'Zacznij od zera'],
   ['Проведено, лишився борг', 'Проведено, остался долг', 'Completed, debt remains', 'Odbyty, został dług'],
   ['Схоже, картку видалили.', 'Похоже, карточку удалили.', 'Looks like this card was deleted.', 'Wygląda na to, że kartę usunięto.'],
-  ['Фото завелике — до 3 МБ', 'Фото слишком большое — до 3 МБ', 'Photo is too large — up to 3 MB', 'Zdjęcie za duże — do 3 MB'],
   ['клієнт|клієнти|клієнтів', 'клиент|клиента|клиентов', 'client|clients', 'klient|klienci|klientów'],
   ['Абонементи (передоплата)', 'Абонементы (предоплата)', 'Packages (prepaid)', 'Karnety (przedpłata)'],
   ['Автопродовження вимкнено', 'Автопродление выключено', 'Auto-renewal is off', 'Odnawianie wyłączone'],
@@ -857,6 +856,7 @@ const PHRASES = [
   ['Пробний період завершено', 'Пробный период завершён', 'Your free trial has ended', 'Okres próbny zakończony'],
   ['Спочатку оберіть клієнта', 'Сначала выберите клиента', 'Choose a client first', 'Najpierw wybierz klienta'],
   ['Тренування по днях тижня', 'Тренировки по дням недели', 'Sessions by weekday', 'Treningi wg dni tygodnia'],
+  ['Фото завелике — до 12 МБ', 'Фото слишком большое — до 12 МБ', 'Photo is too large — up to 12 MB', 'Zdjęcie za duże — do 12 MB'],
   ['Шифрувати базу PIN-кодом', 'Шифровать базу PIN-кодом', 'Encrypt the data with a PIN', 'Szyfruj bazę PIN-em'],
   ['Автопродовження увімкнено', 'Автопродление включено', 'Auto-renewal is on', 'Odnawianie włączone'],
   ['Доступ працює повністю до', 'Доступ работает полностью до', 'Full access until', 'Pełny dostęp do'],
@@ -869,6 +869,7 @@ const PHRASES = [
   ['Політика конфіденційності', 'Политика конфиденциальности', 'Privacy policy', 'Polityka prywatności'],
   ['Спробувати без реєстрації', 'Попробовать без регистрации', 'Try without signing up', 'Wypróbuj bez rejestracji'],
   ['Увімкнути автопродовження', 'Включить автопродление', 'Turn on auto-renewal', 'Włącz odnawianie'],
+  ['Це не схоже на зображення', 'Это не похоже на изображение', 'That doesn’t look like an image', 'To nie wygląda na obraz'],
   ['Ім’я, телефон, ціна й мета', 'Имя, телефон, цена и цель', 'Name, phone, price and goal', 'Imię, telefon, cena i cel'],
   ['Нагадати перед тренуванням', 'Напомнить перед тренировкой', 'Remind before a session', 'Przypomnij przed treningiem'],
   ['Нагадування про тренування', 'Напоминания о тренировках', 'Session reminders', 'Przypomnienia o treningach'],
@@ -938,6 +939,7 @@ const PHRASES = [
   ['За замовчуванням — у клієнта може бути своя', 'По умолчанию — у клиента может быть своя', 'Default — a client can have their own', 'Domyślnie — klient może mieć własną'],
   ['Порожньо — береться ціна за замовчуванням, ', 'Пусто — берётся цена по умолчанию, ', 'Empty — the default price is used, ', 'Puste — używana jest cena domyślna, '],
   ['Увечері підкажемо, кому написати про завтра', 'Вечером подскажем, кому написать про завтра', 'In the evening we’ll suggest who to text about tomorrow', 'Wieczorem podpowiemy, do kogo napisać o jutrze'],
+  ['Не вистачає місця — збережіть резервну копію', 'Не хватает места — сохраните резервную копию', 'Not enough space — save a backup', 'Brak miejsca — zapisz kopię zapasową'],
   ['Перевірте запит або створіть нового клієнта.', 'Проверьте запрос или создайте нового клиента.', 'Check the search or add a new client.', 'Sprawdź zapytanie lub dodaj nowego klienta.'],
   ['За цей період ще не було оплачених тренувань.', 'За этот период ещё не было оплаченных тренировок.', 'No paid sessions in this period yet.', 'W tym okresie nie było jeszcze opłaconych treningów.'],
   ['Скаржиться на праве коліно — прибрати випади.', 'Жалуется на правое колено — убрать выпады.', 'Complains about the right knee — drop lunges.', 'Skarży się na prawe kolano — usunąć wykroki.'],
@@ -1293,6 +1295,94 @@ const Disk = {
     const m = Disk.readMeta() || {};
     Box.remove(KEY);
     Box.set(META_KEY, JSON.stringify({salt: m.salt, account: m.account, access: m.access}));
+  },
+};
+
+/* ─────────────────── фото клієнтів ───────────────────
+   Знімок із телефона важить 3–5 МБ, а в базі він лежав би цілком, ще й
+   у base64 (+37%). Квота localStorage — 5 МБ на весь кабінет, тож двох
+   фото досить, щоб база перестала зберігатись, і тренер втратив би день
+   роботи, не зрозумівши чому. Аватар ніде не більший за 92 px, тому 384 px
+   вистачає навіть на екран із потрійною щільністю: 4 МБ → 20–40 КБ.     */
+const PHOTO = {
+  side: 384,                 /* сторона квадрата, більше не потрібно */
+  budget: 40 * 1024,         /* стеля довжини dataURL, символів */
+  q: [0.72, 0.6, 0.5, 0.42], /* якість: знижуємо, поки не влізе в стелю */
+  limit: 12 * 1024 * 1024,   /* більший файл навіть не декодуємо */
+};
+
+const Photo = {
+  /* EXIF-поворот: createImageBitmap уміє його враховувати, <img> — не всюди.
+     Але декодування там позаекранне і в деяких WebView просто не відповідає —
+     тоді фото мовчки не з'явилось би. Тому чекаємо обмежений час і падаємо
+     на <img>: краще знімок без урахування EXIF, ніж без знімка. */
+  async decode(src){
+    if (src instanceof Blob && typeof createImageBitmap === 'function'){
+      try {
+        const bmp = await Promise.race([
+          createImageBitmap(src, {imageOrientation: 'from-image'}),
+          new Promise(res => setTimeout(() => res(null), 4000)),
+        ]);
+        if (bmp) return bmp;
+      } catch {}
+    }
+    const url = src instanceof Blob ? URL.createObjectURL(src) : src;
+    try {
+      return await new Promise((res, rej) => {
+        const img = new Image();
+        img.onload = () => res(img);
+        img.onerror = () => rej(new Error('decode'));
+        img.src = url;
+      });
+    } finally { if (src instanceof Blob) URL.revokeObjectURL(url); }
+  },
+  /* квадрат по центру: аватар усе одно круглий, поля були б зайвою вагою */
+  crop(img){
+    const w = img.width || img.naturalWidth, h = img.height || img.naturalHeight;
+    if (!w || !h) throw new Error('empty');
+    const side = Math.max(1, Math.min(PHOTO.side, w, h));
+    const c = document.createElement('canvas');
+    c.width = c.height = side;
+    const k = Math.max(side / w, side / h);
+    c.getContext('2d').drawImage(img, (side - w * k) / 2, (side - h * k) / 2, w * k, h * k);
+    if (img.close) img.close();
+    return c;
+  },
+  shrink(img){
+    const c = Photo.crop(img);
+    let out = '';
+    for (const q of PHOTO.q){
+      out = c.toDataURL('image/jpeg', q);
+      if (out.length <= PHOTO.budget) break;
+    }
+    if (!out || out.indexOf('data:image') !== 0) throw new Error('encode');
+    return out;
+  },
+  async fromFile(file){
+    if (!file || (file.type && file.type.indexOf('image/') !== 0)) throw new Error('type');
+    if (file.size > PHOTO.limit) throw new Error('big');
+    return Photo.shrink(await Photo.decode(file));
+  },
+  async fromUrl(url){ return Photo.shrink(await Photo.decode(url)); },
+  /* фото, збережені попередніми версіями, лежать нестиснутими: один раз
+     проходимось по них уже після старту, щоб не тримати екран */
+  async shrinkStored(){
+    const db = Store.state;
+    if (!db || !db.clients) return 0;
+    const heavy = db.clients.filter(c => c.photo && c.photo.length > PHOTO.budget * 1.5);
+    const big = db.profile && db.profile.photo && db.profile.photo.length > PHOTO.budget * 1.5;
+    if (!heavy.length && !big) return 0;
+    const small = new Map();
+    for (const c of heavy){
+      try { small.set(c.id, await Photo.fromUrl(c.photo)); } catch {}
+    }
+    let prof = null;
+    if (big){ try { prof = await Photo.fromUrl(db.profile.photo); } catch {} }
+    if (!small.size && !prof) return 0;
+    Store.patch(d => ({...d,
+      clients: d.clients.map(c => (small.has(c.id) ? {...c, photo: small.get(c.id)} : c)),
+      profile: prof ? {...d.profile, photo: prof} : d.profile}));
+    return small.size + (prof ? 1 : 0);
   },
 };
 
@@ -1796,17 +1886,27 @@ const Store = {
     if (op) Sync.push(op.name, op.data);
     Store.emit();
   },
+  warned: false,
   async persist(){
     const json = JSON.stringify(Store.state);
     const meta = Disk.readMeta() || {};
     try {
+      let ok;
       if (Store.state.settings.secure && Vault.key){
         const {iv, ct} = await Vault.encrypt(json);
-        Disk.writeRaw(JSON.stringify({enc: 1, iv, ct}));
+        ok = Disk.writeRaw(JSON.stringify({enc: 1, iv, ct}));
       } else {
-        Disk.writeRaw(json);
+        ok = Disk.writeRaw(json);
       }
       Disk.writeMeta({...meta, savedAt: Date.now(), enc: !!(Store.state.settings.secure && Vault.key)});
+      /* сховище переповнене — раніше запис просто не відбувався, і тренер
+         дізнавався про це, лише втративши день роботи. Попереджаємо один
+         раз за сеанс, інакше тост висів би після кожного дотику */
+      if (!ok && !Store.warned){
+        Store.warned = true;
+        Toaster.bad(t('save.full','Не вистачає місця — збережіть резервну копію'));
+      }
+      if (ok) Store.warned = false;
     } catch (e) { console.warn('persist', e); }
   },
 };
@@ -2208,6 +2308,12 @@ const Page = ({title, sub, onClose, right, children, footer}) => {
 };
 
 /* тости */
+/* що саме пішло не так із фото — користувачу треба різне */
+const photoErr = e => Toaster.bad(
+  e && e.message === 'big'  ? t('photo.big','Фото завелике — до 12 МБ') :
+  e && e.message === 'type' ? t('photo.type','Це не схоже на зображення') :
+  t('photo.err','Не вдалося прочитати фото'));
+
 const Toaster = {
   list: [], subs: new Set(),
   show(text, kind){
@@ -3891,12 +3997,9 @@ const ClientForm = ({params, onClose}) => {
 
   function photo(e){
     const file = e.target.files && e.target.files[0];
+    e.target.value = '';                     /* інакше той самий файл вдруге не вибереться */
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024){ Toaster.bad(t('photo.big','Фото завелике — до 3 МБ')); return; }
-    const r = new FileReader();
-    r.onload = () => set('photo', r.result);
-    r.onerror = () => Toaster.bad(t('photo.err','Не вдалося прочитати фото'));
-    r.readAsDataURL(file);
+    Photo.fromFile(file).then(url => set('photo', url)).catch(photoErr);
   }
 
   function save(){
@@ -5018,11 +5121,9 @@ const Profile = ({loading}) => {
 
   function photo(e){
     const file = e.target.files && e.target.files[0];
+    e.target.value = '';
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024){ Toaster.bad(t('photo.big','Фото завелике — до 3 МБ')); return; }
-    const r = new FileReader();
-    r.onload = () => Act.profile({photo: r.result});
-    r.readAsDataURL(file);
+    Photo.fromFile(file).then(url => Act.profile({photo: url})).catch(photoErr);
   }
 
   return (
@@ -6143,6 +6244,9 @@ const Boot = () => {
     I18n.set(db.settings.lang);
     Store.init(db);
     setPhase(db.onboarded ? 'app' : 'onboard');
+    /* фото з попередніх версій лежать нестиснутими — ужимаємо після того,
+       як екран уже показався, щоб старт не чекав на canvas */
+    setTimeout(() => { Photo.shrinkStored().catch(() => {}); }, 1200);
   }
 
   async function unlock(pin){

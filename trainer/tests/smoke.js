@@ -97,7 +97,7 @@ function sandbox(){
 const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, clientStats, clientFeed, isDebt,
   clientPrice, typedPrice, periodOf, periodLabel, deltaRange, RangeSheet, PeriodBar, iso, addDays,
   Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Box, Notifier, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
-  Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES,
+  Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES, Toaster, Photo, PHOTO,
   PHRASES, LANGS, detectLang, t, _seen, statusTitle, typeTitle, goalTitle, fill, monthWord,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
@@ -447,6 +447,42 @@ part('сховище переживає очищення WebView');
   delete ctx.window.Capacitor;
   T.Box.cache.clear();
   ok('без Capacitor працює як раніше', !T.Box.native() && !!T.Disk.readRaw());
+}
+
+part('сховище переповнене');
+{
+  /* Квота localStorage — 5 МБ на весь кабінет. Раніше запис просто не
+     відбувався, і тренер дізнавався про втрату, лише відкривши застосунок
+     наступного дня. Тепер про це кажуть уголос — і рівно один раз. */
+  T.Box.cache.clear();
+  T.Store.init(T.seedDB({name: 'Олександр'}));
+  T.Toaster.list = [];
+  T.Store.warned = false;
+  const real = ctx.localStorage.setItem;
+  ctx.localStorage.setItem = () => { throw new Error('QuotaExceededError'); };
+  T.Act.addClient({name: 'Не влізе'});
+  await new Promise(r => setTimeout(r, 30));
+  const said = T.Toaster.list.filter(x => x.kind === 'bad');
+  ok('переповнення не проходить мовчки', said.length === 1, said.length ? said[0].text : 'тиші');
+  T.Act.addClient({name: 'І цей не влізе'});
+  await new Promise(r => setTimeout(r, 30));
+  ok('попереджаємо один раз, а не на кожен дотик',
+     T.Toaster.list.filter(x => x.kind === 'bad').length === 1);
+  ctx.localStorage.setItem = real;
+  T.Act.addClient({name: 'А цей влізе'});
+  await new Promise(r => setTimeout(r, 30));
+  ok('після звільнення місця запис іде далі', !!ctx.localStorage.getItem('protrainer.v1') && !T.Store.warned);
+}
+
+part('фото клієнта');
+{
+  ok('стеля ваги фото розумна', T.PHOTO.side <= 512 && T.PHOTO.budget <= 64 * 1024,
+     T.PHOTO.side + ' px, до ' + Math.round(T.PHOTO.budget / 1024) + ' КБ');
+  ok('великий файл навіть не декодуємо',
+     await T.Photo.fromFile({type: 'image/jpeg', size: 20 * 1024 * 1024}).then(() => false, e => e.message === 'big'));
+  ok('не-зображення відхиляється',
+     await T.Photo.fromFile({type: 'application/pdf', size: 1000}).then(() => false, e => e.message === 'type'));
+  ok('без фото нічого не перероблюємо', (await T.Photo.shrinkStored()) === 0);
 }
 
 part('нагадування наперед');
