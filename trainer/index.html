@@ -2700,6 +2700,9 @@ const Input = ({suffix, lead, bad, ...r}) => (
 );
 
 const Sheet = ({open, onClose, title, sub, children, tall}) => {
+  const box = useRef(null);
+  const scrim = useRef(null);
+
   useEffect(() => {
     if (!open) return;
     const esc = e => e.key === 'Escape' && onClose();
@@ -2707,11 +2710,58 @@ const Sheet = ({open, onClose, title, sub, children, tall}) => {
     document.body.style.overflow = 'hidden';
     return () => { document.removeEventListener('keydown', esc); document.body.style.overflow = ''; };
   }, [open, onClose]);
+
+  /* Закриття свайпом униз. Шторка показує ручку, тобто обіцяє жест — без
+     нього тренер тягне її вниз і думає, що застосунок завис.
+     Тягнемо лише з самого верху вмісту, інакше жест забирав би прокрутку
+     довгих списків. Слухачі нативні: React вішає touchmove пасивно, і
+     preventDefault() у ньому не спрацював би.                          */
+  useEffect(() => {
+    const el = box.current;
+    if (!open || !el) return;
+    let from = null, dy = 0, t0 = 0;
+    const down = e => {
+      if (el.scrollTop > 0) return;
+      from = e.touches[0].clientY; dy = 0; t0 = Date.now();
+      el.style.animation = 'none';
+      el.style.transition = 'none';
+    };
+    const move = e => {
+      if (from === null) return;
+      const d = e.touches[0].clientY - from;
+      if (d <= 0){ dy = 0; el.style.transform = 'translate(-50%,0)'; return; }
+      dy = d;
+      e.preventDefault();                        /* інакше сторінка пружинить під шторкою */
+      el.style.transform = 'translate(-50%,' + d + 'px)';
+      if (scrim.current) scrim.current.style.opacity = String(Math.max(0, 1 - d / 320));
+    };
+    const up = () => {
+      if (from === null) return;
+      const quick = dy / Math.max(1, Date.now() - t0) > 0.5;
+      from = null;
+      if (dy > 90 || (quick && dy > 24)) return onClose();
+      el.style.transition = 'transform .24s var(--ease)';
+      el.style.transform = 'translate(-50%,0)';
+      if (scrim.current) scrim.current.style.opacity = '';
+    };
+    el.addEventListener('touchstart', down, {passive: true});
+    el.addEventListener('touchmove', move, {passive: false});
+    el.addEventListener('touchend', up);
+    el.addEventListener('touchcancel', up);
+    return () => {
+      el.removeEventListener('touchstart', down);
+      el.removeEventListener('touchmove', move);
+      el.removeEventListener('touchend', up);
+      el.removeEventListener('touchcancel', up);
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
   return (
     <Fragment>
-      <div className="scrim" onClick={onClose}/>
-      <div className="sheet" style={tall ? {minHeight:'70vh'} : null} role="dialog" aria-modal="true" aria-label={title || ''}>
+      <div className="scrim" ref={scrim} onClick={onClose}/>
+      <div className="sheet" ref={box} style={tall ? {minHeight:'70vh'} : null}
+           role="dialog" aria-modal="true" aria-label={title || ''}>
         <div className="grip"/>
         {title && <h3>{title}</h3>}
         {sub && <div className="muted" style={{fontSize:13.5, marginBottom:10}}>{sub}</div>}
