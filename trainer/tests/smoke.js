@@ -99,7 +99,7 @@ const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, 
   Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Box, Notifier, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES, Toaster, Photo, PHOTO, Web, WEB,
   financeCsv, Files, inRange, LEGAL, LEGAL_DOCS, Legal, netByBucket,
-  PHRASES, LANGS, detectLang, t, _seen, statusTitle, typeTitle, goalTitle, fill, monthWord,
+  PHRASES, LANGS, t, _seen, statusTitle, typeTitle, goalTitle, fill, monthWord,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
 const {ctx, el} = sandbox();
@@ -930,8 +930,10 @@ ok('шаблон повідомлення перекладено й заповн
 ok('назва місяця по-англійськи з великої', /^[A-Z]/.test(T.monthWord(new Date())), T.monthWord(new Date()));
 T.I18n.set('uk');
 ok('назва місяця українською з малої', /^[а-яіїєґ]/.test(T.monthWord(new Date())), T.monthWord(new Date()));
-/* Мову підказує система, поки кабінет не створено. */
-ok('мова береться з системи', typeof T.detectLang === 'function' && T.LANGS.some(l => l.code === T.detectLang()), T.detectLang());
+/* Застосунок відкривається українською, хай яка мова в телефоні. */
+ok('мова за замовчуванням — українська', T.emptyDB().settings.lang === 'uk', T.emptyDB().settings.lang);
+ok('усі мови з переліку доступні для вибору', T.LANGS.length === 4 && T.LANGS[0].code === 'uk',
+   T.LANGS.map(l => l.code).join(', '));
 T.I18n.set('uk');
 
 part('дрібниці');

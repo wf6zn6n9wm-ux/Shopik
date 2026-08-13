@@ -504,10 +504,6 @@ const LANGS = [
   {code:'en', title:'English',    intl:'en-GB', flag:'🇬🇧'},
   {code:'pl', title:'Polski',     intl:'pl-PL', flag:'🇵🇱'},
 ];
-const detectLang = () => {
-  const c = String((typeof navigator !== 'undefined' && (navigator.language || (navigator.languages || [])[0])) || 'uk').slice(0, 2).toLowerCase();
-  return LANGS.some(l => l.code === c) ? c : 'uk';
-};
 
 const PHRASES = [
   ['з', 'с', 'of', 'z'],
@@ -1162,8 +1158,11 @@ const I18n = {
   gaps(code){ return Object.keys(I18n.missing(code)).length; },
 };
 window.__i18n = I18n;
-/* до першого збереження мову підказує сама система */
-I18n.set(detectLang());
+/* Застосунок український: так він і відкривається вперше, незалежно від
+   мови телефона. Інакше тренер із російськомовним телефоном бачить
+   російський інтерфейс і думає, що іншого немає. Перемкнути мову можна
+   одразу на першому екрані. */
+I18n.set('uk');
 
 /* ─────────────────── формати ─────────────────── */
 const NBSP = ' ';
@@ -2299,7 +2298,7 @@ function emptyDB(){
     profile: {name:'', phone:'', spec:'Персональний тренер', photo:'', club:'', email:''},
     settings: {
       price: 800, gymMode: 'percent', gymPercent: 15, gymFixed: 0,
-      currency: '₴', lang: detectLang(), theme: 'system', lapseDays: 10, dayStart: 7, dayEnd: 22,
+      currency: '₴', lang: 'uk', theme: 'system', lapseDays: 10, dayStart: 7, dayEnd: 22,
       syncUrl: '', secure: false,
       backup: {auto: true, lastAt: 0},
       notif: {before: [60, 15], client: true, booked: true, canceled: true,
@@ -3098,8 +3097,34 @@ const ObArt = ({i}) => {
   );
 };
 
+/* Вибір мови до того, як з'явились налаштування: на першому екрані видно,
+   що застосунок знає й інші мови. Без цього тренер, який не читає
+   українською, бачить лише її й не здогадується, де перемкнути. */
+const LangPick = ({onPick}) => {
+  const [open, setOpen] = useState(false);
+  const cur = LANGS.find(l => l.code === I18n.get()) || LANGS[0];
+  return (
+    <Fragment>
+      <button className="btn ghost sm" onClick={() => setOpen(true)}>{cur.flag} {cur.code.toUpperCase()}</button>
+      <Sheet open={open} onClose={() => setOpen(false)} title={t('set.lang','Мова')}>
+        <div className="rows">
+          {LANGS.map(l => (
+            <button key={l.code} className="setrow"
+                    onClick={() => { I18n.set(l.code); setOpen(false); onPick(l.code); }}>
+              <div className="ic" style={{fontSize:17}}>{l.flag}</div>
+              <div className="tx"><b>{l.title}</b></div>
+              {I18n.get() === l.code && <Ic.check size={19} style={{color:'var(--accent)'}}/>}
+            </button>
+          ))}
+        </div>
+      </Sheet>
+    </Fragment>
+  );
+};
+
 const Onboarding = ({onDone}) => {
   const [i, setI] = useState(0);
+  const [, redraw] = useState(0);
   const slides = [
     {t:t('ob.1.t','Ваш день — на одному екрані'), d:t('ob.1.d','Відкрив застосунок і за три секунди бачиш: скільки тренувань сьогодні і скільки ви заробили.')},
     {t:t('ob.2.t','Клієнти та розклад разом'), d:t('ob.2.d','Картка клієнта, історія, борги, абонементи й нагадування. Нове тренування — за кілька дотиків.')},
@@ -3109,7 +3134,10 @@ const Onboarding = ({onDone}) => {
     <div className="ob fade-in">
       <div className="between">
         <div className="brand"><div className="mark"><Ic.dumb size={21}/></div><b>PRO Trainer</b></div>
-        <button className="btn ghost sm" onClick={onDone}>{t('ob.skip','Пропустити')}</button>
+        <div style={{display:'flex', gap:6, alignItems:'center'}}>
+          <LangPick onPick={() => redraw(n => n + 1)}/>
+          <button className="btn ghost sm" onClick={onDone}>{t('ob.skip','Пропустити')}</button>
+        </div>
       </div>
       <div className="ob-art"><ObArt i={i}/></div>
       <div>
@@ -3267,10 +3295,14 @@ const PinLock = ({mode, onPin, onCancel, error}) => {
 /* Майстер налаштувань після реєстрації */
 const Setup = ({account, onDone}) => {
   const [s, setS] = useState({price:800, gymMode:'percent', gymPercent:15, gymFixed:0, demo:true, name:''});
+  const [, redraw] = useState(0);
   const sp = split(s.price, s);
   return (
     <div className="ob fade-in">
-      <div className="brand" style={{marginBottom:20}}><div className="mark"><Ic.dumb size={21}/></div><b>PRO Trainer</b></div>
+      <div className="between" style={{marginBottom:20}}>
+        <div className="brand"><div className="mark"><Ic.dumb size={21}/></div><b>PRO Trainer</b></div>
+        <LangPick onPick={() => redraw(n => n + 1)}/>
+      </div>
       <div style={{flex:1, overflowY:'auto'}}>
         <div className="dsp" style={{fontSize:26, fontWeight:800, letterSpacing:'-.035em'}}>{t('setup.title','Останній крок')}</div>
         <p className="muted" style={{fontSize:14, marginTop:8}}>
@@ -6829,7 +6861,8 @@ const Boot = () => {
       const base = demo ? seedDB({name, phone, email}) : emptyDB();
       const db = {...base, onboarded: true,
         profile: {...base.profile, name: name || base.profile.name, phone, email},
-        settings: {...base.settings, ...settings}};
+        /* мова, обрана на першому екрані, а не та, що лежала в шаблоні */
+        settings: {...base.settings, ...settings, lang: I18n.get()}};
       I18n.set(db.settings.lang);
       Store.init(db);
       Store.persist();
