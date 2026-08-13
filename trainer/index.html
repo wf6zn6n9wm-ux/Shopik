@@ -743,6 +743,9 @@ const PHRASES = [
   ['Персональна', 'Персональная', 'Personal', 'Personalny'],
   ['Свій період', 'Свой период', 'Custom range', 'Własny okres'],
   ['Групове', 'Групповая', 'Group', 'Grupowy'],
+  ['Додати учасника', 'Добавить участника', 'Add a participant', 'Dodaj uczestnika'],
+  ['Учасника додано', 'Участник добавлен', 'Participant added', 'Uczestnik dodany'],
+  ['Цей клієнт уже в тренуванні', 'Этот клиент уже в тренировке', 'This client is already in the session', 'Ten klient już jest na treningu'],
   ['Повторювати', 'Повторять', 'Repeat', 'Powtarzaj'],
   ['Разово', 'Разово', 'Once', 'Jednorazowo'],
   ['Щотижня', 'Каждую неделю', 'Weekly', 'Co tydzień'],
@@ -2528,6 +2531,25 @@ const Act = {
       return {...db, sessions: db.sessions.map(x => x.id === id ? {...x, status:'noshow', paid:false} : x), subs};
     }, {name:'session.noshow', data:{id}});
   },
+  /* Дописати клієнта в уже створене тренування. Якщо воно було
+     одиночним — стає груповим, тому groupId проставляється і першому.
+     Новому учаснику ставимо «не оплачено»: він щойно приєднався, і
+     видавати це за оплату не можна. Абонемент не чіпаємо — у групі він
+     не списується, як і при створенні. */
+  joinSession(id, clientId){
+    const s = byId(Store.state.sessions, id);
+    if (!s || s.clientId === clientId) return null;
+    const gid = s.groupId || uid('grp');
+    if (Store.state.sessions.some(x => x.groupId === gid && x.clientId === clientId)) return null;
+    const mate = {id: uid('ses'), clientId, start: s.start, dur: s.dur, type: s.type,
+                  price: s.price, paid: false, status: s.status, subId: null,
+                  groupId: gid, repeatId: null, note: '', createdAt: Date.now()};
+    Store.patch(db => ({...db,
+      sessions: [...db.sessions.map(x => x.id === id ? {...x, groupId: gid} : x), mate]}),
+      {name:'session.join', data:{id, clientId}});
+    return mate;
+  },
+
   /* Прибрати решту серії. Проведені не чіпаємо — вони вже в історії й у
      доході; знімаємо тільки заплановані, починаючи з цього. */
   delSeries(repeatId, fromTs){
@@ -4063,6 +4085,7 @@ const SessionSheet = ({id, onClose}) => {
   const nav = useNav();
   const s = byId(db.sessions, id);
   const [confirm, setConfirm] = useState(false);
+  const [join, setJoin] = useState(false);
   if (!s) return null;
   const c = byId(db.clients, s.clientId);
   const sp = split(s.price, db.settings);
@@ -4103,10 +4126,22 @@ const SessionSheet = ({id, onClose}) => {
         )}
       </div>
 
-      {mates.length > 0 && (
+      {(mates.length > 0 || join) && (
         <div className="card pad" style={{marginTop:9}}>
           <div className="muted" style={{fontSize:12.5, fontWeight:700}}>{t('cal.group','Групове')}</div>
-          <div style={{fontSize:13.5, marginTop:3}}>{t('session.mates','Разом із')}: {mates.join(', ')}</div>
+          {mates.length > 0 && (
+            <div style={{fontSize:13.5, marginTop:3}}>{t('session.mates','Разом із')}: {mates.join(', ')}</div>
+          )}
+          {join && (
+            <div style={{marginTop:9}}>
+              <ClientPick value="" onPick={id => {
+                const added = Act.joinSession(s.id, id);
+                setJoin(false);
+                Toaster[added ? 'ok' : 'show'](added ? t('session.joined','Учасника додано')
+                                                     : t('session.joined.no','Цей клієнт уже в тренуванні'));
+              }}/>
+            </div>
+          )}
         </div>
       )}
 
@@ -4131,6 +4166,13 @@ const SessionSheet = ({id, onClose}) => {
         {s.status === 'done' && !s.paid && !s.subId && (
           <Btn kind="pri" wide onClick={() => act(() => { Act.pay(s.id); Toaster.ok(t('session.paid','Оплату записано')); })}>
             <Ic.wallet size={18}/>{t('session.pay','Позначити оплату')} · {money(s.price)}
+          </Btn>
+        )}
+        {/* тренування вже йде, а прийшов ще один — дописати його сюди,
+            а не заводити окреме на той самий час */}
+        {s.status !== 'canceled' && !join && (
+          <Btn kind="sec" wide onClick={() => setJoin(true)}>
+            <Ic.users size={17}/>{t('session.join','Додати учасника')}
           </Btn>
         )}
         <div className="grid2">
