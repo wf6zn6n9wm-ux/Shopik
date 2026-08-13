@@ -46,25 +46,38 @@ jobs:
           git diff --exit-code -- trainer/legal trainer/terms.html trainer/privacy.html trainer/delete.html \
             || { echo '::error::terms/privacy/delete не пересобраны — запустите node trainer/legal/sync.js export'; exit 1; }
 
-  # Vercel сам продакшн из main не пересобирает: несколько раз подряд
-  # смерженное молча оставалось на сайте в старой версии, без ошибки и без
-  # записи в списке деплоев. Поэтому дёргаем сборку сами — и только после
-  # зелёных тестов, чтобы на сайт не уехало сломанное.
+  # Vercel сам продакшн из main не пересобирает. Deploy Hook принимает
+  # задание и возвращает job id, но деплой так и не появляется — ни
+  # успешный, ни отменённый. Связь с гитом при этом подключена, лимиты не
+  # упёрты, Ignored Build Step на Automatic.
+  #
+  # Поэтому не просим Vercel забрать код, а заливаем сами: CLI не зависит
+  # от связи с репозиторием и пишет логи сюда, где их видно.
   deploy:
     needs: tests
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    # тот же корень, что и Root Directory проекта
+    defaults:
+      run:
+        working-directory: trainer
     steps:
-      - name: Запустить сборку на Vercel
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Выложить на Vercel
         env:
-          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+          TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SCOPE: wf6zn6n9wm-uxs-projects
+          PROJECT: pro-trainer
         run: |
-          if [ -z "$HOOK" ]; then
-            echo '::warning::VERCEL_DEPLOY_HOOK не задан — сборку придётся запускать руками'
+          if [ -z "$TOKEN" ]; then
+            echo '::warning::VERCEL_TOKEN не задан — выкладывать придётся руками'
             exit 0
           fi
-          code=$(curl -sS -o /tmp/hook.json -w '%{http_code}' -X POST "$HOOK")
-          cat /tmp/hook.json
-          echo
-          [ "$code" = "201" ] || [ "$code" = "200" ] \
-            || { echo "::error::Vercel ответил $code"; exit 1; }
+          npx --yes vercel@latest link --yes --token "$TOKEN" --scope "$SCOPE" --project "$PROJECT"
+          npx --yes vercel@latest deploy --prod --yes --token "$TOKEN" --scope "$SCOPE" | tee /tmp/out
+          echo "Выложено: $(tail -n1 /tmp/out)"
