@@ -746,6 +746,25 @@ const PHRASES = [
   ['Додати учасника', 'Добавить участника', 'Add a participant', 'Dodaj uczestnika'],
   ['Перенести', 'Перенести', 'Reschedule', 'Przenieś'],
   ['Заміри', 'Замеры', 'Measurements', 'Pomiary'],
+  ['Дні народження', 'Дни рождения', 'Birthdays', 'Urodziny'],
+  ['Привітати', 'Поздравить', 'Send wishes', 'Złóż życzenia'],
+  ['через', 'через', 'in', 'za'],
+  ['{name}, з днем народження! Бажаю сил, здоров’я і легких тренувань. Чекаю в залі!',
+   '{name}, с днём рождения! Желаю сил, здоровья и лёгких тренировок. Жду в зале!',
+   'Happy birthday, {name}! Wishing you strength, health and easy workouts. See you at the gym!',
+   '{name}, wszystkiego najlepszego! Życzę siły, zdrowia i lekkich treningów. Czekam na siłowni!'],
+  ['{name}, вітаю з днем народження! Нехай форма тішить, а результати приходять швидше за плани.',
+   '{name}, поздравляю с днём рождения! Пусть форма радует, а результаты приходят быстрее планов.',
+   'Happy birthday, {name}! May your shape please you and results come faster than planned.',
+   '{name}, wszystkiego najlepszego! Niech forma cieszy, a wyniki przychodzą szybciej niż plany.'],
+  ['{name}, привіт! Переніс наше тренування на {when}, {time}. Підтвердіть, будь ласка.',
+   '{name}, привет! Перенёс нашу тренировку на {when}, {time}. Подтвердите, пожалуйста.',
+   'Hi {name}! I moved our session to {when}, {time}. Please confirm.',
+   'Cześć {name}! Przeniosłem nasz trening na {when}, {time}. Proszę o potwierdzenie.'],
+  ['{name}, доброго дня! Тренування тепер {when} о {time}. Якщо незручно — підберемо інший час.',
+   '{name}, добрый день! Тренировка теперь {when} в {time}. Если неудобно — подберём другое время.',
+   'Hello {name}! The session is now {when} at {time}. If that does not suit you, we will find another time.',
+   'Dzień dobry {name}! Trening jest teraz {when} o {time}. Jeśli nie pasuje — znajdziemy inny termin.'],
   ['Замір збережено', 'Замер сохранён', 'Measurement saved', 'Pomiar zapisany'],
   ['Замір видалено', 'Замер удалён', 'Measurement deleted', 'Pomiar usunięty'],
   ['Замірів ще немає', 'Замеров ещё нет', 'No measurements yet', 'Nie ma jeszcze pomiarów'],
@@ -2360,6 +2379,19 @@ const periodLabel = (p, from, to) => {
 };
 
 /* борг — проведене й неоплачене тренування поза абонементом */
+/* Скільки днів до найближчого дня народження. Рік беремо поточний, а
+   якщо дата вже минула — наступний. 29 лютого в невисокосний рік
+   з'їжджає на 1 березня, і це краще, ніж пропустити його зовсім. */
+const bdIn = (birthday, from) => {
+  if (!birthday) return null;
+  const [, m, d] = String(birthday).split('-').map(Number);
+  if (!m || !d) return null;
+  const base = d0(from || new Date());
+  let next = d0(new Date(base.getFullYear(), m - 1, d));
+  if (+next < +base) next = d0(new Date(base.getFullYear() + 1, m - 1, d));
+  return Math.round((+next - +base) / DAY);
+};
+
 const isDebt = s => s.status === 'done' && !s.paid && !s.subId;
 /* скільки ще винен за це тренування: клієнт міг віддати частину */
 const owed = s => Math.max(0, s.price - (s.paidPart || 0));
@@ -3805,6 +3837,12 @@ const Home = ({loading}) => {
     .sort((a, b) => b.lapsedDays - a.lapsedDays), [db]);
 
   const ending = db.subs.filter(x => x.used < x.total && x.total - x.used <= 2);
+  /* у налаштуваннях написано, що день народження нагадає привітати —
+     тож він має бути видно, а не просто лежати в картці */
+  const birthdays = useMemo(() => db.clients.filter(c => !c.archived)
+    .map(c => ({c, days: bdIn(c.birthday, now)}))
+    .filter(x => x.days !== null && x.days <= 7)
+    .sort((a, b) => a.days - b.days), [db.clients]);
   const unread = db.notifs.filter(n => !n.read).length;
 
   if (loading) return <SkScreen/>;
@@ -3940,6 +3978,32 @@ const Home = ({loading}) => {
         )}
 
         {/* кому час написати */}
+        {birthdays.length > 0 && (
+          <Fragment>
+            <div className="sechead"><div className="h2">{t('home.bd','Дні народження')}</div></div>
+            <div className="stack">
+              {birthdays.slice(0, 3).map(({c, days}) => (
+                <div key={c.id} className="card pad" style={{display:'flex', alignItems:'center', gap:12}}>
+                  <button onClick={() => nav.go('client', {id: c.id})}
+                          style={{display:'flex', alignItems:'center', gap:12, flex:1, minWidth:0, textAlign:'left'}}>
+                    <Avatar name={c.name} photo={c.photo} size={42}/>
+                    <div style={{minWidth:0}}>
+                      <div className="nm" style={{fontWeight:700, fontSize:14.5}}>{c.name}</div>
+                      <div style={{fontSize:12.5, color:'var(--ink-2)', marginTop:2}}>
+                        {days === 0 ? t('home.bd.today','сьогодні') : t('home.bd.in','через') + ' ' + nDays(days)}
+                        {' · '}{fmtDM(c.birthday + 'T00:00:00')}
+                      </div>
+                    </div>
+                  </button>
+                  <Btn kind="soft" size="sm" onClick={() => nav.go('remind', {clientId: c.id, kind:'birthday'})}>
+                    {t('home.bd.go','Привітати')}
+                  </Btn>
+                </div>
+              ))}
+            </div>
+          </Fragment>
+        )}
+
         {lapsed.length > 0 && (
           <Fragment>
             <div className="sechead">
@@ -4444,6 +4508,10 @@ const SessionForm = ({params, onClose}) => {
                     paid: f.paid, note: f.note, dur: f.dur};
     if (edit){
       Act.updSession(edit.id, {...common, clientId: f.ids[0], subId: f.subId});
+      /* час у групи спільний: якщо посунули одного, решта поїхала б без
+         нього — а це те саме заняття. Кнопка «Перенести» так і робить,
+         редагування має поводитись однаково */
+      if (edit.groupId && common.start !== edit.start) Act.moveSession(edit.id, f.when);
       Toaster.ok(t('session.saved','Зміни збережено'));
       onClose();
       return;
@@ -5277,6 +5345,16 @@ const Remind = ({params, onClose}) => {
     ? [
         t('msg.next.1', '{name}, привіт! Нагадую про тренування {when} о {time}. Буду чекати!'),
         t('msg.next.2', '{name}, доброго дня! Підтвердіть, будь ласка, тренування {when} о {time}.'),
+      ]
+    : params.kind === 'birthday'
+    ? [
+        t('msg.bd.1', '{name}, з днем народження! Бажаю сил, здоров’я і легких тренувань. Чекаю в залі!'),
+        t('msg.bd.2', '{name}, вітаю з днем народження! Нехай форма тішить, а результати приходять швидше за плани.'),
+      ]
+    : params.kind === 'moved'
+    ? [
+        t('msg.moved.1', '{name}, привіт! Переніс наше тренування на {when}, {time}. Підтвердіть, будь ласка.'),
+        t('msg.moved.2', '{name}, доброго дня! Тренування тепер {when} о {time}. Якщо незручно — підберемо інший час.'),
       ]
     : params.kind === 'lapsed'
     ? [
