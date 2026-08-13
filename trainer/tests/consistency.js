@@ -87,6 +87,10 @@ part('юридичні реквізити');
   ok('заглушок не лишилось', !/\[НАЗВА|\[EMAIL|\[САЙТ/.test(JSON.stringify(LEGAL)),
      LEGAL.company + ' · ' + LEGAL.email);
   ok('пошта на сторінці підтримки та сама', read('support.html').includes(LEGAL.email), LEGAL.email);
+  const tgOnPage = (read('support.html').match(/var TG = '([^']*)'/) || [, ''])[1];
+  ok('чат підтримки однаковий у застосунку й на сторінці',
+     String(LEGAL.telegram || '').replace(/^@/, '') === tgOnPage,
+     LEGAL.telegram ? '@' + tgOnPage : 'ще не заведено');
   ['terms.html', 'privacy.html', 'delete.html'].forEach(f => {
     const page = read(f);
     ok('на сторінці ' + f + ' ті самі реквізити',

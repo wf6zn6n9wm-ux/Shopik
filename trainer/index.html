@@ -556,6 +556,7 @@ const PHRASES = [
   ['Відсоток', 'Процент', 'Percent', 'Procent'],
   ['Вітаміни', 'Витамины', 'Vitamins', 'Witaminy'],
   ['Далі від', 'Далее от', 'Then from', 'Potem od'],
+  ['Допомога', 'Помощь', 'Help', 'Pomoc'],
   ['З боргом', 'С долгом', 'With debt', 'Z długiem'],
   ['Записати', 'Записать', 'Book', 'Zapisz'],
   ['Заробили', 'Заработали', 'Earned', 'Zarobek'],
@@ -848,6 +849,7 @@ const PHRASES = [
   ['Тренувань на клієнта', 'Тренировок на клиента', 'Sessions per client', 'Treningów na klienta'],
   ['Залишок після продажу', 'Остаток после продажи', 'Stock after the sale', 'Stan po sprzedaży'],
   ['Зменшена вартість від', 'Сниженная цена от', 'Reduced price from', 'Niższa cena od'],
+  ['Написати нам на пошту', 'Написать нам на почту', 'Email us', 'Napisz do nas e-mailem'],
   ['Не сплачено клієнтами', 'Не оплачено клиентами', 'Unpaid by clients', 'Nieopłacone przez klientów'],
   ['Нотатка до тренування', 'Заметка к тренировке', 'Session note', 'Notatka do treningu'],
   ['Проведено та оплачено', 'Проведено и оплачено', 'Completed and paid', 'Odbyty i opłacony'],
@@ -894,6 +896,7 @@ const PHRASES = [
   ['Увімкнути автопродовження', 'Включить автопродление', 'Turn on auto-renewal', 'Włącz odnawianie'],
   ['Це не схоже на зображення', 'Это не похоже на изображение', 'That doesn’t look like an image', 'To nie wygląda na obraz'],
   ['Ім’я, телефон, ціна й мета', 'Имя, телефон, цена и цель', 'Name, phone, price and goal', 'Imię, telefon, cena i cel'],
+  ['Відповіді на часті питання', 'Ответы на частые вопросы', 'Answers to common questions', 'Odpowiedzi na częste pytania'],
   ['Нагадати перед тренуванням', 'Напомнить перед тренировкой', 'Remind before a session', 'Przypomnij przed treningiem'],
   ['Нагадування про тренування', 'Напоминания о тренировках', 'Session reminders', 'Przypomnienia o treningach'],
   ['Пакети тренувань і залишки', 'Пакеты тренировок и остатки', 'Session packages and balances', 'Pakiety treningów i stany'],
@@ -945,6 +948,7 @@ const PHRASES = [
   ['Фіксована сума з кожного тренування', 'Фиксированная сумма с каждой тренировки', 'A fixed amount from every session', 'Stała kwota z każdego treningu'],
   ['Вартість тренування за замовчуванням', 'Стоимость тренировки по умолчанию', 'Default session price', 'Domyślna cena treningu'],
   ['Мова, валюта, захист, резервна копія', 'Язык, валюта, защита, резервная копия', 'Language, currency, protection, backup', 'Język, waluta, ochrona, kopia zapasowa'],
+  ['Чат у Telegram — відповідаємо швидко', 'Чат в Telegram — отвечаем быстро', 'Telegram chat — we reply fast', 'Czat na Telegramie — odpowiadamy szybko'],
   ['Мета — рельєф до відпустки в вересні.', 'Цель — рельеф к отпуску в сентябре.', 'Goal — definition before the September holiday.', 'Cel — rzeźba przed wrześniowym urlopem.'],
   ['Напр.: травма коліна, працює до 19:00', 'Напр.: травма колена, работает до 19:00', 'E.g. knee injury, works until 19:00', 'Np.: uraz kolana, pracuje do 19:00'],
   ['Дозволити сповіщення на цьому пристрої', 'Разрешить уведомления на этом устройстве', 'Allow notifications on this device', 'Zezwól na powiadomienia na tym urządzeniu'],
@@ -1501,7 +1505,19 @@ const LEGAL = {
   company: 'ФОП Мозолевич Андрей',
   email: 'andreymenedger01@gmail.com',
   site: '',                       /* домен після деплою: підставиться в посилання магазинів */
+  telegram: '',                   /* напр. 'protrainer_help' — чат підтримки */
   updated: '13 серпня 2026',
+};
+
+/* Куди тренер іде, коли щось не працює. Порядок навмисний: чат відповідає
+   швидше за пошту, сторінка потрібна магазинам, пошта працює завжди —
+   навіть коли домен ще не заведено. */
+const Support = {
+  chat(){ return LEGAL.telegram ? 'https://t.me/' + String(LEGAL.telegram).replace(/^@/, '') : ''; },
+  page(){ return LEGAL.site ? String(LEGAL.site).replace(/\/+$/, '') + '/support' : ''; },
+  mail(){ return 'mailto:' + LEGAL.email + '?subject=PRO%20Trainer'; },
+  url(){ return Support.chat() || Support.page() || Support.mail(); },
+  kind(){ return Support.chat() ? 'chat' : Support.page() ? 'page' : 'mail'; },
 };
 
 /* Product ID мають збігатися з тим, що заведено в App Store Connect і
@@ -5907,6 +5923,14 @@ const Settings = ({onClose}) => {
             <div className="tx"><b>{t('legal.privacy','Політика конфіденційності')}</b><span>{t('legal.privacy.s','Які дані зберігаються і де')}</span></div>
             <Ic.right size={17} className="chev"/>
           </button>
+          <a className="setrow" href={Support.url()} target="_blank" rel="noopener">
+            <div className="ic"><Ic.msg size={19}/></div>
+            <div className="tx"><b>{t('set.help','Допомога')}</b><span>{
+              Support.kind() === 'chat' ? t('set.help.chat','Чат у Telegram — відповідаємо швидко')
+              : Support.kind() === 'page' ? t('set.help.page','Відповіді на часті питання')
+              : t('set.help.mail','Написати нам на пошту')}</span></div>
+            <Ic.right size={17} className="chev"/>
+          </a>
         </div>
 
         <div className="muted" style={{textAlign:'center', fontSize:12, margin:'22px 0 4px'}}>
