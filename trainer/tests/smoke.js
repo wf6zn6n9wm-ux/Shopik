@@ -198,6 +198,36 @@ ok('скасування повертає заняття', T.Store.state.subs.fi
 const stock = T.Store.state.products[0].stock;
 T.Act.sell({clientId: c.id, productId: T.Store.state.products[0].id, qty: 2, price: 1400});
 ok('продаж зменшує залишок', T.Store.state.products[0].stock === stock - 2);
+/* часткова оплата боргу */
+{
+  const c2 = T.Act.addClient({name: 'Боржник Тестовий'});
+  const mk = daysBack => {
+    const at = new Date(Date.now() - daysBack * 86400000).toISOString();
+    const x = T.Act.addSession({clientId: c2.id, price: 800, start: at});
+    T.Act.complete(x.id, false);
+    return x;
+  };
+  const d1 = mk(9), d2 = mk(5), d3 = mk(2);
+  const debt = () => T.clientStats(T.Store.state, c2.id).debt;
+  ok('борг рахується сумою тренувань', debt() === 2400, T.money(debt()));
+
+  T.Act.payClient(c2.id, 1000);
+  const after = id => T.Store.state.sessions.find(x => x.id === id);
+  ok('часткова оплата зменшує борг на віддане', debt() === 1400, T.money(debt()));
+  ok('гаситься найстаріше', after(d1.id).paid === true);
+  ok('решта лягає часткою на наступне', after(d2.id).paid === false && after(d2.id).paidPart === 200);
+  ok('до якого не дійшло — не чіпаємо', (after(d3.id).paidPart || 0) === 0);
+
+  /* на цьому тренуванні лишалось 600, а не 200 — частку добиваємо саме нею */
+  T.Act.payClient(c2.id, 600);
+  ok('добиваємо частку до кінця', after(d2.id).paid === true && debt() === 800,
+     T.money(debt()));
+
+  T.Act.payClient(c2.id);
+  ok('без суми закривається весь борг', debt() === 0);
+  T.Act.delClient(c2.id);
+}
+
 /* дописати клієнта в уже створене тренування */
 {
   const a = T.Act.addClient({name: 'Учасник Один'});
