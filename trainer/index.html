@@ -412,6 +412,46 @@
   .fade-in{animation:fade .3s ease both;}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
 
+  /* ── день одним кадром ── */
+  .dayload{display:flex;gap:14px;align-items:stretch;padding:16px 14px;}
+  .dl-left{width:118px;flex:none;display:flex;flex-direction:column;align-items:center;text-align:center;
+    padding-right:14px;border-right:1px solid var(--line);}
+  .dl-ring{position:relative;width:80px;height:80px;display:flex;align-items:center;justify-content:center;}
+  /* кільце лежить під іконкою, тому адресуємо саме його, а не будь-який svg */
+  .dl-ring .dl-track{position:absolute;inset:0;width:80px;height:80px;}
+  .dl-ring .dl-track circle{fill:none;stroke-width:7;stroke-linecap:round;}
+  .dl-ring .dl-track circle.bg{stroke:var(--accent-soft);}
+  .dl-ring .dl-track circle.fg{stroke:var(--accent);transition:stroke-dashoffset .5s var(--ease);}
+  .dl-ring > *:last-child{position:relative;color:var(--accent);}
+  .dl-num{font-family:'Onest',sans-serif;font-size:24px;font-weight:800;letter-spacing:-.03em;margin-top:8px;}
+  .dl-cap{font-size:11.5px;color:var(--ink-3);font-weight:600;line-height:1.35;}
+  .dl-bar{width:100%;height:6px;border-radius:6px;background:var(--surface-2);margin:10px 0 5px;overflow:hidden;}
+  .dl-bar i{display:block;height:100%;border-radius:6px;background:var(--accent);transition:width .5s var(--ease);}
+  .dl-legend{margin-top:9px;display:flex;flex-direction:column;gap:5px;align-items:flex-start;width:100%;}
+  .dl-legend span{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-3);font-weight:600;}
+  .dl-legend i{width:7px;height:7px;border-radius:50%;background:var(--line-2);flex:none;}
+  .dl-legend i.on{background:var(--accent);}
+
+  .dl-line{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;}
+  /* minmax(0,1fr), а не 1fr: інакше колонка не стискається під довгим
+     іменем і картка вилазить за екран */
+  .dl-item{display:grid;grid-template-columns:44px minmax(0,1fr) 15px;grid-template-rows:auto auto;gap:0 9px;
+    align-items:center;text-align:left;background:var(--surface);border-radius:var(--r-sm);padding:8px 9px;}
+  /* розкладаємо явно: на автоматичному розміщенні підпис їхав у третю
+     колонку, а стрілка — у четверту, якої немає */
+  .dl-item b{grid-area:1 / 1 / 3 / 2;font-size:13px;font-weight:800;color:var(--accent);}
+  .dl-item .nm{grid-area:1 / 2 / 2 / 3;font-size:13.5px;font-weight:700;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .dl-item .ds{grid-area:2 / 2 / 3 / 3;font-size:11.5px;color:var(--ink-3);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .dl-item .chev{grid-area:1 / 3 / 3 / 4;color:var(--ink-4);}
+  .dl-free{display:flex;align-items:center;gap:9px;padding:5px 9px;}
+  .dl-free b{font-size:12.5px;font-weight:700;color:var(--ink-4);width:44px;}
+  .dl-free span{font-size:12px;color:var(--ink-4);}
+  .dl-add{margin-top:2px;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;
+    border-radius:var(--r-sm);border:1px dashed var(--line-2);color:var(--ink-3);
+    font-size:12.5px;font-weight:700;}
+
   /* ── екран завантаження ──
      Застосунок компілюється в браузері, і на слабкому зв'язку це помітно.
      Порожній білий аркуш виглядає як поламаний застосунок, тож поки код
@@ -691,6 +731,17 @@ const PHRASES = [
   ['Персональна', 'Персональная', 'Personal', 'Personalny'],
   ['Свій період', 'Свой период', 'Custom range', 'Własny okres'],
   ['Групове', 'Групповая', 'Group', 'Grupowy'],
+  ['тренувань', 'тренировок', 'sessions', 'treningów'],
+  ['завантаження дня', 'загрузка дня', 'of the day booked', 'obłożenia dnia'],
+  ['зайнято', 'занято', 'booked', 'zajęte'],
+  ['вільно', 'свободно', 'free', 'wolne'],
+  ['Вільно', 'Свободно', 'Free', 'Wolne'],
+  ['Записати ще', 'Записать ещё', 'Book one more', 'Zapisz kolejnego'],
+  ['План на день', 'План на день', 'Sessions per day', 'Plan na dzień'],
+  ['Від цього числа рахується завантаження дня на головній',
+   'От этого числа считается загрузка дня на главной',
+   'The day load on the home screen is counted from this number',
+   'Od tej liczby liczy się obłożenie dnia na ekranie głównym'],
   ['Разом із', 'Вместе с', 'Together with', 'Razem z'],
   ['Групове тренування додано', 'Групповая тренировка добавлена', 'Group session added', 'Trening grupowy dodany'],
   ['Ціна з кожного учасника', 'Цена с каждого участника', 'Price per participant', 'Cena od każdego uczestnika'],
@@ -2315,7 +2366,7 @@ function emptyDB(){
     profile: {name:'', phone:'', spec:'Персональний тренер', photo:'', club:'', email:''},
     settings: {
       price: 800, gymMode: 'percent', gymPercent: 15, gymFixed: 0,
-      currency: '₴', lang: 'uk', theme: 'system', lapseDays: 10, dayStart: 7, dayEnd: 22,
+      currency: '₴', lang: 'uk', theme: 'system', lapseDays: 10, dayStart: 7, dayEnd: 22, dayGoal: 8,
       syncUrl: '', secure: false,
       backup: {auto: true, lastAt: 0},
       notif: {before: [60, 15], client: true, booked: true, canceled: true,
@@ -3477,6 +3528,71 @@ const SessionRow = ({s, onOpen, quick}) => {
   );
 };
 
+/* День одним кадром: скільки з запланованого вже стоїть у розкладі і як
+   він розкладений за годинами. Список найближчих тренувань цього не
+   показував — з нього не видно ні завантаження, ні вільних вікон. */
+const DayLoad = ({list, onOpen}) => {
+  const db = useDB();
+  const nav = useNav();
+  const S = db.settings;
+  const goal = Math.max(1, S.dayGoal || 8);
+  const busy = list.length;
+  const free = Math.max(0, goal - busy);
+  const part = Math.min(1, busy / goal);
+
+  const R = 32, LEN = 2 * Math.PI * R;
+  const first = list[0] ? new Date(list[0].start).getHours() : null;
+  const last = list.length ? new Date(list[list.length - 1].start).getHours() : null;
+  /* вільні краї дня показуємо як є: до першого тренування і після останнього */
+  const before = first !== null && first > S.dayStart;
+  const after = last !== null && last < S.dayEnd - 1;
+  const hh = h => String(h).padStart(2, '0') + ':00';
+
+  return (
+    <div className="card pad dayload">
+      <div className="dl-left">
+        <div className="dl-ring">
+          <svg className="dl-track" viewBox="0 0 80 80" aria-hidden="true">
+            <circle cx="40" cy="40" r={R} className="bg"/>
+            <circle cx="40" cy="40" r={R} className="fg" strokeDasharray={LEN}
+                    strokeDashoffset={LEN * (1 - part)} transform="rotate(-90 40 40)"/>
+          </svg>
+          <Ic.dumb size={26}/>
+        </div>
+        <div className="dl-num num">{busy} / {goal}</div>
+        <div className="dl-cap">{t('home.load.of','тренувань')}</div>
+        <div className="dl-bar"><i style={{width: Math.round(part * 100) + '%'}}/></div>
+        <div className="dl-cap">{Math.round(part * 100)}% {t('home.load','завантаження дня')}</div>
+        <div className="dl-legend">
+          <span><i className="on"/>{busy} {t('home.load.busy','зайнято')}</span>
+          <span><i/>{free} {t('home.load.free','вільно')}</span>
+        </div>
+      </div>
+
+      <div className="dl-line">
+        {before && <div className="dl-free"><b className="num">{hh(S.dayStart)}</b><span>{t('home.load.open','Вільно')}</span></div>}
+        {list.map(s => {
+          const c = byId(db.clients, s.clientId);
+          return (
+            <button key={s.id} className="dl-item press" onClick={() => onOpen(s)}>
+              <b className="num">{fmtTime(s.start)}</b>
+              <span className="nm">{c ? c.name : '—'}</span>
+              <span className="ds">{typeTitle(s.type)}{s.groupId ? ' · ' + t('cal.group','Групове') : ''}</span>
+              <Ic.right size={15} className="chev"/>
+            </button>
+          );
+        })}
+        {after && <div className="dl-free"><b className="num">{hh(S.dayEnd)}</b><span>{t('home.load.open','Вільно')}</span></div>}
+        {free > 0 && (
+          <button className="dl-add press" onClick={() => nav.go('session.new')}>
+            <Ic.plus size={16}/>{t('home.load.add','Записати ще')}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Home = ({loading}) => {
   const db = useDB();
   const nav = useNav();
@@ -3504,7 +3620,8 @@ const Home = ({loading}) => {
   const todayList = db.sessions
     .filter(s => sameDay(s.start, now) && s.status !== 'canceled')
     .sort((a, b) => +new Date(a.start) - +new Date(b.start));
-  const list = (upcoming.length ? upcoming : todayList).slice(0, 4);
+  /* сьогоднішній день показуємо цілком, наступні дні — коротким списком */
+  const later = upcoming.filter(s => !sameDay(s.start, now)).slice(0, 3);
 
   const debts = db.sessions.filter(isDebt).sort((a, b) => +new Date(a.start) - +new Date(b.start));
   const debtByClient = useMemo(() => {
@@ -3587,12 +3704,12 @@ const Home = ({loading}) => {
           ))}
         </div>
 
-        {/* найближчі тренування */}
+        {/* день одним кадром */}
         <div className="sechead">
-          <div className="h2">{t('home.upcoming','Найближчі тренування')}</div>
+          <div className="h2">{t('home.day','День')}</div>
           <button className="link" onClick={() => nav.tab('cal')}>{t('home.all','Дивитись усі')}</button>
         </div>
-        {list.length === 0 ? (
+        {todayList.length === 0 ? (
           <div className="card">
             <Empty icon={<Ic.cal size={28}/>} title={t('home.free','Сьогодні вільно')}
                    text={t('home.free.t','Тренувань не заплановано. Гарний момент, щоб запросити клієнта.')}
@@ -3600,7 +3717,17 @@ const Home = ({loading}) => {
                              <Ic.plus size={17}/>{t('session.new','Нове тренування')}</Btn>}/>
           </div>
         ) : (
-          <div className="rows">{list.map(s => <SessionRow key={s.id} s={s} onOpen={setSesOpen} quick/>)}</div>
+          <DayLoad list={todayList} onOpen={setSesOpen}/>
+        )}
+
+        {/* найближче — те, що вже за межами сьогодні */}
+        {later.length > 0 && (
+          <Fragment>
+            <div className="sechead">
+              <div className="h2">{t('home.upcoming','Найближчі тренування')}</div>
+            </div>
+            <div className="rows">{later.map(s => <SessionRow key={s.id} s={s} onOpen={setSesOpen} quick/>)}</div>
+          </Fragment>
         )}
 
         {/* борги — блок з'являється лише коли вони є */}
@@ -6062,6 +6189,11 @@ const Settings = ({onClose}) => {
               <Input value={S.dayEnd} onChange={e => Act.settings({dayEnd: clamp(+e.target.value.replace(/\D/g,'') || 0, 1, 23)})} inputMode="numeric"/>
             </Field>
           </div>
+          <Field label={t('set.goal','План на день')}
+                 hint={t('set.goal.h','Від цього числа рахується завантаження дня на головній')}>
+            <Input value={S.dayGoal} onChange={e => Act.settings({dayGoal: clamp(+e.target.value.replace(/\D/g,'') || 0, 1, 24)})}
+                   inputMode="numeric" suffix={t('set.goal.u','тренувань')}/>
+          </Field>
           <Field label={t('set.lapse','Нагадати про клієнта, якщо не був')} hint={t('set.lapse.h','Такі клієнти з’являться на головній у блоці «Кому час написати»')}>
             <Input value={S.lapseDays} onChange={e => Act.settings({lapseDays: clamp(+e.target.value.replace(/\D/g,'') || 0, 3, 90)})}
                    inputMode="numeric" suffix={t('set.days','днів')}/>
