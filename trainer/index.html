@@ -457,10 +457,14 @@
     document.getElementById('bootNote').textContent = text;
   }
   window.addEventListener('error', function(e){
-    if (e.target && e.target.tagName === 'SCRIPT')
-      return fail('Не вдалося завантажити ' + String(e.target.src || '').split('/').slice(2, 3) +
+    var el = e.target;
+    if (el && el !== window && el.tagName){
+      /* шрифт чи картинка не доїхали — застосунок від цього працює */
+      if (el.tagName !== 'SCRIPT') return;
+      return fail('Не вдалося завантажити ' + (String(el.src || '').split('/')[2] || 'бібліотеку') +
                   '. Перевірте зв\'язок і оновіть сторінку.');
-    fail(String((e.message || 'Помилка')) + ' · ' +
+    }
+    fail(String(e.message || 'Помилка') + ' · ' +
          String(e.filename || '').split('/').pop() + ':' + (e.lineno || 0));
   }, true);
   window.addEventListener('unhandledrejection', function(e){
