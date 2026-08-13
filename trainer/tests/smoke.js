@@ -198,6 +198,26 @@ ok('скасування повертає заняття', T.Store.state.subs.fi
 const stock = T.Store.state.products[0].stock;
 T.Act.sell({clientId: c.id, productId: T.Store.state.products[0].id, qty: 2, price: 1400});
 ok('продаж зменшує залишок', T.Store.state.products[0].stock === stock - 2);
+/* перенесення тренування */
+{
+  const c3 = T.Act.addClient({name: 'Перенос Тестовий'});
+  const c4 = T.Act.addClient({name: 'Сусід Тестовий'});
+  const at = new Date(Date.now() + 86400000).toISOString();
+  const one = T.Act.addSession({clientId: c3.id, price: 800, start: at});
+  const to = new Date(Date.now() + 3 * 86400000);
+  T.Act.moveSession(one.id, to);
+  const got = id => T.Store.state.sessions.find(x => x.id === id);
+  ok('тренування переїжджає на нову дату', got(one.id).start === to.toISOString());
+
+  /* групове рухається цілком, інакше учасники розсипались би по днях */
+  const mate = T.Act.joinSession(one.id, c4.id);
+  const to2 = new Date(Date.now() + 5 * 86400000);
+  T.Act.moveSession(mate.id, to2);
+  ok('групове переноситься разом з усіма',
+     got(one.id).start === to2.toISOString() && got(mate.id).start === to2.toISOString());
+  T.Act.delClient(c3.id); T.Act.delClient(c4.id);
+}
+
 /* часткова оплата боргу */
 {
   const c2 = T.Act.addClient({name: 'Боржник Тестовий'});
