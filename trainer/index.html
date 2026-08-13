@@ -606,17 +606,70 @@ const Vault = {
 };
 
 const BACKUP_KEY = KEY + '.backup';
+
+/* ─── сховище ───
+   localStorage у WebView система може очистити, коли на пристрої бракує
+   місця, — тобто тренер ризикує втратити клієнтів. Тому все пишеться і в
+   localStorage, і в нативне сховище (@capacitor/preferences), а читається
+   з пам'яті, яку ми наповнюємо на старті. Синхронний API лишається таким
+   самим, тож решта коду не змінюється.                                  */
+const Box = {
+  cache: new Map(),
+  plugin(){
+    return (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.Plugins
+      && window.Capacitor.Plugins.Preferences) || null;
+  },
+  native(){ return !!Box.plugin(); },
+  ls(k){ try { return localStorage.getItem(k); } catch { return null; } },
+  /* читаємо обидва сховища; нативне головніше, бо переживає очищення WebView */
+  async hydrate(keys){
+    const P = Box.plugin();
+    for (const k of keys){
+      let v = null;
+      if (P){ try { v = (await P.get({key: k})).value; } catch {} }
+      if (v == null) v = Box.ls(k);
+      if (v != null){
+        Box.cache.set(k, v);
+        if (P && Box.ls(k) !== v){ try { localStorage.setItem(k, v); } catch {} }   /* повертаємо копію у WebView */
+      }
+    }
+  },
+  get(k){ return Box.cache.has(k) ? Box.cache.get(k) : Box.ls(k); },
+  /* другу вкладку або відновлення ззовні помічаємо через подію storage */
+  listening: false,
+  listen(){
+    if (typeof window === 'undefined' || Box.listening || !window.addEventListener) return;
+    Box.listening = true;
+    window.addEventListener('storage', e => {
+      if (!e || !e.key || !Box.cache.has(e.key)) return;
+      Box.cache.set(e.key, e.newValue);
+      if (e.key === META_KEY) Access.emit();          /* доступ міг змінитись */
+    });
+  },
+  set(k, v){
+    Box.cache.set(k, v);
+    let ok = true;
+    try { localStorage.setItem(k, v); } catch { ok = false; }
+    const P = Box.plugin();
+    if (P) { P.set({key: k, value: v}).catch(() => {}); ok = true; }               /* нативне сховище без квоти */
+    return ok;
+  },
+  remove(k){
+    Box.cache.delete(k);
+    try { localStorage.removeItem(k); } catch {}
+    const P = Box.plugin();
+    if (P) P.remove({key: k}).catch(() => {});
+  },
+};
 /* Резервна копія — знімок бази поруч з робочими даними плюс файл на вимогу.
    Автоматична копія робиться раз на добу, коли застосунок відкритий. */
 const Backups = {
   make(){
-    try {
-      localStorage.setItem(BACKUP_KEY, JSON.stringify({ts: Date.now(), db: Store.state}));
-      Act.markBackup();
-      return true;
-    } catch { return false; }
+    const ok = Box.set(BACKUP_KEY, JSON.stringify({ts: Date.now(), db: Store.state}));
+    if (ok) Act.markBackup();
+    return ok;
   },
-  read(){ try { return JSON.parse(localStorage.getItem(BACKUP_KEY) || 'null'); } catch { return null; } },
+  read(){ try { return JSON.parse(Box.get(BACKUP_KEY) || 'null'); } catch { return null; } },
   file(){
     try {
       const blob = new Blob([JSON.stringify(Store.state, null, 2)], {type:'application/json'});
@@ -630,19 +683,19 @@ const Backups = {
   },
 };
 
+const META_KEY = KEY + '.meta';
 const Disk = {
-  readMeta(){ try { return JSON.parse(localStorage.getItem(KEY + '.meta') || 'null'); } catch { return null; } },
-  writeMeta(m){ try { localStorage.setItem(KEY + '.meta', JSON.stringify(m)); } catch {} },
-  readRaw(){ try { return localStorage.getItem(KEY); } catch { return null; } },
-  writeRaw(s){ try { localStorage.setItem(KEY, s); return true; } catch { return false; } },
+  hydrate(){ Box.listen(); return Box.hydrate([KEY, META_KEY, BACKUP_KEY, DEMO_IAP_KEY]); },
+  readMeta(){ try { return JSON.parse(Box.get(META_KEY) || 'null'); } catch { return null; } },
+  writeMeta(m){ Box.set(META_KEY, JSON.stringify(m)); },
+  readRaw(){ return Box.get(KEY); },
+  writeRaw(s){ return Box.set(KEY, s); },
   /* дані стираємо, а акаунт і пробний період лишаємо: інакше очищення
      даних дало б новий безкоштовний період */
   clear(){
-    try {
-      const m = Disk.readMeta() || {};
-      localStorage.removeItem(KEY);
-      localStorage.setItem(KEY + '.meta', JSON.stringify({salt: m.salt, account: m.account, access: m.access}));
-    } catch {}
+    const m = Disk.readMeta() || {};
+    Box.remove(KEY);
+    Box.set(META_KEY, JSON.stringify({salt: m.salt, account: m.account, access: m.access}));
   },
 };
 
@@ -735,8 +788,8 @@ const IAP = {
   connected(){ return !!IAP.bridge(); },
   async status(){ const b = IAP.bridge(); return b && b.status ? b.status() : {ok:false}; },
   demo: {fail: false},
-  demoRead(){ try { return JSON.parse(localStorage.getItem(DEMO_IAP_KEY) || 'null'); } catch { return null; } },
-  demoWrite(v){ try { localStorage.setItem(DEMO_IAP_KEY, JSON.stringify(v)); } catch {} },
+  demoRead(){ try { return JSON.parse(Box.get(DEMO_IAP_KEY) || 'null'); } catch { return null; } },
+  demoWrite(v){ Box.set(DEMO_IAP_KEY, JSON.stringify(v)); },
   async buy(productId){
     const b = IAP.bridge();
     if (b) return b.buy(productId);
@@ -752,6 +805,89 @@ const IAP = {
     await sleep(500);
     const rec = IAP.demoRead();
     return {ok:true, purchases: rec ? [rec] : []};
+  },
+};
+
+/* ─── нагадування ───
+   У браузері сповіщення живуть, поки відкритий застосунок. У нативній
+   оболонці (@capacitor/local-notifications) їх можна запланувати наперед —
+   тоді вони приходять і з закритим застосунком. Розклад перескладається
+   щоразу, коли змінюються тренування або налаштування.                  */
+const NOTIF_KEY = KEY + '.notif';
+const minsLabel = m => m >= 60 ? (m / 60) + ' год' : m + ' хв';
+
+const Notifier = {
+  plugin(){
+    return (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.Plugins
+      && window.Capacitor.Plugins.LocalNotifications) || null;
+  },
+  native(){ return !!Notifier.plugin(); },
+  granted: false,
+  async ensure(){
+    const P = Notifier.plugin();
+    if (P){
+      try { const r = await P.requestPermissions(); Notifier.granted = !!r && r.display === 'granted'; }
+      catch { Notifier.granted = false; }
+      return Notifier.granted;
+    }
+    if (typeof Notification === 'undefined') return false;
+    try { Notifier.granted = (await Notification.requestPermission()) === 'granted'; } catch { Notifier.granted = false; }
+    return Notifier.granted;
+  },
+  permission(){
+    if (Notifier.native()) return Notifier.granted ? 'granted' : 'default';
+    return typeof Notification === 'undefined' ? 'unsupported' : Notification.permission;
+  },
+  show(title, body, tag){
+    const P = Notifier.plugin();
+    if (P){
+      P.schedule({notifications: [{id: Notifier.id(tag, 0), title, body, schedule: {at: new Date(Date.now() + 800)}}]})
+       .catch(() => {});
+      return;
+    }
+    try {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted')
+        new Notification(title, {body, tag, icon: 'icon.svg'});
+    } catch {}
+  },
+  /* стабільний числовий id: плагін приймає лише int */
+  id(sessionId, min){
+    let h = 0;
+    const src = String(sessionId) + '|' + min;
+    for (let i = 0; i < src.length; i++) h = (h * 31 + src.charCodeAt(i)) % 2000000000;
+    return h + 1;
+  },
+  /* що саме треба нагадати найближчим тижнем */
+  plan(db){
+    const out = [], now = Date.now(), horizon = now + 7 * DAY;
+    (db.settings.notif.before || []).forEach(m => {
+      db.sessions.filter(x => x.status === 'planned').forEach(x => {
+        const at = +new Date(x.start) - m * 60000;
+        if (at > now + 30000 && at < horizon){
+          const c = byId(db.clients, x.clientId);
+          out.push({id: Notifier.id(x.id, m), at: new Date(at),
+            title: '🏋️ ' + t('n.before','Тренування за') + ' ' + minsLabel(m),
+            body: (c ? c.name : t('session.one','Тренування')) + ' · ' + fmtTime(x.start)});
+        }
+      });
+    });
+    return out.sort((a, b) => a.at - b.at).slice(0, 60);   /* у плагінів є ліміти */
+  },
+  async sync(db){
+    const P = Notifier.plugin();
+    if (!P) return {ok:false, native:false};
+    if (!Notifier.granted && !(await Notifier.ensure())) return {ok:false, denied:true};
+    let prev = [];
+    try { prev = JSON.parse(Box.get(NOTIF_KEY) || '[]'); } catch {}
+    try { if (prev.length) await P.cancel({notifications: prev.map(id => ({id}))}); } catch {}
+    const list = Notifier.plan(db);
+    try {
+      if (list.length) await P.schedule({notifications: list.map(x => ({
+        id: x.id, title: x.title, body: x.body, schedule: {at: x.at}, smallIcon: 'ic_stat_icon',
+      }))});
+    } catch (e){ return {ok:false, error: String(e)}; }
+    Box.set(NOTIF_KEY, JSON.stringify(list.map(x => x.id)));
+    return {ok:true, scheduled: list.length};
   },
 };
 
@@ -4460,13 +4596,16 @@ const Settings = ({onClose}) => {
   const [wipe, setWipe] = useState(false);
   const [pinMode, setPinMode] = useState(null);       // set | confirm
   const [pin1, setPin1] = useState('');
-  const [perm, setPerm] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
+  const [perm, setPerm] = useState(Notifier.permission());
 
   async function askPerm(){
-    if (typeof Notification === 'undefined'){ Toaster.bad(t('set.notif.no','Цей браузер не вміє показувати сповіщення')); return; }
-    const r = await Notification.requestPermission();
-    setPerm(r);
-    if (r === 'granted') Toaster.ok(t('set.notif.ok','Сповіщення увімкнено'));
+    if (Notifier.permission() === 'unsupported'){ Toaster.bad(t('set.notif.no','Цей пристрій не вміє показувати сповіщення')); return; }
+    const ok = await Notifier.ensure();
+    setPerm(Notifier.permission());
+    if (ok){
+      Toaster.ok(t('set.notif.ok','Сповіщення увімкнено'));
+      Notifier.sync(Store.state).catch(() => {});
+    }
   }
 
   function exportJson(){
@@ -5112,25 +5251,22 @@ function useReminders(db){
       if (Store.state.fired[key]) return;
       Act.markFired(key);
       Act.notify({title, body, type, tone, clientId, to});
-      try {
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted')
-          new Notification(title, {body, tag: key, icon: 'icon.svg'});
-      } catch {}
+      Notifier.show(title, body, key);
     };
     const tick = () => {
       if (!alive || !Store.state) return;
       if (!Access.allowed()) Access.emit();      /* строк вийшов, поки застосунок відкритий */
       const s = Store.state, N = s.settings.notif, now = Date.now();
 
-      const mins = m => m >= 60 ? (m / 60) + ' год' : m + ' хв';
-      s.sessions.filter(x => x.status === 'planned').forEach(x => {
+      /* нативні нагадування вже заплановані наперед — не дублюємо */
+      if (!Notifier.native()) s.sessions.filter(x => x.status === 'planned').forEach(x => {
         const dt = +new Date(x.start) - now;
         const c = byId(s.clients, x.clientId);
         const nm = c ? c.name : t('session.one','Тренування');
         (N.before || []).forEach(m => {
           const at = m * 60000;
           if (dt <= at && dt > at - 90000)              /* вікно = крок планувальника */
-            fire('b' + m + '_' + x.id, {title:'🏋️ ' + t('n.before','Тренування за') + ' ' + mins(m),
+            fire('b' + m + '_' + x.id, {title:'🏋️ ' + t('n.before','Тренування за') + ' ' + minsLabel(m),
               body: nm + ' · ' + fmtTime(x.start), type:'session', clientId: x.clientId});
         });
       });
@@ -5196,6 +5332,13 @@ function useReminders(db){
     const x = setTimeout(tick, 2500);
     return () => { alive = false; clearInterval(id); clearTimeout(x); };
   }, [!!db]);
+
+  /* нативний розклад перескладається, коли змінились тренування або інтервали */
+  useEffect(() => {
+    if (!db || !Notifier.native()) return;
+    const x = setTimeout(() => Notifier.sync(Store.state).catch(() => {}), 800);
+    return () => clearTimeout(x);
+  }, [db && db.sessions, db && db.settings.notif]);
 }
 
 /* ─────────── тема ─────────── */
@@ -5354,6 +5497,7 @@ const Boot = () => {
   useEffect(() => {
     (async () => {
       try {
+        await Disk.hydrate();          /* нативне сховище переживає очищення WebView */
         const raw = Disk.readRaw();
         if (!raw){ setPhase('onboard'); return; }
         const parsed = JSON.parse(raw);

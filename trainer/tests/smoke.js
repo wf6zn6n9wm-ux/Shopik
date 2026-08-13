@@ -96,7 +96,7 @@ function sandbox(){
 
 const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, clientStats, clientFeed, isDebt,
   clientPrice, typedPrice, periodOf, periodLabel, deltaRange, RangeSheet, PeriodBar, iso, addDays,
-  Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
+  Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Box, Notifier, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
@@ -411,6 +411,85 @@ part('доступ: відновлення, помилка, офлайн');
   T.Access.write({trialStartedAt: Date.now() - 3 * day});
   T.Disk.clear();
   ok('очищення даних не дає новий пробний період', !!(T.Disk.readMeta() || {}).access.trialStartedAt);
+}
+
+part('сховище переживає очищення WebView');
+{
+  const native = new Map();
+  ctx.window.Capacitor = {getPlatform: () => 'ios', Plugins: {Preferences: {
+    async get({key}){ return {value: native.has(key) ? native.get(key) : null}; },
+    async set({key, value}){ native.set(key, value); },
+    async remove({key}){ native.delete(key); },
+  }}};
+  T.Box.cache.clear();
+
+  T.Store.init(T.seedDB({name: 'Олександр'}));
+  T.Act.addClient({name: 'Після очищення'});
+  await new Promise(r => setTimeout(r, 30));
+  ok('база пишеться і в нативне сховище', native.has('protrainer.v1'), [...native.keys()].join(', '));
+
+  ctx.localStorage.removeItem('protrainer.v1');       /* система звільнила місце у WebView */
+  T.Box.cache.clear();
+  await T.Disk.hydrate();
+  const back = JSON.parse(T.Disk.readRaw() || 'null');
+  ok('дані повертаються з нативного сховища', !!back && back.clients.some(c => c.name === 'Після очищення'),
+     back ? back.clients.length + ' клієнтів' : 'порожньо');
+  ok('копія повернулась і в localStorage', !!ctx.localStorage.getItem('protrainer.v1'));
+
+  T.Access.write({trialStartedAt: Date.now() - 5 * 86400000});
+  await new Promise(r => setTimeout(r, 30));
+  ctx.localStorage.removeItem('protrainer.v1.meta');
+  T.Box.cache.clear();
+  await T.Disk.hydrate();
+  ok('пробний період не скидається після очищення', !!(T.Disk.readMeta() || {}).access.trialStartedAt);
+
+  delete ctx.window.Capacitor;
+  T.Box.cache.clear();
+  ok('без Capacitor працює як раніше', !T.Box.native() && !!T.Disk.readRaw());
+}
+
+part('нагадування наперед');
+{
+  const box = {scheduled: [], cancelled: []};
+  ctx.window.Capacitor = {getPlatform: () => 'ios', Plugins: {LocalNotifications: {
+    async requestPermissions(){ return {display: 'granted'}; },
+    async schedule({notifications}){ box.scheduled.push(...notifications); },
+    async cancel({notifications}){ box.cancelled.push(...notifications.map(n => n.id)); },
+  }}};
+  T.Box.cache.clear();
+
+  const base = T.emptyDB();
+  T.Store.init({...base, onboarded: true, settings: {...base.settings, notif: {...base.settings.notif, before: [60, 15]}}});
+  const cl = T.Act.addClient({name: 'Завтрашній Клієнт'});
+  const at = new Date(Date.now() + 26 * 3600 * 1000);
+  const ses = T.Act.addSession({clientId: cl.id, start: at.toISOString(), price: 800});
+
+  ok('оболонка бачить плагін', T.Notifier.native());
+  const plan = T.Notifier.plan(T.Store.state);
+  ok('на кожен інтервал своє нагадування', plan.length === 2, plan.length + ' шт.');
+  ok('час порахований від початку тренування',
+     Math.round((+at - +plan[0].at) / 60000) === 60 && Math.round((+at - +plan[1].at) / 60000) === 15,
+     plan.map(x => Math.round((+at - +x.at) / 60000) + ' хв').join(', '));
+  ok('у тексті ім’я клієнта і час', plan[0].body.includes('Завтрашній') && /\d{2}:\d{2}/.test(plan[0].body), plan[0].body);
+  ok('id стабільний і числовий', plan.every(x => Number.isInteger(x.id) && x.id > 0) &&
+     plan[0].id === T.Notifier.id(ses.id, 60));
+
+  const r = await T.Notifier.sync(T.Store.state);
+  ok('розклад відданий у систему', r.ok && box.scheduled.length === 2, box.scheduled.length + ' заплановано');
+
+  T.Act.cancel(ses.id);
+  box.scheduled = [];
+  const r2 = await T.Notifier.sync(T.Store.state);
+  ok('скасоване тренування знімається з розкладу', r2.ok && box.scheduled.length === 0 && box.cancelled.length === 2,
+     'знято ' + box.cancelled.length);
+
+  const far = T.Act.addSession({clientId: cl.id, start: new Date(Date.now() + 30 * 86400000).toISOString(), price: 800});
+  ok('далі тижня наперед не плануємо', T.Notifier.plan(T.Store.state).length === 0);
+  T.Act.delSession(far.id);
+
+  delete ctx.window.Capacitor;
+  T.Box.cache.clear();
+  ok('без оболонки лишається браузерний режим', !T.Notifier.native());
 }
 
 part('доступ: міст до магазину');
