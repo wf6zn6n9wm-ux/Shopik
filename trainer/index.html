@@ -690,6 +690,18 @@ const PHRASES = [
   ['Олег Бондар', 'Олег Бондарь', 'Oleh Bondar', 'Oleh Bondar'],
   ['Персональна', 'Персональная', 'Personal', 'Personalny'],
   ['Свій період', 'Свой период', 'Custom range', 'Własny okres'],
+  ['Групове', 'Групповая', 'Group', 'Grupowy'],
+  ['Разом із', 'Вместе с', 'Together with', 'Razem z'],
+  ['Групове тренування додано', 'Групповая тренировка добавлена', 'Group session added', 'Trening grupowy dodany'],
+  ['Ціна з кожного учасника', 'Цена с каждого участника', 'Price per participant', 'Cena od każdego uczestnika'],
+  ['Оберіть ще одного — і тренування стане груповим',
+   'Выберите ещё одного — и тренировка станет групповой',
+   'Add another one and the session becomes a group session',
+   'Wybierz kolejnego — trening stanie się grupowy'],
+  ['Абонемент списується лише в індивідуальному тренуванні — у групі кожен платить окремо',
+   'Абонемент списывается только в индивидуальной тренировке — в группе каждый платит отдельно',
+   'A package can only be used for a one-on-one session — in a group everyone pays separately',
+   'Karnet odlicza się tylko przy treningu indywidualnym — w grupie każdy płaci osobno'],
   ['Ціна пакета', 'Цена пакета', 'Package price', 'Cena pakietu'],
   ['Ціна лише для цього абонемента — сам пакет не змінюється',
    'Цена только для этого абонемента — сам пакет не меняется',
@@ -2382,8 +2394,12 @@ const Act = {
   },
 
   addSession(s){
+    /* groupId — спільний для тренування, яке проводять кільком клієнтам
+       одночасно. Кожен учасник лишається окремим записом: у нього своя
+       ціна, оплата й борг, тож гроші рахуються так само, як завжди. */
     const ses = {id: uid('ses'), clientId:'', start: new Date().toISOString(), dur:60, type:'personal',
-                 price: Store.state.settings.price, paid:false, status:'planned', subId:null, note:'', createdAt: Date.now(), ...s};
+                 price: Store.state.settings.price, paid:false, status:'planned', subId:null, groupId:null,
+                 note:'', createdAt: Date.now(), ...s};
     Store.patch(db => {
       let subs = db.subs;
       if (ses.subId) subs = subs.map(x => x.id === ses.subId ? {...x, used: Math.min(x.total, x.used + (ses.status === 'done' ? 1 : 0))} : x);
@@ -3859,6 +3875,11 @@ const SessionSheet = ({id, onClose}) => {
   const sp = split(s.price, db.settings);
   const sub = s.subId ? byId(db.subs, s.subId) : null;
   const past = +new Date(s.start) < Date.now();
+  /* решта учасників групового тренування — щоб було видно, з ким воно */
+  const mates = s.groupId
+    ? db.sessions.filter(x => x.groupId === s.groupId && x.id !== s.id)
+        .map(x => (byId(db.clients, x.clientId) || {}).name).filter(Boolean)
+    : [];
 
   const close = () => { onClose(); };
   const act = fn => { fn(); onClose(); };
@@ -3883,6 +3904,13 @@ const SessionSheet = ({id, onClose}) => {
           </div>
         )}
       </div>
+
+      {mates.length > 0 && (
+        <div className="card pad" style={{marginTop:9}}>
+          <div className="muted" style={{fontSize:12.5, fontWeight:700}}>{t('cal.group','Групове')}</div>
+          <div style={{fontSize:13.5, marginTop:3}}>{t('session.mates','Разом із')}: {mates.join(', ')}</div>
+        </div>
+      )}
 
       {s.note && <div className="card pad" style={{marginTop:9, fontSize:13.5, color:'var(--ink-2)'}}>{s.note}</div>}
 
@@ -3953,7 +3981,9 @@ const SessionForm = ({params, onClose}) => {
   })();
 
   const [f, setF] = useState({
-    clientId: edit ? edit.clientId : (params.clientId || ''),
+    /* клієнтів може бути кілька: групове тренування. Редагуємо завжди
+       одного — учасник групи лишається самостійним записом. */
+    ids: edit ? [edit.clientId] : (params.clientId ? [params.clientId] : []),
     when: base,
     type: edit ? edit.type : 'personal',
     price: edit ? edit.price : clientPrice(db, params.clientId || ''),
@@ -3965,16 +3995,28 @@ const SessionForm = ({params, onClose}) => {
   const [err, setErr] = useState('');
   const set = (k, v) => setF(x => ({...x, [k]: v}));
 
+  const one = f.ids.length === 1 ? f.ids[0] : '';     /* коли клієнт один — усі підказки про нього */
+  const many = f.ids.length > 1;
+  const pick = id => {
+    setErr('');
+    setF(x => (edit || !x.ids.length) ? {...x, ids:[id]}
+              : x.ids.includes(id) ? x : {...x, ids:[...x.ids, id]});
+  };
+  const drop = id => setF(x => ({...x, ids: x.ids.filter(i => i !== id)}));
+
   /* абонемент клієнта підставляється сам */
-  const sub = useMemo(() => db.subs.find(x => x.clientId === f.clientId && x.used < x.total), [db.subs, f.clientId]);
-  const who = f.clientId ? byId(db.clients, f.clientId) : null;
-  const base$ = clientPrice(db, f.clientId);          /* ціна клієнта або за замовчуванням */
+  const sub = useMemo(() => db.subs.find(x => x.clientId === one && x.used < x.total), [db.subs, one]);
+  const who = one ? byId(db.clients, one) : null;
+  const base$ = clientPrice(db, one);                 /* ціна клієнта або за замовчуванням */
 
   useEffect(() => {
-    if (!f.clientId || edit) return;
+    if (edit) return;
+    /* абонемент завжди чийсь один — у групі його не списати */
+    if (many){ setF(x => x.subId ? {...x, subId:null, paid:false} : x); return; }
+    if (!one) return;
     if (sub) setF(x => ({...x, subId: sub.id, paid: true, price: Math.round(sub.price / sub.total)}));
     else setF(x => ({...x, subId: null, price: typedPrice(base$, x.type)}));
-  }, [f.clientId]);
+  }, [one, many]);
 
   useEffect(() => {
     if (edit) return;
@@ -3986,15 +4028,25 @@ const SessionForm = ({params, onClose}) => {
     .filter(s => s.status !== 'canceled' && sameDay(s.start, f.when) && (!edit || s.id !== edit.id))
     .map(s => fmtTime(s.start));
 
-  const sp = split(f.price, S);
+  const sp = split(f.price * Math.max(1, f.ids.length), S);   /* у групі ціна — з кожного */
   const conflict = taken.includes(fmtTime(f.when));
 
   function save(){
-    if (!f.clientId){ setErr(t('session.err.client','Оберіть клієнта')); return; }
-    const payload = {clientId: f.clientId, start: f.when.toISOString(), type: f.type, price: f.price,
-                     paid: f.paid, subId: f.subId, note: f.note, dur: f.dur};
-    if (edit) { Act.updSession(edit.id, payload); Toaster.ok(t('session.saved','Зміни збережено')); }
-    else { Act.addSession({...payload, status: +f.when < Date.now() ? 'done' : 'planned'}); Toaster.ok(t('session.added','Тренування додано')); }
+    if (!f.ids.length){ setErr(t('session.err.client','Оберіть клієнта')); return; }
+    const common = {start: f.when.toISOString(), type: f.type, price: f.price,
+                    paid: f.paid, note: f.note, dur: f.dur};
+    if (edit){
+      Act.updSession(edit.id, {...common, clientId: f.ids[0], subId: f.subId});
+      Toaster.ok(t('session.saved','Зміни збережено'));
+      onClose();
+      return;
+    }
+    const status = +f.when < Date.now() ? 'done' : 'planned';
+    /* один запис на учасника, спільний groupId — так у кожного лишається
+       своя оплата, а в календарі вони показуються однією карткою */
+    const groupId = many ? uid('grp') : null;
+    f.ids.forEach(id => Act.addSession({...common, clientId: id, subId: many ? null : f.subId, groupId, status}));
+    Toaster.ok(many ? t('session.added.many','Групове тренування додано') : t('session.added','Тренування додано'));
     onClose();
   }
 
@@ -4004,9 +4056,22 @@ const SessionForm = ({params, onClose}) => {
             <button className="iconbtn" onClick={() => { Act.delSession(edit.id); Toaster.show(t('session.deleted','Видалено')); onClose(); }}
                     aria-label={t('common.delete')}><Ic.trash size={19}/></button>)}
           footer={<Btn kind="pri" size="lg" wide onClick={save}>{t('session.save','Зберегти тренування')}</Btn>}>
-      <Field label={t('session.client','Клієнт')} hint={err} bad>
-        <ClientPick value={f.clientId} onPick={id => { set('clientId', id); setErr(''); }}
+      <Field label={many ? t('session.clients','Клієнти') : t('session.client','Клієнт')}
+             hint={err || (edit ? '' : t('session.multi','Оберіть ще одного — і тренування стане груповим'))} bad={!!err}>
+        <ClientPick value={edit || !many ? (f.ids[0] || '') : ''} onPick={pick}
                     onCreate={q => nav.go('client.new', {name: q, then:'session'})}/>
+        {many && (
+          <div className="chips" style={{marginTop:8}}>
+            {f.ids.map(id => {
+              const c = byId(db.clients, id);
+              return (
+                <button key={id} className="chip on" onClick={() => drop(id)}>
+                  {c ? c.name : '—'} <span style={{opacity:.7, marginLeft:2}}>✕</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </Field>
 
       <Field label={t('common.date','Дата')}>
@@ -4026,7 +4091,8 @@ const SessionForm = ({params, onClose}) => {
       </Field>
 
       <Field label={t('session.price','Вартість')}
-             hint={f.subId ? t('session.price.sub','Ціна одного заняття з абонемента')
+             hint={many ? t('session.price.each','Ціна з кожного учасника')
+                   : f.subId ? t('session.price.sub','Ціна одного заняття з абонемента')
                    : who && who.price ? t('session.price.fix','Закріплена ціна цього клієнта — можна змінити для цього тренування')
                    : t('session.price.def','Підставлено ціну за замовчуванням — змініть, якщо сьогодні інша сума')}>
         <Input value={f.price} onChange={e => set('price', +e.target.value.replace(/\D/g,'') || 0)} inputMode="numeric" suffix={S.currency}/>
@@ -4042,9 +4108,9 @@ const SessionForm = ({params, onClose}) => {
 
       <Field label={t('session.payment','Оплата')}>
         <div className="segm">
-          <button className={cx(f.subId && 'on')} disabled={!sub}
+          <button className={cx(f.subId && 'on')} disabled={!sub || many}
                   onClick={() => sub && setF(x => ({...x, subId: sub.id, paid:true, price: Math.round(sub.price / sub.total)}))}
-                  style={{opacity: sub ? 1 : .4}}>{t('pay.package','З абонемента')}</button>
+                  style={{opacity: sub && !many ? 1 : .4}}>{t('pay.package','З абонемента')}</button>
           <button className={cx(!f.subId && f.paid && 'on')} onClick={() => setF(x => ({...x, subId:null, paid:true}))}>{t('pay.paid','Оплачено')}</button>
           <button className={cx(!f.subId && !f.paid && 'on')} onClick={() => setF(x => ({...x, subId:null, paid:false}))}>{t('pay.later','Потім')}</button>
         </div>
@@ -4052,6 +4118,11 @@ const SessionForm = ({params, onClose}) => {
       {sub && f.subId && (
         <div className="muted" style={{fontSize:12.5, marginTop:8, marginLeft:2}}>
           {t('session.sub.left','Залишок абонемента')}: {sub.total - sub.used} / {sub.total}
+        </div>
+      )}
+      {many && (
+        <div className="muted" style={{fontSize:12.5, marginTop:8, marginLeft:2}}>
+          {t('session.sub.solo','Абонемент списується лише в індивідуальному тренуванні — у групі кожен платить окремо')}
         </div>
       )}
 
@@ -4186,7 +4257,8 @@ const Calendar = ({loading}) => {
                            style={{display:'flex', alignItems:'center', gap:10}}>
                         <button style={{flex:1, minWidth:0, textAlign:'left'}} onClick={() => setOpen(s)}>
                           <b>{fmtTime(s.start)} · {c ? c.name : '—'}</b>
-                          <span>{typeTitle(s.type)} · {money(s.price)} · {payLabel(s)}</span>
+                          <span>{typeTitle(s.type)}
+                            {s.groupId ? ' · ' + t('cal.group','Групове') : ''} · {money(s.price)} · {payLabel(s)}</span>
                         </button>
                         {canDone && (
                           <button className="go" onClick={() => { Act.complete(s.id, !!s.subId); Toaster.ok(t('ses.done.ok','Проведено') + ' · ' + money(s.price)); }}>
