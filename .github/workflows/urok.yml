@@ -1,0 +1,35 @@
+name: Urok+
+
+# Застосунок без збірки: код віддається браузеру як є, тому «зелений
+# білд» тут означає рівно одне — перевірки пройшли. Ганяємо їх на кожну
+# зміну всередині urok/, щоб правка не поїхала в прод мовчки.
+
+on:
+  push:
+    paths: ['urok/**', '.github/workflows/urok.yml']
+  pull_request:
+    paths: ['urok/**', '.github/workflows/urok.yml']
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Тести транспілюють JSX із src/ — цим займається bun.
+      # Ставимо напряму, щоб не залежати від сторонніх actions.
+      - name: bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
+      - name: Локалізація
+        run: node urok/tests/i18n.js
+
+      - name: Екрани
+        run: node urok/tests/smoke.js
