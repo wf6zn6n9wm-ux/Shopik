@@ -7,7 +7,7 @@
    Змінні оточення (Vercel → Settings → Environment Variables):
      LIQPAY_PUBLIC_KEY    публічний ключ мерчанта
      LIQPAY_PRIVATE_KEY   приватний ключ — ніколи не потрапляє в браузер
-     PUBLIC_BASE_URL      напр. https://pro-trainer.vercel.app
+     PUBLIC_BASE_URL      https://pro-trainer.pro
    ────────────────────────────────────────────────────────────────── */
 const crypto = require('crypto');
 

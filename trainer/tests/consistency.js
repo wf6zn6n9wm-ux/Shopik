@@ -98,6 +98,20 @@ part('юридичні реквізити');
   });
 }
 
+part('домен');
+{
+  const LEGAL = decl(app, 'LEGAL');
+  const site = String(LEGAL.site || '').replace(/\/+$/, '');
+  ok('домен заданий', /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}$/i.test(site), site || 'порожньо');
+  ok('оплата йде на той самий домен', String(WEB.base || '').replace(/\/+$/, '') === site,
+     WEB.base + ' / ' + site);
+  const listing = read('store/listing.md');
+  ok('у текстах для магазинів не лишилось плейсхолдерів', !listing.includes('[САЙТ]'));
+  ok('у текстах для магазинів той самий домен', listing.includes(site), site);
+  ['/support', '/privacy', '/terms', '/delete'].forEach(path =>
+    ok('  адреса ' + path + ' вказана', listing.includes(site + path)));
+}
+
 part('переклади');
 {
   const rows = decl(app, 'PHRASES');
