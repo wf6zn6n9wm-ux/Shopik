@@ -98,7 +98,7 @@ const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, 
   clientPrice, typedPrice, periodOf, periodLabel, deltaRange, RangeSheet, PeriodBar, iso, addDays,
   Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Box, Notifier, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES, Toaster, Photo, PHOTO, Web, WEB,
-  financeCsv, Files, inRange, LEGAL, LEGAL_DOCS, Legal,
+  financeCsv, Files, inRange, LEGAL, LEGAL_DOCS, Legal, netByBucket,
   PHRASES, LANGS, detectLang, t, _seen, statusTitle, typeTitle, goalTitle, fill, monthWord,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
@@ -590,6 +590,35 @@ part('доступ: міст до магазину');
 }
 
 const CH_Q = String.fromCharCode(34);
+part('графіки на великій базі');
+{
+  /* Точки графіка тепер беруться з кошиків, а не рахуються через stats()
+     на кожен день. Перевіряємо, що вони дають ті самі числа — інакше
+     пришвидшення виявилось би підміною. */
+  const db = T.seedDB({name: 'Олександр'});
+  T.Store.init(db);
+  const [from, to] = T.periodOf({kind: 'month'});
+  const box = T.netByBucket(db, from, to, false);
+  let same = 0, diff = null;
+  for (let d = new Date(from); +d < +to; d = T.addDays(d, 1)){
+    const mine = box.get(T.iso(d)) || 0;
+    const slow = T.stats(db, d, T.addDays(d, 1)).net;
+    if (mine === slow) same++; else if (!diff) diff = T.iso(d) + ': ' + mine + ' проти ' + slow;
+  }
+  ok('по днях сходиться з повним підрахунком', !diff, diff || same + ' днів');
+
+  const [yf, yt] = T.periodOf({kind: 'year'});
+  const months = T.netByBucket(db, yf, yt, true);
+  const year = T.stats(db, yf, yt).net;
+  const sumMonths = [...months.values()].reduce((a, x) => a + x, 0);
+  ok('сума місяців дорівнює року', sumMonths === year, sumMonths + ' проти ' + year);
+
+  /* сесії поза періодом у кошики не потрапляють */
+  const before = T.netByBucket(db, from, to, false).size;
+  T.Act.addSession({clientId: db.clients[0].id, start: new Date(+from - 40 * 86400000).toISOString(), price: 800});
+  ok('чуже минуле в період не залазить', T.netByBucket(T.Store.state, from, to, false).size === before);
+}
+
 part('юридичні документи');
 {
   /* Магазини перевіряють, що документи справжні, а не заглушка. */

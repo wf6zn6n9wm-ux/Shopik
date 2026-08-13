@@ -2082,6 +2082,25 @@ function financeCsv(db, from, to){
   return '\ufeff' + csvRows([head, ...rows, ...foot]) + '\r\n';
 }
 
+/* Дохід по днях або місяцях — одним проходом.
+
+   Раніше кожна точка графіка рахувалась через stats(), тобто перебирала
+   всю історію тренувань: 30 точок × 5 000 тренувань на третій рік роботи
+   = 150 000 проходів на кожен рендер екрана «Фінанси». Тепер один прохід
+   розкладає тренування по кошиках, а точки лише беруть готове.        */
+function netByBucket(db, from, to, byMonth){
+  const S = db.settings, out = new Map();
+  db.sessions.forEach(x => {
+    if (!isBillable(x)) return;
+    const d = valid(x.start);
+    if (!d || !inRange(+d, from, to)) return;
+    const k = byMonth ? d.getFullYear() + '.' + d.getMonth() : iso(d);
+    out.set(k, (out.get(k) || 0) + split(x.price, S).net);
+  });
+  return out;
+}
+const mKey = d => d.getFullYear() + '.' + d.getMonth();
+
 /* динаміка: порівнюємо однакові за довжиною відрізки — інакше 3-го числа
    місяць завжди «мінус 90%» проти повного попереднього */
 function deltaFor(db, kind, base){
@@ -3283,10 +3302,11 @@ const Home = ({loading}) => {
   const [mFrom, mTo] = periodRange('month', now);
   const month = stats(db, mFrom, mTo);
 
-  const spark = useMemo(() => Array.from({length:7}, (_, i) => {
-    const [f, tt] = periodRange('day', addDays(now, i - 6));
-    return stats(db, f, tt).net;
-  }), [db]);
+  const spark = useMemo(() => {
+    const start = periodRange('day', addDays(now, -6))[0];
+    const box = netByBucket(db, start, addDays(start, 7), false);
+    return Array.from({length:7}, (_, i) => box.get(iso(addDays(start, i))) || 0);
+  }, [db]);
 
   const upcoming = db.sessions
     .filter(s => s.status === 'planned' && +new Date(s.start) >= now - 30 * 60000)
@@ -5204,21 +5224,23 @@ const Finance = ({onClose}) => {
   /* серія: по днях, а для довгих періодів — по місяцях */
   const series = useMemo(() => {
     if (byMonth){
+      const box = netByBucket(db, from, to, true);
       const out = [];
       let m = new Date(from.getFullYear(), from.getMonth(), 1);
       while (+m < +to){
-        const next = addMonths(m, 1);
-        out.push({label: fmtMonS(m), v: stats(db, m, +next < +to ? next : to).net});
-        m = next;
+        out.push({label: fmtMonS(m), v: box.get(mKey(m)) || 0});
+        m = addMonths(m, 1);
       }
       return out;
     }
     const count = p.kind === 'day' ? 7 : days;
+    /* для «дня» графік показує тиждень назад — кошики беремо на цей же відрізок */
     const start = p.kind === 'day' ? addDays(from, -6) : from;
+    const box = netByBucket(db, start, addDays(start, count), false);
     return Array.from({length: count}, (_, i) => {
       const d = addDays(start, i);
       return {label: count > 10 ? String(d.getDate()) : fmtDow(d),
-              v: stats(db, d, addDays(d, 1)).net, on: sameDay(d, new Date())};
+              v: box.get(iso(d)) || 0, on: sameDay(d, new Date())};
     });
   }, [db, p]);
 
@@ -5339,11 +5361,19 @@ const Stats = ({onClose}) => {
   const [from, to] = useMemo(() => periodOf(p), [p]);
   const st = stats(db, from, to);
 
-  const top = useMemo(() => db.clients.map(c => {
-    const ses = db.sessions.filter(s => s.clientId === c.id && isBillable(s) && inRange(+new Date(s.start), from, to));
-    const sales = db.sales.filter(x => x.clientId === c.id && inRange(x.ts, from, to));
-    return {c, n: ses.length, v: sum(ses, s => s.price) + sum(sales, x => x.price * x.qty)};
-  }).filter(x => x.n > 0).sort((a, b) => b.n - a.n || b.v - a.v).slice(0, 5), [db, p]);
+  /* раніше на кожного клієнта перебиралась уся історія: 40 клієнтів ×
+     5 000 тренувань. Тепер два проходи на всіх разом. */
+  const top = useMemo(() => {
+    const n = new Map(), v = new Map();
+    const add = (m, k, x) => m.set(k, (m.get(k) || 0) + x);
+    db.sessions.forEach(x => {
+      if (!isBillable(x) || !inRange(+new Date(x.start), from, to)) return;
+      add(n, x.clientId, 1); add(v, x.clientId, x.price);
+    });
+    db.sales.forEach(x => { if (inRange(x.ts, from, to)) add(v, x.clientId, x.price * x.qty); });
+    return db.clients.map(c => ({c, n: n.get(c.id) || 0, v: v.get(c.id) || 0}))
+      .filter(x => x.n > 0).sort((a, b) => b.n - a.n || b.v - a.v).slice(0, 5);
+  }, [db, p]);
 
   const byType = useMemo(() => {
     const m = {};

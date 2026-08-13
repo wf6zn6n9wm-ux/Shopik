@@ -1,0 +1,47 @@
+name: PRO Trainer
+
+# Приложение — один index.html без сборки, поэтому «зелёный билд» здесь
+# означает ровно одно: проверки прогнались. Гоняем их на каждое изменение
+# внутри trainer/, чтобы правка не уехала в прод молча.
+
+on:
+  push:
+    paths: ['trainer/**', '.github/workflows/trainer.yml']
+  pull_request:
+    paths: ['trainer/**', '.github/workflows/trainer.yml']
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # smoke.js транспилирует JSX из index.html — этим занимается bun.
+      # Ставим напрямую, чтобы не зависеть от сторонних actions.
+      - name: bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
+      - name: Приложение
+        run: node trainer/tests/smoke.js
+
+      - name: Сервер подписок
+        run: node trainer/tests/licence.js
+
+      - name: Одни и те же числа в разных файлах
+        run: node trainer/tests/consistency.js
+
+      # Документы живут в index.html, а страницы для магазинов
+      # генерируются из них. Если кто-то поправил одно и забыл другое —
+      # это видно здесь, а не в консоли App Store.
+      - name: Документы и публичные страницы не разошлись
+        run: |
+          node trainer/legal/sync.js export
+          git diff --exit-code -- trainer/legal trainer/terms.html trainer/privacy.html trainer/delete.html \
+            || { echo '::error::terms/privacy/delete не пересобраны — запустите node trainer/legal/sync.js export'; exit 1; }
