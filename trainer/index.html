@@ -691,6 +691,10 @@ const PHRASES = [
   ['Персональна', 'Персональная', 'Personal', 'Personalny'],
   ['Свій період', 'Свой период', 'Custom range', 'Własny okres'],
   ['Ціна пакета', 'Цена пакета', 'Package price', 'Cena pakietu'],
+  ['Ціна лише для цього абонемента — сам пакет не змінюється',
+   'Цена только для этого абонемента — сам пакет не меняется',
+   'Price applies to this subscription only — the package itself stays as is',
+   'Cena tylko dla tego karnetu — sam pakiet się nie zmienia'],
   ['передоплата', 'предоплата', 'prepayment', 'przedpłata'],
   ['прострочено', 'просрочено', 'overdue', 'po terminie'],
   ['Анна Мельник', 'Анна Мельник', 'Anna Melnyk', 'Anna Melnyk'],
@@ -5209,11 +5213,19 @@ const PackagesPage = ({params, onClose}) => {
   const nav = useNav();
   const [clientId, setClientId] = useState(params.clientId || '');
   const [pick, setPick] = useState(null);
+  /* Ціну майже завжди доводиться правити на місці: комусь знижка, комусь
+     кругла сума. Раніше для цього треба було виходити й редагувати сам
+     пакет — і зміна лишалась там назавжди. Тепер правимо тут, і тільки
+     для цього абонемента. */
+  const [price, setPrice] = useState(0);
   const active = db.subs.filter(s => s.used < s.total);
+  const open = p => { setPick(p); setPrice(p.price); };
+  const per = pick && pick.sessions ? Math.round(price / pick.sessions) : 0;
+  const num = v => +String(v).replace(/\D/g, '') || 0;
 
   function buy(pkg){
     if (!clientId){ Toaster.bad(t('subs.err.client','Спочатку оберіть клієнта')); return; }
-    Act.buyPackage(clientId, pkg);
+    Act.buyPackage(clientId, {...pkg, price});
     Toaster.ok(t('subs.bought','Абонемент оформлено'));
     setPick(null);
     onClose();
@@ -5234,7 +5246,7 @@ const PackagesPage = ({params, onClose}) => {
       ) : (
         <div className="stack">
           {db.packages.map(p => (
-            <button key={p.id} className="card pad press" style={{textAlign:'left'}} onClick={() => setPick(p)}>
+            <button key={p.id} className="card pad press" style={{textAlign:'left'}} onClick={() => open(p)}>
               <div className="between">
                 <div>
                   <b style={{fontSize:15.5}}>{p.title}</b>
@@ -5260,14 +5272,23 @@ const PackagesPage = ({params, onClose}) => {
              sub={t('subs.confirm','Перевірте умови перед оформленням')}>
         {pick && (
           <Fragment>
+            <Field label={t('subs.price','Ціна пакета')}>
+              <Input value={price} inputMode="numeric" suffix="₴"
+                     onChange={e => setPrice(num(e.target.value))}/>
+            </Field>
+            <Field label={t('subs.per1','Одне тренування')}
+                   hint={price !== pick.price
+                     ? t('subs.price.once','Ціна лише для цього абонемента — сам пакет не змінюється')
+                     : ''}>
+              <Input value={per} inputMode="numeric" suffix="₴"
+                     onChange={e => setPrice(num(e.target.value) * pick.sessions)}/>
+            </Field>
             <div className="card pad">
               <Rowline k={t('subs.count','Тренувань')} v={pick.sessions}/>
-              <Rowline k={t('subs.price','Ціна пакета')} v={money(pick.price)} strong/>
-              <Rowline k={t('subs.per1','Одне тренування')} v={money(Math.round(pick.price / pick.sessions))} tone="var(--accent)"/>
               <Rowline k={t('subs.till','Діє до')} v={fmtDM(Date.now() + pick.days * DAY)}/>
             </div>
-            <Btn kind="pri" size="lg" wide style={{marginTop:12}} onClick={() => buy(pick)}>
-              {t('subs.buy','Оформити абонемент')}
+            <Btn kind="pri" size="lg" wide style={{marginTop:12}} disabled={price <= 0} onClick={() => buy(pick)}>
+              {t('subs.buy','Оформити абонемент')} · {money(price)}
             </Btn>
           </Fragment>
         )}
