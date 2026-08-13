@@ -15,8 +15,9 @@ window.U = window.U || {};
 const {
   Icon, Avatar, Btn, IconBtn, Card, SectionHead, Row, Field, Input, TextArea, Empty, Sheet, Confirm,
   Segmented, Chips, Switch, StackBar, PickerField, DatePickerSheet, TimePickerSheet, Stepper, toast,
+  HomeworkRow,
   A, sel, uid, todayISO, addDays, toMin, toTime, duration, expandSeries, SERIES_HORIZON_WEEKS,
-  fmtRelDate, fmtLongDate, fmtDur, fmtMoney, currencySymbol, normalizeLesson,
+  fmtRelDate, fmtLongDate, fmtDur, fmtMoney, currencySymbol, normalizeLesson, lessonPrice, lessonTotal,
 } = window.U;
 
 const DURATIONS = [30, 45, 60, 90, 120];
@@ -58,6 +59,7 @@ function LessonFormScreen({t, s, nav, params}){
   const [start, setStart] = React.useState(editing ? editing.start : '10:00');
   const [end, setEnd] = React.useState(editing ? editing.end : toTime(toMin('10:00') + def.defaultDuration));
   const [price, setPrice] = React.useState(editing ? editing.price : def.defaultPrice);
+  const [prices, setPrices] = React.useState(editing ? Object.assign({}, editing.prices) : {});
   const [subject, setSubject] = React.useState(editing ? editing.subject : '');
   const [note, setNote] = React.useState(editing ? editing.note : '');
   const [repeat, setRepeat] = React.useState(false);
@@ -85,7 +87,9 @@ function LessonFormScreen({t, s, nav, params}){
   const mins = duration(start, end);
   const conflicts = sel.conflicts(s, {date, start, end, ignoreId: editing ? editing.id : ''});
   const students = sel.activeStudents(s);
-  const total = price * Math.max(1, studentIds.length);
+  const priceFor = id => (prices[id] === undefined || prices[id] === '' ? price : prices[id]);
+  const total = studentIds.reduce((sum, id) => sum + Number(priceFor(id) || 0), 0);
+  const group = studentIds.length > 1;
 
   const setStartKeepLength = v => {
     const len = mins || def.defaultDuration;
@@ -99,15 +103,19 @@ function LessonFormScreen({t, s, nav, params}){
     if (repeat && !days.length) return setErr(t('rep.needDay'));
     setErr('');
 
+    /* ціни залишаємо лише для тих, хто справді в занятті */
+    const own = {};
+    studentIds.forEach(id => { if (prices[id] !== undefined && prices[id] !== price) own[id] = Number(prices[id]) || 0; });
+
     if (editing){
-      A.updateLesson(editing.id, {studentIds, date, start, end, price, subject, note});
+      A.updateLesson(editing.id, {studentIds, date, start, end, price, prices: own, subject, note});
       toast(t('lesson.updated'));
       nav.back();
       return;
     }
     if (repeat){
       const rule = {
-        id: uid('sr'), freq, days: days.slice().sort(), start, end, price, subject, studentIds, note,
+        id: uid('sr'), freq, days: days.slice().sort(), start, end, price, prices: own, subject, studentIds, note,
         from: date, until: untilMode === 'date' ? until : '', createdAt: todayISO(),
       };
       A.addSeries(rule);
@@ -115,7 +123,7 @@ function LessonFormScreen({t, s, nav, params}){
       A.addLessons(items);
       toast(t('rep.createdSeries', {count: t.plural('lesson', items.length)}));
     } else {
-      A.addLesson({studentIds, date, start, end, price, subject, note});
+      A.addLesson({studentIds, date, start, end, price, prices: own, subject, note});
       toast(t('lesson.created'));
     }
     nav.back();
@@ -181,8 +189,30 @@ function LessonFormScreen({t, s, nav, params}){
         <SectionHead title={t('lesson.price')} />
         <Stepper value={price} onChange={setPrice} step={50} min={0}
                  format={v => `${v} ${currencySymbol(s.settings.currency)}`} />
-        {studentIds.length > 1 ? (
-          <div className="hint">{t('lesson.priceHint')} {fmtMoney(total, s.settings.currency)}</div>
+        {group ? (
+          <>
+            <div className="hint">{t('lesson.pricePerStudentHint')}</div>
+            <div className="rows" style={{marginTop: 10}}>
+              {studentIds.map(id => {
+                const st = sel.student(s, id);
+                if (!st) return null;
+                return (
+                  <div className="row" key={id} style={{cursor: 'default'}}>
+                    <Avatar name={st.name} color={st.color} emoji={st.emoji} photo={st.photo} size={36} />
+                    <span className="nm ellip" style={{flex: 1}}>{st.name}</span>
+                    <span style={{width: 140, flex: 'none'}}>
+                      <Stepper value={Number(priceFor(id)) || 0} step={50} min={0}
+                               onChange={v => setPrices({...prices, [id]: v})}
+                               format={v => `${v} ${currencySymbol(s.settings.currency)}`} />
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="hint" style={{fontWeight: 700, color: 'var(--ink)'}}>
+              {t('lesson.total')}: {fmtMoney(total, s.settings.currency)}
+            </div>
+          </>
         ) : null}
         <Field label={t('lesson.subject')}>
           <Input value={subject} placeholder={t('lesson.subjectPlaceholder')} onChange={e => setSubject(e.target.value)} />
@@ -257,23 +287,61 @@ function LessonFormScreen({t, s, nav, params}){
   );
 }
 
-/* ── картка заняття ────────────────────────────────────────── */
+/* ── картка заняття ────────────────────────────────────────────
+   Заняття — вузол, з якого видно все інше: учня, гроші, домашнє
+   завдання. Тому картка не показує самі дані, а дає короткі
+   відповіді й переходи туди, де з ними працюють.                */
 function LessonScreen({t, s, nav, params}){
   const lesson = s.lessons.find(l => l.id === params.id);
   const [del, setDel] = React.useState(false);
+  const [sheet, setSheet] = React.useState('');
+  const [moveDate, setMoveDate] = React.useState('');
+  const [moveTime, setMoveTime] = React.useState('');
+  const [prices, setPrices] = React.useState(null);
+
   if (!lesson) return (
     <div className="app stack">
       <StackBar t={t} title={t('lesson.one')} onBack={nav.back} />
       <div className="screen"><Empty icon={<Icon.calendar size={34} />} title={t('c.noData')} /></div>
     </div>
   );
+
   const students = sel.studentsOf(s, lesson);
   const mins = duration(lesson.start, lesson.end);
-  const total = lesson.price * Math.max(1, students.length);
-  const statusPill = lesson.status === 'done' ? 'pos' : lesson.status === 'canceled' ? 'neg' : 'warn';
+  const total = lessonTotal(lesson);
+  const cur = s.settings.currency;
+  const paid = sel.isLessonPaid(s, lesson);
+  const payments = s.payments.filter(p => p.lessonId === lesson.id);
+  const homework = sel.homeworkOfLesson(s, lesson.id);
+  const statusPill = lesson.status === 'done' ? 'pos'
+    : lesson.status === 'canceled' ? '' : lesson.status === 'missed' ? 'neg' : 'warn';
 
+  const openPrices = () => {
+    const init = {};
+    lesson.studentIds.forEach(id => { init[id] = lessonPrice(lesson, id); });
+    setPrices(init);
+    setSheet('price');
+  };
+  const savePrices = () => {
+    const single = lesson.studentIds.length === 1;
+    if (single) A.updateLesson(lesson.id, {price: prices[lesson.studentIds[0]], prices: {}});
+    else A.updateLesson(lesson.id, {prices});
+    setSheet('');
+    toast(t('lesson.updated'));
+  };
+  const move = () => {
+    A.rescheduleLesson(lesson.id, {date: moveDate || lesson.date, start: moveTime || lesson.start});
+    setSheet('');
+    toast(t('lesson.rescheduled'));
+  };
+  const repeat = offset => {
+    const copy = A.duplicateLesson(lesson.id, offset);
+    setSheet('');
+    toast(t('lesson.duplicated'));
+    if (copy) nav.replace({name: 'lesson', params: {id: copy.id}});
+  };
   const remove = () => {
-    if (lesson.seriesId) { setDel(true); return; }
+    if (lesson.seriesId) return setDel(true);
     A.removeLesson(lesson.id);
     toast(t('lesson.deleted'));
     nav.back();
@@ -302,24 +370,72 @@ function LessonScreen({t, s, nav, params}){
             <div style={{minWidth: 0, flex: 1}}>
               <div className="lbl">{lesson.subject || t('lesson.subject')}</div>
               <div className="dsp num" style={{fontSize: 22, fontWeight: 800, marginTop: 2}}>
-                {fmtMoney(total, s.settings.currency)}
+                {fmtMoney(total, cur)}
               </div>
             </div>
-            <span className={'pill ' + (lesson.paid ? 'pos' : '')}>
-              {lesson.paid ? <Icon.check size={13} stroke={3} /> : null}
-              {lesson.paid ? t('lesson.paid') : t('lesson.unpaid')}
-            </span>
+            {lesson.status === 'done' ? (
+              <span className={'pill ' + (paid ? 'pos' : 'neg')}>
+                {paid ? <Icon.check size={13} stroke={3} /> : null}
+                {paid ? t('lesson.paid') : t('lesson.unpaid')}
+              </span>
+            ) : null}
           </div>
         </Card>
 
-        <SectionHead title={t('lesson.students')} />
+        {/* учні: тут же видно, хто скільки винен */}
+        <SectionHead title={t('lesson.students')}
+                     action={students.length > 1 ? t('lesson.groupOf', {count: students.length}) : null} />
         <div className="rows">
-          {students.map(st => (
-            <Row key={st.id} avatar={<Avatar name={st.name} color={st.color} emoji={st.emoji} size={40} />}
-                 title={st.name} sub={st.subject} chevron
-                 onClick={() => nav.push({name: 'student', params: {id: st.id}})} />
-          ))}
+          {students.map(st => {
+            const money = sel.ledger(s, st.id);
+            return (
+              <Row key={st.id}
+                   avatar={<Avatar name={st.name} color={st.color} emoji={st.emoji} photo={st.photo} size={40} />}
+                   title={st.name}
+                   sub={money.debt ? `${t('st.owes')} ${fmtMoney(money.debt, cur)}`
+                        : money.prepay ? `${t('st.prepayLabel')} ${fmtMoney(money.prepay, cur)}`
+                        : st.subject}
+                   right={students.length > 1 ? fmtMoney(lessonPrice(lesson, st.id), cur) : null}
+                   chevron
+                   onClick={() => nav.push({name: 'student', params: {id: st.id}})} />
+            );
+          })}
         </div>
+
+        {/* оплата */}
+        <SectionHead title={t('lesson.payment')} />
+        <div className="rows joined">
+          {payments.map(p => {
+            const st = sel.student(s, p.studentId);
+            return (
+              <Row key={p.id} icon={<Icon.cash size={18} />} title={fmtMoney(p.amount, cur)}
+                   sub={`${st ? st.name : ''} · ${t('st.' + p.method)}`} />
+            );
+          })}
+          {payments.length ? (
+            <Row icon={<Icon.x size={18} />} title={t('lesson.markUnpaid')}
+                 onClick={() => { A.unpayLesson(lesson.id); toast(t('lesson.unpaid')); }} />
+          ) : (
+            <Row icon={<Icon.wallet size={18} />} accent title={t('lesson.addPayment')}
+                 sub={paid ? t('lesson.paidFromBalance') : fmtMoney(total, cur)}
+                 onClick={() => { A.payForLesson(lesson.id); toast(t('st.paymentAdded')); }} />
+          )}
+        </div>
+
+        {/* домашнє завдання */}
+        <SectionHead title={t('hw.title')}
+                     action={<span style={{display: 'inline-flex', alignItems: 'center', gap: 4}}><Icon.plus size={15} />{t('a.add')}</span>}
+                     onAction={() => nav.push({name: 'homework-new', params: {lessonId: lesson.id, studentId: lesson.studentIds[0]}})} />
+        {homework.length ? (
+          <div className="rows">
+            {homework.map(h => (
+              <HomeworkRow key={h.id} t={t} s={s} hw={h} showStudents={false}
+                           onOpen={() => nav.push({name: 'homework', params: {id: h.id}})} />
+            ))}
+          </div>
+        ) : (
+          <Card><div className="muted" style={{fontSize: 14}}>{t('hw.emptyD')}</div></Card>
+        )}
 
         {lesson.note ? (
           <>
@@ -328,26 +444,86 @@ function LessonScreen({t, s, nav, params}){
           </>
         ) : null}
 
-        <SectionHead title={t('lesson.status')} />
-        <div className="rows">
+        {/* дії */}
+        <SectionHead title={t('lesson.actions')} />
+        <div className="rows joined">
           {lesson.status !== 'done' ? (
             <Row icon={<Icon.check size={19} />} accent title={t('lesson.markDone')}
-                 onClick={() => { A.updateLesson(lesson.id, {status: 'done'}); toast(t('lesson.updated')); }} />
+                 onClick={() => { A.setLessonStatus(lesson.id, 'done'); toast(t('lesson.updated')); }} />
           ) : (
             <Row icon={<Icon.repeat size={19} />} title={t('lesson.markPlanned')}
-                 onClick={() => { A.updateLesson(lesson.id, {status: 'planned'}); toast(t('lesson.updated')); }} />
+                 onClick={() => { A.setLessonStatus(lesson.id, 'planned'); toast(t('lesson.updated')); }} />
           )}
-          <Row icon={<Icon.wallet size={19} />} accent={!lesson.paid}
-               title={lesson.paid ? t('lesson.markUnpaid') : t('lesson.markPaid')}
-               onClick={() => { A.togglePaid(lesson.id, !lesson.paid); toast(lesson.paid ? t('lesson.unpaid') : t('lesson.paid')); }} />
+          <Row icon={<Icon.clock size={19} />} title={t('lesson.reschedule')}
+               onClick={() => { setMoveDate(lesson.date); setMoveTime(lesson.start); setSheet('move'); }} />
+          <Row icon={<Icon.repeat size={19} />} title={t('lesson.duplicate')} onClick={() => setSheet('repeat')} />
+          <Row icon={<Icon.cash size={19} />} title={t('lesson.changePrice')}
+               right={fmtMoney(total, cur)} onClick={openPrices} />
+          <Row icon={<Icon.users size={19} />} title={t('lesson.changeStudents')}
+               onClick={() => nav.push({name: 'lesson-edit', params: {id: lesson.id}})} />
+          {lesson.status !== 'missed' ? (
+            <Row icon={<Icon.x size={19} />} title={t('lesson.markMissed')}
+                 onClick={() => { A.setLessonStatus(lesson.id, 'missed'); toast(t('lesson.missed')); }} />
+          ) : null}
           {lesson.status !== 'canceled' ? (
             <Row icon={<Icon.x size={19} />} title={t('lesson.cancel')}
-                 onClick={() => { A.updateLesson(lesson.id, {status: 'canceled'}); toast(t('lesson.canceled')); }} />
+                 onClick={() => { A.setLessonStatus(lesson.id, 'canceled'); toast(t('lesson.canceled')); }} />
           ) : null}
           <Row icon={<Icon.trash size={19} />} danger title={t('a.delete')} onClick={remove} />
         </div>
         <div style={{height: 20}} />
       </div>
+
+      {/* перенести */}
+      <Sheet open={sheet === 'move'} onClose={() => setSheet('')} title={t('lesson.reschedule')}>
+        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10}}>
+          <PickerField label={t('d.date')} value={fmtRelDate(t, moveDate || lesson.date)}
+                       icon={<Icon.calendar size={17} />} onClick={() => setSheet('move-date')} />
+          <PickerField label={t('d.from')} value={moveTime || lesson.start}
+                       icon={<Icon.clock size={17} />} onClick={() => setSheet('move-time')} />
+        </div>
+        <div className="chips" style={{marginTop: 12}}>
+          {[[1, t('d.tomorrow')], [7, t('lesson.duplicateWeek')]].map(([off, label]) => (
+            <button key={off} className="chip" onClick={() => setMoveDate(addDays(lesson.date, off))}>{label}</button>
+          ))}
+        </div>
+        <div style={{height: 16}} />
+        <Btn kind="pri" wide onClick={move}>{t('a.save')}</Btn>
+        <div style={{height: 8}} />
+        <Btn kind="ghost" wide onClick={() => setSheet('')}>{t('a.cancel')}</Btn>
+      </Sheet>
+      <DatePickerSheet open={sheet === 'move-date'} value={moveDate || lesson.date} t={t}
+                       onPick={setMoveDate} onClose={() => setSheet('move')} />
+      <TimePickerSheet open={sheet === 'move-time'} value={moveTime || lesson.start} t={t}
+                       onPick={setMoveTime} onClose={() => setSheet('move')} />
+
+      {/* повторити */}
+      <Sheet open={sheet === 'repeat'} onClose={() => setSheet('')} title={t('lesson.duplicate')}>
+        <div className="rows" style={{marginTop: 6}}>
+          <Row icon={<Icon.calendar size={18} />} title={t('lesson.duplicateTomorrow')}
+               sub={fmtRelDate(t, addDays(lesson.date, 1))} onClick={() => repeat(1)} />
+          <Row icon={<Icon.repeat size={18} />} accent title={t('lesson.duplicateWeek')}
+               sub={fmtRelDate(t, addDays(lesson.date, 7))} onClick={() => repeat(7)} />
+        </div>
+        <div style={{height: 10}} />
+        <Btn kind="ghost" wide onClick={() => setSheet('')}>{t('a.cancel')}</Btn>
+      </Sheet>
+
+      {/* ціна */}
+      <Sheet open={sheet === 'price'} onClose={() => setSheet('')} title={t('lesson.changePrice')}>
+        {prices ? students.map(st => (
+          <Field key={st.id} label={students.length > 1 ? st.name : t('lesson.price')}>
+            <Stepper value={prices[st.id] || 0} step={50} min={0}
+                     onChange={v => setPrices({...prices, [st.id]: v})}
+                     format={v => `${v} ${currencySymbol(cur)}`} />
+          </Field>
+        )) : null}
+        {students.length > 1 ? <div className="hint">{t('lesson.pricePerStudentHint')}</div> : null}
+        <div style={{height: 16}} />
+        <Btn kind="pri" wide onClick={savePrices}>{t('a.save')}</Btn>
+        <div style={{height: 8}} />
+        <Btn kind="ghost" wide onClick={() => setSheet('')}>{t('a.cancel')}</Btn>
+      </Sheet>
 
       <Sheet open={del} onClose={() => setDel(false)} title={t('lesson.deleteConfirm')}>
         <div className="rows" style={{marginTop: 8}}>

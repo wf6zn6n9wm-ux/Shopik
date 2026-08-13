@@ -14,8 +14,8 @@ window.U = window.U || {};
 
 const {
   Icon, Avatar, Btn, IconBtn, Card, SectionHead, Row, Field, Input, TextArea, Empty, Sheet, Confirm,
-  Chips, StackBar, PickerField, DatePickerSheet, Stepper, AppBar, toast,
-  A, sel, store, AVATAR_COLORS, PAYMENT_METHODS, FREE_STUDENT_LIMIT,
+  Chips, Segmented, StackBar, PickerField, DatePickerSheet, Stepper, AppBar, toast, HomeworkRow,
+  A, sel, store, AVATAR_COLORS, PAYMENT_METHODS, FREE_STUDENT_LIMIT, lessonPrice, photoFromFile,
   todayISO, addDays, fmtRelDate, fmtDayMonth, fmtShortDate, fmtMoney, fmtDur, duration, currencySymbol, initials, pickColor,
 } = window.U;
 
@@ -33,10 +33,7 @@ function StudentsScreen({t, s, nav}){
 
   const archivedCount = s.students.length - sel.activeStudents(s).length;
 
-  const add = () => {
-    if (!sel.canAddStudent(s)) return nav.push({name: 'premium', params: {reason: 'students'}});
-    nav.push({name: 'student-new'});
-  };
+  const add = () => nav.push({name: 'student-new'});
 
   return (
     <div className="app tabs">
@@ -55,16 +52,26 @@ function StudentsScreen({t, s, nav}){
             {list.length ? (
               <div className="rows" style={{marginTop: 14}}>
                 {list.map(st => {
-                  const stat = sel.studentStats(s, st.id);
+                  const money = sel.ledger(s, st.id);
+                  const next = sel.nextLesson(s, st.id);
+                  /* Праворуч показуємо те, що вимагає дії: борг важливіший
+                     за передоплату, передоплата — за час наступного заняття. */
+                  const right = money.debt ? fmtMoney(money.debt, s.settings.currency)
+                    : money.prepay ? fmtMoney(money.prepay, s.settings.currency)
+                    : next ? next.start : '';
+                  const rightSub = money.debt ? t('st.debt')
+                    : money.prepay ? t('fin.prepay')
+                    : next ? fmtRelDate(t, next.date) : '';
                   return (
                     <Row key={st.id}
                          className={st.archived ? 'cancel' : ''}
-                         avatar={<Avatar name={st.name} color={st.color} emoji={st.emoji} size={44} />}
+                         avatar={<Avatar name={st.name} color={st.color} emoji={st.emoji} photo={st.photo} size={44}
+                                         badge={money.debt ? 'var(--neg)' : undefined} badgeAt="br" />}
                          title={st.name}
-                         sub={[st.subject, t.plural('lesson', stat.total)].filter(Boolean).join(' · ')}
-                         right={stat.debt ? fmtMoney(stat.debt, s.settings.currency) : ''}
-                         rightSub={stat.debt ? t('st.debt') : ''}
-                         rightTone="neg"
+                         sub={[st.subject, t.plural('lesson', sel.studentStats(s, st.id).done)].filter(Boolean).join(' · ')}
+                         right={right}
+                         rightSub={rightSub}
+                         rightTone={money.debt ? 'neg' : money.prepay ? '' : 'mute'}
                          chevron
                          onClick={() => nav.push({name: 'student', params: {id: st.id}})} />
                   );
@@ -82,7 +89,7 @@ function StudentsScreen({t, s, nav}){
               </div>
             ) : null}
 
-            {!sel.isPremium(s) ? (
+            {sel.overFreeLimit(s) ? (
               <button className="card pad press" style={{width: '100%', textAlign: 'left', marginTop: 18, display: 'flex', gap: 12, alignItems: 'center'}}
                       onClick={() => nav.push({name: 'premium'})}>
                 <span style={{width: 38, height: 38, borderRadius: 12, display: 'grid', placeItems: 'center',
@@ -119,13 +126,14 @@ function StudentFormScreen({t, s, nav, params}){
   const [birthday, setBirthday] = React.useState(editing ? editing.birthday : '');
   const [notes, setNotes] = React.useState(editing ? editing.notes : '');
   const [color, setColor] = React.useState(editing ? editing.color : AVATAR_COLORS[0]);
+  const [photo, setPhoto] = React.useState(editing ? editing.photo || '' : '');
   const [extra, setExtra] = React.useState(!!(editing && (editing.phone || editing.email || editing.birthday || editing.notes)));
   const [err, setErr] = React.useState('');
   const [pick, setPick] = React.useState(false);
 
   const submit = () => {
     if (!name.trim()) return setErr(t('st.nameRequired'));
-    const data = {name, subject, price, phone, email, birthday, notes, color};
+    const data = {name, subject, price, phone, email, birthday, notes, color, photo};
     if (editing){
       A.updateStudent(editing.id, data);
       toast(t('st.updated'));
@@ -143,7 +151,21 @@ function StudentFormScreen({t, s, nav, params}){
       <StackBar t={t} title={editing ? t('st.edit') : t('st.add')} onBack={nav.back} />
       <div className="screen">
         <div style={{display: 'flex', justifyContent: 'center', margin: '6px 0 4px'}}>
-          <Avatar name={name || '?'} color={color} size={88} />
+          <Avatar name={name || '?'} color={color} photo={photo} size={88} />
+        </div>
+        <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 12}}>
+          <label className="btn sec sm" style={{cursor: 'pointer'}}>
+            {photo ? t('st.photo') : t('st.photoAdd')}
+            <input type="file" accept="image/*" style={{display: 'none'}}
+                   onChange={e => {
+                     const file = e.target.files && e.target.files[0];
+                     if (!file) return;
+                     photoFromFile(file).then(setPhoto).catch(() => toast(t('a.retry')));
+                   }} />
+          </label>
+          {photo ? (
+            <Btn kind="ghost" size="sm" onClick={() => setPhoto('')}>{t('st.photoRemove')}</Btn>
+          ) : null}
         </div>
         <div className="chips" style={{justifyContent: 'center', marginTop: 14}}>
           {AVATAR_COLORS.map(c => (
@@ -211,54 +233,86 @@ function StudentFormScreen({t, s, nav, params}){
 function PaymentSheet({open, onClose, t, s, student}){
   const [amount, setAmount] = React.useState(student ? (student.price || s.settings.defaultPrice) : 0);
   const [method, setMethod] = React.useState('cash');
-  React.useEffect(() => { if (open && student) setAmount(student.price || s.settings.defaultPrice); }, [open]);
+  const [date, setDate] = React.useState(todayISO());
+  const [pick, setPick] = React.useState(false);
+  React.useEffect(() => {
+    if (!open || !student) return;
+    /* Найчастіша сума — борг цілком, інакше ціна заняття: так
+       переважно і платять, і не доводиться клацати степер. */
+    const money = sel.ledger(s, student.id);
+    setAmount(money.debt || student.price || s.settings.defaultPrice);
+    setDate(todayISO());
+  }, [open]);
   if (!student) return null;
+  const money = sel.ledger(s, student.id);
   return (
     <Sheet open={open} onClose={onClose} title={t('st.addPayment')}>
+      <div className="muted" style={{fontSize: 13.5, fontWeight: 700, margin: '2px 2px 8px'}}>
+        {student.name}
+        {money.debt ? ` · ${t('st.owes')} ${fmtMoney(money.debt, s.settings.currency)}` : ''}
+      </div>
       <Field label={t('st.paymentAmount')}>
         <Stepper value={amount} onChange={setAmount} step={50} min={0}
                  format={v => `${v} ${currencySymbol(s.settings.currency)}`} />
       </Field>
+      <PickerField label={t('d.date')} value={fmtRelDate(t, date)} icon={<Icon.calendar size={17} />}
+                   onClick={() => setPick(true)} />
       <Field label={t('st.paymentMethod')}>
         <Chips value={method} onChange={setMethod}
                options={PAYMENT_METHODS.map(m => ({id: m, label: t('st.' + m)}))} />
       </Field>
+      <div className="hint">{t('fin.hint')}</div>
       <div style={{height: 16}} />
       <Btn kind="pri" wide onClick={() => {
-        A.addPayment({studentId: student.id, amount, method});
+        A.addPayment({studentId: student.id, amount, method, date});
         toast(t('st.paymentAdded'));
         onClose();
       }}>{t('a.add')}</Btn>
       <div style={{height: 8}} />
       <Btn kind="ghost" wide onClick={onClose}>{t('a.cancel')}</Btn>
+
+      <DatePickerSheet open={pick} value={date} t={t} max={todayISO()}
+                       onPick={setDate} onClose={() => setPick(false)} />
     </Sheet>
   );
 }
 
-/* ── картка учня ───────────────────────────────────────────── */
+/* ── картка учня ───────────────────────────────────────────────
+   Головна сторінка CRM. Перший екран відповідає на все, що
+   викладач тримає в голові про людину: коли наступне заняття, чи
+   є борг, що з домашнім. Історія й деталі — нижче, бо потрібні
+   рідше.                                                        */
 function StudentScreen({t, s, nav, params}){
   const st = sel.student(s, params.id);
   const [pay, setPay] = React.useState(false);
   const [menu, setMenu] = React.useState(false);
   const [del, setDel] = React.useState(false);
+  const [tab, setTab] = React.useState('lessons');
+
   if (!st) return (
     <div className="app stack">
       <StackBar t={t} title={t('st.title')} onBack={nav.back} />
       <div className="screen"><Empty icon={<Icon.users size={34} />} title={t('c.noData')} /></div>
     </div>
   );
+
   const stat = sel.studentStats(s, st.id);
-  const payments = s.payments.filter(p => p.studentId === st.id).sort((a, b) => (a.date < b.date ? 1 : -1));
   const cur = s.settings.currency;
+  const schedule = sel.scheduleOf(s, st.id);
+  const homework = stat.homework;
+  const hwActive = homework.filter(h => h.status !== 'done');
+
+  const balanceKind = stat.debt ? 'debt' : stat.prepay ? 'prepay' : '';
+  const balanceLabel = stat.debt ? t('st.owes') : stat.prepay ? t('st.prepayLabel') : t('st.settled');
 
   return (
     <div className="app stack">
       <StackBar t={t} title={t('st.title')} onBack={nav.back}
                 right={<IconBtn icon={<Icon.dots size={20} />} label={t('a.more')} onClick={() => setMenu(true)} />} />
       <div className="screen">
-        {/* шапка */}
+        {/* хто це */}
         <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '4px 2px 2px'}}>
-          <Avatar name={st.name} color={st.color} emoji={st.emoji} size={62} />
+          <Avatar name={st.name} color={st.color} emoji={st.emoji} photo={st.photo} size={62} />
           <div style={{minWidth: 0, flex: 1}}>
             <div className="dsp ellip" style={{fontSize: 22, fontWeight: 800, letterSpacing: '-.04em'}}>{st.name}</div>
             <div className="muted ellip" style={{fontSize: 13.5, fontWeight: 600, marginTop: 2}}>
@@ -268,94 +322,165 @@ function StudentScreen({t, s, nav, params}){
           </div>
         </div>
 
-        {/* цифри */}
-        <div className="statgrid" style={{marginTop: 18}}>
+        {/* швидкий зв'язок */}
+        {(st.phone || st.email) ? (
+          <div className="chips" style={{marginTop: 14}}>
+            {st.phone ? (
+              <button className="chip" onClick={() => { if (typeof window !== 'undefined') window.location.href = 'tel:' + st.phone; }}>
+                <Icon.phone size={15} />{t('st.callAction')}
+              </button>
+            ) : null}
+            {st.phone ? (
+              <button className="chip" onClick={() => { if (typeof window !== 'undefined') window.location.href = 'sms:' + st.phone; }}>
+                <Icon.telegram size={15} />{t('st.writeAction')}
+              </button>
+            ) : null}
+            {st.email ? (
+              <button className="chip" onClick={() => { if (typeof window !== 'undefined') window.location.href = 'mailto:' + st.email; }}>
+                <Icon.mail size={15} />Email
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* коли наступне заняття */}
+        <SectionHead title={t('st.nextLesson')}
+                     action={<span style={{display: 'inline-flex', alignItems: 'center', gap: 4}}><Icon.plus size={15} />{t('a.add')}</span>}
+                     onAction={() => nav.push({name: 'lesson-new', params: {studentId: st.id}})} />
+        {stat.next ? (
+          <div className="rows">
+            <Row icon={<Icon.calendar size={18} />} accent
+                 title={`${fmtRelDate(t, stat.next.date)}, ${stat.next.start}`}
+                 sub={[stat.next.subject, fmtDur(t, duration(stat.next.start, stat.next.end))].filter(Boolean).join(' · ')}
+                 right={fmtMoney(lessonPrice(stat.next, st.id), cur)} chevron
+                 onClick={() => nav.push({name: 'lesson', params: {id: stat.next.id}})} />
+          </div>
+        ) : (
+          <Card><div className="muted" style={{fontSize: 14}}>{t('cal.noLessons')}</div></Card>
+        )}
+
+        {/* гроші */}
+        <SectionHead title={t('st.balance')}
+                     action={t('st.addPrepay')} onAction={() => setPay(true)} />
+        <div className={'balance ' + balanceKind}>
+          <div style={{minWidth: 0, flex: 1}}>
+            <div className="lbl">{balanceLabel}</div>
+            {/* коли все оплачено, нуль писати нема сенсу: важливо
+                лише те, що питання грошей закрите */}
+            <div className={'v num ellip' + (balanceKind ? '' : ' muted')}>
+              {balanceKind ? fmtMoney(stat.debt || stat.prepay, cur) : '—'}
+            </div>
+          </div>
+          <span style={{width: 44, height: 44, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center',
+                        background: stat.debt ? 'var(--neg-soft)' : 'var(--accent-soft)',
+                        color: stat.debt ? 'var(--neg)' : 'var(--accent)'}}>
+            <Icon.wallet size={21} />
+          </span>
+        </div>
+        <div className="statgrid" style={{marginTop: 9}}>
           <div className="stat">
-            <div className="k">{t('st.lessonsCount')}</div>
-            <div className="v num">{stat.total}</div>
+            <div className="k">{t('st.doneCount')}</div>
+            <div className="v num">{stat.done}</div>
           </div>
           <div className="stat">
             <div className="k">{t('st.income')}</div>
             <div className="v num ellip">{fmtMoney(stat.income, cur, {bare: true})}</div>
           </div>
           <div className="stat">
-            <div className="k">{t('st.debt')}</div>
-            <div className="v num ellip" style={{color: stat.debt ? 'var(--neg)' : undefined}}>
-              {fmtMoney(stat.debt, cur, {bare: true})}
-            </div>
+            <div className="k">{t('st.canceledCount')}</div>
+            <div className="v num">{stat.canceled + stat.missed}</div>
           </div>
         </div>
 
-        {/* контакти */}
-        {(st.phone || st.email || st.birthday) ? (
+        {/* домашні завдання */}
+        <SectionHead title={t('hw.title')}
+                     action={<span style={{display: 'inline-flex', alignItems: 'center', gap: 4}}><Icon.plus size={15} />{t('a.add')}</span>}
+                     onAction={() => nav.push({name: 'homework-new', params: {studentId: st.id}})} />
+        {homework.length ? (
           <>
-            <SectionHead title={t('st.contacts')} />
+            <div className="rows">
+              {(hwActive.length ? hwActive : homework).slice(0, 3).map(h => (
+                <HomeworkRow key={h.id} t={t} s={s} hw={h} showStudents={false}
+                             onOpen={() => nav.push({name: 'homework', params: {id: h.id}})} />
+              ))}
+            </div>
+            {homework.length > 3 ? (
+              <div style={{textAlign: 'center', marginTop: 10}}>
+                <Btn kind="ghost" size="sm" onClick={() => nav.push({name: 'homework', params: {studentId: st.id}})}>
+                  {t('a.all')} · {t.plural('task', homework.length)}
+                </Btn>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <Card><div className="muted" style={{fontSize: 14}}>{t('hw.emptyD')}</div></Card>
+        )}
+
+        {/* розклад */}
+        {schedule.length ? (
+          <>
+            <SectionHead title={t('st.schedule')} />
             <div className="rows joined">
-              {st.phone ? (
-                <Row icon={<Icon.phone size={18} />} title={st.phone} sub={t('st.callAction')}
-                     onClick={() => { if (typeof window !== 'undefined') window.location.href = 'tel:' + st.phone; }} />
-              ) : null}
-              {st.email ? (
-                <Row icon={<Icon.mail size={18} />} title={st.email} sub={t('st.writeAction')}
-                     onClick={() => { if (typeof window !== 'undefined') window.location.href = 'mailto:' + st.email; }} />
-              ) : null}
-              {st.birthday ? (
-                <Row icon={<Icon.cake size={18} />} title={fmtShortDate(t, st.birthday)} sub={t('st.birthday')} />
-              ) : null}
+              {schedule.map(r => (
+                <Row key={r.id} icon={<Icon.repeat size={18} />}
+                     title={(r.days || []).map(d => t.cal.dowShort[d]).join(', ')}
+                     sub={t(r.freq === 'biweekly' ? 'rep.biweekly' : 'rep.weekly')}
+                     right={r.start} />
+              ))}
             </div>
           </>
         ) : null}
 
-        {/* найближчі */}
-        <SectionHead title={t('lesson.upcoming')}
-                     action={<span style={{display: 'inline-flex', alignItems: 'center', gap: 4}}><Icon.plus size={15} />{t('a.add')}</span>}
-                     onAction={() => nav.push({name: 'lesson-new', params: {studentId: st.id}})} />
-        {stat.upcoming.length ? (
-          <div className="rows">
-            {stat.upcoming.slice(0, 6).map(l => (
-              <Row key={l.id} icon={<Icon.calendar size={18} />} accent
-                   title={`${fmtRelDate(t, l.date)}, ${l.start}`}
-                   sub={[l.subject, fmtDur(t, duration(l.start, l.end))].filter(Boolean).join(' · ')}
-                   right={fmtMoney(l.price, cur)}
-                   onClick={() => nav.push({name: 'lesson', params: {id: l.id}})} />
-            ))}
-          </div>
-        ) : (
-          <Card><div className="muted" style={{fontSize: 14}}>{t('cal.noLessons')}</div></Card>
-        )}
-
-        {/* оплати */}
-        <SectionHead title={t('st.payments')}
-                     action={<span style={{display: 'inline-flex', alignItems: 'center', gap: 4}}><Icon.plus size={15} />{t('a.add')}</span>}
-                     onAction={() => setPay(true)} />
-        {payments.length ? (
-          <div className="rows joined">
-            {payments.slice(0, 8).map(p => (
-              <Row key={p.id} icon={<Icon.cash size={18} />} title={fmtMoney(p.amount, cur)}
-                   sub={`${fmtShortDate(t, p.date)} · ${t('st.' + p.method)}`} />
-            ))}
-          </div>
-        ) : (
-          <Card><div className="muted" style={{fontSize: 14}}>{t('st.noPayments')}</div></Card>
-        )}
-
-        {/* історія */}
+        {/* історія: заняття / оплати */}
         <SectionHead title={t('lesson.history')} />
-        {stat.history.length ? (
-          <div className="rows joined">
-            {stat.history.slice(0, 10).map(l => (
-              <Row key={l.id} icon={<Icon.check size={18} />}
-                   title={`${fmtShortDate(t, l.date)}, ${l.start}`}
-                   sub={t('lesson.' + l.status) + (l.paid ? ' · ' + t('lesson.paid') : '')}
-                   right={fmtMoney(l.price, cur)}
-                   onClick={() => nav.push({name: 'lesson', params: {id: l.id}})} />
-            ))}
-          </div>
-        ) : (
-          <Card><div className="muted" style={{fontSize: 14}}>{t('lesson.noHistory')}</div></Card>
-        )}
+        <Segmented value={tab} onChange={setTab}
+                   options={[{id: 'lessons', label: t('nav.calendar')}, {id: 'payments', label: t('st.payments')}]} />
+        <div style={{marginTop: 12}}>
+          {tab === 'lessons' ? (
+            stat.history.length ? (
+              <div className="rows joined">
+                {stat.history.slice(0, 12).map(l => (
+                  <Row key={l.id}
+                       icon={l.status === 'done' ? <Icon.check size={18} /> : <Icon.x size={18} />}
+                       title={`${fmtShortDate(t, l.date)}, ${l.start}`}
+                       sub={t('lesson.' + l.status)}
+                       right={fmtMoney(lessonPrice(l, st.id), cur)}
+                       rightSub={l.status === 'done' ? (sel.isLessonPaid(s, l) ? t('lesson.paid') : t('lesson.unpaid')) : ''}
+                       rightTone={l.status === 'done' && !sel.isLessonPaid(s, l) ? 'neg' : 'mute'}
+                       onClick={() => nav.push({name: 'lesson', params: {id: l.id}})} />
+                ))}
+              </div>
+            ) : (
+              <Card><div className="muted" style={{fontSize: 14}}>{t('lesson.noHistory')}</div></Card>
+            )
+          ) : (
+            stat.payments.length ? (
+              <div className="rows joined">
+                {stat.payments.slice(0, 12).map(p => (
+                  <Row key={p.id} icon={p.type === 'prepay' ? <Icon.wallet size={18} /> : <Icon.cash size={18} />}
+                       accent={p.type === 'prepay'}
+                       title={fmtMoney(p.amount, cur)}
+                       sub={`${fmtShortDate(t, p.date)} · ${t('st.' + p.method)}${p.type === 'prepay' ? ' · ' + t('fin.prepay') : ''}`} />
+                ))}
+              </div>
+            ) : (
+              <Card><div className="muted" style={{fontSize: 14}}>{t('st.noPayments')}</div></Card>
+            )
+          )}
+        </div>
 
-        {/* нотатки */}
+        {/* контакти й нотатки */}
+        {(st.phone || st.email || st.birthday) ? (
+          <>
+            <SectionHead title={t('st.contacts')} />
+            <div className="rows joined">
+              {st.phone ? <Row icon={<Icon.phone size={18} />} title={st.phone} sub={t('st.phone')} /> : null}
+              {st.email ? <Row icon={<Icon.mail size={18} />} title={st.email} sub={t('st.email')} /> : null}
+              {st.birthday ? <Row icon={<Icon.cake size={18} />} title={fmtShortDate(t, st.birthday)} sub={t('st.birthday')} /> : null}
+            </div>
+          </>
+        ) : null}
+
         {st.notes ? (
           <>
             <SectionHead title={t('st.notes')} />
@@ -382,6 +507,10 @@ function StudentScreen({t, s, nav, params}){
         <div className="rows" style={{marginTop: 6}}>
           <Row icon={<Icon.edit size={18} />} title={t('st.edit')}
                onClick={() => { setMenu(false); nav.push({name: 'student-edit', params: {id: st.id}}); }} />
+          <Row icon={<Icon.clipboard size={18} />} title={t('hw.add')}
+               onClick={() => { setMenu(false); nav.push({name: 'homework-new', params: {studentId: st.id}}); }} />
+          <Row icon={<Icon.wallet size={18} />} title={t('st.addPayment')}
+               onClick={() => { setMenu(false); setPay(true); }} />
           <Row icon={<Icon.doc size={18} />} title={st.archived ? t('st.unarchive') : t('st.archive')}
                onClick={() => { A.updateStudent(st.id, {archived: !st.archived}); setMenu(false); toast(t('st.updated')); }} />
           <Row icon={<Icon.trash size={18} />} danger title={t('a.delete')}

@@ -393,10 +393,47 @@
   .pill.neg{background:var(--neg-soft);color:var(--neg);}
   .pill.acc{background:var(--accent-soft);color:var(--accent);}
   .statgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;}
+  .statgrid.two{grid-template-columns:repeat(2,minmax(0,1fr));}
   .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 11px;
-    box-shadow:var(--shadow-1);min-width:0;}
+    box-shadow:var(--shadow-1);min-width:0;text-align:left;width:100%;
+    transition:transform .16s var(--ease);}
+  button.stat:active{transform:scale(.97);}
   .stat .k{font-size:11.5px;color:var(--ink-2);font-weight:700;}
   .stat .v{font-family:'Onest',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.04em;margin-top:3px;}
+  .stat .v.pos{color:var(--pos);} .stat .v.neg{color:var(--neg);}
+
+  /* ══════════ графік доходу ══════════
+     Стовпчики без осей, сітки й підписів значень: питання, на яке
+     він відповідає, — «більше чи менше, ніж торік», а не «скільки
+     саме». Точні числа поруч у KPI. */
+  .chart{display:flex;align-items:flex-end;gap:7px;height:112px;padding:2px 0;}
+  .chart .col{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:6px;}
+  .chart .bar{border-radius:7px 7px 4px 4px;background:var(--accent-soft-2);min-height:4px;
+    transition:height .4s var(--ease),background .2s;}
+  .chart .col.on .bar{background:var(--accent);box-shadow:0 8px 18px -10px var(--accent);}
+  .chartx{display:flex;gap:7px;margin-top:8px;}
+  .chartx span{flex:1;text-align:center;font-size:11px;font-weight:700;color:var(--ink-3);min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .chartx span.on{color:var(--accent);}
+
+  /* баланс учня */
+  .balance{display:flex;align-items:center;gap:12px;padding:14px 15px;border-radius:var(--r-md);
+    background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-1);}
+  .balance .v{font-family:'Onest',sans-serif;font-size:23px;font-weight:800;letter-spacing:-.04em;}
+  .balance.debt .v{color:var(--neg);} .balance.prepay .v{color:var(--pos);}
+
+  /* домашнє завдання */
+  .hw{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;width:100%;text-align:left;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);box-shadow:var(--shadow-1);
+    transition:transform .16s var(--ease),background .16s;}
+  .hw:active{transform:scale(.99);background:var(--surface-2);}
+  .hw .mark{width:24px;height:24px;border-radius:8px;flex:none;display:grid;place-items:center;margin-top:1px;
+    border:1.8px solid var(--line-2);color:#fff;}
+  .hw .mark.done{background:var(--accent);border-color:var(--accent);}
+  .hw .mark.doing{border-color:var(--warn);color:var(--warn);background:var(--warn-soft);}
+  .hw .t{font-weight:700;font-size:14.5px;letter-spacing:-.015em;line-height:1.3;}
+  .hw .t.done{color:var(--ink-2);text-decoration:line-through;text-decoration-thickness:1.5px;}
+  .hw .m{font-size:12.5px;color:var(--ink-2);margin-top:4px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
   .fixedbar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:var(--shell);z-index:35;
     padding:12px var(--pad) calc(12px + var(--safe-bottom));
     background:linear-gradient(180deg,transparent,var(--bg) 32%);}
@@ -436,7 +473,9 @@
 <script type="text/babel" data-presets="react" src="src/30-auth.js"></script>
 <script type="text/babel" data-presets="react" src="src/40-calendar.js"></script>
 <script type="text/babel" data-presets="react" src="src/45-lesson.js"></script>
+<script type="text/babel" data-presets="react" src="src/48-homework.js"></script>
 <script type="text/babel" data-presets="react" src="src/50-students.js"></script>
+<script type="text/babel" data-presets="react" src="src/55-finance.js"></script>
 <script type="text/babel" data-presets="react" src="src/60-market.js"></script>
 <script type="text/babel" data-presets="react" src="src/70-profile.js"></script>
 <script type="text/babel" data-presets="react" src="src/90-app.js"></script>

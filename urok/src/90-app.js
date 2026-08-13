@@ -21,6 +21,7 @@ const {
   MarketScreen, MarketItemScreen,
   ProfileScreen, ProfileEditScreen, SettingsScreen, PremiumScreen,
   ContestScreen, CoffeeScreen, TextScreen, HelpScreen,
+  HomeworkScreen, HomeworkCardScreen, HomeworkFormScreen, FinanceScreen,
 } = window.U;
 
 const TABS = [
@@ -38,6 +39,11 @@ const SCREENS = {
   'student-new': StudentFormScreen,
   'student-edit': StudentFormScreen,
   'market-item': MarketItemScreen,
+  'homework': props => (props.params && props.params.id
+    ? <HomeworkCardScreen {...props} /> : <HomeworkScreen {...props} />),
+  'homework-new': HomeworkFormScreen,
+  'homework-edit': HomeworkFormScreen,
+  'finance': FinanceScreen,
   'settings': SettingsScreen,
   'profile-edit': ProfileEditScreen,
   'premium': PremiumScreen,

@@ -101,14 +101,37 @@ eq(sel.plannedOn(store.get(), todayISO()), 400 + 300 * 2, 'запланован�
 eq(sel.conflicts(store.get(), {date: todayISO(), start: '10:30', end: '11:30'}).length, 1, 'перетин занять');
 eq(sel.conflicts(store.get(), {date: todayISO(), start: '11:00', end: '12:00'}).length, 0, 'стик не є перетином');
 
-/* оплата */
-A.togglePaid(l1.id, true);
+/* оплата заняття */
+A.payForLesson(l1.id);
 eq(store.get().payments.length, 1, 'оплата створилась');
-eq(sel.studentStats(store.get(), st1.id).income, 400, 'дохід учня');
-eq(sel.studentStats(store.get(), st1.id).debt, 0, 'боргу немає після оплати');
-A.togglePaid(l1.id, false);
+yes(sel.isLessonPaid(store.get(), store.get().lessons.find(l => l.id === l1.id)), 'заняття позначилось оплаченим');
+eq(sel.ledger(store.get(), st1.id).debt, 0, 'боргу немає після оплати');
+A.payForLesson(l1.id);
+eq(store.get().payments.length, 1, 'повторна оплата того самого заняття не дублюється');
+A.unpayLesson(l1.id);
 eq(store.get().payments.length, 0, 'скасування оплати прибирає платіж');
-eq(sel.studentStats(store.get(), st1.id).debt, 400, 'борг після скасування');
+eq(sel.ledger(store.get(), st1.id).debt, 400, 'борг після скасування');
+
+/* передоплата: гроші наперед закривають майбутні заняття самі */
+A.addPayment({studentId: st1.id, amount: 1200});
+let money = sel.ledger(store.get(), st1.id);
+eq(money.debt, 0, 'передоплата закрила борг');
+eq(money.prepay, 800, 'решта лишилась на балансі');
+const extra = A.addLesson({studentIds: [st1.id], date: addDays(todayISO(), -1), start: '09:00', end: '10:00', price: 400, status: 'done'});
+money = sel.ledger(store.get(), st1.id);
+eq(money.prepay, 400, 'проведене заняття з\'їло частину передоплати');
+yes(sel.isLessonPaid(store.get(), store.get().lessons.find(l => l.id === extra.id)), 'заняття закрите з балансу');
+eq(sel.totalPrepay(store.get()), 400, 'загальна передоплата');
+eq(sel.totalDebt(store.get()), 0, 'боргів немає');
+A.removePayment(store.get().payments[0].id);
+yes(sel.debtors(store.get()).length === 1, 'без оплати учень стає боржником');
+store.set(x => ({...x, payments: [], lessons: x.lessons.filter(l => l.id !== extra.id)}));
+
+/* скасоване й зірване заняття не приносять доходу */
+const cx = A.addLesson({studentIds: [st1.id], date: todayISO(), start: '20:00', end: '21:00', price: 400, status: 'canceled'});
+const mx = A.addLesson({studentIds: [st1.id], date: todayISO(), start: '21:00', end: '22:00', price: 400, status: 'missed'});
+eq(sel.incomeOn(store.get(), todayISO()), 400, 'скасоване й зірване не рахуються в дохід');
+A.removeLesson(cx.id); A.removeLesson(mx.id);
 
 /* групове заняття: обидва учні бачать його */
 eq(sel.lessonsOfStudent(store.get(), st2.id).length, 1, 'групове заняття видно другому учню');
@@ -134,15 +157,85 @@ const withSeries = store.get().lessons.length;
 A.removeSeries('sr_test');
 yes(store.get().lessons.length < withSeries, 'видалення серії прибрало майбутні заняття');
 
-/* ліміт безкоштовного плану */
+/* ліміт безкоштовного плану — м'який: пропонує, але не блокує */
 store.set(s => ({...s, students: []}));
 for (let i = 0; i < FREE_STUDENT_LIMIT; i++) A.addStudent({name: 'Учень ' + i});
-yes(!sel.canAddStudent(store.get()), 'ліміт безкоштовного плану спрацював');
+yes(sel.overFreeLimit(store.get()), 'ліміт безкоштовного плану досягнуто');
+yes(sel.canAddStudent(store.get()), 'але додати учня все одно можна');
 A.setPremium('yearly', addDays(todayISO(), 365));
-yes(sel.canAddStudent(store.get()), 'преміум знімає ліміт');
+yes(!sel.overFreeLimit(store.get()), 'преміум знімає ліміт');
 yes(sel.isPremium(store.get()), 'преміум активний');
 A.setPremium('yearly', addDays(todayISO(), -1));
 yes(!sel.isPremium(store.get()), 'прострочений преміум не діє');
+
+/* групове заняття: у кожного своя ціна */
+store.set(x => ({...x, students: [], lessons: [], payments: [], homework: [], premium: {plan: null, until: '', trialUsed: false}}));
+const a1 = A.addStudent({name: 'Учень А', price: 300});
+const a2 = A.addStudent({name: 'Учень Б', price: 300});
+const grp = A.addLesson({studentIds: [a1.id, a2.id], date: todayISO(), start: '18:00', end: '19:00',
+                         price: 300, prices: {[a2.id]: 250}, status: 'done'});
+eq(U.lessonPrice(grp, a1.id), 300, 'ціна за замовчуванням');
+eq(U.lessonPrice(grp, a2.id), 250, 'своя ціна учня');
+eq(U.lessonTotal(grp), 550, 'разом за групове заняття');
+eq(sel.incomeOn(store.get(), todayISO()), 550, 'дохід рахує ціну кожного');
+eq(sel.ledger(store.get(), a2.id).debt, 250, 'борг рахується за своєю ціною');
+A.payForLesson(grp.id);
+eq(store.get().payments.length, 2, 'оплата групового створює платіж кожному');
+eq(sel.totalDebt(store.get()), 0, 'після оплати боргів немає');
+
+/* домашні завдання */
+const hw1 = A.addHomework({title: 'Вправи 3–5', studentIds: [a1.id], dueDate: addDays(todayISO(), -1)});
+const hw2 = A.addHomework({title: 'Читання', studentIds: [a2.id], dueDate: addDays(todayISO(), 3)});
+eq(store.get().homework.length, 2, 'завдання створились');
+eq(sel.homeworkOverdue(store.get()).length, 1, 'прострочене видно окремо');
+eq(sel.homeworkOf(store.get(), a1.id).length, 1, 'завдання прив\'язане до учня');
+A.setHomeworkStatus(hw1.id, 'done');
+eq(sel.homeworkActive(store.get()).length, 1, 'виконане зникає з активних');
+eq(sel.homeworkToCheck(store.get()).length, 1, 'виконане чекає на перевірку');
+A.checkHomework(hw1.id, true);
+eq(sel.homeworkToCheck(store.get()).length, 0, 'перевірене більше не чекає');
+A.setHomeworkStatus(hw1.id, 'todo');
+yes(!store.get().homework.find(h => h.id === hw1.id).checked, 'повернення в роботу скидає перевірку');
+A.removeHomework(hw2.id);
+eq(store.get().homework.length, 1, 'завдання видаляється');
+
+/* видалення учня прибирає його завдання */
+A.removeStudent(a1.id);
+eq(store.get().homework.length, 0, 'завдання пішло разом з учнем');
+
+/* статистика й графік */
+store.set(x => ({...x, students: [], lessons: [], payments: [], homework: []}));
+const s3 = A.addStudent({name: 'Учень В', price: 500});
+A.addLesson({studentIds: [s3.id], date: todayISO(), start: '10:00', end: '11:00', price: 500, status: 'done'});
+A.addLesson({studentIds: [s3.id], date: todayISO(), start: '12:00', end: '13:30', price: 500, status: 'done'});
+A.addLesson({studentIds: [s3.id], date: todayISO(), start: '15:00', end: '16:00', price: 500, status: 'canceled'});
+A.addLesson({studentIds: [s3.id], date: addDays(todayISO(), 1), start: '10:00', end: '11:00', price: 500});
+const month = sel.periodRange('month', todayISO());
+const stats = sel.stats(store.get(), month.from, month.to);
+eq(stats.lessons, 2, 'проведених занять за місяць');
+eq(stats.earned, 1000, 'зароблено за місяць');
+eq(stats.canceled, 1, 'скасованих за місяць');
+eq(stats.avgPrice, 500, 'середня ціна заняття');
+eq(stats.hours, 2.5, 'годин за місяць');
+eq(sel.expectedBetween(store.get(), todayISO(), addDays(todayISO(), 7)), 500, 'очікується з запланованих');
+eq(sel.incomeSeries(store.get(), 'day').length, 7, 'графік по днях — тиждень');
+eq(sel.incomeSeries(store.get(), 'week').length, 6, 'графік по тижнях');
+eq(sel.incomeSeries(store.get(), 'month').length, 6, 'графік по місяцях');
+eq(sel.incomeSeries(store.get(), 'year').length, 5, 'графік по роках');
+const last = sel.incomeSeries(store.get(), 'day').slice(-1)[0];
+eq(last.value, 1000, 'останній стовпчик — сьогоднішній дохід');
+yes(sel.periodRange('week').from <= todayISO() && sel.periodRange('week').to >= todayISO(), 'тиждень містить сьогодні');
+
+/* перенесення й повтор */
+const mv = A.addLesson({studentIds: [s3.id], date: todayISO(), start: '17:00', end: '18:00', price: 500});
+A.rescheduleLesson(mv.id, {date: addDays(todayISO(), 2), start: '19:00'});
+const moved = store.get().lessons.find(l => l.id === mv.id);
+eq(moved.date, addDays(todayISO(), 2), 'дата перенеслась');
+eq(moved.start + '–' + moved.end, '19:00–20:00', 'тривалість збереглась при перенесенні');
+const copy = A.duplicateLesson(mv.id, 7);
+eq(copy.date, addDays(moved.date, 7), 'копія через тиждень');
+eq(copy.studentIds.join(), moved.studentIds.join(), 'копія з тими самими учнями');
+yes(copy.id !== moved.id, 'копія — окреме заняття');
 
 /* збереження між запусками */
 store.set(s => ({...s, premium: {plan: null, until: '', trialUsed: false}}));
@@ -177,6 +270,13 @@ const stackRoutes = t => {
     ['student-new', {}],
     ['student-edit', {id: student.id}],
     ['market-item', {id: item.id}],
+    ['homework', {}],
+    ['homework', {id: (s.homework[0] || {}).id}],
+    ['homework', {studentId: student.id}],
+    ['homework-new', {studentId: student.id}],
+    ['homework-new', {lessonId: lesson.id}],
+    ['homework-edit', {id: (s.homework[0] || {}).id}],
+    ['finance', {}],
     ['settings', {}],
     ['profile-edit', {}],
     ['premium', {}],
@@ -191,6 +291,7 @@ const stackRoutes = t => {
     ['lesson', {id: 'ghost'}],
     ['student', {id: 'ghost'}],
     ['market-item', {id: 'ghost'}],
+    ['homework', {id: 'ghost'}],
   ];
 };
 
@@ -206,6 +307,9 @@ langs.forEach(lang => {
   });
   screen(SCREENS['lesson-new'], {t, s: store.get(), nav, params: {}}, `${lang}/порожньо/lesson-new`);
   screen(SCREENS['student-new'], {t, s: store.get(), nav, params: {}}, `${lang}/порожньо/student-new`);
+  screen(SCREENS['finance'], {t, s: store.get(), nav, params: {}}, `${lang}/порожньо/finance`);
+  screen(SCREENS['homework'], {t, s: store.get(), nav, params: {}}, `${lang}/порожньо/homework`);
+  screen(SCREENS['homework-new'], {t, s: store.get(), nav, params: {}}, `${lang}/порожньо/homework-new`);
 
   /* заповнений застосунок */
   loadDemo(t);
@@ -255,6 +359,9 @@ console.log('\nшторки');
     ['Segmented', U.Segmented, {value: 'week', onChange: noop, options: [{id: 'week', label: t('d.week')}, {id: 'month', label: t('d.month')}]}],
     ['Empty', U.Empty, {icon: null, title: t('cal.noLessons'), text: t('cal.noLessonsD'), action: t('cal.addLesson'), onAction: noop}],
     ['Keypad', U.Keypad, {onKey: noop, onBack: noop}],
+    ['HomeworkRow', U.HomeworkRow, {t, s, hw: s.homework[0], onOpen: noop}],
+    ['Bars', U.Bars, {data: sel.incomeSeries(s, 'month'), onPick: noop, labelOf: d => d.key}],
+    ['Stats', U.Stats, {items: [{k: 'a', v: 1}, {k: 'b', v: 2, onClick: noop}]}],
   ];
   cases.forEach(([name, Comp, props]) => {
     if (!Comp) return fail(`компонент ${name} не експортований`);

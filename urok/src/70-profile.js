@@ -15,7 +15,7 @@ window.U = window.U || {};
 
 const {
   Icon, Avatar, Btn, IconBtn, Card, SectionHead, Row, Field, Input, TextArea, Empty, Sheet, Confirm,
-  Segmented, Chips, Switch, SwitchRow, StackBar, AppBar, toast,
+  Segmented, Chips, Switch, SwitchRow, StackBar, AppBar, toast, Stats, photoFromFile,
   A, sel, store, Billing, PRODUCTS, LANGS, CURRENCIES, TIMEZONES, FREE_STUDENT_LIMIT, VERSION,
   todayISO, addDays, startOfWeek, weekDays, fmtMoney, fmtShortDate, fmtDayMonth, currencySymbol,
   applyTheme, applyLang, loadDemo, unloadDemo, hasDemo,
@@ -23,11 +23,11 @@ const {
 
 /* ── профіль ───────────────────────────────────────────────── */
 function ProfileScreen({t, s, nav}){
-  const week = weekDays(todayISO());
-  const lessonsWeek = s.lessons.filter(l => l.date >= week[0] && l.date <= week[6] && l.status !== 'canceled').length;
-  const monthFrom = todayISO().slice(0, 8) + '01';
-  const incomeMonth = sel.incomeBetween(s, monthFrom, todayISO());
+  const month = sel.periodRange('month', todayISO());
+  const stats = sel.stats(s, month.from, month.to);
   const premium = sel.isPremium(s);
+  const hwActive = sel.homeworkActive(s).length;
+  const subjects = (s.profile.subjects || []).filter(Boolean);
 
   return (
     <div className="app tabs">
@@ -37,34 +37,40 @@ function ProfileScreen({t, s, nav}){
       <div className="screen">
         <button className="card pad press" style={{width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 14}}
                 onClick={() => nav.push({name: 'profile-edit'})}>
-          <Avatar name={s.profile.name || 'U'} color={s.profile.color} emoji={s.profile.emoji} size={58} />
+          <Avatar name={s.profile.name || 'U'} color={s.profile.color} emoji={s.profile.emoji}
+                  photo={s.profile.photo} size={58} />
           <span style={{flex: 1, minWidth: 0}}>
             <span className="dsp ellip" style={{display: 'block', fontSize: 19, fontWeight: 800, letterSpacing: '-.035em'}}>
               {s.profile.name || t('pr.title')}
             </span>
             <span className="ds muted ellip" style={{display: 'block', marginTop: 2}}>
-              {s.auth.phone || s.profile.email || t('pr.editProfile')}
+              {subjects.length ? subjects.join(', ') : (s.auth.phone || s.profile.email || t('pr.editProfile'))}
             </span>
           </span>
           {premium ? <span className="pill acc"><Icon.crown size={13} />{t('sub.premiumBadge')}</span> : null}
           <Icon.chevronR size={18} className="chev" />
         </button>
 
-        {/* цифри */}
-        <div className="statgrid" style={{marginTop: 12}}>
-          <div className="stat">
-            <div className="k">{t('pr.thisWeekLessons')}</div>
-            <div className="v num">{lessonsWeek}</div>
-          </div>
-          <div className="stat">
-            <div className="k">{t('pr.thisMonthIncome')}</div>
-            <div className="v num ellip">{fmtMoney(incomeMonth, s.settings.currency, {bare: true})}</div>
-          </div>
-          <div className="stat">
-            <div className="k">{t('pr.activeStudents')}</div>
-            <div className="v num">{sel.activeStudents(s).length}</div>
-          </div>
-        </div>
+        {s.profile.bio ? (
+          <div className="muted" style={{fontSize: 13.5, lineHeight: 1.5, margin: '12px 2px 0'}}>{s.profile.bio}</div>
+        ) : null}
+
+        {/* як пройшов місяць */}
+        <SectionHead title={t('fin.summary', {period: t.cal.monthNom[parseInt(month.from.slice(5, 7), 10) - 1]})}
+                     action={t('dash.openFinance')} onAction={() => nav.push({name: 'finance'})} />
+        <Stats items={[
+          {k: t('fin.lessonsDone'), v: stats.lessons, onClick: () => nav.push({name: 'finance'})},
+          {k: t('pr.activeStudents'), v: stats.students, onClick: () => nav.go('students')},
+          {k: t('dash.income'), v: fmtMoney(stats.earned, s.settings.currency, {bare: true}),
+           onClick: () => nav.push({name: 'finance'})},
+        ]} />
+        <div style={{height: 9}} />
+        <Stats items={[
+          {k: t('fin.avgPrice'), v: fmtMoney(stats.avgPrice, s.settings.currency, {bare: true})},
+          {k: t('pr.homework'), v: `${stats.homeworkDone}/${stats.homeworkTotal}`,
+           onClick: () => nav.push({name: 'homework'})},
+          {k: t('fin.canceledCount'), v: stats.canceled + stats.missed},
+        ]} />
 
         {!premium ? (
           <button className="press" style={{width: '100%', textAlign: 'left', marginTop: 16, border: 0, padding: '16px 17px',
@@ -80,9 +86,21 @@ function ProfileScreen({t, s, nav}){
           </button>
         ) : null}
 
+        <SectionHead title={t('pr.work')} />
+        <div className="rows joined">
+          <Row icon={<Icon.chart size={19} />} accent title={t('pr.finance')} sub={t('pr.financeD')} chevron
+               onClick={() => nav.push({name: 'finance'})} />
+          <Row icon={<Icon.clipboard size={19} />} title={t('pr.homework')}
+               sub={hwActive ? t.plural('task', hwActive) : t('pr.homeworkD')} chevron
+               onClick={() => nav.push({name: 'homework'})} />
+          <Row icon={<Icon.users size={19} />} title={t('nav.students')}
+               sub={t.plural('student', sel.activeStudents(s).length)} chevron
+               onClick={() => nav.go('students')} />
+        </div>
+
         <SectionHead title={t('pr.market')} />
         <div className="rows joined">
-          <Row icon={<Icon.bag size={19} />} accent title={t('pr.market')} sub={t('pr.marketD')} chevron
+          <Row icon={<Icon.bag size={19} />} title={t('pr.market')} sub={t('pr.marketD')} chevron
                onClick={() => nav.go('market')} />
           <Row icon={<Icon.trophy size={19} />} title={t('pr.contest')} sub={t('pr.contestD')} chevron
                onClick={() => nav.push({name: 'contest'})} />
@@ -123,12 +141,27 @@ function ProfileEditScreen({t, s, nav}){
   const [name, setName] = React.useState(s.profile.name);
   const [email, setEmail] = React.useState(s.profile.email);
   const [color, setColor] = React.useState(s.profile.color);
+  const [photo, setPhoto] = React.useState(s.profile.photo || '');
+  const [subjects, setSubjects] = React.useState((s.profile.subjects || []).join(', '));
+  const [bio, setBio] = React.useState(s.profile.bio || '');
   return (
     <div className="app stack">
       <StackBar t={t} title={t('pr.editProfile')} onBack={nav.back} />
       <div className="screen">
         <div style={{display: 'flex', justifyContent: 'center', margin: '6px 0 4px'}}>
-          <Avatar name={name || 'U'} color={color} size={88} />
+          <Avatar name={name || 'U'} color={color} photo={photo} size={88} />
+        </div>
+        <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 12}}>
+          <label className="btn sec sm" style={{cursor: 'pointer'}}>
+            {photo ? t('st.photo') : t('st.photoAdd')}
+            <input type="file" accept="image/*" style={{display: 'none'}}
+                   onChange={e => {
+                     const file = e.target.files && e.target.files[0];
+                     if (!file) return;
+                     photoFromFile(file).then(setPhoto).catch(() => toast(t('a.retry')));
+                   }} />
+          </label>
+          {photo ? <Btn kind="ghost" size="sm" onClick={() => setPhoto('')}>{t('st.photoRemove')}</Btn> : null}
         </div>
         <div className="chips" style={{justifyContent: 'center', marginTop: 14}}>
           {window.U.AVATAR_COLORS.map(c => (
@@ -143,9 +176,18 @@ function ProfileEditScreen({t, s, nav}){
         <Field label={t('st.email')}>
           <Input type="email" value={email} placeholder="mail@example.com" onChange={e => setEmail(e.target.value)} />
         </Field>
+        <Field label={t('pr.subjects')} hint={t('c.optional')}>
+          <Input value={subjects} placeholder={t('pr.subjectsPlaceholder')} onChange={e => setSubjects(e.target.value)} />
+        </Field>
+        <Field label={t('pr.bio')}>
+          <TextArea value={bio} placeholder={t('pr.bioPlaceholder')} onChange={e => setBio(e.target.value)} />
+        </Field>
         <div style={{height: 20}} />
         <Btn kind="pri" size="lg" wide onClick={() => {
-          A.setProfile({name: name.trim(), email, color});
+          A.setProfile({
+            name: name.trim(), email, color, photo, bio,
+            subjects: subjects.split(',').map(x => x.trim()).filter(Boolean),
+          });
           toast(t('c.saved'));
           nav.back();
         }}>{t('a.save')}</Btn>
@@ -206,6 +248,9 @@ function SettingsScreen({t, s, nav}){
           <SwitchRow icon={<Icon.wallet size={19} />} title={t('se.notifPayment')} sub={t('se.notifPaymentD')}
                      on={set.notifications.payment}
                      onChange={v => A.setSettings({notifications: {...set.notifications, payment: v}})} />
+          <SwitchRow icon={<Icon.clipboard size={19} />} title={t('se.notifHomework')} sub={t('se.notifHomeworkD')}
+                     on={set.notifications.homework}
+                     onChange={v => A.setSettings({notifications: {...set.notifications, homework: v}})} />
           <SwitchRow icon={<Icon.sparkle size={19} />} title={t('se.notifNews')} sub={t('se.notifNewsD')}
                      on={set.notifications.news}
                      onChange={v => A.setSettings({notifications: {...set.notifications, news: v}})} />

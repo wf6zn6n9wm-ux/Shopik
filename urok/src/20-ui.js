@@ -71,18 +71,62 @@ const Icon = {
   crown: svg(<><path d="M3.4 7.6l4 3.4L12 4.6l4.6 6.4 4-3.4-1.7 9.6H5.1L3.4 7.6Z"/><path d="M5.6 20.4h12.8"/></>),
   pin: svg(<><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></>),
   download: svg(<><path d="M12 3.6v11M8.4 11L12 14.6 15.6 11"/><path d="M5 16.4v3a1.6 1.6 0 0 0 1.6 1.6h10.8a1.6 1.6 0 0 0 1.6-1.6v-3"/></>),
+  clipboard: svg(<><rect x="4.5" y="4.5" width="15" height="16.5" rx="3"/><path d="M9 4.5a3 3 0 0 1 6 0"/><path d="M8.6 12.4l2 2 4.8-4.8"/></>),
   cake: svg(<><path d="M4 20.5h16v-6a2.5 2.5 0 0 0-2.5-2.5h-11A2.5 2.5 0 0 0 4 14.5v6Z"/><path d="M4 16.4c1.6 1.4 2.9 1.4 4.5 0s2.9-1.4 4.5 0 2.9 1.4 4.5 0M8.4 9V7M12 9V6.4M15.6 9V7"/></>),
 };
 
 /* ── дрібні примітиви ──────────────────────────────────────── */
-function Avatar({name, color, emoji, size = 44, badge, badgeAt, ring, style}){
+function Avatar({name, color, emoji, photo, size = 44, badge, badgeAt, ring, style}){
   const fs = Math.round(size * 0.38);
   return (
     <div className={'av' + (ring ? ' ring' : '')}
          style={{width: size, height: size, fontSize: emoji ? Math.round(size * 0.5) : fs,
-                 background: emoji ? 'var(--surface-2)' : (color || 'var(--accent)'), ...style}}>
-      {emoji || initials(name)}
+                 background: photo ? `center/cover url(${photo})` : emoji ? 'var(--surface-2)' : (color || 'var(--accent)'),
+                 ...style}}>
+      {photo ? '' : (emoji || initials(name))}
       {badge ? <i className={'badge' + (badgeAt === 'br' ? ' br' : '')} style={{background: badge}} /> : null}
+    </div>
+  );
+}
+
+/* Три числа в ряд — головний спосіб показати стан справ, не
+   змушуючи читати списки. Натискання веде туди, звідки число. */
+function Stats({items, two}){
+  return (
+    <div className={'statgrid' + (two ? ' two' : '')}>
+      {items.map((x, i) => {
+        const inner = (
+          <>
+            <div className="k ellip">{x.k}</div>
+            <div className={'v num ellip' + (x.tone ? ' ' + x.tone : '')}>{x.v}</div>
+          </>
+        );
+        return x.onClick
+          ? <button className="stat" key={i} onClick={x.onClick}>{inner}</button>
+          : <div className="stat" key={i}>{inner}</div>;
+      })}
+    </div>
+  );
+}
+
+/* Графік доходу: стовпчики й підписи, більше нічого. Висота — від
+   найбільшого значення, тому порожній період не малює нічого. */
+function Bars({data, activeIndex, onPick, labelOf}){
+  const max = Math.max(1, ...data.map(d => d.value));
+  const active = activeIndex === undefined ? data.length - 1 : activeIndex;
+  return (
+    <div>
+      <div className="chart">
+        {data.map((d, i) => (
+          <button className={'col' + (i === active ? ' on' : '')} key={d.key}
+                  onClick={onPick ? () => onPick(i, d) : undefined} aria-label={String(d.value)}>
+            <span className="bar" style={{height: `${Math.max(4, Math.round(d.value / max * 100))}%`}} />
+          </button>
+        ))}
+      </div>
+      <div className="chartx">
+        {data.map((d, i) => <span key={d.key} className={i === active ? 'on' : ''}>{labelOf(d, i)}</span>)}
+      </div>
     </div>
   );
 }
@@ -412,7 +456,7 @@ function StackBar({title, onBack, right, t}){
 }
 
 Object.assign(window.U, {
-  Icon, Avatar, Btn, IconBtn, Card, SectionHead, Row, Field, Input, TextArea, Switch, SwitchRow,
+  Icon, Avatar, Stats, Bars, Btn, IconBtn, Card, SectionHead, Row, Field, Input, TextArea, Switch, SwitchRow,
   Segmented, Chips, Empty, Sheet, Confirm, toast, Toaster, toastBus,
   DatePickerSheet, TimePickerSheet, PickerField, Stepper, AppBar, StackBar,
 });
