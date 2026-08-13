@@ -2,8 +2,10 @@
    Юридичні документи: винести з коду й повернути назад.
 
      node trainer/legal/sync.js export
-        legal/terms.md, legal/privacy.md   — щоб віддати юристу
+        legal/terms.md, legal/privacy.md   — редагований текст
         terms.html, privacy.html           — публічні сторінки для магазинів
+        delete.html                        — сторінка видалення даних:
+                                             Google Play вимагає для неї URL
 
      node trainer/legal/sync.js import
         читає виправлені .md і переписує LEGAL_DOCS у index.html
@@ -82,9 +84,47 @@ const htmlOf = (doc, v, other) => `<!doctype html>
     <b>PRO Trainer</b>
   </div>
   <h1>${esc(doc.title)}</h1>
-${doc.blocks.map(([h, tx]) => '  <h2>' + esc(h) + '</h2>\n  <p>' + esc(fill(tx, v)) + '</p>').join('\n')}
+${doc.blocks.map(([h, tx]) => '  <h2>' + esc(h) + '</h2>\n' +
+    fill(tx, v).split('\n\n').map(par => '  <p>' + esc(par) + '</p>').join('\n')).join('\n')}
   <p class="note">${esc(v.company)} · <a href="mailto:${esc(v.email)}">${esc(v.email)}</a><br>
   ${esc(other.title)} — <a href="/${other.file}">${esc(other.title.toLowerCase())}</a></p>
+</div>
+</body>
+</html>
+`;
+
+/* Google Play вимагає окрему адресу, де користувач бачить, як видалити
+   свої дані. Сторінка коротка навмисно: більшість даних тренер стирає
+   сам у застосунку, а на сервері лежить тільки запис про підписку. */
+const deleteHtml = v => `<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>PRO Trainer — видалення даних</title>
+<link rel="stylesheet" href="/pay.css" />
+</head>
+<body>
+<div class="wrap doc">
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24"><path d="M4 9v6M8 6.5v11M16 6.5v11M20 9v6M8 12h8"/></svg></div>
+    <b>PRO Trainer</b>
+  </div>
+  <h1>Видалення даних</h1>
+
+  <h2>Дані застосунку — у вас на пристрої</h2>
+  <p>Клієнти, тренування, оплати, товари й нотатки зберігаються на вашому пристрої, а не в нас. Видалити їх можна самостійно й одразу: Профіль → Налаштування → «Видалити всі дані». Окремого клієнта разом з історією видаляє кнопка в його картці. Видалення застосунку теж стирає ці дані з пристрою.</p>
+  <p>Радимо спершу зберегти резервну копію: Профіль → Резервна копія → «Створити копію зараз».</p>
+
+  <h2>Що зберігається в нас</h2>
+  <p>Лише якщо ви оформили підписку на сайті: логін (пошта або номер телефону), знеособлений ідентифікатор пристрою, тариф, строк підписки, номер платежу й дата початку пробного періоду. Даних ваших клієнтів у нас немає.</p>
+
+  <h2>Як попросити видалити</h2>
+  <p>Напишіть на <a href="mailto:${esc(v.email)}?subject=Видалення%20даних%20PRO%20Trainer">${esc(v.email)}</a> з тієї самої пошти, якою користуєтесь у застосунку (або вкажіть номер телефону). Ми видалимо запис протягом 30 днів.</p>
+  <p>Разом із записом зникне й активна підписка: доступ доведеться оформлювати заново, а пробний період не поновиться. Дані про оплати ми зобов'язані зберігати стільки, скільки вимагає податкове законодавство.</p>
+
+  <p class="note">${esc(v.company)} · <a href="mailto:${esc(v.email)}">${esc(v.email)}</a><br>
+  <a href="/privacy">політика конфіденційності</a> · <a href="/terms">умови використання</a></p>
 </div>
 </body>
 </html>
@@ -102,7 +142,9 @@ function doExport(){
       htmlOf(docs[k], v, {title: docs[o.key].title, file: o.file}));
     console.log('  ✓ legal/' + k + '.md  ·  ' + k + '.html');
   });
-  console.log('\nЮристу — файли .md. Магазинам — посилання на /terms і /privacy.');
+  fs.writeFileSync(path.join(ROOT, 'delete.html'), deleteHtml(v));
+  console.log('  ✓ delete.html');
+  console.log('\nРедагувати — .md. Магазинам — /terms, /privacy і /delete.');
 }
 
 /* ─────────── import ─────────── */
@@ -130,11 +172,13 @@ function parseMd(text){
 
 /* назад у JS: рядок із підстановками стає шаблонним, решта — звичайним */
 function jsString(s){
-  const withVars = s.replace(/\{\{(\w+)\}\}/g,
+  /* екрануємо до підстановки змінних, інакше зіпсували б ${...},
+     і обов'язково перенесення рядків: розділ буває з кількох абзаців */
+  const safe = String(s).replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n');
+  const withVars = safe.replace(/\{\{(\w+)\}\}/g,
     (_, k) => (k === 'trialDays' ? '${TRIAL_DAYS}' : '${LEGAL.' + k + '}'));
-  if (withVars.indexOf('${') >= 0)
-    return '`' + withVars.replace(/`/g, '\\`') + '`';
-  return "'" + withVars.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+  if (withVars !== safe) return '`' + withVars.replace(/`/g, '\\`') + '`';
+  return "'" + withVars.replace(/'/g, "\\'") + "'";
 }
 
 function doImport(){

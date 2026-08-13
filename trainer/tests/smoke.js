@@ -98,7 +98,7 @@ const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, 
   clientPrice, typedPrice, periodOf, periodLabel, deltaRange, RangeSheet, PeriodBar, iso, addDays,
   Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Box, Notifier, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES, Toaster, Photo, PHOTO, Web, WEB,
-  financeCsv, Files, inRange,
+  financeCsv, Files, inRange, LEGAL, LEGAL_DOCS, Legal,
   PHRASES, LANGS, detectLang, t, _seen, statusTitle, typeTitle, goalTitle, fill, monthWord,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
@@ -590,6 +590,31 @@ part('доступ: міст до магазину');
 }
 
 const CH_Q = String.fromCharCode(34);
+part('юридичні документи');
+{
+  /* Магазини перевіряють, що документи справжні, а не заглушка. */
+  const docs = T.LEGAL_DOCS;
+  ok('реквізити підставлені, а не плейсхолдер',
+     !/\[НАЗВА|\[EMAIL|\[САЙТ/.test(JSON.stringify(docs)) && T.LEGAL.company.length > 3,
+     T.LEGAL.company + ' · ' + T.LEGAL.email);
+  ok('обидва документи на місці', docs.terms.blocks.length >= 10 && docs.privacy.blocks.length >= 10,
+     docs.terms.blocks.length + ' і ' + docs.privacy.blocks.length + ' розділів');
+  /* те, чого магазини й закон вимагають прямо */
+  const all = JSON.stringify(docs);
+  [['автопродовження', /автопродовження/], ['повернення коштів', /поверн/], ['вік користувача', /18 років/],
+   ['право, що застосовується', /законодавство України/], ['видалення даних', /видал/],
+   ['підстава обробки', /виконання договору/]].forEach(([what, re]) =>
+    ok('згадано: ' + what, re.test(all)));
+
+  /* розділ із кількох абзаців має показуватись абзацами, а не суцільним текстом */
+  const multi = docs.terms.blocks.find(b => b[1].indexOf('\n\n') > 0);
+  ok('є розділи з кількох абзаців', !!multi, multi ? multi[0] : 'немає');
+  const tx = textOf(el(T.Legal, {params: {doc: 'terms'}, onClose(){}}));
+  ok('на екрані видно обидва абзаци',
+     multi && multi[1].split('\n\n').every(par => tx.indexOf(par.slice(0, 40)) >= 0));
+  ok('переносів рядків на екрані не лишилось', tx.indexOf('\n\n') < 0);
+}
+
 part('вивантаження фінансів');
 {
   T.Box.cache.clear();
