@@ -448,11 +448,14 @@ const PHRASES = [
   ['з', 'с', 'of', 'z'],
   ['до', 'до', 'until', 'do'],
   ['др', 'др', 'b-day', 'ur.'],
+  ['ні', 'нет', 'no', 'nie'],
   ['хв', 'мин', 'min', 'min'],
   ['Рік', 'Год', 'Year', 'Rok'],
+  ['Тип', 'Тип', 'Type', 'Typ'],
   ['Час', 'Время', 'Time', 'Godzina'],
   ['год', 'ч', 'h', 'godz.'],
   ['діє', 'действует', 'valid', 'ważny'],
+  ['так', 'да', 'yes', 'tak'],
   ['Ім’я', 'Имя', 'Name', 'Imię'],
   ['Борг', 'Долг', 'Debt', 'Dług'],
   ['Далі', 'Далее', 'Next', 'Dalej'],
@@ -463,8 +466,10 @@ const PHRASES = [
   ['Клуб', 'Клуб', 'Club', 'Klub'],
   ['Мета', 'Цель', 'Goal', 'Cel'],
   ['Мова', 'Язык', 'Language', 'Język'],
+  ['Опис', 'Описание', 'Description', 'Opis'],
   ['План', 'План', 'Plan', 'Plan'],
   ['Сила', 'Сила', 'Strength', 'Siła'],
+  ['Сума', 'Сумма', 'Amount', 'Kwota'],
   ['Тема', 'Тема', 'Theme', 'Motyw'],
   ['далі', 'далее', 'next', 'dalej'],
   ['днів', 'дней', 'days', 'dni'],
@@ -477,6 +482,7 @@ const PHRASES = [
   ['Парна', 'Парная', 'Pair', 'W parze'],
   ['Потім', 'Потом', 'Later', 'Później'],
   ['Пошук', 'Поиск', 'Search', 'Szukaj'],
+  ['Разом', 'Итого', 'Total', 'Razem'],
   ['Спліт', 'Сплит', 'Split', 'Split'],
   ['Темна', 'Тёмная', 'Dark', 'Ciemny'],
   ['Товар', 'Товар', 'Product', 'Produkt'],
@@ -564,6 +570,7 @@ const PHRASES = [
   ['Продажів', 'Продаж', 'Sales', 'Sprzedaży'],
   ['Підписка', 'Подписка', 'Subscription', 'Subskrypcja'],
   ['Сьогодні', 'Сегодня', 'Today', 'Dzisiaj'],
+  ['У доході', 'В доходе', 'Counted as income', 'W dochodzie'],
   ['вимкнено', 'выключено', 'off', 'wyłączone'],
   ['на сайті', 'на сайте', 'the website', 'na stronie'],
   ['сьогодні', 'сегодня', 'today', 'dzisiaj'],
@@ -622,6 +629,7 @@ const PHRASES = [
   ['Персональна', 'Персональная', 'Personal', 'Personalny'],
   ['Свій період', 'Свой период', 'Custom range', 'Własny okres'],
   ['Ціна пакета', 'Цена пакета', 'Package price', 'Cena pakietu'],
+  ['передоплата', 'предоплата', 'prepayment', 'przedpłata'],
   ['прострочено', 'просрочено', 'overdue', 'po terminie'],
   ['Анна Мельник', 'Анна Мельник', 'Anna Melnyk', 'Anna Melnyk'],
   ['Борг закрито', 'Долг закрыт', 'Debt cleared', 'Dług spłacony'],
@@ -708,6 +716,7 @@ const PHRASES = [
   ['Типи тренувань', 'Типы тренировок', 'Session types', 'Typy treningów'],
   ['Товар видалено', 'Товар удалён', 'Product deleted', 'Produkt usunięty'],
   ['Товар оновлено', 'Товар обновлён', 'Product updated', 'Produkt zaktualizowany'],
+  ['Файл збережено', 'Файл сохранён', 'File saved', 'Plik zapisany'],
   ['Історія порожня', 'История пуста', 'History is empty', 'Historia jest pusta'],
   ['Автопродовження', 'Автопродление', 'Auto-renewal', 'Automatyczne odnawianie'],
   ['Видалити пакет?', 'Удалить пакет?', 'Delete the package?', 'Usunąć pakiet?'],
@@ -758,6 +767,7 @@ const PHRASES = [
   ['за замовчуванням', 'по умолчанию', 'default', 'domyślnie'],
   ['Автоматична копія', 'Автоматическая копия', 'Automatic backup', 'Kopia automatyczna'],
   ['Активних клієнтів', 'Активных клиентов', 'Active clients', 'Aktywnych klientów'],
+  ['Вивантажити в CSV', 'Выгрузить в CSV', 'Export to CSV', 'Pobierz w CSV'],
   ['Видалити клієнта?', 'Удалить клиента?', 'Delete the client?', 'Usunąć klienta?'],
   ['Відновити з файлу', 'Восстановить из файла', 'Restore from a file', 'Przywróć z pliku'],
   ['Відновити покупку', 'Восстановить покупку', 'Restore purchase', 'Przywróć zakup'],
@@ -864,6 +874,7 @@ const PHRASES = [
   ['З’явилась заборгованість', 'Появилась задолженность', 'A debt has appeared', 'Pojawiło się zadłużenie'],
   ['Клієнт давно не приходив', 'Клиент давно не приходил', 'Client has not come for a while', 'Klient dawno nie przyszedł'],
   ['Клієнти та розклад разом', 'Клиенты и расписание вместе', 'Clients and schedule together', 'Klienci i grafik w jednym miejscu'],
+  ['Не вдалося зберегти файл', 'Не удалось сохранить файл', 'Could not save the file', 'Nie udało się zapisać pliku'],
   ['Пробний період завершено', 'Пробный период завершён', 'Your free trial has ended', 'Okres próbny zakończony'],
   ['Спочатку оберіть клієнта', 'Сначала выберите клиента', 'Choose a client first', 'Najpierw wybierz klienta'],
   ['Тренування по днях тижня', 'Тренировки по дням недели', 'Sessions by weekday', 'Treningi wg dni tygodnia'],
@@ -920,6 +931,7 @@ const PHRASES = [
   ['Оплата не пройшла — дані на місці', 'Оплата не прошла — данные на месте', 'Payment failed — your data is safe', 'Płatność nieudana — dane są bezpieczne'],
   ['Перевірте умови перед оформленням', 'Проверьте условия перед оформлением', 'Check the terms before subscribing', 'Sprawdź warunki przed wykupieniem'],
   ['Сповіщення заблоковані в браузері', 'Уведомления заблокированы в браузере', 'Notifications are blocked in the browser', 'Powiadomienia zablokowane w przeglądarce'],
+  ['тільки рядки, де «У доході» = так', 'только строки, где «В доходе» = да', 'only rows where “Counted as income” is yes', 'tylko wiersze, gdzie „W dochodzie” = tak'],
   ['Завтра завершується пробний період', 'Завтра заканчивается пробный период', 'The trial ends tomorrow', 'Jutro kończy się okres próbny'],
   ['Захистити паролем (не обов’язково)', 'Защитить паролем (не обязательно)', 'Protect with a password (optional)', 'Zabezpiecz hasłem (opcjonalnie)'],
   ['Оборот, комісія залу, чистий дохід', 'Оборот, комиссия зала, чистый доход', 'Turnover, gym fee, net income', 'Obrót, prowizja klubu, dochód netto'],
@@ -964,6 +976,7 @@ const PHRASES = [
   ['Оберіть план, щоб продовжити роботу без перерви', 'Выберите план, чтобы продолжить работу без перерыва', 'Choose a plan to keep working without a break', 'Wybierz plan, aby pracować bez przerwy'],
   ['Усі проведені тренування оплачені. Так тримати.', 'Все проведённые тренировки оплачены. Так держать.', 'All completed sessions are paid. Keep it up.', 'Wszystkie odbyte treningi opłacone. Tak trzymaj.'],
   ['Тут з’являться тренування, покупки й абонементи.', 'Здесь появятся тренировки, покупки и абонементы.', 'Sessions, purchases and packages will appear here.', 'Tu pojawią się treningi, zakupy i karnety.'],
+  ['Тренування, товари й абонементи за обраний період', 'Тренировки, товары и абонементы за выбранный период', 'Sessions, products and packages for the selected period', 'Treningi, towary i karnety za wybrany okres'],
   ['Частковий переклад — решта покажеться українською', 'Частичный перевод — остальное покажется на украинском', 'Partial translation — the rest shows in Ukrainian', 'Częściowe tłumaczenie — reszta po ukraińsku'],
   ['Автопродовження вимкнено — доступ до кінця періоду', 'Автопродление выключено — доступ до конца периода', 'Auto-renewal is off — access until the period ends', 'Automatyczne odnawianie wyłączone — dostęp do końca okresu'],
   ['Спробуйте інший запит або створіть нового клієнта.', 'Попробуйте другой запрос или создайте нового клиента.', 'Try another search or add a new client.', 'Spróbuj innego zapytania lub dodaj nowego klienta.'],
@@ -973,6 +986,7 @@ const PHRASES = [
   ['Інтерфейс перекладено; юридичні документи — українською', 'Интерфейс переведён; юридические документы — на украинском', 'The interface is translated; legal documents are in Ukrainian', 'Interfejs przetłumaczony; dokumenty prawne po ukraińsku'],
   ['Збільшити робочу вагу в присіді на наступному тренуванні.', 'Увеличить рабочий вес в приседе на следующей тренировке.', 'Increase working weight in the squat next session.', 'Zwiększyć ciężar roboczy w przysiadzie na kolejnym treningu.'],
   ['Кожен клієнт або тренувався нещодавно, або вже записаний.', 'Каждый клиент либо тренировался недавно, либо уже записан.', 'Every client either trained recently or is already booked.', 'Każdy klient albo niedawno trenował, albo jest już zapisany.'],
+  ['передоплата: у дохід заходить у міру проведення тренувань', 'предоплата: в доход заходит по мере проведения тренировок', 'prepayment: counted as income as sessions are completed', 'przedpłata: wchodzi do dochodu w miarę odbywania treningów'],
   ['Необов’язково. Поки порожньо — застосунок працює автономно', 'Необязательно. Пока пусто — приложение работает автономно', 'Optional. While empty, the app works offline', 'Opcjonalnie. Dopóki puste — aplikacja działa offline'],
   ['Проведіть перше тренування — і графік почне заповнюватись.', 'Проведите первую тренировку — и график начнёт заполняться.', 'Complete your first session and the chart will fill up.', 'Przeprowadź pierwszy trening — wykres zacznie się wypełniać.'],
   ['Не вдалося показати цей блок. Дані на пристрої не втрачені.', 'Не удалось показать этот блок. Данные на устройстве не потеряны.', 'Couldn’t render this block. Your data on the device is intact.', 'Nie udało się wyświetlić tego bloku. Dane na urządzeniu są całe.'],
@@ -1288,15 +1302,8 @@ const Backups = {
   },
   read(){ try { return JSON.parse(Box.get(BACKUP_KEY) || 'null'); } catch { return null; } },
   file(){
-    try {
-      const blob = new Blob([JSON.stringify(Store.state, null, 2)], {type:'application/json'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'protrainer-' + iso(new Date()) + '.json';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      return true;
-    } catch { return false; }
+    return Files.save('protrainer-' + iso(new Date()) + '.json',
+      'application/json', JSON.stringify(Store.state, null, 2));
   },
 };
 
@@ -1313,6 +1320,39 @@ const Disk = {
     const m = Disk.readMeta() || {};
     Box.remove(KEY);
     Box.set(META_KEY, JSON.stringify({salt: m.salt, account: m.account, access: m.access, device: m.device}));
+  },
+};
+
+/* ─────────────────── віддати файл ───────────────────
+   У браузері файл забирає посилання з download. У нативній оболонці таке
+   посилання нікуди не веде: там файл треба покласти на диск і відкрити
+   системний «Поділитися» — інакше тренер натискає «Зберегти» і нічого
+   не відбувається. Обидва шляхи ховаємо сюди, щоб не дублювати їх у
+   резервній копії та в експорті.                                      */
+const Files = {
+  plugins(){
+    const C = typeof window !== 'undefined' && window.Capacitor;
+    const P = C && C.Plugins;
+    return P && P.Filesystem && P.Share ? P : null;
+  },
+  async save(name, mime, text){
+    const P = Files.plugins();
+    if (P){
+      try {
+        const r = await P.Filesystem.writeFile({path: name, data: text, directory: 'CACHE', encoding: 'utf8'});
+        await P.Share.share({title: name, url: r.uri});
+        return true;
+      } catch { /* нижче спробуємо як у браузері */ }
+    }
+    try {
+      const blob = new Blob([text], {type: mime + ';charset=utf-8'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      return true;
+    } catch { return false; }
   },
 };
 
@@ -1898,6 +1938,72 @@ function stats(db, from, to){
     total: gross - gym + salesProfit, debt,
   };
 }
+/* ─────────── експорт фінансів у CSV ───────────
+   Те, що тренер віддає бухгалтеру: список рухів грошей за період.
+
+   Головна пастка тут — абонемент. Клієнт платить за нього одразу, але в
+   дохід гроші заходять у міру проведення тренувань. Якщо покласти в один
+   стовпець і покупку абонемента, і тренування з нього, сума задвоїться.
+   Тому в кожного рядка є стовпець «У доході»: покупка абонемента —
+   «ні», проведене з нього тренування — «так». Підсумок рахується тільки
+   по «так» і сходиться з тим, що показує екран «Фінанси».             */
+const CSV_SEP = () => (LANG === 'en' ? ',' : ';');   /* Excel слухає роздільник списку локалі */
+const csvCell = v => {
+  const s = String(v === null || v === undefined ? '' : v);
+  return /["\n;,]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+};
+const csvRows = rows => rows.map(r => r.map(csvCell).join(CSV_SEP())).join('\r\n');
+
+function financeCsv(db, from, to){
+  const S = db.settings;
+  const name = id => { const c = byId(db.clients, id); return c ? c.name : '—'; };
+  const day = ts => iso(new Date(ts));
+  const YES = t('csv.yes','так'), NO = t('csv.no','ні');
+  const rows = [];
+
+  db.sessions
+    .filter(x => isBillable(x) && inRange(+new Date(x.start), from, to))
+    .forEach(x => {
+      const m = split(x.price, S);
+      rows.push([day(x.start), fmtTime(x.start), t('csv.session','Тренування'), name(x.clientId),
+        typeTitle(x.type), m.gross, m.gym, m.net,
+        x.subId ? t('pay.package','З абонемента') : x.paid ? t('pay.paid','Оплачено') : t('pay.debt','Не оплачено'),
+        YES]);
+    });
+
+  db.sales.filter(x => inRange(x.ts, from, to)).forEach(x => {
+    const pr = byId(db.products, x.productId);
+    const gross = x.price * x.qty;
+    const profit = (x.price - (pr ? pr.cost : 0)) * x.qty;
+    rows.push([day(x.ts), '', t('csv.goods','Товар'), name(x.clientId),
+      (pr ? pr.name : '—') + ' × ' + x.qty, gross, 0, profit, t('pay.paid','Оплачено'), YES]);
+  });
+
+  db.subs.filter(x => inRange(x.ts, from, to)).forEach(x => {
+    const pk = byId(db.packages, x.packageId);
+    rows.push([day(x.ts), '', t('csv.sub','Абонемент'), name(x.clientId),
+      (pk ? pk.title : nSessions(x.total)) + ' · ' + t('csv.prepaid','передоплата'),
+      x.price, 0, 0, t('pay.paid','Оплачено'), NO]);
+  });
+
+  rows.sort((a, b) => (a[0] === b[0] ? String(a[1]).localeCompare(String(b[1])) : a[0].localeCompare(b[0])));
+
+  const st = stats(db, from, to);
+  const head = [t('csv.date','Дата'), t('csv.time','Час'), t('csv.kind','Тип'), t('csv.client','Клієнт'),
+    t('csv.what','Опис'), t('csv.gross','Сума'), t('fin.fee','Комісія залу'), t('home.net','Чистими'),
+    t('csv.pay','Оплата'), t('csv.counted','У доході')];
+  /* Два підсумки, а не один: якщо просто скласти стовпець «Сума», вийде
+     більше, ніж «Разом» — на суму куплених абонементів. Тому вони
+     виведені окремим рядком, і розбіжність перестає бути загадкою. */
+  const foot = [[t('csv.total','Разом'), '', '', '', t('csv.total.note','тільки рядки, де «У доході» = так'),
+    st.gross + st.salesRevenue, st.gym, st.total, '', '']];
+  if (st.subsSold) foot.push([t('csv.sub','Абонемент'), '', '', '',
+    t('csv.sub.note','передоплата: у дохід заходить у міру проведення тренувань'),
+    st.subsSold, 0, 0, '', '']);
+
+  return '\ufeff' + csvRows([head, ...rows, ...foot]) + '\r\n';
+}
+
 /* динаміка: порівнюємо однакові за довжиною відрізки — інакше 3-го числа
    місяць завжди «мінус 90%» проти повного попереднього */
 function deltaFor(db, kind, base){
@@ -2338,6 +2444,7 @@ const Ic = {
   moon:      p => <Svg {...p}><path d="M20 14.2A8.4 8.4 0 0 1 9.8 4 8.4 8.4 0 1 0 20 14.2Z"/></Svg>,
   gear:      p => <Svg {...p}><circle cx="12" cy="12" r="3.1"/><path d="M19.4 14.4a1.6 1.6 0 0 0 .32 1.77l.06.06a1.9 1.9 0 1 1-2.7 2.7l-.06-.06a1.6 1.6 0 0 0-1.77-.32 1.6 1.6 0 0 0-1 1.47v.17a1.9 1.9 0 1 1-3.8 0v-.09a1.6 1.6 0 0 0-1.05-1.47 1.6 1.6 0 0 0-1.77.32l-.06.06a1.9 1.9 0 1 1-2.7-2.7l.06-.06a1.6 1.6 0 0 0 .32-1.77 1.6 1.6 0 0 0-1.47-1H3.5a1.9 1.9 0 1 1 0-3.8h.09A1.6 1.6 0 0 0 5.06 8.5a1.6 1.6 0 0 0-.32-1.77l-.06-.06a1.9 1.9 0 1 1 2.7-2.7l.06.06a1.6 1.6 0 0 0 1.77.32h.08a1.6 1.6 0 0 0 1-1.47V2.7a1.9 1.9 0 1 1 3.8 0v.09a1.6 1.6 0 0 0 1 1.47 1.6 1.6 0 0 0 1.77-.32l.06-.06a1.9 1.9 0 1 1 2.7 2.7l-.06.06a1.6 1.6 0 0 0-.32 1.77v.08a1.6 1.6 0 0 0 1.47 1h.17a1.9 1.9 0 1 1 0 3.8h-.09a1.6 1.6 0 0 0-1.47 1Z"/></Svg>,
   chart:     p => <Svg {...p}><path d="M5 20V11M12 20V4.8M19 20v-6.4"/></Svg>,
+  file:      p => <Svg {...p}><path d="M13.4 3.2H7.6a2 2 0 0 0-2 2v13.6a2 2 0 0 0 2 2h8.8a2 2 0 0 0 2-2V8.2z"/><path d="M13.4 3.2v5h5M9 13h6M9 16.5h4"/></Svg>,
   box:       p => <Svg {...p}><path d="m12 3.6 8 4.2v8.4l-8 4.2-8-4.2V7.8z"/><path d="m4 7.8 8 4.2 8-4.2M12 12v8.4"/></Svg>,
   ticket:    p => <Svg {...p}><path d="M4 8.2c0-1.2 1-2.2 2.2-2.2h11.6c1.2 0 2.2 1 2.2 2.2v1.6a2.2 2.2 0 0 0 0 4.4v1.6c0 1.2-1 2.2-2.2 2.2H6.2A2.2 2.2 0 0 1 4 15.8v-1.6a2.2 2.2 0 0 0 0-4.4z"/><path d="M14 6v12" strokeDasharray="2 2.6"/></Svg>,
   dl:        p => <Svg {...p}><path d="M12 4v11M7.6 11 12 15.4 16.4 11M4.5 19.5h15"/></Svg>,
@@ -5043,6 +5150,13 @@ const Finance = ({onClose}) => {
   ];
   const allDebt = sum(db.sessions.filter(isDebt), x => x.price);
 
+  /* вивантажуємо рівно той період, який зараз на екрані */
+  async function csv(){
+    const nm = 'protrainer-' + iso(from) + '_' + iso(addDays(to, -1)) + '.csv';
+    const ok = await Files.save(nm, 'text/csv', financeCsv(db, from, to));
+    Toaster[ok ? 'ok' : 'bad'](ok ? t('csv.ok','Файл збережено') : t('csv.err','Не вдалося зберегти файл'));
+  }
+
   return (
     <Page title={t('menu.fin','Фінанси')} onClose={onClose}
           right={<button className="iconbtn" onClick={() => nav.go('stats')} aria-label={t('menu.stats')}><Ic.chart size={20}/></button>}>
@@ -5128,6 +5242,13 @@ const Finance = ({onClose}) => {
       <Btn kind="sec" wide style={{marginTop:16}} onClick={() => nav.go('stats')}>
         <Ic.chart size={18}/>{t('fin.more','Детальна статистика')}
       </Btn>
+      <button className="btn sec wide webpay" style={{marginTop:8}} onClick={csv}>
+        <Ic.file size={18}/>
+        <span>
+          <b>{t('csv.go','Вивантажити в CSV')}</b>
+          <i>{t('csv.sub','Тренування, товари й абонементи за обраний період')}</i>
+        </span>
+      </button>
     </Page>
   );
 };
@@ -5467,16 +5588,9 @@ const Settings = ({onClose}) => {
     }
   }
 
-  function exportJson(){
-    try {
-      const blob = new Blob([JSON.stringify(Store.state, null, 2)], {type:'application/json'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'protrainer-' + iso(new Date()) + '.json';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      Toaster.ok(t('set.backup.ok','Копію збережено'));
-    } catch { Toaster.bad(t('set.backup.err','Не вдалося зберегти копію')); }
+  async function exportJson(){
+    const ok = await Backup.file();
+    Toaster[ok ? 'ok' : 'bad'](ok ? t('set.backup.ok','Копію збережено') : t('set.backup.err','Не вдалося зберегти копію'));
   }
   function importJson(e){
     const file = e.target.files && e.target.files[0];

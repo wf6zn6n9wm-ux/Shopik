@@ -98,6 +98,7 @@ const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, 
   clientPrice, typedPrice, periodOf, periodLabel, deltaRange, RangeSheet, PeriodBar, iso, addDays,
   Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Box, Notifier, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES, Toaster, Photo, PHOTO, Web, WEB,
+  financeCsv, Files, inRange,
   PHRASES, LANGS, detectLang, t, _seen, statusTitle, typeTitle, goalTitle, fill, monthWord,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
@@ -551,6 +552,85 @@ part('доступ: міст до магазину');
   ok('відновлення через міст', rr.ok && T.Access.read().productId === 'pro_trainer_yearly');
   delete ctx.window.ProTrainerIAP;
   ok('без моста повертаємось у демо-режим', !T.IAP.connected() && T.IAP.platform() === 'demo');
+}
+
+const CH_Q = String.fromCharCode(34);
+part('вивантаження фінансів');
+{
+  T.Box.cache.clear();
+  const db = T.seedDB({name: 'Олександр'});
+  T.Store.init(db);
+  /* рік, а не місяць: у демо абонементи куплені 3–4 тижні тому і в
+     поточний місяць не потрапляють, а перевірити треба саме їх */
+  const [from, to] = T.periodOf({kind: 'year'});
+  const st = T.stats(db, from, to);
+  const text = T.financeCsv(db, from, to);
+  const lines = text.replace(/^\ufeff/, '').trim().split('\r\n');
+  /* розбір рядка з урахуванням лапок */
+  const cells = ln => {
+    const out = []; let cur = '', q = false;
+    for (let i = 0; i < ln.length; i++){
+      const ch = ln[i];
+      if (q){ if (ch === CH_Q && ln[i+1] === CH_Q){ cur += CH_Q; i++; } else if (ch === CH_Q) q = false; else cur += ch; }
+      else if (ch === CH_Q) q = true;
+      else if (ch === ';'){ out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    out.push(cur); return out;
+  };
+  const cell = (ln, i) => cells(ln)[i];
+  const num = v => Number(String(v || '0').replace(/[^0-9-]/g, '')) || 0;
+
+  ok('файл починається з BOM — інакше Excel зіпсує кирилицю', text.charCodeAt(0) === 0xFEFF);
+  ok('перший рядок — заголовки', lines[0].startsWith('Дата;'), lines[0].slice(0, 40));
+  const moves = st.count
+    + db.sales.filter(x => T.inRange(x.ts, from, to)).length
+    + db.subs.filter(x => T.inRange(x.ts, from, to)).length;
+  /* заголовок + рухи + два підсумкові рядки (другий — куплені абонементи) */
+  const feet = st.subsSold ? 2 : 1;
+  ok('рядків стільки ж, скільки рухів грошей', lines.length === moves + 1 + feet,
+     lines.length + ' рядків на ' + moves + ' рухів');
+  const body = lines.slice(1, -feet);
+  ok('рядки відсортовані за датою', body.every((l, i, a) => !i || cell(a[i-1], 0) <= cell(l, 0)));
+  const subs = body.filter(l => cell(l, 2) === 'Абонемент');
+  ok('покупка абонемента є у файлі', subs.length > 0, subs.length + ' шт.');
+  ok('але в дохід вона не входить', subs.every(l => cell(l, 9) === 'ні'));
+  ok('і в «Чистими» у неї нуль', subs.every(l => num(cell(l, 7)) === 0));
+  const fromSub = body.filter(l => cell(l, 8) === 'З абонемента');
+  ok('тренування з абонемента, навпаки, в доході',
+     fromSub.length > 0 && fromSub.every(l => cell(l, 9) === 'так'), fromSub.length + ' шт.');
+
+  const counted = body.filter(l => cell(l, 9) === 'так');
+  const sumNet = counted.reduce((a, l) => a + num(cell(l, 7)), 0);
+  ok('сума «Чистими» по рядках сходиться з екраном «Фінанси»', sumNet === st.total, sumNet + ' проти ' + st.total);
+  const totalRow = lines[lines.length - feet];
+  ok('підсумковий рядок теж сходиться', cell(totalRow, 0) === 'Разом' && num(cell(totalRow, 7)) === st.total, cell(totalRow, 7));
+  /* стовпець «Сума» має сходитись, якщо скласти обидва підсумки */
+  const subRow = lines[lines.length - 1];
+  ok('куплені абонементи виведені окремим підсумком',
+     cell(subRow, 0) === 'Абонемент' && num(cell(subRow, 5)) === st.subsSold, cell(subRow, 5));
+  const colSum = body.reduce((a, l) => a + num(cell(l, 5)), 0);
+  ok('сума стовпця «Сума» = обидва підсумки разом',
+     colSum === num(cell(totalRow, 5)) + num(cell(subRow, 5)), colSum + ' = ' + cell(totalRow, 5) + ' + ' + cell(subRow, 5));
+
+  /* кома й лапки в імені не мають розсунути стовпці */
+  T.Act.addClient({name: 'Іванов, Іван ' + CH_Q + 'Залізний' + CH_Q});
+  const c = T.Store.state.clients.find(x => x.name.indexOf(',') > 0);
+  T.Act.addSession({clientId: c.id, start: new Date().toISOString(), price: 800});
+  const risky = T.financeCsv(T.Store.state, from, to).split('\r\n').find(l => l.indexOf('Іванов') >= 0);
+  ok('кома й лапки в імені екрануються',
+     cells(risky).length === 10 && cell(risky, 3) === c.name, cells(risky).length + ' стовпців');
+
+  /* англійська локаль — інший роздільник, інакше Excel зліпить усе в один стовпець */
+  T.I18n.set('en');
+  const en = T.financeCsv(db, from, to).split('\r\n')[0];
+  ok('для англійської роздільник — кома', en.indexOf('Date,Time,Type') >= 0, en.slice(0, 30));
+  T.I18n.set('uk');
+
+  /* порожній період не має ламатись */
+  const [ef, et] = T.periodOf({kind: 'custom', from: '2019-01-01', to: '2019-01-07'});
+  const empty = T.financeCsv(db, ef, et).replace(/^\ufeff/, '').trim().split('\r\n');
+  ok('порожній період дає заголовки й нулі', empty.length === 2 && num(cell(empty[1], 7)) === 0, empty.length + ' рядки');
 }
 
 part('оплата на сайті');
