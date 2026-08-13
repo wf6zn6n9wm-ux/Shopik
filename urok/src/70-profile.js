@@ -18,7 +18,7 @@ const {
   Segmented, Chips, Switch, SwitchRow, StackBar, AppBar, toast, Stats, photoFromFile,
   A, sel, store, Billing, PRODUCTS, LANGS, CURRENCIES, TIMEZONES, FREE_STUDENT_LIMIT, VERSION,
   todayISO, addDays, startOfWeek, weekDays, fmtMoney, fmtShortDate, fmtDayMonth, currencySymbol,
-  applyTheme, applyLang, loadDemo, unloadDemo, hasDemo,
+  applyTheme, applyLang, loadDemo, unloadDemo, hasDemo, copyText, isEmbedded,
 } = window.U;
 
 /* ── профіль ───────────────────────────────────────────────── */
@@ -206,15 +206,22 @@ function SettingsScreen({t, s, nav}){
   const themeLabel = {system: t('se.themeSystem'), light: t('se.themeLight'), dark: t('se.themeDark')}[set.theme];
 
   const exportData = () => {
+    const json = JSON.stringify(store.get(), null, 2);
+    /* У вбудованій сторінці браузер не дає зберегти файл — тоді
+       кладемо дані в буфер обміну, а не вдаємо, що щось сталося. */
+    if (isEmbedded()){
+      copyText(json).then(ok => toast(ok ? t('c.copied') : t('sub.notAvailable')));
+      return;
+    }
     try {
-      const blob = new Blob([JSON.stringify(store.get(), null, 2)], {type: 'application/json'});
+      const blob = new Blob([json], {type: 'application/json'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = `urok-plus-${todayISO()}.json`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast(t('se.exported'));
-    } catch (e) { toast(t('c.noData')); }
+    } catch (e) { copyText(json).then(ok => toast(ok ? t('c.copied') : t('c.noData'))); }
   };
 
   return (

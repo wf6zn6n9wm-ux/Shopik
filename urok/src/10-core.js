@@ -187,10 +187,6 @@ function photoFromFile(file, size){
 function isPhoneValid(v){ const p = normalizePhone(v); return p.replace(/\D/g, '').length >= 9; }
 
 /* ── типовий стан ──────────────────────────────────────────── */
-function detectLang(){
-  const nav = (typeof navigator !== 'undefined' && (navigator.language || '')).slice(0, 2);
-  return ['uk', 'ru', 'en'].includes(nav) ? nav : 'uk';
-}
 function detectTz(){
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Kyiv'; }
   catch (e) { return 'Europe/Kyiv'; }
@@ -202,7 +198,9 @@ function blankState(){
     auth: {status: 'guest', phone: '', provider: '', createdAt: ''},
     profile: {name: '', emoji: '', color: AVATAR_COLORS[0], email: '', bio: '', subjects: [], photo: ''},
     settings: {
-      lang: detectLang(),
+      /* Українська — типова мова продукту, а не «як у браузера»:
+         так домовлено з першого дня, і перемикач поруч у налаштуваннях. */
+      lang: 'uk',
       theme: 'system',
       currency: 'UAH',
       tz: detectTz(),
@@ -777,13 +775,46 @@ const Billing = {
   },
 };
 
+/* Копіювання в буфер: сучасний API там, де він є, і старий трюк з
+   прихованим полем там, де немає (Safari без https, iframe). */
+function copyText(text){
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(text).then(() => true, () => fallback());
+  }
+  return Promise.resolve(fallback());
+  function fallback(){
+    try {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand && document.execCommand('copy');
+      area.remove();
+      return !!ok;
+    } catch (e) { return false; }
+  }
+}
+/* Сторінка всередині іншої (артефакт, прев'ю): там браузер не дасть
+   зберегти файл, тому такі місця мають поводитись інакше. */
+function isEmbedded(){
+  try { return typeof window !== 'undefined' && window.top !== window.self; }
+  catch (e) { return true; }
+}
+
 /* ── тема ──────────────────────────────────────────────────────
    Тримаємо data-theme на <html> і колір системної панелі поруч:
    інакше на iOS «шапка» лишається білою в темній темі.          */
 function applyTheme(pref){
   if (typeof document === 'undefined') return 'light';
-  const sysDark = typeof window !== 'undefined' && window.matchMedia
-    && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  /* Коли сторінку вбудували (артефакт, прев'ю), «системна» тема
+     означає тему хоста, а не операційної системи: інакше наш
+     перемикач сперечався б із перемикачем сторінки навколо. */
+  const host = typeof window !== 'undefined' ? window.__UROK_HOST_THEME : '';
+  const sysDark = host ? host === 'dark'
+    : (typeof window !== 'undefined' && window.matchMedia
+       && window.matchMedia('(prefers-color-scheme: dark)').matches);
   const dark = pref === 'dark' || (pref === 'system' && sysDark);
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   const meta = document.getElementById('metaTheme');
@@ -920,8 +951,8 @@ Object.assign(window.U, {
   pad2, iso, parseISO, todayISO, addDays, addMonths, dow, startOfWeek, weekDays, startOfMonth, daysInMonth,
   monthGrid, isSame, isPast, diffDays, toMin, toTime, duration,
   fmtDayMonth, fmtLongDate, fmtShortDate, fmtRelDate, fmtDur, fmtMoney, currencySymbol, initials, uid, pickColor,
-  normalizePhone, isPhoneValid, photoFromFile, blankState, merge, load, persist, createStore, store, useStore, A, normalizeLesson,
-  sel, byTime, expandSeries, Billing, applyTheme, applyLang, demoData, loadDemo, unloadDemo, hasDemo, detectLang, detectTz,
+  normalizePhone, isPhoneValid, photoFromFile, copyText, isEmbedded, blankState, merge, load, persist, createStore, store, useStore, A, normalizeLesson,
+  sel, byTime, expandSeries, Billing, applyTheme, applyLang, demoData, loadDemo, unloadDemo, hasDemo, detectTz,
   LESSON_STATUS, HOMEWORK_STATUS, lessonPrice, lessonTotal, isEarning,
 });
 })();

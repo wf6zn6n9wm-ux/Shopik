@@ -67,18 +67,22 @@ const TAB_SCREENS = {
    разом, але кожен лише на один крок. */
 function createNav(setStack, setTab, win){
   const history = win && win.history;
-  const own = () => !!(history && history.state && history.state.urok);
+  /* У вбудованій сторінці (iframe без same-origin) history кидає
+     виняток. Навігація по стеку від цього не залежить, тому просто
+     працюємо далі без системної кнопки «назад». */
+  const safe = fn => { try { return fn(); } catch (e) { return undefined; } };
+  const own = () => !!safe(() => history && history.state && history.state.urok);
   return {
     push(route){
       setStack(st => [...st, route]);
-      if (history) history.pushState({urok: 1}, '');
+      if (history) safe(() => history.pushState({urok: 1}, ''));
     },
     replace(route){ setStack(st => [...st.slice(0, -1), route]); },
     /* Якщо запис у history наш — знімаємо його, а стек зменшить
        обробник popstate. Знімати вручну й тут, і там означало б
        повертатись одразу на два екрани назад. */
     back(){
-      if (own()) history.back();
+      if (own()) safe(() => history.back());
       else setStack(st => st.slice(0, -1));
     },
     reset(){ setStack([]); },
