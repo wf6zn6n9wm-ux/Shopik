@@ -98,6 +98,7 @@ const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, 
   clientPrice, typedPrice, periodOf, periodLabel, deltaRange, RangeSheet, PeriodBar, iso, addDays,
   Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Box, Notifier, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES,
+  PHRASES, LANGS, detectLang, t, _seen, statusTitle, typeTitle, goalTitle, fill, monthWord,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
 const {ctx, el} = sandbox();
@@ -531,8 +532,57 @@ part('мови');
   T.I18n.set(l);
   screen('головна · ' + l, () => el(T.Home, {loading: false}));
 });
-ok('скелет перекладу віддається', Object.keys(T.I18n.missing('pl')).length > 50,
-   Object.keys(T.I18n.missing('pl')).length + ' ключів для pl');
+/* Кожен рядок у таблиці має всі чотири мови й ніде не лишився українським
+   (крім слів, що збігаються в обох мовах — їх звіряємо окремо нижче). */
+ok('таблиця перекладів заповнена',
+   T.PHRASES.length > 500 && T.PHRASES.every(r => r.length === 4 && r.every(v => typeof v === 'string' && v.length)),
+   T.PHRASES.length + ' фраз × 4 мови');
+/* Скелет неперекладеного порожній: усе, що застосунок показав, перекладено. */
+['ru', 'en', 'pl'].forEach(l => {
+  const gap = T.I18n.missing(l);
+  ok('без пропусків · ' + l, Object.keys(gap).length === 0,
+     Object.keys(gap).length ? Object.keys(gap).slice(0, 3).join(' | ') : 'усі ' + T._seen.size + ' рядків на місці');
+});
+/* Переклад справді підставляється — і за ключем, і за самим текстом. */
+const say = (l, key, uk) => { T.I18n.set(l); return T.t(key, uk); };
+ok('переклад за ключем', say('ru', 'nav.clients', 'Клієнти') === 'Клиенты'
+   && say('en', 'nav.clients', 'Клієнти') === 'Clients'
+   && say('pl', 'nav.clients', 'Клієнти') === 'Klienci',
+   ['ru', 'en', 'pl'].map(l => say(l, 'nav.clients', 'Клієнти')).join(' · '));
+ok('переклад за текстом, без заведеного ключа',
+   say('en', 'ключа.такого.нема', 'Зберегти') === 'Save'
+   && say('pl', 'ключа.такого.нема', 'Зберегти') === 'Zapisz',
+   ['ru', 'en', 'pl'].map(l => say(l, 'ключа.такого.нема', 'Зберегти')).join(' · '));
+/* Один ключ у двох місцях із різними написами не має їх плутати. */
+ok('текст із місця виклику головніший за ключ',
+   say('en', 'subs.till', 'до') === 'until' && say('en', 'subs.till', 'Діє до') === 'Valid until',
+   say('en', 'subs.till', 'до') + ' / ' + say('en', 'subs.till', 'Діє до'));
+/* Точковий виняток: «Продовжити» біля абонемента — це «подовжити». */
+ok('виняток за ключем головніший за таблицю',
+   say('en', 'subs.renew', 'Продовжити') === 'Renew' && say('en', 'auth.go', 'Продовжити') === 'Continue',
+   say('en', 'subs.renew', 'Продовжити') + ' / ' + say('en', 'auth.go', 'Продовжити'));
+/* Дані, що лежать у базі українською, показуються мовою застосунку. */
+T.I18n.set('pl');
+ok('статуси, типи й цілі перекладаються',
+   T.statusTitle('done') === 'Odbyty' && T.typeTitle('online') === 'Online' && T.goalTitle('Сила') === 'Siła',
+   [T.statusTitle('done'), T.typeTitle('online'), T.goalTitle('Сила')].join(' · '));
+/* Форми числа: у польській три, в англійській дві. */
+T.I18n.set('pl');
+const pl = [1, 2, 5].map(n => T.nSessions(n)).join(' · ');
+T.I18n.set('en');
+const en = [1, 2, 5].map(n => T.nSessions(n)).join(' · ');
+ok('відмінювання по мовах', pl === '1 trening · 2 treningi · 5 treningów' && en === '1 session · 2 sessions · 5 sessions', pl + ' | ' + en);
+/* Готові повідомлення клієнту теж перекладаються, підстановки лишаються. */
+T.I18n.set('en');
+const msg = T.fill(T.t('msg.debt.1', '{name}, доброго дня! Нагадую про оплату за тренування — {sum}. Дякую!'), {name:'Anna', sum:'800 ₴'});
+ok('шаблон повідомлення перекладено й заповнено',
+   msg.indexOf('Anna') === 6 && msg.includes('800 ₴') && !/[Ѐ-ӿ]/.test(msg), msg);
+/* Місяць: «серпень», але «August». */
+ok('назва місяця по-англійськи з великої', /^[A-Z]/.test(T.monthWord(new Date())), T.monthWord(new Date()));
+T.I18n.set('uk');
+ok('назва місяця українською з малої', /^[а-яіїєґ]/.test(T.monthWord(new Date())), T.monthWord(new Date()));
+/* Мову підказує система, поки кабінет не створено. */
+ok('мова береться з системи', typeof T.detectLang === 'function' && T.LANGS.some(l => l.code === T.detectLang()), T.detectLang());
 T.I18n.set('uk');
 
 part('дрібниці');

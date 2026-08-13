@@ -419,61 +419,645 @@
 const {useState, useEffect, useRef, useMemo, useCallback, Fragment} = React;
 
 /* ─────────────────── i18n ───────────────────
-   MVP — українська. Щоб додати мову: додай словник у I18N і код у LANGS.
-   t(key, uk) шукає ключ у активній мові → у 'uk' → у запасному тексті.
-   I18n.missing() віддає JSON-скелет усіх ключів, яких бракує в мові —
-   з нього і збирається наступний переклад.                            */
+   Словник — таблиця PHRASES: [українською, російською, англійською,
+   польською]. Ключем перекладу є сам український текст, тому:
+     • однакова фраза перекладається один раз на весь застосунок;
+     • t('будь.який.ключ', 'Текст') знаходить переклад навіть там,
+       де ключ ще не заведено в словнику.
+   Якщо в конкретному місці потрібен інший переклад тієї самої фрази —
+   допишіть ключ у OVERRIDE: він головніший за таблицю.
+   I18n.missing(code) віддає JSON-скелет неперекладених рядків.
+   Юридичні документи (LEGAL_DOCS) лишаються українською: їх має
+   вичитати юрист під кожну юрисдикцію.                              */
 const LANGS = [
   {code:'uk', title:'Українська', intl:'uk-UA', flag:'🇺🇦'},
   {code:'ru', title:'Русский',    intl:'ru-RU', flag:'🌐'},
   {code:'en', title:'English',    intl:'en-GB', flag:'🇬🇧'},
   {code:'pl', title:'Polski',     intl:'pl-PL', flag:'🇵🇱'},
 ];
+const detectLang = () => {
+  const c = String((typeof navigator !== 'undefined' && (navigator.language || (navigator.languages || [])[0])) || 'uk').slice(0, 2).toLowerCase();
+  return LANGS.some(l => l.code === c) ? c : 'uk';
+};
 
-const I18N = {
+const PHRASES = [
+  ['з', 'с', 'of', 'z'],
+  ['до', 'до', 'until', 'do'],
+  ['др', 'др', 'b-day', 'ur.'],
+  ['хв', 'мин', 'min', 'min'],
+  ['Рік', 'Год', 'Year', 'Rok'],
+  ['Час', 'Время', 'Time', 'Godzina'],
+  ['год', 'ч', 'h', 'godz.'],
+  ['діє', 'действует', 'valid', 'ważny'],
+  ['Ім’я', 'Имя', 'Name', 'Imię'],
+  ['Борг', 'Долг', 'Debt', 'Dług'],
+  ['Далі', 'Далее', 'Next', 'Dalej'],
+  ['Дані', 'Данные', 'Data', 'Dane'],
+  ['Дата', 'Дата', 'Date', 'Data'],
+  ['День', 'День', 'Day', 'Dzień'],
+  ['Залу', 'Залу', 'Gym', 'Klub'],
+  ['Клуб', 'Клуб', 'Club', 'Klub'],
+  ['Мета', 'Цель', 'Goal', 'Cel'],
+  ['Мова', 'Язык', 'Language', 'Język'],
+  ['План', 'План', 'Plan', 'Plan'],
+  ['Сила', 'Сила', 'Strength', 'Siła'],
+  ['Тема', 'Тема', 'Theme', 'Motyw'],
+  ['далі', 'далее', 'next', 'dalej'],
+  ['днів', 'дней', 'days', 'dni'],
+  ['1 рік', '1 год', '1 year', '1 rok'],
+  ['Борги', 'Долги', 'Debts', 'Długi'],
+  ['Вчора', 'Вчера', 'Yesterday', 'Wczoraj'],
+  ['Гроші', 'Деньги', 'Money', 'Pieniądze'],
+  ['Назад', 'Назад', 'Back', 'Wstecz'],
+  ['Назва', 'Название', 'Name', 'Nazwa'],
+  ['Парна', 'Парная', 'Pair', 'W parze'],
+  ['Потім', 'Потом', 'Later', 'Później'],
+  ['Пошук', 'Поиск', 'Search', 'Szukaj'],
+  ['Спліт', 'Сплит', 'Split', 'Split'],
+  ['Темна', 'Тёмная', 'Dark', 'Ciemny'],
+  ['Товар', 'Товар', 'Product', 'Produkt'],
+  ['Учора', 'Вчера', 'Yesterday', 'Wczoraj'],
+  ['немає', 'нет', 'none', 'brak'],
+  ['трен.', 'трен.', 'sess.', 'tren.'],
+  ['Іконка', 'Иконка', 'Icon', 'Ikona'],
+  ['Валюта', 'Валюта', 'Currency', 'Waluta'],
+  ['Готово', 'Готово', 'Done', 'Gotowe'],
+  ['Деталі', 'Детали', 'Details', 'Szczegóły'],
+  ['Додати', 'Добавить', 'Add', 'Dodaj'],
+  ['Діє до', 'Действует до', 'Valid until', 'Ważny do'],
+  ['З нами', 'С нами', 'With us since', 'Z nami od'],
+  ['Завтра', 'Завтра', 'Tomorrow', 'Jutro'],
+  ['Клієнт', 'Клиент', 'Client', 'Klient'],
+  ['Кінець', 'Конец', 'End', 'Koniec'],
+  ['Місяць', 'Месяц', 'Month', 'Miesiąc'],
+  ['Оборот', 'Оборот', 'Gross', 'Obrót'],
+  ['Онлайн', 'Онлайн', 'Online', 'Online'],
+  ['Оплата', 'Оплата', 'Payment', 'Płatność'],
+  ['Оплату', 'Оплату', 'Payment', 'Płatność'],
+  ['Пакети', 'Пакеты', 'Packages', 'Pakiety'],
+  ['Пароль', 'Пароль', 'Password', 'Hasło'],
+  ['Почати', 'Начать', 'Start', 'Zacznij'],
+  ['Продаж', 'Продажа', 'Sale', 'Sprzedaż'],
+  ['Рельєф', 'Рельеф', 'Definition', 'Rzeźba'],
+  ['Робота', 'Работа', 'Work', 'Praca'],
+  ['Світла', 'Светлая', 'Light', 'Jasny'],
+  ['Статус', 'Статус', 'Status', 'Status'],
+  ['Тарифи', 'Тарифы', 'Plans', 'Plany'],
+  ['Товари', 'Товары', 'Products', 'Produkty'],
+  ['Тренер', 'Тренер', 'Trainer', 'Trener'],
+  ['Увійти', 'Войти', 'Sign in', 'Zaloguj się'],
+  ['Шаблон', 'Шаблон', 'Template', 'Szablon'],
+  ['Шейкер', 'Шейкер', 'Shaker', 'Shaker'],
+  ['товари', 'товары', 'products', 'produkty'],
+  ['Історія', 'История', 'History', 'Historia'],
+  ['Активна', 'Активна', 'Active', 'Aktywna'],
+  ['Головна', 'Главная', 'Home', 'Główna'],
+  ['Залишок', 'Остаток', 'In stock', 'Stan'],
+  ['Клієнта', 'Клиента', 'Client', 'Klienta'],
+  ['Клієнти', 'Клиенты', 'Clients', 'Klienci'],
+  ['Креатин', 'Креатин', 'Creatine', 'Kreatyna'],
+  ['Націнка', 'Наценка', 'Markup', 'Marża'],
+  ['Нотатки', 'Заметки', 'Notes', 'Notatki'],
+  ['Початок', 'Начало', 'Start', 'Początek'],
+  ['Продажі', 'Продажи', 'Sales', 'Sprzedaż'],
+  ['Продано', 'Продано', 'Sold', 'Sprzedano'],
+  ['Протеїн', 'Протеин', 'Protein', 'Odżywka białkowa'],
+  ['Профіль', 'Профиль', 'Profile', 'Profil'],
+  ['Резинки', 'Резинки', 'Bands', 'Gumy oporowe'],
+  ['Система', 'Система', 'System', 'System'],
+  ['Скинути', 'Сбросить', 'Reset', 'Wyczyść'],
+  ['Сховати', 'Скрыть', 'Hide', 'Ukryj'],
+  ['Телефон', 'Телефон', 'Phone', 'Telefon'],
+  ['Тиждень', 'Неделя', 'Week', 'Tydzień'],
+  ['Тренеру', 'Тренеру', 'To trainer', 'Dla trenera'],
+  ['У черзі', 'В очереди', 'Queued', 'W kolejce'],
+  ['Фінанси', 'Финансы', 'Finances', 'Finanse'],
+  ['Чистими', 'Чистыми', 'Net', 'Na rękę'],
+  ['залишок', 'остаток', 'in stock', 'stan'],
+  ['продано', 'продано', 'sold', 'sprzedano'],
+  ['1 місяць', '1 месяц', '1 month', '1 miesiąc'],
+  ['3 місяці', '3 месяца', '3 months', '3 miesiące'],
+  ['Без мети', 'Без цели', 'No goal', 'Bez celu'],
+  ['Вартість', 'Стоимость', 'Price', 'Cena'],
+  ['Видалено', 'Удалено', 'Deleted', 'Usunięto'],
+  ['Видалити', 'Удалить', 'Delete', 'Usuń'],
+  ['Витратив', 'Потратил', 'Spent', 'Wydał'],
+  ['Востаннє', 'В последний раз', 'Last time', 'Ostatnio'],
+  ['Відсоток', 'Процент', 'Percent', 'Procent'],
+  ['Вітаміни', 'Витамины', 'Vitamins', 'Witaminy'],
+  ['Далі від', 'Далее от', 'Then from', 'Potem od'],
+  ['З боргом', 'С долгом', 'With debt', 'Z długiem'],
+  ['Записати', 'Записать', 'Book', 'Zapisz'],
+  ['Заробили', 'Заработали', 'Earned', 'Zarobek'],
+  ['Зберегти', 'Сохранить', 'Save', 'Zapisz'],
+  ['Календар', 'Календарь', 'Calendar', 'Kalendarz'],
+  ['Клієнтів', 'Клиентов', 'Clients', 'Klientów'],
+  ['Нагадати', 'Напомнить', 'Remind', 'Przypomnij'],
+  ['Написати', 'Написать', 'Message', 'Napisz'],
+  ['Оплачено', 'Оплачено', 'Paid', 'Opłacone'],
+  ['Показати', 'Показать', 'Show', 'Pokaż'],
+  ['Прибуток', 'Прибыль', 'Profit', 'Zysk'],
+  ['Продажів', 'Продаж', 'Sales', 'Sprzedaży'],
+  ['Підписка', 'Подписка', 'Subscription', 'Subskrypcja'],
+  ['Сьогодні', 'Сегодня', 'Today', 'Dzisiaj'],
+  ['вимкнено', 'выключено', 'off', 'wyłączone'],
+  ['сьогодні', 'сегодня', 'today', 'dzisiaj'],
+  ['щомісяця', 'ежемесячно', 'monthly', 'miesięcznie'],
+  ['Абонемент', 'Абонемент', 'Package', 'Karnet'],
+  ['Ваше ім’я', 'Ваше имя', 'Your name', 'Twoje imię'],
+  ['Вигідніше', 'Выгоднее', 'Better value', 'Korzystniej'],
+  ['Відновити', 'Восстановить', 'Restore', 'Przywróć'],
+  ['До сплати', 'К оплате', 'Total', 'Do zapłaty'],
+  ['Діє, днів', 'Действует, дней', 'Valid, days', 'Ważny, dni'],
+  ['За іменем', 'По имени', 'By name', 'Wg imienia'],
+  ['Закупівля', 'Закупка', 'Cost', 'Zakup'],
+  ['Копіювати', 'Копировать', 'Copy', 'Kopiuj'],
+  ['Кількість', 'Количество', 'Quantity', 'Ilość'],
+  ['Найближчі', 'Ближайшие', 'Upcoming', 'Najbliżsi'],
+  ['Поки тихо', 'Пока тихо', 'Nothing yet', 'Na razie cisza'],
+  ['Проведено', 'Проведено', 'Completed', 'Odbyty'],
+  ['Рукавички', 'Перчатки', 'Gloves', 'Rękawiczki'],
+  ['Скасовано', 'Отменено', 'Cancelled', 'Odwołany'],
+  ['Скасувати', 'Отменить', 'Cancel', 'Anuluj'],
+  ['Схуднення', 'Похудение', 'Weight loss', 'Odchudzanie'],
+  ['Тренувань', 'Тренировок', 'Sessions', 'Treningów'],
+  ['Хвилинку…', 'Минутку…', 'One moment…', 'Chwileczkę…'],
+  ['на місяць', 'в месяц', 'a month', 'miesięcznie'],
+  ['увімкнено', 'включено', 'on', 'włączone'],
+  ['Абонементи', 'Абонементы', 'Packages', 'Karnety'],
+  ['Залишилось', 'Осталось', 'Left', 'Zostało'],
+  ['Застосунок', 'Приложение', 'App', 'Aplikacja'],
+  ['Набір маси', 'Набор массы', 'Muscle gain', 'Budowa masy'],
+  ['Не прийшов', 'Не пришёл', 'No-show', 'Nie przyszedł'],
+  ['Подзвонити', 'Позвонить', 'Call', 'Zadzwoń'],
+  ['Продажі за', 'Продажи за', 'Sales for', 'Sprzedaż za'],
+  ['Продовжити', 'Продолжить', 'Continue', 'Kontynuuj'],
+  ['Пропустити', 'Пропустить', 'Skip', 'Pomiń'],
+  ['Редагувати', 'Редактировать', 'Edit', 'Edytuj'],
+  ['Сповіщення', 'Уведомления', 'Notifications', 'Powiadomienia'],
+  ['Статистика', 'Статистика', 'Statistics', 'Statystyki'],
+  ['Тренування', 'Тренировка', 'Session', 'Trening'],
+  ['Фікс. сума', 'Фикс. сумма', 'Fixed fee', 'Stała kwota'],
+  ['Цей місяць', 'Этот месяц', 'This month', 'Ten miesiąc'],
+  ['залишилось', 'осталось', 'left', 'zostało'],
+  ['Іван Петров', 'Иван Петров', 'Ivan Petrov', 'Ivan Petrov'],
+  ['Без клієнта', 'Без клиента', 'No client', 'Bez klienta'],
+  ['Без комісії', 'Без комиссии', 'No fee', 'Bez prowizji'],
+  ['Введіть PIN', 'Введите PIN', 'Enter PIN', 'Podaj PIN'],
+  ['Діє до дати', 'Действует до даты', 'Valid until date', 'Ważne do daty'],
+  ['Завершилась', 'Завершилась', 'Ended', 'Zakończona'],
+  ['Заплановано', 'Запланировано', 'Planned', 'Zaplanowany'],
+  ['Нагадування', 'Напоминания', 'Reminders', 'Przypomnienia'],
+  ['Не оплачено', 'Не оплачено', 'Unpaid', 'Nieopłacone'],
+  ['Новий товар', 'Новый товар', 'New product', 'Nowy produkt'],
+  ['Обрати план', 'Выбрать план', 'Choose plan', 'Wybierz plan'],
+  ['Обробляємо…', 'Обрабатываем…', 'Processing…', 'Przetwarzamy…'],
+  ['Олег Бондар', 'Олег Бондарь', 'Oleh Bondar', 'Oleh Bondar'],
+  ['Персональна', 'Персональная', 'Personal', 'Personalny'],
+  ['Свій період', 'Свой период', 'Custom range', 'Własny okres'],
+  ['Ціна пакета', 'Цена пакета', 'Package price', 'Cena pakietu'],
+  ['прострочено', 'просрочено', 'overdue', 'po terminie'],
+  ['Анна Мельник', 'Анна Мельник', 'Anna Melnyk', 'Anna Melnyk'],
+  ['Борг закрито', 'Долг закрыт', 'Debt cleared', 'Dług spłacony'],
+  ['Боргів немає', 'Долгов нет', 'No debts', 'Brak długów'],
+  ['Ваш прибуток', 'Ваша прибыль', 'Your profit', 'Twój zysk'],
+  ['Витривалість', 'Выносливость', 'Endurance', 'Wytrzymałość'],
+  ['Вкажіть ціну', 'Укажите цену', 'Enter a price', 'Podaj cenę'],
+  ['Вкажіть ім’я', 'Укажите имя', 'Enter a name', 'Podaj imię'],
+  ['Вільний день', 'Свободный день', 'Free day', 'Wolny dzień'],
+  ['Дивитись усі', 'Смотреть все', 'See all', 'Zobacz wszystkie'],
+  ['З абонемента', 'Из абонемента', 'From package', 'Z karnetu'],
+  ['Захист даних', 'Защита данных', 'Data protection', 'Ochrona danych'],
+  ['Звідки дохід', 'Откуда доход', 'Income sources', 'Skąd dochód'],
+  ['Змінити план', 'Изменить план', 'Change plan', 'Zmień plan'],
+  ['Комісія залу', 'Комиссия зала', 'Gym fee', 'Prowizja klubu'],
+  ['Мало залишку', 'Мало остатка', 'Low stock', 'Mało w magazynie'],
+  ['Налаштування', 'Настройки', 'Settings', 'Ustawienia'],
+  ['Невірний PIN', 'Неверный PIN', 'Wrong PIN', 'Błędny PIN'],
+  ['Новий клієнт', 'Новый клиент', 'New client', 'Nowy klient'],
+  ['Оберіть план', 'Выберите план', 'Choose a plan', 'Wybierz plan'],
+  ['Повідомлення', 'Сообщение', 'Message', 'Wiadomość'],
+  ['Реабілітація', 'Реабилитация', 'Rehab', 'Rehabilitacja'],
+  ['Робочий день', 'Рабочий день', 'Working hours', 'Dzień pracy'],
+  ['Середній чек', 'Средний чек', 'Average check', 'Średni rachunek'],
+  ['Товар додано', 'Товар добавлен', 'Product added', 'Produkt dodany'],
+  ['Усі на місці', 'Все на месте', 'Everyone is here', 'Wszyscy są'],
+  ['Цього місяця', 'В этом месяце', 'This month', 'W tym miesiącu'],
+  ['Ціна продажу', 'Цена продажи', 'Selling price', 'Cena sprzedaży'],
+  ['Як вас звати', 'Как вас зовут', 'Your name', 'Jak masz na imię'],
+  ['Як у системі', 'Как в системе', 'Match system', 'Jak w systemie'],
+  ['ще не робили', 'ещё не делали', 'not yet', 'jeszcze nie było'],
+  ['Артем Лисенко', 'Артём Лысенко', 'Artem Lysenko', 'Artem Łysenko'],
+  ['Вкажіть назву', 'Укажите название', 'Enter a name', 'Podaj nazwę'],
+  ['Відсоток залу', 'Процент зала', 'Gym percentage', 'Procent klubu'],
+  ['Дмитро Шевчук', 'Дмитрий Шевчук', 'Dmytro Shevchuk', 'Dmytro Szewczuk'],
+  ['Дохід по днях', 'Доход по дням', 'Income by day', 'Dochód dziennie'],
+  ['З поверненням', 'С возвращением', 'Welcome back', 'Witaj ponownie'],
+  ['Загалом винні', 'Всего должны', 'Total owed', 'Łącznie dłużni'],
+  ['Зберегти дані', 'Сохранить данные', 'Save data', 'Zapisz dane'],
+  ['Максим Коваль', 'Максим Коваль', 'Maksym Koval', 'Maksym Kowal'],
+  ['Надіслати SMS', 'Отправить SMS', 'Send SMS', 'Wyślij SMS'],
+  ['Найкраща ціна', 'Лучшая цена', 'Best price', 'Najlepsza cena'],
+  ['Немає доступу', 'Нет доступа', 'No access', 'Brak dostępu'],
+  ['Оберіть товар', 'Выберите товар', 'Choose a product', 'Wybierz produkt'],
+  ['Ольга Кравець', 'Ольга Кравец', 'Olha Kravets', 'Olha Krawiec'],
+  ['Остання копія', 'Последняя копия', 'Last backup', 'Ostatnia kopia'],
+  ['Останній крок', 'Последний шаг', 'Last step', 'Ostatni krok'],
+  ['Повторіть PIN', 'Повторите PIN', 'Repeat PIN', 'Powtórz PIN'],
+  ['Показати всіх', 'Показать всех', 'Show all', 'Pokaż wszystkich'],
+  ['Поки порожньо', 'Пока пусто', 'Nothing yet', 'Na razie pusto'],
+  ['Прибрати фото', 'Убрать фото', 'Remove photo', 'Usuń zdjęcie'],
+  ['Продаж товару', 'Продажа товара', 'Product sale', 'Sprzedaż produktu'],
+  ['Продати товар', 'Продать товар', 'Sell a product', 'Sprzedaj produkt'],
+  ['Синхронізація', 'Синхронизация', 'Sync', 'Synchronizacja'],
+  ['Спеціалізація', 'Специализация', 'Specialization', 'Specjalizacja'],
+  ['Спробувати ще', 'Попробовать ещё', 'Try again', 'Spróbuj ponownie'],
+  ['Тренування за', 'Тренировка через', 'Session in', 'Trening za'],
+  ['без тренувань', 'без тренировок', 'without sessions', 'bez treningów'],
+  ['день|дні|днів', 'день|дня|дней', 'day|days', 'dzień|dni|dni'],
+  ['за тренування', 'за тренировку', 'per session', 'za trening'],
+  ['Активних немає', 'Активных нет', 'None active', 'Brak aktywnych'],
+  ['Без тренування', 'Без тренировок', 'Not training', 'Bez treningów'],
+  ['Борги клієнтів', 'Долги клиентов', 'Client debts', 'Długi klientów'],
+  ['Вигода клієнта', 'Выгода клиента', 'Client saves', 'Oszczędność klienta'],
+  ['Видалити пакет', 'Удалить пакет', 'Delete package', 'Usuń pakiet'],
+  ['Видалити товар', 'Удалить товар', 'Delete product', 'Usuń produkt'],
+  ['Додати нотатку', 'Добавить заметку', 'Add a note', 'Dodaj notatkę'],
+  ['Дохід сьогодні', 'Доход сегодня', 'Income today', 'Dochód dzisiaj'],
+  ['Здоров’я спини', 'Здоровье спины', 'Back health', 'Zdrowe plecy'],
+  ['Клієнта додано', 'Клиент добавлен', 'Client added', 'Klient dodany'],
+  ['Копію створено', 'Копия создана', 'Backup created', 'Kopia utworzona'],
+  ['Минулий місяць', 'Прошлый месяц', 'Last month', 'Poprzedni miesiąc'],
+  ['Нових клієнтів', 'Новых клиентов', 'New clients', 'Nowych klientów'],
+  ['Останні 7 днів', 'Последние 7 дней', 'Last 7 days', 'Ostatnie 7 dni'],
+  ['Пакет видалено', 'Пакет удалён', 'Package deleted', 'Pakiet usunięty'],
+  ['Придумайте PIN', 'Придумайте PIN', 'Create a PIN', 'Wymyśl PIN'],
+  ['Про застосунок', 'О приложении', 'About the app', 'O aplikacji'],
+  ['Пробний період', 'Пробный период', 'Free trial', 'Okres próbny'],
+  ['Резервна копія', 'Резервная копия', 'Backup', 'Kopia zapasowa'],
+  ['Софія Ткаченко', 'София Ткаченко', 'Sofia Tkachenko', 'Sofia Tkaczenko'],
+  ['Список очищено', 'Список очищен', 'List cleared', 'Lista wyczyszczona'],
+  ['Тип тренування', 'Тип тренировки', 'Session type', 'Typ treningu'],
+  ['Типи тренувань', 'Типы тренировок', 'Session types', 'Typy treningów'],
+  ['Товар видалено', 'Товар удалён', 'Product deleted', 'Produkt usunięty'],
+  ['Товар оновлено', 'Товар обновлён', 'Product updated', 'Produkt zaktualizowany'],
+  ['Історія порожня', 'История пуста', 'History is empty', 'Historia jest pusta'],
+  ['Автопродовження', 'Автопродление', 'Auto-renewal', 'Automatyczne odnawianie'],
+  ['Видалити пакет?', 'Удалить пакет?', 'Delete the package?', 'Usunąć pakiet?'],
+  ['Видалити товар?', 'Удалить товар?', 'Delete the product?', 'Usunąć produkt?'],
+  ['Дані відновлено', 'Данные восстановлены', 'Data restored', 'Dane przywrócone'],
+  ['Дата народження', 'Дата рождения', 'Date of birth', 'Data urodzenia'],
+  ['Загальний дохід', 'Общий доход', 'Total income', 'Dochód łącznie'],
+  ['Записати продаж', 'Записать продажу', 'Record the sale', 'Zapisz sprzedaż'],
+  ['Зміни збережено', 'Изменения сохранены', 'Changes saved', 'Zmiany zapisane'],
+  ['Кабінет тренера', 'Кабинет тренера', 'Trainer account', 'Konto trenera'],
+  ['Клієнтів усього', 'Клиентов всего', 'Clients in total', 'Klientów łącznie'],
+  ['Кому оформлюємо', 'Кому оформляем', 'Who is it for', 'Dla kogo'],
+  ['Копію збережено', 'Копия сохранена', 'Backup saved', 'Kopia zapisana'],
+  ['Коротка нотатка', 'Короткая заметка', 'Short note', 'Krótka notatka'],
+  ['Нове тренування', 'Новая тренировка', 'New session', 'Nowy trening'],
+  ['Новий абонемент', 'Новый абонемент', 'New package', 'Nowy karnet'],
+  ['Оберіть клієнта', 'Выберите клиента', 'Choose a client', 'Wybierz klienta'],
+  ['Одне тренування', 'Одна тренировка', 'One session', 'Jeden trening'],
+  ['Оплату записано', 'Оплата записана', 'Payment recorded', 'Płatność zapisana'],
+  ['Останні 30 днів', 'Последние 30 дней', 'Last 30 days', 'Ostatnie 30 dni'],
+  ['Продаж записано', 'Продажа записана', 'Sale recorded', 'Sprzedaż zapisana'],
+  ['Продажі товарів', 'Продажи товаров', 'Product sales', 'Sprzedaż produktów'],
+  ['Продано одиниць', 'Продано единиц', 'Units sold', 'Sprzedanych sztuk'],
+  ['Профіль тренера', 'Профиль тренера', 'Trainer profile', 'Profil trenera'],
+  ['Підписка діє до', 'Подписка действует до', 'Subscription until', 'Subskrypcja do'],
+  ['Сьогодні вільно', 'Сегодня свободно', 'Today is free', 'Dzisiaj wolne'],
+  ['Ціна за одиницю', 'Цена за единицу', 'Price per unit', 'Cena za sztukę'],
+  ['Є заборгованість', 'Есть задолженность', 'There is a debt', 'Jest zadłużenie'],
+  ['Ім’я та прізвище', 'Имя и фамилия', 'Full name', 'Imię i nazwisko'],
+  ['Історія продажів', 'История продаж', 'Sales history', 'Historia sprzedaży'],
+  ['Базу зашифровано', 'База зашифрована', 'Database encrypted', 'Baza zaszyfrowana'],
+  ['Видалити клієнта', 'Удалить клиента', 'Delete the client', 'Usuń klienta'],
+  ['Відкрити фінанси', 'Открыть финансы', 'Open finances', 'Otwórz finanse'],
+  ['Даних поки немає', 'Данных пока нет', 'No data yet', 'Brak danych'],
+  ['Дохід по місяцях', 'Доход по месяцам', 'Income by month', 'Dochód miesięcznie'],
+  ['Закінчився товар', 'Товар закончился', 'Out of stock', 'Produkt się skończył'],
+  ['Клієнта видалено', 'Клиент удалён', 'Client deleted', 'Klient usunięty'],
+  ['Номер не вказано', 'Номер не указан', 'No phone number', 'Brak numeru'],
+  ['Нотаток ще немає', 'Заметок ещё нет', 'No notes yet', 'Brak notatek'],
+  ['Позначити оплату', 'Отметить оплату', 'Mark as paid', 'Oznacz płatność'],
+  ['Провів, оплачено', 'Провёл, оплачено', 'Done, paid', 'Odbyty, opłacony'],
+  ['Підписка активна', 'Подписка активна', 'Subscription is active', 'Subskrypcja aktywna'],
+  ['Створити кабінет', 'Создать кабинет', 'Create an account', 'Załóż konto'],
+  ['Структура доходу', 'Структура дохода', 'Income breakdown', 'Struktura dochodu'],
+  ['Товар закінчився', 'Товар закончился', 'Out of stock', 'Produkt się skończył'],
+  ['Товарів ще немає', 'Товаров ещё нет', 'No products yet', 'Nie ma jeszcze produktów'],
+  ['за замовчуванням', 'по умолчанию', 'default', 'domyślnie'],
+  ['Автоматична копія', 'Автоматическая копия', 'Automatic backup', 'Kopia automatyczna'],
+  ['Активних клієнтів', 'Активных клиентов', 'Active clients', 'Aktywnych klientów'],
+  ['Видалити клієнта?', 'Удалить клиента?', 'Delete the client?', 'Usunąć klienta?'],
+  ['Відновити з файлу', 'Восстановить из файла', 'Restore from a file', 'Przywróć z pliku'],
+  ['Відновити покупку', 'Восстановить покупку', 'Restore purchase', 'Przywróć zakup'],
+  ['Готово, до роботи', 'Готово, за работу', 'All set, let\'s go', 'Gotowe, do pracy'],
+  ['Додати тренування', 'Добавить тренировку', 'Add a session', 'Dodaj trening'],
+  ['Клієнт не прийшов', 'Клиент не пришёл', 'Client did not come', 'Klient nie przyszedł'],
+  ['Кому час написати', 'Кому пора написать', 'Time to reach out', 'Do kogo napisać'],
+  ['Нотатку збережено', 'Заметка сохранена', 'Note saved', 'Notatka zapisana'],
+  ['Нікого не знайшли', 'Никого не нашли', 'Nobody found', 'Nikogo nie znaleziono'],
+  ['Оплата не пройшла', 'Оплата не прошла', 'Payment failed', 'Płatność nieudana'],
+  ['Очистити всі дані', 'Очистить все данные', 'Erase all data', 'Wyczyść wszystkie dane'],
+  ['Пошта або телефон', 'Почта или телефон', 'Email or phone', 'E-mail lub telefon'],
+  ['Пробний завершено', 'Пробный завершён', 'Trial ended', 'Okres próbny zakończony'],
+  ['Профіль збережено', 'Профиль сохранён', 'Profile saved', 'Profil zapisany'],
+  ['Скільки тренувань', 'Сколько тренировок', 'How many sessions', 'Ile treningów'],
+  ['Спробувати ще раз', 'Попробовать ещё раз', 'Try again', 'Spróbuj ponownie'],
+  ['Так, видалити все', 'Да, удалить всё', 'Yes, erase everything', 'Tak, usuń wszystko'],
+  ['Текст скопійовано', 'Текст скопирован', 'Text copied', 'Tekst skopiowany'],
+  ['Тренування додано', 'Тренировка добавлена', 'Session added', 'Trening dodany'],
+  ['Ще немає клієнтів', 'Клиентов пока нет', 'No clients yet', 'Nie ma jeszcze klientów'],
+  ['Щось пішло не так', 'Что-то пошло не так', 'Something went wrong', 'Coś poszło nie tak'],
+  ['Абонемент оновлено', 'Абонемент обновлён', 'Package updated', 'Karnet zaktualizowany'],
+  ['Абонемент створено', 'Абонемент создан', 'Package created', 'Karnet utworzony'],
+  ['Активні абонементи', 'Активные абонементы', 'Active packages', 'Aktywne karnety'],
+  ['Все синхронізовано', 'Всё синхронизировано', 'Everything is in sync', 'Wszystko zsynchronizowane'],
+  ['Закінчується товар', 'Заканчивается товар', 'Running low on stock', 'Kończy się produkt'],
+  ['Залишок абонемента', 'Остаток абонемента', 'Package balance', 'Pozostało z karnetu'],
+  ['Копію ще не робили', 'Копию ещё не делали', 'No backup yet', 'Nie ma jeszcze kopii'],
+  ['Кількість на руках', 'Количество на руках', 'Quantity in stock', 'Ilość na stanie'],
+  ['Оформити абонемент', 'Оформить абонемент', 'Sell a package', 'Wystaw karnet'],
+  ['Очистити всі дані?', 'Очистить все данные?', 'Erase all data?', 'Wyczyścić wszystkie dane?'],
+  ['Покупку відновлено', 'Покупка восстановлена', 'Purchase restored', 'Zakup przywrócony'],
+  ['Почати безкоштовно', 'Начать бесплатно', 'Start for free', 'Zacznij za darmo'],
+  ['Прибуток з одиниці', 'Прибыль с единицы', 'Profit per unit', 'Zysk na sztuce'],
+  ['Провів, без оплати', 'Провёл, без оплаты', 'Done, unpaid', 'Odbyty, bez zapłaty'],
+  ['Текст повідомлення', 'Текст сообщения', 'Message text', 'Treść wiadomości'],
+  ['Товар закінчується', 'Товар заканчивается', 'Running low on stock', 'Produkt się kończy'],
+  ['Умови використання', 'Условия использования', 'Terms of use', 'Warunki korzystania'],
+  ['оберіть другу дату', 'выберите вторую дату', 'choose the second date', 'wybierz drugą datę'],
+  ['14 днів безкоштовно', '14 дней бесплатно', '14 days free', '14 dni za darmo'],
+  ['Абонемент оформлено', 'Абонемент оформлен', 'Package activated', 'Karnet wystawiony'],
+  ['Без автопродовження', 'Без автопродления', 'No auto-renewal', 'Bez odnawiania'],
+  ['Вартість тренування', 'Стоимость тренировки', 'Session price', 'Cena treningu'],
+  ['Детальна статистика', 'Подробная статистика', 'Detailed statistics', 'Szczegółowe statystyki'],
+  ['Заповнити прикладом', 'Заполнить примером', 'Fill with demo data', 'Wypełnij przykładem'],
+  ['Зберегти тренування', 'Сохранить тренировку', 'Save the session', 'Zapisz trening'],
+  ['Клієнта не знайдено', 'Клиент не найден', 'Client not found', 'Nie znaleziono klienta'],
+  ['Нагадування клієнту', 'Напоминание клиенту', 'Client reminder', 'Przypomnienie dla klienta'],
+  ['Наступне тренування', 'Следующая тренировка', 'Next session', 'Następny trening'],
+  ['Не вистачає залишку', 'Не хватает остатка', 'Not enough in stock', 'Za mało na stanie'],
+  ['ОСЬ ЯК ЦЕ РАХУЄТЬСЯ', 'ВОТ КАК ЭТО СЧИТАЕТСЯ', 'HOW THIS IS CALCULATED', 'TAK TO SIĘ LICZY'],
+  ['Оплата обробляється', 'Оплата обрабатывается', 'Payment processing', 'Płatność w toku'],
+  ['Пароль не підходить', 'Пароль не подходит', 'Wrong password', 'Hasło nie pasuje'],
+  ['Персональний тренер', 'Персональный тренер', 'Personal trainer', 'Trener personalny'],
+  ['Продажів ще не було', 'Продаж ещё не было', 'No sales yet', 'Nie było jeszcze sprzedaży'],
+  ['Хто і скільки винен', 'Кто и сколько должен', 'Who owes and how much', 'Kto i ile jest winien'],
+  ['Ціна без абонемента', 'Цена без абонемента', 'Price without a package', 'Cena bez karnetu'],
+  ['Шифрування вимкнено', 'Шифрование выключено', 'Encryption is off', 'Szyfrowanie wyłączone'],
+  ['Що ви віддаєте залу', 'Что вы отдаёте залу', 'What the gym takes', 'Co oddajesz klubowi'],
+  ['давно не тренувався', 'давно не тренировался', 'has not trained for a while', 'dawno nie trenował'],
+  ['Абонементів ще немає', 'Абонементов ещё нет', 'No packages yet', 'Nie ma jeszcze karnetów'],
+  ['Адреса синхронізації', 'Адрес синхронизации', 'Sync address', 'Adres synchronizacji'],
+  ['Гроші рахуються самі', 'Деньги считаются сами', 'Money counts itself', 'Pieniądze liczą się same'],
+  ['Закрити борг клієнта', 'Закрыть долг клиента', 'Clear the client\'s debt', 'Zamknij dług klienta'],
+  ['Клієнтів не знайдено', 'Клиентов не найдено', 'No clients found', 'Nie znaleziono klientów'],
+  ['Нагадайте про завтра', 'Напомните про завтра', 'Remind about tomorrow', 'Przypomnij o jutrze'],
+  ['Найактивніші клієнти', 'Самые активные клиенты', 'Most active clients', 'Najaktywniejsi klienci'],
+  ['Найближчі тренування', 'Ближайшие тренировки', 'Upcoming sessions', 'Najbliższe treningi'],
+  ['Не тренувались понад', 'Не тренировались больше', 'Not training for over', 'Nie trenowali ponad'],
+  ['Потрібне продовження', 'Нужно продление', 'Renewal needed', 'Potrzebne przedłużenie'],
+  ['Підписка завершилась', 'Подписка завершилась', 'Subscription ended', 'Subskrypcja zakończona'],
+  ['Скасувати тренування', 'Отменить тренировку', 'Cancel the session', 'Odwołaj trening'],
+  ['Сповіщення увімкнено', 'Уведомления включены', 'Notifications enabled', 'Powiadomienia włączone'],
+  ['Створити копію зараз', 'Создать копию сейчас', 'Back up now', 'Utwórz kopię teraz'],
+  ['Тренування скасовано', 'Тренировка отменена', 'Session cancelled', 'Trening odwołany'],
+  ['Тренувань на клієнта', 'Тренировок на клиента', 'Sessions per client', 'Treningów na klienta'],
+  ['Залишок після продажу', 'Остаток после продажи', 'Stock after the sale', 'Stan po sprzedaży'],
+  ['Не сплачено клієнтами', 'Не оплачено клиентами', 'Unpaid by clients', 'Nieopłacone przez klientów'],
+  ['Нотатка до тренування', 'Заметка к тренировке', 'Session note', 'Notatka do treningu'],
+  ['Проведено та оплачено', 'Проведено и оплачено', 'Completed and paid', 'Odbyty i opłacony'],
+  ['Скасувати тренування?', 'Отменить тренировку?', 'Cancel the session?', 'Odwołać trening?'],
+  ['безкоштовного доступу', 'бесплатного доступа', 'of free access', 'bezpłatnego dostępu'],
+  ['зроблено для тренерів', 'сделано для тренеров', 'made for trainers', 'zrobione dla trenerów'],
+  ['Абонемент закінчується', 'Абонемент заканчивается', 'Package is running out', 'Karnet się kończy'],
+  ['Вже є кабінет — увійти', 'Уже есть кабинет — войти', 'I already have an account', 'Mam już konto — zaloguj'],
+  ['Закінчується абонемент', 'Заканчивается абонемент', 'Package is running out', 'Kończy się karnet'],
+  ['Налаштувати сповіщення', 'Настроить уведомления', 'Set up notifications', 'Ustaw powiadomienia'],
+  ['Скільки віддаєте клубу', 'Сколько отдаёте клубу', 'What you give the club', 'Ile oddajesz klubowi'],
+  ['Є неоплачені тренування', 'Есть неоплаченные тренировки', 'There are unpaid sessions', 'Są nieopłacone treningi'],
+  ['Відновити останню копію', 'Восстановить последнюю копию', 'Restore the last backup', 'Przywróć ostatnią kopię'],
+  ['Зберегти резервну копію', 'Сохранить резервную копию', 'Save a backup', 'Zapisz kopię zapasową'],
+  ['Пароль — від 4 символів', 'Пароль — от 4 символов', 'Password: at least 4 characters', 'Hasło od 4 znaków'],
+  ['Почати з чистого аркуша', 'Начать с чистого листа', 'Start from scratch', 'Zacznij od zera'],
+  ['Проведено, лишився борг', 'Проведено, остался долг', 'Completed, debt remains', 'Odbyty, został dług'],
+  ['Схоже, картку видалили.', 'Похоже, карточку удалили.', 'Looks like this card was deleted.', 'Wygląda na to, że kartę usunięto.'],
+  ['Фото завелике — до 3 МБ', 'Фото слишком большое — до 3 МБ', 'Photo is too large — up to 3 MB', 'Zdjęcie za duże — do 3 MB'],
+  ['клієнт|клієнти|клієнтів', 'клиент|клиента|клиентов', 'client|clients', 'klient|klienci|klientów'],
+  ['Абонементи (передоплата)', 'Абонементы (предоплата)', 'Packages (prepaid)', 'Karnety (przedpłata)'],
+  ['Автопродовження вимкнено', 'Автопродление выключено', 'Auto-renewal is off', 'Odnawianie wyłączone'],
+  ['Вимкнути автопродовження', 'Выключить автопродление', 'Turn off auto-renewal', 'Wyłącz odnawianie'],
+  ['Відновити останню копію?', 'Восстановить последнюю копию?', 'Restore the last backup?', 'Przywrócić ostatnią kopię?'],
+  ['З’явилась заборгованість', 'Появилась задолженность', 'A debt has appeared', 'Pojawiło się zadłużenie'],
+  ['Клієнт давно не приходив', 'Клиент давно не приходил', 'Client has not come for a while', 'Klient dawno nie przyszedł'],
+  ['Клієнти та розклад разом', 'Клиенты и расписание вместе', 'Clients and schedule together', 'Klienci i grafik w jednym miejscu'],
+  ['Пробний період завершено', 'Пробный период завершён', 'Your free trial has ended', 'Okres próbny zakończony'],
+  ['Спочатку оберіть клієнта', 'Сначала выберите клиента', 'Choose a client first', 'Najpierw wybierz klienta'],
+  ['Тренування по днях тижня', 'Тренировки по дням недели', 'Sessions by weekday', 'Treningi wg dni tygodnia'],
+  ['Шифрувати базу PIN-кодом', 'Шифровать базу PIN-кодом', 'Encrypt the data with a PIN', 'Szyfruj bazę PIN-em'],
+  ['Автопродовження увімкнено', 'Автопродление включено', 'Auto-renewal is on', 'Odnawianie włączone'],
+  ['Доступ працює повністю до', 'Доступ работает полностью до', 'Full access until', 'Pełny dostęp do'],
+  ['Копія даних і відновлення', 'Копия данных и восстановление', 'Backup and restore', 'Kopia i przywracanie'],
+  ['Не вдалося зберегти копію', 'Не удалось сохранить копию', 'Could not save the backup', 'Nie udało się zapisać kopii'],
+  ['Не вдалося прочитати дані', 'Не удалось прочитать данные', 'Could not read the data', 'Nie udało się odczytać danych'],
+  ['Не вдалося прочитати фото', 'Не удалось прочитать фото', 'Could not read the photo', 'Nie udało się odczytać zdjęcia'],
+  ['Не вдалося створити копію', 'Не удалось создать копию', 'Could not create the backup', 'Nie udało się utworzyć kopii'],
+  ['Немає кабінету — створити', 'Нет кабинета — создать', 'No account yet — create one', 'Nie mam konta — załóż'],
+  ['Політика конфіденційності', 'Политика конфиденциальности', 'Privacy policy', 'Polityka prywatności'],
+  ['Спробувати без реєстрації', 'Попробовать без регистрации', 'Try without signing up', 'Wypróbuj bez rejestracji'],
+  ['Увімкнути автопродовження', 'Включить автопродление', 'Turn on auto-renewal', 'Włącz odnawianie'],
+  ['Ім’я, телефон, ціна й мета', 'Имя, телефон, цена и цель', 'Name, phone, price and goal', 'Imię, telefon, cena i cel'],
+  ['Нагадати перед тренуванням', 'Напомнить перед тренировкой', 'Remind before a session', 'Przypomnij przed treningiem'],
+  ['Нагадування про тренування', 'Напоминания о тренировках', 'Session reminders', 'Przypomnienia o treningach'],
+  ['Пакети тренувань і залишки', 'Пакеты тренировок и остатки', 'Session packages and balances', 'Pakiety treningów i stany'],
+  ['Поточні дані буде замінено', 'Текущие данные будут заменены', 'Current data will be replaced', 'Obecne dane zostaną zastąpione'],
+  ['Які дані зберігаються і де', 'Какие данные хранятся и где', 'What data is stored and where', 'Jakie dane i gdzie są przechowywane'],
+  ['PIN не збігся, спробуйте ще', 'PIN не совпал, попробуйте ещё', 'PINs do not match, try again', 'PIN się nie zgadza, spróbuj ponownie'],
+  ['Активних покупок не знайшли', 'Активных покупок не нашли', 'No active purchases found', 'Nie znaleziono aktywnych zakupów'],
+  ['Ваш день — на одному екрані', 'Ваш день — на одном экране', 'Your day on one screen', 'Twój dzień na jednym ekranie'],
+  ['Дохід, оборот, комісія залу', 'Доход, оборот, комиссия зала', 'Income, gross, gym fee', 'Dochód, obrót, prowizja klubu'],
+  ['На цей час уже є тренування', 'На это время уже есть тренировка', 'There is already a session at this time', 'O tej porze jest już trening'],
+  ['На цю дату тренувань немає.', 'На эту дату тренировок нет.', 'No sessions on this date.', 'Na ten dzień nie ma treningów.'],
+  ['Не вдалося завершити оплату', 'Не удалось завершить оплату', 'Payment could not be completed', 'Nie udało się dokończyć płatności'],
+  ['Пакет тренувань для клієнта', 'Пакет тренировок для клиента', 'A package of sessions for a client', 'Pakiet treningów dla klienta'],
+  ['Пробний період завершується', 'Пробный период завершается', 'Your free trial is ending', 'Okres próbny się kończy'],
+  ['Ціна, комісія, мова, захист', 'Цена, комиссия, язык, защита', 'Price, fee, language, security', 'Cena, prowizja, język, ochrona'],
+  ['Позначено: клієнт не прийшов', 'Отмечено: клиент не пришёл', 'Marked: the client did not come', 'Oznaczono: klient nie przyszedł'],
+  ['Дані зберігаються на пристрої', 'Данные хранятся на устройстве', 'Data is stored on your device', 'Dane są na urządzeniu'],
+  ['Клієнт записався або скасував', 'Клиент записался или отменил', 'Client booked or cancelled', 'Klient zapisał się lub odwołał'],
+  ['Нагадування перед тренуванням', 'Напоминания перед тренировкой', 'Reminders before a session', 'Przypomnienia przed treningiem'],
+  ['Пошук за іменем або телефоном', 'Поиск по имени или телефону', 'Search by name or phone', 'Szukaj po imieniu lub telefonie'],
+  ['Пробний період, план і оплата', 'Пробный период, план и оплата', 'Trial, plan and payment', 'Okres próbny, plan i płatność'],
+  ['Спише залишок і додасть дохід', 'Спишет остаток и добавит доход', 'Reduces stock and adds income', 'Zmniejszy stan i doda dochód'],
+  ['Клієнти, продажі, середній чек', 'Клиенты, продажи, средний чек', 'Clients, sales, average check', 'Klienci, sprzedaż, średni rachunek'],
+  ['Світла, темна або як у системі', 'Светлая, тёмная или как в системе', 'Light, dark or system', 'Jasny, ciemny lub jak w systemie'],
+  ['Чекаємо підтвердження магазину', 'Ждём подтверждения магазина', 'Waiting for the store to confirm', 'Czekamy na potwierdzenie sklepu'],
+  ['Неоплачені проведені тренування', 'Неоплаченные проведённые тренировки', 'Completed sessions not yet paid', 'Nieopłacone odbyte treningi'],
+  ['тренування|тренування|тренувань', 'тренировка|тренировки|тренировок', 'session|sessions', 'trening|treningi|treningów'],
+  ['Введіть пошту або номер телефону', 'Введите почту или номер телефона', 'Enter your email or phone number', 'Wpisz e-mail lub numer telefonu'],
+  ['Оберіть початок і кінець періоду', 'Выберите начало и конец периода', 'Pick the start and end of the period', 'Wybierz początek i koniec okresu'],
+  ['Ціна одного заняття з абонемента', 'Цена одного занятия из абонемента', 'Price of one session from the package', 'Cena jednych zajęć z karnetu'],
+  ['Кабінет створено — дані збережено', 'Кабинет создан — данные сохранены', 'Account created — your data is saved', 'Konto utworzone — dane zapisane'],
+  ['Нагадати про клієнта, якщо не був', 'Напомнить о клиенте, если не был', 'Remind me about a client who hasn’t come', 'Przypomnij o kliencie, jeśli nie był'],
+  ['Немає зв’язку — спробуємо пізніше', 'Нет связи — попробуем позже', 'No connection — we’ll try later', 'Brak połączenia — spróbujemy później'],
+  ['Необов’язково — нагадає привітати', 'Необязательно — напомнит поздравить', 'Optional — we’ll remind you to send wishes', 'Opcjonalnie — przypomni o życzeniach'],
+  ['Оплата не пройшла — дані на місці', 'Оплата не прошла — данные на месте', 'Payment failed — your data is safe', 'Płatność nieudana — dane są bezpieczne'],
+  ['Перевірте умови перед оформленням', 'Проверьте условия перед оформлением', 'Check the terms before subscribing', 'Sprawdź warunki przed wykupieniem'],
+  ['Сповіщення заблоковані в браузері', 'Уведомления заблокированы в браузере', 'Notifications are blocked in the browser', 'Powiadomienia zablokowane w przeglądarce'],
+  ['Завтра завершується пробний період', 'Завтра заканчивается пробный период', 'The trial ends tomorrow', 'Jutro kończy się okres próbny'],
+  ['Захистити паролем (не обов’язково)', 'Защитить паролем (не обязательно)', 'Protect with a password (optional)', 'Zabezpiecz hasłem (opcjonalnie)'],
+  ['Оборот, комісія залу, чистий дохід', 'Оборот, комиссия зала, чистый доход', 'Turnover, gym fee, net income', 'Obrót, prowizja klubu, dochód netto'],
+  ['Усі проведені тренування оплачені.', 'Все проведённые тренировки оплачены.', 'All completed sessions are paid.', 'Wszystkie odbyte treningi są opłacone.'],
+  ['4 цифри, щоб відкрити базу клієнтів', '4 цифры, чтобы открыть базу клиентов', '4 digits to unlock your client list', '4 cyfry, aby otworzyć bazę klientów'],
+  ['Клієнти, навантаження, середній чек', 'Клиенты, нагрузка, средний чек', 'Clients, workload, average check', 'Klienci, obciążenie, średni rachunek'],
+  ['Оберіть план, щоб продовжити роботу', 'Выберите план, чтобы продолжить работу', 'Choose a plan to keep working', 'Wybierz plan, aby kontynuować pracę'],
+  ['Файл не схожий на копію PRO Trainer', 'Файл не похож на копию PRO Trainer', 'This file doesn’t look like a PRO Trainer backup', 'Plik nie wygląda na kopię PRO Trainer'],
+  ['Фіксована сума з кожного тренування', 'Фиксированная сумма с каждой тренировки', 'A fixed amount from every session', 'Stała kwota z każdego treningu'],
+  ['Вартість тренування за замовчуванням', 'Стоимость тренировки по умолчанию', 'Default session price', 'Domyślna cena treningu'],
+  ['Мова, валюта, захист, резервна копія', 'Язык, валюта, защита, резервная копия', 'Language, currency, protection, backup', 'Język, waluta, ochrona, kopia zapasowa'],
+  ['Мета — рельєф до відпустки в вересні.', 'Цель — рельеф к отпуску в сентябре.', 'Goal — definition before the September holiday.', 'Cel — rzeźba przed wrześniowym urlopem.'],
+  ['Напр.: травма коліна, працює до 19:00', 'Напр.: травма колена, работает до 19:00', 'E.g. knee injury, works until 19:00', 'Np.: uraz kolana, pracuje do 19:00'],
+  ['Дозволити сповіщення на цьому пристрої', 'Разрешить уведомления на этом устройстве', 'Allow notifications on this device', 'Zezwól na powiadomienia na tym urządzeniu'],
+  ['Раз на добу, коли застосунок відкритий', 'Раз в сутки, когда приложение открыто', 'Once a day while the app is open', 'Raz dziennie, gdy aplikacja jest otwarta'],
+  ['Історія продажів залишиться у клієнтів.', 'История продаж останется у клиентов.', 'Sales history stays in the client cards.', 'Historia sprzedaży pozostanie u klientów.'],
+  ['Створити кабінет — демо-дані залишаться', 'Создать кабинет — демо-данные останутся', 'Create an account — demo data stays', 'Utwórz konto — dane demo pozostaną'],
+  ['Такого кабінету на цьому пристрої немає', 'Такого кабинета на этом устройстве нет', 'There’s no such account on this device', 'Nie ma takiego konta na tym urządzeniu'],
+  ['Видалить клієнтів, тренування та історію', 'Удалит клиентов, тренировки и историю', 'Deletes clients, sessions and history', 'Usunie klientów, treningi i historię'],
+  ['Найчастіше клуб бере 10–20% з тренування', 'Чаще всего клуб берёт 10–20% с тренировки', 'Gyms usually take 10–20% per session', 'Klub zwykle bierze 10–20% z treningu'],
+  ['Введіть логін, з яким створювали кабінет.', 'Введите логин, с которым создавали кабинет.', 'Enter the login you signed up with.', 'Wpisz login, którym utworzono konto.'],
+  ['Вимкнена — копія зберігається на пристрої', 'Выключена — копия хранится на устройстве', 'Off — the backup stays on the device', 'Wyłączona — kopia zostaje na urządzeniu'],
+  ['Як склалась сума за сьогодні та за місяць', 'Как сложилась сумма за сегодня и за месяц', 'How today’s and this month’s totals add up', 'Jak powstała kwota za dziś i za miesiąc'],
+  ['Клієнт, час і вартість — за кілька дотиків', 'Клиент, время и стоимость — за пару касаний', 'Client, time and price — in a few taps', 'Klient, godzina i cena — w kilka dotknięć'],
+  ['Повний доступ до всіх функцій PRO Trainer.', 'Полный доступ ко всем функциям PRO Trainer.', 'Full access to all PRO Trainer features.', 'Pełny dostęp do wszystkich funkcji PRO Trainer.'],
+  ['Підписка, пробний період, відповідальність', 'Подписка, пробный период, ответственность', 'Subscription, trial, liability', 'Subskrypcja, okres próbny, odpowiedzialność'],
+  ['Після цієї дати потрібно буде обрати план.', 'После этой даты нужно будет выбрать план.', 'After this date you’ll need to choose a plan.', 'Po tej dacie trzeba będzie wybrać plan.'],
+  ['Цей пристрій не вміє показувати сповіщення', 'Это устройство не умеет показывать уведомления', 'This device can’t show notifications', 'To urządzenie nie obsługuje powiadomień'],
+  ['За замовчуванням — у клієнта може бути своя', 'По умолчанию — у клиента может быть своя', 'Default — a client can have their own', 'Domyślnie — klient może mieć własną'],
+  ['Порожньо — береться ціна за замовчуванням, ', 'Пусто — берётся цена по умолчанию, ', 'Empty — the default price is used, ', 'Puste — używana jest cena domyślna, '],
+  ['Увечері підкажемо, кому написати про завтра', 'Вечером подскажем, кому написать про завтра', 'In the evening we’ll suggest who to text about tomorrow', 'Wieczorem podpowiemy, do kogo napisać o jutrze'],
+  ['Перевірте запит або створіть нового клієнта.', 'Проверьте запрос или создайте нового клиента.', 'Check the search or add a new client.', 'Sprawdź zapytanie lub dodaj nowego klienta.'],
+  ['За цей період ще не було оплачених тренувань.', 'За этот период ещё не было оплаченных тренировок.', 'No paid sessions in this period yet.', 'W tym okresie nie było jeszcze opłaconych treningów.'],
+  ['Скаржиться на праве коліно — прибрати випади.', 'Жалуется на правое колено — убрать выпады.', 'Complains about the right knee — drop lunges.', 'Skarży się na prawe kolano — usunąć wykroki.'],
+  ['Напр.: тест на 1ПМ, або прийти на 10 хв раніше', 'Напр.: тест на 1ПМ или прийти на 10 мин раньше', 'E.g. 1RM test, or arrive 10 min earlier', 'Np.: test 1RM albo przyjść 10 min wcześniej'],
+  ['Не вдалося перевірити пароль на цьому пристрої', 'Не удалось проверить пароль на этом устройстве', 'Couldn’t verify the password on this device', 'Nie udało się sprawdzić hasła na tym urządzeniu'],
+  ['Оберіть, за скільки попереджати. Можна кілька.', 'Выберите, за сколько предупреждать. Можно несколько.', 'Choose how early to warn you. Several are fine.', 'Wybierz, z jakim wyprzedzeniem przypominać. Można kilka.'],
+  ['Щойно продасте товар — покупки з’являться тут.', 'Как только продадите товар — покупки появятся здесь.', 'Once you sell something, purchases will show up here.', 'Gdy sprzedasz towar — zakupy pojawią się tutaj.'],
+  ['Оберіть план, щоб продовжити роботу без перерви', 'Выберите план, чтобы продолжить работу без перерыва', 'Choose a plan to keep working without a break', 'Wybierz plan, aby pracować bez przerwy'],
+  ['Усі проведені тренування оплачені. Так тримати.', 'Все проведённые тренировки оплачены. Так держать.', 'All completed sessions are paid. Keep it up.', 'Wszystkie odbyte treningi opłacone. Tak trzymaj.'],
+  ['Тут з’являться тренування, покупки й абонементи.', 'Здесь появятся тренировки, покупки и абонементы.', 'Sessions, purchases and packages will appear here.', 'Tu pojawią się treningi, zakupy i karnety.'],
+  ['Частковий переклад — решта покажеться українською', 'Частичный перевод — остальное покажется на украинском', 'Partial translation — the rest shows in Ukrainian', 'Częściowe tłumaczenie — reszta po ukraińsku'],
+  ['Автопродовження вимкнено — доступ до кінця періоду', 'Автопродление выключено — доступ до конца периода', 'Auto-renewal is off — access until the period ends', 'Automatyczne odnawianie wyłączone — dostęp do końca okresu'],
+  ['Спробуйте інший запит або створіть нового клієнта.', 'Попробуйте другой запрос или создайте нового клиента.', 'Try another search or add a new client.', 'Spróbuj innego zapytania lub dodaj nowego klienta.'],
+  ['Дані клієнтів на пристрої будуть зашифровані AES-256', 'Данные клиентов на устройстве будут зашифрованы AES-256', 'Client data on the device will be encrypted with AES-256', 'Dane klientów na urządzeniu zostaną zaszyfrowane AES-256'],
+  ['Напр.: збільшити робочу вагу на наступному тренуванні', 'Напр.: увеличить рабочий вес на следующей тренировке', 'E.g. increase working weight next session', 'Np.: zwiększyć ciężar roboczy na kolejnym treningu'],
+  ['Уже куплені абонементи клієнтів залишаться активними.', 'Уже купленные абонементы клиентов останутся активными.', 'Packages clients already bought stay active.', 'Już kupione karnety klientów pozostaną aktywne.'],
+  ['Інтерфейс перекладено; юридичні документи — українською', 'Интерфейс переведён; юридические документы — на украинском', 'The interface is translated; legal documents are in Ukrainian', 'Interfejs przetłumaczony; dokumenty prawne po ukraińsku'],
+  ['Збільшити робочу вагу в присіді на наступному тренуванні.', 'Увеличить рабочий вес в приседе на следующей тренировке.', 'Increase working weight in the squat next session.', 'Zwiększyć ciężar roboczy w przysiadzie na kolejnym treningu.'],
+  ['Кожен клієнт або тренувався нещодавно, або вже записаний.', 'Каждый клиент либо тренировался недавно, либо уже записан.', 'Every client either trained recently or is already booked.', 'Każdy klient albo niedawno trenował, albo jest już zapisany.'],
+  ['Необов’язково. Поки порожньо — застосунок працює автономно', 'Необязательно. Пока пусто — приложение работает автономно', 'Optional. While empty, the app works offline', 'Opcjonalnie. Dopóki puste — aplikacja działa offline'],
+  ['Проведіть перше тренування — і графік почне заповнюватись.', 'Проведите первую тренировку — и график начнёт заполняться.', 'Complete your first session and the chart will fill up.', 'Przeprowadź pierwszy trening — wykres zacznie się wypełniać.'],
+  ['Не вдалося показати цей блок. Дані на пристрої не втрачені.', 'Не удалось показать этот блок. Данные на устройстве не потеряны.', 'Couldn’t render this block. Your data on the device is intact.', 'Nie udało się wyświetlić tego bloku. Dane na urządzeniu są całe.'],
+  ['Ця сума підставлятиметься в кожне тренування з цим клієнтом', 'Эта сумма будет подставляться в каждую тренировку с этим клиентом', 'This amount will be prefilled for every session with this client', 'Ta kwota będzie wstawiana do każdego treningu z tym klientem'],
+  ['Воно лишиться в історії як скасоване і не потрапить у дохід.', 'Она останется в истории как отменённая и не попадёт в доход.', 'It stays in history as cancelled and won’t count as income.', 'Zostanie w historii jako odwołany i nie wliczy się do dochodu.'],
+  ['Оформіть абонемент клієнту з його картки або зі списку пакетів.', 'Оформите абонемент клиенту из его карточки или из списка пакетов.', 'Issue a package from a client’s card or from the packages list.', 'Wystaw karnet z karty klienta lub z listy pakietów.'],
+  ['Такі клієнти з’являться на головній у блоці «Кому час написати»', 'Такие клиенты появятся на главной в блоке «Кому пора написать»', 'Such clients appear on the home screen under “Time to text”', 'Tacy klienci pojawią się na ekranie głównym w bloku „Czas napisać”'],
+  ['Тренувань не заплановано. Гарний момент, щоб запросити клієнта.', 'Тренировок не запланировано. Хороший момент, чтобы пригласить клиента.', 'No sessions planned. A good moment to invite a client.', 'Brak zaplanowanych treningów. Dobry moment, żeby zaprosić klienta.'],
+  ['Закріплена ціна цього клієнта — можна змінити для цього тренування', 'Закреплённая цена этого клиента — можно изменить для этой тренировки', 'This client’s pinned price — you can change it for this session', 'Przypisana cena tego klienta — można zmienić dla tego treningu'],
+  ['Спочатку додайте товар — потім його можна буде продавати клієнтам.', 'Сначала добавьте товар — потом его можно будет продавать клиентам.', 'Add a product first — then you can sell it to clients.', 'Najpierw dodaj towar — potem będzie można go sprzedawać klientom.'],
+  ['{name}, привіт! Нагадую про тренування {when} о {time}. Буду чекати!', '{name}, привет! Напоминаю о тренировке {when} в {time}. Буду ждать!', 'Hi {name}! A reminder about your session {when} at {time}. See you!', 'Cześć {name}! Przypominam o treningu {when} o {time}. Czekam!'],
+  ['Нічого не надсилається на сервер, поки ви не увімкнете синхронізацію', 'Ничего не отправляется на сервер, пока вы не включите синхронизацию', 'Nothing is sent to a server until you turn on sync', 'Nic nie jest wysyłane na serwer, dopóki nie włączysz synchronizacji'],
+  ['Підставлено ціну за замовчуванням — змініть, якщо сьогодні інша сума', 'Подставлена цена по умолчанию — измените, если сегодня другая сумма', 'Default price prefilled — change it if today’s amount differs', 'Wstawiono cenę domyślną — zmień, jeśli dziś inna kwota'],
+  ['Тут з’являться нагадування про тренування, борги та залишки товарів.', 'Здесь появятся напоминания о тренировках, долгах и остатках товаров.', 'Reminders about sessions, debts and stock will appear here.', 'Tu pojawią się przypomnienia o treningach, długach i stanach towarów.'],
+  ['{name}, доброго дня! Нагадую про оплату за тренування — {sum}. Дякую!', '{name}, добрый день! Напоминаю об оплате за тренировки — {sum}. Спасибо!', 'Hello {name}! A reminder about payment for your sessions — {sum}. Thank you!', 'Dzień dobry {name}! Przypominam o płatności za treningi — {sum}. Dziękuję!'],
+  ['Копія містить клієнтів, тренування, продажі, абонементи й налаштування.', 'Копия содержит клиентов, тренировки, продажи, абонементы и настройки.', 'The backup contains clients, sessions, sales, packages and settings.', 'Kopia zawiera klientów, treningi, sprzedaż, karnety i ustawienia.'],
+  ['{name}, доброго дня! Підтвердіть, будь ласка, тренування {when} о {time}.', '{name}, добрый день! Подтвердите, пожалуйста, тренировку {when} в {time}.', 'Hello {name}, could you confirm your session {when} at {time}?', 'Dzień dobry {name}! Proszę o potwierdzenie treningu {when} o {time}.'],
+  ['Додайте першого клієнта — і зможете планувати тренування та рахувати дохід.', 'Добавьте первого клиента — и сможете планировать тренировки и считать доход.', 'Add your first client to plan sessions and count income.', 'Dodaj pierwszego klienta — będziesz planować treningi i liczyć dochód.'],
+  ['Мінімум 4 символи. Знадобиться лише щоб відкрити кабінет на цьому пристрої.', 'Минимум 4 символа. Понадобится только чтобы открыть кабинет на этом устройстве.', 'At least 4 characters. Only needed to open the account on this device.', 'Minimum 4 znaki. Potrzebne tylko do otwarcia konta na tym urządzeniu.'],
+  ['Дані на місці — нічого не втрачено. Спробуйте ще раз або оберіть інший план.', 'Данные на месте — ничего не потеряно. Попробуйте ещё раз или выберите другой план.', 'Your data is safe — nothing is lost. Try again or pick another plan.', 'Dane są bezpieczne — nic nie zginęło. Spróbuj ponownie lub wybierz inny plan.'],
+  ['Додайте протеїн, шейкер чи резинки — застосунок рахуватиме залишок і прибуток.', 'Добавьте протеин, шейкер или резинки — приложение посчитает остаток и прибыль.', 'Add protein, a shaker or bands — the app will track stock and profit.', 'Dodaj odżywkę, shaker czy gumy — aplikacja policzy stan i zysk.'],
+  ['Створіть перший пакет — далі його можна буде оформлювати клієнтам у два дотики.', 'Создайте первый пакет — дальше его можно будет оформлять клиентам в два касания.', 'Create your first package — then you can issue it to clients in two taps.', 'Utwórz pierwszy pakiet — potem wystawisz go klientom w dwa dotknięcia.'],
+  ['Демо-режим: магазин ще не підключено, покупка імітується для перевірки сценарію.', 'Демо-режим: магазин ещё не подключён, покупка имитируется для проверки сценария.', 'Demo mode: the store isn’t connected yet, the purchase is simulated.', 'Tryb demo: sklep nie jest jeszcze podłączony, zakup jest symulowany.'],
+  ['Кабінет прив’яжеться до вашої пошти або номера — дані з демо залишаться на місці.', 'Кабинет привяжется к вашей почте или номеру — данные из демо останутся на месте.', 'The account is linked to your email or phone — demo data stays put.', 'Konto zostanie powiązane z e-mailem lub numerem — dane demo pozostaną.'],
+  ['Повний доступ до всіх функцій. Оплата — тільки після завершення пробного періоду.', 'Полный доступ ко всем функциям. Оплата — только после окончания пробного периода.', 'Full access to everything. You pay only after the trial ends.', 'Pełny dostęp do wszystkich funkcji. Płatność dopiero po okresie próbnym.'],
+  ['Ці числа підставлятимуться в кожне тренування. Змінити можна будь-коли в профілі.', 'Эти числа будут подставляться в каждую тренировку. Изменить можно когда угодно в профиле.', 'These numbers prefill every session. You can change them anytime in the profile.', 'Te liczby będą wstawiane do każdego treningu. Zmienisz je kiedykolwiek w profilu.'],
+  ['Разом із ним зникнуть його тренування, продажі та нотатки. Дію не можна скасувати.', 'Вместе с ним исчезнут его тренировки, продажи и заметки. Действие нельзя отменить.', 'Their sessions, sales and notes will be deleted too. This can’t be undone.', 'Razem z nim znikną jego treningi, sprzedaż i notatki. Tej akcji nie można cofnąć.'],
+  ['{name}, привіт! Підкажіть, коли зручно закрити оплату за минулі тренування ({sum})?', '{name}, привет! Подскажите, когда удобно закрыть оплату за прошлые тренировки ({sum})?', 'Hi {name}! When would it be convenient to settle payment for your past sessions ({sum})?', 'Cześć {name}! Kiedy będzie Ci wygodnie uregulować płatność za poprzednie treningi ({sum})?'],
+  ['Достатньо пошти або номера — жодних кодів і підтверджень. Пароль можна не вигадувати.', 'Достаточно почты или номера — никаких кодов и подтверждений. Пароль можно не придумывать.', 'Just an email or phone — no codes, no confirmations. A password is optional.', 'Wystarczy e-mail lub numer — bez kodów i potwierdzeń. Hasło jest opcjonalne.'],
+  ['Записуйте ваги, самопочуття, побажання — усе, що знадобиться на наступному тренуванні.', 'Записывайте веса, самочувствие, пожелания — всё, что понадобится на следующей тренировке.', 'Note weights, how they felt, requests — anything useful for the next session.', 'Zapisuj ciężary, samopoczucie, życzenia — wszystko, co przyda się na kolejnym treningu.'],
+  ['8 клієнтів, історія за 2 місяці, товари й абонементи. Все можна видалити одним дотиком.', '8 клиентов, история за 2 месяца, товары и абонементы. Всё можно удалить одним касанием.', '8 clients, 2 months of history, products and packages. All removable in one tap.', '8 klientów, historia z 2 miesięcy, towary i karnety. Wszystko usuniesz jednym dotknięciem.'],
+  ['Нічого не спишеться автоматично: план ви оберете самі, коли пробний період завершиться.', 'Ничего не спишется автоматически: план вы выберете сами, когда пробный период закончится.', 'Nothing is charged automatically: you pick a plan yourself when the trial ends.', 'Nic nie zostanie pobrane automatycznie: plan wybierzesz sam, gdy okres próbny się skończy.'],
+  ['Ніхто не зник з поля зору — у всіх активних клієнтів є свіжі тренування або запис наперед.', 'Никто не пропал из виду — у всех активных клиентов есть свежие тренировки или запись наперёд.', 'Nobody slipped away — every active client has a recent session or an upcoming booking.', 'Nikt nie zniknął z pola widzenia — wszyscy aktywni klienci mają świeże treningi lub zapis na przyszłość.'],
+  ['Відкрив застосунок і за три секунди бачиш: скільки тренувань сьогодні і скільки ви заробили.', 'Открыл приложение и за три секунды видишь: сколько тренировок сегодня и сколько вы заработали.', 'Open the app and in three seconds you see how many sessions you have today and how much you earned.', 'Otwierasz aplikację i w trzy sekundy widzisz: ile masz dziś treningów i ile zarobiłeś.'],
+  ['Оборот, відсоток залу і чисті — рахуються автоматично. Продажі товарів і абонементи теж тут.', 'Оборот, процент зала и чистыми — считаются автоматически. Продажи товаров и абонементы тоже здесь.', 'Turnover, the gym’s cut and your net — calculated automatically. Product sales and packages are here too.', 'Obrót, prowizja klubu i kwota netto — liczone automatycznie. Sprzedaż towarów i karnety też tutaj.'],
+  ['Картка клієнта, історія, борги, абонементи й нагадування. Нове тренування — за кілька дотиків.', 'Карточка клиента, история, долги, абонементы и напоминания. Новая тренировка — за пару касаний.', 'A client card, history, debts, packages and reminders. A new session takes a few taps.', 'Karta klienta, historia, długi, karnety i przypomnienia. Nowy trening w kilka dotknięć.'],
+  ['Усі ваші клієнти, тренування та фінансові дані збережені. Оберіть план, щоб продовжити роботу.', 'Все ваши клиенты, тренировки и финансовые данные сохранены. Выберите план, чтобы продолжить работу.', 'All your clients, sessions and financial data are saved. Choose a plan to keep working.', 'Wszyscy Twoi klienci, treningi i dane finansowe są zapisane. Wybierz plan, aby kontynuować pracę.'],
+  ['Поточні дані буде замінено даними з копії. Якщо після копії щось змінювалось — ці зміни зникнуть.', 'Текущие данные будут заменены данными из копии. Если после копии что-то менялось — эти изменения исчезнут.', 'Current data will be replaced by the backup. Anything changed after the backup will be lost.', 'Bieżące dane zostaną zastąpione danymi z kopii. Zmiany po wykonaniu kopii przepadną.'],
+  ['Створіть пакет — напр. 8 тренувань за 5 600 ₴. Кожне проведене тренування списується автоматично.', 'Создайте пакет — напр. 8 тренировок за 5 600 ₴. Каждая проведённая тренировка списывается автоматически.', 'Create a package — e.g. 8 sessions for 5,600 ₴. Each completed session is deducted automatically.', 'Utwórz pakiet — np. 8 treningów za 5 600 ₴. Każdy odbyty trening odlicza się automatycznie.'],
+  ['Дані клієнтів, тренування та фінанси зберігаються незалежно від підписки — вони нікуди не зникають.', 'Данные клиентов, тренировки и финансы хранятся независимо от подписки — они никуда не исчезают.', 'Client data, sessions and finances are stored regardless of the subscription — nothing disappears.', 'Dane klientów, treningi i finanse są przechowywane niezależnie od subskrypcji — nic nie znika.'],
+  ['{name}, доброго дня! Пропоную повернутись до тренувань — почнемо з легкого відновлювального. Коли зручно?', '{name}, добрый день! Предлагаю вернуться к тренировкам — начнём с лёгкой восстановительной. Когда удобно?', 'Hello {name}! How about getting back to training — we can start with an easy recovery session. When suits you?', 'Dzień dobry {name}! Proponuję wrócić do treningów — zaczniemy od lekkiego, regeneracyjnego. Kiedy Ci pasuje?'],
+  ['Схоже, збережена база пошкоджена. Можна почати з чистого аркуша — або відновити з резервної копії пізніше.', 'Похоже, сохранённая база повреждена. Можно начать с чистого листа — или восстановить из резервной копии позже.', 'The saved database looks damaged. You can start fresh — or restore from a backup later.', 'Wygląda na to, że zapisana baza jest uszkodzona. Można zacząć od zera — albo później odtworzyć z kopii.'],
+  ['Клієнти, тренування, продажі та налаштування зникнуть із цього пристрою. Радимо спершу зберегти резервну копію.', 'Клиенты, тренировки, продажи и настройки исчезнут с этого устройства. Советуем сначала сохранить резервную копию.', 'Clients, sessions, sales and settings will be erased from this device. Save a backup first.', 'Klienci, treningi, sprzedaż i ustawienia znikną z tego urządzenia. Radzimy najpierw zapisać kopię.'],
+  ['{name}, привіт! Давно вас не було в залі — усе гаразд? Є вільні місця на цьому тижні, можу поставити ваш звичний час.', '{name}, привет! Давно вас не было в зале — всё в порядке? На этой неделе есть свободные места, могу поставить ваше привычное время.', 'Hi {name}! Haven’t seen you at the gym for a while — all good? I have slots free this week and can keep your usual time.', 'Cześć {name}! Dawno Cię nie było na siłowni — wszystko w porządku? W tym tygodniu mam wolne terminy, mogę zarezerwować Twoją zwykłą godzinę.'],
+  ['Абонемент — це передоплата: гроші зараховуються в дохід у міру проведення тренувань, тому сума покупок показана окремо.', 'Абонемент — это предоплата: деньги зачисляются в доход по мере проведения тренировок, поэтому сумма покупок показана отдельно.', 'A package is prepayment: the money counts as income as sessions are completed, so purchases are shown separately.', 'Karnet to przedpłata: pieniądze wliczają się do dochodu w miarę odbywania treningów, dlatego kwota zakupów jest pokazana osobno.'],
+  ['Сума підставляється в нове тренування — її можна змінити в будь-якому тренуванні або закріпити окрему ціну за клієнтом.', 'Сумма подставляется в новую тренировку — её можно изменить в любой тренировке или закрепить отдельную цену за клиентом.', 'The amount prefills a new session — you can change it in any session or pin a separate price per client.', 'Kwota jest wstawiana do nowego treningu — można ją zmienić w każdym treningu lub przypisać osobną cenę klientowi.'],
+  ['Оплата проходить через магазин застосунків, керувати підпискою можна в його налаштуваннях. Підписка продовжується автоматично, доки ви не вимкнете автопродовження.', 'Оплата проходит через магазин приложений, управлять подпиской можно в его настройках. Подписка продлевается автоматически, пока вы не выключите автопродление.', 'Payment goes through the app store; you can manage the subscription in its settings. It renews automatically until you turn off auto-renewal.', 'Płatność przechodzi przez sklep z aplikacjami, subskrypcją zarządzasz w jego ustawieniach. Odnawia się automatycznie, dopóki nie wyłączysz automatycznego odnawiania.'],
+];
+
+/* ключі, потрібні там, де запасного тексту немає, і точкові винятки */
+const OVERRIDE = {
   uk:{
     'nav.home':'Головна','nav.cal':'Календар','nav.clients':'Клієнти','nav.sales':'Продажі','nav.profile':'Профіль',
-    'home.title':'Сьогодні','home.income':'Дохід сьогодні','home.turnover':'Оборот','home.gym':'Залу','home.net':'Чистими',
-    'home.upcoming':'Найближчі тренування','home.debts':'Борги клієнтів','home.all':'Дивитись усі',
-    'home.lapsed':'Кому час написати','common.save':'Зберегти','common.cancel':'Скасувати','common.add':'Додати',
-    'common.today':'Сьогодні','common.tomorrow':'Завтра','common.yesterday':'Вчора','common.week':'Тиждень',
-    'common.month':'Місяць','common.year':'Рік','common.day':'День','common.back':'Назад','common.done':'Готово',
-    'common.delete':'Видалити','common.edit':'Редагувати','common.search':'Пошук','common.retry':'Спробувати ще',
-    'session.personal':'Персональна тренування','pay.paid':'Оплачено','pay.debt':'Не оплачено','pay.package':'З абонемента',
+    'home.turnover':'Оборот','home.gym':'Залу','home.net':'Чистими',
+    'common.add':'Додати','common.cancel':'Скасувати','common.delete':'Видалити','common.edit':'Редагувати',
+    'common.today':'Сьогодні','common.tomorrow':'Завтра','common.yesterday':'Вчора',
+    'cal.add':'Додати тренування','client.new':'Новий клієнт',
+    'menu.fin':'Фінанси','menu.stats':'Статистика','menu.set':'Налаштування',
   },
-  /* Заготовки: заповнюються з I18n.missing(). Порожні ключі падають на 'uk'. */
-  ru:{ 'nav.home':'Главная','nav.cal':'Календарь','nav.clients':'Клиенты','nav.sales':'Продажи','nav.profile':'Профиль',
-       'home.title':'Сегодня','home.income':'Доход сегодня','home.turnover':'Оборот','home.gym':'Залу','home.net':'Чистыми',
-       'home.upcoming':'Ближайшие тренировки','home.debts':'Долги клиентов','home.all':'Смотреть все' },
-  en:{ 'nav.home':'Home','nav.cal':'Calendar','nav.clients':'Clients','nav.sales':'Sales','nav.profile':'Profile',
-       'home.title':'Today','home.income':'Income today','home.turnover':'Gross','home.gym':'Gym','home.net':'Net',
-       'home.upcoming':'Upcoming sessions','home.debts':'Client debts','home.all':'See all' },
-  pl:{ 'nav.home':'Główna','nav.cal':'Kalendarz','nav.clients':'Klienci','nav.sales':'Sprzedaż','nav.profile':'Profil',
-       'home.title':'Dzisiaj','home.income':'Dochód dzisiaj','home.turnover':'Obrót','home.gym':'Klub','home.net':'Na rękę',
-       'home.upcoming':'Najbliższe treningi','home.debts':'Długi klientów','home.all':'Zobacz wszystkie' },
+  /* «Продовжити» на кнопці біля абонемента — це «подовжити», а не «далі» */
+  ru:{'subs.renew':'Продлить'},
+  en:{'subs.renew':'Renew'},
+  pl:{'subs.renew':'Odnów'},
 };
 
+const I18N = {uk:{}, ru:{}, en:{}, pl:{}};
+PHRASES.forEach(([uk, ru, en, pl]) => {
+  I18N.uk[uk] = uk; I18N.ru[uk] = ru; I18N.en[uk] = en; I18N.pl[uk] = pl;
+});
+
 let LANG = 'uk';
-const _seen = new Map();               // key → запасний український текст
+const _seen = new Map();               // ключ → український текст із місця виклику
 function t(key, fallback){
   if (fallback !== undefined) _seen.set(key, fallback);
-  const d = I18N[LANG] || {};
-  return d[key] || I18N.uk[key] || fallback || key;
+  const d = I18N[LANG] || {}, o = OVERRIDE[LANG] || {};
+  const uk = fallback !== undefined ? fallback : OVERRIDE.uk[key];
+  /* спершу точковий виняток за ключем, далі — переклад самого тексту:
+     один ключ інколи стоїть у двох місцях з різними написами */
+  return o[key] || (uk && d[uk]) || uk || key;
 }
 const I18n = {
-  set(code){ LANG = I18N[code] ? code : 'uk'; document.documentElement.lang = LANG; },
+  set(code){
+    LANG = I18N[code] ? code : 'uk';
+    if (typeof document !== 'undefined' && document.documentElement) document.documentElement.lang = LANG;
+  },
   get(){ return LANG; },
   intl(){ return (LANGS.find(l => l.code === LANG) || LANGS[0]).intl; },
-  /* ключі, яких бракує в мові — готовий скелет для перекладача */
+  /* рядки, яких бракує в мові — готовий скелет для перекладача */
   missing(code = LANG){
     const d = I18N[code] || {}, out = {};
-    [...Object.keys(I18N.uk), ..._seen.keys()].forEach(k => {
-      if (!d[k]) out[k] = I18N.uk[k] || _seen.get(k) || '';
-    });
+    const o = OVERRIDE[code] || {};
+    const put = (k, uk) => { if (uk && !d[uk] && !o[k]) out[uk] = ''; };
+    Object.keys(OVERRIDE.uk).forEach(k => put(k, OVERRIDE.uk[k]));
+    _seen.forEach((uk, k) => put(k, uk));
     return out;
   },
+  gaps(code){ return Object.keys(I18n.missing(code)).length; },
 };
 window.__i18n = I18n;
+/* до першого збереження мову підказує сама система */
+I18n.set(detectLang());
 
 /* ─────────────────── формати ─────────────────── */
 const NBSP = ' ';
@@ -527,18 +1111,31 @@ const relDay = d => {
   if (diff === -1) return t('common.yesterday');
   return fmtDM(d);
 };
-/* «6 тренувань» / «1 тренування» — українські форми числа */
-const plural = (n, one, few, many) => {
-  const a = Math.abs(n) % 100, b = a % 10;
-  if (a > 10 && a < 20) return many;
-  if (b > 1 && b < 5) return few;
-  if (b === 1) return one;
-  return many;
+/* Форми числа. Слов'янські мови мають три форми, англійська — дві;
+   самі слова лежать у словнику як «одна|дві|п'ять». */
+const PLURAL_IDX = {
+  en: n => (n === 1 ? 0 : 1),
+  other: n => {
+    const a = Math.abs(n) % 100, b = a % 10;
+    if (a > 10 && a < 20) return 2;
+    if (b > 1 && b < 5) return 1;
+    if (b === 1) return 0;
+    return 2;
+  },
 };
-const nSessions = n => n + ' ' + plural(n, 'тренування', 'тренування', 'тренувань');
-const nClients  = n => n + ' ' + plural(n, 'клієнт', 'клієнти', 'клієнтів');
-const nDays     = n => n + ' ' + plural(n, 'день', 'дні', 'днів');
+const nOf = (n, key, uk) => {
+  const forms = t(key, uk).split('|');
+  const i = (PLURAL_IDX[LANG] || PLURAL_IDX.other)(n);
+  return n + ' ' + (forms[i] || forms[forms.length - 1]);
+};
+/* «серпень», але «August»: у слов'янських мовах місяць пишеться з малої */
+const monthWord = d => (LANG === 'en' ? fmtMonth(d) : fmtMonth(d).toLowerCase());
+const nSessions = n => nOf(n, 'plural.sessions', 'тренування|тренування|тренувань');
+const nClients  = n => nOf(n, 'plural.clients',  'клієнт|клієнти|клієнтів');
+const nDays     = n => nOf(n, 'plural.days',     'день|дні|днів');
 
+/* {name}, {sum} тощо в перекладних рядках */
+const fill = (s, v) => String(s).replace(/\{(\w+)\}/g, (_, k) => (v[k] !== undefined ? v[k] : ''));
 const uid = p => (p || 'id') + '_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
 const cx = (...a) => a.filter(Boolean).join(' ');
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -759,11 +1356,13 @@ const LEGAL = {
 /* Product ID мають збігатися з тим, що заведено в App Store Connect і
    Google Play Console. Змінюються тут — більше ніде не зашиті. */
 const PLANS = [
-  {id:'monthly',   productId:'pro_trainer_monthly',   title:'1 місяць',  per:'/ місяць',  price:4.99,  months:1},
-  {id:'quarterly', productId:'pro_trainer_quarterly', title:'3 місяці',  per:'/ 3 місяці', price:12.99, months:3,  badge:'Вигідніше'},
-  {id:'yearly',    productId:'pro_trainer_yearly',    title:'1 рік',     per:'/ рік',      price:49.99, months:12, badge:'Найкраща ціна'},
+  {id:'monthly',   productId:'pro_trainer_monthly',   title:'1 місяць', price:4.99,  months:1},
+  {id:'quarterly', productId:'pro_trainer_quarterly', title:'3 місяці', price:12.99, months:3,  badge:'Вигідніше'},
+  {id:'yearly',    productId:'pro_trainer_yearly',    title:'1 рік',    price:49.99, months:12, badge:'Найкраща ціна'},
 ];
 const planById = id => PLANS.find(p => p.id === id) || null;
+const planTitle = p => t('plan.' + p.id, p.title);
+const planBadge = p => (p.badge ? t('plan.badge.' + p.id, p.badge) : '');
 const usd = v => '$' + Number(v).toFixed(2);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -814,7 +1413,7 @@ const IAP = {
    тоді вони приходять і з закритим застосунком. Розклад перескладається
    щоразу, коли змінюються тренування або налаштування.                  */
 const NOTIF_KEY = KEY + '.notif';
-const minsLabel = m => m >= 60 ? (m / 60) + ' год' : m + ' хв';
+const minsLabel = m => m >= 60 ? (m / 60) + ' ' + t('unit.hour','год') : m + ' ' + t('unit.min','хв');
 
 const Notifier = {
   plugin(){
@@ -1025,6 +1624,7 @@ const SES_STATUS = {
   canceled: {t:'Скасовано',   tone:'mut'},
   noshow:   {t:'Не прийшов',  tone:'neg'},
 };
+const statusTitle = k => t('status.' + k, (SES_STATUS[k] || SES_STATUS.planned).t);
 const inRange = (ts, from, to) => ts >= +from && ts < +to;
 
 function periodRange(kind, base){
@@ -1124,7 +1724,7 @@ function clientFeed(db, id){
   const out = [];
   const past = s => s.status !== 'planned' || +new Date(s.start) < Date.now();
   db.sessions.filter(s => s.clientId === id && past(s)).forEach(s => out.push({
-    kind:'session', ts:+new Date(s.start), title: SES_TYPES[s.type] ? SES_TYPES[s.type].title : 'Тренування',
+    kind:'session', ts:+new Date(s.start), title: typeTitle(s.type),
     amount: s.status === 'canceled' ? 0 : s.price, ref:s,
     tag: s.status === 'canceled' ? 'canceled' : (s.subId ? 'package' : (s.paid ? 'paid' : 'debt')),
   }));
@@ -1135,7 +1735,7 @@ function clientFeed(db, id){
   });
   db.subs.filter(x => x.clientId === id).forEach(x => {
     const p = byId(db.packages, x.packageId);
-    out.push({kind:'sub', ts:x.ts, title:'Абонемент · ' + (p ? p.title : x.total + ' трен.'),
+    out.push({kind:'sub', ts:x.ts, title:t('feed.sub','Абонемент') + ' · ' + (p ? p.title : x.total + ' ' + t('unit.ses','трен.')),
       amount:x.price, ref:x, tag:'paid'});
   });
   return out.sort((a,b) => b.ts - a.ts);
@@ -1159,6 +1759,12 @@ const SES_TYPES = {
   split:    {title:'Спліт',       hue:'t2', dur:90},
 };
 const GOALS = ['Схуднення','Набір маси','Рельєф','Сила','Здоров’я спини','Реабілітація','Витривалість'];
+const goalTitle = g => (g ? t('goal.' + g, g) : '');
+const goals = () => GOALS.map(goalTitle);
+/* назву типу беремо в момент показу — інакше вона застигла б мовою запуску */
+const typeTitle = k => t('type.' + k, (SES_TYPES[k] || SES_TYPES.personal).title);
+/* дні тижня — з Intl, щоб не вести свій список для кожної мови */
+const DOW_SHORT = () => Array.from({length: 7}, (_, i) => cap(fmt(new Date(2024, 0, 1 + i), {weekday:'short'})).replace('.', ''));
 
 /* ─────────────────── сховище стану ─────────────────── */
 function emptyDB(){
@@ -1167,7 +1773,7 @@ function emptyDB(){
     profile: {name:'', phone:'', spec:'Персональний тренер', photo:'', club:'', email:''},
     settings: {
       price: 800, gymMode: 'percent', gymPercent: 15, gymFixed: 0,
-      currency: '₴', lang: 'uk', theme: 'system', lapseDays: 10, dayStart: 7, dayEnd: 22,
+      currency: '₴', lang: detectLang(), theme: 'system', lapseDays: 10, dayStart: 7, dayEnd: 22,
       syncUrl: '', secure: false,
       backup: {auto: true, lastAt: 0},
       notif: {before: [60, 15], client: true, booked: true, canceled: true,
@@ -1350,10 +1956,11 @@ function seedDB(profile){
   const rnd = (() => { let s = 42; return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648; })();
   const pick = a => a[Math.floor(rnd() * a.length)];
 
+  const nm = (k, uk) => t('demo.' + k, uk);
   const names = [
-    ['Іван Петров','Схуднення'], ['Максим Коваль','Набір маси'], ['Олег Бондар','Сила'],
-    ['Анна Мельник','Рельєф'], ['Софія Ткаченко','Здоров’я спини'], ['Дмитро Шевчук','Витривалість'],
-    ['Ольга Кравець','Схуднення'], ['Артем Лисенко','Набір маси'],
+    [nm('n1','Іван Петров'),'Схуднення'], [nm('n2','Максим Коваль'),'Набір маси'], [nm('n3','Олег Бондар'),'Сила'],
+    [nm('n4','Анна Мельник'),'Рельєф'], [nm('n5','Софія Ткаченко'),'Здоров’я спини'], [nm('n6','Дмитро Шевчук'),'Витривалість'],
+    [nm('n7','Ольга Кравець'),'Схуднення'], [nm('n8','Артем Лисенко'),'Набір маси'],
   ];
   /* у двох клієнтів своя закріплена ціна — так видно, що сума не однакова для всіх */
   const ownPrice = {cl_6: 900, cl_7: 700};
@@ -1364,17 +1971,17 @@ function seedDB(profile){
   }));
 
   db.products = [
-    {id:'pr_1', name:'Протеїн', price:1400, cost:1050, stock:4, sold:9,  icon:'🥤', createdAt:Date.now()},
-    {id:'pr_2', name:'Креатин', price:800,  cost:500,  stock:7, sold:10, icon:'💊', createdAt:Date.now()},
-    {id:'pr_3', name:'Шейкер',  price:250,  cost:120,  stock:12, sold:14, icon:'🍶', createdAt:Date.now()},
-    {id:'pr_4', name:'Рукавички', price:600, cost:380, stock:3, sold:6,  icon:'🧤', createdAt:Date.now()},
-    {id:'pr_5', name:'Вітаміни', price:900, cost:620,  stock:1, sold:4,  icon:'🟠', createdAt:Date.now()},
-    {id:'pr_6', name:'Резинки',  price:450, cost:210,  stock:8, sold:7,  icon:'🎯', createdAt:Date.now()},
+    {id:'pr_1', name:nm('p1','Протеїн'), price:1400, cost:1050, stock:4, sold:9,  icon:'🥤', createdAt:Date.now()},
+    {id:'pr_2', name:nm('p2','Креатин'), price:800,  cost:500,  stock:7, sold:10, icon:'💊', createdAt:Date.now()},
+    {id:'pr_3', name:nm('p3','Шейкер'),  price:250,  cost:120,  stock:12, sold:14, icon:'🍶', createdAt:Date.now()},
+    {id:'pr_4', name:nm('p4','Рукавички'), price:600, cost:380, stock:3, sold:6,  icon:'🧤', createdAt:Date.now()},
+    {id:'pr_5', name:nm('p5','Вітаміни'), price:900, cost:620,  stock:1, sold:4,  icon:'🟠', createdAt:Date.now()},
+    {id:'pr_6', name:nm('p6','Резинки'),  price:450, cost:210,  stock:8, sold:7,  icon:'🎯', createdAt:Date.now()},
   ];
   db.packages = [
-    {id:'pk_1', title:'8 тренувань',  sessions:8,  price:5600,  days:60, active:true, createdAt:Date.now()},
-    {id:'pk_2', title:'12 тренувань', sessions:12, price:7800,  days:75, active:true, createdAt:Date.now()},
-    {id:'pk_3', title:'16 тренувань', sessions:16, price:10000, days:90, active:true, createdAt:Date.now()},
+    {id:'pk_1', title:nSessions(8),  sessions:8,  price:5600,  days:60, active:true, createdAt:Date.now()},
+    {id:'pk_2', title:nSessions(12), sessions:12, price:7800,  days:75, active:true, createdAt:Date.now()},
+    {id:'pk_3', title:nSessions(16), sessions:16, price:10000, days:90, active:true, createdAt:Date.now()},
   ];
   db.subs = [
     {id:'sub_1', clientId:'cl_0', packageId:'pk_1', total:8,  used:6, price:5600, ts: Date.now() - 22 * DAY, expiresAt: Date.now() + 38 * DAY},
@@ -1441,9 +2048,9 @@ function seedDB(profile){
     {id:'sl_4', clientId:'cl_5', productId:'pr_4', qty:1, price:600,  ts: Date.now() - 2 * DAY},
   ];
   db.notes = [
-    {id:'nt_1', clientId:'cl_0', text:'Збільшити робочу вагу в присіді на наступному тренуванні.', ts: Date.now() - 2 * DAY},
-    {id:'nt_2', clientId:'cl_0', text:'Скаржиться на праве коліно — прибрати випади.', ts: Date.now() - 9 * DAY},
-    {id:'nt_3', clientId:'cl_3', text:'Мета — рельєф до відпустки в вересні.', ts: Date.now() - 5 * DAY},
+    {id:'nt_1', clientId:'cl_0', text:nm('t1','Збільшити робочу вагу в присіді на наступному тренуванні.'), ts: Date.now() - 2 * DAY},
+    {id:'nt_2', clientId:'cl_0', text:nm('t2','Скаржиться на праве коліно — прибрати випади.'), ts: Date.now() - 9 * DAY},
+    {id:'nt_3', clientId:'cl_3', text:nm('t3','Мета — рельєф до відпустки в вересні.'), ts: Date.now() - 5 * DAY},
   ];
   return db;
 }
@@ -1784,12 +2391,12 @@ const StatusDot = ({s}) => {
 };
 /* статус рядка: майбутнє тренування — «Заплановано», а не «Не оплачено» */
 const payLabel = s =>
-  s.status === 'canceled' ? 'Скасовано'
-  : s.status === 'noshow' ? 'Не прийшов'
-  : s.subId ? 'З абонемента'
-  : s.paid ? 'Оплачено'
-  : s.status === 'done' ? 'Борг'
-  : +new Date(s.start) > Date.now() ? 'Заплановано' : 'Не оплачено';
+  s.status === 'canceled' ? statusTitle('canceled')
+  : s.status === 'noshow' ? statusTitle('noshow')
+  : s.subId ? t('pay.package','З абонемента')
+  : s.paid ? t('pay.paid','Оплачено')
+  : s.status === 'done' ? t('pay.debt2','Борг')
+  : +new Date(s.start) > Date.now() ? statusTitle('planned') : t('pay.unpaid','Не оплачено');
 const payTone = s =>
   s.status === 'canceled' ? 'mut' : s.status === 'noshow' ? 'neg'
   : s.subId ? 'acc' : s.paid ? 'pos' : s.status === 'done' ? 'neg'
@@ -1951,9 +2558,9 @@ const ObArt = ({i}) => {
 const Onboarding = ({onDone}) => {
   const [i, setI] = useState(0);
   const slides = [
-    {t:'Ваш день — на одному екрані', d:'Відкрив застосунок і за три секунди бачиш: скільки тренувань сьогодні і скільки ви заробили.'},
-    {t:'Клієнти та розклад разом', d:'Картка клієнта, історія, борги, абонементи й нагадування. Нове тренування — за кілька дотиків.'},
-    {t:'Гроші рахуються самі', d:'Оборот, відсоток залу і чисті — рахуються автоматично. Продажі товарів і абонементи теж тут.'},
+    {t:t('ob.1.t','Ваш день — на одному екрані'), d:t('ob.1.d','Відкрив застосунок і за три секунди бачиш: скільки тренувань сьогодні і скільки ви заробили.')},
+    {t:t('ob.2.t','Клієнти та розклад разом'), d:t('ob.2.d','Картка клієнта, історія, борги, абонементи й нагадування. Нове тренування — за кілька дотиків.')},
+    {t:t('ob.3.t','Гроші рахуються самі'), d:t('ob.3.d','Оборот, відсоток залу і чисті — рахуються автоматично. Продажі товарів і абонементи теж тут.')},
   ];
   return (
     <div className="ob fade-in">
@@ -2139,7 +2746,7 @@ const Setup = ({account, onDone}) => {
 
         <Field label={t('setup.gym','Що ви віддаєте залу')}>
           <div className="segm">
-            {[['percent','Відсоток'],['fixed','Фікс. сума'],['none','Без комісії']].map(([v, tx]) => (
+            {[['percent', t('gym.pct','Відсоток')], ['fixed', t('gym.fix','Фікс. сума')], ['none', t('gym.none','Без комісії')]].map(([v, tx]) => (
               <button key={v} className={cx(s.gymMode === v && 'on')} onClick={() => setS({...s, gymMode:v})}>{tx}</button>
             ))}
           </div>
@@ -2204,8 +2811,8 @@ const SessionRow = ({s, onOpen, quick}) => {
           <div className="nm" style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c ? c.name : '—'}</div>
           <div className="ds">
             {sameDay(s.start, new Date())
-              ? (SES_TYPES[s.type] || SES_TYPES.personal).title + ' · ' + s.dur + ' хв'
-              : cap(relDay(s.start)) + ' · ' + (SES_TYPES[s.type] || SES_TYPES.personal).title}
+              ? typeTitle(s.type) + ' · ' + s.dur + ' ' + t('unit.min','хв')
+              : cap(relDay(s.start)) + ' · ' + typeTitle(s.type)}
           </div>
         </div>
       </button>
@@ -2315,7 +2922,7 @@ const Home = ({loading}) => {
         {/* три метрики — за поточний місяць */}
         <div className="sechead tight">
           <div className="h2" style={{fontSize:14, color:'var(--ink-2)'}}>
-            {t('home.month','Цього місяця')} · {fmtMonth(now).toLowerCase()}
+            {t('home.month','Цього місяця')} · {monthWord(now)}
           </div>
           <button className="link" onClick={() => nav.go('finance')}>{t('home.details','Деталі')}</button>
         </div>
@@ -2420,7 +3027,7 @@ const Home = ({loading}) => {
         </div>
         <div className="card pad" style={{marginTop:9}}>
           <div className="muted" style={{fontSize:12.5, fontWeight:700, marginBottom:4}}>
-            {t('home.month','Цього місяця')} · {fmtMonth(now).toLowerCase()}
+            {t('home.month','Цього місяця')} · {monthWord(now)}
           </div>
           <Rowline k={t('home.turnover','Оборот')} v={money(month.gross)} strong/>
           <Rowline k={t('home.gym','Залу')} v={'−' + money(month.gym)} tone="var(--ink-2)"/>
@@ -2538,7 +3145,7 @@ const MainMenu = ({open, onClose}) => {
         ))}
       </div>
       <div className="segm" style={{marginTop:12}}>
-        {[['light', <Ic.sun size={16}/>, 'Світла'], ['dark', <Ic.moon size={16}/>, 'Темна'], ['system', <Ic.gear size={16}/>, 'Як у системі']]
+        {[['light', <Ic.sun size={16}/>, t('theme.light','Світла')], ['dark', <Ic.moon size={16}/>, t('theme.dark','Темна')], ['system', <Ic.gear size={16}/>, t('theme.sys2','Як у системі')]]
           .map(([v, ic, tx]) => (
           <button key={v} className={cx(theme === v && 'on')} onClick={() => Act.settings({theme: v})}
                   style={{display:'flex', alignItems:'center', justifyContent:'center', gap:6}}>{ic}{tx}</button>
@@ -2628,7 +3235,7 @@ const SessionSheet = ({id, onClose}) => {
 
   return (
     <Sheet open onClose={close} title={c ? c.name : t('session.one','Тренування')}
-           sub={cap(relDay(s.start)) + ', ' + fmtTime(s.start) + ' · ' + (SES_TYPES[s.type] || SES_TYPES.personal).title}>
+           sub={cap(relDay(s.start)) + ', ' + fmtTime(s.start) + ' · ' + typeTitle(s.type)}>
       <div className="card pad" style={{marginTop:6}}>
         <Rowline k={t('home.turnover','Оборот')} v={money(sp.gross)}/>
         {db.settings.gymMode !== 'none' && <Rowline k={t('home.gym','Залу')} v={'−' + money(sp.gym)} tone="var(--ink-2)"/>}
@@ -2692,7 +3299,7 @@ const SessionSheet = ({id, onClose}) => {
             <div className="grid2">
               <Btn kind="sec" onClick={() => setConfirm(false)}>{t('common.back','Назад')}</Btn>
               <Btn kind="danger" onClick={() => act(() => { Act.cancel(s.id); Toaster.show(t('session.canceled','Тренування скасовано')); })}>
-                {t('common.delete','Скасувати')}
+                {t('session.cancel.yes','Скасувати')}
               </Btn>
             </div>
           </div>
@@ -2783,7 +3390,7 @@ const SessionForm = ({params, onClose}) => {
       <Field label={t('session.type','Тип тренування')}>
         <div className="chips">
           {Object.entries(SES_TYPES).map(([k, v]) => (
-            <button key={k} className={cx('chip', f.type === k && 'on')} onClick={() => set('type', k)}>{v.title}</button>
+            <button key={k} className={cx('chip', f.type === k && 'on')} onClick={() => set('type', k)}>{typeTitle(k)}</button>
           ))}
         </div>
       </Field>
@@ -2894,7 +3501,7 @@ const Calendar = ({loading}) => {
         {view === 'month' && (
           <div style={{marginTop:12}}>
             <div className="cal-grid">
-              {['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].map(d => <div key={d} className="cal-dow">{d}</div>)}
+              {DOW_SHORT().map(d => <div key={d} className="cal-dow">{d}</div>)}
             </div>
             <div className="cal-grid">
               {monthCells.map((d, i) => {
@@ -2949,7 +3556,7 @@ const Calendar = ({loading}) => {
                            style={{display:'flex', alignItems:'center', gap:10}}>
                         <button style={{flex:1, minWidth:0, textAlign:'left'}} onClick={() => setOpen(s)}>
                           <b>{fmtTime(s.start)} · {c ? c.name : '—'}</b>
-                          <span>{(SES_TYPES[s.type] || SES_TYPES.personal).title} · {money(s.price)} · {payLabel(s)}</span>
+                          <span>{typeTitle(s.type)} · {money(s.price)} · {payLabel(s)}</span>
                         </button>
                         {canDone && (
                           <button className="go" onClick={() => { Act.complete(s.id, !!s.subId); Toaster.ok(t('ses.done.ok','Проведено') + ' · ' + money(s.price)); }}>
@@ -2986,7 +3593,7 @@ const Clients = ({loading}) => {
   const [sort, setSort] = useState('next');
 
   const rows = useMemo(() => db.clients.filter(c => !c.archived).map(c => ({c, st: clientStats(db, c.id)})), [db]);
-  const found = rows.filter(({c}) => (c.name + ' ' + (c.phone || '') + ' ' + (c.goal || ''))
+  const found = rows.filter(({c}) => (c.name + ' ' + (c.phone || '') + ' ' + goalTitle(c.goal))
     .toLowerCase().includes(q.trim().toLowerCase()));
   /* «З боргом» і «Без тренування» — це фільтри, а не просто порядок */
   const filtered = found.filter(({st}) =>
@@ -3087,7 +3694,7 @@ const ClientPage = ({params, onClose}) => {
   const notes = db.notes.filter(n => n.clientId === c.id);
 
   return (
-    <Page title={c.name} sub={c.goal || t('client.nogoal','Без мети')} onClose={onClose}
+    <Page title={c.name} sub={goalTitle(c.goal) || t('client.nogoal','Без мети')} onClose={onClose}
           right={<button className="iconbtn" onClick={() => nav.go('client.new', {id: c.id})} aria-label={t('common.edit')}><Ic.edit size={19}/></button>}>
       <div style={{display:'flex', gap:14, alignItems:'center', marginTop:4}}>
         <Avatar name={c.name} photo={c.photo} size={64} ring={!!st.sub}/>
@@ -3342,8 +3949,8 @@ const ClientForm = ({params, onClose}) => {
       </Field>
       <Field label={t('client.goal','Мета')}>
         <div className="chips">
-          {GOALS.map(g => (
-            <button key={g} className={cx('chip', f.goal === g && 'on')} onClick={() => set('goal', f.goal === g ? '' : g)}>{g}</button>
+          {GOALS.map((g, i) => (
+            <button key={g} className={cx('chip', f.goal === g && 'on')} onClick={() => set('goal', f.goal === g ? '' : g)}>{goals()[i]}</button>
           ))}
         </div>
       </Field>
@@ -3362,20 +3969,25 @@ const Remind = ({params, onClose}) => {
   const st = c ? clientStats(db, c.id) : null;
   const name = c ? c.name.split(' ')[0] : '';
   const next = st && st.next ? st.next : null;
-  const tpl = params.kind === 'tomorrow' && next
+  /* тексти лежать у словнику з підстановками — інакше вони б не перекладались */
+  const tpl = (params.kind === 'tomorrow' && next
     ? [
-        `${name}, привіт! Нагадую про тренування ${relDay(next.start).toLowerCase()} о ${fmtTime(next.start)}. Буду чекати!`,
-        `${name}, доброго дня! Підтвердіть, будь ласка, тренування ${relDay(next.start).toLowerCase()} о ${fmtTime(next.start)}.`,
+        t('msg.next.1', '{name}, привіт! Нагадую про тренування {when} о {time}. Буду чекати!'),
+        t('msg.next.2', '{name}, доброго дня! Підтвердіть, будь ласка, тренування {when} о {time}.'),
       ]
     : params.kind === 'lapsed'
     ? [
-        `${name}, привіт! Давно вас не було в залі — усе гаразд? Є вільні місця на цьому тижні, можу поставити ваш звичний час.`,
-        `${name}, доброго дня! Пропоную повернутись до тренувань — почнемо з легкого відновлювального. Коли зручно?`,
+        t('msg.lapsed.1', '{name}, привіт! Давно вас не було в залі — усе гаразд? Є вільні місця на цьому тижні, можу поставити ваш звичний час.'),
+        t('msg.lapsed.2', '{name}, доброго дня! Пропоную повернутись до тренувань — почнемо з легкого відновлювального. Коли зручно?'),
       ]
     : [
-        `${name}, доброго дня! Нагадую про оплату за тренування — ${money(params.sum || (st ? st.debt : 0))}. Дякую!`,
-        `${name}, привіт! Підкажіть, коли зручно закрити оплату за минулі тренування (${money(params.sum || (st ? st.debt : 0))})?`,
-      ];
+        t('msg.debt.1', '{name}, доброго дня! Нагадую про оплату за тренування — {sum}. Дякую!'),
+        t('msg.debt.2', '{name}, привіт! Підкажіть, коли зручно закрити оплату за минулі тренування ({sum})?'),
+      ]
+  ).map(x => fill(x, {name,
+    when: next ? relDay(next.start).toLowerCase() : '',
+    time: next ? fmtTime(next.start) : '',
+    sum: money(params.sum || (st ? st.debt : 0))}));
   const [text, setText] = useState(tpl[0]);
   if (!c) return <Page title="—" onClose={onClose}><ErrorBox title={t('client.gone','Клієнта не знайдено')}/></Page>;
 
@@ -3661,7 +4273,7 @@ const SubCard = ({sub}) => {
         <Avatar name={c.name} photo={c.photo} size={42}/>
         <div style={{flex:1, minWidth:0}}>
           <b style={{fontSize:15}}>{c.name}</b>
-          <div className="muted" style={{fontSize:12.5}}>{p ? p.title : sub.total + ' трен.'} · {money(sub.price)}</div>
+          <div className="muted" style={{fontSize:12.5}}>{p ? p.title : sub.total + ' ' + t('unit.ses','трен.')} · {money(sub.price)}</div>
         </div>
         <span className={cx('badge', left <= 2 ? 'warn' : 'acc')}>{sub.used} / {sub.total}</span>
       </div>
@@ -3910,7 +4522,7 @@ const PackageForm = ({params, onClose}) => {
   const save1 = base * f.sessions - f.price;
 
   function save(){
-    const title = f.title.trim() || (f.sessions + ' ' + plural(f.sessions, 'тренування', 'тренування', 'тренувань'));
+    const title = f.title.trim() || nSessions(f.sessions);
     if (edit) Act.updPackage(edit.id, {...f, title});
     else Act.addPackage({...f, title});
     Toaster.ok(edit ? t('subs.saved','Абонемент оновлено') : t('subs.added','Абонемент створено'));
@@ -3930,7 +4542,7 @@ const PackageForm = ({params, onClose}) => {
       </Field>
       <Field label={t('subs.title','Назва')}>
         <Input value={f.title} onChange={e => setF(x => ({...x, title: e.target.value}))}
-               placeholder={f.sessions + ' ' + plural(f.sessions,'тренування','тренування','тренувань')}/>
+               placeholder={nSessions(f.sessions)}/>
       </Field>
       <div className="grid2">
         <Field label={t('subs.price','Ціна пакета')}>
@@ -4088,7 +4700,7 @@ const RangeSheet = ({open, onClose, value, onPick}) => {
         <button className="iconbtn" onClick={() => setCur(addMonths(cur, 1))} aria-label="+"><Ic.right size={20}/></button>
       </div>
       <div className="cal-grid">
-        {['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].map(d => <div key={d} className="cal-dow">{d}</div>)}
+        {DOW_SHORT().map(d => <div key={d} className="cal-dow">{d}</div>)}
       </div>
       <div className="cal-grid">
         {cells.map((d, i) => (
@@ -4289,12 +4901,12 @@ const Stats = ({onClose}) => {
     const m = {};
     db.sessions.filter(s => isBillable(s) && inRange(+new Date(s.start), from, to))
       .forEach(s => { m[s.type] = (m[s.type] || 0) + 1; });
-    return Object.entries(m).map(([k, v]) => ({t: (SES_TYPES[k] || SES_TYPES.personal).title, v}));
+    return Object.entries(m).map(([k, v]) => ({t: typeTitle(k), v}));
   }, [db, p]);
 
   /* у статистиці рахуємо навантаження — кількість тренувань, а не гроші */
   const dow = useMemo(() => {
-    const names = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+    const names = DOW_SHORT();
     const m = new Array(7).fill(0);
     db.sessions.filter(s => isBillable(s) && inRange(+new Date(s.start), from, to))
       .forEach(s => { const d = (new Date(s.start).getDay() + 6) % 7; m[d] += 1; });
@@ -4425,7 +5037,7 @@ const Profile = ({loading}) => {
       <div className="screen">
         <div className="card pad" style={{display:'flex', gap:14, alignItems:'center'}}>
           <label style={{position:'relative', cursor:'pointer'}}>
-            <Avatar name={db.profile.name || 'Тренер'} photo={db.profile.photo} size={64}/>
+            <Avatar name={db.profile.name || t('profile.trainer','Тренер')} photo={db.profile.photo} size={64}/>
             <div style={{position:'absolute', right:-2, bottom:-2, width:24, height:24, borderRadius:'50%',
                          background:'var(--accent)', color:'#fff', display:'grid', placeItems:'center',
                          border:'3px solid var(--surface)'}}><Ic.edit size={12}/></div>
@@ -4728,7 +5340,7 @@ const Settings = ({onClose}) => {
                   const cur = S.notif.before || [];
                   Act.settings({notif: {...S.notif, before: on ? cur.filter(x => x !== m) : [...cur, m].sort((a, b) => b - a)}});
                 }}>
-                  {on && <Ic.check size={14}/>}{m >= 60 ? (m / 60) + ' год' : m + ' хв'}
+                  {on && <Ic.check size={14}/>}{minsLabel(m)}
                 </button>
               );
             })}
@@ -4757,7 +5369,9 @@ const Settings = ({onClose}) => {
             <button key={l.code} className="setrow" onClick={() => { Act.settings({lang: l.code}); I18n.set(l.code); Store.emit(); }}>
               <div className="ic" style={{fontSize:17}}>{l.flag}</div>
               <div className="tx"><b>{l.title}</b>
-                {l.code !== 'uk' && <span>{t('set.lang.part','Частковий переклад — решта покажеться українською')}</span>}</div>
+                {l.code !== 'uk' && <span>{I18n.gaps(l.code)
+                  ? t('set.lang.part','Частковий переклад — решта покажеться українською')
+                  : t('set.lang.legal','Інтерфейс перекладено; юридичні документи — українською')}</span>}</div>
               {S.lang === l.code && <Ic.check size={19} style={{color:'var(--accent)'}}/>}
             </button>
           ))}
@@ -4979,11 +5593,12 @@ const Legal = ({params, onClose}) => {
 
 /* ═══════════ ДОСТУП: пробний період і тарифи ═══════════ */
 const FEATURES = ['Клієнти','Календар','Тренування','Фінанси','Борги','Абонементи','Продажі','Статистика','Нагадування','Резервна копія'];
+const featTitle = f => t('feat.' + f, f);
 
 const FeatureList = ({items}) => (
   <div style={{marginTop:6}}>
     {(items || FEATURES).map(f => (
-      <div key={f} className="feat"><span className="ok"><Ic.check size={13}/></span>{f}</div>
+      <div key={f} className="feat"><span className="ok"><Ic.check size={13}/></span>{featTitle(f)}</div>
     ))}
   </div>
 );
@@ -4994,12 +5609,12 @@ const PlanCards = ({value, onPick}) => (
       <button key={p.id} className={cx('plan press', value === p.id && 'on')} onClick={() => onPick(p.id)}>
         <span className="radio">{value === p.id && <i/>}</span>
         <span style={{flex:1, minWidth:0}}>
-          <b style={{fontSize:15.5, display:'block'}}>{p.title}</b>
+          <b style={{fontSize:15.5, display:'block'}}>{planTitle(p)}</b>
           <span className="muted" style={{fontSize:12.5}}>
             {p.months === 1 ? t('pay.permonth','щомісяця') : '≈ ' + usd(p.price / p.months) + ' ' + t('pay.amonth','на місяць')}
           </span>
         </span>
-        {p.badge && <span className="badge acc">{p.badge}</span>}
+        {p.badge && <span className="badge acc">{planBadge(p)}</span>}
         <span className="pr num">{usd(p.price)}</span>
       </button>
     ))}
@@ -5144,7 +5759,7 @@ const Subscription = ({onClose}) => {
           </span>
         </div>
         <div style={{marginTop:12}}>
-          {plan && <Rowline k={t('sub.plan','План')} v={plan.title + ' · ' + usd(plan.price)}/>}
+          {plan && <Rowline k={t('sub.plan','План')} v={planTitle(plan) + ' · ' + usd(plan.price)}/>}
           {acc.until && <Rowline k={active ? t('sub.until','Діє до') : t('sub.ended','Завершилась')} v={fmtDM(acc.until) + ' ' + new Date(acc.until).getFullYear()}/>}
           {acc.kind === 'TRIAL_ACTIVE' && <Rowline k={t('sub.left','Залишилось')} v={nDays(acc.left)}/>}
           <Rowline k={t('sub.renew','Автопродовження')} v={raw.autoRenew === false ? t('common.off','вимкнено') : t('common.on','увімкнено')}/>
