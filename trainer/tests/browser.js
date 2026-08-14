@@ -221,6 +221,7 @@ PROBES['mini.js'] = `
   })();
 `;
 
+
 /* Проходимо онбординг, вхід і майстер налаштувань — далі вже застосунок.
    Клікаємо по структурі, а не по написах: інакше сценарій розсипався б
    на кожній мові. */
@@ -273,6 +274,83 @@ PROBES['nologin.js'] = `
   say(JSON.stringify({shown: !e.hidden, text: e.textContent, url: location.pathname}));
 `;
 PROBES['buy.js'] = `document.getElementById('go').click();`;
+/* Далі — сценарії, які з'явились останніми: запис тренування з повтором
+   і часткове закриття боргу. У пісочниці вони перевірені, але там немає
+   ні кліків, ні аркушів, що відкриваються поверх. */
+PROBES['app-session.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await enter();
+    /* швидке додавання → тренування */
+    var fab = document.querySelector('.fab');
+    if (fab){ fab.click(); await wait(350); }
+    var rows = all('.sheet .setrow').filter(vis);
+    res.quick = rows.length;
+    if (rows[0]){ rows[0].click(); await wait(500); }
+    res.form = all('.page').length;
+
+    /* клієнт */
+    var pick = all('.page .inp.press')[0];
+    if (pick){ pick.click(); await wait(350); }
+    var people = all('.sheet .rows button').filter(vis);
+    res.people = people.length;
+    if (people[0]){ people[0].click(); await wait(350); }
+
+    /* повтор: другий блок .segm на сторінці — саме він */
+    var segs = all('.page .segm');
+    res.segs = segs.length;
+    var rep = segs[segs.length - 1];
+    var weekly = rep ? rep.querySelectorAll('button')[1] : null;
+    if (weekly){ weekly.click(); await wait(250); }
+    res.repeatOn = !!(weekly && /on/.test(weekly.className));
+    res.times = all('.page .chip').filter(function(b){ return /разів|раз|times|razy/.test(b.textContent); }).length;
+
+    /* зберігаємо */
+    var save = all('.page .btn.pri').slice(-1)[0];
+    res.saveText = save ? save.textContent.trim().slice(0, 40) : '';
+    if (save){ save.click(); await wait(700); }
+    res.backToApp = all('.page').length === 0;
+    res.toast = (document.body.textContent.indexOf('Створено тренувань') >= 0) ||
+                (document.querySelector('#root').textContent.indexOf('Створено') >= 0);
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
+PROBES['app-debt.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await enter();
+    /* швидке додавання → оплату (сторінка боргів) */
+    var fab = document.querySelector('.fab');
+    if (fab){ fab.click(); await wait(350); }
+    var rows = all('.sheet .setrow').filter(vis);
+    if (rows[4]){ rows[4].click(); await wait(600); }
+    res.page = all('.page').length;
+    var cards = all('.page .card.pad');
+    res.debts = cards.length;
+    var money = function(){ var m = /(\\d[\\d\\s]*)\\s*₴/.exec(document.querySelector('.page').textContent); return m ? m[1].replace(/\\s/g, '') : ''; };
+    res.before = money();
+
+    /* перша картка — це підсумок «Загалом винні», кнопок у ній немає:
+       беремо першу, де кнопка справді є */
+    var card = cards.filter(function(c){ return c.querySelector('.btn.pri'); })[0];
+    var pay = card ? card.querySelector('.btn.pri') : null;
+    res.hasPay = !!pay;
+    if (pay){ pay.click(); await wait(400); }
+    res.sheet = all('.sheet').filter(vis).length;
+    /* половина суми */
+    var half = all('.sheet .chip').filter(vis)[0];
+    if (half){ half.click(); await wait(250); }
+    var doIt = all('.sheet .btn.pri').filter(vis).slice(-1)[0];
+    res.doText = doIt ? doIt.textContent.trim().slice(0, 40) : '';
+    if (doIt){ doIt.click(); await wait(700); }
+    res.after = money();
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
 PROBES['app-drive.js'] = DRIVE + `
   (async function(){
     await enter();
@@ -426,6 +504,26 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('список клієнтів не порожній', o.clients > 0, o.clients + ' рядків');
     ok('картка клієнта відкривається', o.card > 0);
     ok('помилок під час проходу немає', !o.err, o.err || '—');
+
+    part('запис тренування з повтором');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-session.js')) || '{}');
+    ok('швидке додавання відкривається', o.quick === 5, o.quick + ' пунктів');
+    ok('форма тренування відкрилась', o.form > 0);
+    ok('список клієнтів у виборі є', o.people > 0, o.people + ' клієнтів');
+    ok('повтор «щотижня» вмикається', o.repeatOn === true);
+    ok('з\'явився вибір кількості разів', o.times >= 4, o.times + ' варіантів');
+    ok('тренування зберігається', o.backToApp === true, o.saveText);
+    ok('помилок немає', !o.err, o.err || '—');
+
+    part('часткове закриття боргу');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-debt.js')) || '{}');
+    ok('сторінка боргів відкривається', o.page > 0);
+    ok('борги на ній є', o.debts > 0, o.debts + ' карток');
+    ok('кнопка оплати на місці', o.hasPay === true);
+    ok('вікно оплати відкривається', o.sheet > 0);
+    ok('борг зменшився, але не зник', o.after && o.before && Number(o.after) < Number(o.before) && Number(o.after) > 0,
+       o.before + ' → ' + o.after);
+    ok('помилок немає', !o.err, o.err || '—');
 
     part('сторінка після оплати');
     ok('відкривається', (await dom('http://127.0.0.1:' + PORT + '/paid.html')).includes('PRO Trainer'));
