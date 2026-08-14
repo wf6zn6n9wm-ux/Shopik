@@ -102,7 +102,7 @@ const EXPORTS = `;globalThis.__T = {
   App, Home, CalendarPage, Clients, ClientPage, Services, Finance, Messages, Settings,
   ApptForm, ClientForm, ServiceForm, ApptCard, ActiveSession, NotifPanel, MoreSheet, Sidebar,
   MiniCalendar, LineChart, BarChart, MonthGrid, applyTheme, serviceName, clientName, nextLabel,
-  Sync, Net, SyncBlock, RemindLinks, serviceById,
+  Sync, Net, SyncBlock, RemindLinks, serviceById, dayWord, CHANNELS, NextCard,
   expensesIn, spent, profit, EXPENSE_KINDS, ExpenseForm, pickFile, pickPhoto,
 };`;
 
@@ -401,6 +401,55 @@ part('что видит барбер');
   T.Act.settings({lang: 'uk'});
   ok('и на украинский', textOf(el(T.Clients, {})).includes('Клієнти'));
   T.Act.settings({lang: 'ru'});
+}
+
+part('понятность дат');
+{
+  T.Store.init(T.seedDB());
+  const tomorrow = T.iso(T.addDays(new Date(), 1));
+  ok('сегодня называется «Сегодня»', T.dayWord(today) === 'Сегодня', T.dayWord(today));
+  ok('завтра называется «Завтра»', T.dayWord(tomorrow) === 'Завтра', T.dayWord(tomorrow));
+  ok('вчера называется «Вчера»', T.dayWord(T.iso(T.addDays(new Date(), -1))) === 'Вчера');
+  ok('дальний день — день недели и дата',
+     /^[А-Яа-я]{2}, \d/.test(T.dayWord(T.iso(T.addDays(new Date(), 9)))), T.dayWord(T.iso(T.addDays(new Date(), 9))));
+
+  /* когда на сегодня записей не осталось, карточка обязана сказать
+     «Завтра» — проверяем на чистой базе, чтобы не поймать соседнюю
+     запись из демо-данных */
+  const base = T.emptyDB();
+  base.services = T.seedDB().services;
+  T.Store.init(base);
+  const client = T.Act.addClient({name: 'Завтрашний Клиент', phone: '+380 67 000 11 22'});
+  const sv = S().services.find(x => x.name === 'Стрижка + борода');
+  T.Act.addAppt({clientId: client.id, serviceId: sv.id, date: tomorrow, time: '11:00'});
+  const card = textOf(el(T.NextCard, {db: S()}));
+  ok('карточка следующей записи говорит «Завтра»', card.includes('Завтра') && card.includes('11:00'));
+  ok('и показывает клиента с услугой',
+     card.includes('Завтрашний Клиент') && card.includes(sv.name));
+  ok('и длительность с ценой',
+     card.includes(T.durLabel(sv.dur, 'ru')) && card.includes(T.money(sv.price, 'USD')),
+     T.durLabel(sv.dur, 'ru') + ' / ' + T.money(sv.price, 'USD'));
+  ok('сегодняшняя запись подписывается «Сегодня», а не датой', (() => {
+    T.Act.addAppt({clientId: client.id, serviceId: sv.id, date: today, time: '23:30'});
+    return textOf(el(T.NextCard, {db: S()})).includes('Сегодня');
+  })());
+  T.Store.init(T.seedDB());
+}
+
+part('каналы связи');
+{
+  ok('каналов три', T.CHANNELS.length === 3);
+  ok('по умолчанию ни один не подключён', T.CHANNELS.every(ch => ch.on(S()) === false));
+  T.Act.settings({tgLinked: true});
+  ok('после привязки Telegram статус меняется',
+     T.CHANNELS.find(ch => ch.id === 'tg').on(S()) === true);
+  ok('WhatsApp и SMS честно остаются не подключёнными',
+     T.CHANNELS.filter(ch => ch.id !== 'tg').every(ch => ch.on(S()) === false));
+  T.Act.settings({tgLinked: false});
+  const txt = textOf(el(T.Messages, {}));
+  ok('на экране сообщений видно, что канал не подключён', txt.includes('Не подключено'));
+  ok('и как его подключить', txt.includes('настройках уведомлений'));
+  ok('и что переписка внутренняя', txt.includes('Внутренние сообщения'));
 }
 
 part('серии и расходы');

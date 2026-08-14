@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#0B0D0F" id="metaTheme" />
+<meta name="theme-color" content="#080A0C" id="metaTheme" />
 <meta name="description" content="Про Барбер — CRM и рабочий кабинет барбера: клиенты, записи, услуги, расписание и деньги в одном месте." />
 <title>Про Барбер — кабинет барбера</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -39,7 +39,7 @@
 <style>
   :root{
     /* ── акцент: общий для обеих тем ── */
-    --gold:#F5A623; --gold-2:#FFB52E; --gold-3:#D98B12; --gold-ink:#171208;
+    --gold:#F5A623; --gold-2:#FFAA1A; --gold-3:#D98B12; --gold-ink:#150F04;
     --pos:#35C07A; --warn:#F5A623; --neg:#EF5B52; --info:#4A9BE8;
 
     /* ── геометрия ── */
@@ -53,31 +53,34 @@
 
   /* ── DARK (основная) ── */
   :root, html[data-theme="dark"]{
-    --bg:#0B0D0F; --bg-2:#101214;
-    --surface:#121517; --surface-2:#171A1D; --surface-3:#1E2225;
-    --ink:#F3F5F6; --ink-2:#9AA3AA; --ink-3:#6E7880; --ink-4:#4A5359;
-    --line:#20252A; --line-2:#2A3036;
+    --bg:#080A0C; --bg-2:#0C0E10;
+    --surface:#111416; --surface-2:#171A1D; --surface-3:#1E2225;
+    --ink:#F4F6F7; --ink-2:#9AA3AA; --ink-3:#6E7880; --ink-4:#495158;
+    --line:#1C2024; --line-2:#272C31;
     --gold-soft:rgba(245,166,35,.12); --gold-soft-2:rgba(245,166,35,.22);
     --pos-soft:rgba(53,192,122,.14); --neg-soft:rgba(239,91,82,.14); --info-soft:rgba(74,155,232,.14);
-    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.28);
-    --shadow-lg:0 24px 64px rgba(0,0,0,.55);
-    --scrim:rgba(4,6,8,.72);
+    --shadow:0 1px 2px rgba(0,0,0,.45), 0 8px 24px rgba(0,0,0,.3);
+    --shadow-lg:0 24px 64px rgba(0,0,0,.6);
+    --scrim:rgba(3,5,6,.74);
     --track:#22272B;
   }
 
   /* ── LIGHT ── */
+  /* Светлая — не инверсия тёмной, а свой набор: белый лист, светло-серые
+     карточки и тонкие границы. Серый тёплый, без синевы: холодный серый
+     на белом читается как «грязный». */
   html[data-theme="light"]{
-    --bg:#F6F7F9; --bg-2:#FFFFFF;
-    --surface:#FFFFFF; --surface-2:#F4F6F8; --surface-3:#EDEFF2;
-    --ink:#14181B; --ink-2:#5C666E; --ink-3:#8B959C; --ink-4:#AEB7BD;
-    --line:#E9ECEF; --line-2:#DDE2E6;
-    --gold-soft:rgba(245,166,35,.13); --gold-soft-2:rgba(245,166,35,.24);
-    --pos-soft:rgba(35,150,90,.12); --neg-soft:rgba(214,64,54,.10); --info-soft:rgba(42,120,200,.12);
-    --pos:#23965A; --neg:#D64036; --info:#2A78C8;
-    --shadow:0 1px 2px rgba(16,24,32,.05), 0 6px 20px rgba(16,24,32,.06);
-    --shadow-lg:0 24px 60px rgba(16,24,32,.16);
-    --scrim:rgba(20,24,27,.42);
-    --track:#E7EAED;
+    --bg:#FFFFFF; --bg-2:#FFFFFF;
+    --surface:#F7F7F5; --surface-2:#F1F2F3; --surface-3:#E8E9EA;
+    --ink:#0E1113; --ink-2:#5A6167; --ink-3:#878E94; --ink-4:#B0B5B9;
+    --line:#ECEDEB; --line-2:#DEDFDD;
+    --gold-soft:rgba(245,166,35,.14); --gold-soft-2:rgba(245,166,35,.26);
+    --pos-soft:rgba(30,140,84,.12); --neg-soft:rgba(206,60,50,.10); --info-soft:rgba(38,112,190,.12);
+    --pos:#1E8C54; --neg:#CE3C32; --info:#2670BE;
+    --shadow:0 1px 2px rgba(14,17,19,.04), 0 4px 14px rgba(14,17,19,.05);
+    --shadow-lg:0 20px 50px rgba(14,17,19,.14);
+    --scrim:rgba(14,17,19,.36);
+    --track:#E4E5E6;
   }
 
   *,*::before,*::after{box-sizing:border-box}
@@ -130,12 +133,12 @@
     display:grid; place-items:center;
   }
   .side-user{
-    display:flex; align-items:center; gap:11px; padding:12px; margin-top:12px; width:100%;
+    display:flex; align-items:center; gap:10px; padding:11px 12px; margin-top:12px; width:100%;
     border:1px solid var(--line); border-radius:var(--r-lg); background:var(--surface);
     transition:border-color var(--fast), background var(--fast);
   }
   .side-user:hover{border-color:var(--line-2); background:var(--surface-2)}
-  .side-user .nm{font-weight:600; font-size:13px}
+  .side-user .nm{font-weight:600; font-size:12.5px; letter-spacing:-.01em}
   .side-user .rl{font-size:11px; color:var(--ink-3)}
   .side-user svg.chev{width:16px; height:16px; color:var(--ink-3); margin-left:auto}
 
@@ -151,6 +154,15 @@
     background:var(--surface); border:1px solid var(--line); border-radius:var(--r-xl);
     box-shadow:var(--shadow);
   }
+  html[data-theme="light"] .card{box-shadow:none}
+  html[data-theme="light"] .kpi{background:var(--surface)}
+  html[data-theme="light"] .input,
+  html[data-theme="light"] .select,
+  html[data-theme="light"] .area{background:#FFFFFF}
+  html[data-theme="light"] .segm{background:var(--surface-2)}
+  html[data-theme="light"] .segm button.on{background:#FFFFFF}
+  html[data-theme="light"] .btn-ghost{background:#FFFFFF}
+  html[data-theme="light"] .modal{box-shadow:var(--shadow-lg)}
   .card-pad{padding:18px 20px}
   .card-head{display:flex; align-items:center; gap:10px; padding:16px 20px 0}
   .card-title{font-size:15px; font-weight:650; letter-spacing:-.01em}
@@ -297,8 +309,8 @@
   .row-time{font-size:13px; font-weight:650; color:var(--ink-2); width:46px; flex:none}
   .row.hi .row-time{color:var(--gold)}
   .row-main{flex:1; min-width:0}
-  .row-name{font-size:13.5px; font-weight:600}
-  .row-sub{font-size:12px; color:var(--ink-3)}
+  .row-name{font-size:13.5px; font-weight:600; display:block}
+  .row-sub{font-size:12px; color:var(--ink-3); display:block}
 
   .table{width:100%; border-collapse:collapse}
   .table th{
@@ -389,7 +401,7 @@
   .cal-ev.cancel{background:var(--surface-2); border-left-color:var(--ink-4); opacity:.6}
   .cal-ev.pend{background:var(--info-soft); border-left-color:var(--info)}
   .cal-ev .t{font-size:11px; color:var(--ink-2)}
-  .cal-ev .n{font-weight:650}
+  .cal-ev .n{font-weight:650; font-size:12.5px; line-height:1.25}
   .cal-ev.drag{opacity:.4}
   .cal-now{position:absolute; left:0; right:0; height:2px; background:var(--neg); z-index:4; pointer-events:none}
   .cal-now::before{content:""; position:absolute; left:-4px; top:-3px; width:8px; height:8px; border-radius:50%; background:var(--neg)}
@@ -453,7 +465,19 @@
     .g-main{grid-template-columns:minmax(0,1fr)}
     .page{padding:22px 22px 40px}
   }
+  /* палец — не курсор: на телефоне поднимаем высоты и убираем тесноту */
   @media (max-width:920px){
+    .btn{height:44px; font-size:14px}
+    .btn-sm{height:38px; font-size:13px}
+    .icon-btn{width:42px; height:42px}
+    .input,.select{height:46px}
+    .select{background-position:calc(100% - 17px) 21px, calc(100% - 12px) 21px}
+    .chip{height:36px}
+    .row{padding:13px 16px; min-height:60px}
+    .row-time{width:48px; font-size:13px}
+    .row-name{font-size:14px}
+    .modal-foot .btn{flex:1}
+    .card-head{padding-top:18px}
     .side{display:none}
     .mob-only{display:flex}
     .desk-only{display:none}
@@ -466,8 +490,9 @@
       padding:6px 4px calc(6px + var(--safe-bottom)); justify-content:space-around;
     }
     .mob-nav button{
-      flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px;
-      color:var(--ink-3); font-size:10px; font-weight:550; border-radius:var(--r-sm); position:relative;
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+      padding:8px 2px; min-height:54px;
+      color:var(--ink-3); font-size:10.5px; font-weight:550; border-radius:var(--r-sm); position:relative;
     }
     .mob-nav button svg{width:21px; height:21px}
     .mob-nav button.on{color:var(--gold)}
@@ -477,11 +502,15 @@
     }
     .scrim{padding:0; align-items:flex-end}
     .modal{max-width:100%; border-radius:var(--r-xl) var(--r-xl) 0 0; max-height:92vh}
-    .cal-week{grid-template-columns:44px repeat(7,minmax(70px,1fr)); min-width:640px}
+    .cal-week{grid-template-columns:44px repeat(7,minmax(104px,1fr)); min-width:772px}
     .cal-scroll{overflow-x:auto}
     .toasts{left:16px; right:16px; bottom:calc(var(--nav-h) + 12px)}
     .toast{max-width:none}
     .kpi-value{font-size:22px}
+  }
+  @media (max-width:400px){
+    .hide-xs{display:none}
+    .row-time{width:44px}
   }
   @media (max-width:560px){
     .f2,.f3{grid-template-columns:1fr}
@@ -732,6 +761,12 @@ const PHRASES = {
   resetDemo: {ru: 'Сбросить к демо-данным', uk: 'Скинути до демо-даних', en: 'Reset to demo data'},
   resetAsk: {ru: 'Все изменения будут удалены и заменены демо-данными. Продолжить?', uk: 'Усі зміни буде видалено та замінено демо-даними. Продовжити?', en: 'All changes will be replaced with demo data. Continue?'},
 
+  chatInternal: {ru: 'Внутренние сообщения', uk: 'Внутрішні повідомлення', en: 'In-app messages'},
+  chatConnect: {ru: 'Telegram, WhatsApp и SMS можно подключить в настройках уведомлений.', uk: 'Telegram, WhatsApp і SMS можна підключити в налаштуваннях сповіщень.', en: 'Telegram, WhatsApp and SMS can be connected in notification settings.'},
+  notConnected: {ru: 'Не подключено', uk: 'Не підключено', en: 'Not connected'},
+  connected: {ru: 'Подключено', uk: 'Підключено', en: 'Connected'},
+  connect: {ru: 'Подключить', uk: 'Підключити', en: 'Connect'},
+  chatLocalNote: {ru: 'Переписка внутри кабинета. Клиент увидит её, когда подключите канал.', uk: 'Листування всередині кабінету. Клієнт побачить його, коли підключите канал.', en: 'Kept inside the app. The client sees it once a channel is connected.'},
   repeat: {ru: 'Повторять', uk: 'Повторювати', en: 'Repeat'},
   repeatNo: {ru: 'Один раз', uk: 'Один раз', en: 'Once'},
   repeatWeek: {ru: 'Каждую неделю', uk: 'Щотижня', en: 'Weekly'},
@@ -818,7 +853,7 @@ const PHRASES = {
   tMoved: {ru: 'Запись перенесена', uk: 'Запис перенесено', en: 'Appointment moved'},
   tDone: {ru: 'Запись проведена', uk: 'Запис проведено', en: 'Appointment completed'},
   tCanceled: {ru: 'Запись отменена', uk: 'Запис скасовано', en: 'Appointment canceled'},
-  tSent: {ru: 'Сообщение отправлено', uk: 'Повідомлення надіслано', en: 'Message sent'},
+  tSent: {ru: 'Записано в диалог', uk: 'Записано в діалог', en: 'Added to the thread'},
 
   inDays: {ru: 'через', uk: 'через', en: 'in'},
   dShort: {ru: 'дн.', uk: 'дн.', en: 'd'},
@@ -862,7 +897,7 @@ const emptyDB = () => ({
     theme: 'dark', currency: 'USD', lang: 'ru', step: 30, slug: 'alexey',
     /* сервер нужен только для онлайн-записи: выключен — кабинет живёт
        целиком на своём хранилище, как и раньше */
-    sync: false, token: '', pulledAt: '',
+    sync: false, token: '', pulledAt: '', tgLinked: false,
     notif: {booked: true, reminder: true, birthday: true, lapsed: false},
   },
   services: [], clients: [], appts: [], threads: [], expenses: [], seen: {},
@@ -878,7 +913,7 @@ const SERVICE_SEED = [
   {name: 'Борода', price: 15, dur: 30},
   {name: 'Детская стрижка', price: 15, dur: 40},
   {name: 'Камуфляж седины', price: 25, dur: 40},
-  {name: 'Бритьё опасной бритвой', price: 22, dur: 45},
+  {name: 'Бритьё опасной бритвой', price: 20, dur: 40},
   {name: 'Стрижка машинкой', price: 12, dur: 25},
   {name: 'Укладка', price: 10, dur: 20},
 ];
@@ -1444,6 +1479,18 @@ const minutesUntil = (a, at) => {
   const d = at || new Date();
   return Math.round((fromIso(a.date).getTime() + mins(a.time) * 60000 - d.getTime()) / 60000);
 };
+
+/* «Сегодня» / «Завтра» / «пн, 18 авг» — барберу важно понять день с
+   одного взгляда, а не вычитать дату из календаря */
+function dayWord(dateIso, at){
+  const now = at || new Date();
+  const today = iso(now);
+  if (dateIso === today) return t('today');
+  if (dateIso === iso(addDays(now, 1))) return t('tomorrow');
+  if (dateIso === iso(addDays(now, -1))) return t('yesterday');
+  const d = fromIso(dateIso);
+  return WD_SHORT[LANG][dowIdx(d)] + ', ' + fmtDayShort(d, LANG);
+}
 
 /* статус строки расписания: «завершено / следующая / записан» */
 function rowStatus(db, a, at){
@@ -2495,8 +2542,8 @@ function ApptRow({a, db, onClick}){
     <button className={cx('row', st === 'next' && 'hi')} onClick={onClick}>
       <span className="row-time num">{a.time}</span>
       <span className="row-main">
-        <span className="row-name cut" style={{display: 'block'}}>{clientName(db, a.clientId)}</span>
-        <span className="row-sub cut" style={{display: 'block'}}>{serviceName(db, a.serviceId)}</span>
+        <span className="row-name cut">{clientName(db, a.clientId)}</span>
+        <span className="row-sub cut hide-xs">{serviceName(db, a.serviceId)}</span>
       </span>
       <span className={cx('tag-status', st)}>{t(STATUS_KEY[st])}</span>
     </button>
@@ -2524,12 +2571,20 @@ function NextCard({db}){
       <div style={{display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap'}}>
         <div style={{flex: '1 1 260px', minWidth: 0}}>
           <div style={{fontSize: 14, fontWeight: 600, marginBottom: 10}}>{t('nextAppt')}</div>
-          <div className="num" style={{fontSize: 38, fontWeight: 800, color: 'var(--gold)', letterSpacing: '-.03em', lineHeight: 1.1}}>
-            {a.time}
+          <div style={{display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap'}}>
+            <span style={{fontSize: 19, fontWeight: 650, color: 'var(--ink-2)'}}>{dayWord(a.date)},</span>
+            <span className="num" style={{fontSize: 38, fontWeight: 800, color: 'var(--gold)', letterSpacing: '-.03em', lineHeight: 1.1}}>
+              {a.time}
+            </span>
           </div>
-          <div style={{fontSize: 19, fontWeight: 700, marginTop: 4}}>{c ? c.name : '—'}</div>
+          <div style={{fontSize: 19, fontWeight: 700, marginTop: 6}}>{c ? c.name : '—'}</div>
           <div style={{color: 'var(--ink-2)', fontSize: 14}}>{serviceName(db, a.serviceId)}</div>
-          {!today && <div style={{color: 'var(--ink-3)', fontSize: 12, marginTop: 4}}>{fmtFull(fromIso(a.date), LANG)}</div>}
+          <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, fontSize: 13, color: 'var(--ink-3)'}}>
+            <span>{durLabel(a.dur, LANG)}</span>
+            <span>·</span>
+            <span className="num" style={{fontWeight: 700, color: 'var(--ink)'}}>{money(a.price, db.settings.currency)}</span>
+
+          </div>
           <div style={{display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap'}}>
             <Button kind="gold" icon="play" onClick={() => { Act.start(a.id); nav.modal('active', {id: a.id}); }}>
               {t('startAppt')}
@@ -2631,7 +2686,7 @@ function Home(){
     <div className="page">
       <div className="page-head">
         <div>
-          <h1 className="page-title">{t('today')}, {fmtDay(new Date(), LANG)}</h1>
+          <h1 className="page-title">{t('today')}, {fmtFull(new Date(), LANG)}</h1>
           <div className="page-sub">{WD_FULL[LANG][dowIdx(new Date())]}</div>
         </div>
         <div className="spacer" />
@@ -3435,6 +3490,14 @@ function ExpenseForm({id}){
 
 /* ── 21. СООБЩЕНИЯ ────────────────────────────────────────────────── */
 
+/* Каналы. Пока подключён только внутренний — притворяться, что
+   сообщение улетело в WhatsApp, мы не будем. */
+const CHANNELS = [
+  {id: 'tg', title: 'Telegram', on: db => !!db.settings.tgLinked},
+  {id: 'wa', title: 'WhatsApp', on: () => false},
+  {id: 'sms', title: 'SMS', on: () => false},
+];
+
 function Messages({clientId}){
   const db = useDB();
   const nav = useNav();
@@ -3533,6 +3596,7 @@ function Messages({clientId}){
                    onKeyDown={e => { if (e.key === 'Enter') send(); }} />
             <Button kind="gold" icon="send" onClick={send}>{narrow ? '' : t('send')}</Button>
           </div>
+          <div className="hint" style={{padding: '0 14px 12px'}}>{t('chatLocalNote')}</div>
         </>
       )}
     </Card>
@@ -3541,10 +3605,26 @@ function Messages({clientId}){
   return (
     <div className="page">
       <div className="page-head">
-        <h1 className="page-title">{t('navChat')}</h1>
+        <div>
+          <h1 className="page-title">{t('navChat')}</h1>
+          <div className="page-sub">{t('chatInternal')}</div>
+        </div>
         <div className="spacer" />
-        <span className="hint" style={{maxWidth: 420, textAlign: 'right'}}>{t('chatSoon')}</span>
       </div>
+
+      <Card className="card-pad" style={{marginBottom: 16}}>
+        <div style={{display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center'}}>
+          {CHANNELS.map(ch => (
+            <div key={ch.id} style={{display: 'flex', alignItems: 'center', gap: 8}}>
+              <span style={{fontSize: 13, fontWeight: 600}}>{ch.title}</span>
+              <Badge tone={ch.on(db) ? 'pos' : 'mute'}>{ch.on(db) ? t('connected') : t('notConnected')}</Badge>
+            </div>
+          ))}
+          <div className="spacer" />
+          <Button kind="ghost" size="sm" icon="settings" onClick={() => nav.go('settings')}>{t('connect')}</Button>
+        </div>
+        <div className="hint" style={{marginTop: 10}}>{t('chatConnect')}</div>
+      </Card>
       {narrow
         ? (active ? chat : list)
         : <div className="grid" style={{gridTemplateColumns: 'minmax(0,340px) minmax(0,1fr)'}}>{list}{chat}</div>}
@@ -3607,6 +3687,7 @@ function SyncBlock({db}){
             <Button kind="soft" size="sm" onClick={async () => {
               const r = await Sync.link();
               if (!r.ok){ toast(t('syncOff'), 'bad'); return; }
+              Act.settings({tgLinked: !!r.linked});
               setLink(r);
               if (r.url){ try { window.open(r.url, '_blank'); } catch (e){} }
             }}>{t('tgConnect')}</Button>
@@ -3852,7 +3933,7 @@ function Sidebar({page, go, db}){
         ))}
       </nav>
       <button className="side-user" onClick={() => go('settings')}>
-        <Avatar name={db.profile.name} src={db.profile.photo} size={40} />
+        <Avatar name={db.profile.name} src={db.profile.photo} size={36} />
         <span style={{minWidth: 0}}>
           <span className="nm cut" style={{display: 'block'}}>{db.profile.name}</span>
           <span className="rl" style={{display: 'block'}}>{db.profile.role}</span>
@@ -3924,7 +4005,7 @@ function applyTheme(theme){
   try {
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     const meta = document.getElementById('metaTheme');
-    if (meta) meta.setAttribute('content', dark ? '#0B0D0F' : '#FFFFFF');
+    if (meta) meta.setAttribute('content', dark ? '#080A0C' : '#FFFFFF');
   } catch (e){}
 }
 
