@@ -65,6 +65,12 @@
   .go:active{transform:scale(.98);}
   .go[disabled]{opacity:.5;cursor:default;}
   .note{color:var(--ink-3);font-size:12.5px;line-height:1.5;margin:14px 2px 0;}
+  .field{display:block;margin-top:18px;}
+  .field span{display:block;font-size:12.5px;font-weight:700;color:var(--ink-2);margin:0 2px 7px;}
+  .field input{width:100%;height:52px;padding:0 15px;border-radius:14px;background:var(--surface-2);
+    border:1.5px solid transparent;color:var(--ink);font:600 15px 'Manrope',sans-serif;}
+  .field input:focus{outline:0;border-color:var(--accent);background:var(--surface);}
+  .field input.err{border-color:#EF4444;}
   .msg{margin-top:16px;padding:14px 15px;border-radius:var(--r);background:var(--surface-2);
     font-size:14px;line-height:1.5;}
   .msg b{display:block;margin-bottom:4px;font-size:14.5px;}
@@ -81,9 +87,15 @@
 <div class="wrap">
   <div class="brand">Urok<i>+</i></div>
   <h1 id="h1">Оформлення підписки</h1>
-  <p class="sub" id="sub">Оплата на сайті дешевша: у ній немає комісії магазину застосунків.</p>
+  <p class="sub" id="sub">Повний доступ до Urok+. Оплата карткою через LiqPay.</p>
 
   <div class="plans" id="plans"></div>
+
+  <label class="field">
+    <span id="maillbl">Пошта для доступу</span>
+    <input id="mail" type="email" inputmode="email" autocomplete="email" placeholder="mail@example.com" />
+  </label>
+  <p class="note" id="mailhint"></p>
 
   <button class="go" id="go">Перейти до оплати</button>
   <p class="note" id="note"></p>
@@ -96,11 +108,12 @@
 <script>
 /* Ціни мають збігатися з PRODUCTS у src/10-core.js — за цим стежить
    tests/smoke.js, інакше сайт і застосунок одного дня почнуть обіцяти
-   різні суми. web — ціна тут, price — ціна в магазині. */
+   різні суми. renews — чи продовжується підписка сама: у LiqPay є
+   місячна й річна періодичність, тримісячної немає. */
 var PLANS = [
-  {id: 'yearly',    months: 12, price: 37.99, web: 37.49},
-  {id: 'quarterly', months: 3,  price: 9.99,  web: 9.49},
-  {id: 'monthly',   months: 1,  price: 3.99,  web: 3.49}
+  {id: 'yearly',    months: 12, price: 37.49, renews: true},
+  {id: 'quarterly', months: 3,  price: 9.49,  renews: false},
+  {id: 'monthly',   months: 1,  price: 3.49,  renews: true}
 ];
 
 /* Куди відправляти оплату. Порожньо — серверна функція ще не
@@ -111,11 +124,16 @@ var SUPPORT = 'https://t.me/urokplus';
 var T = {
   uk: {
     title: 'Оформлення підписки',
-    sub: 'Оплата на сайті дешевша: у ній немає комісії магазину застосунків.',
+    sub: 'Повний доступ до Urok+. Оплата карткою через LiqPay.',
     go: 'Перейти до оплати',
     names: {yearly: 'Річна підписка', quarterly: 'Підписка на 3 місяці', monthly: 'Місячна підписка'},
     per: {yearly: 'на рік', quarterly: 'разова оплата за 3 місяці', monthly: 'щомісяця'},
     permonth: '{price} на місяць',
+    renews: 'Продовжується автоматично',
+    once: 'Разовий платіж, без автопродовження',
+    mail: 'Пошта для доступу',
+    mailHint: 'На неї прив\'яжемо підписку — цю саму пошту введете в застосунку.',
+    mailBad: 'Перевірте адресу пошти',
     save: '−{n}%',
     note: 'Після оплати поверніться в застосунок і натисніть «Відновити покупки» — підписка активується. Дані вашої картки ми не бачимо й не зберігаємо.',
     soonT: 'Оплата на сайті ще налаштовується',
@@ -125,11 +143,16 @@ var T = {
   },
   ru: {
     title: 'Оформление подписки',
-    sub: 'Оплата на сайте дешевле: в ней нет комиссии магазина приложений.',
+    sub: 'Полный доступ к Urok+. Оплата картой через LiqPay.',
     go: 'Перейти к оплате',
     names: {yearly: 'Годовая подписка', quarterly: 'Подписка на 3 месяца', monthly: 'Месячная подписка'},
     per: {yearly: 'в год', quarterly: 'разовая оплата за 3 месяца', monthly: 'ежемесячно'},
     permonth: '{price} в месяц',
+    renews: 'Продлевается автоматически',
+    once: 'Разовый платёж, без автопродления',
+    mail: 'Почта для доступа',
+    mailHint: 'К ней привяжем подписку — эту же почту введёте в приложении.',
+    mailBad: 'Проверьте адрес почты',
     save: '−{n}%',
     note: 'После оплаты вернитесь в приложение и нажмите «Восстановить покупки» — подписка активируется. Данные вашей карты мы не видим и не храним.',
     soonT: 'Оплата на сайте ещё настраивается',
@@ -139,11 +162,16 @@ var T = {
   },
   en: {
     title: 'Subscribe',
-    sub: 'Paying here is cheaper: there is no app store commission.',
+    sub: 'Full access to Urok+. Card payment via LiqPay.',
     go: 'Go to payment',
     names: {yearly: 'Yearly plan', quarterly: '3-month plan', monthly: 'Monthly plan'},
     per: {yearly: 'per year', quarterly: 'one-off payment for 3 months', monthly: 'per month'},
     permonth: '{price} per month',
+    renews: 'Renews automatically',
+    once: 'One-off payment, no auto-renewal',
+    mail: 'Email for access',
+    mailHint: 'We tie the subscription to it — you will enter the same email in the app.',
+    mailBad: 'Check the email address',
     save: '−{n}%',
     note: 'After paying, come back to the app and tap “Restore purchases” — the subscription activates. We never see or store your card details.',
     soonT: 'Website payment is being set up',
@@ -158,7 +186,7 @@ var LANG = ['uk', 'ru', 'en'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'uk'
 var plan = PLANS.some(function(p){ return p.id === Q.get('plan'); }) ? Q.get('plan') : 'yearly';
 
 var usd = function(v){ return '$' + Number(v).toFixed(2); };
-var monthly = function(p){ return p.web / p.months; };
+var monthly = function(p){ return p.price / p.months; };
 var saving = function(p){
   var base = PLANS.filter(function(x){ return x.id === 'monthly'; })[0];
   return Math.round((1 - monthly(p) / monthly(base)) * 100);
@@ -172,6 +200,8 @@ function render(){
   document.getElementById('sub').textContent = t.sub;
   document.getElementById('go').textContent = t.go;
   document.getElementById('note').textContent = t.note;
+  document.getElementById('maillbl').textContent = t.mail;
+  document.getElementById('mailhint').textContent = t.mailHint;
   document.getElementById('back').textContent = t.back;
 
   document.getElementById('plans').innerHTML = PLANS.map(function(p){
@@ -184,9 +214,9 @@ function render(){
     return '<button class="plan" type="button" data-plan="' + p.id + '"'
       + ' aria-pressed="' + (p.id === plan) + '">' + badge
       + '<span class="col"><span class="name">' + t.names[p.id] + '</span>'
-      + '<span class="per">' + per + '</span></span>'
-      + '<span class="amt"><span class="now">' + usd(p.web) + '</span>'
-      + '<span class="was">' + usd(p.price) + '</span></span></button>';
+      + '<span class="per">' + per + '</span>'
+      + '<span class="per">' + (p.renews ? t.renews : t.once) + '</span></span>'
+      + '<span class="amt"><span class="now">' + usd(p.price) + '</span></span></button>';
   }).join('');
 
   Array.prototype.forEach.call(document.querySelectorAll('.plan'), function(el){
@@ -210,6 +240,17 @@ function render(){
 
 document.getElementById('go').addEventListener('click', function(){
   var t = T[LANG];
+  var mail = document.getElementById('mail');
+  /* Без пошти платіж нікуди прив'язати: гроші прийдуть, а доступ ні. */
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.value.trim())){
+    mail.classList.add('err');
+    mail.focus();
+    var m0 = document.getElementById('msg');
+    m0.hidden = false;
+    m0.textContent = t.mailBad;
+    return;
+  }
+  mail.classList.remove('err');
   if (!CHECKOUT){
     var msg = document.getElementById('msg');
     msg.hidden = false;
@@ -218,7 +259,9 @@ document.getElementById('go').addEventListener('click', function(){
     msg.scrollIntoView({behavior: 'smooth', block: 'nearest'});
     return;
   }
-  location.href = CHECKOUT + '?' + new URLSearchParams({plan: plan, lang: LANG}).toString();
+  location.href = CHECKOUT + '?' + new URLSearchParams({
+    plan: plan, lang: LANG, login: mail.value.trim().toLowerCase()
+  }).toString();
 });
 
 render();

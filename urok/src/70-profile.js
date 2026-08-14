@@ -381,20 +381,16 @@ function PremiumScreen({t, s, nav, params}){
   const premium = sel.isPremium(s);
   const p = PRODUCTS;
 
-  const go = async () => {
+  /* Пробний тиждень — єдина дія, яку застосунок робить сам: вона
+     безкоштовна й нікуди не платить. Усе інше — на сайті. */
+  const startTrial = async () => {
     setBusy(true);
     try {
-      const first = !s.premium.trialUsed;
-      const res = first ? await Billing.trial() : await Billing.purchase(plan);
+      const res = await Billing.trial();
       setBusy(false);
-      if (res.ok){
-        toast(first ? t('sub.trialStarted') : t('c.saved'));
-        nav.back();
-      } else toast(t('sub.notAvailable'));
-    } catch (e){
-      setBusy(false);
-      toast(t('sub.notAvailable'));
-    }
+      if (res.ok){ toast(t('sub.trialStarted')); nav.back(); }
+      else toast(t('sub.notAvailable'));
+    } catch (e){ setBusy(false); toast(t('sub.notAvailable')); }
   };
 
   /* Сторінку оплати відкриваємо в браузері й нічого не чекаємо:
@@ -450,64 +446,68 @@ function PremiumScreen({t, s, nav, params}){
 
         {!premium ? (
           <>
-            <SectionHead title={t('sub.ctaShort')} />
-            {/* 14, а не 10: плашка вигоди виступає за верхній край
-                картки й на щільнішій сітці налазить на сусідню */}
-            <div style={{display: 'grid', gap: 14}}>
-              {PLAN_ORDER.map(id => {
-                const product = p[id];
-                const saving = planSaving(id);
-                const perMonth = Math.round(planMonthly(id) * 100) / 100;
-                const period = id === 'yearly' ? t('sub.perYear')
-                  : id === 'quarterly' ? t('sub.perQuarter') : t('sub.perMonth');
-                /* Плашку вигоди чіпляємо лише там, де вона справді
-                   найбільша: два різні «−%» поруч читаються як шум. */
-                const best = saving > 0 && saving === Math.max(...PLAN_ORDER.map(planSaving));
-                return (
-                  <button key={id} className={'plan' + (plan === id ? ' on' : '')} onClick={() => setPlan(id)}>
-                    {best ? <span className="save">{t('sub.save', {percent: saving})}</span> : null}
-                    <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
-                      <span style={{flex: 1, minWidth: 0}}>
-                        <span className="h3" style={{display: 'block'}}>{t('sub.' + id)}</span>
-                        {id !== 'monthly' ? (
-                          <span className="muted" style={{display: 'block', fontSize: 12.5, marginTop: 2}}>
-                            {t('sub.monthEquivalent', {price: fmtPrice(perMonth, product.currency)})}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span style={{textAlign: 'right', flex: 'none'}}>
-                        <span className="amt num">
-                          {fmtPrice(product.price, product.currency)}<em>{period}</em>
-                        </span>
-                        {!Web.native() ? (
-                          <span className="webprice">{t('sub.webPrice', {price: fmtPrice(product.web, product.currency)})}</span>
-                        ) : null}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
             {!Web.native() ? (
-              <button className="btn line wide webpay" style={{marginTop: 14}} onClick={payWeb}>
-                <Icon.globe size={18} />
-                <span>
-                  <b>{t('sub.web')}</b>
-                  <i>{t('sub.webFrom', {price: fmtPrice(Web.cheapest(), p.monthly.currency)})}</i>
-                </span>
-              </button>
-            ) : null}
+              <>
+                <SectionHead title={t('sub.ctaShort')} />
+                {/* 14, а не 10: плашка вигоди виступає за верхній край
+                    картки й на щільнішій сітці налазить на сусідню */}
+                <div style={{display: 'grid', gap: 14}}>
+                  {PLAN_ORDER.map(id => {
+                    const product = p[id];
+                    const saving = planSaving(id);
+                    const perMonth = Math.round(planMonthly(id) * 100) / 100;
+                    const period = id === 'yearly' ? t('sub.perYear')
+                      : id === 'quarterly' ? t('sub.perQuarter') : t('sub.perMonth');
+                    /* Плашку вигоди чіпляємо лише там, де вона справді
+                       найбільша: два різні «−%» поруч читаються як шум. */
+                    const best = saving > 0 && saving === Math.max(...PLAN_ORDER.map(planSaving));
+                    return (
+                      <button key={id} className={'plan' + (plan === id ? ' on' : '')} onClick={() => setPlan(id)}>
+                        {best ? <span className="save">{t('sub.save', {percent: saving})}</span> : null}
+                        <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+                          <span style={{flex: 1, minWidth: 0}}>
+                            <span className="h3" style={{display: 'block'}}>{t('sub.' + id)}</span>
+                            <span className="muted" style={{display: 'block', fontSize: 12.5, marginTop: 2}}>
+                              {id !== 'monthly'
+                                ? t('sub.monthEquivalent', {price: fmtPrice(perMonth, product.currency)})
+                                : t('sub.renews')}
+                            </span>
+                            {!product.renews ? (
+                              <span className="muted" style={{display: 'block', fontSize: 12, marginTop: 2}}>
+                                {t('sub.once')}
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="amt num">
+                            {fmtPrice(product.price, product.currency)}<em>{period}</em>
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button className="btn line wide webpay" style={{marginTop: 14}} onClick={payWeb}>
+                  <Icon.globe size={18} />
+                  <span>
+                    <b>{t('sub.web')}</b>
+                    <i>{t('sub.webSub')}</i>
+                  </span>
+                </button>
+              </>
+            ) : (
+              /* Нативна збірка: ані цін, ані посилань — Apple забороняє
+                 вести повз свій магазин, а магазину в нас немає. */
+              <Card style={{marginTop: 16}}>
+                <div className="h3">{t('sub.nativeT')}</div>
+                <div className="muted" style={{fontSize: 13.5, marginTop: 6, lineHeight: 1.5}}>{t('sub.nativeD')}</div>
+              </Card>
+            )}
             <Btn kind="ghost" wide style={{marginTop: 6}} onClick={restore}>{t('sub.restore')}</Btn>
 
-            {/* Дрібний текст однією колонкою: спершу як влаштована
-                оплата в магазині, далі — чому на сайті дешевше. */}
             <div className="fineprint">
-              {t('sub.legal')}
-              {!Web.native() ? ' ' + t('sub.webNote') : ''}
+              {!Web.native() ? t('sub.legal') : t('sub.nativeD')}
             </div>
-            {/* Посилання на умови й політику мають бути на самому екрані
-                підписки — цього вимагає App Store, і шукати їх у
-                налаштуваннях користувач не зобов'язаний. */}
             <div className="legallinks">
               <button onClick={() => nav.push({name: 'terms'})}>{t('se.terms')}</button>
               <button onClick={() => nav.push({name: 'privacy'})}>{t('se.privacy')}</button>
@@ -531,9 +531,15 @@ function PremiumScreen({t, s, nav, params}){
 
       {!premium ? (
         <div className="fixedbar">
-          <Btn kind="pri" size="lg" wide loading={busy} disabled={busy} onClick={go}>
-            {s.premium.trialUsed ? t('sub.ctaShort') : t('sub.cta')}
-          </Btn>
+          {!s.premium.trialUsed ? (
+            <Btn kind="pri" size="lg" wide loading={busy} disabled={busy} onClick={startTrial}>
+              {t('sub.cta')}
+            </Btn>
+          ) : !Web.native() ? (
+            <Btn kind="pri" size="lg" wide onClick={payWeb}>{t('sub.web')}</Btn>
+          ) : (
+            <Btn kind="sec" size="lg" wide onClick={restore}>{t('sub.restore')}</Btn>
+          )}
         </div>
       ) : null}
     </div>

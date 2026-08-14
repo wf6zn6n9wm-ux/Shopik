@@ -485,11 +485,12 @@ eq(U.fmtPrice(3.99, 'USD'), '$3.99', 'ціна з центами');
 eq(U.fmtPrice(45, 'USD'), '$45', 'ціна без центів');
 eq(U.fmtPrice(149, 'UAH'), '149\u00A0₴', 'гривня після числа');
 eq(U.planSaving('monthly'), 0, 'місячний план — база');
-/* Ціна на сайті нижча рівно на пів долара: у ній немає комісії магазину. */
-U.PLAN_ORDER.forEach(id => {
-  const product = U.PRODUCTS[id];
-  eq(Math.round((product.price - product.web) * 100), 50, `план ${id}: на сайті дешевше на $0.50`);
-});
+/* Покупок усередині застосунку немає — лише пробний період і
+   перевірка вже оплаченої на сайті підписки. */
+eq(typeof Billing.purchase, 'undefined', 'у Billing немає покупок у застосунку');
+yes(typeof Billing.trial === 'function' && typeof Billing.restore === 'function', 'лишились пробний період і відновлення');
+yes(U.PRODUCTS.monthly.renews && U.PRODUCTS.yearly.renews, 'місячна й річна продовжуються самі');
+yes(!U.PRODUCTS.quarterly.renews, 'тримісячна — разовий платіж: у LiqPay такої періодичності немає');
 /* Сторінка оплати — окремий файл, і саме тому ціни там роз'їдуться
    першими. Порівнюємо з тим, що знає застосунок. */
 {
@@ -501,11 +502,11 @@ U.PLAN_ORDER.forEach(id => {
     const row = block.split('\n').find(l => l.includes(`'${id}'`));
     if (!row) return fail(`pay.html не знає про план ${id}`);
     const price = Number((row.match(/price:\s*([\d.]+)/) || [])[1]);
-    const web = Number((row.match(/web:\s*([\d.]+)/) || [])[1]);
     const months = Number((row.match(/months:\s*(\d+)/) || [])[1]);
-    eq(price, U.PRODUCTS[id].price, `pay.html: ціна в магазині для ${id}`);
-    eq(web, U.PRODUCTS[id].web, `pay.html: ціна на сайті для ${id}`);
+    const renews = /renews:\s*true/.test(row);
+    eq(price, U.PRODUCTS[id].price, `pay.html: ціна для ${id}`);
     eq(months, U.PRODUCTS[id].months, `pay.html: строк для ${id}`);
+    eq(renews, U.PRODUCTS[id].renews, `pay.html: автопродовження для ${id}`);
   });
 }
 /* Посилання на оплату несе план і мову — сторінка відкривається одразу
@@ -535,19 +536,16 @@ Billing.trial().then(r => {
   return Billing.trial();
 }).then(r2 => {
   yes(!r2.ok, 'другий пробний період не дається');
-  return Billing.purchase('quarterly');
-}).then(rq => {
-  yes(rq.ok && store.get().premium.plan === 'quarterly', 'квартальна підписка оформлюється');
-  const until = store.get().premium.until;
-  yes(U.diffDays(todayISO(), until) > 80 && U.diffDays(todayISO(), until) < 100,
-      'строк квартальної підписки — близько трьох місяців');
-  return Billing.purchase('yearly');
-}).then(r3 => {
-  yes(r3.ok && store.get().premium.plan === 'yearly', 'річна підписка оформлюється');
-  yes(U.diffDays(todayISO(), store.get().premium.until) > 350, 'строк річної — близько року');
   return Billing.restore();
 }).then(r4 => {
-  yes(r4.ok, 'відновлення покупок');
+  yes(r4.ok, 'відновлення бачить активний пробний період');
+  /* Ліцензійний сервер підключається мостом — без нього нічого не вигадуємо. */
+  sandbox.window.UrokLicence = {check: () => ({plan: 'yearly', expiresAt: addDays(todayISO(), 365)})};
+  return Billing.restore('teacher@example.com');
+}).then(r5 => {
+  yes(r5.ok && store.get().premium.plan === 'yearly', 'ліцензія з сервера вмикає підписку');
+  delete sandbox.window.UrokLicence;
+  yes(Billing.checkoutUrl('monthly', 'uk').includes('plan=monthly'), 'посилання на оплату несе тариф');
   console.log(fails ? `\n${fails} помилок (перевірок: ${checks})` : `\nусе гаразд · перевірок: ${checks}`);
   process.exit(fails ? 1 : 0);
 }).catch(e => {

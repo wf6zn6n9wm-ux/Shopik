@@ -744,14 +744,21 @@ function expandSeries(rule, opts){
    лише демо-провайдер; нативний міст (Capacitor-плагін StoreKit)
    підхоплюється автоматично, щойно з'явиться window.UrokIAP —
    екрани підписки міняти не доведеться.                          */
-/* Ціни підписки живуть у доларах і не залежать від валюти, у якій
-   викладач рахує заняття: у App Store тариф один на всі країни, а
-   ₴/zł/€ у застосунку — це про гроші учнів, не про нашу підписку.
+/* Ціни підписки. Тариф один — той, що на сайті: покупок усередині
+   застосунку немає й не буде. Причина не технічна, а податкова: ФОП
+   другої групи не має права надавати послуги нерезиденту-юрособі, а
+   App Store платить саме так. Тому оплата йде напряму від людини
+   через LiqPay, а магазин у цій схемі не бере участі.
+
+   renews — чи продовжується підписка сама. У LiqPay періодичність
+   буває місячна й річна, тримісячної немає, тому квартальний тариф —
+   разовий платіж. Це видно користувачу на екрані й на сторінці оплати.
+
    months потрібні, щоб рахувати вигоду й строк без окремих таблиць. */
 const PRODUCTS = {
-  monthly: {id: 'plus.monthly', period: 'month', months: 1, price: 3.99, web: 3.49, currency: 'USD'},
-  quarterly: {id: 'plus.quarterly', period: 'quarter', months: 3, price: 9.99, web: 9.49, currency: 'USD'},
-  yearly: {id: 'plus.yearly', period: 'year', months: 12, price: 37.99, web: 37.49, currency: 'USD'},
+  monthly: {id: 'plus.monthly', period: 'month', months: 1, price: 3.49, currency: 'USD', renews: true},
+  quarterly: {id: 'plus.quarterly', period: 'quarter', months: 3, price: 9.49, currency: 'USD', renews: false},
+  yearly: {id: 'plus.yearly', period: 'year', months: 12, price: 37.49, currency: 'USD', renews: true},
 };
 const PLAN_ORDER = ['yearly', 'quarterly', 'monthly'];
 /* Скільки виходить на місяць і скільки це економить проти місячного. */
@@ -759,15 +766,15 @@ const planMonthly = plan => (PRODUCTS[plan] ? PRODUCTS[plan].price / PRODUCTS[pl
 const planSaving = plan => Math.round((1 - planMonthly(plan) / PRODUCTS.monthly.price) * 100);
 
 /* ─── оплата на сайті ───
-   Магазин утримує 15–30% з кожного платежу, тому та сама підписка на
-   сайті коштує на пів долара дешевше — це і є вся різниця в ціні.
-   Карток застосунок не бачить: він лише відкриває сторінку оплати в
-   браузері, а підписку потім підтягує «Відновити покупки».
+   Єдиний спосіб оплати: сторінка pay.html і LiqPay. Карток застосунок
+   не бачить — він лише відкриває сторінку в браузері, а підписку потім
+   підтягує «Відновити покупки» з ліцензійного сервера.
 
-   ⚠️ Перед публікацією в App Store: посилання на зовнішню оплату з
-   iOS-застосунку потребує окремого дозволу Apple (External Purchase
-   Link Entitlement; у ЄС — DMA). Тому в нативній збірці кнопки немає,
-   доки WEB.base не заданий явно — Web.base() поверне порожньо. */
+   ⚠️ У нативній збірці не показуємо ні цін, ні посилання на оплату:
+   Apple забороняє вести користувача повз свій магазин (Guideline
+   3.1.1), і застосунок, який лише відкриває доступ до вже оплаченої
+   на сайті підписки, — це єдина безпечна форма. Тому Web.native()
+   вимикає весь блок тарифів. */
 const WEB = {
   base: '',            /* порожньо — той самий домен і тека, що й застосунок */
   page: 'pay.html',
@@ -802,38 +809,33 @@ const Web = {
     const params = new URLSearchParams({plan: planId || 'yearly', lang: lang || 'uk'});
     return Web.base() + WEB.page + '?' + params.toString();
   },
-  /* Найдешевший веб-тариф — те, що показуємо на кнопці. */
-  cheapest(){ return Math.min(...Object.keys(PRODUCTS).map(k => PRODUCTS[k].web)); },
+  cheapest(){ return Math.min(...Object.keys(PRODUCTS).map(k => PRODUCTS[k].price)); },
 };
 
 const Billing = {
-  bridge(){ return typeof window !== 'undefined' ? window.UrokIAP : null; },
-  available(){ return !!Billing.bridge(); },
+  /* Магазинного моста більше немає: покупок усередині застосунку не
+     буває. Лишились дві дії — безкоштовний пробний тиждень і перевірка
+     вже оплаченої на сайті підписки. */
   products(){ return PRODUCTS; },
-  async purchase(planId){
-    const bridge = Billing.bridge();
-    const product = PRODUCTS[planId];
-    if (!product) throw new Error('unknown product');
-    if (bridge && typeof bridge.purchase === 'function'){
-      const res = await bridge.purchase(product.id);
-      if (!res || !res.ok) throw new Error(res && res.error || 'purchase failed');
-      A.setPremium(planId, res.expiresAt || '');
-      return {ok: true, source: 'store'};
-    }
-    /* демо: підписка живе локально, щоб можна було пройти сценарій */
-    A.setPremium(planId, addDays(todayISO(), Math.round(product.months * 30.4)));
-    return {ok: true, source: 'demo'};
-  },
+  available(){ return Web.enabled(); },
+
   async trial(){
     const s = store.get();
     if (s.premium.trialUsed) return {ok: false, reason: 'used'};
     A.setPremium('trial', addDays(todayISO(), 7));
     return {ok: true};
   },
-  async restore(){
-    const bridge = Billing.bridge();
-    if (bridge && typeof bridge.restore === 'function'){
-      const res = await bridge.restore();
+
+  /* Посилання на оплату: сторінка сама розбереться з LiqPay. */
+  checkoutUrl(planId, lang){ return Web.payUrl(planId, lang); },
+
+  /* «Відновити покупки» питає ліцензійний сервер, чи є на цьому
+     логіні активна підписка. Сервера ще немає — тоді чесно кажемо, що
+     нічого не знайшли, замість того щоб вдавати успіх. */
+  async restore(login){
+    const bridge = typeof window !== 'undefined' ? window.UrokLicence : null;
+    if (bridge && typeof bridge.check === 'function'){
+      const res = await bridge.check(login || '');
       if (res && res.plan) A.setPremium(res.plan, res.expiresAt || '');
       return {ok: !!(res && res.plan)};
     }
