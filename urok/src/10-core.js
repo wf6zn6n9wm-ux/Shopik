@@ -751,7 +751,7 @@ function expandSeries(rule, opts){
 const PRODUCTS = {
   monthly: {id: 'plus.monthly', period: 'month', months: 1, price: 3.99, currency: 'USD'},
   quarterly: {id: 'plus.quarterly', period: 'quarter', months: 3, price: 9.99, currency: 'USD'},
-  yearly: {id: 'plus.yearly', period: 'year', months: 12, price: 44.99, currency: 'USD'},
+  yearly: {id: 'plus.yearly', period: 'year', months: 12, price: 39.99, currency: 'USD'},
 };
 const PLAN_ORDER = ['yearly', 'quarterly', 'monthly'];
 /* Скільки виходить на місяць і скільки це економить проти місячного. */
