@@ -268,6 +268,20 @@
   .search .input{padding-left:38px}
   .search svg{position:absolute; left:12px; top:12px; width:17px; height:17px; color:var(--ink-3)}
 
+  /* ── строки настроек ──────────────────────────────────────────
+     На телефоне жёсткие ширины не помещаются, поэтому ряд переносится
+     на вторую строку, а поля времени тянутся по месту. */
+  .set-row{display:flex; align-items:center; gap:14px; padding:12px 0}
+  .set-row-main{flex:1; min-width:0}
+  .set-row-title{font-size:13.5px; font-weight:550}
+  .hours-row{display:flex; align-items:center; gap:10px; padding:9px 0; flex-wrap:wrap}
+  .hours-day{width:108px; font-size:13.5px; font-weight:550}
+  .hours-times{display:flex; align-items:center; gap:10px}
+  .hours-time{width:124px; flex:none}
+  .hours-dash{color:var(--ink-3)}
+  .photo-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .photo-row .input{flex:1 1 140px; min-width:0}
+
   .switch{
     width:42px; height:24px; border-radius:999px; background:var(--track); position:relative; flex:none;
     transition:background var(--fast);
@@ -483,6 +497,12 @@
     .mob-only{display:flex}
     .desk-only{display:none}
     .page{padding:16px 16px 96px}
+    /* шапка экрана на телефоне переносится: иначе стрелки календаря и
+       «Новая запись» уезжают за правый край */
+    .page-head{flex-wrap:wrap; gap:10px; margin-bottom:16px}
+    .page-head .segm{flex:1 1 auto}
+    .page-head .btn{flex:1 1 auto}
+    .page-head .spacer{display:none}
     .g-2,.g-3{grid-template-columns:minmax(0,1fr)}
     .page-title{font-size:20px}
     .mob-nav{
@@ -514,6 +534,27 @@
     .row-time{width:44px}
   }
   @media (max-width:560px){
+    /* мельче шрифт — больше помещается на экран телефона */
+    body{font-size:13.5px}
+    .page-title{font-size:19px}
+    .page-sub{font-size:12px}
+    .card-title{font-size:14px}
+    .label,.hint{font-size:11.5px}
+    .set-row-title,.hours-day{font-size:13px}
+    .btn{font-size:13.5px}
+    .segm button{font-size:12px; padding:0 11px}
+    /* поля оставляем от 16px: ниже этого Safari на iPhone зумит экран
+       при фокусе, и «на одном экране» превращается в тыканье пальцем */
+    .input,.select,.area{font-size:16px}
+    .set-row{flex-wrap:wrap; gap:10px; padding:11px 0}
+    .set-row-main{flex:1 1 100%}
+    .set-row .segm{margin-left:auto}
+    /* день с переключателем — первой строкой, время — второй */
+    .hours-day{width:auto; flex:1 1 auto; min-width:92px}
+    .hours-row .switch{margin-left:auto}
+    .hours-times{flex:1 1 100%; gap:8px}
+    .hours-time{flex:1 1 0; width:auto; min-width:0; text-align:center}
+    .photo-row .btn{flex:1 1 auto}
     .f2,.f3{grid-template-columns:1fr}
     .g-kpi{grid-template-columns:repeat(2,1fr); gap:10px}
     .grid{gap:12px}
@@ -2265,7 +2306,7 @@ function ClientForm({id, onCreated}){
         </Field>
       </div>
       <Field label={t('photoUrl')} hint="https://…">
-        <div style={{display: 'flex', gap: 8, alignItems: 'center'}}>
+        <div className="photo-row">
           <Avatar name={name} src={photo} size={42} />
           <Input value={photo && photo.startsWith('data:') ? '' : photo} placeholder="https://"
                  onChange={e => setPhoto(e.target.value)} />
@@ -2573,6 +2614,7 @@ function ApptRow({a, db, onClick}){
 
 function NextCard({db}){
   const nav = useNav();
+  const narrow = useNarrow();
   const a = nextAppt(db);
   if (!a) return (
     <Card className="card-pad">
@@ -2614,7 +2656,7 @@ function NextCard({db}){
           </div>
         </div>
         <div style={{display: 'flex', alignItems: 'center', gap: 18}}>
-          <Avatar name={c && c.name} src={c && c.photo} size={116} ring />
+          <Avatar name={c && c.name} src={c && c.photo} size={narrow ? 72 : 116} ring />
           {when && (
             <div style={{textAlign: 'center'}}>
               <div style={{fontSize: 12, color: 'var(--ink-3)', marginBottom: 6}}>{t('inTime')}</div>
@@ -2838,7 +2880,10 @@ function DayColumn({db, dateIso, from, to, step, onOpen, onSlot}){
 function CalendarPage(){
   const db = useDB();
   const nav = useNav();
-  const [mode, setMode] = useState('week');
+  const narrow = useNarrow();
+  /* на телефоне неделя из семи колонок читается только боком, поэтому
+     открываем день — неделя остаётся на расстоянии одного нажатия */
+  const [mode, setMode] = useState(() => narrow ? 'day' : 'week');
   const [anchor, setAnchor] = useState(iso(new Date()));
   const d = fromIso(anchor);
   const step = db.settings.step || 30;
@@ -3349,7 +3394,7 @@ function Finance(){
           {value: 'day', label: t('day')}, {value: 'week', label: t('week')},
           {value: 'month', label: t('month')}, {value: 'year', label: t('year')},
         ]} />
-        <Button kind="ghost" icon="download" onClick={download}>{narrow ? '' : t('export')}</Button>
+        <Button kind="ghost" icon="download" onClick={download}>{narrow ? 'CSV' : t('export')}</Button>
       </div>
 
       <div className="grid g-kpi" style={{marginBottom: 16}}>
@@ -3675,9 +3720,9 @@ function Messages({clientId}){
 /* ── 22. НАСТРОЙКИ ────────────────────────────────────────────────── */
 
 const Row = ({title, note, children}) => (
-  <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0'}}>
-    <div style={{flex: 1, minWidth: 0}}>
-      <div style={{fontSize: 13.5, fontWeight: 550}}>{title}</div>
+  <div className="set-row">
+    <div className="set-row-main">
+      <div className="set-row-title">{title}</div>
       {note && <div className="hint">{note}</div>}
     </div>
     {children}
@@ -3808,11 +3853,11 @@ function Settings(){
         <div className="grid" style={{alignContent: 'start'}}>
           <Card className="card-pad">
             <div className="card-title" style={{marginBottom: 14}}>{t('setProfile')}</div>
-            <div style={{display: 'flex', gap: 14, alignItems: 'center', marginBottom: 14}}>
+            <div className="photo-row" style={{gap: 14, marginBottom: 14}}>
               <Avatar name={p.name} src={p.photo} size={64} ring />
               <div style={{flex: 1}}>
                 <Field label={t('photoUrl')}>
-                  <div style={{display: 'flex', gap: 8}}>
+                  <div className="photo-row">
                     <Input value={p.photo && p.photo.startsWith('data:') ? '' : (p.photo || '')} placeholder="https://"
                            onChange={e => save({photo: e.target.value})} />
                     <Button kind="soft" size="sm" onClick={() => pickPhoto(v => save({photo: v}))}>{t('photoPick')}</Button>
@@ -3838,17 +3883,17 @@ function Settings(){
             {DOW_KEYS.map((k, i) => {
               const h = p.hours[k];
               return (
-                <div key={k} style={{display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i ? '1px solid var(--line)' : 0}}>
-                  <span style={{width: 108, fontSize: 13.5, fontWeight: 550}}>{WD_FULL[LANG][i]}</span>
+                <div key={k} className="hours-row" style={{borderTop: i ? '1px solid var(--line)' : 0}}>
+                  <span className="hours-day">{WD_FULL[LANG][i]}</span>
                   <Switch on={h.on} onChange={v => Act.hours(k, {on: v})} />
                   {h.on ? (
-                    <>
-                      <input className="input" type="time" style={{width: 128, flex: 'none'}} value={h.from}
+                    <span className="hours-times">
+                      <input className="input hours-time" type="time" value={h.from}
                              onChange={e => Act.hours(k, {from: e.target.value || '09:00'})} />
-                      <span style={{color: 'var(--ink-3)'}}>—</span>
-                      <input className="input" type="time" style={{width: 128, flex: 'none'}} value={h.to}
+                      <span className="hours-dash">—</span>
+                      <input className="input hours-time" type="time" value={h.to}
                              onChange={e => Act.hours(k, {to: e.target.value || '20:00'})} />
-                    </>
+                    </span>
                   ) : <span className="hint">{t('dayOff')}</span>}
                 </div>
               );
