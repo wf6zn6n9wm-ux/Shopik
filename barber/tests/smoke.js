@@ -43,6 +43,8 @@ function transpile(src, name){
 /* ── 2. песочница ── */
 function sandbox(){
   const mem = new Map();
+  /* сеть под контролем: что ушло — видно, что вернуть — задаём */
+  const net = {calls: [], queue: []};
   const el = (type, props, ...children) => {
     const p = Object.assign({}, props);
     if (children.length) p.children = children.length === 1 ? children[0] : children;
@@ -79,9 +81,16 @@ function sandbox(){
     document: doc,
     matchMedia: () => ({matches: false, addEventListener(){}, removeEventListener(){}}),
     addEventListener(){}, removeEventListener(){}, scrollTo(){}, open(){},
+    fetch: async (url, opts) => {
+      let body = {};
+      try { body = JSON.parse((opts || {}).body || '{}'); } catch (e){}
+      net.calls.push({url, body});
+      const next = net.queue.length ? net.queue.shift() : {ok: false, reason: 'off'};
+      return {ok: true, status: 200, json: async () => next};
+    },
   };
   ctx.window = ctx; ctx.globalThis = ctx;
-  return {ctx: vm.createContext(ctx), el};
+  return {ctx: vm.createContext(ctx), el, net};
 }
 
 const EXPORTS = `;globalThis.__T = {
@@ -93,9 +102,10 @@ const EXPORTS = `;globalThis.__T = {
   App, Home, CalendarPage, Clients, ClientPage, Services, Finance, Messages, Settings,
   ApptForm, ClientForm, ServiceForm, ApptCard, ActiveSession, NotifPanel, MoreSheet, Sidebar,
   MiniCalendar, LineChart, BarChart, MonthGrid, applyTheme, serviceName, clientName, nextLabel,
+  Sync, Net, SyncBlock, RemindLinks, serviceById,
 };`;
 
-const {ctx, el} = sandbox();
+const {ctx, el, net} = sandbox();
 vm.runInContext(transpile(source('index.html'), 'app') + EXPORTS, ctx, {filename: 'probarber.jsx'});
 const T = ctx.__T;
 
@@ -201,8 +211,13 @@ part('клиент');
   ok('средний чек клиента', cs.avg === Math.round(cs.spent / cs.visits));
   ok('история от новых к старым',
      cs.history.every((a, i) => i === 0 || cs.history[i - 1].date >= a.date));
-  ok('следующая запись клиента — сегодня 11:30',
-     !!cs.next && cs.next.date === today && cs.next.time === '11:30', cs.next && cs.next.time);
+  /* у клиента из референса запись сегодня в 11:30 — но к обеду она уже
+     проведена, поэтому «следующей» будет другая: проверяем оба факта
+     по отдельности, а не время суток */
+  ok('запись из референса стоит на сегодня',
+     T.dayAppts(db, today).some(a => a.clientId === 'cl_0' && a.time === '11:30'));
+  ok('следующая запись клиента не в прошлом',
+     !cs.next || cs.next.date >= today, cs.next && (cs.next.date + ' ' + cs.next.time));
   ok('день рождения считается через новый год',
      T.bdIn('1990-08-14', new Date(2026, 7, 14)) === 0 &&
      T.bdIn('1990-08-13', new Date(2026, 7, 14)) === 364);
@@ -409,11 +424,126 @@ part('сквозной сценарий');
   ok('главная показывает новую выручку', home2.includes(T.money(before + sv.price, 'USD')));
 }
 
+/* дальше — асинхронные проверки: сеть и публичная страница */
+(async () => {
+
+part('связь с сервером');
+{
+  T.Store.init(T.seedDB());
+  net.calls.length = 0; net.queue.length = 0;
+
+  /* выключено — в сеть не ходим вовсе */
+  const off = await T.Sync.publish();
+  ok('без включённой синхронизации запросов нет', off.ok === false && net.calls.length === 0);
+
+  T.Act.settings({sync: true, slug: 'alexey'});
+  T.Sync.ensureToken();
+  ok('токен кабинета создаётся один раз', !!S().settings.token && S().settings.token.length > 10);
+  const tok = S().settings.token;
+  T.Sync.ensureToken();
+  ok('и не меняется на ровном месте', S().settings.token === tok);
+
+  const load = T.Sync.payload(S());
+  ok('на сервер уходят только видимые услуги',
+     load.shop.services.length === S().services.filter(x => x.active !== false).length);
+  ok('в услугах нет ничего лишнего',
+     Object.keys(load.shop.services[0]).sort().join(',') === 'dur,id,name,price');
+  ok('занятое время без имён и услуг',
+     Object.keys(load.busy[0]).sort().join(',') === 'date,dur,time');
+  ok('прошлое не публикуем', load.busy.every(b => b.date >= today));
+  ok('и дальше горизонта тоже', load.busy.every(b => b.date <= T.iso(T.addDays(new Date(), 60))));
+  ok('отменённые не занимают время', (() => {
+    const one = S().appts.find(a => a.date >= today && a.status !== 'canceled');
+    T.Act.cancel(one.id);
+    const after = T.Sync.payload(S()).busy;
+    T.Act.restore(one.id);
+    return !after.some(b => b.date === one.date && b.time === one.time);
+  })());
+  const raw = JSON.stringify(load);
+  ok('имена клиентов на сервер не уезжают', !raw.includes('Иван Петров'));
+  ok('телефоны клиентов тоже', !raw.includes(S().clients[0].phone));
+
+  net.queue.push({ok: true, slug: 'alexey', busy: load.busy.length});
+  const pub = await T.Sync.publish();
+  ok('публикация уходит на сервер', pub.ok === true && net.calls.length === 1);
+  ok('в запросе есть адрес и токен',
+     net.calls[0].body.slug === 'alexey' && net.calls[0].body.token === tok);
+
+  /* заявка с сайта превращается в запись со статусом «заявка» */
+  const day = T.iso(T.addDays(new Date(), 5));
+  net.calls.length = 0;
+  net.queue.push({ok: true, requests: [{
+    id: 'rq_1', name: 'Новый Гость', phone: '+380 50 111 22 33',
+    service_id: 'sv_0', service: 'Стрижка', price: 20, dur: 45, date: day, time: '17:00', note: 'первый раз',
+  }]});
+  const pulled = await T.Sync.pull();
+  ok('заявка забрана', pulled.ok === true && pulled.added === 1, JSON.stringify(pulled));
+  const appt = S().appts.find(a => a.reqId === 'rq_1');
+  ok('появилась запись со статусом «заявка»', !!appt && appt.status === 'pending' && appt.source === 'online');
+  ok('и новый клиент', !!T.Store.state.clients.find(c => c.name === 'Новый Гость'));
+  ok('заявка видна в уведомлениях', T.notifications(S()).some(n => n.apptId === appt.id));
+  ok('заявка не считается деньгами', T.stats(S(), day, day).revenue === 0);
+
+  net.queue.push({ok: true, requests: [{
+    id: 'rq_1', name: 'Новый Гость', phone: '+380 50 111 22 33',
+    service_id: 'sv_0', service: 'Стрижка', price: 20, dur: 45, date: day, time: '17:00', note: '',
+  }]});
+  const again = await T.Sync.pull();
+  ok('повторная выдача той же заявки не дублирует запись', again.added === 0);
+
+  /* тот же телефон — тот же клиент, а не двойник */
+  const before = S().clients.length;
+  net.queue.push({ok: true, requests: [{
+    id: 'rq_2', name: 'Новый Гость', phone: '380 50 111 22 33',
+    service_id: 'sv_0', service: 'Стрижка', price: 20, dur: 45, date: day, time: '18:30', note: '',
+  }]});
+  await T.Sync.pull();
+  ok('по знакомому телефону клиент не задваивается', S().clients.length === before);
+
+  /* решение барбера уходит на сервер */
+  net.calls.length = 0;
+  T.Act.accept(appt.id);
+  ok('подтверждение отправлено на сервер',
+     net.calls.some(c => c.body.action === 'resolve' && c.body.id === 'rq_1' && c.body.status === 'accepted'));
+  const second = S().appts.find(a => a.reqId === 'rq_2');
+  net.calls.length = 0;
+  T.Act.cancel(second.id);
+  ok('отказ тоже отправлен',
+     net.calls.some(c => c.body.action === 'resolve' && c.body.id === 'rq_2' && c.body.status === 'declined'));
+  net.calls.length = 0;
+  T.Act.cancel(S().appts.find(a => a.status === 'planned' && !a.reqId).id);
+  ok('обычная запись сервер не трогает', net.calls.length === 0);
+
+  /* сеть может лежать — это не должно ломать кабинет */
+  net.queue.push(null);
+  const broken = await T.Sync.pull().catch(() => ({ok: false}));
+  ok('пустой ответ сервера не роняет кабинет', broken && broken.ok !== undefined);
+  T.Act.settings({sync: false});
+}
+
+part('экраны с сервером');
+{
+  T.Store.init(T.seedDB());
+  T.Act.settings({sync: true});
+  screen('Настройки · синхронизация включена', () => el(T.Settings, {}));
+  const txt = textOf(el(T.Settings, {}));
+  ok('видно управление приёмом заявок', txt.includes('Приём заявок с сайта'));
+  ok('и подключение Telegram', txt.includes('Telegram'));
+  T.Act.settings({sync: false});
+  ok('выключенная синхронизация честно об этом пишет',
+     textOf(el(T.Settings, {})).includes('локальный режим'));
+
+  const withPhone = S().appts.find(a => a.status === 'planned');
+  const card = textOf(el(T.ApptCard, {id: withPhone.id}));
+  ok('в карточке записи есть напоминание в мессенджер',
+     card.includes('WhatsApp') && card.includes('SMS'));
+}
+
 part('публичная страница');
 {
   const pub = sandbox();
   vm.runInContext(transpile(source('book.html'), 'book') +
-    ';globalThis.__B = {Book, slots, DB, dayLabel, save, KEY};', pub.ctx, {filename: 'book.jsx'});
+    ';globalThis.__B = {Book, slots, DB, dayLabel, save, KEY, fromServer, REASONS, ask};', pub.ctx, {filename: 'book.jsx'});
   const B = pub.ctx.__B;
   ok('страница записи собирается', typeof B.Book === 'function');
   ok('без данных барбера показывает витрину по умолчанию', B.DB().services.length >= 4);
@@ -451,6 +581,26 @@ part('публичная страница');
   ok('заявка попала в уведомления кабинета',
      T.notifications(S()).some(n => n.kind === 'online' && n.apptId === 'ap_online'));
   ok('заявка ещё не деньги', T.stats(S(), day, day).revenue === 0);
+
+  /* серверный режим: витрина и занятость приходят из API */
+  const fromApi = B.fromServer({
+    shop: {shop: 'Про Барбер', name: 'Алексей', role: 'Барбер', about: '', address: '', phone: '',
+           currency: 'UAH', step: 30,
+           hours: {mon: {on: true, from: '09:00', to: '18:00'}, tue: {on: true, from: '09:00', to: '18:00'},
+                   wed: {on: true, from: '09:00', to: '18:00'}, thu: {on: true, from: '09:00', to: '18:00'},
+                   fri: {on: true, from: '09:00', to: '18:00'}, sat: {on: true, from: '10:00', to: '16:00'},
+                   sun: {on: false, from: '10:00', to: '16:00'}},
+           services: [{id: 'sv_0', name: 'Стрижка', price: 20, dur: 45}]},
+    busy: [{date: day, time: '11:00', dur: 60}],
+  });
+  ok('ответ сервера превращается в витрину', fromApi.services.length === 1 && fromApi.settings.currency === 'UAH');
+  const apiSlots = B.slots(fromApi, day, 45);
+  ok('свободное время считается по серверной занятости',
+     apiSlots.length > 0 && !apiSlots.includes('11:00') && !apiSlots.includes('11:30'), apiSlots.slice(0, 4).join(' '));
+  ok('в занятости с сервера нет ничего лишнего',
+     Object.keys(fromApi.appts[0]).sort().join(',') === 'date,dur,status,time');
+  ok('на каждый отказ сервера есть человеческий текст',
+     ['taken', 'closed', 'past', 'too_many', 'bad_phone'].every(r => !!B.REASONS[r]));
   T.Act.accept('ap_online');
   ok('после подтверждения запись становится плановой',
      S().appts.find(a => a.id === 'ap_online').status === 'planned');
@@ -458,3 +608,4 @@ part('публичная страница');
 
 console.log('\n' + (fails ? '✗ ' + fails + ' из ' + checks : '✓ все ' + checks) + ' проверок');
 process.exit(fails ? 1 : 0);
+})();

@@ -732,6 +732,22 @@ const PHRASES = {
   resetDemo: {ru: 'Сбросить к демо-данным', uk: 'Скинути до демо-даних', en: 'Reset to demo data'},
   resetAsk: {ru: 'Все изменения будут удалены и заменены демо-данными. Продолжить?', uk: 'Усі зміни буде видалено та замінено демо-даними. Продовжити?', en: 'All changes will be replaced with demo data. Continue?'},
 
+  syncOn: {ru: 'Приём заявок с сайта', uk: 'Приймання заявок із сайту', en: 'Accept online requests'},
+  syncNote: {ru: 'Кабинет отправляет на сервер услуги, график и занятое время — без имён и телефонов клиентов', uk: 'Кабінет надсилає на сервер послуги, графік і зайнятий час — без імен і телефонів клієнтів', en: 'The app publishes services, hours and busy slots — no client names or phones'},
+  syncNow: {ru: 'Опубликовать', uk: 'Опублікувати', en: 'Publish'},
+  syncPull: {ru: 'Проверить заявки', uk: 'Перевірити заявки', en: 'Check requests'},
+  syncOk: {ru: 'Витрина опубликована', uk: 'Вітрину опубліковано', en: 'Published'},
+  syncNew: {ru: 'Новых заявок', uk: 'Нових заявок', en: 'New requests'},
+  syncNone: {ru: 'Новых заявок нет', uk: 'Нових заявок немає', en: 'No new requests'},
+  syncOff: {ru: 'Сервер не подключён — работает локальный режим', uk: 'Сервер не підключено — працює локальний режим', en: 'No server — running locally'},
+  syncBusy: {ru: 'Занят этим адресом уже кто-то другой', uk: 'Цю адресу вже зайняв хтось інший', en: 'That address is taken'},
+  tgConnect: {ru: 'Подключить Telegram', uk: 'Підключити Telegram', en: 'Connect Telegram'},
+  tgNote: {ru: 'Заявки будут приходить в телефон, принять можно кнопкой', uk: 'Заявки приходитимуть у телефон, прийняти можна кнопкою', en: 'Requests arrive in Telegram; accept them with a button'},
+  tgOpen: {ru: 'Открыть бота', uk: 'Відкрити бота', en: 'Open the bot'},
+  remindWA: {ru: 'WhatsApp', uk: 'WhatsApp', en: 'WhatsApp'},
+  remindTG: {ru: 'Telegram', uk: 'Telegram', en: 'Telegram'},
+  remindSMS: {ru: 'SMS', uk: 'SMS', en: 'SMS'},
+  remindText: {ru: 'Напомнить о записи', uk: 'Нагадати про запис', en: 'Send a reminder'},
   ntTitle: {ru: 'Уведомления', uk: 'Сповіщення', en: 'Notifications'},
   ntEmpty: {ru: 'Пока тихо', uk: 'Поки тихо', en: 'All quiet'},
   ntOnline: {ru: 'Заявка с сайта', uk: 'Заявка з сайту', en: 'Online request'},
@@ -814,6 +830,9 @@ const emptyDB = () => ({
   },
   settings: {
     theme: 'dark', currency: 'USD', lang: 'ru', step: 30, slug: 'alexey',
+    /* сервер нужен только для онлайн-записи: выключен — кабинет живёт
+       целиком на своём хранилище, как и раньше */
+    sync: false, token: '', pulledAt: '',
     notif: {booked: true, reminder: true, birthday: true, lapsed: false},
   },
   services: [], clients: [], appts: [], threads: [], seen: {},
@@ -1111,9 +1130,17 @@ const Act = {
     if (price != null && price !== '') patch.price = Number(price) || 0;
     return Act.updAppt(id, patch);
   },
-  cancel(id){ return Act.updAppt(id, {status: 'canceled'}); },
+  cancel(id){
+    const a = Store.state.appts.find(x => x.id === id);
+    if (a && a.status === 'pending') Sync.resolve(a, 'declined');
+    return Act.updAppt(id, {status: 'canceled'});
+  },
   restore(id){ return Act.updAppt(id, {status: 'planned'}); },
-  accept(id){ return Act.updAppt(id, {status: 'planned'}); },
+  accept(id){
+    const a = Store.state.appts.find(x => x.id === id);
+    if (a) Sync.resolve(a, 'accepted');
+    return Act.updAppt(id, {status: 'planned'});
+  },
 
   send(clientId, text, from){
     const at = new Date().toISOString();
@@ -1138,6 +1165,96 @@ const Act = {
   },
   dismiss(nid){ Store.set(s => ({...s, seen: Object.assign({}, s.seen, {[nid]: Date.now()})})); },
   reset(){ Store.set(() => seedDB()); },
+};
+
+/* ── 5b. СЕРВЕР ───────────────────────────────────────────────────
+   Сервер нужен ровно для онлайн-записи: кабинет публикует витрину и
+   занятое время, забирает заявки и сообщает решение по ним. Клиентская
+   база, история и деньги никуда не уезжают.
+
+   Сервера может не быть вовсе — тогда каждый вызов тихо возвращает
+   {ok:false}, и кабинет работает как работал. */
+
+const API = '/api/barber';
+const HORIZON = 60;                     /* насколько вперёд публикуем занятость */
+
+const Net = {
+  async call(action, data){
+    const db = Store.state;
+    if (!db.settings.sync || !db.settings.slug) return {ok: false, reason: 'off'};
+    try {
+      const r = await fetch(API, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(Object.assign({action, slug: db.settings.slug, token: db.settings.token}, data || {})),
+      });
+      if (!r.ok) return {ok: false, reason: 'http_' + r.status};
+      return await r.json();
+    } catch (e){ return {ok: false, reason: 'offline'}; }
+  },
+};
+
+const Sync = {
+  /* токен — секрет кабинета: он доказывает серверу, что адрес наш */
+  ensureToken(){
+    if (!Store.state.settings.token) Act.settings({token: uid('tk') + uid('n')});
+    return Store.state.settings.token;
+  },
+
+  /* что видно клиенту: услуги, график и занятые интервалы без имён */
+  payload(db){
+    const today = iso(new Date()), last = iso(addDays(new Date(), HORIZON));
+    return {
+      shop: {
+        shop: db.profile.shop, name: db.profile.name, role: db.profile.role,
+        about: db.profile.about, address: db.profile.address, phone: db.profile.phone,
+        photo: db.profile.photo, currency: db.settings.currency, lang: db.settings.lang,
+        step: db.settings.step, hours: db.profile.hours,
+        services: db.services.filter(x => x.active !== false)
+          .map(x => ({id: x.id, name: x.name, price: x.price, dur: x.dur})),
+      },
+      busy: db.appts.filter(a => a.status !== 'canceled' && a.date >= today && a.date <= last)
+        .map(a => ({date: a.date, time: a.time, dur: a.dur})),
+    };
+  },
+
+  async publish(){
+    Sync.ensureToken();
+    const r = await Net.call('publish', Sync.payload(Store.state));
+    return r;
+  },
+
+  /* заявка превращается в запись со статусом «заявка»: барбер решает */
+  async pull(){
+    const r = await Net.call('pull', {});
+    if (!r.ok) return r;
+    const db = Store.state;
+    let added = 0;
+    (r.requests || []).forEach(q => {
+      if (db.appts.some(a => a.reqId === q.id)) return;
+      const key = String(q.phone || '').replace(/\D/g, '');
+      let client = db.clients.find(c => c.phone.replace(/\D/g, '') === key && key.length > 8);
+      if (!client) client = Act.addClient({name: q.name, phone: phoneMask(q.phone)});
+      const svc = serviceById(Store.state, q.service_id) ||
+                  Store.state.services.find(x => x.name === q.service) || null;
+      Act.addAppt({
+        clientId: client.id, serviceId: svc ? svc.id : (Store.state.services[0] || {}).id,
+        date: q.date, time: q.time, dur: Number(q.dur) || 30, price: Number(q.price) || 0,
+        status: 'pending', source: 'online', note: q.note || '', reqId: q.id,
+      });
+      added++;
+    });
+    Act.settings({pulledAt: new Date().toISOString()});
+    return {ok: true, added};
+  },
+
+  /* решение барбера возвращаем серверу, чтобы заявка не пришла снова */
+  resolve(appt, status){
+    if (!appt || !appt.reqId) return;
+    Net.call('resolve', {id: appt.reqId, status});
+  },
+
+  async link(){ return Net.call('link', {}); },
 };
 
 /* ── 6. ВЫБОРКИ И РАСЧЁТЫ ─────────────────────────────────────────── */
@@ -2065,6 +2182,7 @@ function ApptCard({id}){
         <Button kind="soft" size="sm" icon="chat" onClick={() => { nav.close(); nav.go('chat', {clientId: a.clientId}); }}>
           {t('navChat')}
         </Button>
+        {c && c.phone && a.status !== 'canceled' && <RemindLinks client={c} appt={a} db={db} />}
         {a.status !== 'done' && a.status !== 'canceled' && (
           <Button kind="soft" size="sm" icon="play" onClick={() => { Act.start(a.id); nav.close(); nav.modal('active', {id: a.id}); }}>
             {t('startAppt')}
@@ -2078,6 +2196,35 @@ function ApptCard({id}){
                 })}>{t('del')}</Button>
       </div>
     </Modal>
+  );
+}
+
+/* Напоминание клиенту. SMS-шлюза у нас нет, поэтому открываем диалог
+   в мессенджере с уже готовым текстом — барберу остаётся нажать
+   «отправить». */
+function RemindLinks({client, appt, db}){
+  const phone = String(client.phone || '').replace(/\D/g, '');
+  if (!phone) return null;
+  const when = fmtDay(fromIso(appt.date), LANG) + ' ' + appt.time;
+  const text = client.name.split(' ')[0] + ', напоминаю: ' + when + ' — ' +
+    serviceName(db, appt.serviceId) + '. ' + (db.profile.shop || '') +
+    (db.profile.address ? ', ' + db.profile.address : '') + '.';
+  const open = url => { try { window.open(url, '_blank'); } catch (e){} };
+  return (
+    <>
+      <Button kind="soft" size="sm" title={t('remindText')}
+              onClick={() => open('https://wa.me/' + phone + '?text=' + encodeURIComponent(text))}>
+        {t('remindWA')}
+      </Button>
+      <Button kind="soft" size="sm" title={t('remindText')}
+              onClick={() => open('https://t.me/+' + phone)}>
+        {t('remindTG')}
+      </Button>
+      <Button kind="soft" size="sm" title={t('remindText')}
+              onClick={() => open('sms:+' + phone + '?body=' + encodeURIComponent(text))}>
+        {t('remindSMS')}
+      </Button>
+    </>
   );
 }
 
@@ -3169,6 +3316,66 @@ const Row = ({title, note, children}) => (
   </div>
 );
 
+/* Приём заявок с сайта. Выключено — кабинет работает на своём
+   хранилище и в сеть не ходит вовсе. */
+function SyncBlock({db}){
+  const s = db.settings;
+  const [busy, setBusy] = useState('');
+  const [link, setLink] = useState(null);
+
+  const run = async (kind, fn) => {
+    setBusy(kind);
+    const r = await fn();
+    setBusy('');
+    return r;
+  };
+  const publish = () => run('pub', async () => {
+    const r = await Sync.publish();
+    toast(r.ok ? t('syncOk') : r.reason === 'forbidden' ? t('syncBusy') : t('syncOff'), r.ok ? 'ok' : 'bad');
+    return r;
+  });
+  const pull = () => run('pull', async () => {
+    const r = await Sync.pull();
+    toast(!r.ok ? t('syncOff') : r.added ? t('syncNew') + ': ' + r.added : t('syncNone'), r.ok ? 'ok' : 'bad');
+    return r;
+  });
+
+  return (
+    <div>
+      <Row title={t('syncOn')} note={t('syncNote')}>
+        <Switch on={!!s.sync} onChange={v => {
+          Act.settings({sync: v});
+          if (v){ Sync.ensureToken(); setTimeout(publish, 0); }
+        }} />
+      </Row>
+      {s.sync && (
+        <>
+          <div style={{display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6}}>
+            <Button kind="ghost" size="sm" icon="link" disabled={busy === 'pub'} onClick={publish}>{t('syncNow')}</Button>
+            <Button kind="ghost" size="sm" icon="bell" disabled={busy === 'pull'} onClick={pull}>{t('syncPull')}</Button>
+          </div>
+          <hr className="sep" style={{margin: '14px 0'}} />
+          <Row title="Telegram" note={t('tgNote')}>
+            <Button kind="soft" size="sm" onClick={async () => {
+              const r = await Sync.link();
+              if (!r.ok){ toast(t('syncOff'), 'bad'); return; }
+              setLink(r);
+              if (r.url){ try { window.open(r.url, '_blank'); } catch (e){} }
+            }}>{t('tgConnect')}</Button>
+          </Row>
+          {link && (
+            <div className="hint" style={{wordBreak: 'break-all'}}>
+              {link.url ? <a href={link.url} target="_blank" rel="noreferrer" style={{color: 'var(--gold)'}}>{t('tgOpen')}</a> : null}
+              {' '}/start {link.code}
+            </div>
+          )}
+        </>
+      )}
+      {!s.sync && <div className="hint">{t('syncOff')}</div>}
+    </div>
+  );
+}
+
 function Settings(){
   const db = useDB();
   const nav = useNav();
@@ -3301,6 +3508,8 @@ function Settings(){
               </Button>
               <Button kind="ghost" icon="copy" onClick={copy}>{t('copyLink')}</Button>
             </div>
+            <hr className="sep" style={{margin: '16px 0'}} />
+            <SyncBlock db={db} />
           </Card>
 
           <Card className="card-pad">
@@ -3474,6 +3683,29 @@ function App(){
     if (mq.addEventListener) mq.addEventListener('change', fn);
     return () => { if (mq.removeEventListener) mq.removeEventListener('change', fn); };
   }, []);
+
+  /* заявки забираем при открытии и раз в пару минут, витрину
+     перепубликовываем после изменений — но не чаще раза в пять секунд,
+     иначе каждое нажатие уходило бы в сеть */
+  useEffect(() => {
+    if (!db.settings.sync) return;
+    let alive = true;
+    const tick = () => { if (alive) Sync.pull(); };
+    tick();
+    const h = setInterval(tick, 120000);
+    return () => { alive = false; clearInterval(h); };
+  }, [db.settings.sync, db.settings.slug]);
+
+  useEffect(() => {
+    if (!db.settings.sync) return;
+    let timer = null;
+    const off = Store.sub(() => {
+      if (!Store.state.settings.sync) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => Sync.publish(), 5000);
+    });
+    return () => { clearTimeout(timer); off(); };
+  }, [db.settings.sync]);
 
   const go = useCallback((page, params) => {
     setRoute({page, params: params || {}});

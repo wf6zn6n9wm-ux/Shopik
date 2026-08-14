@@ -31,3 +31,6 @@ jobs:
 
       - name: Кабинет и публичная страница
         run: node barber/tests/smoke.js
+
+      - name: Сервер онлайн-записи
+        run: node barber/tests/api.js
