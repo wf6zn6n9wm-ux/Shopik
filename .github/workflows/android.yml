@@ -99,17 +99,20 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          sign=""
+          # Массив, а не строка: в пароле может быть пробел, и без кавычек
+          # он развалился бы на два аргумента — Gradle принял бы второй за
+          # имя задачи и упал с «Task ... not found».
+          args=(--no-daemon bundleRelease assembleDebug)
           if [ -f "$RUNNER_TEMP/upload.jks" ]; then
             echo "Подписываем ключом из секретов"
-            sign="-Pandroid.injected.signing.store.file=$RUNNER_TEMP/upload.jks \
-                  -Pandroid.injected.signing.store.password=$STORE_PASSWORD \
-                  -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
-                  -Pandroid.injected.signing.key.password=$KEY_PASSWORD"
+            args+=(-Pandroid.injected.signing.store.file="$RUNNER_TEMP/upload.jks"
+                   -Pandroid.injected.signing.store.password="$STORE_PASSWORD"
+                   -Pandroid.injected.signing.key.alias="$KEY_ALIAS"
+                   -Pandroid.injected.signing.key.password="$KEY_PASSWORD")
           else
             echo "::warning::Ключ подписи не задан — .aab выйдет неподписанным, в Google Play его не примут"
           fi
-          ./gradlew --no-daemon bundleRelease assembleDebug $sign
+          ./gradlew "${args[@]}"
 
       - name: Что собралось
         run: find android/app/build/outputs -name '*.aab' -o -name '*.apk' | sort
