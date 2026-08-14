@@ -72,6 +72,8 @@ jobs:
       - name: Ключ подписи
         env:
           KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           if [ -z "$KEYSTORE" ]; then
             echo "ключа нет"
@@ -90,6 +92,18 @@ jobs:
             exit 1
           fi
           echo "ключ на месте, $(stat -c%s "$RUNNER_TEMP/upload.jks") байт"
+          # Пароль и alias проверяем здесь, а не через две минуты сборки:
+          # Gradle доходит до подписи последней задачей, и неверное имя
+          # ключа обнаруживается, когда всё уже собрано.
+          if ! keytool -list -keystore "$RUNNER_TEMP/upload.jks" \
+                       -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null 2>&1; then
+            echo '::error::Пароль хранилища или имя ключа (ANDROID_KEY_ALIAS) не подходят'
+            echo 'Ключи, которые есть в хранилище:'
+            keytool -list -keystore "$RUNNER_TEMP/upload.jks" -storepass "$STORE_PASSWORD" 2>/dev/null \
+              | grep PrivateKeyEntry || echo '(не открылось — значит дело в пароле)'
+            exit 1
+          fi
+          echo "имя ключа подходит"
 
       - name: Сборка
         env:
