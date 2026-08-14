@@ -119,22 +119,42 @@ const server = http.createServer(async (req, res) => {
 /* Браузер запускаємо саме асинхронно. Синхронний запуск блокує цикл
    подій — і сервер, який живе в цьому ж процесі, не встигає відповісти:
    браузер чекає сторінку, сервер чекає, поки його відпустять. */
-const dom = url => new Promise(resolve => {
-  const p = spawn(CHROME, ['--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
-    '--window-size=430,900', '--virtual-time-budget=6000', '--dump-dom', url]);
+/* Прапорці, без яких Chrome нестабільний у контейнері: спільна пам'ять
+   там урізана, профіль створювати нікуди, а перший запуск норовить
+   спитати про браузер за замовчуванням. */
+const FLAGS = ['--headless', '--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage',
+  '--no-first-run', '--no-default-browser-check', '--disable-extensions',
+  '--hide-scrollbars', '--window-size=430,900', '--virtual-time-budget=6000', '--dump-dom'];
+
+const once = url => new Promise(resolve => {
+  const p = spawn(CHROME, FLAGS.concat([url]));
   let outp = '', killed = false;
   p.stdout.on('data', d => { outp += d; });
   /* Не висимо назавжди, але й не міряємо себе своєю машиною: перший
-     запуск браузера на холодній машині буває довгим, і на CI він раз за
-     разом не вкладався у 25 секунд. Обрив друкуємо окремим рядком —
-     інакше перевірка падає з незрозумілим «undefined». */
+     запуск браузера на холодній машині буває довгим. */
   const t = setTimeout(() => { killed = true; try { p.kill(); } catch {} }, 60000);
+  p.on('error', () => resolve(''));
   p.on('close', () => {
     clearTimeout(t);
     if (killed) console.log('  ⚠ браузер не встиг за 60 с: ' + url);
     resolve(outp);
   });
 });
+
+/* На CI найперший запуск двічі повертався порожнім — браузер завершувався
+   сам, без розмітки, і три перевірки падали з незрозумілим «undefined».
+   Причину по логу назвати не вдалося, тому просто пробуємо ще раз, і не
+   мовчки: повтор видно в журналі, і якщо він почне траплятися часто —
+   це буде видно, а не сховається за зеленим результатом. */
+const dom = async url => {
+  const first = await once(url);
+  /* Ознака вдалого запуску — підсумок проби. Там, де проби немає,
+     вистачає будь-якої розмітки. */
+  const good = url.includes('probe=') ? first.includes('id="__out"') : first.includes('<body');
+  if (good) return first;
+  console.log('  ⚠ порожня відповідь браузера, пробуємо ще раз: ' + url);
+  return once(url);
+};
 /* проба пише підсумок сюди, звідси його й читаємо */
 const out = html => {
   const m = /<pre id="__out">([^]*?)<\/pre>/.exec(html);
