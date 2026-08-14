@@ -158,7 +158,18 @@ const SCENARIO = `
     function(){
       var state = JSON.parse(localStorage.getItem('urok.v1'));
       ok('стан збережено в localStorage', state.lessons.length > 0 && state.auth.status === 'authed');
-    }
+    },
+
+    /* екран підписки: тарифи, ціна на сайті, кнопка оплати */
+    function(){ click($$('.nav button')[3]); },
+    function(){ ok('перехід у підписку', click(byText('Підписка'))); },
+    function(){ ok('три тарифи', $$('.plan').length === 3, String($$('.plan').length)); },
+    function(){ ok('ціни магазину на місці', text().indexOf('$37.99') >= 0 && text().indexOf('$3.99') >= 0); },
+    function(){ ok('ціна на сайті поруч із кожним тарифом', $$('.webprice').length === 3, String($$('.webprice').length)); },
+    function(){ ok('кнопка оплати на сайті', !!$('.btn.webpay') && text().indexOf('$3.49') >= 0); },
+    function(){ ok('посилання на умови й політику', $$('.legallinks button').length === 2); },
+    function(){ click($('.btn.webpay')); },
+    function(){ ok('кнопка щось відповідає', !!$('.toast'), $('.toast') ? $('.toast').innerText.slice(0, 40) : 'без тоста'); }
   ];
 
   var i = 0;

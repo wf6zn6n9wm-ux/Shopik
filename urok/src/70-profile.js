@@ -401,6 +401,7 @@ function PremiumScreen({t, s, nav, params}){
      підписку підтягне «Відновити покупки», коли з'явиться ліцензійний
      сервер. Карток застосунок не бачить у жодному разі. */
   const payWeb = () => {
+    if (!Web.enabled()) return toast(t('sub.webDemo'));
     openLink(Web.payUrl(plan, s.settings.lang));
     toast(t('sub.webOpened'));
   };
@@ -487,21 +488,29 @@ function PremiumScreen({t, s, nav, params}){
                 );
               })}
             </div>
-            {Web.enabled() ? (
-              <>
-                <button className="btn line wide webpay" style={{marginTop: 14}} onClick={payWeb}>
-                  <Icon.globe size={18} />
-                  <span>
-                    <b>{t('sub.web')}</b>
-                    <i>{t('sub.webFrom', {price: fmtPrice(Web.cheapest(), p.monthly.currency)})}</i>
-                  </span>
-                </button>
-                <div className="hint" style={{lineHeight: 1.45, marginTop: 10}}>{t('sub.webNote')}</div>
-              </>
+            {!Web.native() ? (
+              <button className="btn line wide webpay" style={{marginTop: 14}} onClick={payWeb}>
+                <Icon.globe size={18} />
+                <span>
+                  <b>{t('sub.web')}</b>
+                  <i>{t('sub.webFrom', {price: fmtPrice(Web.cheapest(), p.monthly.currency)})}</i>
+                </span>
+              </button>
             ) : null}
-            <div className="hint" style={{lineHeight: 1.45, marginTop: 12}}>{t('sub.legal')}</div>
-            <div style={{textAlign: 'center', marginTop: 8}}>
-              <Btn kind="ghost" size="sm" onClick={restore}>{t('sub.restore')}</Btn>
+            <Btn kind="ghost" wide style={{marginTop: 6}} onClick={restore}>{t('sub.restore')}</Btn>
+
+            {/* Дрібний текст однією колонкою: спершу як влаштована
+                оплата в магазині, далі — чому на сайті дешевше. */}
+            <div className="fineprint">
+              {t('sub.legal')}
+              {!Web.native() ? ' ' + t('sub.webNote') : ''}
+            </div>
+            {/* Посилання на умови й політику мають бути на самому екрані
+                підписки — цього вимагає App Store, і шукати їх у
+                налаштуваннях користувач не зобов'язаний. */}
+            <div className="legallinks">
+              <button onClick={() => nav.push({name: 'terms'})}>{t('se.terms')}</button>
+              <button onClick={() => nav.push({name: 'privacy'})}>{t('se.privacy')}</button>
             </div>
             <div className="barpad" />
           </>
