@@ -732,6 +732,36 @@ const PHRASES = {
   resetDemo: {ru: 'Сбросить к демо-данным', uk: 'Скинути до демо-даних', en: 'Reset to demo data'},
   resetAsk: {ru: 'Все изменения будут удалены и заменены демо-данными. Продолжить?', uk: 'Усі зміни буде видалено та замінено демо-даними. Продовжити?', en: 'All changes will be replaced with demo data. Continue?'},
 
+  repeat: {ru: 'Повторять', uk: 'Повторювати', en: 'Repeat'},
+  repeatNo: {ru: 'Один раз', uk: 'Один раз', en: 'Once'},
+  repeatWeek: {ru: 'Каждую неделю', uk: 'Щотижня', en: 'Weekly'},
+  repeat2: {ru: 'Раз в две недели', uk: 'Раз на два тижні', en: 'Every 2 weeks'},
+  repeatMonth: {ru: 'Раз в месяц', uk: 'Раз на місяць', en: 'Monthly'},
+  repeatTimes: {ru: 'Сколько раз', uk: 'Скільки разів', en: 'How many'},
+  seriesMade: {ru: 'Создано записей', uk: 'Створено записів', en: 'Appointments created'},
+  seriesSkip: {ru: 'занятое время пропущено', uk: 'зайнятий час пропущено', en: 'busy slots skipped'},
+  series: {ru: 'Серия записей', uk: 'Серія записів', en: 'Series'},
+  cancelSeries: {ru: 'Отменить всю серию', uk: 'Скасувати всю серію', en: 'Cancel the series'},
+  seriesGone: {ru: 'Серия отменена', uk: 'Серію скасовано', en: 'Series canceled'},
+
+  expenses: {ru: 'Расходы', uk: 'Витрати', en: 'Expenses'},
+  expenseNew: {ru: 'Новый расход', uk: 'Нова витрата', en: 'New expense'},
+  expenseWhat: {ru: 'На что', uk: 'На що', en: 'What for'},
+  expenseSum: {ru: 'Сумма', uk: 'Сума', en: 'Amount'},
+  expRent: {ru: 'Аренда кресла', uk: 'Оренда крісла', en: 'Chair rent'},
+  expGoods: {ru: 'Материалы', uk: 'Матеріали', en: 'Supplies'},
+  expTools: {ru: 'Инструмент', uk: 'Інструмент', en: 'Tools'},
+  expAds: {ru: 'Реклама', uk: 'Реклама', en: 'Ads'},
+  expOther: {ru: 'Прочее', uk: 'Інше', en: 'Other'},
+  profit: {ru: 'Чистыми', uk: 'Чистими', en: 'Net'},
+  profitNote: {ru: 'выручка минус расходы', uk: 'виручка мінус витрати', en: 'revenue minus expenses'},
+  noExpenses: {ru: 'Расходов за период нет', uk: 'Витрат за період немає', en: 'No expenses in this period'},
+
+  photoPick: {ru: 'Загрузить фото', uk: 'Завантажити фото', en: 'Upload photo'},
+  photoClear: {ru: 'Убрать фото', uk: 'Прибрати фото', en: 'Remove photo'},
+  importJson: {ru: 'Загрузить копию', uk: 'Завантажити копію', en: 'Restore a copy'},
+  importAsk: {ru: 'Данные кабинета будут заменены содержимым файла. Продолжить?', uk: 'Дані кабінету буде замінено вмістом файлу. Продовжити?', en: 'Current data will be replaced with the file. Continue?'},
+  importBad: {ru: 'Это не похоже на копию данных', uk: 'Це не схоже на копію даних', en: 'That file is not a data copy'},
   syncOn: {ru: 'Приём заявок с сайта', uk: 'Приймання заявок із сайту', en: 'Accept online requests'},
   syncNote: {ru: 'Кабинет отправляет на сервер услуги, график и занятое время — без имён и телефонов клиентов', uk: 'Кабінет надсилає на сервер послуги, графік і зайнятий час — без імен і телефонів клієнтів', en: 'The app publishes services, hours and busy slots — no client names or phones'},
   syncNow: {ru: 'Опубликовать', uk: 'Опублікувати', en: 'Publish'},
@@ -835,7 +865,7 @@ const emptyDB = () => ({
     sync: false, token: '', pulledAt: '',
     notif: {booked: true, reminder: true, birthday: true, lapsed: false},
   },
-  services: [], clients: [], appts: [], threads: [], seen: {},
+  services: [], clients: [], appts: [], threads: [], expenses: [], seen: {},
 });
 
 /* Генератор с фиксированным зерном: демо-база одинаковая при каждом
@@ -997,6 +1027,18 @@ function seedDB(over){
   mk('cl_9', 'sv_1', iso(workday(2)), '12:00', 'pending', {source: 'online'});
   mk('cl_14', 'sv_5', iso(workday(4)), '15:30', 'pending', {source: 'online'});
 
+  /* ── расходы: аренда кресла помесячно и материалы ── */
+  for (let back = 6; back >= 0; back--){
+    const d = new Date(now.getFullYear(), now.getMonth() - back, 5);
+    if (d > now) continue;
+    db.expenses.push({id: uid('ex'), date: iso(d), kind: 'rent', title: 'Аренда кресла', amount: 300});
+  }
+  for (let back = 180; back >= 0; back -= 14){
+    const d = addDays(now, -back);
+    if (d > now) continue;
+    db.expenses.push({id: uid('ex'), date: iso(d), kind: 'goods', title: 'Материалы', amount: int(40, 90)});
+  }
+
   /* ── переписка ── */
   const H = 3600000;
   const at = h => new Date(Date.now() - h * H).toISOString();
@@ -1044,7 +1086,7 @@ const Disk = {
       db.settings.notif = Object.assign({}, base.settings.notif, db.settings.notif);
       db.profile = Object.assign({}, base.profile, db.profile);
       db.profile.hours = Object.assign({}, base.profile.hours, db.profile.hours);
-      db.threads ||= []; db.seen ||= {};
+      db.threads ||= []; db.seen ||= {}; db.expenses ||= [];
       return db;
     } catch (e){ return null; }
   },
@@ -1154,6 +1196,34 @@ const Act = {
   },
   readThread(clientId){
     Store.set(s => ({...s, threads: s.threads.map(th => th.clientId === clientId ? {...th, unread: 0} : th)}));
+  },
+
+  addExpense(data){
+    const e = Object.assign({id: uid('ex'), date: iso(new Date()), kind: 'other', title: '', amount: 0}, data);
+    Store.set(s => ({...s, expenses: [e, ...s.expenses]}));
+    return e;
+  },
+  updExpense(id, patch){ Store.edit('expenses', id, patch); },
+  delExpense(id){ Store.set(s => ({...s, expenses: s.expenses.filter(x => x.id !== id)})); },
+
+  /* Серия: постоянный клиент ходит «каждые две недели в 11:00». Занятые
+     даты пропускаем — молча двигать чужую запись нельзя. */
+  addSeries(data, every, times){
+    const step = {week: 7, two: 14, month: 30}[every] || 7;
+    const repeatId = uid('rp');
+    const made = [];
+    let skipped = 0;
+    for (let i = 0; i < Math.max(1, times); i++){
+      const date = iso(addDays(fromIso(data.date), i * step));
+      if (i && overlaps(Store.state, date, data.time, data.dur)){ skipped++; continue; }
+      made.push(Act.addAppt(Object.assign({}, data, {date, repeatId})));
+    }
+    return {made, skipped, repeatId};
+  },
+  cancelSeries(repeatId, fromDate){
+    Store.set(s => ({...s, appts: s.appts.map(a =>
+      a.repeatId === repeatId && a.date >= fromDate && a.status === 'planned'
+        ? Object.assign({}, a, {status: 'canceled'}) : a)}));
   },
 
   settings(patch){ Store.set(s => ({...s, settings: Object.assign({}, s.settings, patch)})); },
@@ -1494,6 +1564,17 @@ function notifications(db, at){
 
 const unreadCount = db => sum(db.threads, th => th.unread);
 
+/* Расходы за период и чистая прибыль. Барберу важнее «сколько осталось»,
+   чем «сколько прошло через кассу». */
+const expensesIn = (db, from, to) => (db.expenses || []).filter(e => e.date >= from && e.date <= to);
+const spent = (db, from, to) => sum(expensesIn(db, from, to), e => e.amount);
+const profit = (db, from, to) => stats(db, from, to).revenue - spent(db, from, to);
+
+const EXPENSE_KINDS = [
+  {id: 'rent', key: 'expRent'}, {id: 'goods', key: 'expGoods'}, {id: 'tools', key: 'expTools'},
+  {id: 'ads', key: 'expAds'}, {id: 'other', key: 'expOther'},
+];
+
 /* CSV для бухгалтерии: дата, клиент, услуга, цена */
 function financeCsv(db, from, to){
   const rows = inRange(db, from, to).filter(COUNTED)
@@ -1503,6 +1584,44 @@ function financeCsv(db, from, to){
   return [head.join(',')].concat(rows.map(a => [
     a.date, a.time, clientName(db, a.clientId), serviceName(db, a.serviceId), a.price,
   ].map(esc).join(','))).join('\n');
+}
+
+/* ── 6b. ФАЙЛЫ ───────────────────────────────────────────────────
+   Фото ужимаем прямо в браузере: в localStorage нельзя класть
+   пятимегабайтные снимки с телефона. */
+function pickFile(accept, onLoad, asText){
+  try {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = accept;
+    input.onchange = () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => onLoad(reader.result, file);
+      if (asText) reader.readAsText(file); else reader.readAsDataURL(file);
+    };
+    input.click();
+  } catch (e){ toast(t('importBad'), 'bad'); }
+}
+
+function pickPhoto(onReady){
+  pickFile('image/*', dataUrl => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        const side = 320;
+        const canvas = document.createElement('canvas');
+        canvas.width = side; canvas.height = side;
+        const ctx = canvas.getContext('2d');
+        const k = Math.min(img.width, img.height);
+        ctx.drawImage(img, (img.width - k) / 2, (img.height - k) / 2, k, k, 0, 0, side, side);
+        onReady(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = () => onReady(dataUrl);
+      img.src = dataUrl;
+    } catch (e){ onReady(dataUrl); }
+  });
 }
 
 /* ── 7. ИКОНКИ ────────────────────────────────────────────────────── */
@@ -1901,6 +2020,8 @@ function ApptForm({id, preset, onDone}){
   const [price, setPrice] = useState(base.price != null ? base.price : firstSvc.price);
   const [note, setNote] = useState(base.note || '');
   const [phone, setPhone] = useState('');
+  const [every, setEvery] = useState('no');
+  const [howMany, setHowMany] = useState(4);
   const [err, setErr] = useState({});
 
   const client = clientById(db, clientId);
@@ -1942,6 +2063,9 @@ function ApptForm({id, preset, onDone}){
     if (editing){
       Act.updAppt(id, data);
       toast(t('tSaved'), 'ok');
+    } else if (every !== 'no'){
+      const r = Act.addSeries(Object.assign({status: 'planned'}, data), every, Number(howMany) || 2);
+      toast(t('seriesMade') + ': ' + r.made.length + (r.skipped ? ' · ' + r.skipped + ' ' + t('seriesSkip') : ''), 'ok');
     } else {
       Act.addAppt(Object.assign({status: 'planned'}, data));
       toast(t('tBooked'), 'ok');
@@ -2007,6 +2131,23 @@ function ApptForm({id, preset, onDone}){
       <Field label={t('comment')}>
         <Area value={note} placeholder={t('commentPh')} onChange={e => setNote(e.target.value)} />
       </Field>
+
+      {!editing && (
+        <div className="f2">
+          <Field label={t('repeat')}>
+            <Select value={every} onChange={e => setEvery(e.target.value)} options={[
+              {value: 'no', label: t('repeatNo')}, {value: 'week', label: t('repeatWeek')},
+              {value: 'two', label: t('repeat2')}, {value: 'month', label: t('repeatMonth')},
+            ]} />
+          </Field>
+          {every !== 'no' && (
+            <Field label={t('repeatTimes')}>
+              <Select value={String(howMany)} onChange={e => setHowMany(Number(e.target.value))}
+                      options={[2, 3, 4, 6, 8, 10, 12].map(n => ({value: String(n), label: String(n)}))} />
+            </Field>
+          )}
+        </div>
+      )}
     </Modal>
   );
 }
@@ -2056,7 +2197,13 @@ function ClientForm({id, onCreated}){
         </Field>
       </div>
       <Field label={t('photoUrl')} hint="https://…">
-        <Input value={photo} placeholder="https://" onChange={e => setPhoto(e.target.value)} />
+        <div style={{display: 'flex', gap: 8, alignItems: 'center'}}>
+          <Avatar name={name} src={photo} size={42} />
+          <Input value={photo && photo.startsWith('data:') ? '' : photo} placeholder="https://"
+                 onChange={e => setPhoto(e.target.value)} />
+          <Button kind="soft" size="sm" onClick={() => pickPhoto(setPhoto)}>{t('photoPick')}</Button>
+          {photo && <IconButton icon="close" onClick={() => setPhoto('')} aria-label={t('photoClear')} />}
+        </div>
       </Field>
       <Field label={t('notes')}>
         <Area value={note} placeholder={t('notesPh')} onChange={e => setNote(e.target.value)} />
@@ -2174,6 +2321,15 @@ function ApptCard({id}){
       </div>
       {a.note && <Field label={t('comment')}><div style={{color: 'var(--ink-2)'}}>{a.note}</div></Field>}
       {a.source === 'online' && <Badge tone="info">{t('ntOnline')}</Badge>}
+      {a.repeatId && a.status === 'planned' && (
+        <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+          <Badge tone="gold">{t('series')}</Badge>
+          <Button kind="soft" size="sm" icon="ban" onClick={() => nav.modal('confirm', {
+            title: t('cancelSeries'), text: t('cancelSeries') + '?', danger: true,
+            onYes: () => { Act.cancelSeries(a.repeatId, a.date); toast(t('seriesGone')); nav.close(); },
+          })}>{t('cancelSeries')}</Button>
+        </div>
+      )}
 
       <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
         <Button kind="soft" size="sm" icon="user" onClick={() => { nav.close(); nav.go('client', {id: a.clientId}); }}>
@@ -3062,6 +3218,8 @@ function Finance(){
   const g = growth(cut.revenue, was.revenue);
   const data = series(db, period);
   const top = topServices(db, from, to, 5);
+  const cost = spent(db, from, to);
+  const bills = expensesIn(db, from, to).slice().sort((a, b) => b.date.localeCompare(a.date));
 
   /* подпись под суммой — реальные границы периода, а не «за месяц» под
      каждой карточкой */
@@ -3163,6 +3321,47 @@ function Finance(){
           </div>
         </Card>
 
+        <div className="grid" style={{alignContent: 'start'}}>
+        <Card>
+          <CardHead title={t('expenses')} right={
+            <Button kind="line" size="sm" icon="plus" onClick={() => nav.modal('expense', {})}>{t('expenseNew')}</Button>
+          } />
+          <div className="card-pad">
+            <div style={{display: 'flex', gap: 18, marginBottom: 12}}>
+              <div>
+                <div className="hint">{t('expenses')}</div>
+                <div className="num" style={{fontSize: 20, fontWeight: 700, color: 'var(--neg)'}}>
+                  −{money(cost, cur)}
+                </div>
+              </div>
+              <div>
+                <div className="hint">{t('profit')}</div>
+                <div className="num" style={{fontSize: 20, fontWeight: 700, color: 'var(--pos)'}}>
+                  {money(cut.revenue - cost, cur)}
+                </div>
+              </div>
+              <div className="spacer" />
+              <div style={{textAlign: 'right', maxWidth: 130}}>
+                <div className="hint">{t('profitNote')}</div>
+              </div>
+            </div>
+          </div>
+          <div className="rows">
+            {!bills.length && <Empty icon="card" title={t('noExpenses')} />}
+            {bills.slice(0, 12).map(e => (
+              <button key={e.id} className="row" onClick={() => nav.modal('expense', {id: e.id})}>
+                <span className="row-time num" style={{width: 62}}>{fmtDayShort(fromIso(e.date), LANG)}</span>
+                <span className="row-main">
+                  <span className="row-name cut" style={{display: 'block'}}>{e.title || t(kindKey(e.kind))}</span>
+                  {e.title && e.title !== t(kindKey(e.kind)) &&
+                    <span className="row-sub" style={{display: 'block'}}>{t(kindKey(e.kind))}</span>}
+                </span>
+                <span className="num" style={{fontWeight: 650, color: 'var(--neg)'}}>−{money(e.amount, cur)}</span>
+              </button>
+            ))}
+          </div>
+        </Card>
+
         <Card>
           <CardHead title={t('topServices')} right={<span className="card-note">{t('perMonth')}</span>} />
           <div className="card-pad" style={{display: 'flex', flexDirection: 'column', gap: 13}}>
@@ -3180,8 +3379,57 @@ function Finance(){
             ))}
           </div>
         </Card>
+        </div>
       </div>
     </div>
+  );
+}
+
+const kindKey = id => (EXPENSE_KINDS.find(k => k.id === id) || {key: 'expOther'}).key;
+
+/* Расход: аренда кресла, материалы, реклама — всё, что съедает выручку */
+function ExpenseForm({id}){
+  const db = useDB();
+  const nav = useNav();
+  const editing = id ? (db.expenses || []).find(x => x.id === id) : null;
+  const [title, setTitle] = useState(editing ? editing.title : '');
+  const [amount, setAmount] = useState(editing ? editing.amount : 0);
+  const [date, setDate] = useState(editing ? editing.date : iso(new Date()));
+  const [kind, setKind] = useState(editing ? editing.kind : 'goods');
+
+  const submit = () => {
+    const data = {title: title.trim() || t(kindKey(kind)), amount: Math.max(0, Number(amount) || 0), date, kind};
+    if (editing) Act.updExpense(id, data); else Act.addExpense(data);
+    toast(t('tSaved'), 'ok');
+    nav.close();
+  };
+
+  return (
+    <Modal title={editing ? t('expenses') : t('expenseNew')} onClose={nav.close} footer={
+      <>
+        {editing
+          ? <Button kind="soft" icon="trash" onClick={() => { Act.delExpense(id); toast(t('tDeleted')); nav.close(); }}>{t('del')}</Button>
+          : <Button kind="soft" onClick={nav.close}>{t('cancel')}</Button>}
+        <div className="spacer" />
+        <Button kind="gold" icon="check" onClick={submit}>{t('save')}</Button>
+      </>
+    }>
+      <Field label={t('expenseWhat')}>
+        <Select value={kind} onChange={e => setKind(e.target.value)}
+                options={EXPENSE_KINDS.map(k => ({value: k.id, label: t(k.key)}))} />
+      </Field>
+      <Field label={t('svcName')}>
+        <Input value={title} placeholder={t(kindKey(kind))} onChange={e => setTitle(e.target.value)} />
+      </Field>
+      <div className="f2">
+        <Field label={t('expenseSum')}>
+          <Input type="number" min="0" value={amount} onChange={e => setAmount(e.target.value)} />
+        </Field>
+        <Field label={t('date')}>
+          <Input type="date" value={date} onChange={e => setDate(e.target.value || iso(new Date()))} />
+        </Field>
+      </div>
+    </Modal>
   );
 }
 
@@ -3398,6 +3646,28 @@ function Settings(){
       toast(t('tSaved'), 'ok');
     } catch (e){ toast(t('tSaved'), 'bad'); }
   };
+  /* импорт — это замена всей базы, поэтому сначала проверяем файл, а
+     потом спрашиваем подтверждение */
+  const importJson = () => pickFile('application/json,.json', text => {
+    let next = null;
+    try { next = JSON.parse(text); } catch (e){ next = null; }
+    if (!next || !Array.isArray(next.clients) || !Array.isArray(next.appts)){
+      toast(t('importBad'), 'bad');
+      return;
+    }
+    nav.modal('confirm', {
+      title: t('importJson'), text: t('importAsk'), danger: true,
+      onYes: () => {
+        const base = emptyDB();
+        Store.set(() => Object.assign(base, next, {
+          settings: Object.assign({}, base.settings, next.settings),
+          profile: Object.assign({}, base.profile, next.profile),
+        }));
+        toast(t('tSaved'), 'ok');
+      },
+    });
+  }, true);
+
   const copy = () => {
     try {
       if (navigator.clipboard) navigator.clipboard.writeText(bookUrl);
@@ -3421,7 +3691,12 @@ function Settings(){
               <Avatar name={p.name} src={p.photo} size={64} ring />
               <div style={{flex: 1}}>
                 <Field label={t('photoUrl')}>
-                  <Input value={p.photo || ''} placeholder="https://" onChange={e => save({photo: e.target.value})} />
+                  <div style={{display: 'flex', gap: 8}}>
+                    <Input value={p.photo && p.photo.startsWith('data:') ? '' : (p.photo || '')} placeholder="https://"
+                           onChange={e => save({photo: e.target.value})} />
+                    <Button kind="soft" size="sm" onClick={() => pickPhoto(v => save({photo: v}))}>{t('photoPick')}</Button>
+                    {p.photo && <IconButton icon="close" onClick={() => save({photo: ''})} aria-label={t('photoClear')} />}
+                  </div>
                 </Field>
               </div>
             </div>
@@ -3516,6 +3791,7 @@ function Settings(){
             <div className="card-title" style={{marginBottom: 12}}>{t('setData')}</div>
             <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
               <Button kind="ghost" icon="download" onClick={exportJson}>{t('exportJson')}</Button>
+              <Button kind="ghost" icon="edit" onClick={importJson}>{t('importJson')}</Button>
               <Button kind="danger" icon="trash" onClick={() => nav.modal('confirm', {
                 title: t('resetDemo'), text: t('resetAsk'), danger: true,
                 onYes: () => { Act.reset(); toast(t('tSaved'), 'ok'); },
@@ -3742,6 +4018,7 @@ function ModalHost({type, props, go}){
   if (type === 'service') return <ServiceForm id={props.id} />;
   if (type === 'apptCard') return <ApptCard id={props.id} />;
   if (type === 'active') return <ActiveSession id={props.id} />;
+  if (type === 'expense') return <ExpenseForm id={props.id} />;
   if (type === 'notif') return <NotifPanel />;
   if (type === 'more') return <MoreSheet go={go} />;
   if (type === 'confirm') return <Confirm {...props} onClose={nav.close} />;

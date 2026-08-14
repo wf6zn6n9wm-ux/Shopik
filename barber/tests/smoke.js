@@ -103,6 +103,7 @@ const EXPORTS = `;globalThis.__T = {
   ApptForm, ClientForm, ServiceForm, ApptCard, ActiveSession, NotifPanel, MoreSheet, Sidebar,
   MiniCalendar, LineChart, BarChart, MonthGrid, applyTheme, serviceName, clientName, nextLabel,
   Sync, Net, SyncBlock, RemindLinks, serviceById,
+  expensesIn, spent, profit, EXPENSE_KINDS, ExpenseForm, pickFile, pickPhoto,
 };`;
 
 const {ctx, el, net} = sandbox();
@@ -400,6 +401,75 @@ part('что видит барбер');
   T.Act.settings({lang: 'uk'});
   ok('и на украинский', textOf(el(T.Clients, {})).includes('Клієнти'));
   T.Act.settings({lang: 'ru'});
+}
+
+part('серии и расходы');
+{
+  T.Store.init(T.seedDB());
+  const sv = S().services[0];
+  const c = T.Act.addClient({name: 'Серийный Клиент'});
+  const start = T.iso(T.addDays(new Date(), 30));
+
+  const r = T.Act.addSeries({clientId: c.id, serviceId: sv.id, date: start, time: '19:00',
+                             dur: sv.dur, price: sv.price, status: 'planned'}, 'two', 4);
+  ok('серия создаёт нужное число записей', r.made.length === 4, r.made.length + ' из 4');
+  ok('шаг серии — две недели',
+     r.made[1].date === T.iso(T.addDays(T.fromIso(start), 14)) &&
+     r.made[3].date === T.iso(T.addDays(T.fromIso(start), 42)));
+  ok('все записи серии помечены одним ключом', r.made.every(a => a.repeatId === r.repeatId));
+
+  /* занятое время серия не занимает молча */
+  const busyDate = T.iso(T.addDays(T.fromIso(start), 14));
+  const c2 = T.Act.addClient({name: 'Занял Место'});
+  T.Act.addAppt({clientId: c2.id, serviceId: sv.id, date: busyDate, time: '13:00', dur: 60, price: 20});
+  const r2 = T.Act.addSeries({clientId: c.id, serviceId: sv.id, date: start, time: '13:00',
+                              dur: 60, price: 20, status: 'planned'}, 'two', 3);
+  ok('занятые даты серия пропускает', r2.skipped === 1 && r2.made.length === 2,
+     'создано ' + r2.made.length + ', пропущено ' + r2.skipped);
+
+  T.Act.cancelSeries(r.repeatId, r.made[1].date);
+  const left = S().appts.filter(a => a.repeatId === r.repeatId);
+  ok('отмена серии не трогает прошедшие записи',
+     left.filter(a => a.status === 'planned').length === 1 &&
+     left.filter(a => a.status === 'canceled').length === 3);
+
+  /* расходы и чистая прибыль */
+  const [mf2, mt2] = T.periodRange('month');
+  const before = T.spent(S(), mf2, mt2);
+  const e = T.Act.addExpense({title: 'Ножницы', amount: 120, kind: 'tools', date: today});
+  ok('расход добавляется', T.spent(S(), mf2, mt2) === before + 120);
+  ok('чистая прибыль = выручка минус расходы',
+     T.profit(S(), mf2, mt2) === T.stats(S(), mf2, mt2).revenue - T.spent(S(), mf2, mt2));
+  ok('расход не трогает выручку', T.stats(S(), mf2, mt2).revenue === T.stats(S(), mf2, mt2).rows.reduce((n, a) => n + a.price, 0));
+  T.Act.updExpense(e.id, {amount: 200});
+  ok('расход правится', T.spent(S(), mf2, mt2) === before + 200);
+  T.Act.delExpense(e.id);
+  ok('расход удаляется', T.spent(S(), mf2, mt2) === before);
+  ok('расходы за чужой период не считаются',
+     T.spent(S(), T.iso(T.addDays(new Date(), 300)), T.iso(T.addDays(new Date(), 330))) === 0);
+  ok('в демо-базе расходы уже есть', (S().expenses || []).length > 5, String((S().expenses || []).length));
+  ok('у каждого расхода известный вид',
+     S().expenses.every(x => T.EXPENSE_KINDS.some(k => k.id === x.kind)));
+
+  /* база прошлой версии — без расходов */
+  const old = T.emptyDB();
+  delete old.expenses;
+  ok('база без расходов не ломает расчёты', T.spent(old, mf2, mt2) === 0);
+}
+
+part('новые экраны');
+{
+  screen('Расход · новый', () => el(T.ExpenseForm, {}));
+  screen('Расход · правка', () => el(T.ExpenseForm, {id: S().expenses[0].id}));
+  const fin = textOf(el(T.Finance, {}));
+  ok('в финансах есть расходы и чистая прибыль',
+     fin.includes('Расходы') && fin.includes('Чистыми'));
+  const seriesAppt = S().appts.find(a => a.repeatId && a.status === 'planned');
+  ok('в карточке записи серии видно, что это серия',
+     !seriesAppt || textOf(el(T.ApptCard, {id: seriesAppt.id})).includes('Серия'));
+  ok('в форме записи есть повтор', textOf(el(T.ApptForm, {preset: {}})).includes('Повторять'));
+  ok('в настройках есть загрузка копии', textOf(el(T.Settings, {})).includes('Загрузить копию'));
+  ok('фото можно загрузить файлом', textOf(el(T.ClientForm, {})).includes('Загрузить фото'));
 }
 
 part('сквозной сценарий');
