@@ -227,6 +227,13 @@ PROBES['mini.js'] = `
    на кожній мові. */
 const DRIVE = `
   var wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
+  /* Чекати фіксовану паузу — значить прив'язатися до швидкості машини.
+     На CI вона повільніша за цю, і проба читала екран, поки там ще
+     скелет завантаження. Тому чекаємо на подію, а не на секунди. */
+  var until = async function(test, ms){
+    for (var t = 0; t < (ms || 5000); t += 100){ if (test()) return true; await wait(100); }
+    return test();
+  };
   var all = function(s){ return [].slice.call(document.querySelectorAll(s)); };
   var vis = function(e){ return e.offsetParent !== null || e.getClientRects().length; };
   var pri = function(){ return all('.ob button').filter(function(b){ return /pri/.test(b.className); })[0]; };
@@ -248,6 +255,10 @@ const DRIVE = `
     if (nm){ type(nm, 'Alex'); await wait(120); }
     if (pri()){ pri().click(); await wait(400); }
     if (pri()){ pri().click(); await wait(500); }
+    /* база читається асинхронно, і доки вона не прочитана, екран показує
+       скелет. Далі йдуть перевірки вмісту — виходимо звідси тільки коли
+       скелета не лишилось. */
+    await until(function(){ return !document.querySelector('.sk'); });
   }
 `;
 
