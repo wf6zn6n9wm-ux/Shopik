@@ -24,6 +24,14 @@ const {spawn} = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const PORT = 8771;
 
+/* Ключі мерчанта потрібні, щоб серверні функції взагалі відповідали:
+   без них вони чесно кажуть «не налаштовано». Значення вигадані —
+   до банку ми звідси все одно не достукаємось, і це теж перевірка:
+   сторінка має пережити недоступний банк. */
+process.env.LIQPAY_PUBLIC_KEY = process.env.LIQPAY_PUBLIC_KEY || 'test_public';
+process.env.LIQPAY_PRIVATE_KEY = process.env.LIQPAY_PRIVATE_KEY || 'test_private';
+const L = require('../api/_lib.js');
+
 const CHROME = process.env.CHROME || [
   '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome',
@@ -123,6 +131,34 @@ PROBES['nologin.js'] = `
 `;
 PROBES['buy.js'] = `document.getElementById('go').click();`;
 
+/* сторінка підписки малюється після відповіді сервера, тож чекаємо на неї */
+const WAIT = `
+  var say = function(s){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = s; document.body.appendChild(p); };
+  var wait = function(test, done, left){
+    if (test()) return done();
+    if ((left || 0) > 60) return done();
+    setTimeout(function(){ wait(test, done, (left || 0) + 1); }, 100);
+  };`;
+/* у розмітці вже лежить «…», тож чекати «щось з'явилось» не можна —
+   чекаємо саме на зміну, інакше проба ловить заглушку */
+PROBES['account.js'] = WAIT + `
+  var box = document.getElementById('box');
+  var was = box.textContent;
+  wait(function(){ return box.textContent !== was; }, function(){
+    say(JSON.stringify({text: box.textContent, offHidden: document.getElementById('off').hidden}));
+  });
+`;
+PROBES['account-off.js'] = WAIT + `
+  var box = document.getElementById('box'), off = document.getElementById('off');
+  wait(function(){ return !off.hidden; }, function(){
+    var before = box.textContent;
+    off.click();
+    wait(function(){ return box.textContent !== before; }, function(){
+      say(JSON.stringify({text: box.textContent, offHidden: off.hidden}));
+    });
+  });
+`;
+
 const go = (p, probe) => 'http://127.0.0.1:' + PORT + p + (p.includes('?') ? '&' : '?') + 'probe=' + probe;
 
 server.listen(PORT, '127.0.0.1', async () => {
@@ -167,6 +203,24 @@ server.listen(PORT, '127.0.0.1', async () => {
     part('чуже в адресі не потрапляє в розмітку');
     const html = await dom('http://127.0.0.1:' + PORT + '/pay.html?login=' + encodeURIComponent('<img src=x onerror=alert(1)>'));
     ok('теги з логіна екрановані', !/<img src=x/.test(html));
+
+    part('сторінка підписки');
+    /* заводимо підписку прямо в сховищі сервера — так само, як це зробив
+       би платіж, що дійшов */
+    await L.applyPayment({login: 'trainer@mail.com', device: 'dev1', plan: 'yearly',
+                          orderId: 'test-order', autoRenew: true});
+    o = JSON.parse(out(await dom(go('/account.html?login=trainer%40mail.com&device=dev1', 'account.js'))) || '{}');
+    ok('підписка показана як активна', /Активна до/.test(o.text || ''), (o.text || '').trim());
+    ok('видно кнопку вимкнення автопродовження', o.offHidden === false);
+
+    o = JSON.parse(out(await dom(go('/account.html?login=trainer%40mail.com&device=dev1', 'account-off.js'))) || '{}');
+    ok('автопродовження вимикається', /вимкнено/i.test(o.text || ''), (o.text || '').trim());
+    ok('кнопка ховається після вимкнення', o.offHidden === true);
+    ok('на сервері теж вимкнулось',
+       (await L.readLicence('trainer@mail.com')).autoRenew === false);
+
+    o = JSON.parse(out(await dom(go('/account.html?login=hto%40hto.com&device=dev1', 'account.js'))) || '{}');
+    ok('чужому логіну підписки не показуємо', /не знайшли/i.test(o.text || ''), (o.text || '').trim());
 
     part('сторінка після оплати');
     ok('відкривається', (await dom('http://127.0.0.1:' + PORT + '/paid.html')).includes('PRO Trainer'));
