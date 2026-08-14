@@ -16,7 +16,7 @@ window.U = window.U || {};
 const {
   Icon, Avatar, Btn, IconBtn, Card, SectionHead, Row, Field, Input, TextArea, Empty, Sheet, Confirm,
   Segmented, Chips, Switch, SwitchRow, StackBar, AppBar, toast, Stats, photoFromFile,
-  A, sel, store, Billing, PRODUCTS, PLAN_ORDER, planMonthly, planSaving, fmtPrice,
+  A, sel, store, Billing, Web, PRODUCTS, PLAN_ORDER, planMonthly, planSaving, fmtPrice,
   LANGS, CURRENCIES, TIMEZONES, FREE_STUDENT_LIMIT, VERSION,
   todayISO, addDays, startOfWeek, weekDays, fmtMoney, fmtShortDate, fmtDayMonth, currencySymbol,
   applyTheme, applyLang, loadDemo, unloadDemo, hasDemo, copyText, isEmbedded,
@@ -397,6 +397,14 @@ function PremiumScreen({t, s, nav, params}){
     }
   };
 
+  /* Сторінку оплати відкриваємо в браузері й нічого не чекаємо:
+     підписку підтягне «Відновити покупки», коли з'явиться ліцензійний
+     сервер. Карток застосунок не бачить у жодному разі. */
+  const payWeb = () => {
+    openLink(Web.payUrl(plan, s.settings.lang));
+    toast(t('sub.webOpened'));
+  };
+
   const restore = async () => {
     const res = await Billing.restore();
     toast(res.ok ? t('sub.restored') : t('sub.notAvailable'));
@@ -466,14 +474,31 @@ function PremiumScreen({t, s, nav, params}){
                           </span>
                         ) : null}
                       </span>
-                      <span className="amt num">
-                        {fmtPrice(product.price, product.currency)}<em>{period}</em>
+                      <span style={{textAlign: 'right', flex: 'none'}}>
+                        <span className="amt num">
+                          {fmtPrice(product.price, product.currency)}<em>{period}</em>
+                        </span>
+                        {!Web.native() ? (
+                          <span className="webprice">{t('sub.webPrice', {price: fmtPrice(product.web, product.currency)})}</span>
+                        ) : null}
                       </span>
                     </div>
                   </button>
                 );
               })}
             </div>
+            {Web.enabled() ? (
+              <>
+                <button className="btn line wide webpay" style={{marginTop: 14}} onClick={payWeb}>
+                  <Icon.globe size={18} />
+                  <span>
+                    <b>{t('sub.web')}</b>
+                    <i>{t('sub.webFrom', {price: fmtPrice(Web.cheapest(), p.monthly.currency)})}</i>
+                  </span>
+                </button>
+                <div className="hint" style={{lineHeight: 1.45, marginTop: 10}}>{t('sub.webNote')}</div>
+              </>
+            ) : null}
             <div className="hint" style={{lineHeight: 1.45, marginTop: 12}}>{t('sub.legal')}</div>
             <div style={{textAlign: 'center', marginTop: 8}}>
               <Btn kind="ghost" size="sm" onClick={restore}>{t('sub.restore')}</Btn>

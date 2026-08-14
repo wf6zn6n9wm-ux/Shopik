@@ -97,7 +97,9 @@ function makeEnv(){
     localStorage,
     matchMedia: () => ({matches: false, addEventListener: noop, removeEventListener: noop, addListener: noop, removeListener: noop}),
     navigator: {language: 'uk-UA'},
-    location: {href: '', protocol: 'https:'},
+    /* Схожа на справжню адреса: застосунок будує з неї посилання на
+       сторінку оплати, і з порожнім href ця гілка була б не покрита. */
+    location: {href: 'https://example.test/urok/index.html', protocol: 'https:', origin: 'https://example.test'},
     history: {pushState: noop, back: noop, state: null},
     addEventListener: noop, removeEventListener: noop, open: noop,
     setTimeout, clearTimeout, setInterval, clearInterval,
@@ -106,7 +108,11 @@ function makeEnv(){
   const sandbox = {
     window, document, localStorage, navigator: window.navigator, location: window.location,
     React, ReactDOM: {createRoot: () => ({render: noop})},
-    console, crypto: webcrypto, Intl, Blob: class {}, URL: {createObjectURL: () => '', revokeObjectURL: noop},
+    console, crypto: webcrypto, Intl, Blob: class {},
+    /* URLSearchParams — звичайний браузерний глобал, застосунок збирає
+       ним посилання на оплату; URL підміняємо лише в частині файлів. */
+    URLSearchParams,
+    URL: Object.assign(function(...a){ return new URL(...a); }, {createObjectURL: () => '', revokeObjectURL: noop}),
     setTimeout, clearTimeout, setInterval, clearInterval, Date, Math, JSON,
   };
   sandbox.globalThis = sandbox;

@@ -6,7 +6,7 @@
    екрани, неперекладені рядки й помилки в грошах. */
 const {boot, render} = require('./harness');
 
-const {U, files} = boot();
+const {U, files, sandbox} = boot();
 const {
   A, sel, store, makeT, LANGS, DICT, loadDemo, unloadDemo, hasDemo,
   todayISO, addDays, toMin, toTime, duration, expandSeries, fmtMoney, fmtDur, fmtLongDate,
@@ -485,6 +485,43 @@ eq(U.fmtPrice(3.99, 'USD'), '$3.99', 'ціна з центами');
 eq(U.fmtPrice(45, 'USD'), '$45', 'ціна без центів');
 eq(U.fmtPrice(149, 'UAH'), '149\u00A0₴', 'гривня після числа');
 eq(U.planSaving('monthly'), 0, 'місячний план — база');
+/* Ціна на сайті нижча рівно на пів долара: у ній немає комісії магазину. */
+U.PLAN_ORDER.forEach(id => {
+  const product = U.PRODUCTS[id];
+  eq(Math.round((product.price - product.web) * 100), 50, `план ${id}: на сайті дешевше на $0.50`);
+});
+/* Сторінка оплати — окремий файл, і саме тому ціни там роз'їдуться
+   першими. Порівнюємо з тим, що знає застосунок. */
+{
+  const fs = require('fs');
+  const path = require('path');
+  const page = fs.readFileSync(path.join(__dirname, '..', 'pay.html'), 'utf8');
+  const block = page.slice(page.indexOf('var PLANS = ['), page.indexOf('];', page.indexOf('var PLANS = [')));
+  U.PLAN_ORDER.forEach(id => {
+    const row = block.split('\n').find(l => l.includes(`'${id}'`));
+    if (!row) return fail(`pay.html не знає про план ${id}`);
+    const price = Number((row.match(/price:\s*([\d.]+)/) || [])[1]);
+    const web = Number((row.match(/web:\s*([\d.]+)/) || [])[1]);
+    const months = Number((row.match(/months:\s*(\d+)/) || [])[1]);
+    eq(price, U.PRODUCTS[id].price, `pay.html: ціна в магазині для ${id}`);
+    eq(web, U.PRODUCTS[id].web, `pay.html: ціна на сайті для ${id}`);
+    eq(months, U.PRODUCTS[id].months, `pay.html: строк для ${id}`);
+  });
+}
+/* Посилання на оплату несе план і мову — сторінка відкривається одразу
+   потрібною й з тим тарифом, який дивився користувач. */
+{
+  const url = U.Web.payUrl('quarterly', 'ru');
+  yes(url.startsWith('https://example.test/urok/pay.html'), 'посилання веде на сторінку оплати поруч із застосунком');
+  yes(U.Web.enabled(), 'у вебі оплата на сайті доступна');
+  yes(!U.Web.native(), 'у вебі це не нативна збірка');
+  /* У нативній збірці про ціну на сайті не має бути ні слова. */
+  sandbox.window.Capacitor = {getPlatform: () => 'ios'};
+  yes(U.Web.native() && !U.Web.enabled(), 'у нативній збірці оплати на сайті немає');
+  delete sandbox.window.Capacitor;
+  yes(url.includes('plan=quarterly') && url.includes('lang=ru'), 'посилання несе план і мову');
+  eq(U.Web.cheapest(), 3.49, 'найдешевший веб-тариф');
+}
 yes(U.planSaving('quarterly') > 0, 'квартальний вигідніший за місячний');
 yes(U.planSaving('yearly') > 0, 'річний вигідніший за місячний');
 /* Це не вимога, а сигнал: якщо довший план дорожчий на місяць, ним

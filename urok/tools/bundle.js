@@ -77,6 +77,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Robot
 </style>
 <div id="root"></div>
 <script>
+  /* Це не сайт Urok+, а автономна копія: сторінки оплати поруч немає,
+     тому кнопку «Оплатити на сайті» застосунок ховає. */
+  window.__UROK_STANDALONE = true;
+</script>
+<script>
 ${runtime}
 </script>
 <script>

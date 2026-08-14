@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#22C55E" />
+<title>Urok+ — оформлення підписки</title>
+<meta name="robots" content="noindex" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Onest:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Сторінка навмисне автономна: ніякого React і жодної спільної збірки
+     із застосунком. Вона має відкриватися з листа, з месенджера і з
+     застосунку — і працювати, навіть якщо решта сайту лежить. Токени
+     повторюють дизайн-систему Urok+, але живуть тут своєю копією. */
+  :root{
+    --accent:#22C55E; --accent-3:#16A34A; --accent-ink:#fff;
+    --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#F4F5F7;
+    --ink:#0C1015; --ink-2:#6B7280; --ink-3:#9AA1AB;
+    --line:#EDEFF2; --line-2:#E1E4E9;
+    --shadow:0 1px 2px rgba(12,16,21,.05), 0 6px 16px -12px rgba(12,16,21,.16);
+    --r:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0B0D10; --surface:#171A1F; --surface-2:#1E2228;
+      --ink:#F3F5F7; --ink-2:#9AA3AE; --ink-3:#6E7883;
+      --line:#22262C; --line-2:#2C323A;
+      --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 20px -16px rgba(0,0,0,.9);
+    }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Manrope',ui-sans-serif,-apple-system,'SF Pro Text','Segoe UI',Roboto,sans-serif;
+    font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:460px;margin:0 auto;padding:28px 18px 40px;}
+  .brand{font-family:'Onest',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.045em;}
+  .brand i{color:var(--accent);font-style:normal;}
+  h1{font-family:'Onest',sans-serif;font-size:27px;font-weight:800;letter-spacing:-.04em;
+    line-height:1.15;margin:22px 0 8px;}
+  .sub{color:var(--ink-2);font-size:14.5px;margin:0 0 22px;}
+  .plans{display:grid;gap:14px;}
+  .plan{position:relative;display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+    padding:15px;border-radius:var(--r);border:1.5px solid var(--line-2);background:var(--surface);
+    color:inherit;font:inherit;cursor:pointer;transition:border-color .2s,background .2s,transform .16s;}
+  .plan:active{transform:scale(.99);}
+  .plan[aria-pressed="true"]{border-color:var(--accent);background:rgba(34,197,94,.10);}
+  /* назва й підпис — окремими рядками: інлайнові span злипаються */
+  .plan .col{display:block;flex:1;min-width:0;}
+  .plan .name{display:block;font-size:14.5px;font-weight:800;letter-spacing:-.02em;}
+  .plan .per{display:block;color:var(--ink-2);font-size:12.5px;margin-top:2px;}
+  .plan .amt{margin-left:auto;text-align:right;flex:none;}
+  .plan .now{font-family:'Onest',sans-serif;font-size:19px;font-weight:800;letter-spacing:-.035em;
+    font-variant-numeric:tabular-nums;}
+  .plan .was{display:block;font-size:12px;font-weight:700;color:var(--ink-3);text-decoration:line-through;
+    margin-top:2px;}
+  .plan .save{position:absolute;top:-9px;right:14px;background:var(--accent);color:var(--accent-ink);
+    font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px;}
+  .go{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:56px;margin-top:20px;
+    border:0;border-radius:var(--r);background:var(--accent);color:var(--accent-ink);
+    font:800 16px/1 'Manrope',sans-serif;letter-spacing:-.015em;cursor:pointer;
+    box-shadow:0 12px 24px -14px var(--accent);transition:transform .16s,opacity .2s;}
+  .go:active{transform:scale(.98);}
+  .go[disabled]{opacity:.5;cursor:default;}
+  .note{color:var(--ink-3);font-size:12.5px;line-height:1.5;margin:14px 2px 0;}
+  .msg{margin-top:16px;padding:14px 15px;border-radius:var(--r);background:var(--surface-2);
+    font-size:14px;line-height:1.5;}
+  .msg b{display:block;margin-bottom:4px;font-size:14.5px;}
+  .msg a{color:var(--accent);font-weight:700;text-decoration:none;}
+  .langs{display:flex;gap:8px;margin-top:26px;justify-content:center;}
+  .langs button{border:0;background:var(--surface-2);color:var(--ink-2);border-radius:999px;
+    padding:7px 13px;font:700 13px 'Manrope',sans-serif;cursor:pointer;}
+  .langs button[aria-current="true"]{background:var(--accent);color:var(--accent-ink);}
+  .back{display:inline-block;margin-top:22px;color:var(--ink-2);font-size:13.5px;font-weight:700;
+    text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">Urok<i>+</i></div>
+  <h1 id="h1">Оформлення підписки</h1>
+  <p class="sub" id="sub">Оплата на сайті дешевша: у ній немає комісії магазину застосунків.</p>
+
+  <div class="plans" id="plans"></div>
+
+  <button class="go" id="go">Перейти до оплати</button>
+  <p class="note" id="note"></p>
+  <div class="msg" id="msg" hidden></div>
+
+  <div class="langs" id="langs"></div>
+  <a class="back" id="back" href="./">← Повернутись у застосунок</a>
+</div>
+
+<script>
+/* Ціни мають збігатися з PRODUCTS у src/10-core.js — за цим стежить
+   tests/smoke.js, інакше сайт і застосунок одного дня почнуть обіцяти
+   різні суми. web — ціна тут, price — ціна в магазині. */
+var PLANS = [
+  {id: 'yearly',    months: 12, price: 37.99, web: 37.49},
+  {id: 'quarterly', months: 3,  price: 9.99,  web: 9.49},
+  {id: 'monthly',   months: 1,  price: 3.99,  web: 3.49}
+];
+
+/* Куди відправляти оплату. Порожньо — серверна функція ще не
+   під'єднана, і сторінка чесно про це скаже, а не поведе в нікуди. */
+var CHECKOUT = '';
+var SUPPORT = 'https://t.me/urokplus';
+
+var T = {
+  uk: {
+    title: 'Оформлення підписки',
+    sub: 'Оплата на сайті дешевша: у ній немає комісії магазину застосунків.',
+    go: 'Перейти до оплати',
+    names: {yearly: 'Річна підписка', quarterly: 'Підписка на 3 місяці', monthly: 'Місячна підписка'},
+    per: {yearly: 'на рік', quarterly: 'разова оплата за 3 місяці', monthly: 'щомісяця'},
+    permonth: '{price} на місяць',
+    save: '−{n}%',
+    note: 'Після оплати поверніться в застосунок і натисніть «Відновити покупки» — підписка активується. Дані вашої картки ми не бачимо й не зберігаємо.',
+    soonT: 'Оплата на сайті ще налаштовується',
+    soonD: 'Платіжний сервіс під\'єднуємо просто зараз. Напишіть нам — оформимо підписку вручну й повідомимо, щойно кнопка запрацює.',
+    write: 'Написати в Telegram',
+    back: '← Повернутись у застосунок'
+  },
+  ru: {
+    title: 'Оформление подписки',
+    sub: 'Оплата на сайте дешевле: в ней нет комиссии магазина приложений.',
+    go: 'Перейти к оплате',
+    names: {yearly: 'Годовая подписка', quarterly: 'Подписка на 3 месяца', monthly: 'Месячная подписка'},
+    per: {yearly: 'в год', quarterly: 'разовая оплата за 3 месяца', monthly: 'ежемесячно'},
+    permonth: '{price} в месяц',
+    save: '−{n}%',
+    note: 'После оплаты вернитесь в приложение и нажмите «Восстановить покупки» — подписка активируется. Данные вашей карты мы не видим и не храним.',
+    soonT: 'Оплата на сайте ещё настраивается',
+    soonD: 'Платёжный сервис подключаем прямо сейчас. Напишите нам — оформим подписку вручную и сообщим, как только кнопка заработает.',
+    write: 'Написать в Telegram',
+    back: '← Вернуться в приложение'
+  },
+  en: {
+    title: 'Subscribe',
+    sub: 'Paying here is cheaper: there is no app store commission.',
+    go: 'Go to payment',
+    names: {yearly: 'Yearly plan', quarterly: '3-month plan', monthly: 'Monthly plan'},
+    per: {yearly: 'per year', quarterly: 'one-off payment for 3 months', monthly: 'per month'},
+    permonth: '{price} per month',
+    save: '−{n}%',
+    note: 'After paying, come back to the app and tap “Restore purchases” — the subscription activates. We never see or store your card details.',
+    soonT: 'Website payment is being set up',
+    soonD: 'We are connecting the payment provider right now. Write to us — we will set the subscription up manually and let you know when the button works.',
+    write: 'Message us on Telegram',
+    back: '← Back to the app'
+  }
+};
+
+var Q = new URLSearchParams(location.search);
+var LANG = ['uk', 'ru', 'en'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'uk';
+var plan = PLANS.some(function(p){ return p.id === Q.get('plan'); }) ? Q.get('plan') : 'yearly';
+
+var usd = function(v){ return '$' + Number(v).toFixed(2); };
+var monthly = function(p){ return p.web / p.months; };
+var saving = function(p){
+  var base = PLANS.filter(function(x){ return x.id === 'monthly'; })[0];
+  return Math.round((1 - monthly(p) / monthly(base)) * 100);
+};
+var best = Math.max.apply(null, PLANS.map(saving));
+
+function render(){
+  var t = T[LANG];
+  document.documentElement.lang = LANG;
+  document.getElementById('h1').textContent = t.title;
+  document.getElementById('sub').textContent = t.sub;
+  document.getElementById('go').textContent = t.go;
+  document.getElementById('note').textContent = t.note;
+  document.getElementById('back').textContent = t.back;
+
+  document.getElementById('plans').innerHTML = PLANS.map(function(p){
+    var pct = saving(p);
+    var badge = pct > 0 && pct === best
+      ? '<span class="save">' + t.save.replace('{n}', pct) + '</span>' : '';
+    var per = p.months > 1
+      ? t.permonth.replace('{price}', usd(Math.round(monthly(p) * 100) / 100))
+      : t.per[p.id];
+    return '<button class="plan" type="button" data-plan="' + p.id + '"'
+      + ' aria-pressed="' + (p.id === plan) + '">' + badge
+      + '<span class="col"><span class="name">' + t.names[p.id] + '</span>'
+      + '<span class="per">' + per + '</span></span>'
+      + '<span class="amt"><span class="now">' + usd(p.web) + '</span>'
+      + '<span class="was">' + usd(p.price) + '</span></span></button>';
+  }).join('');
+
+  Array.prototype.forEach.call(document.querySelectorAll('.plan'), function(el){
+    el.addEventListener('click', function(){
+      plan = el.getAttribute('data-plan');
+      render();
+    });
+  });
+
+  document.getElementById('langs').innerHTML = ['uk', 'ru', 'en'].map(function(l){
+    return '<button type="button" data-lang="' + l + '" aria-current="' + (l === LANG) + '">'
+      + ({uk: 'Українська', ru: 'Русский', en: 'English'}[l]) + '</button>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('[data-lang]'), function(el){
+    el.addEventListener('click', function(){
+      LANG = el.getAttribute('data-lang');
+      render();
+    });
+  });
+}
+
+document.getElementById('go').addEventListener('click', function(){
+  var t = T[LANG];
+  if (!CHECKOUT){
+    var msg = document.getElementById('msg');
+    msg.hidden = false;
+    msg.innerHTML = '<b>' + t.soonT + '</b>' + t.soonD
+      + '<br><a href="' + SUPPORT + '" target="_blank" rel="noopener">' + t.write + '</a>';
+    msg.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    return;
+  }
+  location.href = CHECKOUT + '?' + new URLSearchParams({plan: plan, lang: LANG}).toString();
+});
+
+render();
+</script>
+</body>
+</html>

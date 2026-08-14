@@ -749,14 +749,62 @@ function expandSeries(rule, opts){
    ₴/zł/€ у застосунку — це про гроші учнів, не про нашу підписку.
    months потрібні, щоб рахувати вигоду й строк без окремих таблиць. */
 const PRODUCTS = {
-  monthly: {id: 'plus.monthly', period: 'month', months: 1, price: 3.99, currency: 'USD'},
-  quarterly: {id: 'plus.quarterly', period: 'quarter', months: 3, price: 9.99, currency: 'USD'},
-  yearly: {id: 'plus.yearly', period: 'year', months: 12, price: 37.99, currency: 'USD'},
+  monthly: {id: 'plus.monthly', period: 'month', months: 1, price: 3.99, web: 3.49, currency: 'USD'},
+  quarterly: {id: 'plus.quarterly', period: 'quarter', months: 3, price: 9.99, web: 9.49, currency: 'USD'},
+  yearly: {id: 'plus.yearly', period: 'year', months: 12, price: 37.99, web: 37.49, currency: 'USD'},
 };
 const PLAN_ORDER = ['yearly', 'quarterly', 'monthly'];
 /* Скільки виходить на місяць і скільки це економить проти місячного. */
 const planMonthly = plan => (PRODUCTS[plan] ? PRODUCTS[plan].price / PRODUCTS[plan].months : 0);
 const planSaving = plan => Math.round((1 - planMonthly(plan) / PRODUCTS.monthly.price) * 100);
+
+/* ─── оплата на сайті ───
+   Магазин утримує 15–30% з кожного платежу, тому та сама підписка на
+   сайті коштує на пів долара дешевше — це і є вся різниця в ціні.
+   Карток застосунок не бачить: він лише відкриває сторінку оплати в
+   браузері, а підписку потім підтягує «Відновити покупки».
+
+   ⚠️ Перед публікацією в App Store: посилання на зовнішню оплату з
+   iOS-застосунку потребує окремого дозволу Apple (External Purchase
+   Link Entitlement; у ЄС — DMA). Тому в нативній збірці кнопки немає,
+   доки WEB.base не заданий явно — Web.base() поверне порожньо. */
+const WEB = {
+  base: '',            /* порожньо — той самий домен і тека, що й застосунок */
+  page: 'pay.html',
+};
+
+const Web = {
+  base(){
+    /* Автономна збірка (артефакт, офлайн-демо) лежить не на нашому
+       сайті, тому сторінки оплати поруч із нею немає. */
+    if (typeof window !== 'undefined' && window.__UROK_STANDALONE) return '';
+    if (WEB.base) return WEB.base.replace(/\/+$/, '') + '/';
+    /* Нативна оболонка живе на localhost: узяти цю адресу за домен не
+       можна — кнопка вела б у нікуди. Тому у native її просто немає. */
+    const cap = typeof window !== 'undefined' && window.Capacitor;
+    if (cap && cap.getPlatform && cap.getPlatform() !== 'web') return '';
+    if (typeof location === 'undefined' || !/^https?:/.test(location.protocol)) return '';
+    /* Тека застосунку, а не origin: Urok+ лежить у /urok/, і origin
+       привів би на головну сторінку сайту. */
+    return location.href.replace(/[^/]*$/, '');
+  },
+  enabled(){ return !!Web.base(); },
+  /* У нативній збірці не показуємо навіть згадку про ціну на сайті:
+     Apple вважає це переманюванням з магазину. У вебі — показуємо,
+     навіть коли самої кнопки немає (автономна копія). */
+  native(){
+    const cap = typeof window !== 'undefined' && window.Capacitor;
+    return !!(cap && cap.getPlatform && cap.getPlatform() !== 'web');
+  },
+  /* Мова й обраний план їдуть у посиланні, щоб сторінка відкрилась
+     одразу потрібною і з тим самим тарифом, який дивився користувач. */
+  payUrl(planId, lang){
+    const params = new URLSearchParams({plan: planId || 'yearly', lang: lang || 'uk'});
+    return Web.base() + WEB.page + '?' + params.toString();
+  },
+  /* Найдешевший веб-тариф — те, що показуємо на кнопці. */
+  cheapest(){ return Math.min(...Object.keys(PRODUCTS).map(k => PRODUCTS[k].web)); },
+};
 
 const Billing = {
   bridge(){ return typeof window !== 'undefined' ? window.UrokIAP : null; },
@@ -972,5 +1020,6 @@ Object.assign(window.U, {
   normalizePhone, isPhoneValid, photoFromFile, copyText, isEmbedded, blankState, merge, load, persist, createStore, store, useStore, A, normalizeLesson,
   sel, byTime, expandSeries, Billing, applyTheme, applyLang, demoData, loadDemo, unloadDemo, hasDemo, detectTz,
   LESSON_STATUS, HOMEWORK_STATUS, lessonPrice, lessonTotal, isEarning, PLAN_ORDER, planMonthly, planSaving,
+  WEB, Web,
 });
 })();
