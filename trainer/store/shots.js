@@ -14,9 +14,12 @@
    Потрібен Chrome або Chromium. Шлях шукається сам; якщо не знайшовся —
    вкажіть змінною CHROME=/шлях/до/chrome.
 
-   Знімається trainer/index.html, а він бере React і Babel з unpkg —
-   тобто потрібен інтернет. Якщо його немає (або хочеться знімати
-   зібрану версію), вкажіть самодостатній файл: APP=/шлях/до/app.html.
+   За замовчуванням екрани малюються з коду без браузерного React:
+   prerender.js виконує застосунок у пісочниці й віддає готову розмітку.
+   Тому інтернет не потрібен і нічого не треба прокликувати.
+
+   LIVE=1 повертає старий шлях: справжній index.html, React і Babel з
+   unpkg, скрипт-драйвер прокликує онбординг. Потрібен інтернет.
 
    Розміри. Знімок дорівнює --window-size × --force-device-scale-factor,
    а верстка ніколи не вужча за 500 CSS-пікселів (обмеження headless).
@@ -176,7 +179,9 @@ function frameHtml(caption, pngBase64, store){
 const langs = process.argv.slice(2).filter(x => CAPTION[x]);
 const LANGS = langs.length ? langs : Object.keys(CAPTION);
 
-const app = fs.readFileSync(process.env.APP || path.join(ROOT, 'index.html'), 'utf8');
+const LIVE = !!process.env.LIVE;
+const prerender = LIVE ? null : require('./prerender.js');
+const app = LIVE ? fs.readFileSync(process.env.APP || path.join(ROOT, 'index.html'), 'utf8') : '';
 fs.mkdirSync(OUT, {recursive: true});
 const tmp = path.join(OUT, '_tmp');
 fs.mkdirSync(tmp, {recursive: true});
@@ -194,7 +199,8 @@ try {
     for (const f of FRAMES){
       /* сторінка застосунку з драйвером — лежить поруч, щоб origin збігався */
       const page = 'shot-' + lang + '-' + f.key + '.html';
-      fs.writeFileSync(path.join(ROOT, page), appHarness(lang, f) + app + driver(f));
+      fs.writeFileSync(path.join(ROOT, page),
+        LIVE ? appHarness(lang, f) + app + driver(f) : prerender.build(lang, f.key));
       const raw = path.join(tmp, lang + '-' + f.key + '.png');
       shot('http://127.0.0.1:' + PORT + '/' + page, raw, APP);
       fs.unlinkSync(path.join(ROOT, page));
