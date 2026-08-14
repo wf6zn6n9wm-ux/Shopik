@@ -354,6 +354,47 @@ SCREENS.slice(0, 6).forEach(([n, f]) => screen(n, f));
  ['debts', {}], ['lapsed', {}], ['notifs', {}], ['session.new', {}]]
   .forEach(([r, p]) => screen('маршрут ' + r, () => T.ROUTES[r]({params: p, onClose(){}})));
 
+/* Усе, що з'явилось за ніч, крайніми даними ніхто не перевіряв: день,
+   у якому тренувань більше за план; групове на пів залу; заміри; клієнт
+   з іменем, яке не влазить у рядок. Тут ламається верстка й дільники. */
+part('крайні дані');
+{
+  const now = new Date();
+  const at = (h, m) => { const d = new Date(now); d.setHours(h, m || 0, 0, 0); return d.toISOString(); };
+  const long = 'Костянтин-Олександр Вишневецький-Ковальчук';
+  const many = {...T.emptyDB(), onboarded: true,
+    settings: {...T.emptyDB().settings, dayGoal: 4},
+    clients: Array.from({length: 12}, (_, i) => ({id: 'c' + i, name: i ? 'Клієнт ' + i : long, birthday: '1990-08-14'})),
+    /* дванадцять тренувань при плані на чотири: кільце має впертись у 100% */
+    sessions: Array.from({length: 12}, (_, i) => ({
+      id: 's' + i, clientId: 'c' + i, start: at(8 + i), price: 800,
+      status: 'planned', type: 'personal', groupId: i < 5 ? 'g1' : null})),
+    measures: [{id: 'm1', clientId: 'c0', ts: Date.now(), weight: 82.4, waist: 88, chest: 0, hip: 0, note: ''},
+               {id: 'm2', clientId: 'c0', ts: Date.now() - 30 * 86400000, weight: 86, waist: 94, chest: 0, hip: 0, note: ''}]};
+  T.Store.init(many);
+  /* textOf склеює вузли через пробіл, тому порівнюємо без пробілів */
+  const homeText = () => textOf(el(T.Home, {loading: false})).replace(/\s+/g, '');
+  ok('завантаження дня впирається в сотню, а не росте далі',
+     homeText().includes('100%') && !/[2-9]\d\d%/.test(homeText()),
+     '12 тренувань при плані 4');
+  SCREENS.slice(0, 6).forEach(([n, f]) => screen('переповнений день · ' + n, f));
+  screen('картка клієнта з замірами', () => T.ROUTES.client({params: {id: 'c0'}, onClose(){}}));
+
+  /* нуль у знаменнику: план на день не може бути нулем, але база могла
+     приїхати з чужого пристрою або з правки руками */
+  T.Store.init({...many, settings: {...many.settings, dayGoal: 0}});
+  screen('план на день — нуль', () => el(T.Home, {loading: false}));
+  const zero = textOf(el(T.Home, {loading: false}));
+  ok('нуль у плані не дає NaN і нескінченності', !/NaN|Infinity/.test(zero));
+
+  /* єдиний учасник групового: решту клієнтів видалили */
+  T.Store.init({...T.emptyDB(), onboarded: true,
+    clients: [{id: 'one', name: 'Сам'}],
+    sessions: [{id: 'g', clientId: 'one', start: at(11), price: 700, status: 'planned',
+                type: 'personal', groupId: 'g1'}]});
+  screen('групове, у якому лишився один', () => el(T.Calendar, {loading: false}));
+}
+
 part('битий стан');
 T.Store.init({...T.emptyDB(), onboarded: true,
   clients: [{id: 'x', name: 'Без полів'}],
