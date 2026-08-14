@@ -3240,10 +3240,10 @@ function Settings(){
                   <Switch on={h.on} onChange={v => Act.hours(k, {on: v})} />
                   {h.on ? (
                     <>
-                      <input className="input" type="time" style={{width: 116, flex: 'none'}} value={h.from}
+                      <input className="input" type="time" style={{width: 128, flex: 'none'}} value={h.from}
                              onChange={e => Act.hours(k, {from: e.target.value || '09:00'})} />
                       <span style={{color: 'var(--ink-3)'}}>—</span>
-                      <input className="input" type="time" style={{width: 116, flex: 'none'}} value={h.to}
+                      <input className="input" type="time" style={{width: 128, flex: 'none'}} value={h.to}
                              onChange={e => Act.hours(k, {to: e.target.value || '20:00'})} />
                     </>
                   ) : <span className="hint">{t('dayOff')}</span>}
