@@ -14,6 +14,10 @@ const L = require('../api/_lib.js');
 
 const TRIAL_DAYS = 14;                    /* стільки ж, скільки TRIAL_DAYS у застосунку */
 const keyOf = login => 'trial:' + L.normLogin(login);
+/* Відро того дня, коли пробний закінчується. Складати логіни заздалегідь
+   доводиться тому, що сховище вміє тільки читати за ключем: без відер
+   розсилка мусила б перебирати всіх підряд, а перебрати їх нічим. */
+const dueKey = ts => 'due:' + new Date(ts).toISOString().slice(0, 10);
 
 const view = rec => {
   if (!rec) return {ok: true, started: false};
@@ -39,11 +43,19 @@ module.exports = async function handler(req, res){
 
   /* почати можна рівно один раз: другий виклик поверне ту саму дату */
   if (!rec && q.start){
-    rec = {login, startedAt: Date.now(), device};
+    const lang = ['uk', 'ru', 'en', 'pl'].includes(q.lang) ? q.lang : 'uk';
+    rec = {login, startedAt: Date.now(), device, lang};
     await L.store.set(key, rec);
+    /* Два пробні періоди, що почались в одну мить, могли б затерти один
+       одного у відрі. Ціна помилки — неотриманий лист, тому обходимось
+       без блокувань: складніша схема тут коштувала б дорожче за втрату. */
+    const day = dueKey(rec.startedAt + TRIAL_DAYS * 86400000);
+    const list = (await L.store.get(day)) || [];
+    if (!list.includes(login)){ list.push(login); await L.store.set(day, list); }
   }
   return L.json(res, 200, view(rec));
 };
 
 module.exports.TRIAL_DAYS = TRIAL_DAYS;
 module.exports.keyOf = keyOf;
+module.exports.dueKey = dueKey;

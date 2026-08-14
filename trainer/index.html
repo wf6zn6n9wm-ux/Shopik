@@ -1890,7 +1890,8 @@ const Web = {
   licence(){ return Web.ask('/api/licence'); },
   /* {ok, started, startedAt, endsAt, expired} — дата першого запуску
      живе на сервері, інакше перевстановлення давало б нові 14 днів */
-  trial(start){ return Web.ask('/api/trial', start ? {start: '1'} : null); },
+  /* мову передаємо на старті: нею потім прийде лист про кінець пробного */
+  trial(start){ return Web.ask('/api/trial', start ? {start: '1', lang: I18n.get()} : null); },
   /* прив'язати цей пристрій до вже оплаченої підписки */
   claim(){ return Web.ask('/api/claim'); },
 };
@@ -7501,8 +7502,11 @@ function useReminders(db){
           fire('trial_' + acc.left, {
             title: acc.left === 1 ? t('n.trial1','Завтра завершується пробний період')
                  : t('n.trial','Пробний період завершується'),
-            body: acc.left === 1 ? t('n.trial1.b','Оберіть план, щоб продовжити роботу без перерви')
-                 : t('n.trial.b','Залишилось') + ' ' + nDays(acc.left) + ' ' + t('n.trial.b2','безкоштовного доступу'),
+            /* у безкоштовній збірці плану в застосунку не обрати —
+               нагадуємо, де підписка живе, а не кличемо туди */
+            body: acc.left !== 1 ? t('n.trial.b','Залишилось') + ' ' + nDays(acc.left) + ' ' + t('n.trial.b2','безкоштовного доступу')
+                 : STORE.free() ? t('pay.free.where','Підписка оформлюється в особистому кабінеті')
+                 : t('n.trial1.b','Оберіть план, щоб продовжити роботу без перерви'),
             type:'info', tone: acc.left === 1 ? 'warn' : null, to:'plans'});
         if (N.debt){
           const debts = s.sessions.filter(isDebt);

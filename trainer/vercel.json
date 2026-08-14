@@ -1,5 +1,11 @@
 {
   "cleanUrls": true,
+  "crons": [
+    {
+      "path": "/api/mail",
+      "schedule": "0 9 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/",

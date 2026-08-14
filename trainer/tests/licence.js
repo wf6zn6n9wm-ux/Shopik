@@ -165,8 +165,75 @@ part('пробний період');
   const peek = (await call(API('trial.js'), {query: {login: 'nobody@mail.com'}})).json;
   ok('без start пробний не починається сам', peek.started === false);
 
+  /* без цього списку розсилці нікого буде згадати в потрібний день */
+  const bucket = await L.store.get(API('trial.js').dueKey(started.endsAt));
+  ok('логін потрапив у список того дня, коли пробний завершиться',
+     (bucket || []).includes(L.normLogin(NEW)), (bucket || []).join(', '));
+
   const nolog = await call(API('trial.js'), {query: {start: '1'}});
   ok('без логіна нічого не пишемо', nolog.code === 400, String(nolog.code));
+}
+
+part('листи про кінець пробного');
+{
+  const MAIL = API('mail.js');
+  const TRIAL = API('trial.js');
+  process.env.CRON_SECRET = 'cron_test';
+  const cron = {authorization: 'Bearer cron_test'};
+
+  /* сторонніх до розсилки не пускаємо */
+  const stranger = await call(MAIL, {query: {}});
+  ok('без секрету розсилку не запустити', stranger.code === 401, String(stranger.code));
+
+  /* пошту нікуди не шлемо — підміняємо відправку */
+  const outbox = [];
+  const real = MAIL.deliver;
+  MAIL.deliver = async m => { outbox.push(m); return {ok: true}; };
+
+  const DAY = 86400000;
+  const NOW = Date.parse('2026-09-01T09:00:00Z');
+  const soonMan = 'soon@mail.com', endMan = 'end@mail.com', paidMan = 'paid@mail.com', phoneMan = '0631112233';
+
+  /* пробний, що закінчиться через три дні, і три, що закінчились сьогодні */
+  await L.store.set(TRIAL.dueKey(NOW + MAIL.SOON_DAYS * DAY), [soonMan]);
+  await L.store.set(TRIAL.dueKey(NOW), [endMan, paidMan, phoneMan]);
+  await L.store.set(TRIAL.keyOf(soonMan), {login: soonMan, startedAt: 0, lang: 'ru'});
+  await L.store.set(TRIAL.keyOf(endMan), {login: endMan, startedAt: 0, lang: 'uk'});
+  await L.applyPayment({login: paidMan, device: 'd1', plan: 'yearly', orderId: 'o1'});
+
+  const run = await call(MAIL, {query: {now: String(NOW)}, headers: cron});
+  ok('розсилка відпрацювала', run.code === 200 && run.json.ok, String(run.code));
+  ok('попередження за три дні пішло', run.json.soon.sent === 1, JSON.stringify(run.json.soon));
+  ok('лист у день завершення пішов', run.json.end.sent === 1, JSON.stringify(run.json.end));
+  ok('тому, хто вже оплатив, не пишемо', run.json.end.paid === 1);
+  ok('на телефон писати нікуди', run.json.end.no_email === 1);
+  ok('листів рівно два', outbox.length === 2, outbox.length + ' шт.');
+
+  const soonLetter = outbox.find(m => m.to === soonMan);
+  const endLetter = outbox.find(m => m.to === endMan);
+  ok('мова листа — та, якою користуються', /Пробный период/.test(soonLetter.subject), soonLetter.subject);
+  ok('у листі є посилання на оплату з логіном',
+     soonLetter.text.includes('/pay?login=' + encodeURIComponent(soonMan)), soonLetter.url);
+  ok('лист у день завершення говорить, що дані на місці', /збережен/.test(endLetter.text));
+
+  /* другий запуск того ж дня не повинен слати вдруге */
+  const again = await call(MAIL, {query: {now: String(NOW)}, headers: cron});
+  ok('двічі одне й те саме не шлемо', again.json.end.already === 1 && again.json.soon.already === 1,
+     JSON.stringify(again.json.end));
+  ok('нових листів не з’явилось', outbox.length === 2, outbox.length + ' шт.');
+
+  /* усі чотири мови мають повний набір рядків */
+  const keys = Object.keys(MAIL.TEXT.uk);
+  ok('усі мови перекладені повністю',
+     ['ru', 'en', 'pl'].every(l => keys.every(k => MAIL.TEXT[l][k] && MAIL.TEXT[l][k].length)),
+     Object.keys(MAIL.TEXT).join(', '));
+
+  /* без ключа сервісу нічого не шлеться, але й не падає */
+  MAIL.deliver = real;
+  const noKey = await MAIL.one('end', 'nobody@mail.com', NOW);
+  ok('без ключа поштового сервісу лист не йде', noKey === 'no_key', String(noKey));
+
+  delete process.env.CRON_SECRET;
 }
 
 part('без ключів');
