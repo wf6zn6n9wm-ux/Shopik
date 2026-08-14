@@ -473,15 +473,41 @@ eq(applyTheme('system'), 'light', 'системна тема без темної
 /* ── 7. підписка ───────────────────────────────────────────── */
 console.log('\nпідписка');
 store.reset();
+/* Ціни в сторі: три плани, кожен дорожчий за попередній у сумі й
+   дешевший на місяць — інакше нижній план не має сенсу. */
+eq(U.PLAN_ORDER.length, 3, 'планів у сторі');
+U.PLAN_ORDER.forEach(id => {
+  const product = U.PRODUCTS[id];
+  yes(product && product.months > 0 && product.price > 0, `план ${id} має ціну й строк`);
+  yes(product.currency === 'USD', `план ${id} у доларах`);
+});
+eq(U.fmtPrice(3.99, 'USD'), '$3.99', 'ціна з центами');
+eq(U.fmtPrice(45, 'USD'), '$45', 'ціна без центів');
+eq(U.fmtPrice(149, 'UAH'), '149\u00A0₴', 'гривня після числа');
+eq(U.planSaving('monthly'), 0, 'місячний план — база');
+yes(U.planSaving('quarterly') > 0, 'квартальний вигідніший за місячний');
+yes(U.planSaving('yearly') > 0, 'річний вигідніший за місячний');
+/* Це не вимога, а сигнал: якщо довший план дорожчий на місяць, ним
+   ніхто не скористається. Впаде — значить ціни варто переглянути. */
+if (U.planSaving('yearly') < U.planSaving('quarterly'))
+  console.log(`  ! річний план (${U.planSaving('yearly')}%) вигідніший за квартальний (${U.planSaving('quarterly')}%) лише на папері — на місяць він дорожчий`);
+
 Billing.trial().then(r => {
   yes(r.ok, 'пробний період вмикається');
   yes(sel.isPremium(store.get()), 'після пробного періоду преміум активний');
   return Billing.trial();
 }).then(r2 => {
   yes(!r2.ok, 'другий пробний період не дається');
+  return Billing.purchase('quarterly');
+}).then(rq => {
+  yes(rq.ok && store.get().premium.plan === 'quarterly', 'квартальна підписка оформлюється');
+  const until = store.get().premium.until;
+  yes(U.diffDays(todayISO(), until) > 80 && U.diffDays(todayISO(), until) < 100,
+      'строк квартальної підписки — близько трьох місяців');
   return Billing.purchase('yearly');
 }).then(r3 => {
   yes(r3.ok && store.get().premium.plan === 'yearly', 'річна підписка оформлюється');
+  yes(U.diffDays(todayISO(), store.get().premium.until) > 350, 'строк річної — близько року');
   return Billing.restore();
 }).then(r4 => {
   yes(r4.ok, 'відновлення покупок');

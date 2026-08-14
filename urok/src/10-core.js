@@ -138,6 +138,16 @@ function fmtMoney(amount, currency, opts){
   if (opts && opts.bare) return sign + group;
   return sign + group + NBSP + sym;
 }
+/* Ціна в сторі пишеться за звичаєм своєї валюти: $3.99 перед числом,
+   149 ₴ — після. Копійки лишаємо, лише коли вони є.               */
+const SYMBOL_FIRST = new Set(['USD', 'EUR', 'GBP']);
+function fmtPrice(amount, currency){
+  const n = Number(amount) || 0;
+  const sym = currencySymbol(currency);
+  const body = Number.isInteger(n) ? String(n) : n.toFixed(2);
+  return SYMBOL_FIRST.has(currency) ? sym + body : body + '\u00A0' + sym;
+}
+
 function initials(name){
   const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return '?';
@@ -734,10 +744,19 @@ function expandSeries(rule, opts){
    лише демо-провайдер; нативний міст (Capacitor-плагін StoreKit)
    підхоплюється автоматично, щойно з'явиться window.UrokIAP —
    екрани підписки міняти не доведеться.                          */
+/* Ціни підписки живуть у доларах і не залежать від валюти, у якій
+   викладач рахує заняття: у App Store тариф один на всі країни, а
+   ₴/zł/€ у застосунку — це про гроші учнів, не про нашу підписку.
+   months потрібні, щоб рахувати вигоду й строк без окремих таблиць. */
 const PRODUCTS = {
-  monthly: {id: 'plus.monthly', period: 'month', price: 149, currency: 'UAH'},
-  yearly: {id: 'plus.yearly', period: 'year', price: 1190, currency: 'UAH', monthly: 99},
+  monthly: {id: 'plus.monthly', period: 'month', months: 1, price: 3.99, currency: 'USD'},
+  quarterly: {id: 'plus.quarterly', period: 'quarter', months: 3, price: 9.99, currency: 'USD'},
+  yearly: {id: 'plus.yearly', period: 'year', months: 12, price: 44.99, currency: 'USD'},
 };
+const PLAN_ORDER = ['yearly', 'quarterly', 'monthly'];
+/* Скільки виходить на місяць і скільки це економить проти місячного. */
+const planMonthly = plan => (PRODUCTS[plan] ? PRODUCTS[plan].price / PRODUCTS[plan].months : 0);
+const planSaving = plan => Math.round((1 - planMonthly(plan) / PRODUCTS.monthly.price) * 100);
 
 const Billing = {
   bridge(){ return typeof window !== 'undefined' ? window.UrokIAP : null; },
@@ -754,8 +773,7 @@ const Billing = {
       return {ok: true, source: 'store'};
     }
     /* демо: підписка живе локально, щоб можна було пройти сценарій */
-    const until = planId === 'yearly' ? addDays(todayISO(), 365) : addDays(todayISO(), 30);
-    A.setPremium(planId, until);
+    A.setPremium(planId, addDays(todayISO(), Math.round(product.months * 30.4)));
     return {ok: true, source: 'demo'};
   },
   async trial(){
@@ -950,9 +968,9 @@ Object.assign(window.U, {
   KEY, VERSION, FREE_STUDENT_LIMIT, SERIES_HORIZON_WEEKS, CURRENCIES, TIMEZONES, AVATAR_COLORS, PAYMENT_METHODS, PRODUCTS,
   pad2, iso, parseISO, todayISO, addDays, addMonths, dow, startOfWeek, weekDays, startOfMonth, daysInMonth,
   monthGrid, isSame, isPast, diffDays, toMin, toTime, duration,
-  fmtDayMonth, fmtLongDate, fmtShortDate, fmtRelDate, fmtDur, fmtMoney, currencySymbol, initials, uid, pickColor,
+  fmtDayMonth, fmtLongDate, fmtShortDate, fmtRelDate, fmtDur, fmtMoney, fmtPrice, currencySymbol, initials, uid, pickColor,
   normalizePhone, isPhoneValid, photoFromFile, copyText, isEmbedded, blankState, merge, load, persist, createStore, store, useStore, A, normalizeLesson,
   sel, byTime, expandSeries, Billing, applyTheme, applyLang, demoData, loadDemo, unloadDemo, hasDemo, detectTz,
-  LESSON_STATUS, HOMEWORK_STATUS, lessonPrice, lessonTotal, isEarning,
+  LESSON_STATUS, HOMEWORK_STATUS, lessonPrice, lessonTotal, isEarning, PLAN_ORDER, planMonthly, planSaving,
 });
 })();

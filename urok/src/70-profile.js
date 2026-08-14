@@ -16,7 +16,8 @@ window.U = window.U || {};
 const {
   Icon, Avatar, Btn, IconBtn, Card, SectionHead, Row, Field, Input, TextArea, Empty, Sheet, Confirm,
   Segmented, Chips, Switch, SwitchRow, StackBar, AppBar, toast, Stats, photoFromFile,
-  A, sel, store, Billing, PRODUCTS, LANGS, CURRENCIES, TIMEZONES, FREE_STUDENT_LIMIT, VERSION,
+  A, sel, store, Billing, PRODUCTS, PLAN_ORDER, planMonthly, planSaving, fmtPrice,
+  LANGS, CURRENCIES, TIMEZONES, FREE_STUDENT_LIMIT, VERSION,
   todayISO, addDays, startOfWeek, weekDays, fmtMoney, fmtShortDate, fmtDayMonth, currencySymbol,
   applyTheme, applyLang, loadDemo, unloadDemo, hasDemo, copyText, isEmbedded,
 } = window.U;
@@ -379,7 +380,6 @@ function PremiumScreen({t, s, nav, params}){
   const [busy, setBusy] = React.useState(false);
   const premium = sel.isPremium(s);
   const p = PRODUCTS;
-  const savePercent = Math.round((1 - (p.yearly.price / 12) / p.monthly.price) * 100);
 
   const go = async () => {
     setBusy(true);
@@ -442,31 +442,37 @@ function PremiumScreen({t, s, nav, params}){
         {!premium ? (
           <>
             <SectionHead title={t('sub.ctaShort')} />
-            <div style={{display: 'grid', gap: 10}}>
-              <button className={'plan' + (plan === 'yearly' ? ' on' : '')} onClick={() => setPlan('yearly')}>
-                <span className="save">{t('sub.save', {percent: savePercent})}</span>
-                <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
-                  <span style={{flex: 1, minWidth: 0}}>
-                    <span className="h3" style={{display: 'block'}}>{t('sub.yearly')}</span>
-                    <span className="muted" style={{display: 'block', fontSize: 12.5, marginTop: 2}}>
-                      {t('sub.monthEquivalent', {price: fmtMoney(p.yearly.monthly, s.settings.currency)})}
-                    </span>
-                  </span>
-                  <span className="amt num">
-                    {fmtMoney(p.yearly.price, s.settings.currency)}<em>{t('sub.perYear')}</em>
-                  </span>
-                </div>
-              </button>
-              <button className={'plan' + (plan === 'monthly' ? ' on' : '')} onClick={() => setPlan('monthly')}>
-                <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
-                  <span style={{flex: 1, minWidth: 0}}>
-                    <span className="h3" style={{display: 'block'}}>{t('sub.monthly')}</span>
-                  </span>
-                  <span className="amt num">
-                    {fmtMoney(p.monthly.price, s.settings.currency)}<em>{t('sub.perMonth')}</em>
-                  </span>
-                </div>
-              </button>
+            {/* 14, а не 10: плашка вигоди виступає за верхній край
+                картки й на щільнішій сітці налазить на сусідню */}
+            <div style={{display: 'grid', gap: 14}}>
+              {PLAN_ORDER.map(id => {
+                const product = p[id];
+                const saving = planSaving(id);
+                const perMonth = Math.round(planMonthly(id) * 100) / 100;
+                const period = id === 'yearly' ? t('sub.perYear')
+                  : id === 'quarterly' ? t('sub.perQuarter') : t('sub.perMonth');
+                /* Плашку вигоди чіпляємо лише там, де вона справді
+                   найбільша: два різні «−%» поруч читаються як шум. */
+                const best = saving > 0 && saving === Math.max(...PLAN_ORDER.map(planSaving));
+                return (
+                  <button key={id} className={'plan' + (plan === id ? ' on' : '')} onClick={() => setPlan(id)}>
+                    {best ? <span className="save">{t('sub.save', {percent: saving})}</span> : null}
+                    <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+                      <span style={{flex: 1, minWidth: 0}}>
+                        <span className="h3" style={{display: 'block'}}>{t('sub.' + id)}</span>
+                        {id !== 'monthly' ? (
+                          <span className="muted" style={{display: 'block', fontSize: 12.5, marginTop: 2}}>
+                            {t('sub.monthEquivalent', {price: fmtPrice(perMonth, product.currency)})}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="amt num">
+                        {fmtPrice(product.price, product.currency)}<em>{period}</em>
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             <div className="hint" style={{lineHeight: 1.45, marginTop: 12}}>{t('sub.legal')}</div>
             <div style={{textAlign: 'center', marginTop: 8}}>
