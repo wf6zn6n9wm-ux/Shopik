@@ -1,0 +1,33 @@
+name: Про Барбер
+
+# Приложение — один index.html без сборки, поэтому «зелёный билд» здесь
+# означает ровно одно: проверки прогнались. Гоняем их на каждое изменение
+# внутри barber/, чтобы правка не уехала в прод молча.
+
+on:
+  push:
+    paths: ['barber/**', '.github/workflows/barber.yml']
+  pull_request:
+    paths: ['barber/**', '.github/workflows/barber.yml']
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # smoke.js транспилирует JSX из index.html и book.html — этим
+      # занимается bun. Ставим напрямую, чтобы не зависеть от сторонних
+      # actions.
+      - name: bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
+      - name: Кабинет и публичная страница
+        run: node barber/tests/smoke.js
