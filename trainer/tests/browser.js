@@ -414,6 +414,54 @@ PROBES['app-drive.js'] = DRIVE + `
   })();
 `;
 
+/* Шторка закривається свайпом, але вона ж і прокручується. Перевіряємо
+   обидві половини: жест за ручку закриває, а те саме рухом по списку —
+   ні, інакше довгий список неможливо догортати до верху. */
+PROBES['app-sheet.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await enter();
+    var fab = document.querySelector('.fab');
+    if (fab){ fab.click(); await wait(400); }
+    var sheet = document.querySelector('.sheet');
+    res.opened = !!sheet;
+    if (!sheet) return say(res);
+    /* у вікні перевірки шторка вміщується цілком — робимо її низькою,
+       щоб у ній справді з'явилась прокрутка */
+    sheet.style.maxHeight = '200px';
+    await wait(80);
+    res.scrolls = sheet.scrollHeight > sheet.clientHeight + 1;
+
+    var drag = function(el, startY, dy){
+      var mk = function(type, y){
+        var t = new Touch({identifier: 1, target: el, clientX: 100, clientY: y});
+        return new TouchEvent(type, {
+          touches: type === 'touchend' ? [] : [t], changedTouches: [t],
+          bubbles: true, cancelable: true,
+        });
+      };
+      el.dispatchEvent(mk('touchstart', startY));
+      el.dispatchEvent(mk('touchmove', startY + dy / 2));
+      el.dispatchEvent(mk('touchmove', startY + dy));
+      el.dispatchEvent(mk('touchend', startY + dy));
+    };
+
+    drag(sheet, sheet.getBoundingClientRect().top + 150, 140);   /* по списку */
+    await wait(400);
+    res.afterList = !!document.querySelector('.sheet');
+
+    var s2 = document.querySelector('.sheet');
+    if (s2){
+      s2.style.maxHeight = '200px';
+      drag(s2, s2.getBoundingClientRect().top + 8, 140);         /* за ручку */
+    }
+    await wait(400);
+    res.afterGrip = !!document.querySelector('.sheet');
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
 /* Збірка для магазину: усередині нічого не продається, і — головне —
    з екрана підписки нікуди не можна піти платити. Саме за посилання
    назовні Apple знімає застосунок із перевірки, тож перевіряємо не
@@ -598,6 +646,14 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('вікно оплати відкривається', o.sheet > 0);
     ok('борг зменшився, але не зник', o.after && o.before && Number(o.after) < Number(o.before) && Number(o.after) > 0,
        o.before + ' → ' + o.after);
+    ok('помилок немає', !o.err, o.err || '—');
+
+    part('шторку можна гортати, а не тільки закривати');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-sheet.js')) || '{}');
+    ok('шторка відкрилась', o.opened === true);
+    ok('у ній є прокрутка', o.scrolls === true);
+    ok('рух по списку не закриває', o.afterList === true);
+    ok('рух за ручку закриває', o.afterGrip === false);
     ok('помилок немає', !o.err, o.err || '—');
 
     part('збірка для магазину не продає');

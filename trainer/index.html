@@ -2990,15 +2990,28 @@ const Sheet = ({open, onClose, title, sub, children, tall}) => {
 
   /* Закриття свайпом униз. Шторка показує ручку, тобто обіцяє жест — без
      нього тренер тягне її вниз і думає, що застосунок завис.
-     Тягнемо лише з самого верху вмісту, інакше жест забирав би прокрутку
-     довгих списків. Слухачі нативні: React вішає touchmove пасивно, і
-     preventDefault() у ньому не спрацював би.                          */
+
+     Але шторка сама і є список, який прокручується. Якщо дозволити жест
+     скрізь, де список опинився вгорі, довгий список стає непрокручуваним:
+     гортаєш клієнтів догори, останній рух доходить до верху — і шторка
+     закривається просто тому, що палець ще їхав донизу.
+
+     Тому: у довгому списку тягнемо тільки за верх шторки — за ручку й
+     заголовок, там прокручувати нічого. У короткій, де списку немає,
+     тягнеться звідусіль, як і має бути.
+
+     Слухачі нативні: React вішає touchmove пасивно, і preventDefault()
+     у ньому не спрацював би.                                          */
+  const GRAB = 64;                     /* висота ручки із заголовком */
   useEffect(() => {
     const el = box.current;
     if (!open || !el) return;
-    let from = null, dy = 0, t0 = 0;
+    let from = null, dy = 0, t0 = 0, byGrip = false;
     const down = e => {
       if (el.scrollTop > 0) return;
+      const scrolls = el.scrollHeight > el.clientHeight + 1;
+      byGrip = e.touches[0].clientY - el.getBoundingClientRect().top <= GRAB;
+      if (scrolls && !byGrip) return;
       from = e.touches[0].clientY; dy = 0; t0 = Date.now();
       el.style.animation = 'none';
       el.style.transition = 'none';
@@ -3014,7 +3027,9 @@ const Sheet = ({open, onClose, title, sub, children, tall}) => {
     };
     const up = () => {
       if (from === null) return;
-      const quick = dy / Math.max(1, Date.now() - t0) > 0.5;
+      /* Швидкий рух закриває тільки коли тягли за ручку: у списку
+         швидкий рух — це звичайне гортання, а не намір закрити. */
+      const quick = byGrip && dy / Math.max(1, Date.now() - t0) > 0.5;
       from = null;
       if (dy > 90 || (quick && dy > 24)) return onClose();
       el.style.transition = 'transform .24s var(--ease)';
