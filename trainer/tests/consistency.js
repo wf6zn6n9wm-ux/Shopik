@@ -131,6 +131,36 @@ part('збірка для сайту');
   ok('тег усередині коду не обриває скрипт', !code.includes('</script>'));
 }
 
+part('обрізання картинок');
+{
+  const os = require('os');
+  const png = require('../store/png.js');
+  /* малюємо 6×4: кожен піксель позначено своїми координатами */
+  const W = 6, H = 4, BPP = 4;
+  const px = Buffer.alloc(W * H * BPP);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
+    const i = (y * W + x) * BPP;
+    px[i] = x * 10; px[i + 1] = y * 10; px[i + 2] = 7; px[i + 3] = 255;
+  }
+  const file = path.join(os.tmpdir(), 'protrainer-crop-test.png');
+  fs.writeFileSync(file, png.encode(px, W, H, BPP));
+  ok('картинка збирається й читається', png.size(file).w === W && png.size(file).h === H);
+
+  ok('обрізали до 4×2', png.crop(file, 4, 2) === true && png.size(file).w === 4 && png.size(file).h === 2);
+  const got = png.decode(file);
+  let same = true;
+  for (let y = 0; y < 2; y++) for (let x = 0; x < 4; x++){
+    const i = (y * 4 + x) * 4;
+    if (got.px[i] !== x * 10 || got.px[i + 1] !== y * 10 || got.px[i + 2] !== 7) same = false;
+  }
+  ok('лишився саме лівий верхній кут, без зсуву рядків', same);
+  ok('другий раз різати нічого', png.crop(file, 4, 2) === false);
+  let refused = false;
+  try { png.crop(file, 99, 2); } catch { refused = true; }
+  ok('збільшити не дає', refused);
+  fs.unlinkSync(file);
+}
+
 part('переклади');
 {
   const rows = decl(app, 'PHRASES');
