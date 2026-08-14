@@ -122,11 +122,18 @@ const server = http.createServer(async (req, res) => {
 const dom = url => new Promise(resolve => {
   const p = spawn(CHROME, ['--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
     '--window-size=430,900', '--virtual-time-budget=6000', '--dump-dom', url]);
-  let outp = '';
+  let outp = '', killed = false;
   p.stdout.on('data', d => { outp += d; });
-  p.on('close', () => resolve(outp));
-  /* якщо сторінка чомусь не дочекалась — не висимо назавжди */
-  setTimeout(() => { try { p.kill(); } catch {} }, 25000);
+  /* Не висимо назавжди, але й не міряємо себе своєю машиною: перший
+     запуск браузера на холодній машині буває довгим, і на CI він раз за
+     разом не вкладався у 25 секунд. Обрив друкуємо окремим рядком —
+     інакше перевірка падає з незрозумілим «undefined». */
+  const t = setTimeout(() => { killed = true; try { p.kill(); } catch {} }, 60000);
+  p.on('close', () => {
+    clearTimeout(t);
+    if (killed) console.log('  ⚠ браузер не встиг за 60 с: ' + url);
+    resolve(outp);
+  });
 });
 /* проба пише підсумок сюди, звідси його й читаємо */
 const out = html => {
