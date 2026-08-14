@@ -24,6 +24,14 @@ const {spawn} = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const PORT = 8771;
 
+/* Ключі мерчанта потрібні, щоб серверні функції взагалі відповідали:
+   без них вони чесно кажуть «не налаштовано». Значення вигадані —
+   до банку ми звідси все одно не достукаємось, і це теж перевірка:
+   сторінка має пережити недоступний банк. */
+process.env.LIQPAY_PUBLIC_KEY = process.env.LIQPAY_PUBLIC_KEY || 'test_public';
+process.env.LIQPAY_PRIVATE_KEY = process.env.LIQPAY_PRIVATE_KEY || 'test_private';
+const L = require('../api/_lib.js');
+
 const CHROME = process.env.CHROME || [
   '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome',
@@ -41,6 +49,37 @@ const PROBES = {};
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1');
   log.push({path: url.pathname, query: Object.fromEntries(url.searchParams)});
+
+  /* Сам застосунок: скомпільований (без Babel) і з маленьким React
+     замість CDN. Зовнішні посилання прибираємо — не через економію, а
+     тому що запит, який нікуди не доходить, зупиняє віртуальний час у
+     headless, і сторінка не дочекається ніколи. */
+  if (url.pathname === '/_app.html'){
+    let html = require('../build.js').build(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'));
+    html = html.replace(/<script crossorigin src="https:\/\/unpkg\.com[^"]*"><\/script>\s*/g, '')
+               .replace(/<link rel="preconnect"[^>]*>\s*/g, '')
+               .replace(/<link href="https:\/\/fonts\.googleapis\.com[^"]*"[^>]*>\s*/g, '')
+               .replace('</head>', '<script src="/_test/react-mini.js"></script></head>');
+    const probe = url.searchParams.get('probe');
+    if (probe) html = html.replace('</body>', '<script src="/_probe/' + probe + '"></script></body>');
+    res.writeHead(200, {'content-type': TYPES['.html']});
+    return res.end(html);
+  }
+
+  /* Перевірка самого маленького React. Без неї всі перевірки застосунку
+     стоять на непідтвердженій основі: якщо тут щось поводиться не так,
+     як у React, зелений результат нічого не вартий. */
+  if (url.pathname === '/_mini.html'){
+    res.writeHead(200, {'content-type': TYPES['.html']});
+    return res.end('<!doctype html><meta charset="utf-8"><div id="root"></div>' +
+      '<script src="/_test/react-mini.js"></script>' +
+      '<script src="/_probe/mini.js"></script>');
+  }
+
+  if (url.pathname === '/_test/react-mini.js'){
+    res.writeHead(200, {'content-type': TYPES['.js']});
+    return res.end(fs.readFileSync(path.join(__dirname, 'react-mini.js')));
+  }
 
   if (url.pathname.startsWith('/_probe/')){
     res.writeHead(200, {'content-type': TYPES['.js']});
@@ -99,6 +138,118 @@ const ok = (name, cond, extra) => {
 const part = t => console.log('\n── ' + t + ' ──');
 
 /* ─────────── самі проби ─────────── */
+
+PROBES['mini.js'] = `
+  var R = React, h = R.createElement;
+  var log = [], res = {};
+  var say = function(){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = JSON.stringify(res); document.body.appendChild(p); };
+  var root = document.getElementById('root');
+  var Ctx = R.createContext('за замовчуванням');
+
+  var setOuter;
+  function Child(props){
+    var v = R.useContext(Ctx);
+    var box = R.useRef(null);
+    R.useEffect(function(){
+      log.push('mount:' + props.id);
+      return function(){ log.push('unmount:' + props.id); };
+    }, []);
+    return h('div', {className: 'kid', ref: box, 'data-id': props.id}, v + ':' + props.id);
+  }
+
+  function Field(){
+    var s = R.useState('');
+    return h('input', {id: 'f', value: s[0], onChange: function(e){ s[1](e.target.value); }});
+  }
+
+  function App(){
+    var s = R.useState(0);
+    setOuter = s[1];
+    /* на третьому кроці одна дитина зникає — тоді має спрацювати
+       прибирання її ефекту */
+    var ids = s[0] === 0 ? ['a', 'b'] : s[0] === 1 ? ['b', 'a'] : ['a'];
+    var kids = ids.map(function(id){
+      return h(Child, {key: id, id: id});
+    });
+    return h(Ctx.Provider, {value: 'з контексту'},
+      h('div', null,
+        h('b', {id: 'n'}, String(s[0])),
+        h('div', {id: 'list'}, kids),
+        s[0] < 2 ? h(Field, null) : null));
+  }
+
+  ReactDOM.createRoot(root).render(h(App, null));
+
+  var wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
+  (async function(){
+    await wait(50);
+    res.rendered = document.querySelectorAll('.kid').length;
+    res.context = (document.querySelector('.kid') || {}).textContent;
+    res.mounted = log.filter(function(x){ return x.indexOf('mount:') === 0; }).length;
+
+    /* стан оновлюється і перемальовує */
+    setOuter(1);
+    await wait(50);
+    res.afterSet = document.getElementById('n').textContent;
+
+    /* ключі: після перестановки вузли ті самі, а не створені заново */
+    var a1 = document.querySelector('[data-id=a]');
+    setOuter(1);
+    await wait(30);
+    res.sameNode = a1 === document.querySelector('[data-id=a]');
+
+    /* ефект із порожніми залежностями не повторюється */
+    res.mountedAgain = log.filter(function(x){ return x === 'mount:a'; }).length;
+
+    /* поле вводу: фокус і каретка переживають перемальовку */
+    var f = document.getElementById('f');
+    f.focus();
+    f.value = 'при';
+    f.dispatchEvent(new Event('input', {bubbles: true}));
+    await wait(50);
+    var f2 = document.getElementById('f');
+    res.typed = f2 && f2.value;
+    res.keptFocus = document.activeElement === f2;
+    res.sameInput = f === f2;
+
+    /* прибирання при знятті з екрана */
+    setOuter(2);
+    await wait(50);
+    res.gone = !document.getElementById('f');
+    res.cleanup = log.filter(function(x){ return x.indexOf('unmount:') === 0; }).length;
+    say();
+  })();
+`;
+
+/* Проходимо онбординг, вхід і майстер налаштувань — далі вже застосунок.
+   Клікаємо по структурі, а не по написах: інакше сценарій розсипався б
+   на кожній мові. */
+const DRIVE = `
+  var wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
+  var all = function(s){ return [].slice.call(document.querySelectorAll(s)); };
+  var vis = function(e){ return e.offsetParent !== null || e.getClientRects().length; };
+  var pri = function(){ return all('.ob button').filter(function(b){ return /pri/.test(b.className); })[0]; };
+  var type = function(el, v){
+    var set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    set.call(el, v);
+    el.dispatchEvent(new Event('input', {bubbles: true}));
+  };
+  var say = function(o){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = JSON.stringify(o); document.body.appendChild(p); };
+  window.addEventListener('error', function(e){ window.__err = String(e.message || e); });
+
+  async function enter(){
+    await wait(300);
+    for (var i = 0; i < 3; i++){ if (pri()){ pri().click(); await wait(120); } }
+    var li = document.querySelector('.ob .inp');
+    if (li){ type(li, 'trainer@mail.com'); await wait(120); }
+    if (pri()){ pri().click(); await wait(300); }
+    var nm = document.querySelector('.ob .inp');
+    if (nm){ type(nm, 'Alex'); await wait(120); }
+    if (pri()){ pri().click(); await wait(400); }
+    if (pri()){ pri().click(); await wait(500); }
+  }
+`;
+
 PROBES['plans.js'] = `
   var say = function(s){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = s; document.body.appendChild(p); };
   var plans = document.querySelectorAll('.plan');
@@ -122,6 +273,66 @@ PROBES['nologin.js'] = `
   say(JSON.stringify({shown: !e.hidden, text: e.textContent, url: location.pathname}));
 `;
 PROBES['buy.js'] = `document.getElementById('go').click();`;
+PROBES['app-drive.js'] = DRIVE + `
+  (async function(){
+    await enter();
+    var nav = all('.nav button');
+    var res = {tabs: nav.length, err: window.__err || ''};
+    res.home = (document.getElementById('root').textContent || '').indexOf('Дохід сьогодні') >= 0;
+    /* календар */
+    if (nav[1]){ nav[1].click(); await wait(400); }
+    res.cal = all('.tl .hr').length;
+    /* клієнти */
+    if (nav[2]){ nav[2].click(); await wait(400); }
+    res.clients = all('.rows .row').length;
+    /* відкриваємо першого клієнта */
+    var first = all('.rows .row')[0];
+    if (first){ first.click(); await wait(500); }
+    res.card = all('.page').length;
+    res.tabsInCard = all('.page .tabs button, .page .segm button').length;
+    say(res);
+  })();
+`;
+
+PROBES['app-boot.js'] = `
+  var say = function(s){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = s; document.body.appendChild(p); };
+  setTimeout(function(){
+    say(JSON.stringify({
+      root: document.getElementById('root').children.length,
+      text: (document.body.textContent || '').slice(0, 160),
+      err: window.__err || '',
+    }));
+  }, 1200);
+  window.addEventListener('error', function(e){ window.__err = String(e.message || e); });
+`;
+
+/* сторінка підписки малюється після відповіді сервера, тож чекаємо на неї */
+const WAIT = `
+  var say = function(s){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = s; document.body.appendChild(p); };
+  var wait = function(test, done, left){
+    if (test()) return done();
+    if ((left || 0) > 60) return done();
+    setTimeout(function(){ wait(test, done, (left || 0) + 1); }, 100);
+  };`;
+/* у розмітці вже лежить «…», тож чекати «щось з'явилось» не можна —
+   чекаємо саме на зміну, інакше проба ловить заглушку */
+PROBES['account.js'] = WAIT + `
+  var box = document.getElementById('box');
+  var was = box.textContent;
+  wait(function(){ return box.textContent !== was; }, function(){
+    say(JSON.stringify({text: box.textContent, offHidden: document.getElementById('off').hidden}));
+  });
+`;
+PROBES['account-off.js'] = WAIT + `
+  var box = document.getElementById('box'), off = document.getElementById('off');
+  wait(function(){ return !off.hidden; }, function(){
+    var before = box.textContent;
+    off.click();
+    wait(function(){ return box.textContent !== before; }, function(){
+      say(JSON.stringify({text: box.textContent, offHidden: off.hidden}));
+    });
+  });
+`;
 
 const go = (p, probe) => 'http://127.0.0.1:' + PORT + p + (p.includes('?') ? '&' : '?') + 'probe=' + probe;
 
@@ -167,6 +378,54 @@ server.listen(PORT, '127.0.0.1', async () => {
     part('чуже в адресі не потрапляє в розмітку');
     const html = await dom('http://127.0.0.1:' + PORT + '/pay.html?login=' + encodeURIComponent('<img src=x onerror=alert(1)>'));
     ok('теги з логіна екрановані', !/<img src=x/.test(html));
+
+    part('сторінка підписки');
+    /* заводимо підписку прямо в сховищі сервера — так само, як це зробив
+       би платіж, що дійшов */
+    await L.applyPayment({login: 'trainer@mail.com', device: 'dev1', plan: 'yearly',
+                          orderId: 'test-order', autoRenew: true});
+    o = JSON.parse(out(await dom(go('/account.html?login=trainer%40mail.com&device=dev1', 'account.js'))) || '{}');
+    ok('підписка показана як активна', /Активна до/.test(o.text || ''), (o.text || '').trim());
+    ok('видно кнопку вимкнення автопродовження', o.offHidden === false);
+
+    o = JSON.parse(out(await dom(go('/account.html?login=trainer%40mail.com&device=dev1', 'account-off.js'))) || '{}');
+    ok('автопродовження вимикається', /вимкнено/i.test(o.text || ''), (o.text || '').trim());
+    ok('кнопка ховається після вимкнення', o.offHidden === true);
+    ok('на сервері теж вимкнулось',
+       (await L.readLicence('trainer@mail.com')).autoRenew === false);
+
+    o = JSON.parse(out(await dom(go('/account.html?login=hto%40hto.com&device=dev1', 'account.js'))) || '{}');
+    ok('чужому логіну підписки не показуємо', /не знайшли/i.test(o.text || ''), (o.text || '').trim());
+
+    part('маленький React поводиться як справжній');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_mini.html')) || '{}');
+    ok('компоненти малюються', o.rendered === 2, o.rendered + ' шт.');
+    ok('контекст доходить до дитини', /з контексту/.test(o.context || ''), o.context);
+    ok('ефект спрацював на кожній дитині', o.mounted === 2, String(o.mounted));
+    ok('стан оновлює екран', o.afterSet === '1', o.afterSet);
+    ok('за ключем вузол не перестворюється', o.sameNode === true);
+    ok('ефект із порожніми залежностями не повторюється', o.mountedAgain === 1, String(o.mountedAgain));
+    ok('у поле вводу пишеться', o.typed === 'при', o.typed);
+    ok('поле не перестворюється на кожній літері', o.sameInput === true);
+    ok('фокус лишається в полі', o.keptFocus === true);
+    ok('знятий з екрана вузол зникає', o.gone === true);
+    ok('прибирання ефектів викликається', o.cleanup >= 1, String(o.cleanup));
+
+    part('застосунок у браузері');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-boot.js')) || '{}');
+    ok('застосунок намалювався', o.root > 0, 'вузлів у корені: ' + o.root);
+    ok('без помилок на старті', !o.err, o.err || '—');
+    ok('видно перший екран', /день|Day|Dzień|екрані/i.test(o.text || ''), (o.text || '').slice(0, 60));
+
+    const driven = await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-drive.js');
+    if (process.env.PEEK) require('fs').writeFileSync('/tmp/driven.html', driven);
+    o = JSON.parse(out(driven) || '{}');
+    ok('онбординг, вхід і налаштування проходяться', o.tabs === 5, 'вкладок унизу: ' + o.tabs);
+    ok('на головній видно дохід', o.home === true);
+    ok('календар малює години', o.cal > 0, o.cal + ' годин');
+    ok('список клієнтів не порожній', o.clients > 0, o.clients + ' рядків');
+    ok('картка клієнта відкривається', o.card > 0);
+    ok('помилок під час проходу немає', !o.err, o.err || '—');
 
     part('сторінка після оплати');
     ok('відкривається', (await dom('http://127.0.0.1:' + PORT + '/paid.html')).includes('PRO Trainer'));
