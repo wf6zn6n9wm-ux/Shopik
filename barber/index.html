@@ -401,7 +401,8 @@
   .cal-ev.cancel{background:var(--surface-2); border-left-color:var(--ink-4); opacity:.6}
   .cal-ev.pend{background:var(--info-soft); border-left-color:var(--info)}
   .cal-ev .t{font-size:11px; color:var(--ink-2)}
-  .cal-ev .n{font-weight:650; font-size:12.5px; line-height:1.25}
+  /* имя уже сокращено до «Имя Ф.», поэтому обрезаем без многоточия */
+  .cal-ev .n{font-weight:650; font-size:12.5px; line-height:1.25; white-space:nowrap; overflow:hidden}
   .cal-ev.drag{opacity:.4}
   .cal-now{position:absolute; left:0; right:0; height:2px; background:var(--neg); z-index:4; pointer-events:none}
   .cal-now::before{content:""; position:absolute; left:-4px; top:-3px; width:8px; height:8px; border-radius:50%; background:var(--neg)}
@@ -589,6 +590,26 @@ const phoneMask = raw => {
     [a, b, c, e, f].filter(Boolean).join(' '));
 };
 const initials = name => String(name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+
+/* Имя под ширину плашки, ступенями: полное → «Григорий Ш.» → «Григорий»
+   → «Г.Ш.». Обрывков слова и многоточий не бывает ни на одной ступени:
+   «Григорий Ш.» читается, «Григорий Шевч…» — нет. Полное имя всегда есть
+   в подсказке и в карточке записи. */
+function fitName(name, chars){
+  const full = String(name || '').trim().replace(/\s+/g, ' ');
+  if (!full || full.length <= chars) return full;
+  const parts = full.split(' ');
+  if (parts.length > 1){
+    const short = parts[0] + ' ' + parts[1][0] + '.';
+    if (short.length <= chars) return short;
+  }
+  if (parts[0].length <= chars) return parts[0];
+  if (parts.length > 1){
+    const short = parts[0][0] + '.' + parts[1][0] + '.';
+    if (short.length <= chars) return short;
+  }
+  return parts[0];
+}
 
 /* ── 2. ЯЗЫК ──────────────────────────────────────────────────────── */
 
@@ -2734,24 +2755,33 @@ function Home(){
 const HOUR_H = 56;
 let DRAG = null;   /* id перетаскиваемой записи: dataTransfer на мобилке капризен */
 
-function EventBox({a, db, top, height, onOpen}){
+/* Сколько символов имени влезает в плашку шириной colW: 26px съедают
+   поля и полоска статуса, в тесной верстке ещё 40px занимает время.
+   Ширина символа взята с запасом (в фамилиях попадаются широкие Ш, Щ, М),
+   и на всю ширину плашки запас больше — там имя длиннее и промах виднее. */
+const nameRoom = (colW, tight) =>
+  Math.max(4, Math.floor(((colW || 104) - 26 - (tight ? 40 : 0)) / (tight ? 7 : 7.4)));
+
+function EventBox({a, db, top, height, colW, onOpen}){
   const st = rowStatus(db, a);
   const cls = st === 'done' ? 'done' : st === 'cancel' ? 'cancel' : st === 'pend' ? 'pend' : '';
   /* короткие записи не помещают время и имя в два ряда — сжимаем в одну
      строку, иначе имя обрезается и в календаре пустые плашки */
   const tight = height < 42;
+  const full = clientName(db, a.clientId);
+  const short = fitName(full, nameRoom(colW, tight));
   return (
     <button className={cx('cal-ev', cls)} style={{top, height: Math.max(22, height)}}
             draggable onDragStart={() => { DRAG = a.id; }} onDragEnd={() => { DRAG = null; }}
-            onClick={onOpen} title={a.time + ' · ' + clientName(db, a.clientId) + ' · ' + serviceName(db, a.serviceId)}>
+            onClick={onOpen} title={a.time + ' · ' + full + ' · ' + serviceName(db, a.serviceId)}>
       {tight ? (
-        <span className="n cut" style={{display: 'block'}}>
-          <span className="t num">{a.time}</span> {clientName(db, a.clientId)}
+        <span className="n" style={{display: 'block'}}>
+          <span className="t num">{a.time}</span> {short}
         </span>
       ) : (
         <>
           <span className="t num">{a.time}</span>
-          <span className="n cut" style={{display: 'block'}}>{clientName(db, a.clientId)}</span>
+          <span className="n" style={{display: 'block'}}>{short}</span>
           {height > 62 && <span className="t cut" style={{display: 'block'}}>{serviceName(db, a.serviceId)}</span>}
         </>
       )}
@@ -2764,6 +2794,16 @@ function EventBox({a, db, top, height, onOpen}){
 function DayColumn({db, dateIso, from, to, step, onOpen, onSlot}){
   const rows = dayAppts(db, dateIso);
   const hours = Math.ceil((to - from) / 60);
+  /* колонки тянутся под ширину экрана, поэтому длину имени считаем от
+     реальной ширины, а не от догадки */
+  const box = useRef(null);
+  const [colW, setColW] = useState(0);
+  useEffect(() => {
+    const measure = () => { if (box.current) setColW(box.current.offsetWidth); };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
   const drop = e => {
     e.preventDefault();
     if (!DRAG) return;
@@ -2779,12 +2819,12 @@ function DayColumn({db, dateIso, from, to, step, onOpen, onSlot}){
   };
   const off = !(db.profile.hours[DOW_KEYS[dowIdx(fromIso(dateIso))]] || {}).on;
   return (
-    <div className={cx('cal-col', off && 'off')} onDragOver={e => e.preventDefault()} onDrop={drop}>
+    <div className={cx('cal-col', off && 'off')} ref={box} onDragOver={e => e.preventDefault()} onDrop={drop}>
       {Array.from({length: hours}, (_, i) => (
         <div key={i} className="cal-slot" onClick={() => onSlot(dateIso, hhmm(from + i * 60))} />
       ))}
       {rows.map(a => (
-        <EventBox key={a.id} a={a} db={db}
+        <EventBox key={a.id} a={a} db={db} colW={colW}
                   top={(mins(a.time) - from) / 60 * HOUR_H}
                   height={a.dur / 60 * HOUR_H - 2}
                   onOpen={() => onOpen(a.id)} />

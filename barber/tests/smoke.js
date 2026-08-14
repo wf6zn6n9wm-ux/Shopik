@@ -103,6 +103,7 @@ const EXPORTS = `;globalThis.__T = {
   ApptForm, ClientForm, ServiceForm, ApptCard, ActiveSession, NotifPanel, MoreSheet, Sidebar,
   MiniCalendar, LineChart, BarChart, MonthGrid, applyTheme, serviceName, clientName, nextLabel,
   Sync, Net, SyncBlock, RemindLinks, serviceById, dayWord, CHANNELS, NextCard,
+  fitName, nameRoom, EventBox,
   expensesIn, spent, profit, EXPENSE_KINDS, ExpenseForm, pickFile, pickPhoto,
 };`;
 
@@ -401,6 +402,61 @@ part('что видит барбер');
   T.Act.settings({lang: 'uk'});
   ok('и на украинский', textOf(el(T.Clients, {})).includes('Клієнти'));
   T.Act.settings({lang: 'ru'});
+}
+
+part('имена в календаре');
+{
+  ok('короткое имя показывается целиком', T.fitName('Иван Петров', 14) === 'Иван Петров');
+  ok('длинное сокращается до фамилии-буквы',
+     T.fitName('Григорий Шевченко', 14) === 'Григорий Ш.', T.fitName('Григорий Шевченко', 14));
+  ok('точка после буквы, а не многоточие',
+     !T.fitName('Святослав Романюк', 12).includes('…') && !T.fitName('Святослав Романюк', 12).includes('...'));
+  ok('когда и сокращения мало — остаётся одно имя',
+     T.fitName('Владислав Бондаренко', 9) === 'Владислав', T.fitName('Владислав Бондаренко', 9));
+  ok('в совсем узкой колонке остаются инициалы, а не обрывок',
+     T.fitName('Владислав Титов', 6) === 'В.Т.', T.fitName('Владислав Титов', 6));
+  ok('инициалы только когда иначе никак',
+     T.fitName('Владислав Титов', 10) === 'Владислав', T.fitName('Владислав Титов', 10));
+  ok('имя без фамилии не ломается', T.fitName('Марк', 3) === 'Марк');
+  ok('пустое имя не ломает', T.fitName('', 10) === '' && T.fitName(null, 10) === '');
+  ok('лишние пробелы схлопываются', T.fitName('Иван   Петров', 40) === 'Иван Петров');
+  ok('двойные имена не теряют смысл',
+     T.fitName('Анна-Мария Ковалёва', 14) === 'Анна-Мария К.', T.fitName('Анна-Мария Ковалёва', 14));
+
+  ok('в узкой колонке места меньше, чем в широкой',
+     T.nameRoom(104, true) < T.nameRoom(200, true));
+  ok('в тесной плашке место урезано временем',
+     T.nameRoom(160, true) < T.nameRoom(160, false));
+  ok('без измеренной ширины берём минимум колонки', T.nameRoom(0, false) === T.nameRoom(104, false));
+
+  /* плашка: длинное имя сокращено, полное — в подсказке и в карточке */
+  T.Store.init(T.seedDB());
+  const cl = T.Act.addClient({name: 'Григорий Шевченко'});
+  const sv = S().services.find(x => x.dur <= 30) || S().services[0];
+  const day = T.iso(T.addDays(new Date(), 12));
+  const ap = T.Act.addAppt({clientId: cl.id, serviceId: sv.id, date: day, time: '19:00', dur: 30, price: 15});
+  /* один раз выполняем компонент, чтобы посмотреть на саму плашку */
+  const boxOf = colW => {
+    const node = el(T.EventBox, {a: ap, db: S(), top: 0, height: 26, colW, onOpen(){}});
+    return node.type(node.props);
+  };
+  const desk = boxOf(168), phone = boxOf(104), wide = boxOf(260);
+  ok('на десктопной колонке — имя и буква фамилии',
+     textOf(desk).includes('Григорий Ш.'), textOf(desk).trim());
+  ok('в самой узкой колонке — инициалы, а не обрывок слова',
+     textOf(phone).includes('Г.Ш.') && !textOf(phone).includes('Шевч'), textOf(phone).trim());
+  ok('многоточия нет нигде',
+     [desk, phone, wide].every(x => !textOf(x).includes('…') && !textOf(x).includes('...')));
+  ok('время осталось на месте', textOf(desk).includes('19:00'));
+  ok('в широкой плашке имя целиком', textOf(wide).includes('Григорий Шевченко'));
+  ok('полное имя лежит в подсказке',
+     (desk.props.title || '').includes('Григорий Шевченко') &&
+     (phone.props.title || '').includes('Григорий Шевченко'), desk.props.title);
+  ok('имя не обрезается многоточием стилями',
+     !JSON.stringify(desk).includes('"n cut"'));
+  ok('карточка записи показывает полное имя',
+     textOf(el(T.ApptCard, {id: ap.id})).includes('Григорий Шевченко'));
+  T.Act.delClient(cl.id);
 }
 
 part('понятность дат');
