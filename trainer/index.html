@@ -526,7 +526,10 @@
   setTimeout(function(){
     if (!alive()) return;
     if (!window.React) return fail('Бібліотека React не завантажилась. Перевірте зв\'язок і оновіть сторінку.');
-    if (!window.Babel) return fail('Бібліотека Babel не завантажилась. Перевірте зв\'язок і оновіть сторінку.');
+    /* у зібраній версії Babel не завантажується взагалі — питаємо про
+       нього лише тоді, коли сторінка справді його підключає */
+    if (document.querySelector('script[src*="babel"]') && !window.Babel)
+      return fail('Бібліотека Babel не завантажилась. Перевірте зв\'язок і оновіть сторінку.');
     document.getElementById('bootNote').textContent = 'Готуємо застосунок…';
   }, 8000);
 })();

@@ -112,6 +112,25 @@ part('домен');
     ok('  адреса ' + path + ' вказана', listing.includes(site + path)));
 }
 
+part('збірка для сайту');
+{
+  const vm2 = require('vm');
+  const built = require('../build.js').build(app);
+  ok('тег Babel прибрано', !/unpkg\.com\/@babel/.test(built));
+  ok('скрипт більше не text/babel', !/text\/babel/.test(built));
+  ok('React лишився на місці', /unpkg\.com\/react@18/.test(built));
+
+  const j = built.lastIndexOf('</script>');
+  const i = built.lastIndexOf('<script>', j);
+  const code = built.slice(i + '<script>'.length, j);
+  let parses = true;
+  try { new vm2.Script(code); } catch (e){ parses = false; }
+  ok('зібраний скрипт — звичайний JS', parses, Math.round(code.length / 1024) + ' КБ');
+  ok('JSX скомпільовано', !/<\/[A-Z]/.test(code));
+  /* рядок «</script>» усередині коду обірвав би тег і зламав сторінку */
+  ok('тег усередині коду не обриває скрипт', !code.includes('</script>'));
+}
+
 part('переклади');
 {
   const rows = decl(app, 'PHRASES');
