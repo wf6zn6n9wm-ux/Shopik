@@ -5466,33 +5466,9 @@ const Debts = ({onClose}) => {
             <div className="muted" style={{fontSize:12.5}}>{nClients(items.length)} · {nSessions(sum(items, x => x.n))}</div>
           </div>
           <div className="stack" style={{marginTop:12}}>
-            {items.map(d => {
-              const c = byId(db.clients, d.clientId);
-              if (!c) return null;
-              return (
-                <div key={d.clientId} className="card pad">
-                  <div style={{display:'flex', gap:12, alignItems:'center'}}>
-                    <Avatar name={c.name} photo={c.photo} size={44}/>
-                    <div style={{flex:1, minWidth:0}}>
-                      <b style={{fontSize:15}}>{c.name}</b>
-                      <div className="muted" style={{fontSize:12.5}}>
-                        {nSessions(d.n)} · {t('debt.from','з')} {fmtDM(d.oldest)}
-                      </div>
-                    </div>
-                    <div className="money num" style={{fontSize:17, color:'var(--neg)'}}>{money(d.sum)}</div>
-                  </div>
-                  <div className="grid2" style={{marginTop:10}}>
-                    <Btn kind="soft" size="sm" onClick={() => nav.go('remind', {clientId: c.id, sum: d.sum})}>
-                      <Ic.msg size={16}/>{t('debt.remind','Нагадати')}
-                    </Btn>
-                    <Btn kind="pri" size="sm" onClick={() => {
-                      d.list.forEach(s => Act.pay(s.id));
-                      Toaster.ok(t('debt.closed','Борг закрито'));
-                    }}><Ic.check size={16}/>{t('debt.pay','Оплачено')}</Btn>
-                  </div>
-                </div>
-              );
-            })}
+            {/* та сама картка, що й на головній: інакше на одному екрані
+                борг закривався б частинами, а на другому — лише цілком */}
+            {items.map(d => <DebtCard key={d.clientId} d={d}/>)}
           </div>
         </Fragment>
       )}
