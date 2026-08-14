@@ -45,7 +45,8 @@ jobs:
       - name: Зависимости
         run: npm install
 
-      # www/ собирается из trainer/index.html и получает мост к магазину
+      # www/ собирается из trainer/index.html. Без ключа --sell сборка выходит
+      # бесплатной: внутри ничего не продаётся, подписку оформляют на сайте.
       - name: Собрать веб-часть
         run: npm run sync:web
 

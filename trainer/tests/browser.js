@@ -60,6 +60,10 @@ const server = http.createServer(async (req, res) => {
                .replace(/<link rel="preconnect"[^>]*>\s*/g, '')
                .replace(/<link href="https:\/\/fonts\.googleapis\.com[^"]*"[^>]*>\s*/g, '')
                .replace('</head>', '<script src="/_test/react-mini.js"></script></head>');
+    /* free=1 — те саме, що робить збірка для магазину: прапорець прибирає
+       покупку і всі виходи на оплату */
+    if (url.searchParams.get('free'))
+      html = html.replace('</body>', '<script>window.PRO_TRAINER_FREE = true;</script></body>');
     const probe = url.searchParams.get('probe');
     if (probe) html = html.replace('</body>', '<script src="/_probe/' + probe + '"></script></body>');
     res.writeHead(200, {'content-type': TYPES['.html']});
@@ -383,6 +387,39 @@ PROBES['app-drive.js'] = DRIVE + `
   })();
 `;
 
+/* Збірка для магазину: усередині нічого не продається, і — головне —
+   з екрана підписки нікуди не можна піти платити. Саме за посилання
+   назовні Apple знімає застосунок із перевірки, тож перевіряємо не
+   тільки те, що кнопки покупки немає, а й що виходів не лишилось. */
+PROBES['app-free.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await enter();
+    var burger = document.querySelector('.appbar .iconbtn');
+    if (burger){ burger.click(); await wait(350); }
+    var rows = all('.sheet .setrow').filter(vis);
+    res.menu = rows.length;
+    if (rows[7]){ rows[7].click(); await wait(600); }        /* Підписка */
+    /* екрани відкриваються один поверх одного, і попередній лишається в
+       DOM — дивимось на верхній, інакше перевірки проходять вхолостую */
+    var page = function(){ var p = all('.page'); return p[p.length - 1] || null; };
+    res.subPage = !!page();
+    var first = page() ? page().querySelectorAll('.btn.pri')[0] : null;
+    res.subBtn = first ? first.textContent.trim() : '';
+    res.manage = (page() ? page().textContent : '').indexOf('на сайті') >= 0;
+    if (first){ first.click(); await wait(700); }             /* екран підписки */
+    var top = page();
+    var txt = top ? top.textContent : '';
+    res.site = txt.indexOf('pro-trainer.pro') >= 0;
+    res.paid = txt.indexOf('Я вже оплатив') >= 0;
+    res.plans = top ? top.querySelectorAll('.plan').length : -1;
+    res.buy = txt.indexOf('Продовжити') >= 0 || txt.indexOf('Активувати у WEB') >= 0;
+    res.links = top ? top.querySelectorAll('a[href]').length : -1;
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
 PROBES['app-boot.js'] = `
   var say = function(s){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = s; document.body.appendChild(p); };
   setTimeout(function(){
@@ -535,6 +572,26 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('борг зменшився, але не зник', o.after && o.before && Number(o.after) < Number(o.before) && Number(o.after) > 0,
        o.before + ' → ' + o.after);
     ok('помилок немає', !o.err, o.err || '—');
+
+    part('збірка для магазину не продає');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?free=1&probe=app-free.js')) || '{}');
+    ok('екран підписки відкривається', o.subPage === true);
+    ok('кнопка веде до перевірки, а не до покупки', o.subBtn === 'Перевірити підписку', o.subBtn);
+    ok('посилання на кабінет немає', o.manage === false);
+    ok('видно, де оформити підписку', o.site === true);
+    ok('є чим підтвердити оплату', o.paid === true);
+    ok('планів для покупки не показуємо', o.plans === 0, o.plans + ' шт.');
+    ok('кнопок покупки немає', o.buy === false);
+    ok('посилань назовні немає', o.links === 0, o.links + ' шт.');
+    ok('помилок немає', !o.err, o.err || '—');
+
+    /* Зворотна перевірка: без прапорця той самий екран продає. Інакше
+       випадково увімкнений прапорець прибрав би покупку скрізь, і всі
+       перевірки вище лишились би зеленими. */
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-free.js')) || '{}');
+    ok('без прапорця плани на місці', o.plans === 3, o.plans + ' шт.');
+    ok('без прапорця кнопка покупки є', o.buy === true);
+    ok('без прапорця кнопка веде до вибору плану', o.subBtn === 'Обрати план', o.subBtn);
 
     part('сторінка після оплати');
     ok('відкривається', (await dom('http://127.0.0.1:' + PORT + '/paid.html')).includes('PRO Trainer'));

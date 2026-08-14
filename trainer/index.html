@@ -1101,6 +1101,11 @@ const PHRASES = [
   ['Клієнти та розклад разом', 'Клиенты и расписание вместе', 'Clients and schedule together', 'Klienci i grafik w jednym miejscu'],
   ['Не вдалося зберегти файл', 'Не удалось сохранить файл', 'Could not save the file', 'Nie udało się zapisać pliku'],
   ['Пробний період завершено', 'Пробный период завершён', 'Your free trial has ended', 'Okres próbny zakończony'],
+  ['Підписка неактивна', 'Подписка неактивна', 'Subscription inactive', 'Subskrypcja nieaktywna'],
+  ['Перевірити підписку', 'Проверить подписку', 'Check subscription', 'Sprawdź subskrypcję'],
+  ['Підписка оформлюється в особистому кабінеті', 'Подписка оформляется в личном кабинете', 'Subscriptions are managed in your account area', 'Subskrypcję wykupisz w panelu konta'],
+  ['Усі ваші клієнти, тренування та фінансові дані збережені й чекають на вас.', 'Все ваши клиенты, тренировки и финансовые данные сохранены и ждут вас.', 'All your clients, sessions and financial data are saved and waiting for you.', 'Wszyscy klienci, treningi i dane finansowe są zapisane i czekają.'],
+  ['Після оплати увійдіть тим самим логіном — доступ відкриється сам.', 'После оплаты войдите тем же логином — доступ откроется сам.', 'After paying, sign in with the same login — access opens by itself.', 'Po opłaceniu zaloguj się tym samym loginem — dostęp otworzy się sam.'],
   ['Спочатку оберіть клієнта', 'Сначала выберите клиента', 'Choose a client first', 'Najpierw wybierz klienta'],
   ['Тренування по днях тижня', 'Тренировки по дням недели', 'Sessions by weekday', 'Treningi wg dni tygodnia'],
   ['Фото завелике — до 12 МБ', 'Фото слишком большое — до 12 МБ', 'Photo is too large — up to 12 MB', 'Zdjęcie za duże — do 12 MB'],
@@ -1756,6 +1761,24 @@ const planTitle = p => t('plan.' + p.id, p.title);
 const planBadge = p => (p.badge ? t('plan.badge.' + p.id, p.badge) : '');
 const usd = v => '$' + Number(v).toFixed(2);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ─── що застосунок продає ───
+   Збірка для магазинів нічого не продає всередині: підписку людина
+   оформлює на сайті, а застосунок лише впускає її за вже сплаченим
+   логіном. Так гроші йдуть від клієнта напряму, без комісії магазину.
+
+   Правило Apple при цьому жорстке: якщо покупки всередині немає, у
+   застосунку не має бути жодної кнопки чи посилання, яке веде на
+   оплату. Тому прапорець прибирає не тільки покупку, а й усі виходи
+   назовні — на /pay і на особистий кабінет.
+
+   Ставить його збирач нативної оболонки (native/scripts/sync-web.js).
+   У вебі прапорця немає ніколи: там сайт і продає. */
+const STORE = {
+  free(){ return typeof window !== 'undefined' && window.PRO_TRAINER_FREE === true; },
+  /* чи можна показати кнопку, яка веде на оплату */
+  sells(){ return !STORE.free(); },
+};
 
 /* ─── міст до магазину ───
    Реальні покупки живуть у нативній оболонці: StoreKit 2 (iOS) або
@@ -7160,7 +7183,52 @@ const Paywall = ({mode, onClose}) => {
   }
 
   const expired = acc.kind === 'TRIAL_EXPIRED';
-  const body = (
+
+  /* Збірка для магазину нічого не продає: показуємо, де оформити
+     підписку, і даємо перевірити оплату. Адреса тут — звичайний текст,
+     а не посилання: за правилами Apple вести звідси на оплату не можна. */
+  const site = (WEB.base || '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  const gate = (
+      <Fragment>
+        <div className="dsp" style={{fontSize:26, fontWeight:800, letterSpacing:'-.035em'}}>
+          {expired ? t('pay.gate.title','Пробний період завершено')
+                   : acc.kind === 'SUBSCRIPTION_EXPIRED' ? t('pay.sub.expired','Підписка завершилась')
+                   : t('pay.free.title','Підписка неактивна')}
+        </div>
+        <p className="muted" style={{fontSize:14, marginTop:8, lineHeight:1.5}}>
+          {t('pay.free.sub','Усі ваші клієнти, тренування та фінансові дані збережені й чекають на вас.')}
+        </p>
+
+        <div className="card pad" style={{marginTop:16}}>
+          <div style={{fontSize:14.5, lineHeight:1.5}}>
+            {t('pay.free.where','Підписка оформлюється в особистому кабінеті')}
+          </div>
+          <div style={{fontSize:17, fontWeight:800, letterSpacing:'-.02em', color:'var(--accent)', marginTop:6}}>
+            {site}
+          </div>
+        </div>
+
+        {err && (
+          <div className="card pad" style={{marginTop:12, borderColor:'var(--neg)'}}>
+            <b style={{fontSize:14.5, color:'var(--neg)'}}>{err}</b>
+          </div>
+        )}
+
+        <Btn kind="pri" size="lg" wide style={{marginTop:14}} onClick={checkWeb} disabled={busy}>
+          {busy ? t('pay.web.checking','Перевіряємо оплату…') : t('pay.web.done','Я вже оплатив')}
+        </Btn>
+
+        <div className="muted" style={{fontSize:11.5, textAlign:'center', marginTop:10, lineHeight:1.5}}>
+          {t('pay.free.note','Після оплати увійдіть тим самим логіном — доступ відкриється сам.')}
+        </div>
+        <div style={{display:'flex', gap:16, justifyContent:'center', marginTop:8}}>
+          <button className="link" style={{fontSize:12.5}} onClick={() => go('terms')}>{t('legal.terms','Умови використання')}</button>
+          <button className="link" style={{fontSize:12.5}} onClick={() => go('privacy')}>{t('legal.privacy','Політика конфіденційності')}</button>
+        </div>
+      </Fragment>
+  );
+
+  const body = STORE.free() ? gate : (
     <Fragment>
       <div className="dsp" style={{fontSize:26, fontWeight:800, letterSpacing:'-.035em'}}>
         {expired ? t('pay.gate.title','Пробний період завершено')
@@ -7275,9 +7343,12 @@ const Subscription = ({onClose}) => {
 
       <div className="stack" style={{marginTop:12}}>
         <Btn kind="pri" wide onClick={() => nav.go('plans')}>
-          {active ? t('sub.change','Змінити план') : t('pay.choose','Обрати план')}
+          {STORE.free() ? t('pay.free.check','Перевірити підписку')
+            : active ? t('sub.change','Змінити план') : t('pay.choose','Обрати план')}
         </Btn>
-        {active && web && (
+        {/* у безкоштовній збірці кнопки назовні немає: посилання на кабінет
+            веде туди, де продають, а це заборонено правилами Apple */}
+        {active && web && STORE.sells() && (
           <Btn kind="sec" wide onClick={() => Web.open(Web.accountUrl())}>
             <Ic.globe size={18}/>{t('sub.manage.web','Керувати підпискою на сайті')}
           </Btn>
@@ -7292,12 +7363,15 @@ const Subscription = ({onClose}) => {
             {t('sub.resume','Увімкнути автопродовження')}
           </Btn>
         )}
-        <Btn kind="sec" wide disabled={busy} onClick={async () => {
-          setBusy(true);
-          const r = await Access.restore();
-          setBusy(false);
-          Toaster[r.ok ? 'ok' : 'bad'](r.ok ? t('pay.restored','Покупку відновлено') : t('pay.norestore','Активних покупок не знайшли'));
-        }}>{t('pay.restore','Відновити покупку')}</Btn>
+        {/* відновлювати нічого: покупок у магазині ця збірка не робить */}
+        {STORE.sells() && (
+          <Btn kind="sec" wide disabled={busy} onClick={async () => {
+            setBusy(true);
+            const r = await Access.restore();
+            setBusy(false);
+            Toaster[r.ok ? 'ok' : 'bad'](r.ok ? t('pay.restored','Покупку відновлено') : t('pay.norestore','Активних покупок не знайшли'));
+          }}>{t('pay.restore','Відновити покупку')}</Btn>
+        )}
       </div>
 
       <div className="muted" style={{fontSize:12, marginTop:16, lineHeight:1.5}}>
