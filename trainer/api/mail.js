@@ -83,6 +83,19 @@ const TEXT = {
     bye:      'Jeśli nie korzystasz z PRO Trainer, po prostu zignoruj tę wiadomość.',
   },
 };
+/* Лист із кодом для відновлення пароля. Окремо від нагадувань: у нього
+   інша робота — доставити шість цифр так, щоб їх було видно одразу. */
+const CODE = {
+  uk: {subj: 'Код для входу в PRO Trainer', hi: 'Вітаємо!',
+       body: 'Ваш код для відновлення пароля:', tail: 'Код діє 15 хвилин. Якщо ви його не замовляли — просто не відповідайте на цей лист, пароль лишиться попереднім.'},
+  ru: {subj: 'Код для входа в PRO Trainer', hi: 'Здравствуйте!',
+       body: 'Ваш код для восстановления пароля:', tail: 'Код действует 15 минут. Если вы его не запрашивали — просто не отвечайте на это письмо, пароль останется прежним.'},
+  en: {subj: 'Your PRO Trainer sign-in code', hi: 'Hello!',
+       body: 'Your password recovery code:', tail: 'The code is valid for 15 minutes. If you didn’t request it, ignore this email — your password stays as it is.'},
+  pl: {subj: 'Kod logowania do PRO Trainer', hi: 'Dzień dobry!',
+       body: 'Twój kod do odzyskania hasła:', tail: 'Kod jest ważny 15 minut. Jeśli go nie zamawiałeś, zignoruj tę wiadomość — hasło pozostanie bez zmian.'},
+};
+
 const lang = l => (TEXT[l] ? l : 'uk');
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -110,6 +123,20 @@ function letter(kind, login, l){
     '<p style="margin:0;color:#8C8C9C;font-size:13px">' + esc(t.bye) + '</p>' +
     '</div>';
   return {subject, text, html, url};
+}
+
+function codeLetter(code, l){
+  const t = CODE[CODE[l] ? l : 'uk'];
+  const text = [t.hi, '', t.body, '', code, '', t.tail].join('\n');
+  const html =
+    '<div style="font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#12121A;max-width:520px">' +
+    '<p style="margin:0 0 14px">' + esc(t.hi) + '</p>' +
+    '<p style="margin:0 0 12px">' + esc(t.body) + '</p>' +
+    '<p style="margin:0 0 18px;font:800 34px/1.2 -apple-system,Segoe UI,Roboto,sans-serif;' +
+      'letter-spacing:.12em;color:#6B4DFF">' + esc(code) + '</p>' +
+    '<p style="margin:0;color:#8C8C9C;font-size:13px">' + esc(t.tail) + '</p>' +
+    '</div>';
+  return {subject: t.subj, text, html};
 }
 
 /* Відправка. Винесена окремо й береться через module.exports — так
@@ -193,6 +220,8 @@ module.exports = async function handler(req, res){
 
 module.exports.deliver = deliver;
 module.exports.letter = letter;
+module.exports.codeLetter = codeLetter;
+module.exports.CODE = CODE;
 module.exports.one = one;
 module.exports.due = due;
 module.exports.TEXT = TEXT;

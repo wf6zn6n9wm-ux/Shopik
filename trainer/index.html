@@ -1104,6 +1104,20 @@ const PHRASES = [
   ['Підписка неактивна', 'Подписка неактивна', 'Subscription inactive', 'Subskrypcja nieaktywna'],
   ['Перейти до оплати', 'Перейти к оплате', 'Go to payment', 'Przejdź do płatności'],
   ['Вийти', 'Выйти', 'Sign out', 'Wyloguj się'],
+  ['Забули пароль?', 'Забыли пароль?', 'Forgot your password?', 'Nie pamiętasz hasła?'],
+  ['Код із листа', 'Код из письма', 'Code from the email', 'Kod z e-maila'],
+  ['Підтвердити код', 'Подтвердить код', 'Confirm code', 'Potwierdź kod'],
+  ['Зберегти пароль', 'Сохранить пароль', 'Save password', 'Zapisz hasło'],
+  ['Пароль змінено', 'Пароль изменён', 'Password changed', 'Hasło zmienione'],
+  ['Код — шість цифр', 'Код — шесть цифр', 'The code has six digits', 'Kod ma sześć cyfr'],
+  ['Код не підходить', 'Код не подходит', 'That code is wrong', 'Kod jest nieprawidłowy'],
+  ['Код застарів — замовте новий', 'Код устарел — закажите новый', 'The code has expired — request a new one', 'Kod wygasł — zamów nowy'],
+  ['Забагато спроб — замовте новий код', 'Слишком много попыток — закажите новый код', 'Too many attempts — request a new code', 'Za dużo prób — zamów nowy kod'],
+  ['Придумайте новий пароль для цього кабінету', 'Придумайте новый пароль для этого кабинета', 'Choose a new password for this account', 'Wymyśl nowe hasło do tego konta'],
+  ['Код уже надіслано. Наступний можна замовити за хвилину', 'Код уже отправлен. Следующий можно заказать через минуту', 'A code has already been sent. You can request another in a minute', 'Kod już wysłany. Kolejny możesz zamówić za minutę'],
+  ['Лист із кодом пішов. Перевірте пошту, зокрема теку «Спам»', 'Письмо с кодом отправлено. Проверьте почту, в том числе папку «Спам»', 'The code is on its way. Check your inbox, including the spam folder', 'Wiadomość z kodem wysłana. Sprawdź skrzynkę, także folder spam'],
+  ['Не вдалося надіслати лист. Спробуйте пізніше або напишіть у підтримку', 'Не удалось отправить письмо. Попробуйте позже или напишите в поддержку', 'We could not send the email. Try later or contact support', 'Nie udało się wysłać e-maila. Spróbuj później lub napisz do wsparcia'],
+  ['Відновлення працює тільки для пошти. Якщо кабінет на номер — напишіть у підтримку', 'Восстановление работает только для почты. Если кабинет на номер — напишите в поддержку', 'Recovery works for email logins only. If your account uses a phone number, contact support', 'Odzyskiwanie działa tylko dla e-maila. Jeśli konto jest na numer, napisz do wsparcia'],
   ['Вийти з акаунта', 'Выйти из аккаунта', 'Sign out of your account', 'Wyloguj się z konta'],
   ['Вийти з акаунта?', 'Выйти из аккаунта?', 'Sign out of your account?', 'Wylogować się z konta?'],
   ['Дані лишаться на пристрої — просто увійдіть знову', 'Данные останутся на устройстве — просто войдите снова', 'Your data stays on this device — just sign in again', 'Dane zostaną na urządzeniu — po prostu zaloguj się ponownie'],
@@ -1256,7 +1270,7 @@ const PHRASES = [
   ['Ці числа підставлятимуться в кожне тренування. Змінити можна будь-коли в профілі.', 'Эти числа будут подставляться в каждую тренировку. Изменить можно когда угодно в профиле.', 'These numbers prefill every session. You can change them anytime in the profile.', 'Te liczby będą wstawiane do każdego treningu. Zmienisz je kiedykolwiek w profilu.'],
   ['Разом із ним зникнуть його тренування, продажі та нотатки. Дію не можна скасувати.', 'Вместе с ним исчезнут его тренировки, продажи и заметки. Действие нельзя отменить.', 'Their sessions, sales and notes will be deleted too. This can’t be undone.', 'Razem z nim znikną jego treningi, sprzedaż i notatki. Tej akcji nie można cofnąć.'],
   ['{name}, привіт! Підкажіть, коли зручно закрити оплату за минулі тренування ({sum})?', '{name}, привет! Подскажите, когда удобно закрыть оплату за прошлые тренировки ({sum})?', 'Hi {name}! When would it be convenient to settle payment for your past sessions ({sum})?', 'Cześć {name}! Kiedy będzie Ci wygodnie uregulować płatność za poprzednie treningi ({sum})?'],
-  ['Достатньо пошти або номера — жодних кодів і підтверджень. Пароль можна не вигадувати.', 'Достаточно почты или номера — никаких кодов и подтверждений. Пароль можно не придумывать.', 'Just an email or phone — no codes, no confirmations. A password is optional.', 'Wystarczy e-mail lub numer — bez kodów i potwierdzeń. Hasło jest opcjonalne.'],
+  ['Достатньо пошти або номера — жодних кодів і підтверджень. Пароль знадобиться, щоб відкрити кабінет.', 'Достаточно почты или номера — никаких кодов и подтверждений. Пароль понадобится, чтобы открыть кабинет.', 'Just an email or phone — no codes, no confirmations. You will need a password to open your account.', 'Wystarczy e-mail lub numer — bez kodów i potwierdzeń. Hasło będzie potrzebne, aby otworzyć konto.'],
   ['Записуйте ваги, самопочуття, побажання — усе, що знадобиться на наступному тренуванні.', 'Записывайте веса, самочувствие, пожелания — всё, что понадобится на следующей тренировке.', 'Note weights, how they felt, requests — anything useful for the next session.', 'Zapisuj ciężary, samopoczucie, życzenia — wszystko, co przyda się na kolejnym treningu.'],
   ['8 клієнтів, історія за 2 місяці, товари й абонементи. Все можна видалити одним дотиком.', '8 клиентов, история за 2 месяца, товары и абонементы. Всё можно удалить одним касанием.', '8 clients, 2 months of history, products and packages. All removable in one tap.', '8 klientów, historia z 2 miesięcy, towary i karnety. Wszystko usuniesz jednym dotknięciem.'],
   ['Нічого не спишеться автоматично: план ви оберете самі, коли пробний період завершиться.', 'Ничего не спишется автоматически: план вы выберете сами, когда пробный период закончится.', 'Nothing is charged automatically: you pick a plan yourself when the trial ends.', 'Nic nie zostanie pobrane automatycznie: plan wybierzesz sam, gdy okres próbny się skończy.'],
@@ -1916,6 +1930,20 @@ const Web = {
   trial(start){ return Web.ask('/api/trial', start ? {start: '1', lang: I18n.get()} : null); },
   /* прив'язати цей пристрій до вже оплаченої підписки */
   claim(){ return Web.ask('/api/claim'); },
+  /* Відновлення пароля. Логін передаємо явно: людина його щойно ввела, а
+     в пам'яті пристрою лежить той, під яким заходили востаннє. */
+  async at(path, params){
+    const base = Web.base();
+    if (!base) return {ok:false, error:'web_disabled'};
+    try {
+      const r = await fetch(base + path + '?' + new URLSearchParams(params),
+                            {headers:{'accept':'application/json'}});
+      const j = await r.json().catch(() => null);
+      return j || {ok:false, error:'http_' + r.status};
+    } catch (e){ return {ok:false, error:'network'}; }
+  },
+  sendCode(login){ return Web.at('/api/reset', {login, lang: I18n.get()}); },
+  checkCode(login, code){ return Web.at('/api/reset', {login, code}); },
 };
 
 /* ─── нагадування ───
@@ -3533,8 +3561,15 @@ const carryAccess = (prev, login, access) =>
 const Auth = ({onReady, save}) => {
   const [mode, setMode] = useState('reg');       // reg | login
   const [f, setF] = useState({login:'', pass:''});
-  const [protect, setProtect] = useState(false); // пароль — за бажанням
+  /* Пароль обов'язковий: у кабінеті лежить база клієнтів із телефонами
+     та грошима, і залишати її відкритою кожному, хто взяв телефон у
+     руки, не можна. */
+  const protect = mode === 'reg';
   const [askPass, setAskPass] = useState(false); // на вході, якщо кабінет захищений
+  /* відновлення пароля: null → крок коду → крок нового пароля */
+  const [lost, setLost] = useState(null);        // null | 'code' | 'new'
+  const [code, setCode] = useState('');
+  const [note, setNote] = useState('');
   const [show, setShow] = useState(false);
   const [err, setErr] = useState({});
   const [busy, setBusy] = useState(false);
@@ -3543,6 +3578,43 @@ const Auth = ({onReady, save}) => {
 
   useEffect(() => { if (hasAcc && !save) setMode('login'); }, [hasAcc, save]);
   const set = (k, v) => { setF(x => ({...x, [k]: v})); setErr(x => ({...x, [k]: null})); };
+
+  /* ─── забутий пароль ───
+     Сервер пароля не знає й не зберігає: він лише підтверджує, що
+     скринька ваша. Новий пароль задається тут, на пристрої. */
+  async function sendCode(){
+    const login = f.login.trim();
+    if (!isEmail(login)) return setErr({login: t('auth.err.mailonly','Відновлення працює тільки для пошти. Якщо кабінет на номер — напишіть у підтримку')});
+    setErr({}); setNote(''); setBusy(true);
+    const r = await Web.sendCode(login);
+    setBusy(false);
+    if (r.ok && r.sent){ setLost('code'); setNote(t('auth.sent','Лист із кодом пішов. Перевірте пошту, зокрема теку «Спам»')); return; }
+    setErr({login: r.error === 'too_soon'
+      ? t('auth.err.soon','Код уже надіслано. Наступний можна замовити за хвилину')
+      : t('auth.err.mail','Не вдалося надіслати лист. Спробуйте пізніше або напишіть у підтримку')});
+  }
+  async function checkCode(){
+    if (code.trim().length !== 6) return setErr({code: t('auth.err.code6','Код — шість цифр')});
+    setErr({}); setBusy(true);
+    const r = await Web.checkCode(f.login.trim(), code.trim());
+    setBusy(false);
+    if (r.verified){ setLost('new'); setNote(t('auth.new.hint','Придумайте новий пароль для цього кабінету')); return; }
+    setErr({code: r.error === 'expired' ? t('auth.err.old','Код застарів — замовте новий')
+          : r.error === 'too_many' ? t('auth.err.many','Забагато спроб — замовте новий код')
+          : t('auth.err.codebad','Код не підходить')});
+  }
+  async function setNewPass(){
+    if (f.pass.length < 4) return setErr({pass: t('auth.err.pass','Пароль — від 4 символів')});
+    setBusy(true);
+    const meta = Disk.readMeta() || {};
+    const salt = meta.salt || b64(crypto.getRandomValues(new Uint8Array(16)));
+    const hash = await Vault.hash(f.pass, salt);
+    const account = {...meta.account, hash};
+    Disk.writeMeta({...meta, salt, account});
+    setBusy(false);
+    Toaster.ok(t('auth.done','Пароль змінено'));
+    onReady({account, fresh:false});
+  }
 
   async function submit(){
     const e = {};
@@ -3581,7 +3653,7 @@ const Auth = ({onReady, save}) => {
   const title = save ? t('auth.save','Зберегти дані')
               : mode === 'reg' ? t('auth.reg','Створити кабінет') : t('auth.login','З поверненням');
   const sub = save ? t('auth.save.sub','Кабінет прив’яжеться до вашої пошти або номера — дані з демо залишаться на місці.')
-            : mode === 'reg' ? t('auth.reg.sub','Достатньо пошти або номера — жодних кодів і підтверджень. Пароль можна не вигадувати.')
+            : mode === 'reg' ? t('auth.reg.sub','Достатньо пошти або номера — жодних кодів і підтверджень. Пароль знадобиться, щоб відкрити кабінет.')
             : t('auth.login.sub','Введіть логін, з яким створювали кабінет.');
 
   return (
@@ -3597,7 +3669,7 @@ const Auth = ({onReady, save}) => {
                  autoCapitalize="off" autoCorrect="off" spellCheck="false" bad={!!err.login}/>
         </Field>
 
-        {(protect || askPass) && (
+        {(protect || askPass || lost === 'new') && lost !== 'code' && (
           <Field label={t('auth.pass','Пароль')} hint={err.pass || (protect ? t('auth.pass.hint','Мінімум 4 символи. Знадобиться лише щоб відкрити кабінет на цьому пристрої.') : null)} bad={!!err.pass}>
             <Input value={f.pass} onChange={e => set('pass', e.target.value)} autoFocus
                    type={show ? 'text' : 'password'} placeholder="••••" bad={!!err.pass}
@@ -3608,24 +3680,43 @@ const Auth = ({onReady, save}) => {
           </Field>
         )}
 
-        {mode === 'reg' && !protect && (
-          <button className="btn ghost sm" style={{marginTop:10, paddingLeft:0}} onClick={() => setProtect(true)}>
-            <Ic.lock size={16}/>{t('auth.protect','Захистити паролем (не обов’язково)')}
+        {lost === 'code' && (
+          <Field label={t('auth.code','Код із листа')} hint={err.code} bad={!!err.code}>
+            <Input value={code} onChange={e => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setErr({}); }}
+                   inputMode="numeric" placeholder="123456" bad={!!err.code} autoFocus/>
+          </Field>
+        )}
+        {note && <p className="muted" style={{fontSize:13, marginTop:10, lineHeight:1.5}}>{note}</p>}
+
+        {/* Відновлення пропонуємо там, де воно потрібне: на кроці пароля */}
+        {mode === 'login' && askPass && !lost && (
+          <button className="btn ghost sm" style={{marginTop:10, paddingLeft:0}} onClick={sendCode} disabled={busy}>
+            <Ic.lock size={16}/>{t('auth.lost','Забули пароль?')}
           </button>
         )}
       </div>
 
       <div style={{marginTop:20}}>
-        <Btn kind="pri" size="lg" wide onClick={submit} disabled={busy}>
-          {busy ? t('auth.wait','Хвилинку…') : mode === 'reg' ? t('auth.go','Продовжити') : t('auth.enter','Увійти')}
+        <Btn kind="pri" size="lg" wide disabled={busy}
+             onClick={lost === 'code' ? checkCode : lost === 'new' ? setNewPass : submit}>
+          {busy ? t('auth.wait','Хвилинку…')
+            : lost === 'code' ? t('auth.code.go','Підтвердити код')
+            : lost === 'new' ? t('auth.new.go','Зберегти пароль')
+            : mode === 'reg' ? t('auth.go','Продовжити') : t('auth.enter','Увійти')}
         </Btn>
-        {!save && (
+        {lost && (
+          <button className="btn ghost wide" style={{marginTop:6}}
+                  onClick={() => { setLost(null); setCode(''); setNote(''); setErr({}); }}>
+            {t('common.cancel','Скасувати')}
+          </button>
+        )}
+        {!save && !lost && (
           <button className="btn ghost wide" style={{marginTop:6}}
                   onClick={() => { setErr({}); setAskPass(false); setMode(mode === 'reg' ? 'login' : 'reg'); }}>
             {mode === 'reg' ? t('auth.have','Вже є кабінет — увійти') : t('auth.no','Немає кабінету — створити')}
           </button>
         )}
-        {!hasAcc && !save && (
+        {!hasAcc && !save && !lost && (
           <button className="btn ghost wide" style={{color:'var(--ink-3)'}} onClick={() => onReady({account:null, fresh:true})}>
             {t('auth.guest','Спробувати без реєстрації')}
           </button>

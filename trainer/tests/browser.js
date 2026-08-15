@@ -300,6 +300,9 @@ const DRIVE = `
     for (var i = 0; i < 3; i++){ if (pri()){ pri().click(); await wait(120); } }
     var li = document.querySelector('.ob .inp');
     if (li){ type(li, 'trainer@mail.com'); await wait(120); }
+    /* пароль обов'язковий — поле з'являється поруч із логіном */
+    var ins = all('.ob .inp');
+    if (ins[1]){ type(ins[1], 'test1234'); await wait(120); }
     if (pri()){ pri().click(); await wait(300); }
     var nm = document.querySelector('.ob .inp');
     if (nm){ type(nm, 'Alex'); await wait(120); }

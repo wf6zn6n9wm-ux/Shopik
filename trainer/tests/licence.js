@@ -249,6 +249,54 @@ part('листи про кінець пробного');
   delete process.env.CRON_SECRET;
 }
 
+part('відновлення пароля');
+{
+  const RESET = API('reset.js');
+  const MAIL = API('mail.js');
+  const box = [];
+  const real = MAIL.deliver;
+  MAIL.deliver = async m => { box.push(m); return {ok: true}; };
+  const MAN = 'lost@mail.com';
+
+  const byPhone = await call(RESET, {query: {login: '0631112233'}});
+  ok('на телефон код не шлемо', byPhone.code === 400 && byPhone.json.error === 'not_email', String(byPhone.code));
+
+  const sent = await call(RESET, {query: {login: MAN, lang: 'ru'}});
+  ok('код надіслано', sent.code === 200 && sent.json.sent === true, JSON.stringify(sent.json));
+  ok('лист пішов саме на цю адресу', box.length === 1 && box[0].to === MAN);
+  ok('мова листа врахована', /Код для входа/.test(box[0].subject), box[0].subject);
+
+  const code = (await L.store.get(RESET.keyOf(MAN))).code;
+  ok('код — шість цифр', /^\d{6}$/.test(code), code);
+  ok('код є в листі', box[0].text.includes(code));
+
+  const again = await call(RESET, {query: {login: MAN}});
+  ok('другий код одразу не даємо', again.code === 429 && again.json.error === 'too_soon', String(again.code));
+
+  const wrong = await call(RESET, {query: {login: MAN, code: '000000'}});
+  ok('чужий код не підходить', wrong.json.verified === false && wrong.json.error === 'wrong');
+
+  const good = await call(RESET, {query: {login: MAN, code}});
+  ok('свій код підходить', good.json.verified === true);
+  const twice = await call(RESET, {query: {login: MAN, code}});
+  ok('той самий код удруге не працює', twice.json.verified === false, JSON.stringify(twice.json));
+
+  /* спроби рахуються: інакше шість цифр підбираються за вечір */
+  await L.store.set(RESET.keyOf(MAN), {code: '111111', exp: Date.now() + 60000, sentAt: 0, tries: RESET.TRIES});
+  const many = await call(RESET, {query: {login: MAN, code: '111111'}});
+  ok('після п’яти спроб код закривається', many.json.error === 'too_many', JSON.stringify(many.json));
+
+  await L.store.set(RESET.keyOf(MAN), {code: '222222', exp: Date.now() - 1, sentAt: 0, tries: 0});
+  const old = await call(RESET, {query: {login: MAN, code: '222222'}});
+  ok('прострочений код не працює', old.json.error === 'expired');
+
+  /* без поштового ключа не вдаємо, що лист пішов */
+  MAIL.deliver = real;
+  await L.store.set(RESET.keyOf(MAN), null);
+  const nokey = await call(RESET, {query: {login: MAN}});
+  ok('без пошти чесно кажемо про збій', nokey.code === 503, String(nokey.code));
+}
+
 part('видача підписки вручну');
 {
   const GRANT = API('grant.js');
