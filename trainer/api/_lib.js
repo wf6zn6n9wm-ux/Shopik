@@ -63,7 +63,12 @@ async function kv(){
   if (!kvPromise) kvPromise = import('@vercel/kv')
     .then(m => m.createClient({url: REST.url, token: REST.token}))
     .catch(() => null);
-  return kvPromise;
+  const client = await kvPromise;
+  /* Невдачу не запам'ятовуємо. Інакше один зірваний імпорт залишав би
+     цей екземпляр функції без сховища до кінця життя — і записи тихо
+     йшли б у пам'ять, звідки зникали б при наступному запуску. */
+  if (!client) kvPromise = null;
+  return client;
 }
 async function get(key){
   const k = await kv();
