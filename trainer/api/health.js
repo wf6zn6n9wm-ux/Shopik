@@ -28,6 +28,11 @@ module.exports = async function handler(req, res){
     /* лист про кінець пробного — єдине місце, де дозволено вести на
        оплату, тож мовчазно зламана пошта коштує дорого */
     mail: !!process.env.RESEND_API_KEY,
+    /* Імена змінних сховища — щоб не гадати, під яким префіксом його
+       підключили. Значень тут немає й бути не може: самі імена нічого
+       не відкривають, а без них «memory» доводиться відгадувати. */
+    storageEnv: Object.keys(process.env)
+      .filter(n => /^(KV_|UPSTASH_|REDIS_|STORAGE_)/.test(n)).sort(),
     base: L.ENV.base || '',
     ...(error ? {error} : {}),
   });
