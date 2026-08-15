@@ -137,6 +137,15 @@ const server = http.createServer(async (req, res) => {
     const file = path.join(ROOT, 'api', name + '.js');
     if (!fs.existsSync(file)){ res.writeHead(404); return res.end('no api'); }
     req.query = Object.fromEntries(url.searchParams);
+    /* Тіло запиту на Vercel розбирається саме; тут це доводиться робити
+       руками, інакше POST приходить порожнім — і копія бази «не
+       зберігалась» саме тому, а не через застосунок. */
+    if ((req.method || 'GET').toUpperCase() === 'POST'){
+      const chunks = [];
+      for await (const c of req) chunks.push(c);
+      const raw = Buffer.concat(chunks).toString('utf8');
+      try { req.body = raw ? JSON.parse(raw) : {}; } catch { req.body = {}; }
+    }
     res.status = code => { res.statusCode = code; return res; };
     res.send = body => res.end(body);
     try { await require(file)(req, res); }
@@ -197,7 +206,15 @@ const once = url => new Promise(resolve => {
    це буде видно, а не сховається за зеленим результатом. */
 /* Ознака вдалого запуску — підсумок проби. Там, де проби немає,
    вистачає будь-якої розмітки. */
-const done = (url, html) => url.includes('probe=') ? html.includes('id="__out"') : html.includes('<body');
+const done = (url, html) => {
+  if (!url.includes('probe=')) return html.includes('<body');
+  if (!html.includes('id="__out"')) return false;
+  /* Проби застосунку починаються зі входу. Якщо він не вдався, перевіряти
+     нема чого — краще повторити, ніж рахувати порожній екран за
+     результат. Позначку ставить enter(). */
+  const needsApp = url.includes('/_app.html') && !url.includes('probe=app-boot');
+  return needsApp ? html.includes('id="__entered"') : true;
+};
 
 /* Проба інколи не встигає: у headless віртуальний час не чекає ані
    обчислень, ані завантаженої машини, і сторінку вивантажує посеред
@@ -334,6 +351,22 @@ const DRIVE = `
   var say = function(o){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = JSON.stringify(o); document.body.appendChild(p); };
   window.addEventListener('error', function(e){ window.__err = String(e.message || e); });
 
+  /* Кроки, які є в кількох пробах. Скрізь чекаємо на появу потрібного,
+     а не на секунди: у headless фіксована пауза то завелика, то мала. */
+  async function menu(){
+    var b = document.querySelector('.appbar .iconbtn');
+    if (b) b.click();
+    await until(function(){ return all('.sheet .setrow').filter(vis).length > 5; }, 2500);
+    return all('.sheet .setrow').filter(vis);
+  }
+  async function openRow(rows, i){
+    var was = all('.page').length;
+    if (rows[i]) rows[i].click();
+    await until(function(){ return all('.page').length > was; }, 2500);
+    var p = all('.page');
+    return p[p.length - 1] || null;
+  }
+
   async function enter(){
     await wait(300);
     for (var i = 0; i < 3; i++){ if (pri()){ pri().click(); await wait(120); } }
@@ -354,6 +387,14 @@ const DRIVE = `
        скелет. Далі йдуть перевірки вмісту — виходимо звідси тільки коли
        скелета не лишилось. */
     await until(function(){ return !document.querySelector('.sk'); });
+    /* Позначка «вхід удався». Її шукає прогін: у headless крок інколи не
+       встигає, і без позначки проба мовчки перевіряла б порожній екран,
+       а так її просто повторять. */
+    if (all('.nav button').length){
+      var mark = document.createElement('i');
+      mark.id = '__entered';
+      document.body.appendChild(mark);
+    }
   }
 `;
 
@@ -462,6 +503,9 @@ PROBES['app-drive.js'] = DRIVE + `
     await enter();
     var nav = all('.nav button');
     var res = {tabs: nav.length, err: window.__err || ''};
+    /* якщо застосунок не відкрився — кажемо, на чому саме зупинились:
+       інакше «вкладок 0» нічого не пояснює */
+    if (!nav.length) res.screen = (document.getElementById('root').textContent || '').replace(/\\s+/g, ' ').slice(0, 90);
     res.home = (document.getElementById('root').textContent || '').indexOf('Дохід сьогодні') >= 0;
     /* календар */
     if (nav[1]){ nav[1].click(); await wait(400); }
@@ -526,6 +570,45 @@ PROBES['app-sheet.js'] = DRIVE + `
   })();
 `;
 
+/* Копія бази на сервері. Перевіряємо весь шлях: зашифрувати, покласти,
+   забрати, розшифрувати — і що без правильного ключа нічого не вийде. */
+PROBES['app-cloud.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await enter();
+    var login = Web.login();
+    res.login = login;
+
+    var put = await Cloud.push();
+    res.why = JSON.stringify(put);
+    res.saved = !!(put && put.ok);
+
+    /* сервер має знати, що копія є, і віддати сіль новому пристрою */
+    var seen = await Cloud.peek(login);
+    res.has = !!(seen && seen.has);
+    res.salt = !!(seen && seen.salt);
+
+    /* той самий пароль → той самий ключ → копія читається */
+    var good = await Vault.cloud('test1234', seen.salt);
+    var back = await Cloud.restore(login, good.token, good.key);
+    res.read = !!(back && back.ok);
+    if (back && back.ok){
+      try {
+        var db = JSON.parse(back.json);
+        res.clients = (db.clients || []).length;
+      } catch (e){ res.clients = -1; }
+    }
+
+    /* чужий пароль не відкриває нічого */
+    var bad = await Vault.cloud('inshiy-parol', seen.salt);
+    var nope = await Cloud.restore(login, bad.token, bad.key);
+    res.stranger = !!(nope && nope.ok);
+
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
 /* Вихід з акаунта. Останній крок — перезавантаження сторінки, і його
    пробі не пережити, тож перевіряємо все до нього: рядок на місці,
    питання ставиться, а позначка виходу справді лягає на диск. */
@@ -533,10 +616,8 @@ PROBES['app-signout.js'] = DRIVE + `
   (async function(){
     var res = {};
     await enter();
-    var burger = document.querySelector('.appbar .iconbtn');
-    if (burger){ burger.click(); await wait(350); }
-    var rows = all('.sheet .setrow').filter(vis);
-    if (rows[5]){ rows[5].click(); await wait(600); }         /* Налаштування */
+    var rows = await menu();
+    await openRow(rows, 5);                                   /* Налаштування */
     var out = all('.page .setrow').filter(function(b){
       return /Вийти з акаунта/.test(b.textContent);
     })[0];
@@ -564,10 +645,8 @@ PROBES['app-claim.js'] = DRIVE + `
   (async function(){
     var res = {};
     await enter();
-    var burger = document.querySelector('.appbar .iconbtn');
-    if (burger){ burger.click(); await wait(350); }
-    var rows = all('.sheet .setrow').filter(vis);
-    if (rows[7]){ rows[7].click(); await wait(600); }        /* Підписка */
+    var rows = await menu();
+    await openRow(rows, 7);                                   /* Підписка */
     var page = function(){ var p = all('.page'); return p[p.length - 1] || null; };
     var first = page() ? page().querySelectorAll('.btn.pri')[0] : null;
     if (first){ first.click(); await wait(700); }             /* екран підписки */
@@ -596,11 +675,9 @@ PROBES['app-free.js'] = DRIVE + `
   (async function(){
     var res = {};
     await enter();
-    var burger = document.querySelector('.appbar .iconbtn');
-    if (burger){ burger.click(); await wait(350); }
-    var rows = all('.sheet .setrow').filter(vis);
+    var rows = await menu();
     res.menu = rows.length;
-    if (rows[7]){ rows[7].click(); await wait(600); }        /* Підписка */
+    await openRow(rows, 7);                                   /* Підписка */
     /* екрани відкриваються один поверх одного, і попередній лишається в
        DOM — дивимось на верхній, інакше перевірки проходять вхолостую */
     var page = function(){ var p = all('.page'); return p[p.length - 1] || null; };
@@ -752,7 +829,7 @@ server.listen(PORT, '127.0.0.1', async () => {
     const driven = await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-drive.js');
     if (process.env.PEEK) require('fs').writeFileSync('/tmp/driven.html', driven);
     o = JSON.parse(out(driven) || '{}');
-    ok('онбординг, вхід і налаштування проходяться', o.tabs === 5, 'вкладок унизу: ' + o.tabs);
+    ok('онбординг, вхід і налаштування проходяться', o.tabs === 5, 'вкладок унизу: ' + o.tabs + (o.screen ? ' · ' + o.screen : ''));
     ok('на головній видно дохід', o.home === true);
     ok('календар малює години', o.cal > 0, o.cal + ' годин');
     ok('список клієнтів не порожній', o.clients > 0, o.clients + ' рядків');
@@ -809,6 +886,16 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('без прапорця плани на місці', o.plans === 3, o.plans + ' шт.');
     ok('без прапорця кнопка покупки є', o.buy === true);
     ok('без прапорця кнопка веде до вибору плану', o.subBtn === 'Обрати план', o.subBtn);
+
+    part('копія бази на сервері');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?cloud=1&probe=app-cloud.js')) || '{}');
+    ok('копія збереглась', o.saved === true, o.why || '');
+    ok('сервер знає, що копія є', o.has === true);
+    ok('сіль віддається новому пристрою', o.salt === true);
+    ok('своїм паролем копія читається', o.read === true);
+    ok('у копії ті самі клієнти', o.clients === 8, o.clients + ' шт.');
+    ok('чужим паролем не читається', o.stranger === false);
+    ok('помилок немає', !o.err, o.err || '—');
 
     part('вихід з акаунта');
     o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-signout.js')) || '{}');
