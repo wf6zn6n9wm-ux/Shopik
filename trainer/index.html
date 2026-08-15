@@ -7501,9 +7501,13 @@ const Subscription = ({onClose}) => {
         <div style={{marginTop:12}}>
           {plan && <Rowline k={t('sub.plan','План')} v={planTitle(plan) + ' · ' + usd(web ? plan.web : plan.price)}/>}
           {raw.plan && <Rowline k={t('sub.where','Оформлена')} v={web ? t('sub.where.web','на сайті') : t('sub.where.store','у магазині застосунків')}/>}
-          {acc.until && <Rowline k={active ? t('sub.until','Діє до') : t('sub.ended','Завершилась')} v={fmtDM(acc.until) + ' ' + new Date(acc.until).getFullYear()}/>}
+          {/* «Завершилась» про майбутню дату виглядало так, ніби доступ уже
+              зник: у чинного пробного періоду дата — це «діє до» */}
+          {acc.until && <Rowline k={active || acc.kind === 'TRIAL_ACTIVE' ? t('sub.until','Діє до') : t('sub.ended','Завершилась')}
+                                 v={fmtDM(acc.until) + ' ' + new Date(acc.until).getFullYear()}/>}
           {acc.kind === 'TRIAL_ACTIVE' && <Rowline k={t('sub.left','Залишилось')} v={nDays(acc.left)}/>}
-          <Rowline k={t('sub.renew','Автопродовження')} v={raw.autoRenew === false ? t('common.off','вимкнено') : t('common.on','увімкнено')}/>
+          {/* автопродовження буває лише в підписки: у пробного продовжувати нічого */}
+          {raw.plan && <Rowline k={t('sub.renew','Автопродовження')} v={raw.autoRenew === false ? t('common.off','вимкнено') : t('common.on','увімкнено')}/>}
         </div>
       </div>
 

@@ -565,7 +565,12 @@ PROBES['app-free.js'] = DRIVE + `
     res.subPage = !!page();
     var first = page() ? page().querySelectorAll('.btn.pri')[0] : null;
     res.subBtn = first ? first.textContent.trim() : '';
-    res.manage = (page() ? page().textContent : '').indexOf('на сайті') >= 0;
+    var subText = page() ? page().textContent : '';
+    res.manage = subText.indexOf('на сайті') >= 0;
+    /* у чинного пробного періоду дата попереду, і продовжувати нічого */
+    res.ends = subText.indexOf('Завершилась') >= 0;
+    res.till = subText.indexOf('Діє до') >= 0;
+    res.renew = subText.indexOf('Автопродовження') >= 0;
     if (first){ first.click(); await wait(700); }             /* екран підписки */
     var top = page();
     var txt = top ? top.textContent : '';
@@ -745,6 +750,9 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('екран підписки відкривається', o.subPage === true);
     ok('кнопка веде до перевірки, а не до покупки', o.subBtn === 'Перевірити підписку', o.subBtn);
     ok('посилання на кабінет немає', o.manage === false);
+    ok('дата пробного — «діє до», а не «завершилась»', o.till === true && o.ends === false,
+       JSON.stringify({till: o.till, ends: o.ends}));
+    ok('у пробного немає автопродовження', o.renew === false);
     ok('видно, де оформити підписку', o.site === true);
     ok('є чим підтвердити оплату', o.paid === true);
     ok('планів для покупки не показуємо', o.plans === 0, o.plans + ' шт.');
