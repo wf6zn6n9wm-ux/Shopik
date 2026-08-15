@@ -68,17 +68,56 @@ jobs:
     needs: tests
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    # Несколько коммитов подряд — это одна выкладка, а не три. Отменяем
+    # начатые: на сайт всё равно уедет последняя, а лимит они съедают все.
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: true
     # Заливаем корень репозитория, а не папку trainer: Root Directory в
     # проекте уже указывает на trainer, и если зайти туда самим, Vercel
     # ищет trainer/trainer и падает.
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # нужен предыдущий коммит, чтобы сравнить
+
+      # Тесты, скриншоты для магазинов и нативная оболочка на сайт не
+      # уезжают. Правка в них — не повод тратить выкладку: на бесплатном
+      # тарифе их 100 в сутки, и однажды мы упёрлись в лимит именно так.
+      - name: Проверить, менялось ли то, что уезжает на сайт
+        id: what
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -o pipefail
+          # Первый коммит в ветку или перезапись истории — сравнивать не с
+          # чем, выкладываем от греха.
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "нет предыдущего коммита — выкладываем"
+            echo "site=yes" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" -- trainer \
+            ':(exclude)trainer/tests/**' \
+            ':(exclude)trainer/store/**' \
+            ':(exclude)trainer/native/**' \
+            ':(exclude)trainer/README.md')
+          if [ -n "$changed" ]; then
+            echo "меняется сайт:"; echo "$changed"
+            echo "site=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "правки не доходят до сайта — выкладка не нужна"
+            echo "site=no" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/setup-node@v4
+        if: steps.what.outputs.site == 'yes'
         with:
           node-version: '22'
 
       - name: bun
+        if: steps.what.outputs.site == 'yes'
         run: |
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
@@ -88,9 +127,11 @@ jobs:
       # index.html в репозитории остаётся с JSX: его удобно открыть и
       # править без сборки.
       - name: Скомпилировать JSX
+        if: steps.what.outputs.site == 'yes'
         run: node trainer/build.js --in-place
 
       - name: Выложить на Vercel
+        if: steps.what.outputs.site == 'yes'
         env:
           TOKEN: ${{ secrets.VERCEL_TOKEN }}
           SCOPE: wf6zn6n9wm-uxs-projects
