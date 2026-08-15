@@ -666,6 +666,20 @@ part('доступ: міст до магазину');
      кнопка «Продовжити» видавала б підписку задарма кожному. Тому
      перевіряємо не тільки те, що демо працює вдома, а й те, що на
      чужому домені його немає. */
+  /* Підписка не переходить до нового кабінету, а пробний період — так.
+     Ловилось довго: на пристрої лишалась давня покупка, і новий логін
+     отримував її у спадок. */
+  {
+    const was = {trialStartedAt: 111, status: 'active', plan: 'quarterly', expiresAt: 999};
+    const other = T.carryAccess({login: 'a@mail.com'}, 'b@mail.com', was);
+    ok('чужому кабінету підписка не дістається', !other.plan && !other.status, JSON.stringify(other));
+    ok('пробний період лишається на пристрої', other.trialStartedAt === 111);
+    const same = T.carryAccess({login: 'a@mail.com'}, 'a@mail.com', was);
+    ok('свій кабінет підписку не втрачає', same.plan === 'quarterly');
+    const first = T.carryAccess(null, 'a@mail.com', undefined);
+    ok('перший кабінет нічого не ламає', first === undefined, String(first));
+  }
+
   const loc = ctx.window.location;                 /* повернемо як було */
   ctx.window.location = {hostname: 'pro-trainer.pro'};
   ok('на бойовому домені імітації покупки немає', !T.IAP.demoAllowed());

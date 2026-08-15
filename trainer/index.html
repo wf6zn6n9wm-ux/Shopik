@@ -3518,6 +3518,18 @@ const Onboarding = ({onDone}) => {
 };
 
 /* ─────────────────── 2. ВХІД / РЕЄСТРАЦІЯ ─────────────────── */
+/* Що дістається новому кабінету від попереднього.
+
+   Підписка належить кабінету, а не пристрою: інакше досить було б
+   вигадати новий логін, щоб отримати чужий оплачений доступ — або, як
+   сталось у нас, успадкувати давню тестову покупку й довго не розуміти,
+   звідки вона.
+
+   Пробний період — навпаки, прив'язаний до пристрою. Якби він теж
+   скидався, його починали б заново нескінченно, просто міняючи логін. */
+const carryAccess = (prev, login, access) =>
+  (prev && prev.login !== login) ? {trialStartedAt: (access || {}).trialStartedAt} : access;
+
 const Auth = ({onReady, save}) => {
   const [mode, setMode] = useState('reg');       // reg | login
   const [f, setF] = useState({login:'', pass:''});
@@ -3556,7 +3568,8 @@ const Auth = ({onReady, save}) => {
       } else {
         const account = {login: norm, raw: login, kind: isEmail(login) ? 'email' : 'phone',
                          hash, createdAt: Date.now()};
-        Disk.writeMeta({...meta, salt, account});
+        const access = carryAccess(meta.account, norm, meta.access);
+        Disk.writeMeta({...meta, salt, account, access});
         onReady({account, fresh:true});
       }
     } catch (ex){
