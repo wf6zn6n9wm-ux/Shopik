@@ -481,6 +481,36 @@ PROBES['app-sheet.js'] = DRIVE + `
   })();
 `;
 
+/* Вихід з акаунта. Останній крок — перезавантаження сторінки, і його
+   пробі не пережити, тож перевіряємо все до нього: рядок на місці,
+   питання ставиться, а позначка виходу справді лягає на диск. */
+PROBES['app-signout.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await enter();
+    var burger = document.querySelector('.appbar .iconbtn');
+    if (burger){ burger.click(); await wait(350); }
+    var rows = all('.sheet .setrow').filter(vis);
+    if (rows[5]){ rows[5].click(); await wait(600); }         /* Налаштування */
+    var out = all('.page .setrow').filter(function(b){
+      return /Вийти з акаунта/.test(b.textContent);
+    })[0];
+    res.row = !!out;
+    if (out){ out.click(); await wait(400); }
+    var sheet = all('.sheet').filter(vis).slice(-1)[0];
+    res.asks = !!(sheet && /Вийти з акаунта\\?/.test(sheet.textContent));
+    res.go = !!(sheet && sheet.querySelector('.btn.pri'));
+    /* сам вихід перевіряємо без натискання: інакше сторінка перезапуститься */
+    res.before = Disk.signedOut();
+    Disk.signOut();
+    res.after = Disk.signedOut();
+    Disk.signIn();
+    res.back = Disk.signedOut();
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
 /* Видана вручну підписка має відкриватися в застосунку. Саме так її
    побачить ревізор магазину: логін є, оплати не було, пристрій до
    підписки ще не прив'язаний. Раніше це робила кнопка «Відновити
@@ -726,6 +756,15 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('без прапорця плани на місці', o.plans === 3, o.plans + ' шт.');
     ok('без прапорця кнопка покупки є', o.buy === true);
     ok('без прапорця кнопка веде до вибору плану', o.subBtn === 'Обрати план', o.subBtn);
+
+    part('вихід з акаунта');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-signout.js')) || '{}');
+    ok('рядок «Вийти з акаунта» на місці', o.row === true);
+    ok('перепитує, перш ніж вийти', o.asks === true);
+    ok('є чим підтвердити', o.go === true);
+    ok('позначка виходу лягає й знімається', o.before === false && o.after === true && o.back === false,
+       JSON.stringify([o.before, o.after, o.back]));
+    ok('помилок немає', !o.err, o.err || '—');
 
     part('видана підписка відкривається в застосунку');
     /* підписка є, оплати не було, пристрій ще не прив'язаний — рівно те,

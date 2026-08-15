@@ -1103,6 +1103,11 @@ const PHRASES = [
   ['Пробний період завершено', 'Пробный период завершён', 'Your free trial has ended', 'Okres próbny zakończony'],
   ['Підписка неактивна', 'Подписка неактивна', 'Subscription inactive', 'Subskrypcja nieaktywna'],
   ['Перейти до оплати', 'Перейти к оплате', 'Go to payment', 'Przejdź do płatności'],
+  ['Вийти', 'Выйти', 'Sign out', 'Wyloguj się'],
+  ['Вийти з акаунта', 'Выйти из аккаунта', 'Sign out of your account', 'Wyloguj się z konta'],
+  ['Вийти з акаунта?', 'Выйти из аккаунта?', 'Sign out of your account?', 'Wylogować się z konta?'],
+  ['Дані лишаться на пристрої — просто увійдіть знову', 'Данные останутся на устройстве — просто войдите снова', 'Your data stays on this device — just sign in again', 'Dane zostaną na urządzeniu — po prostu zaloguj się ponownie'],
+  ['Клієнти, тренування й фінанси лишаться на цьому пристрої. Щоб повернутись до роботи, увійдіть тим самим логіном.', 'Клиенты, тренировки и финансы останутся на этом устройстве. Чтобы вернуться к работе, войдите тем же логином.', 'Your clients, sessions and finances stay on this device. Sign in with the same login to pick up where you left off.', 'Klienci, treningi i finanse zostaną na tym urządzeniu. Zaloguj się tym samym loginem, aby wrócić do pracy.'],
   ['Перевірити підписку', 'Проверить подписку', 'Check subscription', 'Sprawdź subskrypcję'],
   ['Підписка оформлюється в особистому кабінеті', 'Подписка оформляется в личном кабинете', 'Subscriptions are managed in your account area', 'Subskrypcję wykupisz w panelu konta'],
   ['Усі ваші клієнти, тренування та фінансові дані збережені й чекають на вас.', 'Все ваши клиенты, тренировки и финансовые данные сохранены и ждут вас.', 'All your clients, sessions and financial data are saved and waiting for you.', 'Wszyscy klienci, treningi i dane finansowe są zapisane i czekają.'],
@@ -1558,6 +1563,11 @@ const Disk = {
     Box.remove(KEY);
     Box.set(META_KEY, JSON.stringify({salt: m.salt, account: m.account, access: m.access, device: m.device}));
   },
+  /* Вихід — не стирання: акаунт і дані на місці, просто наступного разу
+     застосунок спитає логін. Позначку знімає вдалий вхід. */
+  signOut(){ const m = Disk.readMeta() || {}; Disk.writeMeta({...m, signedOut: true}); },
+  signedOut(){ return !!(Disk.readMeta() || {}).signedOut; },
+  signIn(){ const m = Disk.readMeta() || {}; delete m.signedOut; Disk.writeMeta(m); },
 };
 
 /* ─────────────────── віддати файл ───────────────────
@@ -6681,6 +6691,7 @@ const Settings = ({onClose}) => {
   const nav = useNav();
   const S = db.settings;
   const [wipe, setWipe] = useState(false);
+  const [bye, setBye] = useState(false);
   const [pinMode, setPinMode] = useState(null);       // set | confirm
   const [pin1, setPin1] = useState('');
   const [perm, setPerm] = useState(Notifier.permission());
@@ -6893,6 +6904,13 @@ const Settings = ({onClose}) => {
                      placeholder="https://api.example.com/sync" style={{marginTop:8, height:44}}/>
             </div>
           </div>
+          {/* Вихід — не те саме, що очищення: дані лишаються, просто
+              наступного разу застосунок спитає логін. Тому й стоїть
+              окремо, звичайним кольором, а не червоним. */}
+          <button className="setrow" onClick={() => setBye(true)}>
+            <div className="ic"><Ic.left size={19}/></div>
+            <div className="tx"><b>{t('set.bye','Вийти з акаунта')}</b><span>{t('set.bye.s','Дані лишаться на пристрої — просто увійдіть знову')}</span></div>
+          </button>
           <button className="setrow" onClick={() => setWipe(true)}>
             <div className="ic" style={{background:'var(--neg-soft)', color:'var(--neg)'}}><Ic.trash size={19}/></div>
             <div className="tx"><b style={{color:'var(--neg)'}}>{t('set.wipe','Очистити всі дані')}</b><span>{t('set.wipe.s','Видалить клієнтів, тренування та історію')}</span></div>
@@ -6925,6 +6943,14 @@ const Settings = ({onClose}) => {
           PRO Trainer · v1.0
         </div>
       </Page>
+
+      <Sheet open={bye} onClose={() => setBye(false)} title={t('set.bye.q','Вийти з акаунта?')}
+             sub={t('set.bye.t','Клієнти, тренування й фінанси лишаться на цьому пристрої. Щоб повернутись до роботи, увійдіть тим самим логіном.')}>
+        <div className="stack">
+          <Btn kind="pri" wide onClick={() => { Disk.signOut(); location.reload(); }}>{t('set.bye.go','Вийти')}</Btn>
+          <Btn kind="ghost" wide onClick={() => setBye(false)}>{t('common.cancel','Скасувати')}</Btn>
+        </div>
+      </Sheet>
 
       <Sheet open={wipe} onClose={() => setWipe(false)} title={t('set.wipe.q','Очистити всі дані?')}
              sub={t('set.wipe.t','Клієнти, тренування, продажі та налаштування зникнуть із цього пристрою. Радимо спершу зберегти резервну копію.')}>
@@ -7788,7 +7814,8 @@ const Boot = () => {
     db.clients = db.clients.map(c => ({birthday:'', price:null, ...c}));
     I18n.set(db.settings.lang);
     Store.init(db);
-    setPhase(db.onboarded ? 'app' : 'onboard');
+    /* після виходу з акаунта — знову екран входу, дані при цьому цілі */
+    setPhase(!db.onboarded ? 'onboard' : Disk.signedOut() ? 'auth' : 'app');
     /* фото з попередніх версій лежать нестиснутими — ужимаємо після того,
        як екран уже показався, щоб старт не чекав на canvas */
     setTimeout(() => { Photo.shrinkStored().catch(() => {}); }, 1200);
@@ -7822,7 +7849,14 @@ const Boot = () => {
   );
   if (phase === 'pin') return <PinLock mode="enter" onPin={unlock} error={pinErr}/>;
   if (phase === 'onboard') return <Onboarding onDone={() => setPhase('auth')}/>;
-  if (phase === 'auth') return <Auth onReady={r => { setAccount(r.account); setPhase('setup'); }}/>;
+  {/* новий кабінет веде до майстра налаштувань, а той, хто просто
+      повернувся після виходу, — одразу до роботи */}
+  if (phase === 'auth') return <Auth onReady={r => {
+    setAccount(r.account);
+    if (r.fresh) return setPhase('setup');
+    Disk.signIn();
+    setPhase('app');
+  }}/>;
   if (phase === 'setup') return (
     <Setup account={account} onDone={(settings, demo, acc, name) => {
       const phone = acc && acc.kind === 'phone' ? phoneMask(acc.login) : '';
