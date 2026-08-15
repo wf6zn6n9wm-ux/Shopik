@@ -46,6 +46,12 @@ const log = [];
 /* проби — маленькі скрипти, які клікають і пишуть підсумок у сторінку */
 const PROBES = {};
 
+/* Заміна, яка не вміє промахнутись мовчки. */
+const replaceOnce = (text, re, to, what) => {
+  if (!re.test(text)) throw new Error('не знайшов у зібраній сторінці: ' + what);
+  return text.replace(re, to);
+};
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1');
   log.push({path: url.pathname, query: Object.fromEntries(url.searchParams)});
@@ -60,6 +66,19 @@ const server = http.createServer(async (req, res) => {
                .replace(/<link rel="preconnect"[^>]*>\s*/g, '')
                .replace(/<link href="https:\/\/fonts\.googleapis\.com[^"]*"[^>]*>\s*/g, '')
                .replace('</head>', '<script src="/_test/react-mini.js"></script></head>');
+    /* Застосунок ходить на бойовий домен, бо WEB.base заданий явно — у
+       нативній оболонці інакше не можна. Для перевірки підміняємо його
+       на порожній: тоді запити йдуть на цей самий сервер, де живуть ті
+       самі серверні функції. Підміна тільки у виданій копії.
+
+       Лапки беремо будь-які: збирач зводить їх до подвійних, і пошук за
+       одинарними мовчки не спрацьовував — застосунок ходив у мережу, а
+       перевірка цього не бачила. Тому й падаємо, якщо не знайшли: німа
+       заміна тут гірша за помилку.
+       Робимо це лише там, де потрібні справжні запити: на інших екранах
+       адреса сайту показується людині, і підміна зіпсувала б перевірку. */
+    if (url.searchParams.get('local'))
+      html = replaceOnce(html, /base:\s*["']https:\/\/pro-trainer\.pro["']/, "base: ''", 'адреса сайту');
     /* free=1 — те саме, що робить збірка для магазину: прапорець прибирає
        покупку і всі виходи на оплату */
     if (url.searchParams.get('free'))
@@ -462,6 +481,38 @@ PROBES['app-sheet.js'] = DRIVE + `
   })();
 `;
 
+/* Видана вручну підписка має відкриватися в застосунку. Саме так її
+   побачить ревізор магазину: логін є, оплати не було, пристрій до
+   підписки ще не прив'язаний. Раніше це робила кнопка «Відновити
+   покупку», але в збірці для магазину її немає. */
+PROBES['app-claim.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await enter();
+    var burger = document.querySelector('.appbar .iconbtn');
+    if (burger){ burger.click(); await wait(350); }
+    var rows = all('.sheet .setrow').filter(vis);
+    if (rows[7]){ rows[7].click(); await wait(600); }        /* Підписка */
+    var page = function(){ var p = all('.page'); return p[p.length - 1] || null; };
+    var first = page() ? page().querySelectorAll('.btn.pri')[0] : null;
+    if (first){ first.click(); await wait(700); }             /* екран підписки */
+    var pay = page() ? page().querySelectorAll('.btn.pri')[0] : null;
+    res.button = pay ? pay.textContent.trim() : '';
+    if (pay){ pay.click(); }
+    /* Дивимось у #root, а не в body: у body лежить і текст самого
+       скрипта, а в ньому таблиця перекладів — разом із рядком, який ми
+       шукаємо. Перевірка на body проходила б завжди. */
+    var root = document.getElementById('root');
+    /* чекати довго тут не можна: у браузера бюджет віртуального часу
+       шість секунд, і проба просто не встигне сказати результат */
+    res.opened = await until(function(){
+      return (root.textContent || '').indexOf('Підписка активна') >= 0;
+    }, 1200);
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
 /* Збірка для магазину: усередині нічого не продається, і — головне —
    з екрана підписки нікуди не можна піти платити. Саме за посилання
    назовні Apple знімає застосунок із перевірки, тож перевіряємо не
@@ -675,6 +726,20 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('без прапорця плани на місці', o.plans === 3, o.plans + ' шт.');
     ok('без прапорця кнопка покупки є', o.buy === true);
     ok('без прапорця кнопка веде до вибору плану', o.subBtn === 'Обрати план', o.subBtn);
+
+    part('видана підписка відкривається в застосунку');
+    /* підписка є, оплати не було, пристрій ще не прив'язаний — рівно те,
+       що побачить ревізор магазину */
+    await L.writeLicence('trainer@mail.com', {
+      login: 'trainer@mail.com', plan: 'yearly', orderId: 'grant_test',
+      purchasedAt: Date.now(), paidAt: Date.now(),
+      expiresAt: Date.now() + 90 * 86400000,
+      autoRenew: false, devices: [], granted: true,
+    });
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?free=1&local=1&probe=app-claim.js')) || '{}');
+    ok('кнопка на місці', o.button === 'Я вже оплатив', o.button);
+    ok('доступ відкрився', o.opened === true);
+    ok('помилок немає', !o.err, o.err || '—');
 
     part('сторінка після оплати');
     ok('відкривається', (await dom('http://127.0.0.1:' + PORT + '/paid.html')).includes('PRO Trainer'));

@@ -7171,10 +7171,17 @@ const Paywall = ({mode, onClose}) => {
   }
   async function checkWeb(){
     setErr(''); setBusy(true);
-    const lic = await Web.licence();
+    let lic = await Web.licence();
+    /* Підписка є, але цей пристрій до неї ще не прив'язаний — прив'язуємо
+       тут же. Раніше це робила кнопка «Відновити покупку», але в збірці
+       для магазину її немає: без цього оплачений на сайті доступ не
+       відкрився б зовсім, скільки не натискай «Я вже оплатив». */
+    if (lic && !lic.active && lic.needsClaim) lic = await Web.claim();
     setBusy(false);
     if (lic && lic.active){ Access.fromWeb(lic); Toaster.ok(t('pay.ok','Підписка активна')); if (onClose) onClose(); }
-    else setErr(lic && lic.error === 'network'
+    else setErr(lic && lic.error === 'device_limit'
+      ? t('pay.web.limit','Підписка вже працює на іншому пристрої — звільніть місце на сайті')
+      : lic && lic.error === 'network'
       ? t('pay.web.net','Немає зв’язку із сервером — спробуйте ще раз')
       : t('pay.web.none','Оплати за цим логіном поки не видно'));
   }

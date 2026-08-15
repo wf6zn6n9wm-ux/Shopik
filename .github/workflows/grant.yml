@@ -1,0 +1,59 @@
+name: Выдать подписку
+
+# Кнопка, которая делает логин оплаченным, ничего не оплачивая.
+#
+# Зачем это нужно в первую очередь: приложение в магазинах ничего не
+# продаёт, и ревьюер без действующей подписки увидит только экран
+# «підписка неактивна» — и вернёт сборку, не посмотрев приложение. Ему
+# нужен логин, который уже работает.
+#
+# Дальше — обычная жизнь: у человека зависла оплата, знакомому тренеру
+# дать месяц посмотреть, себе проверить поведение с подпиской.
+#
+# Нужен секрет CRON_SECRET — тот же, что у рассылки писем.
+
+on:
+  workflow_dispatch:
+    inputs:
+      login:
+        description: 'Логин: почта или телефон, как в приложении'
+        required: true
+      months:
+        description: 'На сколько месяцев'
+        required: false
+        default: '12'
+      revoke:
+        description: 'Забрать подписку вместо выдачи'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  grant:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Выдать
+        env:
+          SECRET: ${{ secrets.CRON_SECRET }}
+          LOGIN: ${{ inputs.login }}
+          MONTHS: ${{ inputs.months }}
+          REVOKE: ${{ inputs.revoke }}
+        run: |
+          set -o pipefail
+          if [ -z "$SECRET" ]; then
+            echo '::error::CRON_SECRET не задан в секретах репозитория'
+            exit 1
+          fi
+          args=(--get --data-urlencode "login=$LOGIN" --data-urlencode "months=$MONTHS")
+          if [ "$REVOKE" = "true" ]; then args+=(--data-urlencode "revoke=1"); fi
+          code=$(curl -sS -o /tmp/out -w '%{http_code}' \
+            -H "authorization: Bearer $SECRET" "${args[@]}" \
+            https://pro-trainer.pro/api/grant)
+          echo "Ответ сервера: $code"
+          cat /tmp/out; echo
+          case "$code" in
+            200) echo "Готово. В приложении войдите этим логином и нажмите «Я вже оплатив»" ;;
+            401) echo '::error::Секрет не совпал: CRON_SECRET в Vercel и в GitHub должны быть одинаковыми'; exit 1 ;;
+            400) echo '::error::Логин не разобран — проверьте, что он такой же, как в приложении'; exit 1 ;;
+            *)   echo "::error::Неожиданный ответ $code"; exit 1 ;;
+          esac

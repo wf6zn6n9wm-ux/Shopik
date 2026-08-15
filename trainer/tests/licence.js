@@ -249,6 +249,41 @@ part('листи про кінець пробного');
   delete process.env.CRON_SECRET;
 }
 
+part('видача підписки вручну');
+{
+  const GRANT = API('grant.js');
+  process.env.CRON_SECRET = 'cron_test';
+  const cron = {authorization: 'Bearer cron_test'};
+  const REV = 'reviewer@apple.com', DEV = 'dev_review';
+
+  const stranger = await call(GRANT, {query: {login: REV}});
+  ok('без секрету не видаємо', stranger.code === 401, String(stranger.code));
+
+  const given = await call(GRANT, {query: {login: REV, months: '2'}, headers: cron});
+  ok('підписка видана', given.code === 200 && given.json.ok, JSON.stringify(given.json));
+  ok('строк порахований', given.json.until > new Date().toISOString().slice(0, 10), given.json.until);
+
+  /* Найважливіше: так її побачить ревізор магазину. Пристрій ще не
+     прив'язаний, і без цього кроку доступ не відкрився б. */
+  const seen = (await call(API('licence.js'), {query: {login: REV, device: DEV}})).json;
+  ok('спершу підписка є, але пристрій чужий', seen.active === false && seen.needsClaim === true,
+     JSON.stringify(seen));
+  const claimed = (await call(API('claim.js'), {query: {login: REV, device: DEV}})).json;
+  ok('після прив’язки доступ відкривається', claimed.active === true, JSON.stringify(claimed));
+
+  /* видача не з'їдає залишок: другий раз додає, а не переписує */
+  const again = await call(GRANT, {query: {login: REV, months: '1'}, headers: cron});
+  ok('друга видача продовжує, а не скорочує', again.json.until > given.json.until,
+     given.json.until + ' → ' + again.json.until);
+
+  const back = await call(GRANT, {query: {login: REV, revoke: '1'}, headers: cron});
+  ok('підписку можна забрати', back.json.revoked === true);
+  const after = (await call(API('licence.js'), {query: {login: REV, device: DEV}})).json;
+  ok('після цього доступу немає', after.active === false);
+
+  delete process.env.CRON_SECRET;
+}
+
 part('перевірка налаштувань');
 {
   const before = await call(API('health.js'));
