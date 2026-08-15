@@ -661,6 +661,19 @@ part('доступ: міст до магазину');
   ok('відновлення через міст', rr.ok && T.Access.read().productId === 'pro_trainer_yearly');
   delete ctx.window.ProTrainerIAP;
   ok('без моста повертаємось у демо-режим', !T.IAP.connected() && T.IAP.platform() === 'demo');
+
+  /* Найдорожча помилка тут — імітація покупки, яка доїхала до сайту:
+     кнопка «Продовжити» видавала б підписку задарма кожному. Тому
+     перевіряємо не тільки те, що демо працює вдома, а й те, що на
+     чужому домені його немає. */
+  const loc = ctx.window.location;                 /* повернемо як було */
+  ctx.window.location = {hostname: 'pro-trainer.pro'};
+  ok('на бойовому домені імітації покупки немає', !T.IAP.demoAllowed());
+  const denied = await T.IAP.buy('pro_trainer_yearly');
+  ok('покупка без магазину не проходить', !denied.ok && denied.error === 'no_store', JSON.stringify(denied));
+  ctx.window.location = {hostname: 'localhost'};
+  ok('локально демо лишається', T.IAP.demoAllowed());
+  ctx.window.location = loc;
 }
 
 const CH_Q = String.fromCharCode(34);

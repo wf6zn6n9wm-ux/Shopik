@@ -1102,6 +1102,7 @@ const PHRASES = [
   ['Не вдалося зберегти файл', 'Не удалось сохранить файл', 'Could not save the file', 'Nie udało się zapisać pliku'],
   ['Пробний період завершено', 'Пробный период завершён', 'Your free trial has ended', 'Okres próbny zakończony'],
   ['Підписка неактивна', 'Подписка неактивна', 'Subscription inactive', 'Subskrypcja nieaktywna'],
+  ['Перейти до оплати', 'Перейти к оплате', 'Go to payment', 'Przejdź do płatności'],
   ['Перевірити підписку', 'Проверить подписку', 'Check subscription', 'Sprawdź subskrypcję'],
   ['Підписка оформлюється в особистому кабінеті', 'Подписка оформляется в личном кабинете', 'Subscriptions are managed in your account area', 'Subskrypcję wykupisz w panelu konta'],
   ['Усі ваші клієнти, тренування та фінансові дані збережені й чекають на вас.', 'Все ваши клиенты, тренировки и финансовые данные сохранены и ждут вас.', 'All your clients, sessions and financial data are saved and waiting for you.', 'Wszyscy klienci, treningi i dane finansowe są zapisane i czekają.'],
@@ -1800,12 +1801,23 @@ const IAP = {
   platform(){ const b = IAP.bridge(); return b ? (b.platform || 'native') : 'demo'; },
   connected(){ return !!IAP.bridge(); },
   async status(){ const b = IAP.bridge(); return b && b.status ? b.status() : {ok:false}; },
+  /* Імітація покупки — інструмент розробки, і місце їй лише там.
+     На живому сайті магазину немає, тож без цієї перевірки кнопка
+     «Продовжити» видавала б підписку задарма кожному, хто її натисне.
+     Дозволяємо тільки локально або за явним прапорцем. */
+  demoAllowed(){
+    if (typeof window === 'undefined') return true;            /* перевірки в пісочниці */
+    if (window.PRO_TRAINER_DEMO === true) return true;
+    const h = (window.location && window.location.hostname) || '';
+    return h === 'localhost' || h === '127.0.0.1' || h === '';
+  },
   demo: {fail: false},
   demoRead(){ try { return JSON.parse(Box.get(DEMO_IAP_KEY) || 'null'); } catch { return null; } },
   demoWrite(v){ Box.set(DEMO_IAP_KEY, JSON.stringify(v)); },
   async buy(productId){
     const b = IAP.bridge();
     if (b) return b.buy(productId);
+    if (!IAP.demoAllowed()) return {ok:false, error:'no_store'};
     await sleep(600);
     if (IAP.demo.fail) return {ok:false, error:'payment_declined'};
     const rec = {productId, transactionId: 'demo_' + uid('tx'), ts: Date.now()};
@@ -7211,6 +7223,8 @@ const Paywall = ({mode, onClose}) => {
      підписку, і даємо перевірити оплату. Адреса тут — звичайний текст,
      а не посилання: за правилами Apple вести звідси на оплату не можна. */
   const site = (WEB.base || '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  /* чи є де купувати всередині: справжній магазин або дозволена імітація */
+  const store = IAP.connected() || IAP.demoAllowed();
   const gate = (
       <Fragment>
         <div className="dsp" style={{fontSize:26, fontWeight:800, letterSpacing:'-.035em'}}>
@@ -7276,10 +7290,18 @@ const Paywall = ({mode, onClose}) => {
       )}
       {okMsg && <div className="card pad" style={{marginTop:12}}>{okMsg}</div>}
 
-      <Btn kind="pri" size="lg" wide style={{marginTop:14}} onClick={buy} disabled={busy}>
-        {busy ? t('pay.wait','Обробляємо…') : err ? t('pay.retry','Спробувати ще раз') : t('pay.go','Продовжити')}
+      {/* На сайті магазину немає, і купувати нічим — головна кнопка веде
+          на оплату, а не імітує покупку. Інакше вона видавала б підписку
+          задарма кожному, хто її натисне. */}
+      <Btn kind="pri" size="lg" wide style={{marginTop:14}}
+           onClick={store ? buy : (webWait ? checkWeb : payWeb)} disabled={busy}>
+        {busy ? t('pay.wait','Обробляємо…')
+          : err ? t('pay.retry','Спробувати ще раз')
+          : store ? t('pay.go','Продовжити')
+          : webWait ? t('pay.web.done','Я вже оплатив')
+          : t('pay.web.pay','Перейти до оплати')}
       </Btn>
-      {Web.enabled() && (
+      {store && Web.enabled() && (
         <button className="btn sec wide webpay" style={{marginTop:8}} onClick={webWait ? checkWeb : payWeb} disabled={busy}>
           <Ic.globe size={18}/>
           <span>
@@ -7291,7 +7313,7 @@ const Paywall = ({mode, onClose}) => {
         </button>
       )}
       <button className="btn ghost wide" style={{marginTop:4}} onClick={restore} disabled={busy}>
-        {t('pay.restore','Відновити покупку')}
+        {store ? t('pay.restore','Відновити покупку') : t('pay.web.done','Я вже оплатив')}
       </button>
       <div className="muted" style={{fontSize:11.5, textAlign:'center', marginTop:10, lineHeight:1.5}}>
         {IAP.connected()
