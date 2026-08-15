@@ -17,7 +17,9 @@
    Змінні оточення (Vercel → Settings → Environment Variables):
      RESEND_API_KEY   ключ поштового сервісу; без нього нічого не шлеться
      MAIL_FROM        від кого, наприклад PRO Trainer <no-reply@…>
-     CRON_SECRET      Vercel сам підставляє його в заголовок для крону
+     CRON_SECRET      Vercel сам підставляє його в заголовок для крону.
+                      Той самий секрет лежить у GitHub — ним працює ручна
+                      відправка тестового листа (.github/workflows/mail-test.yml)
      PUBLIC_BASE_URL  https://pro-trainer.pro
 
    Поки ключа немає, ендпоінт працює й відповідає чесно: скільки листів
@@ -163,7 +165,21 @@ module.exports = async function handler(req, res){
   const allowed = secret ? auth === 'Bearer ' + secret : !!req.headers['x-vercel-cron'];
   if (!allowed) return L.json(res, 401, {ok: false, error: 'forbidden'});
 
-  const now = Number((req.query || {}).now) || Date.now();
+  const q = req.query || {};
+
+  /* Одне тестове письмо на вказану адресу. Тим самим кодом, що й
+     розсилка, — інакше перевіряли б не те, що працює насправді.
+     Списків і позначок не чіпає: це проба, а не відправка. */
+  const test = String(q.test || '').trim();
+  if (test){
+    const kind = q.kind === 'soon' ? 'soon' : 'end';
+    const msg = module.exports.letter(kind, L.normLogin(test), q.lang || 'uk');
+    const r = await module.exports.deliver({to: test, ...msg});
+    return L.json(res, r.ok ? 200 : 502,
+      {ok: r.ok, test: true, kind, to: test, subject: msg.subject, ...(r.ok ? {} : {error: r.error})});
+  }
+
+  const now = Number(q.now) || Date.now();
   const report = {ok: true, day: dayKey(now), configured: !!key, soon: {}, end: {}};
 
   for (const kind of ['soon', 'end']){

@@ -1,0 +1,51 @@
+name: Тестовое письмо
+
+# Кнопка, которой можно проверить рассылку живьём: письмо уходит тем же
+# кодом, что и настоящее, на указанный адрес.
+#
+# Зачем через GitHub. Эндпоинт рассылки закрыт заголовком с секретом —
+# иначе её мог бы запустить кто угодно. Браузер такой заголовок не
+# отправит, а здесь он берётся из секретов репозитория.
+#
+# Что нужно один раз: секрет CRON_SECRET — одна и та же строка в Vercel
+# (Settings → Environment Variables) и в GitHub (Settings → Secrets).
+# Придумайте её сами, это просто пароль к запуску рассылки.
+
+on:
+  workflow_dispatch:
+    inputs:
+      to:
+        description: 'Куда отправить письмо'
+        required: true
+      kind:
+        description: 'end — письмо в день завершения, soon — за три дня'
+        required: false
+        default: 'end'
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Отправить
+        env:
+          SECRET: ${{ secrets.CRON_SECRET }}
+          TO: ${{ inputs.to }}
+          KIND: ${{ inputs.kind }}
+        run: |
+          set -o pipefail
+          if [ -z "$SECRET" ]; then
+            echo '::error::CRON_SECRET не задан в секретах репозитория — добавьте его и повторите'
+            exit 1
+          fi
+          code=$(curl -sS -o /tmp/out -w '%{http_code}' \
+            -H "authorization: Bearer $SECRET" \
+            --get --data-urlencode "test=$TO" --data-urlencode "kind=$KIND" \
+            https://pro-trainer.pro/api/mail)
+          echo "Ответ сервера: $code"
+          cat /tmp/out; echo
+          case "$code" in
+            200) echo "Письмо отправлено — проверьте почту $TO" ;;
+            401) echo '::error::Секрет не совпал: CRON_SECRET в Vercel и в GitHub должны быть одинаковыми'; exit 1 ;;
+            502) echo '::error::Почтовый сервис не принял письмо. Чаще всего домен ещё не Verified'; exit 1 ;;
+            *)   echo "::error::Неожиданный ответ $code"; exit 1 ;;
+          esac

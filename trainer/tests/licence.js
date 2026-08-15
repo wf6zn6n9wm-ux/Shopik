@@ -222,6 +222,19 @@ part('листи про кінець пробного');
      JSON.stringify(again.json.end));
   ok('нових листів не з’явилось', outbox.length === 2, outbox.length + ' шт.');
 
+  /* кнопка «тестове письмо»: той самий код, але без списків і позначок */
+  MAIL.deliver = async m => { outbox.push(m); return {ok: true}; };
+  const noAuth = await call(MAIL, {query: {test: 'me@mail.com'}});
+  ok('тестове письмо теж під секретом', noAuth.code === 401, String(noAuth.code));
+
+  const probe = await call(MAIL, {query: {test: 'Me@Mail.com', kind: 'soon'}, headers: cron});
+  ok('тестове письмо йде', probe.code === 200 && probe.json.test === true, String(probe.code));
+  ok('пішло саме за вказаною адресою', outbox[outbox.length - 1].to === 'Me@Mail.com');
+  ok('проба не лишає слідів у позначках',
+     !(await L.store.get('sent:soon:me@mail.com')));
+
+  outbox.length = 2;
+
   /* усі чотири мови мають повний набір рядків */
   const keys = Object.keys(MAIL.TEXT.uk);
   ok('усі мови перекладені повністю',
