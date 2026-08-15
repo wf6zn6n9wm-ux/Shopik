@@ -165,10 +165,18 @@ const server = http.createServer(async (req, res) => {
    спитати про браузер за замовчуванням. */
 const FLAGS = ['--headless', '--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage',
   '--no-first-run', '--no-default-browser-check', '--disable-extensions',
-  '--hide-scrollbars', '--window-size=430,900', '--virtual-time-budget=6000', '--dump-dom'];
+  '--hide-scrollbars', '--window-size=430,900', '--dump-dom'];
+
+/* Скільки віртуального часу дати сторінці. Застосунку потрібно більше:
+   проба проходить реєстрацію, майстер налаштувань і лише потім робить
+   свою справу. Сторінкам оплати — навпаки, менше: вони відправляють
+   форму в банк, до якого звідси не достукатись, а на час очікування
+   мережі віртуальний час зупиняється, і зайвий запас обертається
+   довгим марним чеканням. */
+const budget = url => url.includes('/_app.html') ? 14000 : 6000;
 
 const once = url => new Promise(resolve => {
-  const p = spawn(CHROME, FLAGS.concat([url]));
+  const p = spawn(CHROME, FLAGS.concat(['--virtual-time-budget=' + budget(url), url]));
   let outp = '', killed = false;
   p.stdout.on('data', d => { outp += d; });
   /* Не висимо назавжди, але й не міряємо себе своєю машиною: перший
@@ -335,9 +343,8 @@ const DRIVE = `
     var ins = all('.ob .inp');
     if (ins[1]){ type(ins[1], 'test1234'); await wait(120); }
     if (pri()){ pri().click(); }
-    /* Реєстрація тепер питає сервер про копію й виводить ключ із пароля —
-       це помітно довше за будь-яку фіксовану паузу. Чекаємо, поки поле
-       пароля зникне з екрана, тобто крок справді пройдено. */
+    /* Реєстрація тепер виводить ключ із пароля — це довше за будь-яку
+       фіксовану паузу, тож чекаємо, поки поле пароля зникне з екрана. */
     await until(function(){ return !document.querySelector('.ob input[type="password"]'); }, 2500);
     var nm = document.querySelector('.ob .inp');
     if (nm){ type(nm, 'Alex'); await wait(120); }
