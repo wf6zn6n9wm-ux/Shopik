@@ -236,6 +236,23 @@ part('листи про кінець пробного');
   delete process.env.CRON_SECRET;
 }
 
+part('перевірка налаштувань');
+{
+  const before = await call(API('health.js'));
+  ok('здоров’я віддається без секретів', before.code === 200 && before.json.ok,
+     JSON.stringify(before.json));
+  ok('без поштового ключа так і сказано', before.json.mail === false);
+
+  process.env.RESEND_API_KEY = 'test_key';
+  const after = await call(API('health.js'));
+  ok('з ключем — теж', after.json.mail === true);
+  delete process.env.RESEND_API_KEY;
+
+  const text = JSON.stringify(before.json) + JSON.stringify(after.json);
+  ok('самих ключів у відповіді немає',
+     !text.includes('test_key') && !text.includes(process.env.LIQPAY_PRIVATE_KEY));
+}
+
 part('без ключів');
 {
   const keep = process.env.LIQPAY_PRIVATE_KEY;
