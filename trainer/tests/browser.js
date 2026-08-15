@@ -75,10 +75,32 @@ const server = http.createServer(async (req, res) => {
        одинарними мовчки не спрацьовував — застосунок ходив у мережу, а
        перевірка цього не бачила. Тому й падаємо, якщо не знайшли: німа
        заміна тут гірша за помилку.
-       Робимо це лише там, де потрібні справжні запити: на інших екранах
-       адреса сайту показується людині, і підміна зіпсувала б перевірку. */
-    if (url.searchParams.get('local'))
-      html = replaceOnce(html, /base:\s*["']https:\/\/pro-trainer\.pro["']/, "base: ''", 'адреса сайту');
+       Робимо це завжди: застосунок питає сервер уже під час реєстрації,
+       і запит, який нікуди не доходить, зупиняє віртуальний час — жодна
+       проба після цього не дочекається екрана. */
+    html = replaceOnce(html, /base:\s*["']https:\/\/pro-trainer\.pro["']/, "base: ''", 'адреса сайту');
+
+    /* Вивід ключа з пароля (PBKDF2, 150 000 ітерацій) у headless не
+       встигає: віртуальний час не чекає обчислень і вивантажує сторінку
+       раніше, ніж браузер дорахує. На пристрої це частка секунди.
+       Тому в тестовій копії ітерацій менше — увесь шлях шифрування
+       лишається справжнім, дешевшає лише перебір. */
+    html = replaceOnce(html, /iterations:\s*150000/g, 'iterations: 1000', 'вивід ключа');
+
+    /* Копія на сервері зберігається через десять секунд після зміни. Під
+       віртуальним часом ці секунди проходять миттєво, тож кожен дотик у
+       пробі тягнув би шифрування і запит — і проби перестали доходити до
+       кінця. Відсуваємо збереження за межі прогону; сам шлях копії
+       перевіряє окрема проба, яка кличе Cloud.push() напряму. */
+    /* збирач пише 10000 як 1e4 — приймаємо обидва написання */
+    html = replaceOnce(html, /Cloud\.push\(json\),\s*(?:10000|1e4)\)/, 'Cloud.push(json), 600000)', 'відкладене збереження');
+
+    /* Реєстрація питає сервер, чи є копія. Це один запит, але він є в
+       кожній пробі, а віртуальний час у headless до таких речей дуже
+       чутливий: прогін почав плавати. Питаємо тільки там, де копію й
+       перевіряємо — за прапорцем cloud=1. */
+    if (!url.searchParams.get('cloud'))
+      html = replaceOnce(html, /Web\.enabled\(\) \? await Cloud\.peek\(norm\)/, 'false ? await Cloud.peek(norm)', 'запит про копію');
     /* free=1 — те саме, що робить збірка для магазину: прапорець прибирає
        покупку і всі виходи на оплату */
     if (url.searchParams.get('free'))
@@ -165,14 +187,23 @@ const once = url => new Promise(resolve => {
    Причину по логу назвати не вдалося, тому просто пробуємо ще раз, і не
    мовчки: повтор видно в журналі, і якщо він почне траплятися часто —
    це буде видно, а не сховається за зеленим результатом. */
+/* Ознака вдалого запуску — підсумок проби. Там, де проби немає,
+   вистачає будь-якої розмітки. */
+const done = (url, html) => url.includes('probe=') ? html.includes('id="__out"') : html.includes('<body');
+
+/* Проба інколи не встигає: у headless віртуальний час не чекає ані
+   обчислень, ані завантаженої машини, і сторінку вивантажує посеред
+   роботи. Пробуємо ще, до трьох разів, і кожен повтор друкуємо — якщо
+   вони почнуть траплятися часто, це буде видно, а не сховається за
+   зеленим підсумком. */
 const dom = async url => {
-  const first = await once(url);
-  /* Ознака вдалого запуску — підсумок проби. Там, де проби немає,
-     вистачає будь-якої розмітки. */
-  const good = url.includes('probe=') ? first.includes('id="__out"') : first.includes('<body');
-  if (good) return first;
-  console.log('  ⚠ порожня відповідь браузера, пробуємо ще раз: ' + url);
-  return once(url);
+  let html = '';
+  for (let i = 1; i <= 3; i++){
+    html = await once(url);
+    if (done(url, html)) return html;
+    if (i < 3) console.log('  ⚠ проба не встигла (' + i + '), пробуємо ще раз: ' + url);
+  }
+  return html;
 };
 /* проба пише підсумок сюди, звідси його й читаємо */
 const out = html => {
@@ -303,7 +334,11 @@ const DRIVE = `
     /* пароль обов'язковий — поле з'являється поруч із логіном */
     var ins = all('.ob .inp');
     if (ins[1]){ type(ins[1], 'test1234'); await wait(120); }
-    if (pri()){ pri().click(); await wait(300); }
+    if (pri()){ pri().click(); }
+    /* Реєстрація тепер питає сервер про копію й виводить ключ із пароля —
+       це помітно довше за будь-яку фіксовану паузу. Чекаємо, поки поле
+       пароля зникне з екрана, тобто крок справді пройдено. */
+    await until(function(){ return !document.querySelector('.ob input[type="password"]'); }, 2500);
     var nm = document.querySelector('.ob .inp');
     if (nm){ type(nm, 'Alex'); await wait(120); }
     if (pri()){ pri().click(); await wait(400); }
@@ -574,7 +609,7 @@ PROBES['app-free.js'] = DRIVE + `
     if (first){ first.click(); await wait(700); }             /* екран підписки */
     var top = page();
     var txt = top ? top.textContent : '';
-    res.site = txt.indexOf('pro-trainer.pro') >= 0;
+    res.site = txt.indexOf(location.hostname) >= 0;
     res.paid = txt.indexOf('Я вже оплатив') >= 0;
     res.plans = top ? top.querySelectorAll('.plan').length : -1;
     res.buy = txt.indexOf('Продовжити') >= 0 || txt.indexOf('Активувати у WEB') >= 0;
@@ -786,7 +821,7 @@ server.listen(PORT, '127.0.0.1', async () => {
       expiresAt: Date.now() + 90 * 86400000,
       autoRenew: false, devices: [], granted: true,
     });
-    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?free=1&local=1&probe=app-claim.js')) || '{}');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?free=1&probe=app-claim.js')) || '{}');
     ok('кнопка на місці', o.button === 'Я вже оплатив', o.button);
     ok('доступ відкрився', o.opened === true);
     ok('помилок немає', !o.err, o.err || '—');

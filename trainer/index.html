@@ -1105,6 +1105,10 @@ const PHRASES = [
   ['Перейти до оплати', 'Перейти к оплате', 'Go to payment', 'Przejdź do płatności'],
   ['Вийти', 'Выйти', 'Sign out', 'Wyloguj się'],
   ['Забули пароль?', 'Забыли пароль?', 'Forgot your password?', 'Nie pamiętasz hasła?'],
+  ['Копія на сервері', 'Копия на сервере', 'Backup on the server', 'Kopia na serwerze'],
+  ['Дані відновлено з копії', 'Данные восстановлены из копии', 'Data restored from backup', 'Dane przywrócone z kopii'],
+  ['Вимкнено — дані лише на цьому пристрої', 'Выключено — данные только на этом устройстве', 'Off — your data stays on this device only', 'Wyłączone — dane tylko na tym urządzeniu'],
+  ['Зашифрована копія. Відкрити її можна лише вашим паролем — ми вміст не бачимо', 'Зашифрованная копия. Открыть её можно только вашим паролем — мы содержимое не видим', 'An encrypted backup. Only your password opens it — we cannot read the contents', 'Zaszyfrowana kopia. Otworzy ją tylko Twoje hasło — nie widzimy zawartości'],
   ['Код із листа', 'Код из письма', 'Code from the email', 'Kod z e-maila'],
   ['Підтвердити код', 'Подтвердить код', 'Confirm code', 'Potwierdź kod'],
   ['Зберегти пароль', 'Сохранить пароль', 'Save password', 'Zapisz hasło'],
@@ -1480,6 +1484,33 @@ const Vault = {
   async hash(pin, saltB64){
     const h = await crypto.subtle.digest('SHA-256', enc.encode(saltB64 + '|' + pin));
     return b64(h);
+  },
+  /* Ключ для копії на сервері. Виводиться з пароля кабінета, тому той
+     самий пароль на іншому пристрої дасть той самий ключ — і копія
+     прочитається. Сам ключ на сервер не їде: туди йде лише token,
+     SHA-256 від ключа. Перевірити здогадку про пароль по ньому можна
+     тільки пройшовши ті самі 150 000 ітерацій. */
+  async cloud(pass, saltB64){
+    const salt = saltB64 ? unb64(saltB64) : crypto.getRandomValues(new Uint8Array(16));
+    const base = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      {name:'PBKDF2', salt, iterations:150000, hash:'SHA-256'},
+      base, {name:'AES-GCM', length:256}, true, ['encrypt','decrypt']);
+    const raw = await crypto.subtle.exportKey('raw', key);
+    const token = b64(await crypto.subtle.digest('SHA-256', raw));
+    return {key, raw: b64(raw), token, salt: b64(salt)};
+  },
+  async importRaw(rawB64){
+    return crypto.subtle.importKey('raw', unb64(rawB64), {name:'AES-GCM'}, false, ['encrypt','decrypt']);
+  },
+  async encryptWith(key, text){
+    const ivb = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv:ivb}, key, enc.encode(text));
+    return {iv:b64(ivb), ct:b64(ct)};
+  },
+  async decryptWith(key, iv, ct){
+    const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(iv)}, key, unb64(ct));
+    return dec.decode(pt);
   },
   async encrypt(text){
     const ivb = crypto.getRandomValues(new Uint8Array(12));
@@ -1944,6 +1975,80 @@ const Web = {
   },
   sendCode(login){ return Web.at('/api/reset', {login, lang: I18n.get()}); },
   checkCode(login, code){ return Web.at('/api/reset', {login, code}); },
+};
+
+/* ─── копія бази на сервері ───
+   Сховище браузера недовговічне: Safari стирає його приблизно за тиждень
+   без відвідувань, чистка історії — одразу, а новий телефон починає з
+   порожнього кабінету. Для тренера це втрата бази клієнтів.
+
+   Тому база їде на сервер — але зашифрованою. Ключ виводиться з пароля
+   кабінета й лежить на пристрої; сервер бачить лише шифротекст. Той
+   самий пароль на іншому пристрої дає той самий ключ, тому копія там
+   прочитається, а в нас — ні.                                        */
+const Cloud = {
+  key: null,
+  status: 'off',                       // off | ok | saving | error
+  at: 0,                               // коли востаннє збереглось
+  timer: null,
+  listeners: new Set(),
+  meta(){ return Disk.readMeta() || {}; },
+  on(){ return Web.enabled() && !!Cloud.meta().cloudKey && Store.state.settings.cloud !== false; },
+  emit(){ Cloud.listeners.forEach(f => f(Cloud.status, Cloud.at)); },
+  async ready(){
+    const m = Cloud.meta();
+    if (!m.cloudKey) return null;
+    if (!Cloud.key) Cloud.key = await Vault.importRaw(m.cloudKey);
+    return Cloud.key;
+  },
+  /* ключ і сіль запам'ятовуються після входу — далі пароль не потрібен */
+  remember(c){
+    Disk.writeMeta({...Cloud.meta(), cloudKey: c.raw, cloudToken: c.token, salt: c.salt});
+    Cloud.key = c.key;
+  },
+  forget(){
+    const m = Cloud.meta();
+    delete m.cloudKey; delete m.cloudToken;
+    Disk.writeMeta(m);
+    Cloud.key = null;
+  },
+  /* Пишемо не на кожен дотик: інакше кожне натискання летіло б у мережу.
+     Останнє збереження за десять секунд перекриває всі попередні. */
+  later(json){
+    if (!Cloud.on()) return;
+    clearTimeout(Cloud.timer);
+    Cloud.timer = setTimeout(() => Cloud.push(json), 10000);
+  },
+  async push(json){
+    if (!Cloud.on()) return {ok:false, error:'off'};
+    const m = Cloud.meta();
+    try {
+      await Cloud.ready();
+      Cloud.status = 'saving'; Cloud.emit();
+      const {iv, ct} = await Vault.encryptWith(Cloud.key, json || JSON.stringify(Store.state));
+      const r = await fetch(Web.base() + '/api/db?' + new URLSearchParams({login: Web.login(), token: m.cloudToken}),
+        {method:'POST', headers:{'Content-Type':'application/json'},
+         body: JSON.stringify({salt: m.salt, iv, ct})});
+      const j = await r.json().catch(() => null);
+      if (!j || !j.ok) throw new Error((j && j.error) || 'http_' + r.status);
+      Cloud.status = 'ok'; Cloud.at = j.savedAt; Cloud.emit();
+      return j;
+    } catch (e){
+      Cloud.status = 'error'; Cloud.emit();
+      return {ok:false, error: String((e && e.message) || e)};
+    }
+  },
+  /* що лежить на сервері для цього логіна — без пароля, лише факт і сіль */
+  peek(login){ return Web.at('/api/db', {login}); },
+  /* забрати й розшифрувати; ключ виводиться з пароля тут-таки */
+  async restore(login, token, key){
+    const r = await Web.at('/api/db', {login, token});
+    if (!r.ok || !r.has) return {ok:false, error: r.error || 'empty'};
+    try {
+      const json = await Vault.decryptWith(key, r.iv, r.ct);
+      return {ok:true, json, savedAt: r.savedAt};
+    } catch (e){ return {ok:false, error:'bad_key'}; }
+  },
 };
 
 /* ─── нагадування ───
@@ -2549,6 +2654,8 @@ function emptyDB(){
       price: 800, gymMode: 'percent', gymPercent: 15, gymFixed: 0,
       currency: '₴', lang: 'uk', theme: 'system', lapseDays: 10, dayStart: 7, dayEnd: 22, dayGoal: 8,
       syncUrl: '', secure: false,
+      /* копія бази на сервері — зашифрована ключем від пароля кабінета */
+      cloud: true,
       backup: {auto: true, lastAt: 0},
       /* тільки те, що застосунок справді вміє надіслати: записатись сам
          клієнт не може — клієнтського застосунку немає */
@@ -2594,6 +2701,7 @@ const Store = {
         Toaster.bad(t('save.full','Не вистачає місця — збережіть резервну копію'));
       }
       if (ok) Store.warned = false;
+      Cloud.later(json);
     } catch (e) { console.warn('persist', e); }
   },
 };
@@ -3611,6 +3719,10 @@ const Auth = ({onReady, save}) => {
     const hash = await Vault.hash(f.pass, salt);
     const account = {...meta.account, hash};
     Disk.writeMeta({...meta, salt, account});
+    /* ключ копії виводиться з пароля, тож після зміни він інший —
+       і копію на сервері треба покласти заново */
+    Cloud.remember(await Vault.cloud(f.pass, salt));
+    Cloud.push().catch(() => {});
     setBusy(false);
     Toaster.ok(t('auth.done','Пароль змінено'));
     onReady({account, fresh:false});
@@ -3636,13 +3748,28 @@ const Auth = ({onReady, save}) => {
         if (!match){ setErr({login: t('auth.err.nouser','Такого кабінету на цьому пристрої немає')}); setBusy(false); return; }
         if (a.hash && !askPass){ setAskPass(true); setBusy(false); return; }   /* кабінет під паролем */
         if (a.hash && a.hash !== hash){ setErr({pass: t('auth.err.bad','Пароль не підходить')}); setBusy(false); return; }
+        /* ключ копії живе на пристрої, але після входу оновлюємо його —
+           інакше на кабінетах, заведених до появи копій, його не буде */
+        if (f.pass) Cloud.remember(await Vault.cloud(f.pass, salt));
         onReady({account: a, fresh:false});
       } else {
+        /* Новий кабінет із тим самим логіном — можливо, це та сама людина
+           на новому телефоні. Питаємо сервер: якщо копія є і пароль її
+           відкриває, повертаємо роботу замість порожнього кабінета. */
+        let useSalt = salt, restored = null;
+        const found = Web.enabled() ? await Cloud.peek(norm) : {ok:false};
+        if (found.ok && found.has && found.salt){
+          const c = await Vault.cloud(f.pass, found.salt);
+          const got = await Cloud.restore(norm, c.token, c.key);
+          if (got.ok){ useSalt = found.salt; restored = got.json; Cloud.remember(c); }
+        }
+        if (!restored) Cloud.remember(await Vault.cloud(f.pass, useSalt));
+
         const account = {login: norm, raw: login, kind: isEmail(login) ? 'email' : 'phone',
-                         hash, createdAt: Date.now()};
+                         hash: await Vault.hash(f.pass, useSalt), createdAt: Date.now()};
         const access = carryAccess(meta.account, norm, meta.access);
-        Disk.writeMeta({...meta, salt, account, access});
-        onReady({account, fresh:true});
+        Disk.writeMeta({...Disk.readMeta(), salt: useSalt, account, access});
+        onReady({account, fresh: !restored, restored});
       }
     } catch (ex){
       setErr({pass: t('auth.err.crypto','Не вдалося перевірити пароль на цьому пристрої')});
@@ -6999,6 +7126,19 @@ const Settings = ({onClose}) => {
             <div className="tx"><b>{t('bk.title','Резервна копія')}</b><span>{t('bk.menu.s','Копія даних і відновлення')}</span></div>
             <Ic.right size={17} className="chev"/>
           </button>
+          {/* Копія на сервері. Вмикається за замовчуванням: сховище
+              браузера недовговічне, і мовчазна втрата бази клієнтів
+              коштує дорожче, ніж зайвий рядок у налаштуваннях. */}
+          <div className="setrow">
+            <div className="ic"><Ic.dl size={19}/></div>
+            <div className="tx" style={{flex:1}}>
+              <b>{t('set.cloud','Копія на сервері')}</b>
+              <span>{S.cloud === false
+                ? t('set.cloud.off','Вимкнено — дані лише на цьому пристрої')
+                : t('set.cloud.on','Зашифрована копія. Відкрити її можна лише вашим паролем — ми вміст не бачимо')}</span>
+            </div>
+            <Switch on={S.cloud !== false} onChange={v => Act.settings({cloud: v})}/>
+          </div>
           <div className="setrow">
             <div className="ic"><Ic.refresh size={19}/></div>
             <div className="tx" style={{flex:1}}>
@@ -7352,7 +7492,9 @@ const Paywall = ({mode, onClose}) => {
   /* Збірка для магазину нічого не продає: показуємо, де оформити
      підписку, і даємо перевірити оплату. Адреса тут — звичайний текст,
      а не посилання: за правилами Apple вести звідси на оплату не можна. */
-  const site = (WEB.base || '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  /* адресу беремо з налаштування, а без нього — ту, з якої відкрито
+     застосунок: інакше на екрані було б порожньо */
+  const site = ((WEB.base || Web.base() || '')).replace(/^https?:\/\//, '').replace(/\/+$/, '');
   /* чи є де купувати всередині: справжній магазин або дозволена імітація */
   const store = IAP.connected() || IAP.demoAllowed();
   const gate = (
@@ -7961,6 +8103,18 @@ const Boot = () => {
       повернувся після виходу, — одразу до роботи */}
   if (phase === 'auth') return <Auth onReady={r => {
     setAccount(r.account);
+    /* копія з сервера відкрилась — це той самий кабінет на новому
+       пристрої, майстер налаштувань йому ні до чого */
+    if (r.restored){
+      Disk.signIn();
+      try {
+        const db = JSON.parse(r.restored);
+        Disk.writeRaw(r.restored);
+        boot(db);
+        Toaster.ok(t('cloud.back','Дані відновлено з копії'));
+        return;
+      } catch (e){ /* зіпсована копія — далі як звичайний новий кабінет */ }
+    }
     if (r.fresh) return setPhase('setup');
     Disk.signIn();
     setPhase('app');

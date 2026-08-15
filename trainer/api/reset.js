@@ -47,6 +47,10 @@ module.exports = async function handler(req, res){
     }
     /* код одноразовий: інакше лист із ним лишався б ключем назавжди */
     await L.store.set(key, null);
+    /* Копія бази зашифрована ключем від старого пароля — з новим вона
+       вже не відкриється. Прибираємо, щоб пристрій поклав свіжу: інакше
+       на сервері назавжди лишався б файл, який ніхто не прочитає. */
+    await L.store.set(require('../api/db.js').keyOf(login), null);
     return L.json(res, 200, {ok: true, verified: true});
   }
 
