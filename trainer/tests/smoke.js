@@ -278,6 +278,36 @@ const ROUTES = [
   ['package.new', {}], ['packages', {}], ['remind', {clientId: 'cl_1', sum: 800}],
 ];
 
+part('вичерпаний абонемент');
+{
+  /* Два заняття наперед прив'язані до абонемента, у якому лишалось одне.
+     Раніше лічильник упирався в межу, а обидва зараховувались як
+     оплачені з абонемента: тренер відпрацьовував безкоштовно, і ніде
+     цього не було видно — ні грошей, ні боргу. */
+  const was = T.Store.state;
+  T.Store.init(T.emptyDB());
+  const cl = T.Act.addClient({name: 'Абонементний'});
+  const pkg = T.Act.addPackage({title: '8', sessions: 8, price: 5600});
+  const sub = T.Act.buyPackage(cl.id, pkg);
+  T.Store.patch(db => ({...db, subs: db.subs.map(x => ({...x, used: x.total - 1}))}));
+
+  const s1 = T.Act.addSession({clientId: cl.id, price: 700, subId: sub.id, start: new Date().toISOString()});
+  const s2 = T.Act.addSession({clientId: cl.id, price: 700, subId: sub.id, start: new Date().toISOString()});
+  const r1 = T.Act.complete(s1.id, false);
+  const r2 = T.Act.complete(s2.id, false);
+
+  const box = T.Store.state;
+  const now = box.subs.find(x => x.id === sub.id);
+  ok('останнє заняття списалось', now.used === now.total && r1.over !== true, now.used + '/' + now.total);
+  ok('наступне списувати нема з чого — кажемо про це', r2.over === true);
+  const left = box.sessions.find(x => x.id === s2.id);
+  ok('воно не рахується оплаченим', left.paid === false && !left.subId);
+  ok('і видно як борг', box.sessions.filter(T.isDebt).length === 1,
+     box.sessions.filter(T.isDebt).length + ' шт.');
+  ok('гроші за нього не загубились', left.price === 700, T.money(left.price));
+  T.Store.init(was);
+}
+
 part('ціна тренування');
 ok('своя ціна клієнта', T.clientPrice(db, 'cl_6') === 900, T.money(T.clientPrice(db, 'cl_6')));
 ok('без своєї — ціна за замовчуванням', T.clientPrice(db, 'cl_0') === db.settings.price);

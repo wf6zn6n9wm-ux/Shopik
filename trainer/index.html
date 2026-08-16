@@ -1111,6 +1111,8 @@ const PHRASES = [
   ['Зашифрована копія. Зайдіть із будь-якого пристрою — клієнти й історія будуть на місці', 'Зашифрованная копия. Зайдите с любого устройства — клиенты и история будут на месте', 'An encrypted backup. Sign in from any device — your clients and history will be there', 'Zaszyfrowana kopia. Zaloguj się z dowolnego urządzenia — klienci i historia będą na miejscu'],
   ['Відновлювати пароль', 'Восстанавливать пароль', 'Password recovery', 'Odzyskiwanie hasła'],
   ['ще попереду', 'ещё впереди', 'still ahead', 'jeszcze przed nami'],
+  ['Абонемент вичерпано — тренування записали як борг', 'Абонемент исчерпан — тренировку записали как долг', 'The package is used up — the session was recorded as a debt', 'Karnet wyczerpany — trening zapisano jako dług'],
+  ['Абонемент вичерпано — записали як борг', 'Абонемент исчерпан — записали как долг', 'Package used up — recorded as a debt', 'Karnet wyczerpany — zapisano jako dług'],
   ['Не вдалося зв’язатися з сервером. Перевірте інтернет і спробуйте ще раз', 'Не удалось связаться с сервером. Проверьте интернет и попробуйте ещё раз', 'We could not reach the server. Check your connection and try again', 'Nie udało się połączyć z serwerem. Sprawdź internet i spróbuj ponownie'],
   ['Копія ще не робиться: ключ до неї заводиться разом із паролем. Введіть пароль — і база поїде в копію', 'Копия ещё не делается: ключ к ней заводится вместе с паролем. Введите пароль — и база уедет в копию', 'The backup is not running yet: its key is created together with the password. Enter your password and the data will go to the backup', 'Kopia jeszcze nie działa: klucz do niej powstaje razem z hasłem. Wpisz hasło — i baza pojedzie do kopii'],
   ['Увімкнути копію', 'Включить копию', 'Turn the backup on', 'Włącz kopię'],
@@ -2870,7 +2872,13 @@ const Act = {
                  repeatId:null, paidPart:0, note:'', createdAt: Date.now(), ...s};
     Store.patch(db => {
       let subs = db.subs;
-      if (ses.subId) subs = subs.map(x => x.id === ses.subId ? {...x, used: Math.min(x.total, x.used + (ses.status === 'done' ? 1 : 0))} : x);
+      /* Списуємо лише те, що є. Вичерпаний абонемент не має мовчки
+         оплачувати ще одне заняття — див. complete(). */
+      if (ses.subId && ses.status === 'done'){
+        const sub = byId(subs, ses.subId);
+        if (sub && sub.used < sub.total) subs = subs.map(x => x.id === ses.subId ? {...x, used: x.used + 1} : x);
+        else { ses.subId = null; ses.paid = false; }
+      }
       return {...db, sessions:[...db.sessions, ses], subs};
     }, {name:'session.add', data:ses});
     return ses;
@@ -2884,17 +2892,40 @@ const Act = {
       return {...db, sessions: db.sessions.filter(x => x.id !== id), subs};
     }, {name:'session.del', data:{id}});
   },
-  /* провести тренування: списати заняття з абонемента або лишити борг */
+  /* ─── провести тренування ───
+     Списуємо заняття з абонемента — якщо там ще є що списувати.
+
+     Раніше тут стояло Math.min(total, used + 1): коли абонемент уже
+     вичерпано, лічильник просто впирався в межу, а тренування все одно
+     позначалось як оплачене з абонемента. Тренер відпрацьовував
+     безкоштовно, і ніде цього не було видно — ні грошей, ні боргу.
+     Дійти до цього легко: два заняття наперед прив'язані до абонемента,
+     у якому лишалось одне.
+
+     Тепер, коли списувати нема з чого, тренування стає звичайним
+     неоплаченим — тобто боргом, який тренер побачить. Прив'язку до
+     абонемента прибираємо: інакше борг лишився б невидимим, бо
+     тренування «з абонемента» боргом не рахується. */
   complete(id, paid){
+    let over = false;
     Store.patch(db => {
       const s = byId(db.sessions, id);
       if (!s || s.status === 'done') return db;
-      let subs = db.subs;
-      if (s.subId) subs = subs.map(x => x.id === s.subId ? {...x, used: Math.min(x.total, x.used + 1)} : x);
+      let subs = db.subs, subId = s.subId;
+      if (subId){
+        const sub = byId(subs, subId);
+        if (sub && sub.used < sub.total)
+          subs = subs.map(x => x.id === subId ? {...x, used: x.used + 1} : x);
+        else { over = true; subId = null; }
+      }
+      const fromSub = !!subId;
       return {...db,
-        sessions: db.sessions.map(x => x.id === id ? {...x, status:'done', paid: !!paid || !!s.subId, paidAt: paid ? Date.now() : x.paidAt} : x),
+        sessions: db.sessions.map(x => x.id === id
+          ? {...x, status:'done', subId, paid: !!paid || fromSub, paidAt: paid ? Date.now() : x.paidAt}
+          : x),
         subs};
     }, {name:'session.done', data:{id, paid}});
+    return {over};
   },
   pay(id){ Store.patch(db => ({...db, sessions: db.sessions.map(s => s.id === id ? {...s, paid:true, paidAt: Date.now()} : s)}), {name:'session.pay', data:{id}}); },
   cancel(id){
@@ -4218,7 +4249,11 @@ const SessionRow = ({s, onOpen, quick}) => {
       </button>
       {canDone ? (
         <button className="btn soft sm" style={{height:34, padding:'0 11px'}}
-                onClick={() => { Act.complete(s.id, !!s.subId); Toaster.ok(t('ses.done.ok','Проведено') + ' · ' + money(s.price)); }}>
+                onClick={() => {
+                  const r = Act.complete(s.id, !!s.subId);
+                  if (r.over) Toaster.bad(t('ses.done.over','Абонемент вичерпано — тренування записали як борг'));
+                  else Toaster.ok(t('ses.done.ok','Проведено') + ' · ' + money(s.price));
+                }}>
           <Ic.check size={16}/>{t('ses.done','Проведено')}
         </button>
       ) : (
@@ -4871,7 +4906,12 @@ const SessionSheet = ({id, onClose}) => {
               <Btn kind="pri" onClick={() => act(() => { Act.complete(s.id, true); Toaster.ok(t('session.done.paid','Проведено та оплачено')); })}>
                 <Ic.check size={18}/>{t('session.done1','Провів, оплачено')}
               </Btn>
-              <Btn kind="sec" onClick={() => act(() => { Act.complete(s.id, false); Toaster.show(t('session.done.debt','Проведено, лишився борг')); })}>
+              <Btn kind="sec" onClick={() => act(() => {
+                const r = Act.complete(s.id, false);
+                Toaster[r.over ? 'bad' : 'show'](r.over
+                  ? t('ses.done.over','Абонемент вичерпано — тренування записали як борг')
+                  : t('session.done.debt','Проведено, лишився борг'));
+              })}>
                 {t('session.done2','Провів, без оплати')}
               </Btn>
             </div>
@@ -5346,8 +5386,13 @@ const Calendar = ({loading}) => {
                           </button>
                           {ready.length > 0 && (
                             <button className="go" onClick={() => {
-                              ready.forEach(x => Act.complete(x.id, !!x.subId));
-                              Toaster.ok(t('ses.done.ok','Проведено') + ' · ' + money(sum(ready, x => x.price)));
+                              /* Групу проводимо разом, але про вичерпаний
+                                 абонемент кажемо окремо: інакше тренер
+                                 побачить бадьоре «Проведено» й не дізнається,
+                                 що комусь із учасників записався борг. */
+                              const over = ready.filter(x => Act.complete(x.id, !!x.subId).over).length;
+                              if (over) Toaster.bad(t('ses.done.over.n','Абонемент вичерпано — записали як борг') + ' · ' + over);
+                              else Toaster.ok(t('ses.done.ok','Проведено') + ' · ' + money(sum(ready, x => x.price)));
                             }}>
                               <Ic.check size={14}/>{t('ses.done','Проведено')}
                             </button>
