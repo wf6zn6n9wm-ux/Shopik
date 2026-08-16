@@ -53,10 +53,30 @@ const log = [];
 /* проби — маленькі скрипти, які клікають і пишуть підсумок у сторінку */
 const PROBES = {};
 
-/* Заміна, яка не вміє промахнутись мовчки. */
-const replaceOnce = (text, re, to, what) => {
-  if (!re.test(text)) throw new Error('не знайшов у зібраній сторінці: ' + what);
-  return text.replace(re, to);
+/* Компіляція JSX — найдорожча операція в цьому сервері, а сторінку
+   застосунку просять понад десяток проб. Робимо її один раз: сервер
+   живе в одному процесі з прогоном, і поки він компілює, він нікому не
+   відповідає. Проб побільшало — і повтори «проба не встигла» разом із
+   ними. */
+let built = null;
+const compiled = () => built || (built =
+  require('../build.js').build(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')));
+
+/* ─── заміна, яка не вміє промахнутись мовчки ───
+   Раніше вона перевіряла лише «збіг є» й міняла перший. Цього виявилось
+   мало: у застосунку з'явилось друге таке саме місце — питання до
+   сервера про копію тепер є і при вході, і при реєстрації, — заміна
+   мовчки лягла не туди, і половина проб почала падати з незрозумілим
+   «реєстрація не завершилась».
+
+   Тому тепер вимагаємо точну кількість збігів. З'явиться третє місце —
+   прогін впаде з поясненням, а не почне перевіряти щось інше. */
+const replaceOnce = (text, re, to, what, times = 1) => {
+  const all = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
+  const n = (text.match(all) || []).length;
+  if (n !== times)
+    throw new Error('«' + what + '»: очікували збігів — ' + times + ', знайшли ' + n);
+  return text.replace(all, to);
 };
 
 const server = http.createServer(async (req, res) => {
@@ -68,7 +88,7 @@ const server = http.createServer(async (req, res) => {
      тому що запит, який нікуди не доходить, зупиняє віртуальний час у
      headless, і сторінка не дочекається ніколи. */
   if (url.pathname === '/_app.html'){
-    let html = require('../build.js').build(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'));
+    let html = compiled();
     html = html.replace(/<script crossorigin src="https:\/\/unpkg\.com[^"]*"><\/script>\s*/g, '')
                .replace(/<link rel="preconnect"[^>]*>\s*/g, '')
                .replace(/<link href="https:\/\/fonts\.googleapis\.com[^"]*"[^>]*>\s*/g, '')
@@ -92,7 +112,7 @@ const server = http.createServer(async (req, res) => {
        раніше, ніж браузер дорахує. На пристрої це частка секунди.
        Тому в тестовій копії ітерацій менше — увесь шлях шифрування
        лишається справжнім, дешевшає лише перебір. */
-    html = replaceOnce(html, /iterations:\s*150000/g, 'iterations: 1000', 'вивід ключа');
+    html = replaceOnce(html, /iterations:\s*150000/g, 'iterations: 1000', 'вивід ключа', 2);
 
     /* Копія на сервері зберігається через десять секунд після зміни. Під
        віртуальним часом ці секунди проходять миттєво, тож кожен дотик у
@@ -102,12 +122,13 @@ const server = http.createServer(async (req, res) => {
     /* збирач пише 10000 як 1e4 — приймаємо обидва написання */
     html = replaceOnce(html, /Cloud\.push\(json\),\s*(?:10000|1e4)\)/, 'Cloud.push(json), 600000)', 'відкладене збереження');
 
-    /* Реєстрація питає сервер, чи є копія. Це один запит, але він є в
-       кожній пробі, а віртуальний час у headless до таких речей дуже
-       чутливий: прогін почав плавати. Питаємо тільки там, де копію й
-       перевіряємо — за прапорцем cloud=1. */
+    /* Застосунок питає сервер, чи є копія, — і при вході, і при
+       реєстрації. Обидва місця потрібні тільки там, де копію й
+       перевіряємо: решті проб цей запит нічого не дає, а логін у прогоні
+       спільний, і сусідня проба, яка змінила пароль, ламала б їх усі. */
     if (!url.searchParams.get('cloud'))
-      html = replaceOnce(html, /Web\.enabled\(\) \? await Cloud\.peek\(norm\)/, 'false ? await Cloud.peek(norm)', 'запит про копію');
+      html = replaceOnce(html, /Web\.enabled\(\) \? await Cloud\.peek\(norm\)/,
+                         'false ? await Cloud.peek(norm)', 'запит про копію', 2);
     /* free=1 — те саме, що робить збірка для магазину: прапорець прибирає
        покупку і всі виходи на оплату */
     if (url.searchParams.get('free'))
@@ -191,6 +212,18 @@ const FLAGS = ['--headless', '--disable-gpu', '--no-sandbox', '--disable-dev-shm
   '--no-first-run', '--no-default-browser-check', '--disable-extensions',
   '--hide-scrollbars', '--window-size=430,900', '--dump-dom'];
 
+/* ─── свій профіль кожному запуску ───
+   Без --user-data-dir Chrome бере профіль за замовчуванням — один на
+   всі проби. Разом із ним переходить і localStorage, тобто кабінет,
+   пароль і база попередньої проби. Тижнями це виглядало як випадкові
+   збої «проба не встигла»: насправді проба, яка мала реєструватись,
+   раптом бачила чужий кабінет і застрягала на екрані входу.
+
+   Проба зветься «з чистого пристрою» — хай пристрій і буде чистим. */
+const profiles = fs.mkdtempSync(path.join(require('os').tmpdir(), 'protrainer-'));
+let profileN = 0;
+process.on('exit', () => { try { fs.rmSync(profiles, {recursive: true, force: true}); } catch {} });
+
 /* Скільки віртуального часу дати сторінці. Застосунку потрібно більше:
    проба проходить реєстрацію, майстер налаштувань і лише потім робить
    свою справу. Сторінкам оплати — навпаки, менше: вони відправляють
@@ -198,19 +231,20 @@ const FLAGS = ['--headless', '--disable-gpu', '--no-sandbox', '--disable-dev-shm
    мережі віртуальний час зупиняється, і зайвий запас обертається
    довгим марним чеканням.
 
-   Окремо — проба копії бази. Віртуальний час не зупиняється на час
-   обчислень: шифрування йде поза головним потоком, головний потік у цей
-   час порожній, і годинник мчить уперед. Проба копії шифрує й розшифровує
-   базу кілька разів поспіль, тож звичайного запасу їй не вистачало —
-   сторінку вивантажувало посеред роботи. Запас віртуальний, простій він
-   не подовжує: зайві мілісекунди спливають миттєво, якщо чекати нема
-   чого. */
-const budget = url =>
-  url.includes('cloud=1') ? 60000 :
-  url.includes('/_app.html') ? 14000 : 6000;
+   Головне про цей запас: він віртуальний, і на простої не витрачається —
+   зайві мілісекунди спливають миттєво, якщо чекати нема чого. А от на
+   обчисленнях витрачається ще й як: шифрування йде поза головним
+   потоком, головний потік у цей час порожній, і годинник мчить уперед.
+   Тому чотирнадцяти секунд перестало вистачати рівно тоді, коли
+   реєстрація навчилась виводити ключ, заводити ключ копії й замикати
+   його паролем: проби почали вивантажуватись посеред роботи, а в
+   журналі з'явились «проба не встигла». Даємо із запасом. */
+const budget = url => url.includes('/_app.html') ? 60000 : 6000;
 
 const once = url => new Promise(resolve => {
-  const p = spawn(CHROME, FLAGS.concat(['--virtual-time-budget=' + budget(url), url]));
+  const dir = path.join(profiles, 'p' + (profileN++));
+  const p = spawn(CHROME, FLAGS.concat(['--user-data-dir=' + dir,
+    '--virtual-time-budget=' + budget(url), url]));
   let outp = '', killed = false;
   p.stdout.on('data', d => { outp += d; });
   /* Не висимо назавжди, але й не міряємо себе своєю машиною: перший
@@ -401,9 +435,27 @@ const DRIVE = `
     var ins = all('.ob .inp');
     if (ins[1]){ type(ins[1], 'test1234'); await wait(120); }
     if (pri()){ pri().click(); }
-    /* Реєстрація тепер виводить ключ із пароля — це довше за будь-яку
-       фіксовану паузу, тож чекаємо, поки поле пароля зникне з екрана. */
-    await until(function(){ return !document.querySelector('.ob input[type="password"]'); }, 2500);
+    /* ─── чекаємо, поки реєстрація завершиться ───
+       Вона виводить ключ із пароля, заводить ключ копії й замикає його —
+       кілька звернень до крипто поспіль. Під віртуальним часом вони
+       коштують дорожче, ніж здається: поки браузер рахує, головний потік
+       порожній, і годинник мчить уперед. Двох із половиною секунд
+       перестало вистачати приблизно в кожному третьому запуску.
+
+       І головне — переконуємось, що таки дочекались. Якщо піти далі з
+       полем пароля на екрані, ім'я «Alex» лягає в поле логіна, реєстрація
+       ламається, а проба мовчки перевіряє порожній екран і повідомляє
+       про це як про помилку застосунку. */
+    var done = await until(function(){ return !document.querySelector('.ob input[type=password]'); }, 20000);
+    if (!done){
+      /* Кажемо не тільки «не вийшло», а й що було на екрані: саме цей
+         рядок показав, що застосунок не завис, а чесно відповів
+         «пароль до кабінета інший» — і виною була підміна в харнесі. */
+      var box = document.querySelector('.ob');
+      window.__err = window.__err || ('вхід: реєстрація не завершилась · ' +
+        (box ? box.textContent.replace(/\s+/g, ' ').slice(0, 200) : 'екрана немає'));
+      return;
+    }
     var nm = document.querySelector('.ob .inp');
     if (nm){ type(nm, 'Alex'); await wait(120); }
     if (pri()){ pri().click(); await wait(400); }
@@ -632,6 +684,52 @@ PROBES['app-cloud.js'] = DRIVE + `
     res.strangerWhy = (nope && nope.error) || '';
 
     res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
+/* Вхід із чистого пристрою — саме той шлях, на якому спіткнувся автор.
+   Кабінета тут немає, копія лежить на сервері (її поклала попередня
+   проба, сервер у прогоні спільний). Тиснемо «Увійти», як зробить
+   будь-яка людина, і чекаємо, що потрапимо до себе, а не в глухий кут.
+   Заодно перевіряємо, що чужий пароль сюди не пускає. */
+PROBES['app-join.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await wait(300);
+    for (var i = 0; i < 3; i++){ if (pri()){ pri().click(); await wait(120); } }
+
+    var toLogin = all('.ob button').filter(function(b){ return /Вже є кабінет/.test(b.textContent); })[0];
+    res.hasSwitch = !!toLogin;
+    if (toLogin){ toLogin.click(); await wait(200); }
+
+    var li = document.querySelector('.ob .inp');
+    if (li) type(li, 'trainer@mail.com');
+    await wait(120);
+    if (pri()) pri().click();
+
+    /* пристрій кабінета не знає — але сервер знає, і в нас питають пароль */
+    await until(function(){ return !!document.querySelector('.ob input[type=password]'); }, 6000);
+    res.asksPass = !!document.querySelector('.ob input[type=password]');
+    res.found = /Кабінет знайдено/.test(document.querySelector('.ob').textContent);
+
+    var pf = document.querySelector('.ob input[type=password]');
+    if (pf){ type(pf, 'ne-toy-parol'); await wait(120); if (pri()) pri().click(); }
+    await until(function(){ return /Пароль не підходить/.test(document.querySelector('.ob').textContent); }, 6000);
+    res.stranger = /Пароль не підходить/.test(document.querySelector('.ob').textContent);
+
+    pf = document.querySelector('.ob input[type=password]');
+    if (pf){ type(pf, 'test1234'); await wait(120); if (pri()) pri().click(); }
+    await until(function(){ return !!all('.nav button').length; }, 8000);
+    await until(function(){ return !document.querySelector('.sk'); });
+    res.inside = !!all('.nav button').length;
+    res.clients = Store.state && Store.state.clients ? Store.state.clients.length : -1;
+    res.err = window.__err || '';
+    if (res.inside){
+      var mark = document.createElement('i');
+      mark.id = '__entered';
+      document.body.appendChild(mark);
+    }
     say(res);
   })();
 `;
@@ -993,6 +1091,18 @@ server.listen(PORT, '127.0.0.1', async () => {
       new URLSearchParams({login: 'on@mail.com', token: 'tok-on@mail.com'}))).json();
     ok('власнику копію віддаємо', mine.has === true && mine.ct === 'c');
     ok('а ключ — ні', mine.keep === undefined, JSON.stringify(mine.keep));
+
+    /* Кнопка «Увійти» на новому пристрої. Спирається на копію, яку щойно
+       поклала проба вище, — тому й стоїть одразу за нею. */
+    part('«Увійти» працює з чистого пристрою');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?cloud=1&probe=app-join.js')) || '{}');
+    ok('є куди перемкнутись на вхід', o.hasSwitch === true);
+    ok('пристрій кабінета не знає, але пароль просять', o.asksPass === true);
+    ok('і кажуть, що кабінет знайдено', o.found === true);
+    ok('чужий пароль не пускає', o.stranger === true);
+    ok('свій пароль відкриває кабінет', o.inside === true);
+    ok('клієнти на місці', o.clients === 8, o.clients + ' шт.');
+    ok('помилок немає', !o.err, o.err || '—');
 
     part('забутий пароль повертає базу');
     o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?cloud=1&probe=app-lost.js')) || '{}');

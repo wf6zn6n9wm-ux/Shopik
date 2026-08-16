@@ -1110,6 +1110,7 @@ const PHRASES = [
   ['Вимкнено — дані лише на цьому пристрої', 'Выключено — данные только на этом устройстве', 'Off — your data stays on this device only', 'Wyłączone — dane tylko na tym urządzeniu'],
   ['Зашифрована копія. Зайдіть із будь-якого пристрою — клієнти й історія будуть на місці', 'Зашифрованная копия. Зайдите с любого устройства — клиенты и история будут на месте', 'An encrypted backup. Sign in from any device — your clients and history will be there', 'Zaszyfrowana kopia. Zaloguj się z dowolnego urządzenia — klienci i historia będą na miejscu'],
   ['Відновлювати пароль', 'Восстанавливать пароль', 'Password recovery', 'Odzyskiwanie hasła'],
+  ['Кабінет знайдено. Введіть пароль — клієнти, тренування та історія повернуться на цей пристрій', 'Кабинет найден. Введите пароль — клиенты, тренировки и история вернутся на это устройство', 'Account found. Enter your password — your clients, sessions and history will come back to this device', 'Konto znalezione. Wpisz hasło — klienci, treningi i historia wrócą na to urządzenie'],
   ['Забули пароль — код на пошту поверне доступ і дані. Ціна: ключ від копії зберігається в нас', 'Забыли пароль — код на почту вернёт доступ и данные. Цена: ключ от копии хранится у нас', 'Forgot your password — a code by email brings back access and data. The price: we keep a copy of the key', 'Nie pamiętasz hasła — kod e-mailem przywróci dostęp i dane. Cena: przechowujemy klucz do kopii'],
   ['Вимкнено. Копію відкриває лише ваш пароль — ми не можемо. Забудете пароль — база пропаде', 'Выключено. Копию открывает только ваш пароль — мы не можем. Забудете пароль — база пропадёт', 'Off. Only your password opens the backup — we cannot. Forget it and the data is gone', 'Wyłączone. Kopię otwiera tylko Twoje hasło — my nie możemy. Zapomnisz hasła i baza przepada'],
   ['Пошту підтверджено. Придумайте новий пароль — клієнти, тренування та історія повернуться', 'Почта подтверждена. Придумайте новый пароль — клиенты, тренировки и история вернутся', 'Email confirmed. Choose a new password — your clients, sessions and history will come back', 'E-mail potwierdzony. Wymyśl nowe hasło — klienci, treningi i historia wrócą'],
@@ -3863,12 +3864,46 @@ const Auth = ({onReady, save}) => {
       if (mode === 'login'){
         const a = meta.account;
         const match = a && (a.login === norm || a.email === norm);
-        if (!match){ setErr({login: t('auth.err.nouser','Такого кабінету на цьому пристрої немає')}); setBusy(false); return; }
+        /* ─── кабінета на цьому пристрої немає ───
+           Це ще не привід казати «немає». Новий телефон — звичайна
+           справа, і людина, яка натиснула «Увійти», має потрапити до
+           себе, а не в глухий кут із порадою натиснути іншу кнопку.
+           Тому питаємо сервер: якщо копія є — просимо пароль і
+           розгортаємо базу тут. */
+        if (!match){
+          const found = Web.enabled() ? await Cloud.peek(norm) : {ok:false};
+          if (!found.ok || !found.has){
+            setErr({login: t('auth.err.nouser','Такого кабінету на цьому пристрої немає')});
+            setBusy(false); return;
+          }
+          if (!askPass){
+            setAskPass(true); setBusy(false);
+            setNote(t('auth.found','Кабінет знайдено. Введіть пароль — клієнти, тренування та історія повернуться на цей пристрій'));
+            return;
+          }
+          const got = await Cloud.open(norm, f.pass, found.salt);
+          if (!got.ok){
+            setExists(true);
+            setErr({pass: t('auth.err.bad','Пароль не підходить')});
+            setBusy(false); return;
+          }
+          const acc = {login: norm, raw: login, kind: isEmail(login) ? 'email' : 'phone',
+                       hash: await Vault.hash(f.pass, found.salt), createdAt: Date.now()};
+          Disk.writeMeta({...meta, salt: found.salt, account: acc,
+                          access: carryAccess(meta.account, norm, meta.access)});
+          Cloud.remember(got.cred);
+          onReady({account: acc, fresh:false, restored: got.json});
+          return;
+        }
         if (a.hash && !askPass){ setAskPass(true); setBusy(false); return; }   /* кабінет під паролем */
         if (a.hash && a.hash !== hash){ setErr({pass: t('auth.err.bad','Пароль не підходить')}); setBusy(false); return; }
-        /* ключ копії живе на пристрої, але після входу оновлюємо його —
-           інакше на кабінетах, заведених до появи копій, його не буде */
-        if (f.pass) Cloud.remember(await Vault.cloud(f.pass, salt));
+        /* Ключ копії беремо з сервера, а не вигадуємо новий: інакше кожен
+           вхід перешифровував би всю копію заново. Немає зв'язку або
+           копії — заводимо ключ тут, перший же запис його й покладе. */
+        if (f.pass){
+          const got = Web.enabled() ? await Cloud.open(norm, f.pass, salt) : {ok:false};
+          Cloud.remember(got.ok ? got.cred : await Vault.cloud(f.pass, salt));
+        }
         onReady({account: a, fresh:false});
       } else {
         /* Новий кабінет із тим самим логіном — можливо, це та сама людина
