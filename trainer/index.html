@@ -1111,6 +1111,12 @@ const PHRASES = [
   ['Зашифрована копія. Зайдіть із будь-якого пристрою — клієнти й історія будуть на місці', 'Зашифрованная копия. Зайдите с любого устройства — клиенты и история будут на месте', 'An encrypted backup. Sign in from any device — your clients and history will be there', 'Zaszyfrowana kopia. Zaloguj się z dowolnego urządzenia — klienci i historia będą na miejscu'],
   ['Відновлювати пароль', 'Восстанавливать пароль', 'Password recovery', 'Odzyskiwanie hasła'],
   ['ще попереду', 'ещё впереди', 'still ahead', 'jeszcze przed nami'],
+  ['В архів', 'В архив', 'Archive', 'Do archiwum'],
+  ['Повернути з архіву', 'Вернуть из архива', 'Restore from archive', 'Przywróć z archiwum'],
+  ['В архіві', 'В архиве', 'Archived', 'W archiwum'],
+  ['Клієнта відправлено в архів', 'Клиент отправлен в архив', 'Client archived', 'Klient w archiwum'],
+  ['Клієнта повернуто зі архіву', 'Клиент возвращён из архива', 'Client restored', 'Klient przywrócony'],
+  ['Разом із ним зникнуть його тренування, продажі та нотатки — а з ними зміняться й гроші за минулі місяці. Якщо клієнт просто перестав ходити, краще відправити його в архів. Дію не можна скасувати.', 'Вместе с ним исчезнут его тренировки, продажи и заметки — а с ними изменятся и деньги за прошлые месяцы. Если клиент просто перестал ходить, лучше отправить его в архив. Действие нельзя отменить.', 'His sessions, sales and notes will disappear with him — and so will the money for past months. If the client simply stopped coming, archiving is the better choice. This cannot be undone.', 'Razem z nim znikną jego treningi, sprzedaż i notatki — a z nimi zmienią się pieniądze za minione miesiące. Jeśli klient po prostu przestał przychodzić, lepiej przenieś go do archiwum. Tego nie można cofnąć.'],
   ['Абонемент вичерпано — тренування записали як борг', 'Абонемент исчерпан — тренировку записали как долг', 'The package is used up — the session was recorded as a debt', 'Karnet wyczerpany — trening zapisano jako dług'],
   ['Абонемент вичерпано — записали як борг', 'Абонемент исчерпан — записали как долг', 'Package used up — recorded as a debt', 'Karnet wyczerpany — zapisano jako dług'],
   ['Не вдалося зв’язатися з сервером. Перевірте інтернет і спробуйте ще раз', 'Не удалось связаться с сервером. Проверьте интернет и попробуйте ещё раз', 'We could not reach the server. Check your connection and try again', 'Nie udało się połączyć z serwerem. Sprawdź internet i spróbuj ponownie'],
@@ -2852,6 +2858,19 @@ const Act = {
     return client;
   },
   updClient(id, patch){ Store.patch(db => ({...db, clients: db.clients.map(c => c.id === id ? {...c, ...patch} : c)}), {name:'client.upd', data:{id, patch}}); },
+  /* ─── архів ───
+     Клієнт пішов — його не треба бачити щодня, але й видаляти шкода:
+     разом із ним зникнуть його тренування й продажі, тобто зміняться
+     гроші за минулі місяці. Звіт, уже відданий бухгалтеру, перестане
+     сходитись із застосунком.
+
+     Архів прибирає людину зі списків і підказок, лишаючи історію на
+     місці. Поле archived було в базі з самого початку, і всі списки його
+     вже враховували — не було лише способу його поставити. */
+  archiveClient(id, on){
+    Store.patch(db => ({...db, clients: db.clients.map(c => c.id === id ? {...c, archived: on !== false} : c)}),
+      {name:'client.archive', data:{id, on}});
+  },
   delClient(id){
     Store.patch(db => ({...db,
       clients: db.clients.filter(c => c.id !== id),
@@ -5487,7 +5506,11 @@ const Clients = ({loading}) => {
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('next');
 
-  const rows = useMemo(() => db.clients.filter(c => !c.archived).map(c => ({c, st: clientStats(db, c.id)})), [db]);
+  /* Архів — окремий фільтр, а не порядок сортування: там навмисно
+     показуємо саме тих, кого зі списків прибрали. Інакше повернути
+     людину звідти було б нічим. */
+  const rows = useMemo(() => db.clients.filter(c => sort === 'arch' ? c.archived : !c.archived)
+    .map(c => ({c, st: clientStats(db, c.id)})), [db, sort]);
   const found = rows.filter(({c}) => (c.name + ' ' + (c.phone || '') + ' ' + goalTitle(c.goal))
     .toLowerCase().includes(q.trim().toLowerCase()));
   /* «З боргом» і «Без тренування» — це фільтри, а не просто порядок */
@@ -5524,7 +5547,9 @@ const Clients = ({loading}) => {
 
         <div className="chips" style={{marginTop:10}}>
           {[['next', t('client.sort.next','Найближчі')], ['name', t('client.sort.name','За іменем')],
-            ['debt', t('client.sort.debt','З боргом')], ['lapsed', t('client.sort.lapsed','Давно не був')]].map(([v, tx]) => (
+            ['debt', t('client.sort.debt','З боргом')], ['lapsed', t('client.sort.lapsed','Давно не був')]]
+            .concat(db.clients.some(c => c.archived) ? [['arch', t('client.sort.arch','В архіві')]] : [])
+            .map(([v, tx]) => (
             <button key={v} className={cx('chip', sort === v && 'on')} onClick={() => setSort(v)}>{tx}</button>
           ))}
         </div>
@@ -5869,13 +5894,23 @@ const ClientPage = ({params, onClose}) => {
       <div className="stack" style={{marginTop:20}}>
         <Btn kind="sec" wide onClick={() => nav.go('sell', {clientId: c.id})}><Ic.bag size={18}/>{t('client.sell','Продати товар')}</Btn>
         <Btn kind="sec" wide onClick={() => nav.go('packages', {clientId: c.id})}><Ic.ticket size={18}/>{t('client.buysub','Оформити абонемент')}</Btn>
+        {/* Клієнт пішов — це ще не привід стирати його гроші з минулих
+            місяців. Архів прибирає його зі списків, історія лишається. */}
+        <Btn kind="sec" wide onClick={() => {
+          Act.archiveClient(c.id, !c.archived);
+          Toaster.show(c.archived ? t('client.unarch.ok','Клієнта повернуто зі архіву')
+                                  : t('client.arch.ok','Клієнта відправлено в архів'));
+          if (!c.archived) onClose();
+        }}>
+          <Ic.box size={18}/>{c.archived ? t('client.unarch','Повернути з архіву') : t('client.arch','В архів')}
+        </Btn>
         {!del ? (
           <button className="btn ghost wide" style={{color:'var(--neg)'}} onClick={() => setDel(true)}>{t('client.del','Видалити клієнта')}</button>
         ) : (
           <div className="card pad" style={{borderColor:'var(--neg)'}}>
             <b style={{fontSize:14.5}}>{t('client.del.q','Видалити клієнта?')}</b>
             <p className="muted" style={{fontSize:13, margin:'6px 0 12px'}}>
-              {t('client.del.t','Разом із ним зникнуть його тренування, продажі та нотатки. Дію не можна скасувати.')}
+              {t('client.del.t2','Разом із ним зникнуть його тренування, продажі та нотатки — а з ними зміняться й гроші за минулі місяці. Якщо клієнт просто перестав ходити, краще відправити його в архів. Дію не можна скасувати.')}
             </p>
             <div className="grid2">
               <Btn kind="sec" onClick={() => setDel(false)}>{t('common.cancel','Скасувати')}</Btn>

@@ -308,6 +308,35 @@ part('вичерпаний абонемент');
   T.Store.init(was);
 }
 
+part('архів клієнта');
+{
+  const was = T.Store.state;
+  T.Store.init(T.emptyDB());
+  const cl = T.Act.addClient({name: 'Пішов'});
+  const s1 = T.Act.addSession({clientId: cl.id, price: 800, start: new Date().toISOString()});
+  T.Act.complete(s1.id, true);
+  const [f, tt] = T.periodRange('month', new Date());
+  const before = T.stats(T.Store.state, f, tt).earned;
+
+  T.Act.archiveClient(cl.id, true);
+  const box = T.Store.state;
+  ok('клієнт лишається в базі', box.clients.length === 1 && box.clients[0].archived === true);
+  ok('його тренування нікуди не зникли', box.sessions.length === 1);
+  /* Головне заради чого архів і потрібен: гроші за минулі місяці не
+     змінюються. Видалення клієнта переписало б їх заднім числом. */
+  ok('гроші за місяць ті самі', T.stats(box, f, tt).earned === before,
+     T.money(T.stats(box, f, tt).earned) + ' проти ' + T.money(before));
+
+  T.Act.archiveClient(cl.id, false);
+  ok('повертається назад', T.Store.state.clients[0].archived === false);
+
+  /* А от видалення справді стирає — і про це в застосунку сказано прямо */
+  T.Act.delClient(cl.id);
+  ok('видалення забирає й гроші', T.stats(T.Store.state, f, tt).earned === 0,
+     T.money(T.stats(T.Store.state, f, tt).earned));
+  T.Store.init(was);
+}
+
 part('правка абонемента в проведеному');
 {
   const was = T.Store.state;
