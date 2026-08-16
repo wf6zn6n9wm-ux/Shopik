@@ -270,8 +270,13 @@ const done = (url, html) => {
   if (!html.includes('id="__out"')) return false;
   /* Проби застосунку починаються зі входу. Якщо він не вдався, перевіряти
      нема чого — краще повторити, ніж рахувати порожній екран за
-     результат. Позначку ставить enter(). */
-  const needsApp = url.includes('/_app.html') && !url.includes('probe=app-boot');
+     результат. Позначку ставить enter().
+
+     Крім тих, що до застосунку й не доходять: одна дивиться на завантаження,
+     друга — на те, що кабінет на номер завести не дають. Вимагати від них
+     позначку означало б тричі перезапускати вдалу пробу. */
+  const OUTSIDE = ['probe=app-boot', 'probe=app-mail'];
+  const needsApp = url.includes('/_app.html') && !OUTSIDE.some(p => url.includes(p));
   return needsApp ? html.includes('id="__entered"') : true;
 };
 
@@ -693,6 +698,40 @@ PROBES['app-cloud.js'] = DRIVE + `
    проба, сервер у прогоні спільний). Тиснемо «Увійти», як зробить
    будь-яка людина, і чекаємо, що потрапимо до себе, а не в глухий кут.
    Заодно перевіряємо, що чужий пароль сюди не пускає. */
+/* Кабінет заводиться тільки на пошту. Номер виглядав зручним, а
+   насправді вів у глухий кут: відновити пароль такому кабінету нічим.
+   Перевіряємо, що застосунок не дає його завести — і пояснює чому. */
+PROBES['app-mail.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await wait(300);
+    for (var i = 0; i < 3; i++){ if (pri()){ pri().click(); await wait(120); } }
+    var li = document.querySelector('.ob .inp');
+    res.field = li ? (li.placeholder || '') : '';
+    if (li) type(li, '0671234567');
+    await wait(120);
+    var ins = all('.ob .inp');
+    if (ins[1]) type(ins[1], 'test1234');
+    await wait(120);
+    if (pri()) pri().click();
+    await until(function(){ return /заводиться на пошту/.test(document.querySelector('.ob').textContent); }, 20000);
+    var box = document.querySelector('.ob').textContent;
+    res.refused = /заводиться на пошту/.test(box);
+    res.stillHere = !!document.querySelector('.ob input[type=password]');
+    /* а з поштою той самий шлях доходить до кінця */
+    li = document.querySelector('.ob .inp');
+    if (li) type(li, 'mail-only@mail.com');
+    await wait(120);
+    ins = all('.ob .inp');
+    if (ins[1]) type(ins[1], 'test1234');
+    await wait(120);
+    if (pri()) pri().click();
+    res.passed = await until(function(){ return !document.querySelector('.ob input[type=password]'); }, 20000);
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
 PROBES['app-join.js'] = DRIVE + `
   (async function(){
     var res = {};
@@ -1096,6 +1135,14 @@ server.listen(PORT, '127.0.0.1', async () => {
       new URLSearchParams({login: 'on@mail.com', token: 'tok-on@mail.com'}))).json();
     ok('власнику копію віддаємо', mine.has === true && mine.ct === 'c');
     ok('а ключ — ні', mine.keep === undefined, JSON.stringify(mine.keep));
+
+    part('кабінет заводиться тільки на пошту');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-mail.js')) || '{}');
+    ok('у полі просять саме пошту', o.field === 'trainer@mail.com', o.field);
+    ok('номер телефону не приймають', o.refused === true);
+    ok('і пояснюють це на місці, а не мовчки', o.stillHere === true);
+    ok('із поштою реєстрація доходить до кінця', o.passed === true);
+    ok('помилок немає', !o.err, o.err || '—');
 
     /* Кнопка «Увійти» на новому пристрої. Спирається на копію, яку щойно
        поклала проба вище, — тому й стоїть одразу за нею. */
