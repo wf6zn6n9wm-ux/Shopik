@@ -68,6 +68,9 @@ jobs:
     needs: tests
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    # Право двигать метку «вот это на сайте»
+    permissions:
+      contents: write
     # Несколько коммитов подряд — это одна выкладка, а не три. Отменяем
     # начатые: на сайт всё равно уедет последняя, а лимит они съедают все.
     concurrency:
@@ -84,20 +87,26 @@ jobs:
       # Тесты, скриншоты для магазинов и нативная оболочка на сайт не
       # уезжают. Правка в них — не повод тратить выкладку: на бесплатном
       # тарифе их 100 в сутки, и однажды мы упёрлись в лимит именно так.
+      # Сравниваем с тем, что реально лежит на сайте, а не с предыдущим
+      # пушем. Разница не теоретическая: пара коммитов подряд упала на
+      # тестах и не выложилась, следующий пуш тронул только тесты — и
+      # выкладка решила, что менять нечего. Правки провисели в main
+      # невыложенными, а по логам всё было зелёное.
+      #
+      # Метку двигает сам шаг выкладки, и только после успеха.
       - name: Проверить, менялось ли то, что уезжает на сайт
         id: what
-        env:
-          BEFORE: ${{ github.event.before }}
         run: |
           set -o pipefail
-          # Первый коммит в ветку или перезапись истории — сравнивать не с
-          # чем, выкладываем от греха.
-          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
-             || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            echo "нет предыдущего коммита — выкладываем"
+          BEFORE=$(git rev-parse -q --verify refs/tags/deployed^{commit} || true)
+          # Метки нет (первый раз) или она не из этой истории — сравнивать
+          # не с чем, выкладываем от греха.
+          if [ -z "$BEFORE" ]; then
+            echo "метки выложенного нет — выкладываем"
             echo "site=yes" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          echo "на сайте сейчас: $BEFORE"
           changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" -- trainer \
             ':(exclude)trainer/tests/**' \
             ':(exclude)trainer/store/**' \
@@ -147,3 +156,11 @@ jobs:
           npx --yes vercel@latest link --yes --token "$TOKEN" --scope "$SCOPE" --project "$PROJECT"
           npx --yes vercel@latest deploy --prod --yes --token "$TOKEN" --scope "$SCOPE" | tee /tmp/out
           echo "Выложено: $(tail -n1 /tmp/out)"
+
+      # Метка «вот это на сайте». Двигаем только после удачной выкладки —
+      # иначе следующий запуск решит, что упавшее уже выложено.
+      - name: Отметить выложенное
+        if: steps.what.outputs.site == 'yes' && success()
+        run: |
+          git tag -f deployed "$GITHUB_SHA"
+          git push -f origin refs/tags/deployed
