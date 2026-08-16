@@ -69,6 +69,9 @@ function sandbox(){
     console, setTimeout, clearTimeout, setInterval: () => 0, clearInterval,
     Intl, Date, Math, JSON, URL, URLSearchParams,
     Blob: class {}, FileReader: class {},
+    /* шифрование базы: в браузере это встроенные объекты, в узле их надо
+       положить в песочницу руками — иначе Vault не соберётся */
+    TextEncoder, TextDecoder, btoa, atob, crypto: require('crypto').webcrypto,
     localStorage: {
       getItem: k => (mem.has(k) ? mem.get(k) : null),
       setItem: (k, v) => mem.set(k, String(v)),
@@ -107,6 +110,8 @@ const EXPORTS = `;globalThis.__T = {
   Access, Web, Meta, WEB, PLANS, TRIAL_DAYS, planById, uah, addMonthsKeep, normLogin,
   loginLooksReal, useAccess, ACCESS_LABEL, AppGate, TrialIntro, Paywall, SubscriptionPage,
   AccessCard, PlanCards, LoginBox,
+  Vault, isEmail, isPhone, isLogin, b64, unb64,
+  Boot, bootPhase, Onboarding, Auth, PinLock, Setup, SkScreen, ErrorBox, ObArt, LangPick, PinModal,
   expensesIn, spent, profit, EXPENSE_KINDS, ExpenseForm, pickFile, pickPhoto,
 };`;
 
@@ -717,6 +722,112 @@ part('экраны с сервером');
      card.includes('WhatsApp') && card.includes('SMS'));
 }
 
+part('вход');
+{
+  const A = T.Access;
+  ctx.localStorage.removeItem('probarber.meta');
+  ctx.localStorage.removeItem('probarber.v1');
+
+  ok('почта и телефон различаются',
+     T.isEmail('barber@mail.com') && !T.isEmail('067') &&
+     T.isPhone('067 123 45 67') && !T.isPhone('12'));
+  ok('логином годится и то, и другое',
+     T.isLogin('barber@mail.com') && T.isLogin('+380671234567') && !T.isLogin('барбер'));
+
+  screen('приветствие', () => T.Onboarding({onDone(){}}));
+  screen('вход', () => T.Auth({onReady(){}}));
+  screen('вход из настроек', () => T.Auth({save: true, onReady(){}}));
+  screen('PIN-замок', () => T.PinLock({mode: 'enter', onPin(){}}));
+  screen('мастер настройки', () => T.Setup({account: null, onDone(){}}));
+  screen('заставка загрузки', () => T.SkScreen({}));
+  screen('экран ошибки', () => T.ErrorBox({title: 'ой', text: 'что-то не так', onRetry(){}}));
+  screen('стартовый экран собирается', () => T.Boot({}));
+
+  /* куда ведёт запуск — по состоянию устройства, без браузера */
+  const DB = '{"clients":[]}';
+  ok('чистое устройство — приветствие', T.bootPhase({}, null) === 'onboard');
+  ok('приветствие уже видели — сразу вход', T.bootPhase({guest: true}, null) === 'auth');
+  ok('база на месте — прямо в кабинет', T.bootPhase({}, DB) === 'app');
+  ok('база под PIN — замок', T.bootPhase({}, '{"enc":1,"iv":"x","ct":"y"}') === 'pin');
+  ok('вышли из кабинета — снова вход', T.bootPhase({signedOut: true}, DB) === 'auth');
+  ok('битая база — экран ошибки, а не белый лист', T.bootPhase({}, '{не json') === 'error');
+
+  const ob = textOf(T.Onboarding({onDone(){}}));
+  ok('на приветствии три экрана и кнопка «пропустить»', /Пропустить/.test(ob) && /Дальше/.test(ob));
+  const auth = textOf(T.Auth({onReady(){}}));
+  ok('на входе просят почту или телефон', /Почта или телефон/.test(auth));
+  ok('никаких кодов и подтверждений не обещают', /никаких кодов/i.test(auth));
+  ok('можно и без регистрации', /без регистрации/i.test(auth));
+  ok('в режиме «сохранить» кнопки смены режима нет',
+     !/Уже есть кабинет/.test(textOf(T.Auth({save: true, onReady(){}}))));
+
+  const setup = textOf(T.Setup({account: null, onDone(){}}));
+  ok('мастер спрашивает имя, барбершоп и валюту',
+     /Как вас зовут/.test(setup) && /барбершоп/i.test(setup) && /Валюта/.test(setup));
+  ok('и предлагает заполнить примером', /Заполнить примером/.test(setup));
+
+  /* аккаунт и гость */
+  T.Meta.write({account: {login: 'barber@mail.com', raw: 'Barber@Mail.com', kind: 'email', createdAt: Date.now()}});
+  ok('после входа логин виден подписке', T.Web.login() === 'barber@mail.com');
+  ok('и в настройках появляется кабинет', textOf(T.Settings({})).includes('barber@mail.com'));
+  T.Meta.write({account: null, guest: true});
+  ok('гостю предлагают привязать почту', /Привязать почту/.test(textOf(T.Settings({}))));
+  ok('и подписка про логин ничего не знает', T.Web.login() === '');
+
+  /* «Выйти» не должно стирать работу: база остаётся, спрашивают только логин */
+  T.Store.init(T.seedDB());
+  T.Disk.write(T.Store.state);
+  const kept = T.Disk.read().clients.length;
+  T.Meta.write({account: null, guest: false, signedOut: true});
+  ok('после выхода данные остаются на устройстве', T.Disk.read().clients.length === kept, kept + ' клиентов');
+  ok('а вход снова спрашивают', T.bootPhase({signedOut: true}, T.Disk.readRaw()) === 'auth');
+  T.Meta.write({signedOut: false, guest: true});
+}
+
+part('шифрование базы');
+{
+  const V = T.Vault;
+  ok('шифрование доступно', V.ready());
+  ok('base64 туда-обратно', T.b64(T.unb64('aGk=')) === 'aGk=');
+
+  const {key, salt} = await V.derive('1234');
+  V.key = key;
+  const env = await V.encrypt('{"clients":[]}');
+  ok('шифротекст не похож на данные', env.enc === 1 && !env.ct.includes('clients'));
+  ok('и расшифровывается своим ключом', (await V.decrypt(env.iv, env.ct)) === '{"clients":[]}');
+
+  const wrong = (await V.derive('9999', salt)).key;
+  V.key = wrong;
+  let broke = false;
+  try { await V.decrypt(env.iv, env.ct); } catch (e){ broke = true; }
+  ok('чужим PIN не расшифровать', broke);
+
+  /* тот же PIN и та же соль дают тот же ключ — иначе вход был бы разовым */
+  V.key = (await V.derive('1234', salt)).key;
+  ok('тот же PIN открывает базу снова', (await V.decrypt(env.iv, env.ct)) === '{"clients":[]}');
+
+  ok('хеш пароля зависит от соли',
+     (await V.hash('pass', 'aaa')) !== (await V.hash('pass', 'bbb')));
+
+  /* база на диске: с ключом — конверт, без ключа — открытый текст */
+  T.Disk.writeRaw(JSON.stringify(env));
+  ok('запертую базу видно, не расшифровывая', T.Disk.locked());
+  ok('и read() её не отдаёт', T.Disk.read() === null);
+  V.key = null;
+  T.Disk.write(T.seedDB());
+  ok('без PIN база лежит открытым текстом', !T.Disk.locked() && !!T.Disk.read());
+
+  /* очистка данных не трогает аккаунт и оплату */
+  T.Meta.write({account: {login: 'barber@mail.com', kind: 'email'}, access: {trialStartedAt: 1}});
+  T.Disk.clear();
+  ok('«начать с чистого листа» стирает базу', T.Disk.readRaw() === null);
+  ok('но аккаунт и пробный период остаются',
+     T.Web.login() === 'barber@mail.com' && T.Access.read().trialStartedAt === 1);
+
+  T.Store.init(T.seedDB());
+  T.Disk.write(T.Store.state);
+}
+
 part('доступ и подписка');
 {
   const A = T.Access, W = T.Web;
@@ -785,7 +896,9 @@ part('доступ и подписка');
      T.loginLooksReal('barber@mail.com') && T.loginLooksReal('+380671002030') &&
      !T.loginLooksReal('barber') && !T.loginLooksReal('123'));
   W.setLogin(' Barber@Mail.com ');
-  ok('логин сохраняется отдельно от базы', W.login() === 'Barber@Mail.com');
+  ok('логин сохраняется отдельно от базы и нормализуется', W.login() === 'barber@mail.com', W.login());
+  ok('и живёт в аккаунте, которым входят в кабинет',
+     (T.Meta.read().account || {}).kind === 'email');
 
   /* месяцы считаются с сохранением дня */
   const jan31 = new Date(2026, 0, 31);

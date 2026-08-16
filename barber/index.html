@@ -312,6 +312,50 @@
   .chip.on{background:var(--gold-soft); border-color:var(--gold-soft-2); color:var(--gold)}
 
   /* ══ СПИСКИ / ТАБЛИЦЫ ══ */
+  /* ── экраны входа ─────────────────────────────────────────────
+     Приветствие, вход, мастер настройки и PIN-замок живут вне оболочки
+     кабинета: у них своя раскладка — колонка на весь экран с прижатой
+     книзу кнопкой. */
+  .ob{min-height:100dvh; display:flex; flex-direction:column;
+    padding:26px 22px 28px; max-width:460px; margin:0 auto; width:100%}
+  /* тот же экран, вставленный в модалку: без своей высоты и полей */
+  .ob-inline{min-height:0; padding:0; max-width:none}
+  /* Шапка экранов входа: на узком телефоне логотип, выбор языка и
+     «Пропустить» в одну строку не помещаются — пусть переносятся,
+     а не наезжают друг на друга. */
+  .ob-top{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap}
+  .ob-top b{white-space:nowrap}
+  @media (max-width:420px){
+    .ob-top{gap:8px}
+    .ob-top .segm button{padding:0 9px}
+  }
+  .ob-art{flex:1; display:grid; place-items:center; padding:16px 0; min-height:150px}
+  .ob-title{font-size:26px; font-weight:750; letter-spacing:-.03em; line-height:1.15}
+  .ob-sub{font-size:13.5px; color:var(--ink-2); margin-top:8px; line-height:1.5}
+  .dots{display:flex; gap:6px; justify-content:center; margin-bottom:18px}
+  .dots i{width:7px; height:7px; border-radius:4px; background:var(--line-2); transition:var(--slow)}
+  .dots i.on{width:22px; background:var(--gold)}
+
+  .pin-dots{display:flex; gap:14px; justify-content:center; margin:22px 0 8px}
+  .pin-dots i{width:13px; height:13px; border-radius:50%; background:var(--surface-3); transition:var(--fast)}
+  .pin-dots i.on{background:var(--gold); transform:scale(1.12)}
+  .keypad{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:22px}
+  .keypad button{height:60px; border-radius:16px; background:var(--surface);
+    border:1px solid var(--line); font-size:22px; font-weight:650;
+    transition:transform var(--fast), background var(--fast)}
+  .keypad button:active{transform:scale(.94); background:var(--surface-2)}
+  .keypad button.flat{background:transparent; border-color:transparent; font-size:14px; font-weight:600; color:var(--ink-2)}
+  .shake{animation:shake .4s}
+  @keyframes shake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(5px)}50%{transform:translateX(-6px)}}
+  .sk{background:linear-gradient(90deg,var(--surface) 25%,var(--surface-2) 37%,var(--surface) 63%);
+    background-size:400% 100%; animation:shimmer 1.4s linear infinite}
+  @keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
+  @media (max-width:560px){
+    .ob{padding:20px 16px 24px}
+    .ob-title{font-size:22px}
+    .keypad button{height:54px; font-size:20px}
+  }
+
   /* ── экраны подписки ──────────────────────────────────────────
      Шлюз показывается вместо кабинета, поэтому у него своя раскладка:
      узкая колонка по центру и прокрутка внутри себя. */
@@ -1082,6 +1126,104 @@ const PHRASES = {
   accLeft: {ru: 'Осталось', uk: 'Залишилось', en: 'Left'},
   accNeed: {ru: 'Оплатите доступ, чтобы продолжить работу', uk: 'Оплатіть доступ, щоб продовжити роботу', en: 'Pay for access to keep working'},
 
+  /* ── вход ── */
+  retry: {ru: 'Попробовать ещё', uk: 'Спробувати ще', en: 'Try again'},
+  cancel: {ru: 'Отмена', uk: 'Скасувати', en: 'Cancel'},
+
+  ob0T: {ru: 'Весь день — на одном экране', uk: 'Весь день — на одному екрані', en: 'Your whole day on one screen'},
+  ob0D: {ru: 'Открыл приложение и за три секунды видишь: сколько записей сегодня, кто следующий и сколько заработано.',
+         uk: 'Відкрив застосунок і за три секунди бачиш: скільки записів сьогодні, хто наступний і скільки зароблено.',
+         en: 'Open the app and in three seconds you see today’s appointments, who is next and how much you earned.'},
+  ob1T: {ru: 'Клиенты и расписание рядом', uk: 'Клієнти й розклад поруч', en: 'Clients and schedule together'},
+  ob1D: {ru: 'Карточка клиента, история стрижек, заметки и дни рождения. Новая запись — за пару касаний.',
+         uk: 'Картка клієнта, історія стрижок, нотатки й дні народження. Новий запис — за пару дотиків.',
+         en: 'Client card, haircut history, notes and birthdays. A new appointment takes a couple of taps.'},
+  ob2T: {ru: 'Деньги считаются сами', uk: 'Гроші рахуються самі', en: 'The money adds itself up'},
+  ob2D: {ru: 'Выручка, расходы и прибыль — по дням, неделям и месяцам. Плюс своя страница онлайн-записи для клиентов.',
+         uk: 'Виручка, витрати й прибуток — по днях, тижнях і місяцях. Плюс своя сторінка онлайн-запису для клієнтів.',
+         en: 'Revenue, expenses and profit by day, week and month. Plus your own online booking page for clients.'},
+  obSkip: {ru: 'Пропустить', uk: 'Пропустити', en: 'Skip'},
+  obNext: {ru: 'Дальше', uk: 'Далі', en: 'Next'},
+  obStart: {ru: 'Начать', uk: 'Почати', en: 'Get started'},
+
+  authReg: {ru: 'Создать кабинет', uk: 'Створити кабінет', en: 'Create your studio'},
+  authRegSub: {ru: 'Достаточно почты или номера — никаких кодов и подтверждений. Пароль придумывать не обязательно.',
+               uk: 'Достатньо пошти або номера — жодних кодів і підтверджень. Пароль вигадувати не обов’язково.',
+               en: 'An email or a phone number is enough — no codes, no confirmations. A password is optional.'},
+  authBack: {ru: 'С возвращением', uk: 'З поверненням', en: 'Welcome back'},
+  authBackSub: {ru: 'Введите логин, с которым создавали кабинет.',
+                uk: 'Введіть логін, з яким створювали кабінет.',
+                en: 'Enter the login you created the studio with.'},
+  authSave: {ru: 'Сохранить данные', uk: 'Зберегти дані', en: 'Save your data'},
+  authSaveSub: {ru: 'Кабинет привяжется к вашей почте или номеру — всё, что уже введено, останется на месте.',
+                uk: 'Кабінет прив’яжеться до вашої пошти або номера — усе, що вже введено, залишиться на місці.',
+                en: 'The studio gets tied to your email or number — everything you already entered stays.'},
+  authLoginLbl: {ru: 'Почта или телефон', uk: 'Пошта або телефон', en: 'Email or phone'},
+  authPass: {ru: 'Пароль', uk: 'Пароль', en: 'Password'},
+  authPassHint: {ru: 'Минимум 4 символа. Понадобится только чтобы открыть кабинет на этом устройстве.',
+                 uk: 'Мінімум 4 символи. Знадобиться лише щоб відкрити кабінет на цьому пристрої.',
+                 en: 'At least 4 characters. Only needed to open the studio on this device.'},
+  authProtect: {ru: 'Защитить паролем (не обязательно)', uk: 'Захистити паролем (не обов’язково)', en: 'Protect with a password (optional)'},
+  authShow: {ru: 'Показать', uk: 'Показати', en: 'Show'},
+  authHide: {ru: 'Скрыть', uk: 'Сховати', en: 'Hide'},
+  authGo: {ru: 'Продолжить', uk: 'Продовжити', en: 'Continue'},
+  authEnter: {ru: 'Войти', uk: 'Увійти', en: 'Sign in'},
+  authWait: {ru: 'Минутку…', uk: 'Хвилинку…', en: 'One moment…'},
+  authHave: {ru: 'Уже есть кабинет — войти', uk: 'Вже є кабінет — увійти', en: 'I already have a studio'},
+  authNo: {ru: 'Нет кабинета — создать', uk: 'Немає кабінету — створити', en: 'No studio yet — create one'},
+  authGuest: {ru: 'Попробовать без регистрации', uk: 'Спробувати без реєстрації', en: 'Try without signing up'},
+  authErrLogin: {ru: 'Введите почту или номер телефона', uk: 'Введіть пошту або номер телефону', en: 'Enter an email or a phone number'},
+  authErrPass: {ru: 'Пароль — от 4 символов', uk: 'Пароль — від 4 символів', en: 'The password needs 4 characters or more'},
+  authErrNoUser: {ru: 'Такого кабинета на этом устройстве нет', uk: 'Такого кабінету на цьому пристрої немає', en: 'There is no such studio on this device'},
+  authErrBad: {ru: 'Пароль не подходит', uk: 'Пароль не підходить', en: 'That password does not match'},
+  authErrCrypto: {ru: 'Не удалось проверить пароль на этом устройстве',
+                  uk: 'Не вдалося перевірити пароль на цьому пристрої',
+                  en: 'Could not check the password on this device'},
+
+  pinSet: {ru: 'Придумайте PIN', uk: 'Придумайте PIN', en: 'Choose a PIN'},
+  pinAgain: {ru: 'Повторите PIN', uk: 'Повторіть PIN', en: 'Repeat the PIN'},
+  pinEnter: {ru: 'Введите PIN', uk: 'Введіть PIN', en: 'Enter your PIN'},
+  pinSub: {ru: '4 цифры, чтобы открыть базу клиентов', uk: '4 цифри, щоб відкрити базу клієнтів', en: '4 digits to unlock your client base'},
+  pinWrong: {ru: 'Неверный PIN', uk: 'Невірний PIN', en: 'Wrong PIN'},
+  pinMismatch: {ru: 'PIN не совпал, попробуйте ещё', uk: 'PIN не збігся, спробуйте ще', en: 'The PINs did not match, try again'},
+  pinOn: {ru: 'База зашифрована', uk: 'Базу зашифровано', en: 'Your data is encrypted'},
+  pinOff: {ru: 'Шифрование выключено', uk: 'Шифрування вимкнено', en: 'Encryption is off'},
+  secure: {ru: 'Защитить PIN-кодом', uk: 'Захистити PIN-кодом', en: 'Protect with a PIN'},
+  secureNote: {ru: 'База клиентов шифруется на этом устройстве. Без PIN её не прочитать — но и восстановить забытый PIN нельзя.',
+               uk: 'База клієнтів шифрується на цьому пристрої. Без PIN її не прочитати — але й відновити забутий PIN не можна.',
+               en: 'Your client base is encrypted on this device. Without the PIN it cannot be read — and a forgotten PIN cannot be recovered.'},
+
+  setupTitle: {ru: 'Последний шаг', uk: 'Останній крок', en: 'One last step'},
+  setupSub: {ru: 'Эти значения подставятся в кабинет. Поменять можно когда угодно в настройках.',
+             uk: 'Ці значення підставляться в кабінет. Змінити можна будь-коли в налаштуваннях.',
+             en: 'These go into your studio as defaults. You can change them any time in settings.'},
+  setupName: {ru: 'Как вас зовут', uk: 'Як вас звати', en: 'Your name'},
+  setupShop: {ru: 'Название барбершопа', uk: 'Назва барбершопа', en: 'Barbershop name'},
+  setupCurHint: {ru: 'В ней считаются цены услуг, выручка и расходы',
+                 uk: 'У ній рахуються ціни послуг, виручка та витрати',
+                 en: 'Service prices, revenue and expenses are counted in it'},
+  setupDemo: {ru: 'Заполнить примером', uk: 'Заповнити прикладом', en: 'Fill with sample data'},
+  setupDemoSub: {ru: 'Клиенты, услуги, полгода записей и финансов. Всё удаляется одной кнопкой в настройках.',
+                 uk: 'Клієнти, послуги, півроку записів і фінансів. Усе видаляється однією кнопкою в налаштуваннях.',
+                 en: 'Clients, services, six months of appointments and finance. One button in settings clears it all.'},
+  setupGo: {ru: 'Готово, к работе', uk: 'Готово, до роботи', en: 'Done, let’s work'},
+
+  bootErr: {ru: 'Не удалось прочитать данные', uk: 'Не вдалося прочитати дані', en: 'Could not read your data'},
+  bootErrText: {ru: 'Похоже, сохранённая база повреждена. Можно начать с чистого листа — или восстановить из резервной копии позже.',
+                uk: 'Схоже, збережена база пошкоджена. Можна почати з чистого аркуша — або відновити з резервної копії пізніше.',
+                en: 'The saved data looks damaged. You can start from scratch — or restore from a backup later.'},
+  bootReset: {ru: 'Начать с чистого листа', uk: 'Почати з чистого аркуша', en: 'Start from scratch'},
+  guestTitle: {ru: 'Кабинет без регистрации', uk: 'Кабінет без реєстрації', en: 'Studio without an account'},
+  guestNote: {ru: 'Данные лежат только на этом устройстве. Привяжите почту или номер — тогда оплаченный доступ найдётся и на втором устройстве.',
+              uk: 'Дані лежать лише на цьому пристрої. Прив’яжіть пошту або номер — тоді оплачений доступ знайдеться й на другому пристрої.',
+              en: 'Your data lives on this device only. Add an email or phone so paid access can be found on a second device too.'},
+  guestGo: {ru: 'Привязать почту или номер', uk: 'Прив’язати пошту або номер', en: 'Add an email or phone'},
+  accountTitle: {ru: 'Кабинет', uk: 'Кабінет', en: 'Account'},
+  signOut: {ru: 'Выйти из кабинета', uk: 'Вийти з кабінету', en: 'Sign out'},
+  signOutAsk: {ru: 'Данные останутся на устройстве — войти обратно можно тем же логином.',
+               uk: 'Дані залишаться на пристрої — увійти назад можна тим самим логіном.',
+               en: 'Your data stays on the device — sign back in with the same login.'},
+
   menuMore: {ru: 'Ещё', uk: 'Ще', en: 'More'},
 };
 
@@ -1095,6 +1237,47 @@ const t = (k, lang) => {
 /* ── 3. ДАННЫЕ ────────────────────────────────────────────────────── */
 
 const KEY = 'probarber.v1';
+
+/* ── шифрование базы ──────────────────────────────────────────────
+   Клиентская база — персональные данные, поэтому она остаётся на
+   устройстве. По желанию барбера она шифруется AES-GCM ключом, выведенным
+   из PIN (PBKDF2). Тогда в localStorage лежит только шифротекст, и без
+   PIN его не прочитать — ни соседу по креслу, ни тому, кто нашёл телефон.
+
+   Ключ живёт только в памяти вкладки: закрыл — и снова нужен PIN.      */
+const encTxt = new TextEncoder(), decTxt = new TextDecoder();
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+const subtle = () => {
+  try { return crypto.subtle; } catch (e){ return null; }
+};
+
+const Vault = {
+  key: null,
+  ready(){ return !!subtle(); },
+  async derive(pin, saltB64){
+    const salt = saltB64 ? unb64(saltB64) : crypto.getRandomValues(new Uint8Array(16));
+    const base = await subtle().importKey('raw', encTxt.encode(pin), 'PBKDF2', false, ['deriveKey']);
+    const key = await subtle().deriveKey(
+      {name: 'PBKDF2', salt, iterations: 150000, hash: 'SHA-256'},
+      base, {name: 'AES-GCM', length: 256}, false, ['encrypt', 'decrypt']);
+    return {key, salt: b64(salt)};
+  },
+  /* пароль кабинета не шифрует базу, а только сверяется — поэтому хеш */
+  async hash(pass, saltB64){
+    const h = await subtle().digest('SHA-256', encTxt.encode(saltB64 + '|' + pass));
+    return b64(h);
+  },
+  async encrypt(text){
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await subtle().encrypt({name: 'AES-GCM', iv}, Vault.key, encTxt.encode(text));
+    return {enc: 1, iv: b64(iv), ct: b64(ct)};
+  },
+  async decrypt(iv, ct){
+    const pt = await subtle().decrypt({name: 'AES-GCM', iv: unb64(iv)}, Vault.key, unb64(ct));
+    return decTxt.decode(pt);
+  },
+};
 
 const DEFAULT_HOURS = {
   mon: {on: true, from: '09:00', to: '20:00'},
@@ -1118,7 +1301,7 @@ const emptyDB = () => ({
     theme: 'dark', currency: 'USD', lang: 'ru', step: 30, slug: 'alexey',
     /* сервер нужен только для онлайн-записи: выключен — кабинет живёт
        целиком на своём хранилище, как и раньше */
-    sync: false, token: '', pulledAt: '', tgLinked: false,
+    sync: false, token: '', pulledAt: '', tgLinked: false, secure: false,
     notif: {booked: true, reminder: true, birthday: true, lapsed: false},
   },
   services: [], clients: [], appts: [], threads: [], expenses: [], seen: {},
@@ -1330,24 +1513,58 @@ function seedDB(over){
 /* ── 4. ХРАНИЛИЩЕ ─────────────────────────────────────────────────── */
 
 const Disk = {
+  /* сырое содержимое: либо сама база, либо конверт {enc:1, iv, ct} */
+  readRaw(){ try { return localStorage.getItem(KEY); } catch (e){ return null; } },
+  writeRaw(str){ try { localStorage.setItem(KEY, str); return true; } catch (e){ return false; } },
+  /* зашифрована ли база — видно, не расшифровывая */
+  locked(){
+    try {
+      const raw = Disk.readRaw();
+      return !!raw && JSON.parse(raw).enc === 1;
+    } catch (e){ return false; }
+  },
+  /* база могла прийти из прошлой версии — добираем недостающее */
+  hydrate(data){
+    if (!data || !Array.isArray(data.clients)) return null;
+    const base = emptyDB();
+    const db = Object.assign({}, base, data);
+    db.settings = Object.assign({}, base.settings, data.settings);
+    db.settings.notif = Object.assign({}, base.settings.notif, (data.settings || {}).notif);
+    db.profile = Object.assign({}, base.profile, data.profile);
+    db.profile.hours = Object.assign({}, base.profile.hours, (data.profile || {}).hours);
+    db.threads ||= []; db.seen ||= {}; db.expenses ||= [];
+    return db;
+  },
   read(){
     try {
-      const raw = localStorage.getItem(KEY);
+      const raw = Disk.readRaw();
       if (!raw) return null;
-      const db = JSON.parse(raw);
-      if (!db || !db.clients) return null;
-      /* база могла прийти из прошлой версии — добираем недостающее */
-      const base = emptyDB();
-      db.settings = Object.assign({}, base.settings, db.settings);
-      db.settings.notif = Object.assign({}, base.settings.notif, db.settings.notif);
-      db.profile = Object.assign({}, base.profile, db.profile);
-      db.profile.hours = Object.assign({}, base.profile.hours, db.profile.hours);
-      db.threads ||= []; db.seen ||= {}; db.expenses ||= [];
-      return db;
+      const data = JSON.parse(raw);
+      if (data && data.enc === 1) return null;      /* нужен PIN — этим займётся Boot */
+      return Disk.hydrate(data);
     } catch (e){ return null; }
   },
+  /* Запись идёт цепочкой: шифрование асинхронное, а Store.set зовут часто —
+     без очереди два соседних сохранения могли бы лечь в обратном порядке
+     и вернуть базу на шаг назад. */
+  queue: Promise.resolve(),
   write(db){
-    try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e){}
+    const json = JSON.stringify(db);
+    if (!Vault.key){ Disk.writeRaw(json); return; }
+    Disk.queue = Disk.queue
+      .then(() => Vault.encrypt(json))
+      .then(env => { Disk.writeRaw(JSON.stringify(env)); })
+      .catch(() => {});
+  },
+  /* мета лежит отдельно от базы: логин, устройство и доступ переживают
+     и «сбросить к демо», и «удалить все данные» */
+  readMeta(){ return Meta.read(); },
+  writeMeta(m){ Meta.replace(m); },
+  /* стираем данные, аккаунт и оплату оставляем: иначе очистка данных
+     давала бы новый бесплатный период */
+  clear(){
+    try { localStorage.removeItem(KEY); } catch (e){}
+    Vault.key = null;
   },
 };
 
@@ -1641,9 +1858,12 @@ const Meta = {
     catch (e){ return {}; }
   },
   write(patch){
-    const next = Object.assign(Meta.read(), patch);
-    try { localStorage.setItem(META_KEY, JSON.stringify(next)); } catch (e){}
-    return next;
+    return Meta.replace(Object.assign(Meta.read(), patch));
+  },
+  /* целиком, а не патчем: так снимают защиту паролем и чистят кабинет */
+  replace(next){
+    try { localStorage.setItem(META_KEY, JSON.stringify(next || {})); } catch (e){}
+    return next || {};
   },
 };
 
@@ -1680,8 +1900,19 @@ const Web = {
     try { return location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '') + name; }
     catch (e){ return name; }
   },
-  login(){ return String(Meta.read().login || ''); },
-  setLogin(v){ Meta.write({login: String(v || '').trim()}); Access.emit(); },
+  login(){
+    const a = Meta.read().account;
+    return String((a && a.login) || '');
+  },
+  setLogin(v){
+    const raw = String(v || '').trim();
+    const m = Meta.read();
+    Meta.write({account: Object.assign({}, m.account, {
+      login: normLogin(raw), raw, kind: raw.indexOf('@') > 0 ? 'email' : 'phone',
+      createdAt: (m.account && m.account.createdAt) || Date.now(),
+    })});
+    Access.emit();
+  },
   /* идентификатор устройства переживает сброс базы — иначе каждое
      «вернуть демо-данные» съедало бы слот в лицензии */
   device(){
@@ -2218,6 +2449,9 @@ const PATHS = {
   ban: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M5.6 5.6l12.8 12.8',
   grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
   menu: 'M4 7h16M4 12h16M4 17h16',
+  lock: 'M7 10.5V7.5a5 5 0 0 1 10 0v3M5.5 10.5h13a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1z',
+  warn: 'M12 9v5M12 17.5h.01M10.3 3.9 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+  refresh: 'M20 11a8 8 0 1 0-1.2 5.3M20 5v6h-6',
 };
 
 const Icon = ({n, className, style}) => (
@@ -4403,6 +4637,41 @@ function Settings(){
           </Card>
 
           <Card className="card-pad">
+            <div className="card-title" style={{marginBottom: 6}}>{t('accountTitle')}</div>
+            {Web.login() ? (
+              <>
+                <Row title={t('authLoginLbl')} note={Web.login()}>
+                  <Button kind="ghost" size="sm" onClick={() => nav.modal('auth', {})}>{t('subLoginUpd')}</Button>
+                </Row>
+                <hr className="sep" />
+                <Row title={t('signOut')} note={t('signOutAsk')}>
+                  <Button kind="ghost" size="sm" icon="logout" onClick={() => nav.modal('confirm', {
+                    title: t('signOut'), text: t('signOutAsk'),
+                    onYes: () => { Meta.write({account: null, guest: false, signedOut: true}); location.reload(); },
+                  })} />
+                </Row>
+              </>
+            ) : (
+              <>
+                <div className="hint" style={{marginBottom: 10}}>{t('guestNote')}</div>
+                <Button kind="gold" icon="user" onClick={() => nav.modal('auth', {})}>{t('guestGo')}</Button>
+              </>
+            )}
+            <hr className="sep" style={{margin: '14px 0 4px'}} />
+            <Row title={t('secure')} note={t('secureNote')}>
+              <Switch on={!!s.secure} onChange={v => {
+                if (v){ nav.modal('pin', {}); return; }
+                /* выключаем — база должна лечь на диск открытым текстом,
+                   иначе после перезагрузки её нечем будет расшифровать */
+                Vault.key = null;
+                Act.settings({secure: false});
+                Meta.write({pinSalt: null});
+                toast(t('pinOff'), 'ok');
+              }} />
+            </Row>
+          </Card>
+
+          <Card className="card-pad">
             <div className="card-title" style={{marginBottom: 12}}>{t('setData')}</div>
             <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
               <Button kind="ghost" icon="download" onClick={exportJson}>{t('exportJson')}</Button>
@@ -4418,6 +4687,325 @@ function Settings(){
           </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── 22.4. ВХОД ───────────────────────────────────────────────────
+   Схема ровно та же, что в PRO Trainer: приветствие → вход → мастер
+   настройки → кабинет, а если база зашифрована — PIN-замок вместо всего.
+
+   Никаких кодов из SMS и подтверждений почты: логин — это просто адрес,
+   по которому кабинет узнают банк и сервер. Пароль необязателен и нужен
+   только чтобы открыть кабинет на этом устройстве; данные он не шифрует —
+   этим занимается PIN.                                                 */
+
+const isEmail = v => /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(String(v || '').trim());
+const isPhone = v => String(v || '').replace(/\D/g, '').length >= 9;
+const isLogin = v => isEmail(v) || isPhone(v);
+
+/* Заставка на время, пока читаем базу: пустой экран мигал бы белым, а
+   спиннер ничего не сообщает. Скелет показывает, что сейчас появится. */
+const Sk = ({w, h, r, style}) => (
+  <div className="sk" style={Object.assign({width: w || '100%', height: h || 14, borderRadius: r || 8}, style)} />
+);
+const SkScreen = () => (
+  <div className="page">
+    <Sk h={26} w="42%" />
+    <div style={{height: 10}} /><Sk h={13} w="26%" />
+    <div style={{height: 20}} />
+    <div className="grid" style={{gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))'}}>
+      {[0, 1, 2, 3].map(i => <Sk key={i} h={86} r={16} />)}
+    </div>
+    <div style={{height: 16}} /><Sk h={132} r={18} />
+    <div style={{height: 16}} />
+    <div className="grid g-2"><Sk h={220} r={18} /><Sk h={220} r={18} /></div>
+  </div>
+);
+
+const ErrorBox = ({title, text, onRetry}) => (
+  <Empty icon="warn" title={title} text={text}
+         action={onRetry ? <Button kind="soft" icon="refresh" onClick={onRetry}>{t('retry')}</Button> : null} />
+);
+
+/* Язык до того, как появились настройки: иначе барбер, который не читает
+   по-русски, видит только его и не догадывается, где переключить. */
+const LangPick = ({onPick}) => (
+  <Segmented value={LANG} options={LANGS.map(l => ({value: l.id, label: l.id.toUpperCase()}))}
+             onChange={v => { LANG = v; if (onPick) onPick(v); }} />
+);
+
+const ObArt = ({i}) => {
+  if (i === 0) return (
+    <svg viewBox="0 0 240 200" width="100%" style={{maxWidth: 280}} aria-hidden="true">
+      <rect x="26" y="18" width="188" height="120" rx="18" fill="var(--surface)" stroke="var(--line-2)" />
+      <rect x="42" y="34" width="74" height="9" rx="4.5" fill="var(--ink-4)" opacity=".6" />
+      <rect x="42" y="54" width="156" height="46" rx="13" fill="var(--gold)" />
+      <rect x="54" y="66" width="50" height="8" rx="4" fill="#0B0D0E" opacity=".45" />
+      <rect x="54" y="80" width="84" height="11" rx="5.5" fill="#0B0D0E" opacity=".8" />
+      {[0, 1, 2].map(k => <rect key={k} x={42 + k * 53} y="110" width="44" height="16" rx="8" fill="var(--surface-2)" />)}
+      <circle cx="196" cy="152" r="26" fill="var(--gold-soft)" />
+      <path d="M186 152l7 7 14-15" stroke="var(--gold)" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+  if (i === 1) return (
+    <svg viewBox="0 0 240 200" width="100%" style={{maxWidth: 280}} aria-hidden="true">
+      <rect x="20" y="24" width="200" height="150" rx="20" fill="var(--surface)" stroke="var(--line-2)" />
+      {[0, 1, 2, 3].map(k => (
+        <g key={k}>
+          <rect x="36" y={44 + k * 30} width="34" height="12" rx="6" fill="var(--gold)" opacity={.3 + k * .2} />
+          <rect x="80" y={42 + k * 30} width={110 - k * 18} height="16" rx="8" fill="var(--surface-2)" />
+        </g>
+      ))}
+      <circle cx="196" cy="44" r="10" fill="var(--gold)" />
+      <path d="M192 44h8M196 40v8" stroke="#0B0D0E" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
+  );
+  return (
+    <svg viewBox="0 0 240 200" width="100%" style={{maxWidth: 280}} aria-hidden="true">
+      <rect x="20" y="20" width="200" height="160" rx="20" fill="var(--surface)" stroke="var(--line-2)" />
+      {[38, 62, 30, 78, 96, 70, 110].map((h, k) => (
+        <rect key={k} x={38 + k * 24} y={150 - h} width="14" height={h} rx="7"
+              fill={k === 6 ? 'var(--gold)' : 'var(--gold-soft-2)'} />
+      ))}
+      <path d="M40 108 L64 92 L88 118 L112 78 L136 64 L160 74 L184 40" stroke="var(--gold)"
+            strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity=".5" />
+    </svg>
+  );
+};
+
+const Brand = () => (
+  <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+    <Logo style={{width: 28, height: 28, color: 'var(--gold)'}} />
+    <b style={{fontSize: 16, fontWeight: 750, letterSpacing: '-.02em'}}>Про Барбер</b>
+  </div>
+);
+
+const Onboarding = ({onDone}) => {
+  const [i, setI] = useState(0);
+  const [, redraw] = useState(0);
+  const slides = [obSlide(0), obSlide(1), obSlide(2)];
+  return (
+    <div className="ob fade-in">
+      <div className="ob-top">
+        <Brand />
+        <div style={{display: 'flex', gap: 8, alignItems: 'center'}}>
+          <LangPick onPick={() => redraw(n => n + 1)} />
+          <Button kind="ghost" size="sm" onClick={onDone}>{t('obSkip')}</Button>
+        </div>
+      </div>
+      <div className="ob-art"><ObArt i={i} /></div>
+      <div>
+        <div className="dots">{slides.map((_, k) => <i key={k} className={cx(k === i && 'on')} />)}</div>
+        <div className="ob-title" style={{textAlign: 'center'}}>{slides[i].t}</div>
+        <p className="ob-sub" style={{textAlign: 'center', maxWidth: 330, margin: '10px auto 20px'}}>{slides[i].d}</p>
+        <Button kind="gold" size="lg" block onClick={() => (i < slides.length - 1 ? setI(i + 1) : onDone())}>
+          {i < slides.length - 1 ? t('obNext') : t('obStart')}
+        </Button>
+      </div>
+    </div>
+  );
+};
+const obSlide = i => ({t: t('ob' + i + 'T'), d: t('ob' + i + 'D')});
+
+/* Вход и регистрация. save — тот же экран из настроек: демо-кабинет
+   превращается в настоящий, данные при этом остаются на месте. */
+function Auth({onReady, save}){
+  const meta0 = Meta.read();
+  const hasAcc = !!meta0.account;
+  const [mode, setMode] = useState(hasAcc && !save ? 'login' : 'reg');
+  const [f, setF] = useState({login: '', pass: ''});
+  const [protect, setProtect] = useState(false);   /* пароль — по желанию */
+  const [askPass, setAskPass] = useState(false);   /* на входе, если кабинет под паролем */
+  const [show, setShow] = useState(false);
+  const [err, setErr] = useState({});
+  const [busy, setBusy] = useState(false);
+  const set = (k, v) => { setF(x => Object.assign({}, x, {[k]: v})); setErr(x => Object.assign({}, x, {[k]: null})); };
+
+  async function submit(){
+    const e = {};
+    const login = f.login.trim();
+    if (!isLogin(login)) e.login = t('authErrLogin');
+    if ((protect || askPass) && f.pass.length < 4) e.pass = t('authErrPass');
+    setErr(e);
+    if (Object.keys(e).length) return;
+    setBusy(true);
+    try {
+      const meta = Meta.read();
+      const salt = meta.salt || b64(crypto.getRandomValues(new Uint8Array(16)));
+      const norm = normLogin(login);
+      const hash = (protect || askPass) && Vault.ready() ? await Vault.hash(f.pass, salt) : null;
+
+      if (mode === 'login'){
+        const a = meta.account;
+        if (!a || a.login !== norm){ setErr({login: t('authErrNoUser')}); setBusy(false); return; }
+        /* кабинет под паролем — спрашиваем его вторым шагом, а не сразу:
+           большинству барберов пароль не нужен, и поле только мешало бы */
+        if (a.hash && !askPass){ setAskPass(true); setBusy(false); return; }
+        if (a.hash && a.hash !== hash){ setErr({pass: t('authErrBad')}); setBusy(false); return; }
+        onReady({account: a, fresh: false});
+      } else {
+        const account = {login: norm, raw: login, kind: isEmail(login) ? 'email' : 'phone',
+                         hash, createdAt: Date.now()};
+        Meta.write({salt, account});
+        onReady({account, fresh: true});
+      }
+    } catch (ex){
+      setErr({pass: t('authErrCrypto')});
+      setBusy(false);
+    }
+  }
+
+  const title = save ? t('authSave') : mode === 'reg' ? t('authReg') : t('authBack');
+  const sub = save ? t('authSaveSub') : mode === 'reg' ? t('authRegSub') : t('authBackSub');
+
+  return (
+    <div className={cx('ob fade-in', save && 'ob-inline')}>
+      {!save && <div style={{marginBottom: 24}}><Brand /></div>}
+      <div style={{flex: 1}}>
+        <div className="ob-title">{title}</div>
+        <p className="ob-sub">{sub}</p>
+
+        <div style={{height: 18}} />
+        <Field label={t('authLoginLbl')} error={err.login}>
+          <Input value={f.login} onChange={e => set('login', e.target.value)}
+                 placeholder="barber@mail.com или 067 123 45 67" bad={!!err.login}
+                 autoCapitalize="off" autoCorrect="off" spellCheck="false" inputMode="email" />
+        </Field>
+
+        {(protect || askPass) && (
+          <>
+            <div style={{height: 12}} />
+            <Field label={t('authPass')} error={err.pass} hint={protect ? t('authPassHint') : null}>
+              <div className="photo-row">
+                <Input value={f.pass} onChange={e => set('pass', e.target.value)} autoFocus
+                       type={show ? 'text' : 'password'} placeholder="••••" bad={!!err.pass} />
+                <Button kind="ghost" size="sm" onClick={() => setShow(!show)}>
+                  {show ? t('authHide') : t('authShow')}
+                </Button>
+              </div>
+            </Field>
+          </>
+        )}
+
+        {mode === 'reg' && !protect && Vault.ready() && (
+          <Button kind="ghost" size="sm" icon="lock" style={{marginTop: 12}} onClick={() => setProtect(true)}>
+            {t('authProtect')}
+          </Button>
+        )}
+      </div>
+
+      <div style={{marginTop: 20, display: 'grid', gap: 6}}>
+        <Button kind="gold" size="lg" block onClick={submit} disabled={busy}>
+          {busy ? t('authWait') : mode === 'reg' ? t('authGo') : t('authEnter')}
+        </Button>
+        {!save && (
+          <Button kind="ghost" block onClick={() => { setErr({}); setAskPass(false); setMode(mode === 'reg' ? 'login' : 'reg'); }}>
+            {mode === 'reg' ? t('authHave') : t('authNo')}
+          </Button>
+        )}
+        {!hasAcc && !save && (
+          <Button kind="ghost" block style={{color: 'var(--ink-3)'}} onClick={() => onReady({account: null, fresh: true})}>
+            {t('authGuest')}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* PIN-замок: нужен, когда база зашифрована */
+function PinLock({mode, onPin, onCancel, error, inline}){
+  const [pin, setPin] = useState('');
+  const [shake, setShake] = useState(false);
+  useEffect(() => {
+    if (!error) return;
+    setShake(true); setPin('');
+    const h = setTimeout(() => setShake(false), 420);
+    return () => clearTimeout(h);
+  }, [error]);
+  const push = d => {
+    const v = (pin + d).slice(0, 4);
+    setPin(v);
+    if (v.length === 4) setTimeout(() => { onPin(v); setPin(''); }, 120);
+  };
+  return (
+    <div className={cx('ob fade-in', inline && 'ob-inline')} style={{justifyContent: 'center'}}>
+      <div style={{textAlign: 'center', marginTop: inline ? 0 : 'auto'}}>
+        <div style={{width: 60, height: 60, borderRadius: 18, background: 'var(--gold-soft)',
+             color: 'var(--gold)', display: 'grid', placeItems: 'center', margin: '0 auto 14px'}}>
+          <Icon n="lock" style={{width: 24, height: 24}} />
+        </div>
+        <div style={{fontSize: 21, fontWeight: 750, letterSpacing: '-.02em'}}>
+          {mode === 'set' ? t('pinSet') : mode === 'confirm' ? t('pinAgain') : t('pinEnter')}
+        </div>
+        <p className="hint" style={{marginTop: 6, color: error ? 'var(--neg)' : 'var(--ink-3)'}}>
+          {error || t('pinSub')}
+        </p>
+        <div className={cx('pin-dots', shake && 'shake')}>
+          {[0, 1, 2, 3].map(i => <i key={i} className={cx(i < pin.length && 'on')} />)}
+        </div>
+      </div>
+      <div className="keypad" style={{marginTop: 'auto'}}>
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => <button key={d} onClick={() => push(String(d))}>{d}</button>)}
+        <button className="flat" onClick={onCancel || undefined}>{onCancel ? t('cancel') : ''}</button>
+        <button onClick={() => push('0')}>0</button>
+        <button className="flat" onClick={() => setPin(pin.slice(0, -1))}>⌫</button>
+      </div>
+    </div>
+  );
+}
+
+/* Мастер настройки после регистрации: спрашиваем ровно то, что попадёт
+   в каждую запись, остальное барбер донастроит потом. */
+function Setup({account, onDone}){
+  const [v, setV] = useState({
+    name: '', shop: 'Про Барбер', currency: 'UAH', step: 30, demo: true,
+  });
+  const [, redraw] = useState(0);
+  const set = (k, x) => setV(o => Object.assign({}, o, {[k]: x}));
+  return (
+    <div className="ob fade-in">
+      <div className="ob-top" style={{marginBottom: 20}}>
+        <Brand />
+        <LangPick onPick={() => redraw(n => n + 1)} />
+      </div>
+      <div style={{flex: 1, overflowY: 'auto'}}>
+        <div className="ob-title">{t('setupTitle')}</div>
+        <p className="ob-sub">{t('setupSub')}</p>
+
+        <div style={{height: 18}} />
+        <Field label={t('setupName')}>
+          <Input value={v.name} onChange={e => set('name', e.target.value)} placeholder="Алексей Смирнов" />
+        </Field>
+        <div style={{height: 12}} />
+        <Field label={t('setupShop')}>
+          <Input value={v.shop} onChange={e => set('shop', e.target.value)} placeholder="Про Барбер" />
+        </Field>
+        <div style={{height: 12}} />
+        <Field label={t('setCurrency')} hint={t('setupCurHint')}>
+          <Segmented value={v.currency} onChange={x => set('currency', x)}
+                     options={Object.keys(CURRENCIES).map(c => ({value: c, label: c}))} />
+        </Field>
+        <div style={{height: 12}} />
+        <Field label={t('slotStep')} hint={t('stepNote')}>
+          <Segmented value={String(v.step)} onChange={x => set('step', Number(x))}
+                     options={[{value: '15', label: '15'}, {value: '30', label: '30'}, {value: '60', label: '60'}]} />
+        </Field>
+
+        <button className="card card-pad" style={{marginTop: 16, width: '100%', textAlign: 'left',
+                display: 'flex', gap: 12, alignItems: 'center'}} onClick={() => set('demo', !v.demo)}>
+          <div style={{flex: 1}}>
+            <b style={{fontSize: 14}}>{t('setupDemo')}</b>
+            <div className="hint" style={{marginTop: 3}}>{t('setupDemoSub')}</div>
+          </div>
+          <Switch on={v.demo} onChange={x => set('demo', x)} />
+        </button>
+      </div>
+      <Button kind="gold" size="lg" block style={{marginTop: 16}}
+              onClick={() => onDone({currency: v.currency, step: v.step}, v.demo, account, v.name.trim(), v.shop.trim())}>
+        {t('setupGo')}
+      </Button>
     </div>
   );
 }
@@ -4734,6 +5322,38 @@ function AccessCard(){
   );
 }
 
+/* Включение шифрования: PIN спрашиваем дважды, ключ выводим сразу и
+   тут же перезаписываем базу — иначе на диске остался бы открытый текст. */
+function PinModal({onClose}){
+  const nav = useNav();
+  const [mode, setMode] = useState('set');
+  const [first, setFirst] = useState('');
+  const [err, setErr] = useState('');
+
+  async function onPin(pin){
+    if (mode === 'set'){ setFirst(pin); setErr(''); setMode('confirm'); return; }
+    if (pin !== first){ setErr(t('pinMismatch')); setMode('set'); setFirst(''); return; }
+    try {
+      const meta = Meta.read();
+      const {key, salt} = await Vault.derive(pin, meta.pinSalt);
+      Vault.key = key;
+      Meta.write({pinSalt: salt});
+      Act.settings({secure: true});          /* перезапишет базу уже шифром */
+      toast(t('pinOn'), 'ok');
+      onClose();
+    } catch (e){
+      Vault.key = null;
+      setErr(t('authErrCrypto'));
+    }
+  }
+
+  return (
+    <Modal title={t('secure')} onClose={onClose}>
+      <PinLock inline mode={mode} onPin={onPin} error={err} onCancel={onClose} />
+    </Modal>
+  );
+}
+
 /* ── 23. ОБОЛОЧКА ─────────────────────────────────────────────────── */
 
 const PAGES = [
@@ -4986,21 +5606,129 @@ function ModalHost({type, props, go}){
   if (type === 'expense') return <ExpenseForm id={props.id} />;
   if (type === 'notif') return <NotifPanel />;
   if (type === 'more') return <MoreSheet go={go} />;
+  if (type === 'auth') return (
+    <Modal title={t('accountTitle')} onClose={nav.close}>
+      <Auth save onReady={() => { toast(t('tSaved'), 'ok'); nav.close(); }} />
+    </Modal>
+  );
+  if (type === 'pin') return <PinModal onClose={nav.close} />;
   if (type === 'confirm') return <Confirm {...props} onClose={nav.close} />;
   return null;
 }
 
 /* ── 26. СТАРТ ────────────────────────────────────────────────────── */
 
+/* Схема входа: load → onboard → auth → setup → app, а если база
+   зашифрована — pin вместо всего. Ровно как в PRO Trainer.
+
+   Каждая фаза — отдельный экран, и ни одна не умеет ничего, кроме как
+   отдать управление следующей: вся логика доступа живёт в Access. */
+/* Куда вести на старте. Отдельной функцией, а не внутри эффекта: это
+   единственное место, где решается судьба запуска, и его нужно уметь
+   проверить без браузера. */
+function bootPhase(meta, raw){
+  const m = meta || {};
+  if (!raw) return (m.account || m.guest) ? 'auth' : 'onboard';
+  let parsed = null;
+  try { parsed = JSON.parse(raw); } catch (e){ return 'error'; }
+  if (!parsed) return 'error';
+  if (parsed.enc === 1) return 'pin';           /* база под PIN */
+  if (m.signedOut) return 'auth';               /* вышли — данные на месте */
+  return 'app';
+}
+
+function Boot(){
+  const [phase, setPhase] = useState('load');     // load | onboard | auth | setup | pin | app | error
+  const [account, setAccount] = useState(null);
+  const [pinErr, setPinErr] = useState('');
+
+  /* приложение на экране — убираем заставку загрузки */
+  useEffect(() => {
+    try { const b = document.getElementById('boot'); if (b) b.remove(); } catch (e){}
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = Disk.readRaw();
+      const next = bootPhase(Meta.read(), raw);
+      if (next !== 'app'){ setPhase(next); return; }
+      start(Disk.hydrate(JSON.parse(raw)));
+    } catch (e){
+      console.error(e);
+      setPhase('error');
+    }
+  }, []);
+
+  /* база прочитана — поднимаем состояние и включаем оформление */
+  function start(db){
+    if (!db){ setPhase('error'); return; }
+    Store.init(db);
+    LANG = db.settings.lang || 'ru';
+    applyTheme(db.settings.theme);
+    try { document.documentElement.lang = LANG; } catch (e){}
+    setPhase('app');
+  }
+
+  async function unlock(pin){
+    try {
+      const meta = Meta.read();
+      const {key} = await Vault.derive(pin, meta.pinSalt);
+      Vault.key = key;
+      const env = JSON.parse(Disk.readRaw());
+      const json = await Vault.decrypt(env.iv, env.ct);
+      start(Disk.hydrate(JSON.parse(json)));
+    } catch (e){
+      Vault.key = null;
+      setPinErr(t('pinWrong'));
+    }
+  }
+
+  if (phase === 'load') return <SkScreen />;
+  if (phase === 'error') return (
+    <div className="ob fade-in" style={{justifyContent: 'center'}}>
+      <ErrorBox title={t('bootErr')} text={t('bootErrText')} onRetry={() => location.reload()} />
+      <Button kind="danger" block style={{marginTop: 12}}
+              onClick={() => { Disk.clear(); location.reload(); }}>{t('bootReset')}</Button>
+    </div>
+  );
+  if (phase === 'pin') return <PinLock mode="enter" onPin={unlock} error={pinErr} />;
+  if (phase === 'onboard') return <Onboarding onDone={() => setPhase('auth')} />;
+  if (phase === 'auth') return (
+    <Auth onReady={r => {
+      Meta.write({guest: !r.account, signedOut: false});
+      setAccount(r.account);
+      /* Мастер запускаем только на пустом устройстве. Если база уже есть —
+         неважно, вошли мы или зарегистрировались, — открываем её как есть:
+         иначе «создать кабинет» на рабочем телефоне стёрло бы клиентов. */
+      if (Disk.readRaw()) start(Disk.read());
+      else setPhase('setup');
+    }} />
+  );
+  if (phase === 'setup') return (
+    <Setup account={account} onDone={(settings, demo, acc, name, shop) => {
+      const base = demo ? seedDB() : emptyDB();
+      const phone = acc && acc.kind === 'phone' ? phoneMask(acc.raw) : '';
+      const db = Object.assign({}, base, {
+        profile: Object.assign({}, base.profile, {
+          name: name || base.profile.name,
+          shop: shop || base.profile.shop,
+          phone: phone || base.profile.phone,
+        }),
+        settings: Object.assign({}, base.settings, settings, {lang: LANG}),
+      });
+      Store.init(db);
+      Disk.write(db);
+      applyTheme(db.settings.theme);
+      setPhase('app');
+    }} />
+  );
+  return <AppGate />;
+}
+
 function boot(){
-  const db = Disk.read() || seedDB();
-  Store.init(db);
-  Disk.write(db);
-  LANG = db.settings.lang || 'ru';
-  applyTheme(db.settings.theme);
   try {
     const root = document.getElementById('root');
-    if (root && ReactDOM.createRoot) ReactDOM.createRoot(root).render(<AppGate />);
+    if (root && ReactDOM.createRoot) ReactDOM.createRoot(root).render(<Boot />);
   } catch (e){ console.error(e); }
 }
 boot();
