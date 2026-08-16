@@ -308,6 +308,40 @@ part('вичерпаний абонемент');
   T.Store.init(was);
 }
 
+part('групове заняття');
+{
+  const was = T.Store.state;
+  T.Store.init(T.emptyDB());
+  const a = T.Act.addClient({name: 'Перший'});
+  const b = T.Act.addClient({name: 'Другий'});
+  const when = new Date().toISOString();
+  const gid = 'grp_test';
+  const s1 = T.Act.addSession({clientId: a.id, price: 500, start: when, groupId: gid});
+  const s2 = T.Act.addSession({clientId: b.id, price: 500, start: when, groupId: gid});
+  const st = id => T.Store.state.sessions.find(x => x.id === id).status;
+
+  /* У календарі це одна картка. Тренер тисне «Скасувати тренування» —
+     і має на увазі заняття, а не одного учасника. Раніше скасовувався
+     один, а решта лишалась у планах і рахувалась як очікуваний дохід. */
+  T.Act.cancel(s1.id);
+  ok('скасування бере всю групу', st(s1.id) === 'canceled' && st(s2.id) === 'canceled',
+     st(s1.id) + ' / ' + st(s2.id));
+
+  /* А перенос і далі бере всю групу — це те саме заняття */
+  const s3 = T.Act.addSession({clientId: a.id, price: 500, start: when, groupId: 'g2'});
+  const s4 = T.Act.addSession({clientId: b.id, price: 500, start: when, groupId: 'g2'});
+  T.Act.moveSession(s3.id, new Date(Date.now() + 86400000));
+  const one = T.Store.state.sessions.find(x => x.id === s3.id);
+  const two = T.Store.state.sessions.find(x => x.id === s4.id);
+  ok('перенос теж бере всю групу', one.start === two.start, one.start + ' / ' + two.start);
+
+  /* «Не прийшов» — навпаки, про одну людину */
+  T.Act.noshow(s3.id);
+  ok('«не прийшов» — тільки про одного',
+     st(s3.id) === 'noshow' && st(s4.id) === 'planned', st(s3.id) + ' / ' + st(s4.id));
+  T.Store.init(was);
+}
+
 part('архів клієнта');
 {
   const was = T.Store.state;

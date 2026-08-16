@@ -1112,6 +1112,7 @@ const PHRASES = [
   ['Відновлювати пароль', 'Восстанавливать пароль', 'Password recovery', 'Odzyskiwanie hasła'],
   ['ще попереду', 'ещё впереди', 'still ahead', 'jeszcze przed nami'],
   ['В архів', 'В архив', 'Archive', 'Do archiwum'],
+  ['Це групове заняття — скасуються всі його учасники.', 'Это групповое занятие — отменятся все его участники.', 'This is a group session — all its participants will be cancelled.', 'To zajęcia grupowe — anulują się wszyscy uczestnicy.'],
   ['Повернути з архіву', 'Вернуть из архива', 'Restore from archive', 'Przywróć z archiwum'],
   ['В архіві', 'В архиве', 'Archived', 'W archiwum'],
   ['Клієнта відправлено в архів', 'Клиент отправлен в архив', 'Client archived', 'Klient w archiwum'],
@@ -2980,12 +2981,25 @@ const Act = {
     return {over};
   },
   pay(id){ Store.patch(db => ({...db, sessions: db.sessions.map(s => s.id === id ? {...s, paid:true, paidAt: Date.now()} : s)}), {name:'session.pay', data:{id}}); },
+  /* ─── скасувати тренування ───
+     Групове скасовується цілком — так само, як переноситься. У календарі
+     це одна картка, і тренер, який тисне «Скасувати тренування», має на
+     увазі заняття, а не одного учасника. Раніше скасовувався саме один:
+     решта лишалась у планах, і застосунок далі рахував їх як очікуваний
+     дохід і нагадував про них.
+
+     Прибрати з заняття когось одного — це «Клієнт не прийшов» або
+     видалення учасника, і для цього є свої кнопки. */
   cancel(id){
     Store.patch(db => {
       const s = byId(db.sessions, id);
-      const subs = s && s.subId && s.status === 'done'
-        ? db.subs.map(x => x.id === s.subId ? {...x, used: Math.max(0, x.used - 1)} : x) : db.subs;
-      return {...db, sessions: db.sessions.map(x => x.id === id ? {...x, status:'canceled', paid:false} : x), subs};
+      if (!s) return db;
+      const hit = x => x.id === id || (s.groupId && x.groupId === s.groupId);
+      let subs = db.subs;
+      db.sessions.filter(x => hit(x) && x.subId && x.status === 'done').forEach(x => {
+        subs = subs.map(y => y.id === x.subId ? {...y, used: Math.max(0, y.used - 1)} : y);
+      });
+      return {...db, sessions: db.sessions.map(x => hit(x) ? {...x, status:'canceled', paid:false} : x), subs};
     }, {name:'session.cancel', data:{id}});
   },
 
@@ -5057,6 +5071,7 @@ const SessionSheet = ({id, onClose}) => {
             <b style={{fontSize:14.5}}>{t('session.cancel.q','Скасувати тренування?')}</b>
             <p className="muted" style={{fontSize:13, margin:'6px 0 12px'}}>
               {t('session.cancel.t','Воно лишиться в історії як скасоване і не потрапить у дохід.')}
+              {s.groupId && ' ' + t('session.cancel.grp','Це групове заняття — скасуються всі його учасники.')}
             </p>
             <div className="grid2">
               <Btn kind="sec" onClick={() => setConfirm(false)}>{t('common.back','Назад')}</Btn>
