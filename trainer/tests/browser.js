@@ -713,10 +713,15 @@ PROBES['app-join.js'] = DRIVE + `
     res.asksPass = !!document.querySelector('.ob input[type=password]');
     res.found = /Кабінет знайдено/.test(document.querySelector('.ob').textContent);
 
+    /* Чекаємо довго: перевірка пароля — це вивід ключа й запит до
+       сервера, а віртуальний час на обчисленнях мчить уперед. Шести
+       секунд не вистачало, і проба питала екран, поки той ще думав. */
     var pf = document.querySelector('.ob input[type=password]');
     if (pf){ type(pf, 'ne-toy-parol'); await wait(120); if (pri()) pri().click(); }
-    await until(function(){ return /Пароль не підходить/.test(document.querySelector('.ob').textContent); }, 6000);
-    res.stranger = /Пароль не підходить/.test(document.querySelector('.ob').textContent);
+    var no = function(){ return /Пароль не підходить/.test(document.querySelector('.ob').textContent); };
+    await until(no, 20000);
+    res.stranger = no();
+    if (!res.stranger) res.saw = document.querySelector('.ob').textContent.replace(/\\s+/g, ' ').slice(0, 200);
 
     pf = document.querySelector('.ob input[type=password]');
     if (pf){ type(pf, 'test1234'); await wait(120); if (pri()) pri().click(); }
@@ -1099,7 +1104,7 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('є куди перемкнутись на вхід', o.hasSwitch === true);
     ok('пристрій кабінета не знає, але пароль просять', o.asksPass === true);
     ok('і кажуть, що кабінет знайдено', o.found === true);
-    ok('чужий пароль не пускає', o.stranger === true);
+    ok('чужий пароль не пускає', o.stranger === true, o.saw || '');
     ok('свій пароль відкриває кабінет', o.inside === true);
     ok('клієнти на місці', o.clients === 8, o.clients + ' шт.');
     ok('помилок немає', !o.err, o.err || '—');
