@@ -210,7 +210,19 @@ const server = http.createServer(async (req, res) => {
    спитати про браузер за замовчуванням. */
 const FLAGS = ['--headless', '--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage',
   '--no-first-run', '--no-default-browser-check', '--disable-extensions',
-  '--hide-scrollbars', '--window-size=430,900', '--dump-dom'];
+  '--hide-scrollbars', '--window-size=430,900', '--dump-dom',
+  /* Фонова мережа. На чистому профілі Chrome при першому запуску сам
+     ходить по оновлення, списки й телеметрію. Локально це непомітно, а на
+     CI виходу назовні немає — запити висять, і віртуальний час висить
+     разом із ними: він зупиняється, поки є незавершена мережа. Кожен
+     запуск помирав по таймауту, прогін ішов 81 хвилину й падав.
+
+     Тому глушимо все, що йде не до нашого сервера. */
+  '--disable-background-networking', '--disable-component-update',
+  '--disable-client-side-phishing-detection', '--disable-domain-reliability',
+  '--disable-sync', '--disable-default-apps', '--no-pings',
+  '--metrics-recording-only', '--safebrowsing-disable-auto-update',
+  '--disable-features=OptimizationHints,Translate,MediaRouter,InterestFeedContentSuggestions'];
 
 /* ─── свій профіль кожному запуску ───
    Без --user-data-dir Chrome бере профіль за замовчуванням — один на
@@ -241,21 +253,53 @@ process.on('exit', () => { try { fs.rmSync(profiles, {recursive: true, force: tr
    журналі з'явились «проба не встигла». Даємо із запасом. */
 const budget = url => url.includes('/_app.html') ? 60000 : 6000;
 
-const once = url => new Promise(resolve => {
+/* Скільки запусків поспіль дозволено вбити по таймауту, перш ніж
+   зупинити весь прогін.
+
+   Одиничний таймаут — випадковість завантаженої машини. Три поспіль —
+   зламане середовище, і далі бігти немає сенсу: кожна проба чекатиме
+   свою хвилину, тричі, і прогін розтягнеться на години. Так одного разу
+   й вийшло — 81 хвилина мовчання на CI, а в кінці незрозуміле падіння й
+   невикладений сайт. Краще впасти за три хвилини й сказати чому. */
+const DEAD = 3;
+let dead = 0;
+
+const once = url => new Promise((resolve, reject) => {
   const dir = path.join(profiles, 'p' + (profileN++));
+  /* Своя група процесів. Chrome лишає по собі дітей, і вбивати треба всю
+     родину: інакше дитина переживає батька й тримає його потоки. */
   const p = spawn(CHROME, FLAGS.concat(['--user-data-dir=' + dir,
-    '--virtual-time-budget=' + budget(url), url]));
-  let outp = '', killed = false;
+    '--virtual-time-budget=' + budget(url), url]), {detached: true});
+  let outp = '', killed = false, over = false;
   p.stdout.on('data', d => { outp += d; });
+
+  const finish = () => {
+    if (over) return;
+    over = true;
+    clearTimeout(t);
+    if (!killed){ dead = 0; return resolve(outp); }
+    dead++;
+    console.log('  ⚠ браузер не встиг за 60 с (' + dead + ' поспіль): ' + url);
+    if (dead >= DEAD)
+      return reject(new Error(
+        'браузер не відповідає ' + DEAD + ' рази поспіль — далі бігти немає сенсу.\n' +
+        '  Найчастіша причина: він ходить у мережу, якої тут немає, і чекає її вічно.\n' +
+        '  Дивіться FLAGS: там вимкнено фонові запити Chrome.'));
+    resolve(outp);
+  };
+
   /* Не висимо назавжди, але й не міряємо себе своєю машиною: перший
      запуск браузера на холодній машині буває довгим. */
-  const t = setTimeout(() => { killed = true; try { p.kill(); } catch {} }, 60000);
-  p.on('error', () => resolve(''));
-  p.on('close', () => {
-    clearTimeout(t);
-    if (killed) console.log('  ⚠ браузер не встиг за 60 с: ' + url);
-    resolve(outp);
-  });
+  const t = setTimeout(() => {
+    killed = true;
+    try { process.kill(-p.pid, 'SIGKILL'); } catch { try { p.kill('SIGKILL'); } catch {} }
+  }, 60000);
+
+  p.on('error', () => { over = true; clearTimeout(t); resolve(''); });
+  /* Саме 'exit', а не 'close'. Різниця коштувала години: 'close' чекає,
+     поки закриються потоки, а їх тримають діти вбитого браузера — і
+     обіцянка «не більше хвилини» не виконувалась зовсім. */
+  p.on('exit', finish);
 });
 
 /* На CI найперший запуск двічі повертався порожнім — браузер завершувався
@@ -300,7 +344,7 @@ const out = html => {
   return m ? m[1] : '';
 };
 
-let checks = 0, fails = 0;
+let checks = 0, fails = 0, broke = '';
 const ok = (name, cond, extra) => {
   checks++; if (!cond) fails++;
   console.log('  ' + (cond ? '✓' : '✗') + ' ' + name + (extra ? ' — ' + extra : ''));
@@ -1196,10 +1240,16 @@ server.listen(PORT, '127.0.0.1', async () => {
 
     part('сторінка після оплати');
     ok('відкривається', (await dom('http://127.0.0.1:' + PORT + '/paid.html')).includes('PRO Trainer'));
+  } catch (e){
+    /* Обрив посеред прогону — теж результат, і його треба назвати. Без
+       цього рядка помилка виходила з асинхронного обробника кудись у
+       порожнечу, а в журналі лишався обрубаний список перевірок. */
+    broke = (e && e.message) ? e.message : String(e);
+    console.log('\n  ✗ прогін обірвано: ' + broke);
   } finally {
     server.close();
   }
-  console.log('\n══════ ' + (checks - fails) + ' з ' + checks +
-              (fails ? ' · є замечання' : ' · все чисто') + ' ══════');
-  process.exit(fails ? 1 : 0);
+  console.log('\n══════ ' + (broke ? 'прогін обірвано, перевірено ' + checks : (checks - fails) + ' з ' + checks) +
+              (broke || fails ? ' · є замечання' : ' · все чисто') + ' ══════');
+  process.exit(broke || fails ? 1 : 0);
 });
