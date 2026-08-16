@@ -306,6 +306,54 @@ part('відновлення пароля');
   ok('без пошти чесно кажемо про збій', nokey.code === 503, String(nokey.code));
 }
 
+part('хто вже завів кабінет');
+{
+  const WHO = API('who.js');
+  const TRIAL = API('trial.js');
+  const DB = API('db.js');
+
+  const closed = await call(WHO, {});
+  ok('без секрету не показуємо нікого', closed.code === 401, String(closed.code));
+
+  process.env.CRON_SECRET = 'who-secret';
+  const head = {headers: {authorization: 'Bearer who-secret'}};
+
+  /* троє: свіжий на пробному, давній із копією, і той, хто заплатив */
+  const day = 86400000;
+  await L.store.set(TRIAL.keyOf('one@mail.com'), {startedAt: Date.now() - day, lang: 'uk'});
+  await L.store.set(TRIAL.keyOf('two@mail.com'), {startedAt: Date.now() - 40 * day, lang: 'ru'});
+  await L.store.set(DB.keyOf('two@mail.com'), {token: 't', salt: 's', iv: 'i', ct: 'c', savedAt: Date.now(), size: 42});
+  await L.store.set(TRIAL.keyOf('three@mail.com'), {startedAt: Date.now() - 90 * day, lang: 'uk'});
+  await L.writeLicence('three@mail.com', {plan: 'yearly', expiresAt: Date.now() + 300 * day, devices: []});
+
+  const r = await call(WHO, head);
+  /* Підпис про сховище обов'язковий: у пам'яті процесу число майже
+     нульове не тому, що тренерів немає, а тому, що записи не живуть. */
+  ok('каже, звідки число', r.json.storage === 'memory', r.json.storage);
+  /* Точних чисел тут не питаємо: у пам'яті прогону лежать і кабінети
+     сусідніх перевірок. Питаємо те, заради чого функція й потрібна, —
+     що кожного видно правильно. */
+  const full = await call(WHO, {query: {full: '1'}, ...head});
+  const by = login => full.json.people.find(p => p.login === login) || {};
+  ok('рахує всі кабінети', r.json.count.all === full.json.people.length && r.json.count.all >= 3,
+     JSON.stringify(r.json.count));
+  ok('свіжий кабінет — на пробному', by('one@mail.com').trial === true);
+  ok('давній — уже ні', by('two@mail.com').trial === false);
+  ok('бачить, у кого є копія', by('two@mail.com').backup === true && by('one@mail.com').backup === false);
+  ok('бачить, хто заплатив', by('three@mail.com').paid === true && by('one@mail.com').paid === false);
+  ok('новіші — зверху', full.json.people[0].since >= full.json.people[1].since,
+     full.json.people[0].since + ' / ' + full.json.people[1].since);
+  /* Пошти — це персональні дані тренерів. Без прямого прохання їх не
+     віддаємо: інакше вони потраплять у журнали й логи просто так. */
+  ok('пошт без прохання не віддаємо', r.json.people === undefined);
+  /* Читаємо — і тільки читаємо: якщо ця функція колись почне щось
+     чіпати, дізнатись про це краще тут, а не з чужої зниклої бази. */
+  const box = await L.store.get(DB.keyOf('two@mail.com'));
+  ok('нічого не змінює', box && box.ct === 'c' && box.size === 42);
+
+  delete process.env.CRON_SECRET;
+}
+
 part('видача підписки вручну');
 {
   const GRANT = API('grant.js');

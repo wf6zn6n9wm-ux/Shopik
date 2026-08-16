@@ -80,6 +80,26 @@ async function set(key, value){
   if (k) return void (await k.set(key, value));
   mem.set(key, value);
 }
+/* Перелічити ключі за взірцем.
+
+   Redis не любить KEYS на живій базі: вона однією командою перебирає все
+   й на цей час стає нікому не доступною. SCAN ходить порціями й нікого
+   не тримає — тому тут він, з курсором, а не одне зручне слово.
+
+   Обмеження зверху обов'язкове: без нього помилка у взірці перетворилась
+   би на нескінченний цикл усередині функції. */
+async function keys(pattern, limit = 5000){
+  const k = await kv();
+  if (!k) return [...mem.keys()].filter(x => x.startsWith(pattern.replace(/\*$/, '')));
+  const out = [];
+  let cursor = 0;
+  do {
+    const [next, batch] = await k.scan(cursor, {match: pattern, count: 200});
+    out.push(...batch);
+    cursor = Number(next);
+  } while (cursor && out.length < limit);
+  return out.slice(0, limit);
+}
 
 /* ─────────── ліцензія ───────────
    Ключ — нормалізований логін (той самий, що в застосунку: пошта в
@@ -158,7 +178,7 @@ const json = (res, code, body) => {
 module.exports = {
   ENV, configured, PLANS, DEVICES,
   /* live() — чи це справжнє сховище, а не пам'ять процесу */
-  store: {get, set, live: async () => !!(await kv())},
+  store: {get, set, keys, live: async () => !!(await kv())},
   sign, pack, unpack, verify,
   normLogin, readLicence, writeLicence, view, applyPayment, addMonths, json,
 };
