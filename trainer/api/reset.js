@@ -74,6 +74,18 @@ module.exports = async function handler(req, res){
   if (rec && now - rec.sentAt < PAUSE)
     return L.json(res, 429, {ok: false, error: 'too_soon', wait: Math.ceil((PAUSE - (now - rec.sentAt)) / 1000)});
 
+  /* ─── чи знаємо ми цей логін ───
+     Без цієї перевірки будь-хто міг надсилати наші листи на будь-яку
+     адресу: вписав чужу пошту — і людині прийшов лист від PRO Trainer.
+     Це і чужа скринька, і наш домен, і наша квота на пошту.
+
+     Відповідаємо однаково — і коли надіслали, і коли ні. Інакше сторінка
+     перетворилась би на довідник: «є такий тренер у вас чи немає».     */
+  const known = await L.store.get(require('../api/db.js').keyOf(login))
+             || await L.store.get(require('../api/trial.js').keyOf(login))
+             || await L.readLicence(login);
+  if (!known) return L.json(res, 200, {ok: true, sent: true, minutes: TTL / 60000});
+
   const code = digits();
   await L.store.set(key, {code, exp: now + TTL, sentAt: now, tries: 0});
 

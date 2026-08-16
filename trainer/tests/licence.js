@@ -261,6 +261,15 @@ part('відновлення пароля');
   const byPhone = await call(RESET, {query: {login: '0631112233'}});
   ok('на телефон код не шлемо', byPhone.code === 400 && byPhone.json.error === 'not_email', String(byPhone.code));
 
+  /* Незнайомій адресі листа не шлемо: інакше сторінка стала б розсилкою
+     з нашого домену на будь-яку пошту. Відповідь при цьому та сама —
+     інакше вона стала б довідником «є такий тренер чи немає». */
+  const stranger = await call(RESET, {query: {login: 'nikogo-tut-net@mail.com'}});
+  ok('незнайомій адресі листа не шлемо', box.length === 0, box.length + ' шт.');
+  ok('а відповідь та сама', stranger.code === 200 && stranger.json.sent === true, JSON.stringify(stranger.json));
+
+  /* далі — той, кого ми справді знаємо */
+  await L.store.set(require('../api/trial.js').keyOf(MAN), {startedAt: Date.now()});
   const sent = await call(RESET, {query: {login: MAN, lang: 'ru'}});
   ok('код надіслано', sent.code === 200 && sent.json.sent === true, JSON.stringify(sent.json));
   ok('лист пішов саме на цю адресу', box.length === 1 && box[0].to === MAN);

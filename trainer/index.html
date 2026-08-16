@@ -1110,6 +1110,7 @@ const PHRASES = [
   ['Вимкнено — дані лише на цьому пристрої', 'Выключено — данные только на этом устройстве', 'Off — your data stays on this device only', 'Wyłączone — dane tylko na tym urządzeniu'],
   ['Зашифрована копія. Зайдіть із будь-якого пристрою — клієнти й історія будуть на місці', 'Зашифрованная копия. Зайдите с любого устройства — клиенты и история будут на месте', 'An encrypted backup. Sign in from any device — your clients and history will be there', 'Zaszyfrowana kopia. Zaloguj się z dowolnego urządzenia — klienci i historia będą na miejscu'],
   ['Відновлювати пароль', 'Восстанавливать пароль', 'Password recovery', 'Odzyskiwanie hasła'],
+  ['Не вдалося зв’язатися з сервером. Перевірте інтернет і спробуйте ще раз', 'Не удалось связаться с сервером. Проверьте интернет и попробуйте ещё раз', 'We could not reach the server. Check your connection and try again', 'Nie udało się połączyć z serwerem. Sprawdź internet i spróbuj ponownie'],
   ['Копія ще не робиться: ключ до неї заводиться разом із паролем. Введіть пароль — і база поїде в копію', 'Копия ещё не делается: ключ к ней заводится вместе с паролем. Введите пароль — и база уедет в копию', 'The backup is not running yet: its key is created together with the password. Enter your password and the data will go to the backup', 'Kopia jeszcze nie działa: klucz do niej powstaje razem z hasłem. Wpisz hasło — i baza pojedzie do kopii'],
   ['Увімкнути копію', 'Включить копию', 'Turn the backup on', 'Włącz kopię'],
   ['Знадобиться пароль від кабінета', 'Понадобится пароль от кабинета', 'Your account password is needed', 'Potrzebne będzie hasło do konta'],
@@ -2128,8 +2129,14 @@ const Cloud = {
     if (!r.ok) return {ok:false, error: r.error || 'denied'};
     if (!r.has) return {ok:false, error:'empty'};
     try {
+      /* Запис без замка — з першої версії копій: там ключем був сам
+         пароль. Читаємо його як є, але замок тут-таки й робимо, щоб
+         наступний же запис поклав копію на новий лад. Без цього рядка
+         кабінет лишався б старим назавжди, хоч би скільки разів у нього
+         заходили. */
       const raw = r.wrap ? await Vault.unwrap(probe.pkRaw, r.wrap) : probe.pkRaw;
-      const cred = {...probe, raw, key: await Vault.importRaw(raw), wrap: r.wrap || null};
+      const wrap = r.wrap || await Vault.encryptWith(await Vault.importRaw(probe.pkRaw), raw);
+      const cred = {...probe, raw, key: await Vault.importRaw(raw), wrap};
       return {ok:true, json: await Vault.decryptWith(cred.key, r.iv, r.ct), cred, savedAt: r.savedAt};
     } catch (e){ return {ok:false, error:'bad_key'}; }
   },
@@ -3911,8 +3918,15 @@ const Auth = ({onReady, save}) => {
           }
           const got = await Cloud.open(norm, f.pass, found.salt);
           if (!got.ok){
-            setExists(true);
-            setErr({pass: t('auth.err.bad','Пароль не підходить')});
+            /* «Пароль не підходить» кажемо тільки коли сервер справді
+               відмовив у записі. Обрив зв'язку — інша річ: назвати його
+               невірним паролем означає відправити людину міняти те, що
+               й так правильне. */
+            const wrong = got.error === 'wrong_token' || got.error === 'bad_key';
+            if (wrong) setExists(true);
+            setErr({pass: wrong
+              ? t('auth.err.bad','Пароль не підходить')
+              : t('auth.err.net','Не вдалося зв’язатися з сервером. Перевірте інтернет і спробуйте ще раз')});
             setBusy(false); return;
           }
           const acc = {login: norm, raw: login, kind: isEmail(login) ? 'email' : 'phone',
@@ -3948,6 +3962,14 @@ const Auth = ({onReady, save}) => {
           else if (got.error === 'wrong_token' || got.error === 'bad_key'){
             setExists(true);
             setErr({pass: t('auth.err.exists','Кабінет із такою поштою вже є, і пароль до нього інший. Введіть свій пароль — або відновіть його')});
+            setBusy(false); return;
+          }
+          /* Копія є, але дістати її не вдалося — зв'язок. Заводити тут
+             порожній кабінет не можна: він забере логін собі, отримає
+             власний ключ, і копія лишиться на сервері нікому не
+             потрібною. Краще чесно попросити спробувати ще раз. */
+          else {
+            setErr({login: t('auth.err.net','Не вдалося зв’язатися з сервером. Перевірте інтернет і спробуйте ще раз')});
             setBusy(false); return;
           }
         }
