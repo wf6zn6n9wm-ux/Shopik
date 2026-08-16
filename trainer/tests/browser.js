@@ -32,6 +32,13 @@ process.env.LIQPAY_PUBLIC_KEY = process.env.LIQPAY_PUBLIC_KEY || 'test_public';
 process.env.LIQPAY_PRIVATE_KEY = process.env.LIQPAY_PRIVATE_KEY || 'test_private';
 const L = require('../api/_lib.js');
 
+/* Пошту звідси не відправити, та й не треба: перевіряємо не Resend, а
+   свій шлях відновлення. Лист лишається в пам'яті, а проба читає код
+   через /_test/code — рівно те саме, що людина робить очима у скриньці. */
+const MAIL = require('../api/mail.js');
+const sent = [];
+MAIL.deliver = async letter => { sent.push(letter); return {ok: true, id: 'test'}; };
+
 const CHROME = process.env.CHROME || [
   '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome',
@@ -124,6 +131,14 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/_test/react-mini.js'){
     res.writeHead(200, {'content-type': TYPES['.js']});
     return res.end(fs.readFileSync(path.join(__dirname, 'react-mini.js')));
+  }
+
+  /* Код із листа — так само, як тренер дістає його зі скриньки. Живе
+     лише в цьому прогоні: у справжньому api такої дороги немає. */
+  if (url.pathname === '/_test/code'){
+    const rec = await L.store.get(require('../api/reset.js').keyOf(url.searchParams.get('login')));
+    res.writeHead(200, {'content-type': TYPES['.js'], 'cache-control': 'no-store'});
+    return res.end(JSON.stringify({code: (rec && rec.code) || '', letters: sent.length}));
   }
 
   if (url.pathname.startsWith('/_probe/')){
@@ -601,9 +616,8 @@ PROBES['app-cloud.js'] = DRIVE + `
     res.has = !!(seen && seen.has);
     res.salt = !!(seen && seen.salt);
 
-    /* той самий пароль → той самий ключ → копія читається */
-    var good = await Vault.cloud('test1234', seen.salt);
-    var back = await Cloud.restore(login, good.token, good.key);
+    /* той самий пароль знімає замок із ключа — і копія читається */
+    var back = await Cloud.open(login, 'test1234', seen.salt);
     res.read = !!(back && back.ok);
     if (back && back.ok){
       try {
@@ -612,10 +626,56 @@ PROBES['app-cloud.js'] = DRIVE + `
       } catch (e){ res.clients = -1; }
     }
 
-    /* чужий пароль не відкриває нічого */
-    var bad = await Vault.cloud('inshiy-parol', seen.salt);
-    var nope = await Cloud.restore(login, bad.token, bad.key);
+    /* чужий пароль не відкриває нічого — і сервер навіть не віддає запис */
+    var nope = await Cloud.open(login, 'inshiy-parol', seen.salt);
     res.stranger = !!(nope && nope.ok);
+    res.strangerWhy = (nope && nope.error) || '';
+
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
+/* Забутий пароль. Найдорожчий шлях у застосунку: тут людина або
+   повертає базу клієнтів, або втрачає її. Проходимо його цілком —
+   лист, код, новий пароль, новий замок — і перевіряємо обидва боки:
+   новий пароль відкриває копію, старий уже ні. */
+PROBES['app-lost.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await enter();
+    var login = Web.login();
+    var put = await Cloud.push();
+    res.saved = !!(put && put.ok);
+
+    var sc = await Web.sendCode(login);
+    res.sent = !!(sc && sc.sent);
+
+    var box = await (await fetch('/_test/code?login=' + encodeURIComponent(login))).json();
+    res.code = (box.code || '').length;
+    res.letters = box.letters;
+
+    var v = await Web.checkCode(login, box.code);
+    res.verified = !!(v && v.verified);
+    res.gotKey = !!(v && v.key);
+    res.gotTicket = !!(v && v.ticket);
+
+    /* новий пароль: ключ той самий, замок інший */
+    var c = await Vault.cloud('novyi-parol', v.salt, {raw: v.key});
+    var rk = await Cloud.rekey(login, v.ticket, c);
+    res.rekeyed = !!(rk && rk.ok);
+    res.why = JSON.stringify(rk);
+
+    var back = await Cloud.open(login, 'novyi-parol', v.salt);
+    res.read = !!(back && back.ok);
+    try { res.clients = (JSON.parse(back.json).clients || []).length; } catch (e){ res.clients = -1; }
+
+    var old = await Cloud.open(login, 'test1234', v.salt);
+    res.oldWorks = !!(old && old.ok);
+
+    /* квиток одноразовий: другий раз тим самим не пройти */
+    var again = await Cloud.rekey(login, v.ticket, c);
+    res.twice = !!(again && again.ok);
 
     res.err = window.__err || '';
     say(res);
@@ -908,6 +968,45 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('своїм паролем копія читається', o.read === true);
     ok('у копії ті самі клієнти', o.clients === 8, o.clients + ' шт.');
     ok('чужим паролем не читається', o.stranger === false);
+    ok('чужому сервер запис навіть не віддає', o.strangerWhy === 'wrong_token', o.strangerWhy || '—');
+    ok('помилок немає', !o.err, o.err || '—');
+
+    /* Обіцянка з налаштувань, перевірена з боку сховища: увімкнене
+       відновлення означає, що ключ у нас лежить, вимкнене — що його
+       немає. Слово тут коштує рівно стільки, скільки цей запис. */
+    part('ключ від копії — рівно там, де обіцяно');
+    const DB = require('../api/db.js');
+    const post = (login, keep) => fetch('http://127.0.0.1:' + PORT + '/api/db?' +
+      new URLSearchParams({login, token: 'tok-' + login}), {method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({salt: 's', wrap: {iv: 'i', ct: 'c'}, iv: 'i', ct: 'c', keep})});
+
+    await post('on@mail.com', 'KEY-ON');
+    await post('off@mail.com', '');
+    const recOn = await L.store.get(DB.keyOf('on@mail.com'));
+    const recOff = await L.store.get(DB.keyOf('off@mail.com'));
+    ok('увімкнене відновлення — ключ у нас є', recOn.keep === 'KEY-ON', recOn.keep || '—');
+    ok('вимкнене — ключа немає', !recOff.keep, recOff.keep || '—');
+    /* keep не має вийти назовні навіть тому, хто знає пароль: віддавати
+       ключ у відповіді немає жодної потреби, а витік був би тихим */
+    const mine = await (await fetch('http://127.0.0.1:' + PORT + '/api/db?' +
+      new URLSearchParams({login: 'on@mail.com', token: 'tok-on@mail.com'}))).json();
+    ok('власнику копію віддаємо', mine.has === true && mine.ct === 'c');
+    ok('а ключ — ні', mine.keep === undefined, JSON.stringify(mine.keep));
+
+    part('забутий пароль повертає базу');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?cloud=1&probe=app-lost.js')) || '{}');
+    ok('копія на місці', o.saved === true);
+    ok('лист із кодом пішов', o.sent === true && o.letters > 0, JSON.stringify([o.sent, o.letters]));
+    ok('код — шість цифр', o.code === 6, o.code + ' знаків');
+    ok('пошта підтверджена', o.verified === true);
+    ok('ключ від копії повернувся', o.gotKey === true);
+    ok('квиток на новий замок виданий', o.gotTicket === true);
+    ok('новий замок став на місце', o.rekeyed === true, o.why || '');
+    ok('новий пароль відкриває копію', o.read === true);
+    ok('дані ті самі', o.clients === 8, o.clients + ' шт.');
+    ok('старий пароль більше не підходить', o.oldWorks === false);
+    ok('квиток одноразовий', o.twice === false);
     ok('помилок немає', !o.err, o.err || '—');
 
     part('вихід з акаунта');
