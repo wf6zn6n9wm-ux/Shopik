@@ -308,6 +308,38 @@ part('вичерпаний абонемент');
   T.Store.init(was);
 }
 
+part('перенесення');
+{
+  const was = T.Store.state;
+  T.Store.init(T.emptyDB());
+  const cl = T.Act.addClient({name: 'Переносний'});
+  const pkg = T.Act.addPackage({title: '8', sessions: 8, price: 5600});
+  const sub = T.Act.buyPackage(cl.id, pkg);
+  const used = () => T.Store.state.subs[0].used;
+
+  /* Проведене переносять, щоб виправити дату, а не щоб скасувати роботу.
+     Раніше перенос повертав його в «заплановано», і за одне заняття з
+     абонемента списувалось двічі — клієнт втрачав оплачене. */
+  const s1 = T.Act.addSession({clientId: cl.id, price: 700, subId: sub.id, start: new Date().toISOString()});
+  T.Act.complete(s1.id, false);
+  ok('провели — списалось одне', used() === 1, String(used()));
+  T.Act.moveSession(s1.id, new Date(Date.now() + 86400000));
+  const moved = T.Store.state.sessions.find(x => x.id === s1.id);
+  ok('проведене лишається проведеним', moved.status === 'done', moved.status);
+  ok('дата справді змінилась', +new Date(moved.start) > Date.now() + 3600000);
+  T.Act.complete(s1.id, false);
+  ok('удруге з абонемента не списується', used() === 1, String(used()));
+
+  /* «Не прийшов» переносять саме щоб домовитись на інший час */
+  const s2 = T.Act.addSession({clientId: cl.id, price: 700, start: new Date().toISOString()});
+  T.Act.complete(s2.id, true);
+  T.Act.noshow(s2.id);
+  T.Act.moveSession(s2.id, new Date(Date.now() + 2 * 86400000));
+  ok('той, хто не прийшов, повертається в план',
+     T.Store.state.sessions.find(x => x.id === s2.id).status === 'planned');
+  T.Store.init(was);
+}
+
 part('ціна тренування');
 ok('своя ціна клієнта', T.clientPrice(db, 'cl_6') === 900, T.money(T.clientPrice(db, 'cl_6')));
 ok('без своєї — ціна за замовчуванням', T.clientPrice(db, 'cl_0') === db.settings.price);
