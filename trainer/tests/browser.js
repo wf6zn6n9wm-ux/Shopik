@@ -583,8 +583,16 @@ PROBES['app-cloud.js'] = DRIVE + `
     res.why = JSON.stringify(put);
     res.saved = !!(put && put.ok);
 
-    /* сервер має знати, що копія є, і віддати сіль новому пристрою */
-    var seen = await Cloud.peek(login);
+    /* Сервер має знати, що копія є, і віддати сіль новому пристрою.
+       Один зірваний запит тут ламав усе далі: без солі проба виводила
+       ключ із випадкової й «не читала» власну копію. Тому перепитуємо. */
+    var seen = {};
+    for (var i = 0; i < 3; i++){
+      seen = await Cloud.peek(login);
+      if (seen && seen.ok) break;
+      await wait(200);
+    }
+    res.peek = JSON.stringify(seen);
     res.has = !!(seen && seen.has);
     res.salt = !!(seen && seen.salt);
 
@@ -890,7 +898,7 @@ server.listen(PORT, '127.0.0.1', async () => {
     part('копія бази на сервері');
     o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?cloud=1&probe=app-cloud.js')) || '{}');
     ok('копія збереглась', o.saved === true, o.why || '');
-    ok('сервер знає, що копія є', o.has === true);
+    ok('сервер знає, що копія є', o.has === true, o.peek || '');
     ok('сіль віддається новому пристрою', o.salt === true);
     ok('своїм паролем копія читається', o.read === true);
     ok('у копії ті самі клієнти', o.clients === 8, o.clients + ' шт.');
