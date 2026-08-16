@@ -167,6 +167,31 @@ async function applyPayment({login, device, plan, orderId, autoRenew}){
   return lic;
 }
 
+/* ─────────── журнал оплат ───────────
+   Ліцензія зберігає тільки поточний стан: коли підписка закінчується й
+   чи продовжується сама. Скільки грошей прийшло за місяць, по ній не
+   порахувати — попередні списання вона затирає. Тому кожен платіж
+   лишає рядок тут.
+
+   Це наш власний фінансовий облік, а не спостереження за тренером:
+   логін, тариф, сума, дата. Нічого про те, що людина робить у
+   застосунку, — ми цього не збираємо.
+
+   Ліміт обов'язковий: без нього один запис ріс би нескінченно, а читаємо
+   ми його цілком.                                                     */
+const PAY_LOG = 'pay:log';
+const PAY_KEEP = 2000;
+async function logPayment({login, plan, orderId, kind}){
+  const p = PLANS[plan];
+  const row = {ts: Date.now(), login: normLogin(login), plan, orderId: String(orderId || ''),
+               usd: p ? (kind === 'back' ? -p.usd : p.usd) : 0, kind: kind || 'pay'};
+  const log = (await get(PAY_LOG)) || [];
+  log.push(row);
+  await set(PAY_LOG, log.slice(-PAY_KEEP));
+  return row;
+}
+const readPayments = async () => (await get(PAY_LOG)) || [];
+
 const json = (res, code, body) => {
   res.setHeader('content-type', 'application/json; charset=utf-8');
   res.setHeader('cache-control', 'no-store');
@@ -181,4 +206,5 @@ module.exports = {
   store: {get, set, keys, live: async () => !!(await kv())},
   sign, pack, unpack, verify,
   normLogin, readLicence, writeLicence, view, applyPayment, addMonths, json,
+  logPayment, readPayments, PAY_LOG,
 };

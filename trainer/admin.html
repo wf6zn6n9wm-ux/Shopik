@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>PRO Trainer — админка</title>
+<meta name="theme-color" content="#08080B">
+<!--
+  Страница только для владельца. Отдельный файл, а не экран приложения:
+  тренерам она не нужна и на их устройствах ей делать нечего.
+
+  Пароль живёт в sessionStorage — закрыл вкладку, и его нет. В
+  localStorage он пережил бы закрытый ноутбук в кафе.
+
+  Ни одной внешней ссылки: всё внутри файла. Так же, как в приложении.
+-->
+<style>
+  :root{
+    --bg:#08080B; --surface:#15151C; --surface-2:#1C1C25; --line:#23232C;
+    --ink:#F5F5F8; --ink-2:#9E9EAF; --ink-3:#71717F;
+    --accent:#6B4DFF; --accent-soft:rgba(107,77,255,.16);
+    --pos:#12B76A; --warn:#F79009; --neg:#F04438;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+  html,body{background:var(--bg);color:var(--ink);min-height:100%}
+  .wrap{max-width:1000px;margin:0 auto;padding:22px 16px 70px}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .mark{width:38px;height:38px;border-radius:12px;background:var(--accent);display:grid;place-items:center;font-size:19px}
+  .brand b{font-size:17px;letter-spacing:-.02em}
+  .brand span{display:block;font-size:11px;color:var(--ink-3)}
+  .btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;
+       padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer}
+  .btn.pri{background:var(--accent);border-color:transparent}
+  .btn:disabled{opacity:.5;cursor:default}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px}
+  .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px}
+  @media(min-width:700px){.kpis{grid-template-columns:repeat(4,1fr)}}
+  .kpi .lbl{font-size:12px;color:var(--ink-3)}
+  .kpi .val{font-size:29px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+  .kpi .sub{font-size:12px;color:var(--ink-3);margin-top:2px}
+  .val.acc{color:#a08cff}.val.pos{color:var(--pos)}.val.warn{color:var(--warn)}
+  h2{font-size:14px;font-weight:700;margin:26px 0 10px;color:var(--ink-2)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:10px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .scroll{overflow-x:auto}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .tag.pay{background:rgba(18,183,106,.15);color:var(--pos)}
+  .tag.try{background:var(--accent-soft);color:#a08cff}
+  .tag.gift{background:rgba(247,144,9,.15);color:var(--warn)}
+  .tag.off{background:var(--surface-2);color:var(--ink-3)}
+  .bars{display:flex;align-items:flex-end;gap:3px;height:120px;margin-top:6px}
+  .bars i{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
+  .bars i.zero{background:var(--surface-2)}
+  .axis{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:6px}
+  .funnel div{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .funnel .bar{height:26px;background:var(--accent);border-radius:7px;min-width:3px}
+  .funnel .nm{width:190px;font-size:13px;color:var(--ink-2);flex:none}
+  .funnel .n{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+  .gate{min-height:82vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}
+  .gate input{background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:12px;
+              padding:13px 15px;font-size:15px;width:min(320px,80vw);outline:none}
+  .gate input:focus{border-color:var(--accent)}
+  .err{color:var(--neg);font-size:13px;min-height:18px}
+  .muted{color:var(--ink-3);font-size:13px;line-height:1.5;max-width:460px}
+  .note{background:rgba(247,144,9,.12);border:1px solid rgba(247,144,9,.3);color:#ffcd85;
+        border-radius:12px;padding:11px 14px;font-size:13px;margin-bottom:14px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap" id="root"></div>
+
+<script>
+var KEY = 'protrainer.admin';
+var root = document.getElementById('root');
+var pass = sessionStorage.getItem(KEY) || '';
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function money(n){ return (n < 0 ? '−$' : '$') + Math.abs(n).toFixed(2); }
+function ago(ts, now){
+  if (!ts) return '—';
+  var d = Math.floor((now - ts) / 86400000);
+  return d <= 0 ? 'сегодня' : d === 1 ? 'вчера' : d + ' дн.';
+}
+
+function gate(msg){
+  root.innerHTML =
+    '<div class="gate">' +
+      '<div class="brand"><div class="mark">🏋️</div><div><b>PRO Trainer</b><span>админка</span></div></div>' +
+      '<input id="p" type="password" placeholder="Пароль" autofocus>' +
+      '<button class="btn pri" id="go">Войти</button>' +
+      '<div class="err">' + esc(msg || '') + '</div>' +
+    '</div>';
+  var inp = document.getElementById('p');
+  var go = function(){
+    pass = inp.value.trim();
+    if (!pass) return;
+    sessionStorage.setItem(KEY, pass);
+    load();
+  };
+  document.getElementById('go').onclick = go;
+  inp.onkeydown = function(e){ if (e.key === 'Enter') go(); };
+}
+
+async function load(){
+  root.innerHTML = '<div class="gate"><div class="muted">Считаю…</div></div>';
+  var r;
+  try {
+    r = await fetch('/api/admin', {headers: {authorization: 'Bearer ' + pass}});
+  } catch (e){
+    return gate('Нет связи с сервером');
+  }
+  if (r.status === 401){ sessionStorage.removeItem(KEY); return gate('Пароль не подходит'); }
+  if (r.status === 429) return gate('Слишком много попыток. Подождите четверть часа');
+  if (r.status === 503) return gate('ADMIN_PASS не задан в переменных Vercel');
+  var d = await r.json().catch(function(){ return null; });
+  if (!d || !d.ok) return gate('Сервер ответил непонятно');
+  draw(d);
+}
+
+function bars(series){
+  var max = Math.max.apply(null, series.map(function(s){ return s.joined; }).concat([1]));
+  return '<div class="bars">' + series.map(function(s){
+    return '<i class="' + (s.joined ? '' : 'zero') + '" style="height:' +
+           Math.max(2, Math.round(s.joined / max * 118)) + 'px" title="' + s.day + ': ' + s.joined + '"></i>';
+  }).join('') + '</div><div class="axis"><span>' + series[0].day + '</span><span>' +
+  series[series.length - 1].day + '</span></div>';
+}
+
+function funnel(f){
+  var rows = [
+    ['Завели кабинет', f.joined],
+    ['Начали работать', f.works],
+    ['Пробный закончился', f.finished],
+    ['Оплатили', f.bought],
+  ];
+  var max = Math.max(f.joined, 1);
+  return '<div class="funnel">' + rows.map(function(r){
+    var part = max ? Math.round(r[1] / max * 100) : 0;
+    return '<div><span class="nm">' + r[0] + '</span>' +
+           '<span class="bar" style="width:' + Math.max(3, part * 2.4) + 'px"></span>' +
+           '<span class="n">' + r[1] + (r[1] && max ? ' · ' + part + '%' : '') + '</span></div>';
+  }).join('') + '</div>';
+}
+
+function who(p){
+  if (p.paid) return '<span class="tag pay">платит</span>';
+  if (p.granted) return '<span class="tag gift">выдана</span>';
+  if (p.trial) return '<span class="tag try">пробный</span>';
+  return '<span class="tag off">ушёл</span>';
+}
+
+function draw(d){
+  var kb = function(n){ return n ? (n / 1024).toFixed(0) + ' КБ' : '—'; };
+  var html = '';
+
+  html += '<div class="top"><div class="brand"><div class="mark">🏋️</div>' +
+    '<div><b>PRO Trainer</b><span>админка</span></div></div>' +
+    '<div><button class="btn" onclick="load()">Обновить</button> ' +
+    '<button class="btn" onclick="sessionStorage.removeItem(\'' + KEY + '\');location.reload()">Выйти</button></div></div>';
+
+  if (d.storage !== 'kv')
+    html += '<div class="note">Хранилище — память процесса, а не KV. Числа ничего не значат: ' +
+            'записи не переживают перезапуск функции. Проверьте /api/health.</div>';
+
+  html += '<div class="kpis">' +
+    '<div class="card kpi"><div class="lbl">Кабинетов</div><div class="val">' + d.count.all + '</div>' +
+      '<div class="sub">' + d.count.idle + ' ни разу не сохранили</div></div>' +
+    '<div class="card kpi"><div class="lbl">Работают</div><div class="val acc">' + d.count.works + '</div>' +
+      '<div class="sub">за неделю — ' + d.count.week + '</div></div>' +
+    '<div class="card kpi"><div class="lbl">Платят</div><div class="val pos">' + d.count.paid + '</div>' +
+      '<div class="sub">выдано вручную — ' + d.count.granted + '</div></div>' +
+    '<div class="card kpi"><div class="lbl">За 30 дней</div><div class="val">' + money(d.money.usd30) + '</div>' +
+      '<div class="sub">в месяц ожидается ' + money(d.money.mrr) + '</div></div>' +
+  '</div>';
+
+  html += '<h2>Регистрации по дням</h2><div class="card">' + bars(d.series) + '</div>';
+  html += '<h2>Путь тренера</h2><div class="card">' + funnel(d.funnel) +
+    '<div class="muted" style="margin-top:10px">«Оплатили» считается только среди тех, у кого пробный уже ' +
+    'закончился — иначе цифра занижалась бы каждым новым тренером.</div></div>';
+
+  var langs = Object.keys(d.langs).sort(function(a, b){ return d.langs[b] - d.langs[a]; });
+  if (langs.length)
+    html += '<h2>Языки</h2><div class="card"><div class="funnel">' + langs.map(function(k){
+      return '<div><span class="nm">' + k + '</span><span class="bar" style="width:' +
+             Math.max(3, Math.round(d.langs[k] / d.count.all * 240)) + 'px"></span>' +
+             '<span class="n">' + d.langs[k] + '</span></div>';
+    }).join('') + '</div></div>';
+
+  html += '<h2>Тренеры (' + d.people.length + ')</h2><div class="card scroll"><table>' +
+    '<tr><th>Почта</th><th>Завёл</th><th>Был</th><th>База</th><th>Статус</th><th>До</th><th>Устройств</th></tr>' +
+    d.people.map(function(p){
+      return '<tr><td>' + esc(p.login) + '</td><td>' + esc(p.since) + '</td>' +
+        '<td>' + ago(p.seenAt, d.now) + '</td>' +
+        '<td class="num">' + kb(p.size) + '</td>' +
+        '<td>' + who(p) + '</td>' +
+        '<td>' + esc(p.until || p.trialEnds || '') + '</td>' +
+        '<td class="num">' + (p.devices || '') + '</td></tr>';
+    }).join('') + '</table></div>';
+
+  if (d.money.last.length)
+    html += '<h2>Платежи</h2><div class="card scroll"><table>' +
+      '<tr><th>Когда</th><th>Почта</th><th>Тариф</th><th>Сумма</th></tr>' +
+      d.money.last.map(function(p){
+        return '<tr><td>' + new Date(p.ts).toISOString().slice(0, 10) + '</td>' +
+          '<td>' + esc(p.login) + '</td><td>' + esc(p.plan) + '</td>' +
+          '<td class="num">' + money(p.usd) + '</td></tr>';
+      }).join('') + '</table></div>';
+  else
+    html += '<h2>Платежи</h2><div class="card"><div class="muted">Пока ни одного. ' +
+      'Журнал ведётся с того дня, как появился — прежние оплаты в нём не окажутся.</div></div>';
+
+  root.innerHTML = html;
+}
+
+if (pass) load(); else gate('');
+</script>
+</body>
+</html>

@@ -32,6 +32,7 @@ module.exports = async function handler(req, res){
   /* гроші прийшли — продовжуємо строк */
   if (st === 'success' || st === 'subscribed' || st === 'wait_accept'){
     await L.applyPayment({login, device: info.device, plan, orderId: p.order_id, autoRenew: true});
+    await L.logPayment({login, plan, orderId: p.order_id, kind: 'pay'});
     return L.json(res, 200, {ok: true});
   }
 
@@ -47,6 +48,7 @@ module.exports = async function handler(req, res){
   if (st === 'reversed' || st === 'refund'){
     const lic = await L.readLicence(login);
     if (lic) await L.writeLicence(login, {...lic, autoRenew: false, expiresAt: Date.now()});
+    await L.logPayment({login, plan, orderId: p.order_id, kind: 'back'});
     return L.json(res, 200, {ok: true});
   }
 

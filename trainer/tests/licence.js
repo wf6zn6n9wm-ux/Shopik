@@ -354,6 +354,65 @@ part('хто вже завів кабінет');
   delete process.env.CRON_SECRET;
 }
 
+part('адмінка');
+{
+  const ADMIN = API('admin.js');
+  const TRIAL = API('trial.js');
+  const DB = API('db.js');
+
+  delete process.env.ADMIN_PASS;
+  const noPass = await call(ADMIN, {});
+  ok('без заданого пароля адмінка не працює', noPass.code === 503, String(noPass.code));
+
+  process.env.ADMIN_PASS = 'dovgyi-parol-adminky';
+  const head = ip => ({headers: {authorization: 'Bearer dovgyi-parol-adminky', 'x-forwarded-for': ip}});
+
+  const wrong = await call(ADMIN, {headers: {authorization: 'Bearer ne-toy', 'x-forwarded-for': '1.1.1.1'}});
+  ok('чужий пароль не пускає', wrong.code === 401, String(wrong.code));
+
+  /* Пароль на відкритій адресі підбирається, тому спроби рахуються.
+     Після ліміту відмовляємо навіть правильному — інакше лічильник
+     обходився б однією вдалою спробою в кінці перебору. */
+  for (let i = 0; i < ADMIN.TRIES; i++)
+    await call(ADMIN, {headers: {authorization: 'Bearer ne-toy', 'x-forwarded-for': '2.2.2.2'}});
+  const locked = await call(ADMIN, head('2.2.2.2'));
+  ok('після десяти спроб адресу замикає', locked.code === 429, String(locked.code));
+  ok('інші адреси це не зачіпає', (await call(ADMIN, head('3.3.3.3'))).code === 200);
+
+  const day = 86400000;
+  await L.store.set(TRIAL.keyOf('a@mail.com'), {startedAt: Date.now() - 2 * day, lang: 'uk'});
+  await L.store.set(DB.keyOf('a@mail.com'), {token: 't', savedAt: Date.now(), size: 2048});
+  await L.store.set(TRIAL.keyOf('b@mail.com'), {startedAt: Date.now() - 60 * day, lang: 'pl'});
+
+  const d = (await call(ADMIN, head('3.3.3.3'))).json;
+  const by = login => d.people.find(p => p.login === login) || {};
+  ok('свіжий кабінет — на пробному', by('a@mail.com').trial === true && by('a@mail.com').works === true);
+  ok('давній без копії — ні', by('b@mail.com').trial === false && by('b@mail.com').works === false);
+  ok('графік — рівно на тридцять днів', d.series.length === 30, String(d.series.length));
+  ok('сьогоднішній день у графіку останній',
+     d.series[29].day === new Date().toISOString().slice(0, 10), d.series[29].day);
+  ok('мови рахуються', d.langs.uk >= 1 && d.langs.pl >= 1, JSON.stringify(d.langs));
+  /* У лійці «купив» рахуємо лише серед тих, чий пробний скінчився:
+     інакше кожен новий тренер знижував би відсоток, нічого не зробивши. */
+  ok('лійка рахує тільки тих, хто дійшов до кінця пробного',
+     d.funnel.finished === d.people.filter(p => !p.trial).length, String(d.funnel.finished));
+
+  /* Журнал оплат — наш облік грошей, а не спостереження за тренером.
+     Рахуємо приріст, а не суму: у журналі вже лежать оплати з перевірок
+     вище, і жорстке число тут ламалось би від кожної нової. */
+  const was = d.money.usdAll;
+  await L.logPayment({login: 'a@mail.com', plan: 'yearly', orderId: 'o1', kind: 'pay'});
+  const paid = (await call(ADMIN, head('3.3.3.3'))).json.money;
+  ok('оплата додає суму тарифу', +(paid.usdAll - was).toFixed(2) === 48.99, String(paid.usdAll - was));
+  await L.logPayment({login: 'a@mail.com', plan: 'yearly', orderId: 'o1', kind: 'back'});
+  const m = (await call(ADMIN, head('3.3.3.3'))).json.money;
+  ok('повернення забирає її назад', +(m.usdAll - was).toFixed(2) === 0, String(m.usdAll - was));
+  ok('у журналі обидва рядки', m.last[0].kind === 'back' && m.last[1].kind === 'pay',
+     m.last.slice(0, 2).map(x => x.kind).join('/'));
+
+  delete process.env.ADMIN_PASS;
+}
+
 part('видача підписки вручну');
 {
   const GRANT = API('grant.js');
