@@ -148,6 +148,7 @@
   .page-title{font-size:23px; font-weight:700; letter-spacing:-.02em}
   .page-sub{font-size:13px; color:var(--ink-3); margin-top:2px}
   .spacer{flex:1}
+  .between{display:flex; align-items:center; justify-content:space-between; gap:10px}
 
   /* ══ КАРТОЧКИ ══ */
   .card{
@@ -311,6 +312,38 @@
   .chip.on{background:var(--gold-soft); border-color:var(--gold-soft-2); color:var(--gold)}
 
   /* ══ СПИСКИ / ТАБЛИЦЫ ══ */
+  /* ── экраны подписки ──────────────────────────────────────────
+     Шлюз показывается вместо кабинета, поэтому у него своя раскладка:
+     узкая колонка по центру и прокрутка внутри себя. */
+  .gate{min-height:100dvh; display:flex; flex-direction:column; align-items:center;
+    padding:34px 20px 40px; overflow-y:auto}
+  .gate-in{width:100%; max-width:440px}
+  .gate-brand{display:flex; align-items:center; gap:10px; margin-bottom:22px}
+  .gate-title{font-size:26px; font-weight:750; letter-spacing:-.03em; line-height:1.15}
+  .gate-sub{font-size:13.5px; color:var(--ink-2); margin-top:8px; line-height:1.5}
+  .plan-card{display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+    padding:14px 15px; border-radius:var(--r); background:var(--surface);
+    border:1.5px solid var(--line); transition:border-color var(--fast), background var(--fast)}
+  .plan-card:hover{border-color:var(--line-2)}
+  .plan-card.on{border-color:var(--gold); background:var(--gold-soft)}
+  .plan-radio{width:20px; height:20px; border-radius:50%; border:2px solid var(--line-2);
+    flex:none; display:grid; place-items:center}
+  .plan-card.on .plan-radio{border-color:var(--gold)}
+  .plan-card.on .plan-radio i{width:10px; height:10px; border-radius:50%; background:var(--gold); display:block}
+  .plan-t{flex:1; min-width:0}
+  .plan-t b{display:block; font-size:15px; font-weight:700; letter-spacing:-.01em}
+  .plan-t span{display:block; font-size:11.5px; color:var(--ink-3); margin-top:2px}
+  .plan-p{text-align:right; flex:none}
+  .plan-p b{display:block; font-size:17px; font-weight:750; letter-spacing:-.02em}
+  .feat{display:flex; gap:10px; align-items:flex-start; padding:7px 0; font-size:13px}
+  .feat svg{width:16px; height:16px; flex:none; color:var(--gold); margin-top:2px}
+  @media (max-width:560px){
+    .gate{padding:22px 16px 32px}
+    .gate-title{font-size:22px}
+    .plan-t b{font-size:14px}
+    .plan-p b{font-size:16px}
+  }
+
   .rows{display:flex; flex-direction:column}
   .row{
     display:flex; align-items:center; gap:12px; padding:12px 20px; width:100%; text-align:left;
@@ -923,6 +956,146 @@ const PHRASES = {
   cancels: {ru: 'отмен', uk: 'скасувань', en: 'canceled'},
   noteHint: {ru: 'Сохраняется, когда уходите из поля', uk: 'Зберігається, коли йдете з поля', en: 'Saved when you leave the field'},
   stepNote: {ru: 'Сетка времени в календаре и в онлайн-записи', uk: 'Сітка часу в календарі та в онлайн-записі', en: 'Time grid in the calendar and online booking'},
+  /* ── подписка ── */
+  back: {ru: 'Назад', uk: 'Назад', en: 'Back'},
+  onWord: {ru: 'включено', uk: 'увімкнено', en: 'on'},
+  offWord: {ru: 'выключено', uk: 'вимкнено', en: 'off'},
+  dayOne: {ru: 'день', uk: 'день', en: 'day'},
+  dayFew: {ru: 'дня', uk: 'дні', en: 'days'},
+  dayMany: {ru: 'дней', uk: 'днів', en: 'days'},
+
+  plMonth: {ru: '1 месяц', uk: '1 місяць', en: '1 month'},
+  plQuarter: {ru: '3 месяца', uk: '3 місяці', en: '3 months'},
+  plYear: {ru: '1 год', uk: '1 рік', en: '1 year'},
+  plBadgeQ: {ru: 'выгоднее', uk: 'вигідніше', en: 'better value'},
+  plBadgeY: {ru: 'лучшая цена', uk: 'найкраща ціна', en: 'best price'},
+  plMonthly: {ru: 'ежемесячно', uk: 'щомісяця', en: 'monthly'},
+  plYearly: {ru: 'раз в год', uk: 'раз на рік', en: 'once a year'},
+  plOnce: {ru: 'разовая оплата', uk: 'разова оплата', en: 'one-off payment'},
+  plPerMonth: {ru: 'в месяц', uk: 'на місяць', en: 'per month'},
+
+  featCal: {ru: 'Календарь и записи: день, неделя, месяц',
+            uk: 'Календар і записи: день, тиждень, місяць',
+            en: 'Calendar and appointments: day, week, month'},
+  featClients: {ru: 'База клиентов с историей, заметками и днями рождения',
+                uk: 'База клієнтів з історією, нотатками та днями народження',
+                en: 'Client base with history, notes and birthdays'},
+  featMoney: {ru: 'Финансы: выручка, расходы, прибыль и выгрузка в CSV',
+              uk: 'Фінанси: виручка, витрати, прибуток і вивантаження в CSV',
+              en: 'Finance: revenue, expenses, profit and CSV export'},
+  featOnline: {ru: 'Онлайн-запись на своей странице и заявки с сайта',
+               uk: 'Онлайн-запис на своїй сторінці та заявки з сайту',
+               en: 'Online booking page and requests from the website'},
+  featData: {ru: 'Данные хранятся у вас: резервная копия в один файл',
+             uk: 'Дані зберігаються у вас: резервна копія в один файл',
+             en: 'Your data stays with you: a one-file backup'},
+
+  trialTitle: {ru: '14 дней бесплатно', uk: '14 днів безкоштовно', en: '14 days free'},
+  trialSub: {ru: 'Полный доступ ко всему кабинету. Оплата — только после того, как пробный период закончится.',
+             uk: 'Повний доступ до всього кабінету. Оплата — тільки після того, як пробний період завершиться.',
+             en: 'Full access to everything. You pay only after the trial ends.'},
+  trialAfter: {ru: 'Дальше от', uk: 'Далі від', en: 'After that from'},
+  trialNote: {ru: 'Ничего не спишется само: план вы выберете сами, когда пробный период закончится. Карту вводить сейчас не нужно.',
+              uk: 'Нічого не спишеться саме: план ви оберете самі, коли пробний період завершиться. Картку вводити зараз не потрібно.',
+              en: 'Nothing is charged automatically: you pick a plan yourself when the trial ends. No card needed now.'},
+  trialGo: {ru: 'Начать бесплатно', uk: 'Почати безкоштовно', en: 'Start for free'},
+  trialFree: {ru: 'Без карты и без автосписания', uk: 'Без картки й без автосписання', en: 'No card, no auto-charge'},
+
+  payChoose: {ru: 'Выберите план', uk: 'Оберіть план', en: 'Choose a plan'},
+  payChooseSub: {ru: 'Полный доступ ко всем разделам кабинета.',
+                 uk: 'Повний доступ до всіх розділів кабінету.',
+                 en: 'Full access to every part of the app.'},
+  payGate: {ru: 'Пробный период закончился', uk: 'Пробний період завершився', en: 'Your trial has ended'},
+  paySubEnd: {ru: 'Подписка закончилась', uk: 'Передплата завершилась', en: 'Your subscription has ended'},
+  payGateSub: {ru: 'Клиенты, записи и финансы на месте — ничего не удалено. Выберите план, чтобы продолжить работу.',
+               uk: 'Клієнти, записи та фінанси на місці — нічого не видалено. Оберіть план, щоб продовжити роботу.',
+               en: 'Your clients, appointments and finance are intact. Pick a plan to keep working.'},
+  payGo: {ru: 'Перейти к оплате', uk: 'Перейти до оплати', en: 'Go to payment'},
+  payWaiting: {ru: 'Ждём оплату…', uk: 'Чекаємо оплату…', en: 'Waiting for payment…'},
+  payWait: {ru: 'Обрабатываем…', uk: 'Обробляємо…', en: 'Working…'},
+  payAlready: {ru: 'Я уже оплатил', uk: 'Я вже сплатив', en: 'I have already paid'},
+  payOk: {ru: 'Подписка активна', uk: 'Передплата активна', en: 'Subscription is active'},
+  payFail: {ru: 'Не удалось завершить оплату', uk: 'Не вдалося завершити оплату', en: 'Could not complete the payment'},
+  payErrSub: {ru: 'Данные на месте — ничего не потеряно. Попробуйте ещё раз или выберите другой план.',
+              uk: 'Дані на місці — нічого не втрачено. Спробуйте ще раз або оберіть інший план.',
+              en: 'Your data is intact. Try again or pick a different plan.'},
+  payNone: {ru: 'Оплаты по этому логину пока не видим', uk: 'Оплати за цим логіном поки не бачимо', en: 'We don’t see a payment for this login yet'},
+  payNotYet: {ru: 'Оплату ещё не видим. Если вы платили — нажмите «Я уже оплатил»',
+              uk: 'Оплату ще не бачимо. Якщо ви платили — натисніть «Я вже сплатив»',
+              en: 'We don’t see the payment yet. If you paid, tap “I have already paid”'},
+  payLimit: {ru: 'Подписка уже работает на трёх устройствах — освободите место на странице подписки',
+             uk: 'Передплата вже працює на трьох пристроях — звільніть місце на сторінці передплати',
+             en: 'The subscription already runs on three devices — free a slot on the subscription page'},
+  payNeedLogin: {ru: 'Сначала укажите почту или телефон — к ним привяжется подписка',
+                 uk: 'Спочатку вкажіть пошту або телефон — до них прив’яжеться передплата',
+                 en: 'Enter your email or phone first — the subscription is tied to it'},
+  payNote: {ru: 'Оплата проходит через LiqPay на отдельной странице — кабинет карту не видит. Планы на 1 месяц и 1 год продлеваются автоматически, выключить можно здесь же. Доступ действует на {n} устройствах.',
+            uk: 'Оплата проходить через LiqPay на окремій сторінці — кабінет картку не бачить. Плани на 1 місяць і 1 рік продовжуються автоматично, вимкнути можна тут само. Доступ діє на {n} пристроях.',
+            en: 'Payment goes through LiqPay on a separate page — the app never sees your card. The 1-month and 1-year plans renew automatically and can be turned off here. Access works on {n} devices.'},
+  payRestore: {ru: 'Восстановить покупку', uk: 'Відновити покупку', en: 'Restore purchase'},
+  payRestored: {ru: 'Покупка восстановлена', uk: 'Покупку відновлено', en: 'Purchase restored'},
+  payDataNote: {ru: 'Клиенты, записи и финансы хранятся в кабинете и от подписки не зависят: когда срок выйдет, данные останутся на месте.',
+                uk: 'Клієнти, записи та фінанси зберігаються в кабінеті й від передплати не залежать: коли строк вийде, дані залишаться на місці.',
+                en: 'Clients, appointments and finance live in the app and do not depend on the subscription: when it lapses, the data stays.'},
+  payDemoTitle: {ru: 'Оплата не подключена', uk: 'Оплата не підключена', en: 'Payments are not connected'},
+  payDemoNote: {ru: 'На этом хостинге нет сервера подписки, поэтому платёж провести негде. Можно включить демонстрационный доступ и посмотреть кабинет целиком — денег он не списывает и настоящей подпиской не является.',
+                uk: 'На цьому хостингу немає сервера передплати, тому платіж провести ніде. Можна увімкнути демонстраційний доступ і подивитись кабінет цілком — грошей він не списує і справжньою передплатою не є.',
+                en: 'This host has no subscription server, so there is nothing to pay through. You can switch on demo access and see the whole app — it charges nothing and is not a real subscription.'},
+  payDemoGo: {ru: 'Включить демо-доступ', uk: 'Увімкнути демо-доступ', en: 'Enable demo access'},
+  payDemoOk: {ru: 'Демо-доступ включён', uk: 'Демо-доступ увімкнено', en: 'Demo access enabled'},
+
+  subTitle: {ru: 'Подписка', uk: 'Передплата', en: 'Subscription'},
+  subSub: {ru: 'Срок, автопродление и устройства', uk: 'Строк, автопродовження та пристрої', en: 'Term, auto-renewal and devices'},
+  subActive: {ru: 'Активна', uk: 'Активна', en: 'Active'},
+  subTrial: {ru: 'Пробный период', uk: 'Пробний період', en: 'Trial'},
+  subNeed: {ru: 'Нужно продление', uk: 'Потрібне продовження', en: 'Renewal needed'},
+  subPlan: {ru: 'План', uk: 'План', en: 'Plan'},
+  subWhere: {ru: 'Оформлена', uk: 'Оформлена', en: 'Purchased'},
+  subWhereWeb: {ru: 'на сайте', uk: 'на сайті', en: 'on the website'},
+  subWhereDemo: {ru: 'демо-режим', uk: 'демо-режим', en: 'demo mode'},
+  subUntil: {ru: 'Действует до', uk: 'Діє до', en: 'Active until'},
+  subEnded: {ru: 'Закончилась', uk: 'Завершилась', en: 'Ended'},
+  subLeft: {ru: 'Осталось', uk: 'Залишилось', en: 'Left'},
+  subRenew: {ru: 'Автопродление', uk: 'Автопродовження', en: 'Auto-renewal'},
+  subChange: {ru: 'Сменить план', uk: 'Змінити план', en: 'Change plan'},
+  subManageWeb: {ru: 'Управлять подпиской на сайте', uk: 'Керувати передплатою на сайті', en: 'Manage on the website'},
+  subOff: {ru: 'Выключить автопродление', uk: 'Вимкнути автопродовження', en: 'Turn off auto-renewal'},
+  subOn: {ru: 'Включить автопродление', uk: 'Увімкнути автопродовження', en: 'Turn on auto-renewal'},
+  subOffDone: {ru: 'Автопродление выключено — доступ до конца периода',
+               uk: 'Автопродовження вимкнено — доступ до кінця періоду',
+               en: 'Auto-renewal is off — access lasts until the end of the period'},
+  subOnDone: {ru: 'Автопродление включено', uk: 'Автопродовження увімкнено', en: 'Auto-renewal is on'},
+  subOffTitle: {ru: 'Автопродление выключено', uk: 'Автопродовження вимкнено', en: 'Auto-renewal is off'},
+  subOffText: {ru: 'Доступ работает полностью до', uk: 'Доступ працює повністю до', en: 'Full access works until'},
+  subDataNote: {ru: 'Клиенты, записи и финансы хранятся отдельно от подписки — они никуда не денутся.',
+                uk: 'Клієнти, записи та фінанси зберігаються окремо від передплати — вони нікуди не подінуться.',
+                en: 'Clients, appointments and finance are stored separately from the subscription — nothing disappears.'},
+  subWebNote: {ru: 'Подписка оформлена на сайте: отменить автопродление можно там же, доступ действует до конца оплаченного периода.',
+               uk: 'Передплату оформлено на сайті: скасувати автопродовження можна там само, доступ діє до кінця оплаченого періоду.',
+               en: 'The subscription was bought on the website: auto-renewal is cancelled there, and access lasts until the paid period ends.'},
+  subDemoNote: {ru: 'Это демонстрационный доступ: денег он не списывал и настоящей подпиской не является.',
+                uk: 'Це демонстраційний доступ: грошей він не списував і справжньою передплатою не є.',
+                en: 'This is demo access: nothing was charged and it is not a real subscription.'},
+  subLogin: {ru: 'Почта или телефон', uk: 'Пошта або телефон', en: 'Email or phone'},
+  subLoginNote: {ru: 'К этому логину привяжется подписка. Пароля нет: кабинет по-прежнему живёт на вашем устройстве, логин нужен только банку и серверу — и чтобы подписка нашлась на втором устройстве.',
+                 uk: 'До цього логіна прив’яжеться передплата. Пароля немає: кабінет так само живе на вашому пристрої, логін потрібен лише банку й серверу — і щоб передплата знайшлась на другому пристрої.',
+                 en: 'The subscription is tied to this login. There is no password: the app still lives on your device — the login is only for the bank, the server, and for finding your subscription on a second device.'},
+  subLoginBad: {ru: 'Похоже на опечатку: нужна почта или телефон',
+                uk: 'Схоже на помилку: потрібна пошта або телефон',
+                en: 'That looks off: enter an email or a phone number'},
+  subLoginSave: {ru: 'Сохранить', uk: 'Зберегти', en: 'Save'},
+  subLoginUpd: {ru: 'Изменить', uk: 'Змінити', en: 'Update'},
+  subLoginShort: {ru: 'Логин', uk: 'Логін', en: 'Login'},
+
+  accTrial: {ru: 'Пробный период', uk: 'Пробний період', en: 'Trial'},
+  accTrialEnd: {ru: 'Пробный завершён', uk: 'Пробний завершено', en: 'Trial ended'},
+  accActive: {ru: 'Активна', uk: 'Активна', en: 'Active'},
+  accNoRenew: {ru: 'Без автопродления', uk: 'Без автопродовження', en: 'No auto-renewal'},
+  accExpired: {ru: 'Закончилась', uk: 'Завершилась', en: 'Ended'},
+  accNone: {ru: 'Нет доступа', uk: 'Немає доступу', en: 'No access'},
+  accLeft: {ru: 'Осталось', uk: 'Залишилось', en: 'Left'},
+  accNeed: {ru: 'Выберите план, чтобы продолжить работу', uk: 'Оберіть план, щоб продовжити роботу', en: 'Pick a plan to keep working'},
+
   menuMore: {ru: 'Ещё', uk: 'Ще', en: 'More'},
 };
 
@@ -1423,6 +1596,293 @@ const Sync = {
 
   async link(){ return Net.call('link', {}); },
 };
+
+/* ── 5.5. ДОСТУП И ПОДПИСКА ───────────────────────────────────────
+   14 дней полного доступа, дальше — платный план. Бесплатного тарифа
+   после пробного нет, как и отдельных «премиум-функций»: внутри кабинета
+   доступно всё или ничего.
+
+   Состояние доступа считается в одном месте — Access.state(). Экраны
+   только спрашивают его, никаких проверок «по местам».
+
+   Единственный источник правды о деньгах — сервер: он слушает callback
+   банка. Кабинет карт не видит, он лишь открывает страницу оплаты в
+   браузере и потом спрашивает, появилась ли лицензия на этот логин.
+   Подписка привязана к логину, доступ — к устройствам: их не больше
+   WEB.devices, иначе знание чужой почты давало бы чужую подписку.
+
+   Данные кабинета от подписки не зависят: клиенты, записи и финансы
+   лежат отдельно и никуда не деваются, даже когда срок вышел.        */
+const TRIAL_DAYS = 14;
+
+/* Цены обязаны совпадать с PLANS в api/_lib.js и в pay.html. LiqPay умеет
+   регулярные списания только с периодом «месяц» или «год», поэтому план
+   на 3 месяца — разовая оплата, и на странице оплаты так и написано. */
+const PLANS = [
+  {id: 'monthly',   months: 1,  usd: 5.99},
+  {id: 'quarterly', months: 3,  usd: 15.99, badge: 'plBadgeQ'},
+  {id: 'yearly',    months: 12, usd: 59.99, badge: 'plBadgeY'},
+];
+const planById = id => PLANS.find(p => p.id === id) || null;
+const usd = v => '$' + Number(v).toFixed(2);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+/* «плюс N месяцев» с сохранением дня: 31 января + 1 месяц = 28/29 февраля.
+   Здешний addMonths() ставит первое число — для срока подписки не годится. */
+const addMonthsKeep = (from, n) => {
+  const d = new Date(from);
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + n);
+  if (d.getDate() < day) d.setDate(0);
+  return +d;
+};
+
+const WEB = {
+  devices: 3,           /* столько же, сколько DEVICES в api/_lib.js */
+  poll: 4000,           /* как часто спрашивать сервер, пока ждём оплату */
+  wait: 10 * 60 * 1000, /* сколько всего ждать */
+};
+
+/* Отдельный ключ, а не общая база: «сбросить к демо» не должно съедать
+   слот в лицензии и уж тем более стирать оплаченную подписку. */
+const META_KEY = 'probarber.meta';
+const Meta = {
+  read(){
+    try { return JSON.parse(localStorage.getItem(META_KEY) || '{}') || {}; }
+    catch (e){ return {}; }
+  },
+  write(patch){
+    const next = Object.assign(Meta.read(), patch);
+    try { localStorage.setItem(META_KEY, JSON.stringify(next)); } catch (e){}
+    return next;
+  },
+};
+
+/* нормализация логина повторяет серверную: почта в нижнем регистре или
+   телефон цифрами — иначе «Barber@Mail.com» и «barber@mail.com» стали бы
+   двумя разными подписками */
+const normLogin = raw => {
+  const v = String(raw || '').trim();
+  if (v.indexOf('@') > 0) return v.toLowerCase();
+  const d = v.replace(/\D/g, '');
+  return d ? (d.length === 10 && d[0] === '0' ? '38' + d : d) : v.toLowerCase();
+};
+const loginLooksReal = v => {
+  const s = String(v || '').trim();
+  if (s.indexOf('@') > 0) return /^[^@\s]+@[^@\s.]+\.[^@\s]{2,}$/.test(s);
+  return s.replace(/\D/g, '').length >= 10;
+};
+
+const Web = {
+  /* null — ещё не спрашивали; false — сервера подписки нет (кабинет
+     открыли файлом или выложили без функций). Тогда честно говорим:
+     оплата не подключена, и предлагаем демо-доступ, а не «оплату». */
+  alive: null,
+  base(){
+    try { if (/^https?:/.test(location.protocol)) return location.origin; } catch (e){}
+    return '';
+  },
+  enabled(){ return !!Web.base() && Web.alive !== false; },
+  /* «сервер есть / сервера нет» меняет весь экран оплаты, поэтому смена
+     ответа сразу будит подписчиков, а не ждёт следующей проверки */
+  mark(v){ if (Web.alive !== v){ Web.alive = v; Access.emit(); } },
+  /* страницы оплаты лежат рядом с кабинетом, а функции — всегда в корне */
+  page(name){
+    try { return location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '') + name; }
+    catch (e){ return name; }
+  },
+  login(){ return String(Meta.read().login || ''); },
+  setLogin(v){ Meta.write({login: String(v || '').trim()}); Access.emit(); },
+  /* идентификатор устройства переживает сброс базы — иначе каждое
+     «вернуть демо-данные» съедало бы слот в лицензии */
+  device(){
+    const m = Meta.read();
+    if (m.device) return m.device;
+    const id = uid('dev') + uid('n');
+    Meta.write({device: id});
+    return id;
+  },
+  query(extra){
+    return new URLSearchParams(Object.assign(
+      {login: Web.login(), device: Web.device(), lang: LANG}, extra || {}));
+  },
+  payUrl(planId){ return Web.page('pay.html') + '?' + Web.query({plan: planId}); },
+  accountUrl(){ return Web.page('account.html') + '?' + Web.query(); },
+  open(url){ try { window.open(url, '_blank', 'noopener'); } catch (e){} },
+  async ask(path, params){
+    if (!Web.base()) return {ok: false, error: 'web_disabled'};
+    try {
+      const q = new URLSearchParams(Object.assign(
+        {login: Web.login(), device: Web.device()}, params || {}));
+      const r = await fetch(path + '?' + q, {headers: {'accept': 'application/json'}});
+      /* 404/405 — функций на этом хостинге нет вовсе */
+      if (r.status === 404 || r.status === 405){ Web.mark(false); return {ok: false, error: 'http_' + r.status}; }
+      const j = await r.json();
+      /* ответил нашим форматом — значит сервер подписки на месте */
+      if (j && typeof j.ok === 'boolean') Web.mark(true);
+      return j;
+    } catch (e){ return {ok: false, error: 'network'}; }
+  },
+  /* {ok, active, plan, expiresAt, autoRenew, devices, needsClaim} */
+  licence(){ return Web.ask('/api/licence'); },
+  /* {ok, started, startedAt, endsAt, expired} — дату первого запуска
+     помнит сервер, иначе очистка данных давала бы новый пробный период */
+  trial(start){ return Web.ask('/api/trial', start ? {start: '1'} : null); },
+  /* привязать это устройство к уже оплаченной подписке */
+  claim(){ return Web.ask('/api/claim'); },
+};
+
+const Access = {
+  listeners: new Set(),
+  emit(){ Access.listeners.forEach(f => f()); if (Store.state) Store.emit(); },
+  read(){ return Meta.read().access || {}; },
+  write(patch){
+    const access = Object.assign({}, Meta.read().access || {}, patch);
+    Meta.write({access});
+    Access.emit();
+    return access;
+  },
+
+  /* Пробный период стартует один раз. Локальную дату ставим сразу —
+     кабинет обязан работать и без сети, — а сервер запоминает её как
+     настоящую: иначе очистка данных давала бы новые дни сколько угодно. */
+  startTrial(){
+    const a = Access.read();
+    if (a.trialStartedAt) return a;
+    const next = Access.write({trialStartedAt: Date.now(), status: 'trial'});
+    if (Web.enabled() && Web.login()) Web.trial(true).then(Access.fromTrial, () => {});
+    return next;
+  },
+  /* ответ сервера о пробном периоде главнее локальной даты, но только в
+     одну сторону: подсунуть дату посвежее и продлить себе пробный не выйдет */
+  fromTrial(r){
+    if (!r || !r.started || !r.startedAt) return {ok: false};
+    const a = Access.read();
+    if (a.trialStartedAt && a.trialStartedAt <= r.startedAt) return {ok: true, kept: true};
+    Access.write({trialStartedAt: r.startedAt, status: a.status || 'trial'});
+    return {ok: true, moved: true};
+  },
+  trialEnds(){ const a = Access.read(); return a.trialStartedAt ? a.trialStartedAt + TRIAL_DAYS * DAY : 0; },
+
+  state(now){
+    const a = Access.read();
+    const at = now || Date.now();
+    const sub = (a.expiresAt && a.plan)
+      ? (at < a.expiresAt
+          ? {kind: a.autoRenew === false ? 'SUB_CANCELLED' : 'SUB_ACTIVE',
+             allowed: true, until: a.expiresAt, plan: a.plan, source: a.source}
+          : {kind: 'SUB_EXPIRED', allowed: false, until: a.expiresAt, plan: a.plan, source: a.source})
+      : null;
+    if (sub && sub.allowed) return sub;
+
+    const trial = a.trialStartedAt ? (() => {
+      const ends = a.trialStartedAt + TRIAL_DAYS * DAY;
+      const left = Math.max(0, Math.ceil((ends - at) / DAY));
+      return left > 0
+        ? {kind: 'TRIAL_ACTIVE', allowed: true, left, until: ends}
+        : {kind: 'TRIAL_EXPIRED', allowed: false, until: ends};
+    })() : null;
+    if (trial && trial.allowed) return trial;
+
+    return sub || trial || {kind: 'TRIAL_NOT_STARTED', allowed: true};
+  },
+  allowed(){ return Access.state().allowed; },
+
+  /* лицензия с сайта: сервер — источник правды, срок считает он */
+  fromWeb(lic){
+    if (!lic || !lic.active) return {ok: false};
+    Access.write({status: 'active', source: 'web', plan: lic.plan,
+      purchasedAt: lic.purchasedAt || Date.now(), expiresAt: lic.expiresAt,
+      autoRenew: lic.autoRenew !== false, orderId: lic.orderId || null,
+      lastVerifiedAt: Date.now(), error: null});
+    return {ok: true, expiresAt: lic.expiresAt};
+  },
+  /* ждём, пока на сайте пройдёт оплата; каждые WEB.poll спрашиваем сервер */
+  async awaitWeb(alive){
+    const till = Date.now() + WEB.wait;
+    while (Date.now() < till){
+      const lic = await Web.licence();
+      if (lic && lic.active) return Access.fromWeb(lic);
+      if (alive && alive() === false) return {ok: false, error: 'cancelled'};
+      await sleep(WEB.poll);
+    }
+    return {ok: false, error: 'timeout'};
+  },
+  /* «Я уже оплатил» и «Восстановить покупку» — одно и то же действие:
+     спросить сервер и, если подписка есть, привязать это устройство */
+  async restore(){
+    if (!Web.enabled() || !Web.login()) return {ok: false, error: 'no_login'};
+    const c = await Web.claim();
+    if (c && c.active) return Access.fromWeb(c);
+    if (c && c.error === 'device_limit') return {ok: false, error: 'device_limit'};
+    return {ok: false, error: 'nothing_to_restore'};
+  },
+
+  /* Демонстрационная активация. Настоящая оплата идёт только через сайт,
+     но кабинет должен оставаться проходимым и там, где сервера нет вовсе.
+     Кнопка так и подписана: «оплата не подключена, доступ демонстрационный»,
+     и подписка помечается source: 'demo' — её видно на экране подписки. */
+  async demo(planId){
+    const plan = planById(planId);
+    if (!plan) return {ok: false, error: 'unknown_plan'};
+    await sleep(400);
+    const from = Math.max(Date.now(), Access.read().expiresAt || 0);
+    Access.write({status: 'active', source: 'demo', plan: plan.id,
+      purchasedAt: Date.now(), expiresAt: addMonthsKeep(new Date(from), plan.months),
+      autoRenew: true, orderId: null, lastVerifiedAt: Date.now(), error: null});
+    return {ok: true};
+  },
+  cancel(){ return Access.write({autoRenew: false}); },   /* доступ остаётся до даты */
+  resume(){ return Access.write({autoRenew: true}); },
+
+  /* Без сети ничего не блокируем: работаем по локальной записи, а как
+     только появится связь — сверяемся с сервером. */
+  async verify(){
+    try { if (navigator && navigator.onLine === false) return {ok: false, offline: true}; } catch (e){}
+    if (!Web.base()){ Web.alive = false; return {ok: false, offline: true}; }
+    const a = Access.read();
+    if (!Web.login()){
+      /* логина нет — только выясняем, есть ли вообще сервер подписки */
+      await Web.licence();
+      return {ok: false, error: 'no_login'};
+    }
+    /* сперва пробный период: он мог начаться на другом устройстве, да и
+       после очистки данных локальной даты просто нет */
+    if (!a.expiresAt){
+      const r = await Web.trial(false);
+      if (r && r.started) Access.fromTrial(r);
+      else if (r && r.ok && !r.started && a.trialStartedAt) Web.trial(true).then(Access.fromTrial, () => {});
+    }
+    const lic = await Web.licence();
+    if (!lic || lic.ok === false) return {ok: false};
+    if (lic.active) return Access.fromWeb(lic);
+    /* сервер — источник правды для веб-подписки: сказал «нет» — значит
+       срока нет, иначе локальная запись пережила бы отмену */
+    if (a.source === 'web' && a.expiresAt > Date.now()){
+      Access.write({status: 'expired', autoRenew: false, expiresAt: Date.now(), lastVerifiedAt: Date.now()});
+      return {ok: true, active: false};
+    }
+    return {ok: true, active: false, needsClaim: !!lic.needsClaim};
+  },
+};
+
+/* хук: экраны перерисовываются на любое изменение доступа */
+function useAccess(){
+  const [, force] = useState(0);
+  useEffect(() => {
+    const f = () => force(n => n + 1);
+    Access.listeners.add(f);
+    return () => Access.listeners.delete(f);
+  }, []);
+  return Access.state();
+}
+
+const ACCESS_LABEL = a =>
+  a.kind === 'TRIAL_ACTIVE' ? t('accTrial')
+  : a.kind === 'TRIAL_EXPIRED' ? t('accTrialEnd')
+  : a.kind === 'SUB_ACTIVE' ? t('accActive')
+  : a.kind === 'SUB_CANCELLED' ? t('accNoRenew')
+  : a.kind === 'SUB_EXPIRED' ? t('accExpired')
+  : t('accNone');
 
 /* ── 6. ВЫБОРКИ И РАСЧЁТЫ ─────────────────────────────────────────── */
 
@@ -3849,7 +4309,11 @@ function Settings(){
         <BellButton db={db} desk />
       </div>
 
-      <div className="grid g-2">
+      {/* состояние подписки — первым экраном настроек: на телефоне колонки
+          вытягиваются в столбик, и в правой его пришлось бы искать внизу */}
+      <AccessCard />
+
+      <div className="grid g-2" style={{marginTop: 16}}>
         <div className="grid" style={{alignContent: 'start'}}>
           <Card className="card-pad">
             <div className="card-title" style={{marginBottom: 14}}>{t('setProfile')}</div>
@@ -3970,6 +4434,339 @@ function Settings(){
         </div>
       </div>
     </div>
+  );
+}
+
+/* ── 22.5. ПОДПИСКА ───────────────────────────────────────────────
+   Ровно три экрана: приветствие пробного периода, выбор плана и
+   управление. Всё остальное — карточка в настройках, которая ведёт сюда. */
+
+const PLAN_KEY = {monthly: 'plMonth', quarterly: 'plQuarter', yearly: 'plYear'};
+const planTitle = p => t(PLAN_KEY[p.id]);
+const fmtDate = ts => fmtFull(new Date(ts), LANG);
+const nDays = n => n + ' ' + (LANG === 'en' ? (n === 1 ? 'day' : 'days')
+  : (n % 10 === 1 && n % 100 !== 11) ? t('dayOne')
+  : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? t('dayFew') : t('dayMany'));
+
+const PlanCards = ({value, onPick}) => (
+  <div className="grid" style={{gap: 10}}>
+    {PLANS.map(p => (
+      <button key={p.id} className={cx('plan-card', value === p.id && 'on')} onClick={() => onPick(p.id)}>
+        <span className="plan-radio">{value === p.id && <i />}</span>
+        <span className="plan-t">
+          <b>{planTitle(p)}{p.badge ? ' · ' + t(p.badge) : ''}</b>
+          <span>
+            {p.months === 1 ? t('plMonthly') : p.months === 12 ? t('plYearly') : t('plOnce')}
+            {p.months > 1 ? ' · ' + usd(p.usd / p.months) + ' ' + t('plPerMonth') : ''}
+          </span>
+        </span>
+        <span className="plan-p"><b>{usd(p.usd)}</b></span>
+      </button>
+    ))}
+  </div>
+);
+
+const FEATURES = ['featCal', 'featClients', 'featMoney', 'featOnline', 'featData'];
+const FeatureList = () => (
+  <div style={{marginTop: 16}}>
+    {FEATURES.map(k => (
+      <div key={k} className="feat"><Icon n="check" /><span>{t(k)}</span></div>
+    ))}
+  </div>
+);
+
+/* Логин — это адрес подписки, а не аккаунт: пароля нет, кабинет по-прежнему
+   живёт на устройстве. Логин нужен только чтобы банк и сервер знали, кому
+   засчитать оплату, и чтобы подписка нашлась на втором устройстве. */
+function LoginBox({onSaved}){
+  const [v, setV] = useState(Web.login());
+  const [bad, setBad] = useState(false);
+  const saved = Web.login();
+  return (
+    <div className="card card-pad" style={{marginTop: 12}}>
+      <div className="card-title" style={{marginBottom: 4}}>{t('subLogin')}</div>
+      <div className="hint" style={{marginBottom: 10}}>{t('subLoginNote')}</div>
+      <div className="photo-row">
+        <Input value={v} bad={bad} placeholder="barber@mail.com" inputMode="email"
+               onChange={e => { setV(e.target.value); setBad(false); }} />
+        <Button kind="gold" onClick={() => {
+          if (!loginLooksReal(v)){ setBad(true); toast(t('subLoginBad'), 'bad'); return; }
+          Web.setLogin(v);
+          toast(t('tSaved'), 'ok');
+          Access.verify().catch(() => {});
+          if (onSaved) onSaved(normLogin(v));
+        }}>{saved ? t('subLoginUpd') : t('subLoginSave')}</Button>
+      </div>
+    </div>
+  );
+}
+
+const TrialIntro = ({onStart}) => (
+  <div className="gate">
+    <div className="gate-in">
+      <div className="gate-brand">
+        <Logo style={{width: 30, height: 30, color: 'var(--gold)'}} />
+        <b style={{fontSize: 16, fontWeight: 750}}>Про Барбер</b>
+      </div>
+      <div className="gate-title">{t('trialTitle')}</div>
+      <p className="gate-sub">{t('trialSub')}</p>
+      <FeatureList />
+      <div className="card card-pad" style={{marginTop: 14, background: 'var(--gold-soft)', borderColor: 'transparent'}}>
+        <div style={{fontSize: 13, fontWeight: 700, color: 'var(--gold)'}}>
+          {t('trialAfter')} {usd(PLANS[0].usd)} {t('plPerMonth')}
+        </div>
+        <div className="hint" style={{marginTop: 4}}>{t('trialNote')}</div>
+      </div>
+      <Button kind="gold" size="lg" block style={{marginTop: 18}} onClick={onStart}>{t('trialGo')}</Button>
+      <div className="hint" style={{textAlign: 'center', marginTop: 10}}>{t('trialFree')}</div>
+    </div>
+  </div>
+);
+
+/* Выбор плана. mode: gate — вместо кабинета, page — из настроек */
+function Paywall({mode, onClose}){
+  const acc = useAccess();
+  const [plan, setPlan] = useState('quarterly');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [waiting, setWaiting] = useState(false);
+  const [login, setLoginState] = useState(Web.login());
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+
+  const web = Web.enabled();
+  const done = () => { toast(t('payOk'), 'ok'); if (onClose) onClose(); };
+
+  /* оплата на сайте: открываем страницу и ждём, пока сервер подтвердит
+     лицензию. Возврат в кабинет тоже проверяем — через «Я уже оплатил». */
+  async function payWeb(){
+    setErr('');
+    if (!login){ setErr(t('payNeedLogin')); return; }
+    Web.open(Web.payUrl(plan));
+    setWaiting(true);
+    const r = await Access.awaitWeb(() => alive.current);
+    if (!alive.current) return;
+    setWaiting(false);
+    if (r.ok) done();
+    else if (r.error === 'timeout') setErr(t('payNotYet'));
+  }
+  async function check(){
+    setErr(''); setBusy(true);
+    const r = await Access.restore();
+    setBusy(false);
+    if (r.ok){ done(); return; }
+    setErr(r.error === 'device_limit' ? t('payLimit')
+      : r.error === 'no_login' ? t('payNeedLogin') : t('payNone'));
+  }
+  async function demo(){
+    setErr(''); setBusy(true);
+    const r = await Access.demo(plan);
+    setBusy(false);
+    if (r.ok){ toast(t('payDemoOk'), 'ok'); if (onClose) onClose(); }
+    else setErr(t('payFail'));
+  }
+
+  const expired = acc.kind === 'TRIAL_EXPIRED';
+  const body = (
+    <>
+      <div className={mode === 'gate' ? 'gate-title' : 'page-title'}>
+        {expired ? t('payGate') : acc.kind === 'SUB_EXPIRED' ? t('paySubEnd') : t('payChoose')}
+      </div>
+      <p className={mode === 'gate' ? 'gate-sub' : 'page-sub'} style={{marginTop: 8}}>
+        {expired || acc.kind === 'SUB_EXPIRED' ? t('payGateSub') : t('payChooseSub')}
+      </p>
+
+      <div style={{marginTop: 16}}><PlanCards value={plan} onPick={setPlan} /></div>
+
+      {web && <LoginBox onSaved={v => setLoginState(v)} />}
+
+      {err && (
+        <div className="card card-pad" style={{marginTop: 12, borderColor: 'var(--neg)'}}>
+          <b style={{fontSize: 13.5, color: 'var(--neg)'}}>{err}</b>
+          <div className="hint" style={{marginTop: 6}}>{t('payErrSub')}</div>
+        </div>
+      )}
+
+      {web ? (
+        <>
+          <Button kind="gold" size="lg" block style={{marginTop: 14}} disabled={busy || waiting}
+                  onClick={payWeb} icon="card">
+            {waiting ? t('payWaiting') : t('payGo')}
+          </Button>
+          <Button kind="ghost" block style={{marginTop: 8}} disabled={busy} onClick={check}>
+            {t('payAlready')}
+          </Button>
+          <div className="hint" style={{marginTop: 10, lineHeight: 1.5}}>
+            {t('payNote').replace('{n}', WEB.devices)}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="card card-pad" style={{marginTop: 14, background: 'var(--info-soft)', borderColor: 'transparent'}}>
+            <b style={{fontSize: 13.5}}>{t('payDemoTitle')}</b>
+            <div className="hint" style={{marginTop: 6}}>{t('payDemoNote')}</div>
+          </div>
+          <Button kind="gold" size="lg" block style={{marginTop: 12}} disabled={busy} onClick={demo}>
+            {busy ? t('payWait') : t('payDemoGo')}
+          </Button>
+        </>
+      )}
+      <div className="hint" style={{marginTop: 12, lineHeight: 1.5}}>{t('payDataNote')}</div>
+    </>
+  );
+
+  if (mode === 'gate') return (
+    <div className="gate">
+      <div className="gate-in">
+        <div className="gate-brand">
+          <Logo style={{width: 30, height: 30, color: 'var(--gold)'}} />
+          <b style={{fontSize: 16, fontWeight: 750}}>Про Барбер</b>
+        </div>
+        {body}
+      </div>
+    </div>
+  );
+  return (
+    <div className="page">
+      <div className="page-head">
+        <IconButton icon="chevL" bord onClick={onClose} aria-label={t('back')} />
+        <div style={{flex: 1}} />
+      </div>
+      <div style={{maxWidth: 520}}>{body}</div>
+    </div>
+  );
+}
+
+/* Управление подпиской */
+function SubscriptionPage(){
+  const acc = useAccess();
+  const nav = useNav();
+  const raw = Access.read();
+  const plan = planById(raw.plan);
+  const [busy, setBusy] = useState(false);
+  const [pick, setPick] = useState(false);
+  const active = acc.kind === 'SUB_ACTIVE' || acc.kind === 'SUB_CANCELLED';
+  /* веб-подписку отменяют на сайте — у кабинета нет к ней доступа */
+  const web = raw.source === 'web';
+
+  if (pick) return <Paywall onClose={() => setPick(false)} />;
+
+  const line = (k, v) => (
+    <div className="between" style={{padding: '7px 0', gap: 12}}>
+      <span className="hint" style={{fontSize: 12.5}}>{k}</span>
+      <b style={{fontSize: 13}}>{v}</b>
+    </div>
+  );
+
+  return (
+    <div className="page">
+      <div className="page-head">
+        <IconButton icon="chevL" bord onClick={() => nav.go('settings')} aria-label={t('back')} />
+        <div>
+          <h1 className="page-title">{t('subTitle')}</h1>
+          <div className="page-sub">{t('subSub')}</div>
+        </div>
+        <div className="spacer" />
+      </div>
+
+      <div style={{maxWidth: 520}}>
+        <div className="card card-pad">
+          <div className="between">
+            <div>
+              <div className="hint" style={{fontWeight: 700}}>Про Барбер</div>
+              <div style={{fontSize: 19, fontWeight: 750, letterSpacing: '-.02em', marginTop: 2}}>
+                {active ? t('subActive') : acc.kind === 'TRIAL_ACTIVE' ? t('subTrial') : t('subNeed')}
+              </div>
+            </div>
+            <Badge tone={active ? 'pos' : acc.kind === 'TRIAL_ACTIVE' ? 'gold' : 'neg'}>{ACCESS_LABEL(acc)}</Badge>
+          </div>
+          <hr className="sep" style={{margin: '12px 0 4px'}} />
+          {plan && line(t('subPlan'), planTitle(plan) + ' · ' + usd(plan.usd))}
+          {raw.plan && line(t('subWhere'), web ? t('subWhereWeb') : t('subWhereDemo'))}
+          {acc.until && line(active ? t('subUntil') : t('subEnded'), fmtDate(acc.until))}
+          {acc.kind === 'TRIAL_ACTIVE' && line(t('subLeft'), nDays(acc.left))}
+          {(active || acc.kind === 'SUB_EXPIRED') &&
+            line(t('subRenew'), raw.autoRenew === false ? t('offWord') : t('onWord'))}
+          {Web.login() && line(t('subLoginShort'), Web.login())}
+        </div>
+
+        {acc.kind === 'SUB_CANCELLED' && (
+          <div className="card card-pad" style={{marginTop: 10, background: 'var(--gold-soft)', borderColor: 'transparent'}}>
+            <b style={{fontSize: 13.5, color: 'var(--gold)'}}>{t('subOffTitle')}</b>
+            <div className="hint" style={{marginTop: 6}}>
+              {t('subOffText')} {fmtDate(acc.until)}.
+            </div>
+          </div>
+        )}
+
+        <div className="grid" style={{gap: 8, marginTop: 12}}>
+          <Button kind="gold" block onClick={() => setPick(true)}>
+            {active ? t('subChange') : t('payChoose')}
+          </Button>
+          {active && web && (
+            <Button kind="ghost" block icon="link" onClick={() => Web.open(Web.accountUrl())}>
+              {t('subManageWeb')}
+            </Button>
+          )}
+          {active && !web && raw.autoRenew !== false && (
+            <Button kind="ghost" block onClick={() => { Access.cancel(); toast(t('subOffDone'), 'ok'); }}>
+              {t('subOff')}
+            </Button>
+          )}
+          {active && !web && raw.autoRenew === false && (
+            <Button kind="ghost" block onClick={() => { Access.resume(); toast(t('subOnDone'), 'ok'); }}>
+              {t('subOn')}
+            </Button>
+          )}
+          {Web.enabled() && (
+            <Button kind="ghost" block disabled={busy} onClick={async () => {
+              setBusy(true);
+              const r = await Access.restore();
+              setBusy(false);
+              toast(r.ok ? t('payRestored') : r.error === 'device_limit' ? t('payLimit')
+                : r.error === 'no_login' ? t('payNeedLogin') : t('payNone'), r.ok ? 'ok' : 'bad');
+            }}>{t('payRestore')}</Button>
+          )}
+        </div>
+
+        {Web.enabled() && <LoginBox />}
+
+        <div className="hint" style={{marginTop: 14, lineHeight: 1.5}}>
+          {t('subDataNote')}
+          {web ? ' ' + t('subWebNote') : ''}
+          {raw.source === 'demo' ? ' ' + t('subDemoNote') : ''}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Карточка доступа в настройках — единственный вход на экраны подписки */
+function AccessCard(){
+  const acc = useAccess();
+  const nav = useNav();
+  const active = acc.kind === 'SUB_ACTIVE' || acc.kind === 'SUB_CANCELLED';
+  const need = !acc.allowed;
+  const line =
+    acc.kind === 'TRIAL_ACTIVE' ? t('accLeft') + ' ' + nDays(acc.left)
+    : active ? t('subUntil') + ' ' + fmtDate(acc.until)
+    : t('accNeed');
+  return (
+    <button className="card card-pad" style={{width: '100%', display: 'flex', gap: 12, alignItems: 'center', textAlign: 'left'}}
+            onClick={() => nav.go('subscription')}>
+      <div className="kpi-ico" style={{marginBottom: 0, width: 36, height: 36,
+           background: need ? 'var(--neg-soft)' : 'var(--gold-soft)', color: need ? 'var(--neg)' : 'var(--gold)'}}>
+        <Icon n="star" />
+      </div>
+      <div style={{flex: 1, minWidth: 0}}>
+        <div className="between">
+          <b style={{fontSize: 14.5}}>{t('subTitle')}</b>
+          <Badge tone={active ? 'pos' : acc.kind === 'TRIAL_ACTIVE' ? 'gold' : 'neg'}>{ACCESS_LABEL(acc)}</Badge>
+        </div>
+        <div className="hint" style={{marginTop: 3}}>{line}</div>
+      </div>
+      <Icon n="chevR" style={{width: 16, height: 16, color: 'var(--ink-3)'}} />
+    </button>
   );
 }
 
@@ -4105,6 +4902,7 @@ const SCREENS = {
   finance: () => <Finance />,
   chat: p => <Messages clientId={p.clientId} />,
   settings: () => <Settings />,
+  subscription: () => <SubscriptionPage />,
 };
 
 function App(){
@@ -4177,6 +4975,43 @@ function App(){
   );
 }
 
+/* Пока доступ есть — обычный кабинет. Как только срок вышел — экран
+   выбора плана вместо него; данные при этом никуда не деваются. */
+function AppGate(){
+  const acc = useAccess();
+  /* приветствие — только для совсем нового кабинета: у того, кто уже
+     оплатил на другом устройстве, локальной даты пробного нет, но
+     предлагать ему «начать бесплатно» было бы враньём */
+  const fresh = () => { const a = Access.read(); return !a.trialStartedAt && !a.expiresAt; };
+  const [intro, setIntro] = useState(fresh);
+  useEffect(() => {
+    Access.verify().catch(() => {});
+    /* срок может выйти, пока вкладка свёрнута — проверяем на возвращении */
+    const recheck = () => { Access.emit(); Access.verify().catch(() => {}); };
+    const onVis = () => { try { if (!document.hidden) recheck(); } catch (e){} };
+    try {
+      document.addEventListener('visibilitychange', onVis);
+      window.addEventListener('focus', recheck);
+    } catch (e){}
+    const h = setInterval(recheck, 60000);
+    return () => {
+      try {
+        document.removeEventListener('visibilitychange', onVis);
+        window.removeEventListener('focus', recheck);
+      } catch (e){}
+      clearInterval(h);
+    };
+  }, []);
+
+  /* смотрим на живую запись, а не на начальное состояние: после очистки
+     данных локальной даты нет, и приветствие показалось бы даже тогда,
+     когда сервер уже сказал, что пробный период давно начался */
+  if (intro && fresh())
+    return <TrialIntro onStart={() => { Access.startTrial(); setIntro(false); }} />;
+  if (!acc.allowed) return <><Paywall mode="gate" /><Toasts /></>;
+  return <App />;
+}
+
 function ModalHost({type, props, go}){
   const nav = useNav();
   if (type === 'appt') return <ApptForm id={props.id} preset={props} />;
@@ -4201,7 +5036,7 @@ function boot(){
   applyTheme(db.settings.theme);
   try {
     const root = document.getElementById('root');
-    if (root && ReactDOM.createRoot) ReactDOM.createRoot(root).render(<App />);
+    if (root && ReactDOM.createRoot) ReactDOM.createRoot(root).render(<AppGate />);
   } catch (e){ console.error(e); }
 }
 boot();

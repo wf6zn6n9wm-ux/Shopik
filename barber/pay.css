@@ -1,0 +1,48 @@
+/* Про Барбер · страницы подписки. Те же токены, что и в кабинете:
+   тёмный лист, золото акцентом, Inter. Отдельный файл, потому что эти
+   страницы должны открываться без React и без единого запроса наружу. */
+  :root{
+    --bg:#080A0C; --surface:#111416; --surface-2:#171A1D; --line:#1C2024;
+    --ink:#F4F6F7; --ink-2:#9AA3AA; --ink-3:#6E7880;
+    --gold:#F5A623; --gold-soft:rgba(245,166,35,.12); --pos:#35C07A; --neg:#EF5B52;
+    --r:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font:inherit;color:inherit;background:none;border:0}
+  body{background:var(--bg);color:var(--ink);
+    font:400 14px/1.45 Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:24px 18px 40px}
+  .wrap{max-width:430px;margin:0 auto}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+  .mark{width:38px;height:38px;border-radius:11px;background:var(--gold);display:grid;place-items:center}
+  .mark svg{width:20px;height:20px;stroke:#0B0D0E;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .brand b{font-weight:750;letter-spacing:-.02em;font-size:16px}
+  h1{font-size:25px;font-weight:750;letter-spacing:-.03em}
+  .sub{color:var(--ink-2);font-size:13.5px;margin-top:8px}
+  .who{margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--surface);
+    border:1px solid var(--line);font-size:13px;color:var(--ink-2)}
+  .who b{color:var(--ink);font-weight:650}
+  .plans{display:grid;gap:10px;margin-top:18px}
+  .plan{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
+    padding:15px;border-radius:var(--r);background:var(--surface);border:1.5px solid var(--line);
+    transition:border-color .16s,background .16s}
+  .plan.on{border-color:var(--gold);background:var(--gold-soft)}
+  .radio{width:21px;height:21px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center}
+  .plan.on .radio{border-color:var(--gold)}
+  .plan.on .radio i{width:10px;height:10px;border-radius:50%;background:var(--gold);display:block}
+  .plan .t{flex:1;min-width:0}
+  .plan .t b{display:block;font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+  .plan .t span{display:block;font-size:12px;color:var(--ink-3);margin-top:2px}
+  .plan .p{text-align:right;flex:none}
+  .plan .p b{display:block;font-size:18px;font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .plan .p s{display:block;font-size:12px;color:var(--ink-3)}
+  .save{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:8px;font-size:11px;
+    font-weight:700;background:rgba(53,192,122,.14);color:var(--pos)}
+  .go{margin-top:20px;width:100%;height:52px;border-radius:14px;background:var(--gold);
+    color:#0B0D0E;font-size:15px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;text-decoration:none}
+  .go[disabled]{opacity:.5;pointer-events:none}
+  .go:active{transform:scale(.985)}
+  .note{margin-top:14px;font-size:11.5px;line-height:1.55;color:var(--ink-3)}
+  .err{margin-top:14px;padding:12px 14px;border-radius:14px;border:1px solid var(--neg);
+    color:#FF8A85;font-size:13px}
+  a{color:var(--gold);text-decoration:none}

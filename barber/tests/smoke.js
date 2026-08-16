@@ -104,6 +104,9 @@ const EXPORTS = `;globalThis.__T = {
   MiniCalendar, LineChart, BarChart, MonthGrid, applyTheme, serviceName, clientName, nextLabel,
   Sync, Net, SyncBlock, RemindLinks, serviceById, dayWord, CHANNELS, NextCard,
   fitName, nameRoom, EventBox,
+  Access, Web, Meta, WEB, PLANS, TRIAL_DAYS, planById, usd, addMonthsKeep, normLogin,
+  loginLooksReal, useAccess, ACCESS_LABEL, AppGate, TrialIntro, Paywall, SubscriptionPage,
+  AccessCard, PlanCards, LoginBox,
   expensesIn, spent, profit, EXPENSE_KINDS, ExpenseForm, pickFile, pickPhoto,
 };`;
 
@@ -712,6 +715,166 @@ part('экраны с сервером');
   const card = textOf(el(T.ApptCard, {id: withPhone.id}));
   ok('в карточке записи есть напоминание в мессенджер',
      card.includes('WhatsApp') && card.includes('SMS'));
+}
+
+part('доступ и подписка');
+{
+  const A = T.Access, W = T.Web;
+  const DAY = 86400000;
+  const reset = () => { ctx.localStorage.removeItem('probarber.meta'); W.alive = null; };
+
+  reset();
+  ok('до старта пробного кабинет открыт', A.state().kind === 'TRIAL_NOT_STARTED' && A.allowed());
+  ok('цены заданы в одном месте', T.PLANS.length === 3 && T.PLANS.every(p => p.usd > 0));
+  ok('доллар печатается с двумя знаками', T.usd(5.99) === '$5.99' && T.usd(60) === '$60.00');
+  ok('план ищется по id', T.planById('yearly').months === 12 && T.planById('нет') === null);
+
+  A.startTrial();
+  const st = A.state();
+  ok('пробный период начинается и даёт доступ', st.kind === 'TRIAL_ACTIVE' && st.allowed && st.left === T.TRIAL_DAYS, st.left + ' дн.');
+  const first = A.read().trialStartedAt;
+  A.startTrial();
+  ok('второй раз пробный не начинается', A.read().trialStartedAt === first);
+
+  /* именно ради этого дата живёт на сервере */
+  A.write({trialStartedAt: Date.now() - 30 * DAY});
+  ok('после 14 дней доступ закрывается', A.state().kind === 'TRIAL_EXPIRED' && !A.allowed());
+  A.fromTrial({started: true, startedAt: Date.now()});
+  ok('подсунуть дату посвежее и продлить пробный нельзя',
+     A.state().kind === 'TRIAL_EXPIRED', A.state().kind);
+  A.write({trialStartedAt: Date.now() - 2 * DAY});
+  A.fromTrial({started: true, startedAt: Date.now() - 30 * DAY});
+  ok('дата с сервера подтягивается, если она раньше локальной', A.state().kind === 'TRIAL_EXPIRED');
+
+  /* подписка перекрывает истёкший пробный */
+  A.write({status: 'active', source: 'web', plan: 'yearly', expiresAt: Date.now() + 300 * DAY, autoRenew: true});
+  ok('оплаченная подписка открывает кабинет', A.state().kind === 'SUB_ACTIVE' && A.allowed());
+  A.cancel();
+  ok('без автопродления доступ остаётся до даты', A.state().kind === 'SUB_CANCELLED' && A.allowed());
+  A.resume();
+  ok('автопродление включается обратно', A.state().kind === 'SUB_ACTIVE');
+  A.write({expiresAt: Date.now() - DAY});
+  ok('после срока доступ закрывается', A.state().kind === 'SUB_EXPIRED' && !A.allowed());
+
+  /* лицензия с сервера */
+  A.fromWeb({active: true, plan: 'monthly', expiresAt: Date.now() + 30 * DAY, autoRenew: false, orderId: 'pb_1'});
+  ok('лицензия с сервера ложится в доступ', A.state().kind === 'SUB_CANCELLED' && A.read().source === 'web');
+  ok('сервер, сказавший «нет», доступ не открывает', A.fromWeb({active: false}).ok === false);
+
+  /* данные кабинета живут отдельно от подписки */
+  const before = T.Store.state.clients.length;
+  T.Act.reset();
+  ok('сброс к демо не трогает подписку', A.state().kind === 'SUB_CANCELLED' && !!A.read().expiresAt);
+  ok('а база при этом действительно пересоздана', T.Store.state.clients.length === before);
+  const dev = W.device();
+  T.Act.reset();
+  ok('идентификатор устройства переживает сброс', W.device() === dev, dev.slice(0, 12));
+
+  /* логин */
+  ok('почта нормализуется как на сервере', T.normLogin('  Barber@Mail.COM ') === 'barber@mail.com');
+  ok('телефон превращается в цифры', T.normLogin('+38 (067) 100-20-30') === '380671002030', T.normLogin('0671002030'));
+  ok('опечатку в логине ловим до оплаты',
+     T.loginLooksReal('barber@mail.com') && T.loginLooksReal('+380671002030') &&
+     !T.loginLooksReal('barber') && !T.loginLooksReal('123'));
+  W.setLogin(' Barber@Mail.com ');
+  ok('логин сохраняется отдельно от базы', W.login() === 'Barber@Mail.com');
+
+  /* месяцы считаются с сохранением дня */
+  const jan31 = new Date(2026, 0, 31);
+  ok('31 января + 1 месяц = конец февраля',
+     new Date(T.addMonthsKeep(jan31, 1)).getMonth() === 1, new Date(T.addMonthsKeep(jan31, 1)).toISOString().slice(0, 10));
+
+  /* что кабинет реально спрашивает у сервера */
+  W.setLogin('barber@mail.com');
+  net.calls.length = 0; net.queue.length = 0;
+  net.queue.push({ok: true, active: true, plan: 'monthly', expiresAt: Date.now() + 30 * DAY, autoRenew: true});
+  const lic = await W.licence();
+  const asked = new URL('https://x' + net.calls[0].url.replace(/^[^/]*/, ''));
+  ok('лицензию спрашиваем у своего эндпоинта', asked.pathname === '/api/licence', net.calls[0].url);
+  ok('в запросе едут логин и устройство, и больше ничего',
+     asked.searchParams.get('login') === 'barber@mail.com' &&
+     !!asked.searchParams.get('device') &&
+     [...asked.searchParams.keys()].sort().join(',') === 'device,login');
+  ok('ответ сервера открывает доступ', A.fromWeb(lic).ok === true && A.state().kind === 'SUB_ACTIVE');
+
+  net.calls.length = 0;
+  await W.trial(true);
+  ok('пробный период начинаем через сервер', net.calls[0].url.indexOf('/api/trial') === 0 && net.calls[0].url.indexOf('start=1') > 0);
+
+  /* сервера подписки нет вовсе — кабинет должен это заметить, а не молчать */
+  const keepFetch = ctx.fetch;
+  ctx.fetch = async () => ({ok: false, status: 404, json: async () => ({})});
+  W.alive = null;
+  await W.licence();
+  ok('на хостинге без функций оплата помечается как недоступная', W.alive === false && W.enabled() === false);
+  ctx.fetch = keepFetch;
+
+  reset();
+  W.setLogin('barber@mail.com');
+  A.write({trialStartedAt: Date.now()});
+}
+
+part('экраны подписки');
+{
+  const A = T.Access;
+  A.write({status: null, source: null, plan: null, expiresAt: 0, trialStartedAt: Date.now()});
+  screen('приветствие пробного периода', () => T.TrialIntro({onStart(){}}));
+  screen('выбор плана — шлюз', () => T.Paywall({mode: 'gate'}));
+  screen('выбор плана — из настроек', () => T.Paywall({onClose(){}}));
+  screen('управление подпиской', () => T.SubscriptionPage({}));
+  screen('карточка доступа', () => T.AccessCard({}));
+  screen('шлюз пускает в кабинет, пока доступ есть', () => T.AppGate({}));
+
+  const trial = textOf(T.TrialIntro({onStart(){}}));
+  ok('на приветствии написано, что 14 дней бесплатно', /14/.test(trial) && /бесплатн/i.test(trial));
+  ok('и что карту вводить не нужно', /карт/i.test(trial));
+
+  const gate = textOf(T.Paywall({mode: 'gate'}));
+  ok('на выборе плана видны все три цены',
+     T.PLANS.every(p => gate.includes(T.usd(p.usd))), T.PLANS.map(p => T.usd(p.usd)).join(' '));
+  ok('обещано, что данные не пропадут', /данные|финанс/i.test(gate));
+
+  A.write({trialStartedAt: Date.now() - 40 * 86400000});
+  const closed = textOf(T.Paywall({mode: 'gate'}));
+  ok('после пробного экран так и говорит', /пробный период закончился/i.test(closed), closed.slice(0, 40).trim());
+  ok('и обещает, что клиенты на месте', /ничего не удалено/i.test(closed));
+
+  /* без сервера подписки кабинет не имитирует оплату */
+  T.Web.alive = false;
+  const demo = textOf(T.Paywall({mode: 'gate'}));
+  ok('без сервера честно пишем, что оплата не подключена', /оплата не подключена/i.test(demo));
+  ok('и предлагаем демо-доступ, а не «оплату»', /демо-доступ/i.test(demo) && !/Перейти к оплате/.test(demo));
+  T.Web.alive = null;
+
+  A.write({status: 'active', source: 'web', plan: 'yearly', expiresAt: Date.now() + 100 * 86400000, autoRenew: true});
+  const sub = textOf(T.SubscriptionPage({}));
+  ok('на экране подписки виден план и срок', /1 год/.test(sub) && /Действует до/.test(sub));
+  ok('веб-подпиской управляют на сайте', /на сайте/i.test(sub));
+
+  A.write({source: 'demo'});
+  ok('демо-доступ подписан честно', /демо/i.test(textOf(T.SubscriptionPage({}))));
+
+  /* настройки ведут на подписку */
+  ok('в настройках есть карточка доступа', textOf(T.Settings({})).includes('Подписка'));
+  ok('экран подписки есть в разводке', typeof T.SCREENS.subscription === 'function');
+
+  /* шлюз: кого пускать, а кому показывать приветствие */
+  A.write({status: null, source: null, plan: null, expiresAt: 0, trialStartedAt: 0});
+  ok('совсем новому кабинету показываем приветствие',
+     textOf(T.AppGate({})).includes('14 дней бесплатно'));
+  A.write({trialStartedAt: Date.now()});
+  ok('во время пробного периода открыт кабинет',
+     !textOf(T.AppGate({})).includes('14 дней бесплатно'));
+  /* оплатил на другом устройстве — локальной даты пробного нет, но
+     предлагать ему «начать бесплатно» было бы враньём */
+  A.write({trialStartedAt: 0, status: 'active', source: 'web', plan: 'monthly',
+           expiresAt: Date.now() + 30 * 86400000, autoRenew: true});
+  const paid = textOf(T.AppGate({}));
+  ok('оплатившему приветствие пробного не показываем', !paid.includes('14 дней бесплатно'));
+  ok('и сразу пускаем в кабинет', paid.includes('Про Барбер'));
+  A.write({status: null, source: null, plan: null, expiresAt: 0, trialStartedAt: Date.now() - 40 * 86400000});
+  ok('с истёкшим пробным вместо кабинета — выбор плана',
+     textOf(T.AppGate({})).includes('Пробный период закончился'));
 }
 
 part('публичная страница');

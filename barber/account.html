@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Про Барбер — подписка</title>
+<meta name="robots" content="noindex" />
+<link rel="stylesheet" href="pay.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24"><path d="M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5M6.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5M8.6 8.1 20 19.5M20 4.5 8.6 15.9"/></svg></div>
+    <b>Про Барбер</b>
+  </div>
+  <h1 id="h1">Подписка</h1>
+  <p class="sub" id="sub">Состояние подписки и автопродления.</p>
+  <div class="who" id="box">…</div>
+  <button class="go" id="off" hidden></button>
+  <p class="note" id="note"></p>
+</div>
+<script>
+var Q = new URLSearchParams(location.search);
+var LANG = ['uk','ru','en'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'ru';
+document.documentElement.lang = LANG;
+var T = {
+  ru:{h:'Подписка', s:'Состояние подписки и автопродления.', off:'Выключить автопродление',
+      active:'Активна до', renew:'Автопродление включено', norenew:'Автопродление выключено',
+      none:'Активной подписки по этому логину не нашли.', done:'Автопродление выключено. Доступ действует до конца оплаченного периода.',
+      err:'Не удалось изменить подписку — попробуйте позже.',
+      n:'Возврат средств делает банк по своим правилам. Клиенты, записи и финансы хранятся в кабинете независимо от подписки.'},
+  uk:{h:'Передплата', s:'Стан передплати й автопродовження.', off:'Вимкнути автопродовження',
+      active:'Активна до', renew:'Автопродовження увімкнено', norenew:'Автопродовження вимкнено',
+      none:'Активної передплати за цим логіном не знайшли.', done:'Автопродовження вимкнено. Доступ діє до кінця оплаченого періоду.',
+      err:'Не вдалося змінити передплату — спробуйте пізніше.',
+      n:'Повернення коштів робить банк за своїми правилами. Клієнти, записи та фінанси зберігаються в кабінеті незалежно від передплати.'},
+  en:{h:'Subscription', s:'Subscription status and auto-renewal.', off:'Turn off auto-renewal',
+      active:'Active until', renew:'Auto-renewal is on', norenew:'Auto-renewal is off',
+      none:'No active subscription found for this login.', done:'Auto-renewal is off. Access lasts until the end of the paid period.',
+      err:'Could not change the subscription — please try later.',
+      n:'Refunds are handled by the bank under its own rules. Clients, appointments and finance stay in the app regardless of the subscription.'},
+}[LANG];
+document.getElementById('h1').textContent = T.h;
+document.getElementById('sub').textContent = T.s;
+document.getElementById('note').textContent = T.n;
+document.getElementById('off').textContent = T.off;
+
+var login = (Q.get('login') || '').trim(), device = (Q.get('device') || '').trim();
+var box = document.getElementById('box'), off = document.getElementById('off');
+var fmt = function(ts){
+  return new Date(ts).toLocaleDateString(LANG === 'uk' ? 'uk-UA' : LANG === 'ru' ? 'ru-RU' : 'en-GB',
+    {day:'numeric', month:'long', year:'numeric'});
+};
+
+function show(lic){
+  if (!lic || !(lic.active || lic.needsClaim)){ box.textContent = T.none; off.hidden = true; return; }
+  box.innerHTML = '<b>' + T.active + ' ' + fmt(lic.expiresAt) + '</b><br>' + (lic.autoRenew ? T.renew : T.norenew);
+  off.hidden = !lic.autoRenew;
+}
+function load(){
+  if (!login){ box.textContent = T.none; return; }
+  fetch('/api/licence?' + new URLSearchParams({login: login, device: device}))
+    .then(function(r){ return r.json(); }).then(show).catch(function(){ box.textContent = T.err; });
+}
+off.onclick = function(){
+  off.disabled = true;
+  fetch('/api/unsubscribe?' + new URLSearchParams({login: login, device: device}))
+    .then(function(r){ return r.json(); })
+    .then(function(lic){
+      off.disabled = false;
+      if (lic && lic.ok === false){ box.textContent = T.err; return; }
+      show(lic);
+      box.innerHTML += '<br>' + T.done;
+    })
+    .catch(function(){ off.disabled = false; box.textContent = T.err; });
+};
+load();
+</script>
+</body>
+</html>

@@ -34,3 +34,6 @@ jobs:
 
       - name: Сервер онлайн-записи
         run: node barber/tests/api.js
+
+      - name: Подписка
+        run: node barber/tests/licence.js
