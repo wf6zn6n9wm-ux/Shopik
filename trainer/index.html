@@ -1112,6 +1112,9 @@ const PHRASES = [
   ['Відновлювати пароль', 'Восстанавливать пароль', 'Password recovery', 'Odzyskiwanie hasła'],
   ['ще попереду', 'ещё впереди', 'still ahead', 'jeszcze przed nami'],
   ['В архів', 'В архив', 'Archive', 'Do archiwum'],
+  ['Останню копію зберегти не вдалося. Перевірте зв’язок', 'Последнюю копию сохранить не удалось. Проверьте связь', 'We could not save the latest backup. Check your connection', 'Nie udało się zapisać ostatniej kopii. Sprawdź połączenie'],
+  ['База переросла розмір копії. Напишіть нам — розберемось', 'База переросла размер копии. Напишите нам — разберёмся', 'The data outgrew the backup size limit. Write to us and we will sort it out', 'Baza przerosła rozmiar kopii. Napisz do nas — rozwiążemy to'],
+  ['Збережено', 'Сохранено', 'Saved', 'Zapisano'],
   ['Це групове заняття — скасуються всі його учасники.', 'Это групповое занятие — отменятся все его участники.', 'This is a group session — all its participants will be cancelled.', 'To zajęcia grupowe — anulują się wszyscy uczestnicy.'],
   ['Повернути з архіву', 'Вернуть из архива', 'Restore from archive', 'Przywróć z archiwum'],
   ['В архіві', 'В архиве', 'Archived', 'W archiwum'],
@@ -2050,6 +2053,7 @@ const Web = {
 const Cloud = {
   key: null,
   status: 'off',                       // off | ok | saving | error
+  why: '',                             // чому не вдалося — щоб не мовчати
   at: 0,                               // коли востаннє збереглось
   timer: null,
   listeners: new Set(),
@@ -2103,11 +2107,11 @@ const Cloud = {
                                keep: Cloud.recovers() ? m.cloudKey : ''})});
       const j = await r.json().catch(() => null);
       if (!j || !j.ok) throw new Error((j && j.error) || 'http_' + r.status);
-      Cloud.status = 'ok'; Cloud.at = j.savedAt; Cloud.emit();
+      Cloud.status = 'ok'; Cloud.why = ''; Cloud.at = j.savedAt; Cloud.emit();
       return j;
     } catch (e){
-      Cloud.status = 'error'; Cloud.emit();
-      return {ok:false, error: String((e && e.message) || e)};
+      Cloud.status = 'error'; Cloud.why = String((e && e.message) || e); Cloud.emit();
+      return {ok:false, error: Cloud.why};
     }
   },
   /* що лежить на сервері для цього логіна — без пароля, лише факт і сіль */
@@ -2167,6 +2171,9 @@ const Cloud = {
    оболонці (@capacitor/local-notifications) їх можна запланувати наперед —
    тоді вони приходять і з закритим застосунком. Розклад перескладається
    щоразу, коли змінюються тренування або налаштування.                  */
+/* скільки тримати позначки «це нагадування вже показували» */
+const FIRED_KEEP = 30 * 86400000;
+
 const NOTIF_KEY = KEY + '.notif';
 const NOTIF_LIMIT = 56;      /* iOS тримає не більше 64 на застосунок — лишаємо запас */
 const NOTIF_DAYS  = 30;      /* далі планувати немає сенсу: розклад ще зміниться */
@@ -2487,6 +2494,18 @@ const Access = {
     return {ok:true};
   },
 };
+/* Стан копії на сервері. Досі його ніхто не питав: Cloud рахував його
+   для себе, а на екрані не було нічого — зірвана копія мовчала. */
+function useCloud(){
+  const [, force] = useState(0);
+  useEffect(() => {
+    const f = () => force(x => x + 1);
+    Cloud.listeners.add(f);
+    return () => Cloud.listeners.delete(f);
+  }, []);
+  return {status: Cloud.status, why: Cloud.why, at: Cloud.at};
+}
+
 function useAccess(){
   const [, force] = useState(0);
   useEffect(() => { const f = () => force(x => x + 1); Access.listeners.add(f); return () => Access.listeners.delete(f); }, []);
@@ -3147,6 +3166,29 @@ const Act = {
   readNotifs(){ Store.patch(db => ({...db, notifs: db.notifs.map(n => ({...n, read:true}))})); },
   clearNotifs(){ Store.patch(db => ({...db, notifs: []})); },
   markFired(key){ Store.patch(db => ({...db, fired:{...db.fired, [key]: Date.now()}})); },
+  /* ─── прибрати старі позначки ───
+     fired існує рівно для того, щоб не показати одне нагадування двічі.
+     Через тиждень ця позначка вже нічого не тримає, а лежить вічно: за
+     рік у тренера з шістьма тренуваннями на день їх набігає близько
+     семи тисяч — чверть мегабайта.
+
+     Само собою це не страшно, але копія бази на сервері обмежена
+     мегабайтом, і років за два-три вона просто перестала б зберігатись.
+     Мовчки: застосунок працює, копія не оновлюється, дізнатись нема як.
+
+     Місяця із запасом вистачає: усі нагадування прив'язані до дня або
+     до найближчого тренування. */
+  sweepFired(){
+    const edge = Date.now() - FIRED_KEEP;
+    Store.patch(db => {
+      const fired = {};
+      let dropped = 0;
+      for (const k in db.fired){
+        if (db.fired[k] > edge) fired[k] = db.fired[k]; else dropped++;
+      }
+      return dropped ? {...db, fired} : db;
+    });
+  },
 };
 
 /* ─────────────────── демодані ─────────────────── */
@@ -7304,6 +7346,7 @@ const Settings = ({onClose}) => {
   const [perm, setPerm] = useState(Notifier.permission());
   /* копія робиться тільки коли на пристрої є ключ до неї */
   const [armed, setArmed] = useState(Cloud.armed());
+  const cloud = useCloud();
   const [arm, setArm] = useState(false);
   const [armPass, setArmPass] = useState('');
   const [armErr, setArmErr] = useState('');
@@ -7543,6 +7586,14 @@ const Settings = ({onClose}) => {
                 ? t('set.cloud.off','Вимкнено — дані лише на цьому пристрої')
                 : !armed
                 ? t('set.cloud.none','Копія ще не робиться: ключ до неї заводиться разом із паролем. Введіть пароль — і база поїде в копію')
+                /* Зірвану копію показуємо прямо тут: доти вона мовчала, і
+                   тренер міг роками бути впевненим, що база в безпеці. */
+                : cloud.status === 'error'
+                ? (cloud.why === 'too_big'
+                    ? t('set.cloud.big','База переросла розмір копії. Напишіть нам — розберемось')
+                    : t('set.cloud.err','Останню копію зберегти не вдалося. Перевірте зв’язок'))
+                : cloud.at
+                ? t('set.cloud.at','Збережено') + ' ' + fmtTime(cloud.at)
                 : t('set.cloud.on','Зашифрована копія. Зайдіть із будь-якого пристрою — клієнти й історія будуть на місці')}</span>
             </div>
             <Switch on={S.cloud !== false} onChange={v => Act.settings({cloud: v})}/>
@@ -8252,6 +8303,7 @@ function useReminders(db){
       const dayKey = iso(new Date());
       if (!s.fired['day_' + dayKey]){
         Act.markFired('day_' + dayKey);
+        Act.sweepFired();
         const B = s.settings.backup || {};
         if (B.auto !== false && Date.now() - (B.lastAt || 0) > 20 * 3600 * 1000) Backups.make();
         const acc = Access.state();

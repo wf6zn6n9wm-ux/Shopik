@@ -308,6 +308,31 @@ part('вичерпаний абонемент');
   T.Store.init(was);
 }
 
+part('службові позначки не ростуть вічно');
+{
+  const was = T.Store.state;
+  T.Store.init(T.emptyDB());
+  const day = 86400000;
+  /* Позначки «це нагадування вже показували» лежали вічно: за рік у
+     тренера з шістьма тренуваннями на день їх набігає близько семи
+     тисяч — чверть мегабайта. Копія бази обмежена мегабайтом, тож років
+     за два-три вона просто перестала б зберігатись, і мовчки. */
+  T.Store.patch(db => {
+    const fired = {};
+    for (let i = 0; i < 300; i++) fired['old_' + i] = Date.now() - 60 * day;
+    for (let i = 0; i < 5; i++) fired['new_' + i] = Date.now() - day;
+    return {...db, fired};
+  });
+  const before = Object.keys(T.Store.state.fired).length;
+  T.Act.sweepFired();
+  const after = Object.keys(T.Store.state.fired);
+  ok('старі позначки прибираються', after.length === 5, before + ' → ' + after.length);
+  ok('свіжі лишаються', after.every(k => k.startsWith('new_')));
+  /* Прибирання не має чіпати нічого, крім позначок */
+  ok('решта бази ціла', T.Store.state.clients.length === 0 && !!T.Store.state.settings);
+  T.Store.init(was);
+}
+
 part('групове заняття');
 {
   const was = T.Store.state;
