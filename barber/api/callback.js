@@ -1,5 +1,8 @@
-/* server_url для LiqPay: сюда банк сообщает об оплате — и о каждом
-   следующем регулярном списании. Единственный источник правды о подписке.
+/* server_url для LiqPay: сюда банк сообщает, что оплата прошла. Единственный
+   источник правды о доступе — не браузер и не кабинет, а вот этот ответ.
+
+   Платежи разовые, поэтому статусов немного: деньги пришли — продлеваем
+   срок, деньги вернули — забираем доступ сразу.
 
    Доверять можно только тому, что прошло проверку подписи: подпись
    делается нашим приватным ключом, которого больше ни у кого нет. */
@@ -30,23 +33,15 @@ module.exports = async function handler(req, res){
   const st = String(p.status || '');
 
   /* деньги пришли — продлеваем срок */
-  if (st === 'success' || st === 'subscribed' || st === 'wait_accept'){
-    await L.applyPayment({login, device: info.device, plan, orderId: p.order_id, autoRenew: true});
-    return L.json(res, 200, {ok: true});
-  }
-
-  /* барбер выключил автопродление или банк перестал списывать:
-     доступ остаётся до конца уже оплаченного периода */
-  if (st === 'unsubscribed' || st === 'subscribe_cancelled'){
-    const lic = await L.readLicence(login);
-    if (lic) await L.writeLicence(login, {...lic, autoRenew: false});
+  if (st === 'success' || st === 'wait_accept'){
+    await L.applyPayment({login, device: info.device, plan, orderId: p.order_id});
     return L.json(res, 200, {ok: true});
   }
 
   /* возврат средств — доступ забираем сразу */
   if (st === 'reversed' || st === 'refund'){
     const lic = await L.readLicence(login);
-    if (lic) await L.writeLicence(login, {...lic, autoRenew: false, expiresAt: Date.now()});
+    if (lic) await L.writeLicence(login, {...lic, expiresAt: Date.now()});
     return L.json(res, 200, {ok: true});
   }
 

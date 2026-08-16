@@ -18,13 +18,16 @@ module.exports = function handler(req, res){
   const base = L.ENV.base || ('https://' + (req.headers['x-forwarded-host'] || req.headers.host));
 
   /* info возвращается в callback неизменным и подписанным нашим ключом —
-     именно оттуда сервер узнаёт, кому засчитать оплату */
+     именно оттуда сервер узнаёт, кому засчитать оплату.
+
+     action всегда 'pay': регулярных списаний нет ни у одного плана, банк
+     спишет ровно один раз и больше карту не тронет. */
   const payload = {
     public_key: L.ENV.pub,
     version: 3,
-    action: plan.period ? 'subscribe' : 'pay',
-    amount: plan.usd,
-    currency: 'USD',
+    action: 'pay',
+    amount: plan.uah,
+    currency: L.CURRENCY,
     description: 'Про Барбер · ' + plan.id,
     order_id: orderId,
     language: lang === 'uk' ? 'uk' : lang === 'ru' ? 'ru' : 'en',
@@ -32,11 +35,6 @@ module.exports = function handler(req, res){
     result_url: base + '/paid?lang=' + lang,
     info: JSON.stringify({login, device, plan: plan.id}),
   };
-  if (plan.period){
-    payload.subscribe = 1;
-    payload.subscribe_periodicity = plan.period;
-    payload.subscribe_date_start = new Date().toISOString().slice(0, 19).replace('T', ' ');
-  }
 
   const data = L.pack(payload);
   const signature = L.sign(data);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Про Барбер — оформление подписки</title>
+<title>Про Барбер — оплата доступа</title>
 <meta name="robots" content="noindex" />
 <link rel="stylesheet" href="pay.css" />
 </head>
@@ -13,7 +13,7 @@
     <div class="mark"><svg viewBox="0 0 24 24"><path d="M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5M6.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5M8.6 8.1 20 19.5M20 4.5 8.6 15.9"/></svg></div>
     <b>Про Барбер</b>
   </div>
-  <h1 id="h1">Оформление подписки</h1>
+  <h1 id="h1">Оплата доступа</h1>
   <p class="sub" id="sub">Полный доступ к кабинету: календарь, клиенты, финансы и онлайн-запись.</p>
   <div class="who" id="who" hidden></div>
   <div class="plans" id="plans"></div>
@@ -30,39 +30,39 @@ var LANG = ['uk','ru','en'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'ru';
 document.documentElement.lang = LANG;
 
 var T = {
-  ru:{title:'Оформление подписки', sub:'Полный доступ к кабинету: календарь, клиенты, финансы и онлайн-запись.',
-      go:'Перейти к оплате', month:'ежемесячно', once:'разовая оплата, без автопродления',
-      year:'раз в год', per:'в месяц',
-      who:'Подписка привяжется к логину <b>{login}</b> — тому же, который вы указали в кабинете.',
-      note:'Оплата проходит через LiqPay. Планы на 1 месяц и 1 год продлеваются автоматически — выключить можно на странице подписки или в кабинете. Доступ действует на 3 устройствах. Данные клиентов, записи и финансы хранятся в кабинете независимо от подписки.',
-      nologin:'Не видим, для какого логина оформлять подписку. Откройте эту страницу кнопкой «Оплатить на сайте» в кабинете.'},
-  uk:{title:'Оформлення передплати', sub:'Повний доступ до кабінету: календар, клієнти, фінанси та онлайн-запис.',
-      go:'Перейти до оплати', month:'щомісяця', once:'разова оплата, без автопродовження',
-      year:'раз на рік', per:'на місяць',
-      who:'Передплата прив’яжеться до логіна <b>{login}</b> — того самого, який ви вказали в кабінеті.',
-      note:'Оплата проходить через LiqPay. Плани на 1 місяць і 1 рік продовжуються автоматично — вимкнути можна на сторінці передплати або в кабінеті. Доступ діє на 3 пристроях. Дані клієнтів, записи та фінанси зберігаються в кабінеті незалежно від передплати.',
-      nologin:'Не бачимо, для якого логіна оформлювати передплату. Відкрийте цю сторінку кнопкою «Сплатити на сайті» в кабінеті.'},
-  en:{title:'Subscribe', sub:'Full access to the studio: calendar, clients, finance and online booking.',
-      go:'Go to payment', month:'monthly', once:'one-off payment, no auto-renewal',
-      year:'once a year', per:'per month',
-      who:'The subscription will be tied to <b>{login}</b> — the same login you entered in the app.',
-      note:'Payment is handled by LiqPay. The 1-month and 1-year plans renew automatically — you can turn that off on the subscription page or in the app. Access works on 3 devices. Clients, appointments and finance stay in the app regardless of the subscription.',
-      nologin:'We can’t tell which login to subscribe. Open this page with “Pay on the website” in the app.'},
+  ru:{title:'Оплата доступа', sub:'Полный доступ к кабинету: календарь, клиенты, финансы и онлайн-запись.',
+      go:'Перейти к оплате', once:'разовая оплата', per:'в месяц',
+      who:'Доступ привяжется к логину <b>{login}</b> — тому же, который вы указали в кабинете.',
+      note:'Оплата проходит через LiqPay. Платёж разовый: карту спишут один раз, автопродления нет — когда период закончится, вы решите сами, продлевать ли. Доступ действует на 3 устройствах. Клиенты, записи и финансы хранятся в кабинете и от оплаты не зависят.',
+      nologin:'Не видим, для какого логина оплачивать доступ. Откройте эту страницу кнопкой «Оплатить на сайте» в кабинете.'},
+  uk:{title:'Оплата доступу', sub:'Повний доступ до кабінету: календар, клієнти, фінанси та онлайн-запис.',
+      go:'Перейти до оплати', once:'разова оплата', per:'на місяць',
+      who:'Доступ прив’яжеться до логіна <b>{login}</b> — того самого, який ви вказали в кабінеті.',
+      note:'Оплата проходить через LiqPay. Платіж разовий: картку спишуть один раз, автопродовження немає — коли період завершиться, ви самі вирішите, чи продовжувати. Доступ діє на 3 пристроях. Клієнти, записи та фінанси зберігаються в кабінеті й від оплати не залежать.',
+      nologin:'Не бачимо, для якого логіна оплачувати доступ. Відкрийте цю сторінку кнопкою «Сплатити на сайті» в кабінеті.'},
+  en:{title:'Pay for access', sub:'Full access to the studio: calendar, clients, finance and online booking.',
+      go:'Go to payment', once:'one-off payment', per:'per month',
+      who:'Access will be tied to <b>{login}</b> — the same login you entered in the app.',
+      note:'Payment is handled by LiqPay. It is a one-off charge: your card is billed once and never again — when the period ends, it is up to you whether to renew. Access works on 3 devices. Clients, appointments and finance stay in the app and do not depend on the payment.',
+      nologin:'We can’t tell which login to pay for. Open this page with “Pay on the website” in the app.'},
 };
 var t = T[LANG];
 
 /* цены обязаны совпадать с PLANS в index.html и в api/_lib.js */
 var PLANS = [
-  {id:'monthly',   months:1,  usd:5.99},
-  {id:'quarterly', months:3,  usd:15.99},
-  {id:'yearly',    months:12, usd:59.99},
+  {id:'monthly',   months:1,  uah:249},
+  {id:'quarterly', months:3,  uah:649},
+  {id:'yearly',    months:12, uah:2490},
 ];
 var TITLE = {
   ru:{monthly:'1 месяц',  quarterly:'3 месяца',  yearly:'1 год'},
   uk:{monthly:'1 місяць', quarterly:'3 місяці',  yearly:'1 рік'},
   en:{monthly:'1 month',  quarterly:'3 months',  yearly:'1 year'},
 };
-var usd = function(v){ return '$' + v.toFixed(2); };
+/* гривна: разряды пробелом, знак сзади — как в самом кабинете */
+var uah = function(v){
+  return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴';
+};
 var login = (Q.get('login') || '').trim();
 var device = (Q.get('device') || '').trim();
 var picked = ['monthly','quarterly','yearly'].indexOf(Q.get('plan')) >= 0 ? Q.get('plan') : 'yearly';
@@ -80,20 +80,19 @@ if (login){
 function draw(){
   var box = document.getElementById('plans');
   box.innerHTML = '';
-  var full = PLANS[0].usd;                 /* цена месяца как база для сравнения */
+  var full = PLANS[0].uah;                 /* цена месяца как база для сравнения */
   PLANS.forEach(function(p){
     var b = document.createElement('button');
     b.className = 'plan' + (p.id === picked ? ' on' : '');
     b.onclick = function(){ picked = p.id; draw(); };
-    var period = p.months === 1 ? t.month : p.months === 12 ? t.year : t.once;
-    /* у длинных планов показываем цену за месяц и зачёркнутую сумму
-       «столько же по месячному тарифу» — так видно, за что переплата */
+    /* все планы разовые, поэтому период у всех один: разница только в
+       длине оплаченного срока и в цене за месяц */
     b.innerHTML =
       '<span class="radio">' + (p.id === picked ? '<i></i>' : '') + '</span>' +
-      '<span class="t"><b>' + TITLE[LANG][p.id] + '</b><span>' + period +
-        (p.months > 1 ? ' · ' + usd(p.usd / p.months) + ' ' + t.per : '') + '</span></span>' +
-      '<span class="p"><b>' + usd(p.usd) + '</b>' +
-        (p.months > 1 ? '<s>' + usd(full * p.months) + '</s>' : '') + '</span>';
+      '<span class="t"><b>' + TITLE[LANG][p.id] + '</b><span>' + t.once +
+        (p.months > 1 ? ' · ' + uah(p.uah / p.months) + ' ' + t.per : '') + '</span></span>' +
+      '<span class="p"><b>' + uah(p.uah) + '</b>' +
+        (p.months > 1 ? '<s>' + uah(full * p.months) + '</s>' : '') + '</span>';
     box.appendChild(b);
   });
 }

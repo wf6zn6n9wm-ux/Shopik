@@ -25,17 +25,24 @@ const ENV = {
 const configured = () => !!(ENV.pub && ENV.priv);
 
 /* ─────────── тарифы ───────────
-   Цены обязаны совпадать с PLANS в index.html и в pay.html. LiqPay умеет
-   регулярные списания только с периодом «месяц» или «год», поэтому план
-   на 3 месяца продаётся разовым платежом — и на странице оплаты об этом
-   написано прямо, а не мелким шрифтом. */
+   Цены обязаны совпадать с PLANS в index.html и в pay.html.
+
+   Все планы — разовая оплата, без регулярных списаний: продавец на второй
+   группе ФОП, поэтому автосписаний с карты нет вовсе. Кончился оплаченный
+   период — барбер платит ещё раз, сам и когда захочет. Из этого следует всё
+   остальное: нет autoRenew, нет «отменить подписку», нет отдельной страницы
+   управления автопродлением.
+
+   Гривна, а не доллар: доход от нерезидента второй группе не положен, да и
+   LiqPay всё равно рассчитывается в гривне.                              */
 const PLANS = {
-  monthly:   {id: 'monthly',   months: 1,  usd: 5.99,  period: 'month'},
-  quarterly: {id: 'quarterly', months: 3,  usd: 15.99, period: null},
-  yearly:    {id: 'yearly',    months: 12, usd: 59.99, period: 'year'},
+  monthly:   {id: 'monthly',   months: 1,  uah: 249},
+  quarterly: {id: 'quarterly', months: 3,  uah: 649},
+  yearly:    {id: 'yearly',    months: 12, uah: 2490},
 };
+const CURRENCY = 'UAH';
 const DEVICES = 3;                 /* столько же, сколько WEB.devices в приложении */
-const GRACE_DAYS = 3;              /* запас на случай, если банк спишет с задержкой */
+const GRACE_DAYS = 3;              /* запас на случай, если банк проведёт платёж с задержкой */
 
 /* ─────────── подпись LiqPay ───────────
    signature = base64( sha1( private_key + data + private_key ) )      */
@@ -118,19 +125,19 @@ function view(lic, device){
     plan: lic.plan,
     expiresAt: lic.expiresAt,
     purchasedAt: lic.purchasedAt,
-    autoRenew: lic.autoRenew !== false,
     orderId: lic.orderId,
     devices: (lic.devices || []).length,
     limit: DEVICES,
-    /* подписка есть, но это устройство ещё не привязано — приложение
+    /* доступ оплачен, но это устройство ещё не привязано — приложение
        предложит «Восстановить покупку» */
     needsClaim: live && !known,
   };
 }
 
 /* оплата прошла: продлеваем срок от большей из дат — «сейчас» или
-   «конец действующего периода», чтобы продление не съедало остаток */
-async function applyPayment({login, device, plan, orderId, autoRenew}){
+   «конец действующего периода», чтобы продление не съедало остаток.
+   Заплатить наперёд можно сколько угодно раз — сроки складываются. */
+async function applyPayment({login, device, plan, orderId}){
   const p = PLANS[plan];
   if (!p) throw new Error('unknown_plan');
   const old = await readLicence(login);
@@ -142,7 +149,6 @@ async function applyPayment({login, device, plan, orderId, autoRenew}){
     purchasedAt: (old && old.purchasedAt) || Date.now(),
     paidAt: Date.now(),
     expiresAt: addMonths(from, p.months) + GRACE_DAYS * 86400000,
-    autoRenew: autoRenew !== false && !!p.period,
     devices,
   };
   await writeLicence(login, lic);
@@ -158,7 +164,7 @@ const json = (res, code, body) => {
 };
 
 module.exports = {
-  ENV, configured, PLANS, DEVICES, GRACE_DAYS,
+  ENV, configured, PLANS, CURRENCY, DEVICES, GRACE_DAYS,
   /* live() — настоящее ли это хранилище, а не память процесса */
   store: {get, set, live: async () => !!(await kv())},
   sign, pack, unpack, verify,

@@ -67,15 +67,17 @@ part('оплата');
   ok('подпись на странице настоящая', L.verify(data, sig));
   const p = L.unpack(data);
   order = p.order_id;
-  ok('годовой план — регулярное списание', p.action === 'subscribe' && p.subscribe_periodicity === 'year', p.action + '/' + p.subscribe_periodicity);
-  ok('цена совпадает с тарифом', p.amount === L.PLANS.yearly.usd, '$' + p.amount);
+  ok('списание разовое, регулярных нет ни у одного плана',
+     p.action === 'pay' && !p.subscribe && !p.subscribe_periodicity, p.action);
+  ok('цена совпадает с тарифом', p.amount === L.PLANS.yearly.uah, p.amount + ' ' + p.currency);
+  ok('счёт выставлен в гривне', p.currency === 'UAH', p.currency);
   ok('приватный ключ в браузер не попадает', !r.text.includes('test_priv'));
   ok('логин и устройство едут в info', JSON.parse(p.info).login === 'barber@mail.com' && JSON.parse(p.info).device === DEV_A);
   ok('возврат ведёт на свой домен', p.server_url === 'https://probarber.test/api/callback', p.server_url);
 
-  const q = await call(API('checkout.js'), {query: {plan: 'quarterly', login: LOGIN, device: DEV_A}});
+  const q = await call(API('checkout.js'), {query: {plan: 'monthly', login: LOGIN, device: DEV_A}});
   const qp = L.unpack((q.text.match(/name="data" value="([^"]+)"/) || [])[1]);
-  ok('три месяца — разовая оплата, LiqPay не умеет такой период', qp.action === 'pay' && !qp.subscribe, qp.action);
+  ok('месячный план тоже разовый — карту не подписывают', qp.action === 'pay' && !qp.subscribe, qp.action);
 
   const bad = await call(API('checkout.js'), {query: {plan: 'wat', login: LOGIN}});
   ok('неизвестный план не принимается', bad.code === 400, String(bad.code));
@@ -99,12 +101,13 @@ part('ответ банка');
   ok('оплата засчитана', paid.code === 200 && paid.json.ok);
 
   const lic = (await call(API('licence.js'), {query: {login: LOGIN, device: DEV_A}})).json;
-  ok('подписка активна', lic.active === true);
+  ok('доступ активен', lic.active === true);
   ok('срок — год с запасом', lic.expiresAt > Date.now() + 360 * 86400000, new Date(lic.expiresAt).toISOString().slice(0, 10));
-  ok('устройство привязано автоматически', lic.devices === 1 && lic.autoRenew === true);
+  ok('устройство привязано автоматически', lic.devices === 1);
+  ok('в ответе нет автопродления — его не существует', !('autoRenew' in lic));
   ok('логин в ответе не светится', !('login' in lic));
 
-  /* второе списание через год не должно обнулять остаток */
+  /* заплатил ещё раз, не дожидаясь конца — сроки складываются */
   const was = lic.expiresAt;
   await call(API('callback.js'), {method: 'POST', body: bank({status: 'success', order_id: order, info})});
   const next = (await call(API('licence.js'), {query: {login: LOGIN, device: DEV_A}})).json;
@@ -127,14 +130,13 @@ part('устройства');
      (await call(API('licence.js'), {query: {login: LOGIN, device: 'dev_чужой'}})).json.active === false);
 }
 
-part('отмена и возврат');
+part('возврат средств');
 {
-  const offed = (await call(API('unsubscribe.js'), {query: {login: LOGIN, device: DEV_A}})).json;
-  ok('автопродление выключается', offed.autoRenew === false);
-  ok('доступ остаётся до конца периода', offed.active === true, new Date(offed.expiresAt).toISOString().slice(0, 10));
-
-  const stranger = await call(API('unsubscribe.js'), {query: {login: LOGIN, device: 'dev_чужой'}});
-  ok('чужое устройство не может выключить подписку', stranger.code === 403, String(stranger.code));
+  /* отменять нечего: списание разовое, карта после оплаты не трогается —
+     поэтому и эндпоинта «выключить автопродление» в проекте нет */
+  const fs2 = require('fs');
+  ok('эндпоинта отмены подписки не существует',
+     !fs2.existsSync(path.join(__dirname, '..', 'api', 'unsubscribe.js')));
 
   const info = JSON.stringify({login: LOGIN, device: DEV_A, plan: 'yearly'});
   await call(API('callback.js'), {method: 'POST', body: bank({status: 'reversed', order_id: order, info})});
@@ -199,11 +201,15 @@ part('цены сходятся в трёх местах');
      не проверять: сервер выставит счёт на одну сумму, страница покажет
      другую, а кабинет — третью */
   Object.values(L.PLANS).forEach(p => {
-    const line = new RegExp("id: ?'" + p.id + "'[^}]*usd: ?" + String(p.usd).replace('.', '\\.'));
-    ok('план ' + p.id + ' — $' + p.usd + ' и на странице оплаты, и в кабинете',
+    const line = new RegExp("id: ?'" + p.id + "'[^}]*uah: ?" + p.uah + "\\b");
+    ok('план ' + p.id + ' — ' + p.uah + ' ₴ и на странице оплаты, и в кабинете',
        line.test(pay) && line.test(app),
        (line.test(pay) ? '' : 'pay.html ') + (line.test(app) ? '' : 'index.html'));
   });
+  ok('нигде не осталось долларовых цен',
+     !/usd ?: ?\d/.test(pay) && !/usd ?: ?\d/.test(app));
+  ok('и нигде не обещано автопродление',
+     !/subscribe_periodicity/.test(app) && !/subscribe_periodicity/.test(pay));
   ok('месяцев в плане тоже поровну',
      Object.values(L.PLANS).every(p => new RegExp("id: ?'" + p.id + "'[^}]*months: ?" + p.months).test(app)));
   ok('лимит устройств один и тот же на сервере и в кабинете',

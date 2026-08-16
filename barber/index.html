@@ -958,8 +958,6 @@ const PHRASES = {
   stepNote: {ru: 'Сетка времени в календаре и в онлайн-записи', uk: 'Сітка часу в календарі та в онлайн-записі', en: 'Time grid in the calendar and online booking'},
   /* ── подписка ── */
   back: {ru: 'Назад', uk: 'Назад', en: 'Back'},
-  onWord: {ru: 'включено', uk: 'увімкнено', en: 'on'},
-  offWord: {ru: 'выключено', uk: 'вимкнено', en: 'off'},
   dayOne: {ru: 'день', uk: 'день', en: 'day'},
   dayFew: {ru: 'дня', uk: 'дні', en: 'days'},
   dayMany: {ru: 'дней', uk: 'днів', en: 'days'},
@@ -969,8 +967,6 @@ const PHRASES = {
   plYear: {ru: '1 год', uk: '1 рік', en: '1 year'},
   plBadgeQ: {ru: 'выгоднее', uk: 'вигідніше', en: 'better value'},
   plBadgeY: {ru: 'лучшая цена', uk: 'найкраща ціна', en: 'best price'},
-  plMonthly: {ru: 'ежемесячно', uk: 'щомісяця', en: 'monthly'},
-  plYearly: {ru: 'раз в год', uk: 'раз на рік', en: 'once a year'},
   plOnce: {ru: 'разовая оплата', uk: 'разова оплата', en: 'one-off payment'},
   plPerMonth: {ru: 'в месяц', uk: 'на місяць', en: 'per month'},
 
@@ -995,26 +991,26 @@ const PHRASES = {
              uk: 'Повний доступ до всього кабінету. Оплата — тільки після того, як пробний період завершиться.',
              en: 'Full access to everything. You pay only after the trial ends.'},
   trialAfter: {ru: 'Дальше от', uk: 'Далі від', en: 'After that from'},
-  trialNote: {ru: 'Ничего не спишется само: план вы выберете сами, когда пробный период закончится. Карту вводить сейчас не нужно.',
-              uk: 'Нічого не спишеться саме: план ви оберете самі, коли пробний період завершиться. Картку вводити зараз не потрібно.',
-              en: 'Nothing is charged automatically: you pick a plan yourself when the trial ends. No card needed now.'},
+  trialNote: {ru: 'Ничего не спишется само — ни сейчас, ни потом: автопродления в приложении нет вовсе. Когда пробный период закончится, вы сами решите, платить ли. Карту вводить сейчас не нужно.',
+              uk: 'Нічого не спишеться саме — ні зараз, ні потім: автопродовження в застосунку немає взагалі. Коли пробний період завершиться, ви самі вирішите, чи платити. Картку вводити зараз не потрібно.',
+              en: 'Nothing is charged automatically — not now, not later: the app has no auto-renewal at all. When the trial ends, it is up to you whether to pay. No card needed now.'},
   trialGo: {ru: 'Начать бесплатно', uk: 'Почати безкоштовно', en: 'Start for free'},
-  trialFree: {ru: 'Без карты и без автосписания', uk: 'Без картки й без автосписання', en: 'No card, no auto-charge'},
+  trialFree: {ru: 'Без карты и без автосписаний', uk: 'Без картки й без автосписань', en: 'No card, no auto-charge'},
 
-  payChoose: {ru: 'Выберите план', uk: 'Оберіть план', en: 'Choose a plan'},
-  payChooseSub: {ru: 'Полный доступ ко всем разделам кабинета.',
-                 uk: 'Повний доступ до всіх розділів кабінету.',
-                 en: 'Full access to every part of the app.'},
+  payChoose: {ru: 'Оплатить доступ', uk: 'Сплатити доступ', en: 'Pay for access'},
+  payChooseSub: {ru: 'Полный доступ ко всем разделам кабинета. Платёж разовый, автопродления нет.',
+                 uk: 'Повний доступ до всіх розділів кабінету. Платіж разовий, автопродовження немає.',
+                 en: 'Full access to every part of the app. One-off payment, no auto-renewal.'},
   payGate: {ru: 'Пробный период закончился', uk: 'Пробний період завершився', en: 'Your trial has ended'},
-  paySubEnd: {ru: 'Подписка закончилась', uk: 'Передплата завершилась', en: 'Your subscription has ended'},
-  payGateSub: {ru: 'Клиенты, записи и финансы на месте — ничего не удалено. Выберите план, чтобы продолжить работу.',
-               uk: 'Клієнти, записи та фінанси на місці — нічого не видалено. Оберіть план, щоб продовжити роботу.',
-               en: 'Your clients, appointments and finance are intact. Pick a plan to keep working.'},
+  paySubEnd: {ru: 'Оплаченный период закончился', uk: 'Оплачений період завершився', en: 'Your paid period has ended'},
+  payGateSub: {ru: 'Клиенты, записи и финансы на месте — ничего не удалено. Оплатите доступ, чтобы продолжить работу.',
+               uk: 'Клієнти, записи та фінанси на місці — нічого не видалено. Оплатіть доступ, щоб продовжити роботу.',
+               en: 'Your clients, appointments and finance are intact. Pay for access to keep working.'},
   payGo: {ru: 'Перейти к оплате', uk: 'Перейти до оплати', en: 'Go to payment'},
   payWaiting: {ru: 'Ждём оплату…', uk: 'Чекаємо оплату…', en: 'Waiting for payment…'},
   payWait: {ru: 'Обрабатываем…', uk: 'Обробляємо…', en: 'Working…'},
   payAlready: {ru: 'Я уже оплатил', uk: 'Я вже сплатив', en: 'I have already paid'},
-  payOk: {ru: 'Подписка активна', uk: 'Передплата активна', en: 'Subscription is active'},
+  payOk: {ru: 'Доступ оплачен', uk: 'Доступ оплачено', en: 'Access is paid'},
   payFail: {ru: 'Не удалось завершить оплату', uk: 'Не вдалося завершити оплату', en: 'Could not complete the payment'},
   payErrSub: {ru: 'Данные на месте — ничего не потеряно. Попробуйте ещё раз или выберите другой план.',
               uk: 'Дані на місці — нічого не втрачено. Спробуйте ще раз або оберіть інший план.',
@@ -1023,63 +1019,54 @@ const PHRASES = {
   payNotYet: {ru: 'Оплату ещё не видим. Если вы платили — нажмите «Я уже оплатил»',
               uk: 'Оплату ще не бачимо. Якщо ви платили — натисніть «Я вже сплатив»',
               en: 'We don’t see the payment yet. If you paid, tap “I have already paid”'},
-  payLimit: {ru: 'Подписка уже работает на трёх устройствах — освободите место на странице подписки',
-             uk: 'Передплата вже працює на трьох пристроях — звільніть місце на сторінці передплати',
-             en: 'The subscription already runs on three devices — free a slot on the subscription page'},
-  payNeedLogin: {ru: 'Сначала укажите почту или телефон — к ним привяжется подписка',
-                 uk: 'Спочатку вкажіть пошту або телефон — до них прив’яжеться передплата',
-                 en: 'Enter your email or phone first — the subscription is tied to it'},
-  payNote: {ru: 'Оплата проходит через LiqPay на отдельной странице — кабинет карту не видит. Планы на 1 месяц и 1 год продлеваются автоматически, выключить можно здесь же. Доступ действует на {n} устройствах.',
-            uk: 'Оплата проходить через LiqPay на окремій сторінці — кабінет картку не бачить. Плани на 1 місяць і 1 рік продовжуються автоматично, вимкнути можна тут само. Доступ діє на {n} пристроях.',
-            en: 'Payment goes through LiqPay on a separate page — the app never sees your card. The 1-month and 1-year plans renew automatically and can be turned off here. Access works on {n} devices.'},
-  payRestore: {ru: 'Восстановить покупку', uk: 'Відновити покупку', en: 'Restore purchase'},
-  payRestored: {ru: 'Покупка восстановлена', uk: 'Покупку відновлено', en: 'Purchase restored'},
-  payDataNote: {ru: 'Клиенты, записи и финансы хранятся в кабинете и от подписки не зависят: когда срок выйдет, данные останутся на месте.',
-                uk: 'Клієнти, записи та фінанси зберігаються в кабінеті й від передплати не залежать: коли строк вийде, дані залишаться на місці.',
-                en: 'Clients, appointments and finance live in the app and do not depend on the subscription: when it lapses, the data stays.'},
+  payLimit: {ru: 'Доступ уже работает на трёх устройствах — больше слотов нет',
+             uk: 'Доступ уже працює на трьох пристроях — більше слотів немає',
+             en: 'Access already runs on three devices — there are no free slots'},
+  payNeedLogin: {ru: 'Сначала укажите почту или телефон — к ним привяжется доступ',
+                 uk: 'Спочатку вкажіть пошту або телефон — до них прив’яжеться доступ',
+                 en: 'Enter your email or phone first — access is tied to it'},
+  payNote: {ru: 'Оплата проходит через LiqPay на отдельной странице — кабинет карту не видит. Платёж разовый: карту спишут один раз, автопродления нет. Доступ действует на {n} устройствах.',
+            uk: 'Оплата проходить через LiqPay на окремій сторінці — кабінет картку не бачить. Платіж разовий: картку спишуть один раз, автопродовження немає. Доступ діє на {n} пристроях.',
+            en: 'Payment goes through LiqPay on a separate page — the app never sees your card. It is a one-off charge with no auto-renewal. Access works on {n} devices.'},
+  payRestore: {ru: 'Восстановить оплату', uk: 'Відновити оплату', en: 'Restore payment'},
+  payRestored: {ru: 'Оплата восстановлена', uk: 'Оплату відновлено', en: 'Payment restored'},
+  payDataNote: {ru: 'Клиенты, записи и финансы хранятся в кабинете и от оплаты не зависят: когда срок выйдет, данные останутся на месте.',
+                uk: 'Клієнти, записи та фінанси зберігаються в кабінеті й від оплати не залежать: коли строк вийде, дані залишаться на місці.',
+                en: 'Clients, appointments and finance live in the app and do not depend on the payment: when it lapses, the data stays.'},
   payDemoTitle: {ru: 'Оплата не подключена', uk: 'Оплата не підключена', en: 'Payments are not connected'},
-  payDemoNote: {ru: 'На этом хостинге нет сервера подписки, поэтому платёж провести негде. Можно включить демонстрационный доступ и посмотреть кабинет целиком — денег он не списывает и настоящей подпиской не является.',
-                uk: 'На цьому хостингу немає сервера передплати, тому платіж провести ніде. Можна увімкнути демонстраційний доступ і подивитись кабінет цілком — грошей він не списує і справжньою передплатою не є.',
-                en: 'This host has no subscription server, so there is nothing to pay through. You can switch on demo access and see the whole app — it charges nothing and is not a real subscription.'},
+  payDemoNote: {ru: 'На этом хостинге нет платёжного сервера, поэтому платёж провести негде. Можно включить демонстрационный доступ и посмотреть кабинет целиком — денег он не списывает и настоящей оплатой не является.',
+                uk: 'На цьому хостингу немає платіжного сервера, тому платіж провести ніде. Можна увімкнути демонстраційний доступ і подивитись кабінет цілком — грошей він не списує і справжньою оплатою не є.',
+                en: 'This host has no payment server, so there is nothing to pay through. You can switch on demo access and see the whole app — it charges nothing and is not a real payment.'},
   payDemoGo: {ru: 'Включить демо-доступ', uk: 'Увімкнути демо-доступ', en: 'Enable demo access'},
   payDemoOk: {ru: 'Демо-доступ включён', uk: 'Демо-доступ увімкнено', en: 'Demo access enabled'},
 
-  subTitle: {ru: 'Подписка', uk: 'Передплата', en: 'Subscription'},
-  subSub: {ru: 'Срок, автопродление и устройства', uk: 'Строк, автопродовження та пристрої', en: 'Term, auto-renewal and devices'},
-  subActive: {ru: 'Активна', uk: 'Активна', en: 'Active'},
+  subTitle: {ru: 'Доступ', uk: 'Доступ', en: 'Access'},
+  subSub: {ru: 'До какого числа оплачен кабинет', uk: 'До якого числа оплачено кабінет', en: 'How long the app is paid for'},
+  subActive: {ru: 'Оплачен', uk: 'Оплачено', en: 'Paid'},
   subTrial: {ru: 'Пробный период', uk: 'Пробний період', en: 'Trial'},
-  subNeed: {ru: 'Нужно продление', uk: 'Потрібне продовження', en: 'Renewal needed'},
+  subNeed: {ru: 'Нужно продлить', uk: 'Потрібно продовжити', en: 'Renewal needed'},
   subPlan: {ru: 'План', uk: 'План', en: 'Plan'},
   subWhere: {ru: 'Оформлена', uk: 'Оформлена', en: 'Purchased'},
   subWhereWeb: {ru: 'на сайте', uk: 'на сайті', en: 'on the website'},
   subWhereDemo: {ru: 'демо-режим', uk: 'демо-режим', en: 'demo mode'},
-  subUntil: {ru: 'Действует до', uk: 'Діє до', en: 'Active until'},
-  subEnded: {ru: 'Закончилась', uk: 'Завершилась', en: 'Ended'},
+  subUntil: {ru: 'Оплачено до', uk: 'Оплачено до', en: 'Paid until'},
+  subEnded: {ru: 'Закончился', uk: 'Завершився', en: 'Ended'},
   subLeft: {ru: 'Осталось', uk: 'Залишилось', en: 'Left'},
-  subRenew: {ru: 'Автопродление', uk: 'Автопродовження', en: 'Auto-renewal'},
-  subChange: {ru: 'Сменить план', uk: 'Змінити план', en: 'Change plan'},
-  subManageWeb: {ru: 'Управлять подпиской на сайте', uk: 'Керувати передплатою на сайті', en: 'Manage on the website'},
-  subOff: {ru: 'Выключить автопродление', uk: 'Вимкнути автопродовження', en: 'Turn off auto-renewal'},
-  subOn: {ru: 'Включить автопродление', uk: 'Увімкнути автопродовження', en: 'Turn on auto-renewal'},
-  subOffDone: {ru: 'Автопродление выключено — доступ до конца периода',
-               uk: 'Автопродовження вимкнено — доступ до кінця періоду',
-               en: 'Auto-renewal is off — access lasts until the end of the period'},
-  subOnDone: {ru: 'Автопродление включено', uk: 'Автопродовження увімкнено', en: 'Auto-renewal is on'},
-  subOffTitle: {ru: 'Автопродление выключено', uk: 'Автопродовження вимкнено', en: 'Auto-renewal is off'},
-  subOffText: {ru: 'Доступ работает полностью до', uk: 'Доступ працює повністю до', en: 'Full access works until'},
-  subDataNote: {ru: 'Клиенты, записи и финансы хранятся отдельно от подписки — они никуда не денутся.',
-                uk: 'Клієнти, записи та фінанси зберігаються окремо від передплати — вони нікуди не подінуться.',
-                en: 'Clients, appointments and finance are stored separately from the subscription — nothing disappears.'},
-  subWebNote: {ru: 'Подписка оформлена на сайте: отменить автопродление можно там же, доступ действует до конца оплаченного периода.',
-               uk: 'Передплату оформлено на сайті: скасувати автопродовження можна там само, доступ діє до кінця оплаченого періоду.',
-               en: 'The subscription was bought on the website: auto-renewal is cancelled there, and access lasts until the paid period ends.'},
-  subDemoNote: {ru: 'Это демонстрационный доступ: денег он не списывал и настоящей подпиской не является.',
-                uk: 'Це демонстраційний доступ: грошей він не списував і справжньою передплатою не є.',
-                en: 'This is demo access: nothing was charged and it is not a real subscription.'},
+  subChange: {ru: 'Продлить доступ', uk: 'Продовжити доступ', en: 'Extend access'},
+  subManageWeb: {ru: 'Посмотреть оплату на сайте', uk: 'Переглянути оплату на сайті', en: 'See the payment on the website'},
+  subDataNote: {ru: 'Клиенты, записи и финансы хранятся отдельно от оплаты — они никуда не денутся. Автосписаний нет: когда период закончится, вы решите сами, продлевать ли.',
+                uk: 'Клієнти, записи та фінанси зберігаються окремо від оплати — вони нікуди не подінуться. Автосписань немає: коли період завершиться, ви самі вирішите, чи продовжувати.',
+                en: 'Clients, appointments and finance are stored separately from the payment — nothing disappears. There are no recurring charges: when the period ends, it is up to you whether to renew.'},
+  subWebNote: {ru: 'Оплата прошла на сайте через LiqPay — квитанция придёт на почту от банка.',
+               uk: 'Оплата пройшла на сайті через LiqPay — квитанція прийде на пошту від банку.',
+               en: 'The payment went through LiqPay on the website — the bank will email you a receipt.'},
+  subDemoNote: {ru: 'Это демонстрационный доступ: денег он не списывал и настоящей оплатой не является.',
+                uk: 'Це демонстраційний доступ: грошей він не списував і справжньою оплатою не є.',
+                en: 'This is demo access: nothing was charged and it is not a real payment.'},
   subLogin: {ru: 'Почта или телефон', uk: 'Пошта або телефон', en: 'Email or phone'},
-  subLoginNote: {ru: 'К этому логину привяжется подписка. Пароля нет: кабинет по-прежнему живёт на вашем устройстве, логин нужен только банку и серверу — и чтобы подписка нашлась на втором устройстве.',
-                 uk: 'До цього логіна прив’яжеться передплата. Пароля немає: кабінет так само живе на вашому пристрої, логін потрібен лише банку й серверу — і щоб передплата знайшлась на другому пристрої.',
-                 en: 'The subscription is tied to this login. There is no password: the app still lives on your device — the login is only for the bank, the server, and for finding your subscription on a second device.'},
+  subLoginNote: {ru: 'К этому логину привяжется оплата. Пароля нет: кабинет по-прежнему живёт на вашем устройстве, логин нужен только банку и серверу — и чтобы доступ нашёлся на втором устройстве.',
+                 uk: 'До цього логіна прив’яжеться оплата. Пароля немає: кабінет так само живе на вашому пристрої, логін потрібен лише банку й серверу — і щоб доступ знайшовся на другому пристрої.',
+                 en: 'The payment is tied to this login. There is no password: the app still lives on your device — the login is only for the bank, the server, and for finding your access on a second device.'},
   subLoginBad: {ru: 'Похоже на опечатку: нужна почта или телефон',
                 uk: 'Схоже на помилку: потрібна пошта або телефон',
                 en: 'That looks off: enter an email or a phone number'},
@@ -1089,12 +1076,11 @@ const PHRASES = {
 
   accTrial: {ru: 'Пробный период', uk: 'Пробний період', en: 'Trial'},
   accTrialEnd: {ru: 'Пробный завершён', uk: 'Пробний завершено', en: 'Trial ended'},
-  accActive: {ru: 'Активна', uk: 'Активна', en: 'Active'},
-  accNoRenew: {ru: 'Без автопродления', uk: 'Без автопродовження', en: 'No auto-renewal'},
-  accExpired: {ru: 'Закончилась', uk: 'Завершилась', en: 'Ended'},
+  accActive: {ru: 'Оплачен', uk: 'Оплачено', en: 'Paid'},
+  accExpired: {ru: 'Закончился', uk: 'Завершився', en: 'Ended'},
   accNone: {ru: 'Нет доступа', uk: 'Немає доступу', en: 'No access'},
   accLeft: {ru: 'Осталось', uk: 'Залишилось', en: 'Left'},
-  accNeed: {ru: 'Выберите план, чтобы продолжить работу', uk: 'Оберіть план, щоб продовжити роботу', en: 'Pick a plan to keep working'},
+  accNeed: {ru: 'Оплатите доступ, чтобы продолжить работу', uk: 'Оплатіть доступ, щоб продовжити роботу', en: 'Pay for access to keep working'},
 
   menuMore: {ru: 'Ещё', uk: 'Ще', en: 'More'},
 };
@@ -1615,16 +1601,20 @@ const Sync = {
    лежат отдельно и никуда не деваются, даже когда срок вышел.        */
 const TRIAL_DAYS = 14;
 
-/* Цены обязаны совпадать с PLANS в api/_lib.js и в pay.html. LiqPay умеет
-   регулярные списания только с периодом «месяц» или «год», поэтому план
-   на 3 месяца — разовая оплата, и на странице оплаты так и написано. */
+/* Цены обязаны совпадать с PLANS в api/_lib.js и в pay.html.
+
+   Все планы — разовая оплата: автосписаний с карты нет, и это не упущение,
+   а решение. Кончился оплаченный период — барбер платит ещё раз, сам и
+   когда захочет. Поэтому здесь нет ни autoRenew, ни «отменить подписку». */
 const PLANS = [
-  {id: 'monthly',   months: 1,  usd: 5.99},
-  {id: 'quarterly', months: 3,  usd: 15.99, badge: 'plBadgeQ'},
-  {id: 'yearly',    months: 12, usd: 59.99, badge: 'plBadgeY'},
+  {id: 'monthly',   months: 1,  uah: 249},
+  {id: 'quarterly', months: 3,  uah: 649,  badge: 'plBadgeQ'},
+  {id: 'yearly',    months: 12, uah: 2490, badge: 'plBadgeY'},
 ];
 const planById = id => PLANS.find(p => p.id === id) || null;
-const usd = v => '$' + Number(v).toFixed(2);
+/* Цена доступа всегда в гривне — независимо от того, в чём барбер считает
+   свою выручку в настройках. Это разные деньги, и путать их нельзя. */
+const uah = v => groupNum(v) + ' ₴';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 /* «плюс N месяцев» с сохранением дня: 31 января + 1 месяц = 28/29 февраля.
    Здешний addMonths() ставит первое число — для срока подписки не годится. */
@@ -1722,7 +1712,7 @@ const Web = {
       return j;
     } catch (e){ return {ok: false, error: 'network'}; }
   },
-  /* {ok, active, plan, expiresAt, autoRenew, devices, needsClaim} */
+  /* {ok, active, plan, expiresAt, devices, needsClaim} */
   licence(){ return Web.ask('/api/licence'); },
   /* {ok, started, startedAt, endsAt, expired} — дату первого запуска
      помнит сервер, иначе очистка данных давала бы новый пробный период */
@@ -1768,8 +1758,7 @@ const Access = {
     const at = now || Date.now();
     const sub = (a.expiresAt && a.plan)
       ? (at < a.expiresAt
-          ? {kind: a.autoRenew === false ? 'SUB_CANCELLED' : 'SUB_ACTIVE',
-             allowed: true, until: a.expiresAt, plan: a.plan, source: a.source}
+          ? {kind: 'SUB_ACTIVE', allowed: true, until: a.expiresAt, plan: a.plan, source: a.source}
           : {kind: 'SUB_EXPIRED', allowed: false, until: a.expiresAt, plan: a.plan, source: a.source})
       : null;
     if (sub && sub.allowed) return sub;
@@ -1792,8 +1781,7 @@ const Access = {
     if (!lic || !lic.active) return {ok: false};
     Access.write({status: 'active', source: 'web', plan: lic.plan,
       purchasedAt: lic.purchasedAt || Date.now(), expiresAt: lic.expiresAt,
-      autoRenew: lic.autoRenew !== false, orderId: lic.orderId || null,
-      lastVerifiedAt: Date.now(), error: null});
+      orderId: lic.orderId || null, lastVerifiedAt: Date.now(), error: null});
     return {ok: true, expiresAt: lic.expiresAt};
   },
   /* ждём, пока на сайте пройдёт оплата; каждые WEB.poll спрашиваем сервер */
@@ -1828,11 +1816,9 @@ const Access = {
     const from = Math.max(Date.now(), Access.read().expiresAt || 0);
     Access.write({status: 'active', source: 'demo', plan: plan.id,
       purchasedAt: Date.now(), expiresAt: addMonthsKeep(new Date(from), plan.months),
-      autoRenew: true, orderId: null, lastVerifiedAt: Date.now(), error: null});
+      orderId: null, lastVerifiedAt: Date.now(), error: null});
     return {ok: true};
   },
-  cancel(){ return Access.write({autoRenew: false}); },   /* доступ остаётся до даты */
-  resume(){ return Access.write({autoRenew: true}); },
 
   /* Без сети ничего не блокируем: работаем по локальной записи, а как
      только появится связь — сверяемся с сервером. */
@@ -1858,7 +1844,7 @@ const Access = {
     /* сервер — источник правды для веб-подписки: сказал «нет» — значит
        срока нет, иначе локальная запись пережила бы отмену */
     if (a.source === 'web' && a.expiresAt > Date.now()){
-      Access.write({status: 'expired', autoRenew: false, expiresAt: Date.now(), lastVerifiedAt: Date.now()});
+      Access.write({status: 'expired', expiresAt: Date.now(), lastVerifiedAt: Date.now()});
       return {ok: true, active: false};
     }
     return {ok: true, active: false, needsClaim: !!lic.needsClaim};
@@ -1880,7 +1866,6 @@ const ACCESS_LABEL = a =>
   a.kind === 'TRIAL_ACTIVE' ? t('accTrial')
   : a.kind === 'TRIAL_EXPIRED' ? t('accTrialEnd')
   : a.kind === 'SUB_ACTIVE' ? t('accActive')
-  : a.kind === 'SUB_CANCELLED' ? t('accNoRenew')
   : a.kind === 'SUB_EXPIRED' ? t('accExpired')
   : t('accNone');
 
@@ -4456,11 +4441,12 @@ const PlanCards = ({value, onPick}) => (
         <span className="plan-t">
           <b>{planTitle(p)}{p.badge ? ' · ' + t(p.badge) : ''}</b>
           <span>
-            {p.months === 1 ? t('plMonthly') : p.months === 12 ? t('plYearly') : t('plOnce')}
-            {p.months > 1 ? ' · ' + usd(p.usd / p.months) + ' ' + t('plPerMonth') : ''}
+            {/* все планы разовые, разница только в длине срока и цене месяца */}
+            {t('plOnce')}
+            {p.months > 1 ? ' · ' + uah(Math.round(p.uah / p.months)) + ' ' + t('plPerMonth') : ''}
           </span>
         </span>
-        <span className="plan-p"><b>{usd(p.usd)}</b></span>
+        <span className="plan-p"><b>{uah(p.uah)}</b></span>
       </button>
     ))}
   </div>
@@ -4513,7 +4499,7 @@ const TrialIntro = ({onStart}) => (
       <FeatureList />
       <div className="card card-pad" style={{marginTop: 14, background: 'var(--gold-soft)', borderColor: 'transparent'}}>
         <div style={{fontSize: 13, fontWeight: 700, color: 'var(--gold)'}}>
-          {t('trialAfter')} {usd(PLANS[0].usd)} {t('plPerMonth')}
+          {t('trialAfter')} {uah(PLANS[0].uah)} {t('plPerMonth')}
         </div>
         <div className="hint" style={{marginTop: 4}}>{t('trialNote')}</div>
       </div>
@@ -4645,8 +4631,7 @@ function SubscriptionPage(){
   const plan = planById(raw.plan);
   const [busy, setBusy] = useState(false);
   const [pick, setPick] = useState(false);
-  const active = acc.kind === 'SUB_ACTIVE' || acc.kind === 'SUB_CANCELLED';
-  /* веб-подписку отменяют на сайте — у кабинета нет к ней доступа */
+  const active = acc.kind === 'SUB_ACTIVE';
   const web = raw.source === 'web';
 
   if (pick) return <Paywall onClose={() => setPick(false)} />;
@@ -4681,23 +4666,12 @@ function SubscriptionPage(){
             <Badge tone={active ? 'pos' : acc.kind === 'TRIAL_ACTIVE' ? 'gold' : 'neg'}>{ACCESS_LABEL(acc)}</Badge>
           </div>
           <hr className="sep" style={{margin: '12px 0 4px'}} />
-          {plan && line(t('subPlan'), planTitle(plan) + ' · ' + usd(plan.usd))}
+          {plan && line(t('subPlan'), planTitle(plan) + ' · ' + uah(plan.uah))}
           {raw.plan && line(t('subWhere'), web ? t('subWhereWeb') : t('subWhereDemo'))}
           {acc.until && line(active ? t('subUntil') : t('subEnded'), fmtDate(acc.until))}
           {acc.kind === 'TRIAL_ACTIVE' && line(t('subLeft'), nDays(acc.left))}
-          {(active || acc.kind === 'SUB_EXPIRED') &&
-            line(t('subRenew'), raw.autoRenew === false ? t('offWord') : t('onWord'))}
           {Web.login() && line(t('subLoginShort'), Web.login())}
         </div>
-
-        {acc.kind === 'SUB_CANCELLED' && (
-          <div className="card card-pad" style={{marginTop: 10, background: 'var(--gold-soft)', borderColor: 'transparent'}}>
-            <b style={{fontSize: 13.5, color: 'var(--gold)'}}>{t('subOffTitle')}</b>
-            <div className="hint" style={{marginTop: 6}}>
-              {t('subOffText')} {fmtDate(acc.until)}.
-            </div>
-          </div>
-        )}
 
         <div className="grid" style={{gap: 8, marginTop: 12}}>
           <Button kind="gold" block onClick={() => setPick(true)}>
@@ -4706,16 +4680,6 @@ function SubscriptionPage(){
           {active && web && (
             <Button kind="ghost" block icon="link" onClick={() => Web.open(Web.accountUrl())}>
               {t('subManageWeb')}
-            </Button>
-          )}
-          {active && !web && raw.autoRenew !== false && (
-            <Button kind="ghost" block onClick={() => { Access.cancel(); toast(t('subOffDone'), 'ok'); }}>
-              {t('subOff')}
-            </Button>
-          )}
-          {active && !web && raw.autoRenew === false && (
-            <Button kind="ghost" block onClick={() => { Access.resume(); toast(t('subOnDone'), 'ok'); }}>
-              {t('subOn')}
             </Button>
           )}
           {Web.enabled() && (
@@ -4745,7 +4709,7 @@ function SubscriptionPage(){
 function AccessCard(){
   const acc = useAccess();
   const nav = useNav();
-  const active = acc.kind === 'SUB_ACTIVE' || acc.kind === 'SUB_CANCELLED';
+  const active = acc.kind === 'SUB_ACTIVE';
   const need = !acc.allowed;
   const line =
     acc.kind === 'TRIAL_ACTIVE' ? t('accLeft') + ' ' + nDays(acc.left)

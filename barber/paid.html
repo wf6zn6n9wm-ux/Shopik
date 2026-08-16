@@ -23,9 +23,9 @@ var Q = new URLSearchParams(location.search);
 var LANG = ['uk','ru','en'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'ru';
 document.documentElement.lang = LANG;
 var T = {
-  ru:{h:'Оплата прошла', s:'Вернитесь в кабинет — доступ уже активен. Если кабинет ещё не заметил оплату, нажмите там «Я уже оплатил».', g:'Открыть кабинет', n:'Квитанция придёт на почту от банка. Управлять подпиской можно на странице подписки.'},
-  uk:{h:'Оплата пройшла', s:'Поверніться в кабінет — доступ уже активний. Якщо кабінет ще не помітив оплату, натисніть там «Я вже сплатив».', g:'Відкрити кабінет', n:'Квитанція прийде на пошту від банку. Керувати передплатою можна на сторінці передплати.'},
-  en:{h:'Payment received', s:'Go back to the app — your access is already active. If the app has not noticed yet, tap “I have already paid”.', g:'Open the app', n:'The bank will email you a receipt. You can manage the subscription on the subscription page.'},
+  ru:{h:'Оплата прошла', s:'Вернитесь в кабинет — доступ уже активен. Если кабинет ещё не заметил оплату, нажмите там «Я уже оплатил».', g:'Открыть кабинет', n:'Квитанция придёт на почту от банка. Автосписаний нет: следующий платёж вы сделаете сами, когда захотите продлить.'},
+  uk:{h:'Оплата пройшла', s:'Поверніться в кабінет — доступ уже активний. Якщо кабінет ще не помітив оплату, натисніть там «Я вже сплатив».', g:'Відкрити кабінет', n:'Квитанція прийде на пошту від банку. Автосписань немає: наступний платіж ви зробите самі, коли захочете продовжити.'},
+  en:{h:'Payment received', s:'Go back to the app — your access is already active. If the app has not noticed yet, tap “I have already paid”.', g:'Open the app', n:'The bank will email you a receipt. There are no recurring charges: the next payment is yours to make whenever you want to renew.'},
 }[LANG];
 document.getElementById('h1').textContent = T.h;
 document.getElementById('sub').textContent = T.s;
