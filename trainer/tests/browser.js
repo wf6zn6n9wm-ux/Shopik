@@ -231,9 +231,19 @@ const FLAGS = ['--headless', '--disable-gpu', '--no-sandbox', '--disable-dev-shm
    збої «проба не встигла»: насправді проба, яка мала реєструватись,
    раптом бачила чужий кабінет і застрягала на екрані входу.
 
-   Проба зветься «з чистого пристрою» — хай пристрій і буде чистим. */
-const profiles = fs.mkdtempSync(path.join(require('os').tmpdir(), 'protrainer-'));
+   Проба зветься «з чистого пристрою» — хай пристрій і буде чистим.
+
+   Кладемо профілі в домівку, а не в /tmp: на складальниках Chromium
+   часто стоїть як snap, а той не пускає профіль за межі дозволених
+   шляхів — і мовчки висне замість того, щоб сказати про це.
+
+   Якщо своїх профілів не виходить зовсім, прогін піде без них, гучно про
+   це попередивши. Ізоляція проб важлива, але не настільки, щоб через неї
+   не виходила жодна перевірка й не виїжджав сайт. */
+const os = require('os');
+const profiles = fs.mkdtempSync(path.join(os.homedir() || os.tmpdir(), '.protrainer-'));
 let profileN = 0;
+let ownProfile = true;
 process.on('exit', () => { try { fs.rmSync(profiles, {recursive: true, force: true}); } catch {} });
 
 /* Скільки віртуального часу дати сторінці. Застосунку потрібно більше:
@@ -264,12 +274,15 @@ const budget = url => url.includes('/_app.html') ? 60000 : 6000;
 const DEAD = 3;
 let dead = 0;
 
+let launched = 0;                  /* скільки запусків узагалі вдалося */
+
 const once = url => new Promise((resolve, reject) => {
-  const dir = path.join(profiles, 'p' + (profileN++));
+  const args = FLAGS.slice();
+  if (ownProfile) args.push('--user-data-dir=' + path.join(profiles, 'p' + (profileN++)));
+  args.push('--virtual-time-budget=' + budget(url), url);
   /* Своя група процесів. Chrome лишає по собі дітей, і вбивати треба всю
      родину: інакше дитина переживає батька й тримає його потоки. */
-  const p = spawn(CHROME, FLAGS.concat(['--user-data-dir=' + dir,
-    '--virtual-time-budget=' + budget(url), url]), {detached: true});
+  const p = spawn(CHROME, args, {detached: true});
   let outp = '', killed = false, over = false;
   p.stdout.on('data', d => { outp += d; });
 
@@ -277,7 +290,17 @@ const once = url => new Promise((resolve, reject) => {
     if (over) return;
     over = true;
     clearTimeout(t);
-    if (!killed){ dead = 0; return resolve(outp); }
+    if (!killed){ dead = 0; launched++; return resolve(outp); }
+    /* Жодного вдалого запуску, а перший уже завис — найімовірніше
+       браузер не приймає наш профіль (типова біда snap-складання).
+       Пробуємо без нього: краще прогін без ізоляції з гучним попередженням,
+       ніж жодного прогону. */
+    if (ownProfile && !launched){
+      ownProfile = false;
+      console.log('  ⚠ браузер не приймає свій профіль — далі без ізоляції.\n' +
+                  '    Проби ділитимуть сховище, і сусідні кабінети можуть заважати одна одній.');
+      return resolve(outp);
+    }
     dead++;
     console.log('  ⚠ браузер не встиг за 60 с (' + dead + ' поспіль): ' + url);
     if (dead >= DEAD)
