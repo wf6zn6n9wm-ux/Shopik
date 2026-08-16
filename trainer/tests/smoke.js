@@ -76,6 +76,29 @@ const month = T.stats(db, mf, mt);
 ok('місяць рахується', month.count > 0 && month.avg > 0, month.count + ' трен., середня ' + T.money(month.avg));
 ok('борг рахується в межах періоду', T.stats(db, mf, mt).debt <= T.stats(db, new Date(0), new Date(8.64e15)).debt);
 
+/* ─── зароблене й заплановане ───
+   Головний екран каже «Дохід сьогодні» — і це має бути гроші, які вже
+   отримані. Оборот включає тренування, що ще попереду: вранці тренер
+   бачив увесь день як зароблений, а потім число зменшувалось від
+   кожного, хто не прийшов. */
+ok('зароблене — це тільки проведене',
+   today.earned === db.sessions
+     .filter(s => s.status === 'done' && +new Date(s.start) >= +df && +new Date(s.start) < +dt)
+     .reduce((a, s) => a + T.split(s.price, db.settings).net, 0),
+   T.money(today.earned));
+ok('зароблене менше за оборот, поки день не скінчився',
+   today.earned < today.net, T.money(today.earned) + ' проти ' + T.money(today.net));
+ok('зароблене плюс заплановане дає оборот', today.earned + today.planned === today.net);
+ok('заплановане рахує саме незавершені', today.plannedCount === today.count - today.done,
+   today.plannedCount + ' шт.');
+{
+  /* якщо провести все — заплановане зникає, а зароблене дорівнює обороту */
+  const all = {...db, sessions: db.sessions.map(s => ({...s, status: 'done'}))};
+  const st = T.stats(all, df, dt);
+  ok('провели все — заплановане нуль', st.planned === 0 && st.earned === st.net,
+     T.money(st.earned) + ' / ' + T.money(st.net));
+}
+
 part('клієнт');
 const cs = T.clientStats(db, 'cl_0');
 ok('історія й витрати', cs.done > 0 && cs.spent > 0, cs.done + ' трен., ' + T.money(cs.spent));

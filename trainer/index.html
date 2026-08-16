@@ -1110,6 +1110,7 @@ const PHRASES = [
   ['Вимкнено — дані лише на цьому пристрої', 'Выключено — данные только на этом устройстве', 'Off — your data stays on this device only', 'Wyłączone — dane tylko na tym urządzeniu'],
   ['Зашифрована копія. Зайдіть із будь-якого пристрою — клієнти й історія будуть на місці', 'Зашифрованная копия. Зайдите с любого устройства — клиенты и история будут на месте', 'An encrypted backup. Sign in from any device — your clients and history will be there', 'Zaszyfrowana kopia. Zaloguj się z dowolnego urządzenia — klienci i historia będą na miejscu'],
   ['Відновлювати пароль', 'Восстанавливать пароль', 'Password recovery', 'Odzyskiwanie hasła'],
+  ['ще попереду', 'ещё впереди', 'still ahead', 'jeszcze przed nami'],
   ['Не вдалося зв’язатися з сервером. Перевірте інтернет і спробуйте ще раз', 'Не удалось связаться с сервером. Проверьте интернет и попробуйте ещё раз', 'We could not reach the server. Check your connection and try again', 'Nie udało się połączyć z serwerem. Sprawdź internet i spróbuj ponownie'],
   ['Копія ще не робиться: ключ до неї заводиться разом із паролем. Введіть пароль — і база поїде в копію', 'Копия ещё не делается: ключ к ней заводится вместе с паролем. Введите пароль — и база уедет в копию', 'The backup is not running yet: its key is created together with the password. Enter your password and the data will go to the backup', 'Kopia jeszcze nie działa: klucz do niej powstaje razem z hasłem. Wpisz hasło — i baza pojedzie do kopii'],
   ['Увімкнути копію', 'Включить копию', 'Turn the backup on', 'Włącz kopię'],
@@ -2531,9 +2532,18 @@ function stats(db, from, to){
   const newC = db.clients.filter(c => inRange(c.createdAt, from, to)).length;
   const subsSold = sum(db.subs.filter(x => inRange(x.ts, from, to)), x => x.price);
   const done = ses.filter(s => s.status === 'done').length;
+  /* ─── зароблене й заплановане ───
+     Оборот рахує всі тренування періоду, зокрема ті, що ще попереду. Для
+     обороту це правильно, а для слова «заробив» — ні: о восьмій ранку
+     тренер бачив увесь день як уже отриманий, а потім число зменшувалось,
+     коли хтось не приходив. Тому рахуємо окремо: зароблене — це
+     проведене, решта — план. */
+  const doneSes = ses.filter(s => s.status === 'done');
+  const earned = sum(doneSes, s => split(s.price, S).net);
   const debt = sum(ses.filter(isDebt), owed);
   return {
     gross, gym, net: gross - gym, count: ses.length, done,
+    earned, planned: (gross - gym) - earned, plannedCount: ses.length - doneSes.length,
     avg: ses.length ? Math.round(gross / ses.length) : 0,
     salesRevenue, salesProfit, salesCount: sum(sales, x => x.qty),
     clients: uniq.size, newClients: newC, subsSold,
@@ -2614,10 +2624,13 @@ function financeCsv(db, from, to){
    всю історію тренувань: 30 точок × 5 000 тренувань на третій рік роботи
    = 150 000 проходів на кожен рендер екрана «Фінанси». Тепер один прохід
    розкладає тренування по кошиках, а точки лише беруть готове.        */
-function netByBucket(db, from, to, byMonth){
+/* doneOnly — рахувати лише проведені. Потрібно там, де поруч стоїть
+   слово «заробив»: смужка за тиждень із запланованим сьогодні задирала б
+   останній стовпчик вище за число під ним. */
+function netByBucket(db, from, to, byMonth, doneOnly){
   const S = db.settings, out = new Map();
   db.sessions.forEach(x => {
-    if (!isBillable(x)) return;
+    if (doneOnly ? x.status !== 'done' : !isBillable(x)) return;
     const d = valid(x.start);
     if (!d || !inRange(+d, from, to)) return;
     const k = byMonth ? d.getFullYear() + '.' + d.getMonth() : iso(d);
@@ -2636,7 +2649,12 @@ function deltaFor(db, kind, base){
   const cur = stats(db, from, new Date(+from + slice));
   const pFrom = new Date(+from - len);
   const prev = stats(db, pFrom, new Date(+pFrom + slice));
-  return prev.net ? Math.round((cur.net - prev.net) / prev.net * 1000) / 10 : (cur.net ? 100 : 0);
+  /* Порівнюємо зароблене, бо саме воно стоїть поруч на екрані. Якби
+     відсоток рахувався від обороту, він описував би інше число, ніж те,
+     що людина бачить, — і вранці показував би зростання на порожньому
+     місці, лише тому, що на день записано більше тренувань. */
+  return prev.earned ? Math.round((cur.earned - prev.earned) / prev.earned * 1000) / 10
+       : (cur.earned ? 100 : 0);
 }
 
 /* довільний період: {kind:'custom', from:'2026-08-05', to:'2026-08-12'} */
@@ -4315,7 +4333,7 @@ const Home = ({loading}) => {
 
   const spark = useMemo(() => {
     const start = periodRange('day', addDays(now, -6))[0];
-    const box = netByBucket(db, start, addDays(start, 7), false);
+    const box = netByBucket(db, start, addDays(start, 7), false, true);
     return Array.from({length:7}, (_, i) => box.get(iso(addDays(start, i))) || 0);
   }, [db]);
 
@@ -4389,8 +4407,16 @@ const Home = ({loading}) => {
               {pct(delta)}{delta >= 0 ? <Ic.up size={13}/> : <Ic.down size={13}/>}
             </span>
           </div>
-          <div className="val num">{money(today.net)}</div>
-          <div className="sub">{nSessions(today.count)}</div>
+          {/* Саме зароблене, а не оборот дня. Оборот включає тренування,
+              які ще попереду, і вранці показував би повний день як уже
+              отриманий — а потім зменшувався б від кожного, хто не
+              прийшов. Заплановане поруч, окремим рядком: воно потрібне,
+              але це інші гроші. */}
+          <div className="val num">{money(today.earned)}</div>
+          <div className="sub">
+            {nSessions(today.done)}
+            {today.planned > 0 && ' · ' + t('home.ahead','ще попереду') + ' ' + money(today.planned)}
+          </div>
           <Spark data={spark}/>
         </button>
 
