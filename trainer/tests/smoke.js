@@ -308,6 +308,40 @@ part('вичерпаний абонемент');
   T.Store.init(was);
 }
 
+part('правка абонемента в проведеному');
+{
+  const was = T.Store.state;
+  T.Store.init(T.emptyDB());
+  const cl = T.Act.addClient({name: 'Правочник'});
+  const pkg = T.Act.addPackage({title: '8', sessions: 8, price: 5600});
+  const sub = T.Act.buyPackage(cl.id, pkg);
+  const used = () => T.Store.state.subs[0].used;
+  const debts = () => T.Store.state.sessions.filter(T.isDebt).length;
+
+  /* Вписали абонемент у проведене: борг має зникнути, але й заняття з
+     пакета — списатись. Інакше тренер лишався без грошей і без боргу, а
+     клієнт — із повним пакетом. */
+  const a = T.Act.addSession({clientId: cl.id, price: 700, start: new Date().toISOString()});
+  T.Act.complete(a.id, false);
+  ok('спершу це борг', debts() === 1 && used() === 0);
+  T.Act.updSession(a.id, {subId: sub.id});
+  ok('вписали абонемент — борг зник і заняття списалось', debts() === 0 && used() === 1,
+     debts() + ' боргів, списано ' + used());
+
+  /* Прибрали абонемент: заняття має повернутись клієнту, а тренування —
+     стати звичайним боргом. */
+  T.Act.updSession(a.id, {subId: null});
+  ok('прибрали абонемент — заняття повернулось', used() === 0, String(used()));
+  ok('і знову видно борг', debts() === 1, debts() + ' шт.');
+
+  /* Вичерпаний абонемент вписати не дамо */
+  T.Store.patch(db => ({...db, subs: db.subs.map(x => ({...x, used: x.total}))}));
+  const r = T.Act.updSession(a.id, {subId: sub.id});
+  ok('вичерпаний вписати не дає', r.over === true && debts() === 1,
+     'боргів ' + debts());
+  T.Store.init(was);
+}
+
 part('перенесення');
 {
   const was = T.Store.state;

@@ -2883,7 +2883,40 @@ const Act = {
     }, {name:'session.add', data:ses});
     return ses;
   },
-  updSession(id, patch){ Store.patch(db => ({...db, sessions: db.sessions.map(s => s.id === id ? {...s, ...patch} : s)}), {name:'session.upd', data:{id, patch}}); },
+  /* ─── правка тренування ───
+     Майже завжди це просто заміна полів. Крім одного: якщо в уже
+     проведеному тренуванні міняють абонемент, разом із ним має
+     змінитись і залишок.
+
+     Без цього виходило двома способами погано. Вписали абонемент у
+     проведене — борг зникав, а з абонемента не списувалось: тренер не
+     отримував ні грошей, ні боргу, клієнт лишався з повним пакетом.
+     Прибрали абонемент — заняття з пакета вже було з'їдено, і клієнт
+     утрачав його ні за що.
+
+     Вичерпаний абонемент вписати не дамо — так само, як при проведенні:
+     мовчки безкоштовне заняття гірше за відмову. */
+  updSession(id, patch){
+    let over = false;
+    Store.patch(db => {
+      const s = byId(db.sessions, id);
+      if (!s) return db;
+      let subs = db.subs, next = {...s, ...patch};
+      if (s.status === 'done' && patch.subId !== undefined && patch.subId !== s.subId){
+        if (s.subId) subs = subs.map(x => x.id === s.subId ? {...x, used: Math.max(0, x.used - 1)} : x);
+        if (patch.subId){
+          const sub = byId(subs, patch.subId);
+          if (sub && sub.used < sub.total) subs = subs.map(x => x.id === patch.subId ? {...x, used: x.used + 1} : x);
+          else { over = true; next.subId = null; }
+        }
+        /* «оплачено» тут означає саме «з абонемента»: зняли абонемент —
+           лишився звичайний борг, і його видно */
+        next.paid = next.subId ? true : !!patch.paid;
+      }
+      return {...db, sessions: db.sessions.map(x => x.id === id ? next : x), subs};
+    }, {name:'session.upd', data:{id, patch}});
+    return {over};
+  },
   delSession(id){
     Store.patch(db => {
       const s = byId(db.sessions, id);
@@ -5109,12 +5142,13 @@ const SessionForm = ({params, onClose}) => {
     const common = {start: f.when.toISOString(), type: f.type, price: f.price,
                     paid: f.paid, note: f.note, dur: f.dur};
     if (edit){
-      Act.updSession(edit.id, {...common, clientId: f.ids[0], subId: f.subId});
+      const r = Act.updSession(edit.id, {...common, clientId: f.ids[0], subId: f.subId});
       /* час у групи спільний: якщо посунули одного, решта поїхала б без
          нього — а це те саме заняття. Кнопка «Перенести» так і робить,
          редагування має поводитись однаково */
       if (edit.groupId && common.start !== edit.start) Act.moveSession(edit.id, f.when);
-      Toaster.ok(t('session.saved','Зміни збережено'));
+      if (r.over) Toaster.bad(t('ses.done.over','Абонемент вичерпано — тренування записали як борг'));
+      else Toaster.ok(t('session.saved','Зміни збережено'));
       onClose();
       return;
     }
