@@ -768,6 +768,24 @@ PROBES['app-cloud.js'] = DRIVE + `
 /* Кабінет заводиться тільки на пошту. Номер виглядав зручним, а
    насправді вів у глухий кут: відновити пароль такому кабінету нічим.
    Перевіряємо, що застосунок не дає його завести — і пояснює чому. */
+/* Сторінка «з чого почати» — звичайний HTML, тож і проба проста. */
+PROBES['start.js'] = `
+  var say = function(o){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = JSON.stringify(o); document.body.appendChild(p); };
+  window.addEventListener('error', function(e){ window.__err = String(e.message || e); });
+  setTimeout(function(){
+    var steps = [].slice.call(document.querySelectorAll('.step'));
+    say({
+      title: (document.getElementById('h1') || {}).textContent || '',
+      steps: steps.length,
+      nums: steps.map(function(s){ return (s.querySelector('i') || {}).textContent || ''; }).join(''),
+      ask: !!(document.getElementById('ask') || {}).textContent,
+      go: (document.getElementById('go') || {}).getAttribute('href') || '',
+      mail: !!document.querySelector('#qa a[href^="mailto:"]'),
+      err: window.__err || '',
+    });
+  }, 300);
+`;
+
 PROBES['app-mail.js'] = DRIVE + `
   (async function(){
     var res = {};
@@ -1260,6 +1278,25 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('кнопка на місці', o.button === 'Я вже оплатив', o.button);
     ok('доступ відкрився', o.opened === true);
     ok('помилок немає', !o.err, o.err || '—');
+
+    /* Сторінка «з чого почати». Її дають тренеру разом із посиланням, і
+       якщо вона мовчки не намалюється, людина впреться в порожній екран
+       у перші ж хвилини знайомства. */
+    part('сторінка «з чого почати»');
+    {
+      const page = await dom('http://127.0.0.1:' + PORT + '/start.html?lang=uk&probe=start.js');
+      const o = JSON.parse(out(page) || '{}');
+      ok('три кроки на місці', o.steps === 3, o.steps + ' шт.');
+      ok('кроки пронумеровані по порядку', o.nums === '123', o.nums);
+      ok('є про що просимо', o.ask === true);
+      ok('кнопка веде в застосунок', o.go === '/?lang=uk', o.go);
+      ok('пошта підтримки клікається', o.mail === true);
+      ok('помилок немає', !o.err, o.err || '—');
+
+      const ru = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/start.html?lang=ru&probe=start.js')) || '{}');
+      ok('російська теж намальована', ru.steps === 3 && /С чего начать/.test(ru.title), ru.title);
+      ok('мова передається далі в застосунок', ru.go === '/?lang=ru', ru.go);
+    }
 
     part('сторінка після оплати');
     ok('відкривається', (await dom('http://127.0.0.1:' + PORT + '/paid.html')).includes('PRO Trainer'));

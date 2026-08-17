@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>PRO Trainer — з чого почати</title>
+<link rel="stylesheet" href="/pay.css" />
+<style>
+  /* Три кроки — це справді послідовність, тому вони пронумеровані.
+     Решта сторінки нумерації не має: там просто відповіді. */
+  .steps{display:grid;gap:10px;margin-top:20px;}
+  .step{display:flex;gap:13px;align-items:flex-start;padding:14px;border-radius:16px;
+        background:var(--surface);border:1px solid var(--line);}
+  .step i{flex:none;width:27px;height:27px;border-radius:9px;background:var(--accent);color:#fff;
+          font-style:normal;font-size:13.5px;font-weight:800;display:grid;place-items:center;margin-top:1px;}
+  .step b{display:block;font-size:15px;font-weight:800;letter-spacing:-.01em;}
+  .step span{display:block;font-size:13px;line-height:1.5;color:var(--ink-2);margin-top:3px;}
+  .ask{margin-top:20px;padding:14px;border-radius:16px;background:var(--accent-soft);}
+  .ask b{display:block;font-size:14.5px;font-weight:800;}
+  .ask p{margin-top:5px;font-size:13px;line-height:1.55;color:var(--ink-2);}
+  .qa{margin-top:24px;}
+  .qa h2{font-size:15px;font-weight:800;letter-spacing:-.01em;margin-top:18px;}
+  .qa p{margin-top:5px;font-size:13.5px;line-height:1.55;color:var(--ink-2);}
+  .qa a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap doc">
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24"><path d="M4 9v6M8 6.5v11M16 6.5v11M20 9v6M8 12h8"/></svg></div>
+    <b>PRO Trainer</b>
+  </div>
+  <h1 id="h1"></h1>
+  <p class="sub" id="sub"></p>
+
+  <div class="steps" id="steps"></div>
+  <div class="ask" id="ask"></div>
+  <a class="go" id="go" href="/"></a>
+  <div class="qa" id="qa"></div>
+  <p class="note" id="note"></p>
+</div>
+
+<script>
+/* ──────────────────────────────────────────────────────────────────
+   Сторінка «з чого почати». Її дають тренеру разом із посиланням на
+   застосунок — коротким повідомленням, у якому три рядки й це
+   посилання.
+
+   Чому окрема сторінка, а не текст у листі: лист у кожного свій і
+   застаріває мовчки, а сюди ведуть одним адресом, і зміст завжди
+   свіжий. Живе поруч із застосунком, у тому ж репозиторії, тож
+   правиться разом із ним.
+
+   Мова — як на решті сторінок: із адреси (?lang=), інакше з пристрою.
+   ────────────────────────────────────────────────────────────────── */
+var Q = new URLSearchParams(location.search);
+var LANG = ['uk','ru','en','pl'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang')
+  : (['uk','ru','en','pl'].indexOf((navigator.language || 'uk').slice(0,2)) >= 0
+      ? (navigator.language || 'uk').slice(0,2) : 'uk');
+document.documentElement.lang = LANG;
+
+var MAIL = 'andreymenedger01@gmail.com';
+
+var T = {
+uk: {
+  title: 'З чого почати',
+  sub: 'Три кроки — і застосунок рахує ваш день сам: оборот, відсоток залу, борги.',
+  steps: [
+    ['Заведіть кабінет', 'Пошта і пароль. Пароль знадобиться, щоб відкрити вашу базу на іншому телефоні, — не губіть його.'],
+    ['Впишіть ціну і зал', 'Скільки коштує тренування і який відсоток бере клуб. Застосунок одразу покаже, скільки лишається вам.'],
+    ['Запишіть клієнта', 'А після заняття натисніть «Проведено» — гроші стануть у дохід, абонемент спишеться сам.'],
+  ],
+  askT: 'Про що просимо',
+  askP: 'Пройдіть один робочий день цілком: запишіть клієнтів, відмітьте проведені тренування, візьміть оплату. Саме так видно те, чого не видно за п’ять хвилин.',
+  go: 'Відкрити застосунок',
+  qa: [
+    ['Скільки це коштує', '14 днів повного доступу безкоштовно. Картку вводити не треба, нічого не спишеться.'],
+    ['Дані не загубляться?', 'Ні. Вони на вашому пристрої, а зашифрована копія — на сервері. Зайдіть із будь-якого телефона тією самою поштою і паролем — клієнти й історія будуть на місці.'],
+    ['Забув пароль', 'На екрані входу натисніть «Забули пароль?» — код прийде на пошту. Новий пароль дані не стирає.'],
+    ['Щось працює не так', 'Напишіть на <a href="mailto:' + MAIL + '">' + MAIL + '</a> і додайте скріншот. Зі скріншотом причина знаходиться в рази швидше.'],
+  ],
+  note: 'PRO Trainer · робочий кабінет персонального тренера',
+},
+ru: {
+  title: 'С чего начать',
+  sub: 'Три шага — и приложение считает ваш день само: оборот, процент зала, долги.',
+  steps: [
+    ['Заведите кабинет', 'Почта и пароль. Пароль понадобится, чтобы открыть вашу базу на другом телефоне, — не теряйте его.'],
+    ['Впишите цену и зал', 'Сколько стоит тренировка и какой процент берёт клуб. Приложение сразу покажет, сколько остаётся вам.'],
+    ['Запишите клиента', 'А после занятия нажмите «Проведено» — деньги встанут в доход, абонемент спишется сам.'],
+  ],
+  askT: 'О чём просим',
+  askP: 'Пройдите один рабочий день целиком: запишите клиентов, отметьте проведённые тренировки, возьмите оплату. Именно так видно то, чего не видно за пять минут.',
+  go: 'Открыть приложение',
+  qa: [
+    ['Сколько это стоит', '14 дней полного доступа бесплатно. Карту вводить не нужно, ничего не спишется.'],
+    ['Данные не потеряются?', 'Нет. Они на вашем устройстве, а зашифрованная копия — на сервере. Зайдите с любого телефона той же почтой и паролем — клиенты и история будут на месте.'],
+    ['Забыл пароль', 'На экране входа нажмите «Забули пароль?» — код придёт на почту. Новый пароль данные не стирает.'],
+    ['Что-то работает не так', 'Напишите на <a href="mailto:' + MAIL + '">' + MAIL + '</a> и приложите скриншот. Со скриншотом причина находится в разы быстрее.'],
+  ],
+  note: 'PRO Trainer · рабочий кабинет персонального тренера',
+},
+en: {
+  title: 'Getting started',
+  sub: 'Three steps, and the app counts your day for you: turnover, the gym’s cut, debts.',
+  steps: [
+    ['Create your account', 'An email and a password. The password is what opens your data on another phone — keep it.'],
+    ['Set the price and the gym', 'What a session costs and what share the club takes. The app shows what is left for you right away.'],
+    ['Book a client', 'After the session tap “Done” — the money goes into your income and the package is deducted automatically.'],
+  ],
+  askT: 'What we ask',
+  askP: 'Run one full working day: book clients, mark sessions done, take payments. That is how you see what five minutes cannot show.',
+  go: 'Open the app',
+  qa: [
+    ['What it costs', '14 days of full access, free. No card required, nothing is charged.'],
+    ['Can I lose my data?', 'No. It lives on your device, and an encrypted backup is on the server. Sign in from any phone with the same email and password — your clients and history are there.'],
+    ['I forgot the password', 'On the sign-in screen tap “Forgot your password?” — a code goes to your email. A new password does not erase the data.'],
+    ['Something is wrong', 'Write to <a href="mailto:' + MAIL + '">' + MAIL + '</a> and attach a screenshot. With a screenshot the cause is found far faster.'],
+  ],
+  note: 'PRO Trainer — the back office of a personal trainer',
+},
+pl: {
+  title: 'Od czego zacząć',
+  sub: 'Trzy kroki — i aplikacja sama liczy Twój dzień: obrót, prowizję klubu, długi.',
+  steps: [
+    ['Załóż konto', 'E-mail i hasło. Hasło otwiera Twoją bazę na innym telefonie — nie zgub go.'],
+    ['Wpisz cenę i klub', 'Ile kosztuje trening i jaki procent bierze klub. Aplikacja od razu pokaże, ile zostaje Tobie.'],
+    ['Zapisz klienta', 'Po zajęciach naciśnij „Przeprowadzone” — pieniądze trafią do dochodu, a karnet odliczy się sam.'],
+  ],
+  askT: 'O co prosimy',
+  askP: 'Przejdź jeden pełny dzień pracy: zapisz klientów, odznacz przeprowadzone treningi, przyjmij płatność. Właśnie tak widać to, czego nie widać przez pięć minut.',
+  go: 'Otwórz aplikację',
+  qa: [
+    ['Ile to kosztuje', '14 dni pełnego dostępu za darmo. Karty nie trzeba podawać, nic nie zostanie pobrane.'],
+    ['Czy dane mogą zniknąć?', 'Nie. Są na Twoim urządzeniu, a zaszyfrowana kopia — na serwerze. Zaloguj się z dowolnego telefonu tym samym e-mailem i hasłem — klienci i historia będą na miejscu.'],
+    ['Zapomniałem hasła', 'Na ekranie logowania naciśnij „Nie pamiętasz hasła?” — kod przyjdzie na e-mail. Nowe hasło nie kasuje danych.'],
+    ['Coś działa nie tak', 'Napisz na <a href="mailto:' + MAIL + '">' + MAIL + '</a> i dołącz zrzut ekranu. Ze zrzutem przyczynę znajdujemy dużo szybciej.'],
+  ],
+  note: 'PRO Trainer — zaplecze trenera personalnego',
+},
+};
+
+var t = T[LANG];
+var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+
+document.title = 'PRO Trainer — ' + t.title;
+document.getElementById('h1').textContent = t.title;
+document.getElementById('sub').textContent = t.sub;
+
+document.getElementById('steps').innerHTML = t.steps.map(function(s, i){
+  return '<div class="step"><i>' + (i + 1) + '</i><div><b>' + esc(s[0]) + '</b>' +
+         '<span>' + esc(s[1]) + '</span></div></div>';
+}).join('');
+
+document.getElementById('ask').innerHTML = '<b>' + esc(t.askT) + '</b><p>' + esc(t.askP) + '</p>';
+
+var go = document.getElementById('go');
+go.textContent = t.go;
+go.href = '/?lang=' + LANG;
+
+document.getElementById('qa').innerHTML = t.qa.map(function(q){
+  /* відповіді містять посилання на пошту, тому не екрануємо їх цілком */
+  return '<h2>' + esc(q[0]) + '</h2><p>' + q[1] + '</p>';
+}).join('');
+
+document.getElementById('note').textContent = t.note;
+</script>
+</body>
+</html>
