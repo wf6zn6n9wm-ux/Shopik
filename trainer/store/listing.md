@@ -17,7 +17,7 @@ andreymenedger01@gmail.com, чат `t.me/suport_uk`.
 | Возрастной рейтинг | 4+ / Everyone |
 | Языки | українська, русский, English, polski |
 | Support URL | `https://pro-trainer.pro/support` — страница с ответами и почтой, есть в деплое |
-| Marketing URL | `https://pro-trainer.pro` — открывается само приложение, его можно потрогать в браузере |
+| Marketing URL | `https://pro-trainer.pro/about` — что за сервис, тарифы в гривнах, условия возврата и реквизиты ФОП. Корень `https://pro-trainer.pro` открывает само приложение — его можно потрогать в браузере, но проверяющий видит там только экран входа, поэтому маркетинговым адресом стоит именно `/about` |
 | Privacy Policy URL | `https://pro-trainer.pro/privacy` — страница есть, отдаётся с деплоя |
 | Terms (EULA) | `https://pro-trainer.pro/terms` — страница есть, отдаётся с деплоя |
 | Data deletion URL (Google Play) | `https://pro-trainer.pro/delete` — обязательное поле, страница есть |

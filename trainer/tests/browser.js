@@ -365,11 +365,10 @@ const done = (url, html) => {
      результат. Позначку ставить enter().
 
      Крім тих, що до застосунку й не доходять і не мають доходити: одна
-     дивиться на завантаження, друга — на те, що кабінет на номер завести
-     не дають, третя — на відмову у вході. Вимагати від них позначку
-     означало б тричі перезапускати вдалу пробу, а потім рахувати її
-     результат так, ніби повторів не було. */
-  const OUTSIDE = ['probe=app-boot', 'probe=app-mail', 'probe=app-nocopy'];
+     дивиться на завантаження, друга — на відмову у вході. Вимагати від
+     них позначку означало б тричі перезапускати вдалу пробу, а потім
+     рахувати її результат так, ніби повторів не було. */
+  const OUTSIDE = ['probe=app-boot', 'probe=app-nocopy'];
   const needsApp = url.includes('/_app.html') && !OUTSIDE.some(p => url.includes(p));
   return needsApp ? html.includes('id="__entered"') : true;
 };
@@ -850,6 +849,36 @@ PROBES['app-help.js'] = DRIVE + `
   })();
 `;
 
+/* Публічна сторінка про сервіс. Це не вітрина, а відповідь банку: саме
+   через її відсутність нам спинили виплати. Тому перевіряємо не «сторінка
+   відкрилась», а що на ній справді стоять ціни в гривні, реквізити ФОП і
+   умови повернення — тобто рівно те, чого не знайшов моніторинг. */
+PROBES['about.js'] = `
+  var say = function(o){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = JSON.stringify(o); document.body.appendChild(p); };
+  window.addEventListener('error', function(e){ window.__err = String(e.message || e); });
+  setTimeout(function(){
+    var rows = [].slice.call(document.querySelectorAll('.tar .row'));
+    var req = document.getElementById('req').textContent.replace(/\\s+/g, ' ');
+    var all = document.body.textContent.replace(/\\s+/g, ' ');
+    say({
+      plans: rows.length,
+      amounts: rows.map(function(r){ return (r.querySelector('.amt') || {}).textContent || ''; }).join(' '),
+      hryvnia: rows.every(function(r){ return /\\u20b4/.test((r.querySelector('.amt') || {}).textContent || ''); }),
+      dollars: /\\$/.test(all),
+      company: /Мозолевич/.test(req),
+      id: /3691304399/.test(req),
+      addr: /Ольвійська/.test(req),
+      phone: /380 95 182 54 56/.test(req),
+      mail: !!document.querySelector('#req a[href^="mailto:"]'),
+      tel: !!document.querySelector('#req a[href^="tel:"]'),
+      refund: /Кошти повертаємо/.test(all),
+      trial: /14 днів/.test(all),
+      app: !!document.querySelector('a.go'),
+      err: window.__err || '',
+    });
+  }, 300);
+`;
+
 /* Сторінка «з чого почати» — звичайний HTML, тож і проба проста. */
 PROBES['start.js'] = `
   var say = function(o){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = JSON.stringify(o); document.body.appendChild(p); };
@@ -894,6 +923,15 @@ PROBES['app-mail.js'] = DRIVE + `
     await wait(120);
     if (pri()) pri().click();
     res.passed = await until(function(){ return !document.querySelector('.ob input[type=password]'); }, 20000);
+    /* Реєстрація доходить до кінця — значить, ми всередині. Ставимо ту
+       саму позначку, що й enter(): без неї повільний прогін не
+       перезапускався, а рахувався за справжню невдачу, і перевірка
+       червоніла раз на кілька прогонів без жодної провини коду. */
+    if (res.passed){
+      var mark = document.createElement('i');
+      mark.id = '__entered';
+      document.body.appendChild(mark);
+    }
     res.err = window.__err || '';
     say(res);
   })();
@@ -1225,11 +1263,14 @@ server.listen(PORT, '127.0.0.1', async () => {
     part('сторінка оплати');
     let o = JSON.parse(out(await dom(go('/pay.html', 'plans.js'))) || '{}');
     ok('усі три тарифи на сторінці', o.count === 3, o.count + ' шт.');
-    ok('річний обрано за замовчуванням', /48\.99/.test(o.picked || ''), (o.picked || '').trim());
-    ok('ціна магазину показана поруч', /4\.99/.test(o.first || ''));
+    ok('річний обрано за замовчуванням', /1990/.test(o.picked || ''), (o.picked || '').trim());
+    /* Ціна магазину звідси прибрана навмисно: відколи тут гривня, а там
+       долар, закреслені $4.99 біля 299 ₴ читались би як знижка вдесятеро,
+       якої немає. Перевіряємо, що долара на сторінці оплати не лишилось. */
+    ok('доларів на сторінці оплати немає', !/\$/.test(o.first || ''), (o.first || '').trim());
 
     o = JSON.parse(out(await dom(go('/pay.html', 'pick.js'))) || '{}');
-    ok('вибір перемикається на інший тариф', /4\.49/.test(o.picked || ''), (o.picked || '').trim());
+    ok('вибір перемикається на інший тариф', /299/.test(o.picked || ''), (o.picked || '').trim());
     ok('обраний лишається один', o.count === 1);
 
     part('без логіна');
@@ -1492,6 +1533,21 @@ server.listen(PORT, '127.0.0.1', async () => {
     /* Сторінка «з чого почати». Її дають тренеру разом із посиланням, і
        якщо вона мовчки не намалюється, людина впреться в порожній екран
        у перші ж хвилини знайомства. */
+    part('публічна сторінка про сервіс');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/about.html?probe=about.js')) || '{}');
+    ok('усі три тарифи на місці', o.plans === 3, o.plans + ' шт.');
+    ok('ціни у гривні', o.hryvnia === true, o.amounts || '—');
+    ok('доларів на сторінці немає', o.dollars === false);
+    ok('назва ФОП стоїть', o.company === true);
+    ok('РНОКПП стоїть', o.id === true);
+    ok('адреса стоїть', o.addr === true);
+    ok('телефон стоїть і набирається', o.phone === true && o.tel === true);
+    ok('пошта клікається', o.mail === true);
+    ok('умови повернення описані', o.refund === true);
+    ok('пробний період названо', o.trial === true);
+    ok('є вихід у застосунок', o.app === true);
+    ok('помилок немає', !o.err, o.err || '—');
+
     part('сторінка «з чого почати»');
     {
       const page = await dom('http://127.0.0.1:' + PORT + '/start.html?lang=uk&probe=start.js');

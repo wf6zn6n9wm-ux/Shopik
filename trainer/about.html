@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>PRO Trainer — про сервіс, тарифи та реквізити</title>
+<meta name="description" content="PRO Trainer — застосунок для персональних тренерів: клієнти, розклад, гроші. Тарифи в гривнях, умови оплати й повернення, реквізити ФОП." />
+<link rel="stylesheet" href="/pay.css" />
+<style>
+  /* Сторінка, яку читають не тренери, а перевіряльники: банк, магазин
+     застосунків, податкова. Тому вона щільна й без прикрас — усе, що
+     запитують, стоїть на видноті й підписане своїм ім'ям. */
+  .sec{margin-top:26px;}
+  .sec h2{font-size:16px;font-weight:800;letter-spacing:-.015em;}
+  .sec p{margin-top:7px;font-size:13.5px;line-height:1.6;color:var(--ink-2);}
+  .sec ul{margin:8px 0 0 18px;font-size:13.5px;line-height:1.6;color:var(--ink-2);}
+  .sec li{margin-top:4px;}
+  .tar{display:grid;gap:9px;margin-top:12px;}
+  .tar .row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:13px 15px;
+            border-radius:14px;background:var(--surface);border:1px solid var(--line);}
+  .tar .row b{font-size:14.5px;font-weight:800;}
+  .tar .row span{display:block;font-size:12.5px;color:var(--ink-3);margin-top:2px;}
+  .tar .row .amt{font-size:17px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .req{margin-top:12px;border-radius:14px;background:var(--surface);border:1px solid var(--line);
+       overflow:hidden;}
+  .req div{display:flex;gap:12px;padding:11px 15px;font-size:13.5px;line-height:1.5;
+           border-top:1px solid var(--line);}
+  .req div:first-child{border-top:0;}
+  .req dt{flex:none;width:118px;color:var(--ink-3);}
+  .req dd{flex:1;font-weight:650;word-break:break-word;}
+  .req a{color:var(--accent);}
+  .sec a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap doc">
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24"><path d="M4 9v6M8 6.5v11M16 6.5v11M20 9v6M8 12h8"/></svg></div>
+    <b>PRO Trainer</b>
+  </div>
+
+  <h1>Про сервіс</h1>
+  <p class="sub">Робочий кабінет персонального тренера: клієнти, розклад, гроші й продажі в одному місці.</p>
+
+  <div class="sec">
+    <h2>Що ми продаємо</h2>
+    <p>PRO Trainer — це доступ до вебзастосунку для персональних тренерів за передплатою.
+       Товарів у фізичному вигляді ми не продаємо й не доставляємо: послуга надається
+       в електронному вигляді, доступ відкривається одразу після оплати.</p>
+    <p>Що входить у доступ — усе перелічене, без поділу на «пакети» й без доплат усередині:</p>
+    <ul>
+      <li>картки клієнтів: контакти, мета занять, нотатки, історія тренувань;</li>
+      <li>розклад і календар — день, тиждень, місяць, зі статусами тренувань;</li>
+      <li>облік грошей: оборот, відсоток залу, чистий дохід, борги клієнтів;</li>
+      <li>абонементи: пакети тренувань із автоматичним списанням проведених;</li>
+      <li>продаж товарів: залишки, закупівля, прибуток з одиниці;</li>
+      <li>нагадування про тренування, борги й клієнтів, які давно не приходили;</li>
+      <li>зашифрована копія бази на сервері й відновлення на іншому пристрої;</li>
+      <li>вивантаження фінансів у CSV;</li>
+      <li>підтримка у застосунку — питання читає людина.</li>
+    </ul>
+    <p>Інтерфейс: українська, російська, англійська, польська.</p>
+  </div>
+
+  <div class="sec">
+    <h2>Тарифи</h2>
+    <p>Ціни вказані в гривнях, це остаточна вартість — ПДВ не додається
+       (ФОП на спрощеній системі, не платник ПДВ).</p>
+    <div class="tar" id="tar"></div>
+    <p>Перші 14 днів — безкоштовно й з усіма можливостями. Картку вводити не потрібно,
+       нічого не списується: пробний період не переходить в оплату сам.</p>
+  </div>
+
+  <div class="sec">
+    <h2>Як оплатити</h2>
+    <p>Оплата картками Visa та Mastercard через LiqPay (ПриватБанк). Дані картки
+       вводяться на стороні банку — ми їх не бачимо й не зберігаємо.</p>
+    <p>Тарифи «1 місяць» і «1 рік» продовжуються автоматично наприкінці оплаченого
+       періоду. Тариф «3 місяці» — разовий платіж без автопродовження.
+       Доступ відкривається одразу після підтвердження оплати банком; на пошту
+       приходить підтвердження.</p>
+  </div>
+
+  <div class="sec">
+    <h2>Умови повернення й скасування</h2>
+    <p>Автопродовження вимикається у будь-який момент — у застосунку
+       («Підписка» → «Керувати підпискою») або листом на нашу пошту. Доступ при цьому
+       діє до кінця вже оплаченого періоду, і жодних штрафів за скасування немає.</p>
+    <p>Кошти повертаємо на вимогу протягом <b>14 днів</b> з дня списання: напишіть на
+       пошту або зателефонуйте, вкажіть логін і дату платежу. Повертаємо тим самим
+       способом, яким ви платили, протягом 7 банківських днів. Причину пояснювати
+       не потрібно.</p>
+    <p>Обмін не застосовується: послуга одна й та сама на всіх тарифах, відрізняється
+       лише строк. Перейти на інший тариф можна будь-коли — залишок оплаченого періоду
+       не згорає, а додається до нового.</p>
+    <p>Покупки, зроблені через App Store або Google Play, повертає сам магазин за
+       своїми правилами — у нас немає технічної можливості повернути такий платіж.</p>
+    <p>Ваші дані від скасування чи повернення не зникають: клієнти, тренування й
+       фінанси лишаються на пристрої та в копії, доступ до них відновлюється разом
+       із підпискою.</p>
+  </div>
+
+  <div class="sec">
+    <h2>Реквізити</h2>
+    <dl class="req" id="req"></dl>
+    <p>Ми відповідаємо на листи протягом 5 робочих днів, зазвичай — того ж дня.
+       Найшвидший шлях — «Налаштування» → «Допомога» у самому застосунку:
+       там переписка прив'язана до вашого кабінету.</p>
+  </div>
+
+  <div class="sec">
+    <h2>Документи</h2>
+    <p><a href="/terms">Умови використання</a> · <a href="/privacy">Політика конфіденційності</a>
+       · <a href="/delete">Видалення даних</a> · <a href="/support">Часті питання</a></p>
+  </div>
+
+  <a class="go" href="/">Відкрити застосунок</a>
+  <p class="note" id="note"></p>
+</div>
+
+<script>
+/* Ціни й реквізити не переписані сюди руками, а зібрані з тих самих
+   рядків, що показує застосунок. Другий список цін розійшовся б із
+   першим тихо — а розбіжність цін на сайті й у рахунку банку помітить
+   саме той, хто перевіряє. tests/consistency.js стежить, щоб числа тут
+   збігалися з застосунком і з сервером. */
+var LEGAL = {
+  company: 'ФОП Мозолевич Андрій Ігорович',
+  id: '3691304399',
+  addr: 'Україна, м. Дніпро, вул. Ольвійська, 19',
+  phone: '+380 95 182 54 56',
+  email: 'andreymenedger01@gmail.com',
+  updated: '17 серпня 2026',
+};
+var PLANS = [
+  {id: 'monthly',   title: '1 місяць',  uah: 299,  months: 1,
+   note: 'Продовжується автоматично щомісяця'},
+  {id: 'quarterly', title: '3 місяці',  uah: 749,  months: 3,
+   note: 'Разовий платіж, без автопродовження'},
+  {id: 'yearly',    title: '1 рік',     uah: 1990, months: 12,
+   note: 'Продовжується автоматично щороку'},
+];
+
+var esc = function(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); };
+var uah = function(v){ return Math.round(v) + ' ₴'; };
+
+document.getElementById('tar').innerHTML = PLANS.map(function(p){
+  var per = p.months > 1 ? ' · ' + uah(p.uah / p.months) + ' на місяць' : '';
+  return '<div class="row"><div><b>' + esc(p.title) + '</b>' +
+         '<span>' + esc(p.note) + per + '</span></div>' +
+         '<div class="amt">' + uah(p.uah) + '</div></div>';
+}).join('');
+
+document.getElementById('req').innerHTML = [
+  ['Продавець', esc(LEGAL.company)],
+  ['РНОКПП', esc(LEGAL.id)],
+  ['Адреса', esc(LEGAL.addr)],
+  ['Телефон', '<a href="tel:' + LEGAL.phone.replace(/[^\d+]/g, '') + '">' + esc(LEGAL.phone) + '</a>'],
+  ['Пошта', '<a href="mailto:' + LEGAL.email + '">' + esc(LEGAL.email) + '</a>'],
+  ['Сайт', '<a href="https://pro-trainer.pro">pro-trainer.pro</a>'],
+].map(function(r){
+  return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>';
+}).join('');
+
+document.getElementById('note').textContent =
+  'PRO Trainer · ' + LEGAL.company + ' · редакція від ' + LEGAL.updated;
+</script>
+</body>
+</html>

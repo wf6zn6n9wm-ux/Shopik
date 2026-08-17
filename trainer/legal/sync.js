@@ -25,7 +25,12 @@ const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
 const APP = path.join(ROOT, 'index.html');
-const MARKS = {company: '{{company}}', email: '{{email}}', updated: '{{updated}}'};
+/* Мітки для підстановок будуємо з самого LEGAL, а не тримаємо списком.
+   Список тут уже підводив: доданий реквізит у ньому не з'являвся, і в
+   опублікованих документах замість адреси й телефону стояло
+   «undefined» — рівно там, де їх перевіряє банк. */
+const marksOf = legal =>
+  Object.fromEntries(Object.keys(legal).map(k => [k, '{{' + k + '}}']));
 
 /* ─────────── читання ─────────── */
 function block(src, start){
@@ -45,7 +50,7 @@ function readDocs(){
   const b = block(src, 'const LEGAL_DOCS = {');
   /* виконуємо з мітками замість реквізитів — тоді підстановки самі
      перетворяться на {{...}}, і жодного розбору шаблонних рядків */
-  const ctx = {LEGAL: MARKS, TRIAL_DAYS: '{{trialDays}}'};
+  const ctx = {LEGAL: marksOf(legalValues(src)), TRIAL_DAYS: '{{trialDays}}'};
   vm.createContext(ctx);
   vm.runInContext(b.text + ';globalThis.__docs = LEGAL_DOCS;', ctx);
   return {src, b, docs: ctx.__docs};
@@ -54,8 +59,8 @@ function readDocs(){
 /* ─────────── export ─────────── */
 const mdOf = doc => '# ' + doc.title + '\n\n' +
   doc.blocks.map(([h, tx]) => '## ' + h + '\n\n' + tx + '\n').join('\n') +
-  '\n---\n\n_Підстановки: {{company}}, {{email}}, {{updated}}, {{trialDays}} — ' +
-  'застосунок підставляє їх сам, лишайте як є._\n';
+  '\n---\n\n_Підстановки у фігурних дужках застосунок підставляє сам — ' +
+  'лишайте їх як є._\n';
 
 function legalValues(src){
   const b = block(src, 'const LEGAL = {');

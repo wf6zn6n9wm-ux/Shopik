@@ -58,10 +58,14 @@ var T = {
 var t = T[LANG];
 
 /* ціни мають збігатися з PLANS у index.html */
+/* web — ціна тут, у гривнях: платить український ФОП і рахунок банк
+   виставляє в гривні. store — ціна в магазині застосунків, у доларах.
+   Валюти різні навмисно, тож поруч вони не показуються: закреслений
+   долар біля гривні читався б як знижка, якої немає. */
 var PLANS = [
-  {id:'monthly',   months:1,  web:4.49,  store:4.99},
-  {id:'quarterly', months:3,  web:11.99, store:12.99},
-  {id:'yearly',    months:12, web:48.99, store:49.99},
+  {id:'monthly',   months:1,  web:299,  store:4.99},
+  {id:'quarterly', months:3,  web:749,  store:12.99},
+  {id:'yearly',    months:12, web:1990, store:49.99},
 ];
 var TITLE = {
   uk:{monthly:'1 місяць', quarterly:'3 місяці', yearly:'1 рік'},
@@ -70,6 +74,7 @@ var TITLE = {
   pl:{monthly:'1 miesiąc',quarterly:'3 miesiące',yearly:'1 rok'},
 };
 var usd = function(v){ return '$' + v.toFixed(2); };
+var uah = function(v){ return Math.round(v) + ' \u20b4'; };
 var login = (Q.get('login') || '').trim();
 var device = (Q.get('device') || '').trim();
 var picked = 'yearly';
@@ -92,14 +97,15 @@ function draw(){
     b.className = 'plan' + (p.id === picked ? ' on' : '');
     b.onclick = function(){ picked = p.id; draw(); };
     var period = p.months === 1 ? t.month : p.months === 12 ? t.year : t.once;
-    /* Різницю показує закреслена ціна магазину поруч. Окремий зелений
-       бейдж «Економія $0.50» лише привертав би увагу до того, наскільки
-       вона мала — при більшому розриві його варто повернути. */
+    /* Раніше поруч стояла закреслена ціна магазину. Відколи тут гривня, а
+       там долар, це вводило б в оману: закреслені $4.99 біля 299 ₴
+       виглядають знижкою вдесятеро, якої немає. Різницю пояснюємо
+       словами під списком, а не фальшивим закресленням. */
     b.innerHTML =
       '<span class="radio">' + (p.id === picked ? '<i></i>' : '') + '</span>' +
       '<span class="t"><b>' + TITLE[LANG][p.id] + '</b><span>' + period +
-        (p.months > 1 ? ' · ' + usd(p.web / p.months) + ' ' + t.per : '') + '</span></span>' +
-      '<span class="p"><b>' + usd(p.web) + '</b><s>' + usd(p.store) + '</s></span>';
+        (p.months > 1 ? ' · ' + uah(p.web / p.months) + ' ' + t.per : '') + '</span></span>' +
+      '<span class="p"><b>' + uah(p.web) + '</b></span>';
     box.appendChild(b);
   });
 }

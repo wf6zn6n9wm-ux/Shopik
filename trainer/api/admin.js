@@ -172,7 +172,7 @@ module.exports = async function handler(req, res){
   const pays = await L.readPayments();
   const since30 = now - 30 * DAY;
   const sum = (rows, f) => +rows.reduce((s, x) => s + f(x), 0).toFixed(2);
-  const usd = rows => sum(rows, x => x.usd);
+  const uah = rows => sum(rows, x => x.uah);
   const paid = pays.filter(p => p.kind !== 'back');
   const back = pays.filter(p => p.kind === 'back');
 
@@ -186,7 +186,7 @@ module.exports = async function handler(req, res){
     month: k,
     pays: months[k].filter(x => x.kind !== 'back').length,
     backs: months[k].filter(x => x.kind === 'back').length,
-    usd: usd(months[k]),
+    uah: uah(months[k]),
     payers: new Set(months[k].filter(x => x.kind !== 'back').map(x => x.login)).size,
   }));
 
@@ -200,27 +200,27 @@ module.exports = async function handler(req, res){
     day: k,
     pays: days[k].filter(x => x.kind !== 'back').length,
     backs: days[k].filter(x => x.kind === 'back').length,
-    usd: usd(days[k]),
+    uah: uah(days[k]),
   }));
 
   /* по тарифах — видно, що саме купують */
   const byPlan = Object.keys(L.PLANS).map(id => {
     const rows = paid.filter(x => x.plan === id);
-    return {plan: id, months: L.PLANS[id].months, price: L.PLANS[id].usd, pays: rows.length, usd: usd(rows)};
+    return {plan: id, months: L.PLANS[id].months, price: L.PLANS[id].uah, pays: rows.length, uah: uah(rows)};
   }).filter(x => x.pays);
 
   const money = {
-    usd30: usd(pays.filter(p => p.ts >= since30)),
-    usdAll: usd(pays),
+    uah30: uah(pays.filter(p => p.ts >= since30)),
+    uahAll: uah(pays),
     /* скільки прийде наступного місяця, якщо ніхто не відпишеться */
     mrr: +people.filter(p => p.paid && p.renews)
-                .reduce((s, p) => s + ((L.PLANS[p.plan] || {}).usd || 0) / ((L.PLANS[p.plan] || {}).months || 1), 0)
+                .reduce((s, p) => s + ((L.PLANS[p.plan] || {}).uah || 0) / ((L.PLANS[p.plan] || {}).months || 1), 0)
                 .toFixed(2),
     pays: paid.length,
     backs: back.length,
-    backUsd: usd(back),
+    backUah: uah(back),
     payers: new Set(paid.map(p => p.login)).size,
-    avg: paid.length ? +(usd(paid) / paid.length).toFixed(2) : 0,
+    avg: paid.length ? +(uah(paid) / paid.length).toFixed(2) : 0,
     /* з якого дня журнал взагалі щось знає — без цього нуль за липень
        читався б як «не продавали», а не як «ще не рахували» */
     since: pays.length ? day(pays[0].ts) : '',

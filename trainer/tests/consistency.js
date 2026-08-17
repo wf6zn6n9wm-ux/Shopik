@@ -41,6 +41,7 @@ const app = read('index.html');
 const pay = read('pay.html');
 const lib = read('api/_lib.js');
 const trial = read('api/trial.js');
+const checkout = read('api/checkout.js');
 
 const APP_PLANS = decl(app, 'PLANS');
 const PAY_PLANS = decl(pay, 'PLANS');
@@ -57,13 +58,62 @@ part('тарифи');
     if (!onPage || !onServer) return;
     ok('  ціна на сайті збігається', p.web === onPage.web, p.web + ' / ' + onPage.web);
     ok('  ціна магазину збігається', p.price === onPage.store, p.price + ' / ' + onPage.store);
-    ok('  сервер виставляє рахунок на ту саму суму', p.web === onServer.usd, p.web + ' / ' + onServer.usd);
+    ok('  сервер виставляє рахунок на ту саму суму', p.web === onServer.uah, p.web + ' / ' + onServer.uah);
     ok('  тривалість збігається', p.months === onPage.months && p.months === onServer.months,
        [p.months, onPage.months, onServer.months].join(' / '));
   });
   ok('на сайті не завелось зайвих планів', PAY_PLANS.length === APP_PLANS.length,
      PAY_PLANS.length + ' проти ' + APP_PLANS.length);
-  ok('ціна на сайті нижча за магазинну', APP_PLANS.every(p => p.web < p.price));
+  /* Ціни в різних валютах навмисно: магазин рахує в доларах і бере свою
+     комісію, сайт — у гривнях, бо платить український ФОП і саме гривню
+     вимагає бачити моніторинг банку. Порівнювати їх числом не можна, а
+     сплутати — легко, і тоді в рахунок пішло б 4.49 замість 299. Тому
+     перевіряємо не «дешевше», а що кожне число лишилось у своїй валюті. */
+  ok('ціни магазину — в доларах', APP_PLANS.every(p => p.price < 100),
+     APP_PLANS.map(p => p.price).join(', '));
+  ok('ціни на сайті — у гривнях', APP_PLANS.every(p => Number.isInteger(p.web) && p.web >= 100),
+     APP_PLANS.map(p => p.web).join(', '));
+  ok('на сервері валюта рахунку — гривня', /currency: 'UAH'/.test(checkout),
+     (checkout.match(/currency: '(\w+)'/) || [])[1] || '—');
+
+  /* ─── публічна сторінка ───
+     Її читає моніторинг банку, і саме через неї ми вже одного разу
+     вилетіли: цін на сайті не було взагалі. Другий список цін розійшовся
+     б із першим тихо, тому звіряємо його з застосунком, а реквізити — з
+     LEGAL, звідки їх бере решта сторінок. */
+  {
+    const about = read('about.html');
+    const plans = decl(about, 'PLANS');
+    ok('тарифи на публічній сторінці є всі', plans.length === APP_PLANS.length,
+       plans.length + ' проти ' + APP_PLANS.length);
+    APP_PLANS.forEach(p => {
+      const row = plans.find(x => x.id === p.id) || {};
+      ok('  ' + p.id + ': ціна й строк збігаються з застосунком',
+         row.uah === p.web && row.months === p.months,
+         row.uah + ' / ' + p.web + ' · ' + row.months + ' / ' + p.months);
+    });
+    const legal = decl(app, 'LEGAL');
+    const shown = decl(about, 'LEGAL');
+    ['company', 'id', 'addr', 'phone', 'email'].forEach(k => {
+      ok('  реквізит ' + k + ' збігається з застосунком', legal[k] === shown[k],
+         String(shown[k] || '—'));
+    });
+    /* Ціни живуть ще й у відповідях підтримки — чотирма мовами. Саме
+       там вони одного разу й застаріли: на сторінці одне, у рахунку
+       інше. Перевіряємо, що кожна гривнева ціна названа скрізь. */
+    const help = read('support.html');
+    APP_PLANS.forEach(p => {
+      ok('  ціну ' + p.web + ' ₴ названо в підтримці',
+         (help.match(new RegExp(p.web + ' ₴', 'g')) || []).length >= 4,
+         (help.match(new RegExp(p.web + ' ₴', 'g')) || []).length + ' з 4 мов');
+    });
+    ok('  старих доларових цін на сайті не лишилось',
+       !/4\.49|11\.99|48\.99/.test(help + about + pay),
+       'ціна сайту тепер у гривні');
+
+    ok('  умови повернення на сторінці є', /повернен/i.test(about));
+    ok('  строк повернення названо', /14<\/b> днів|14 днів/.test(about));
+  }
 }
 
 part('підписка й пробний період');
@@ -108,7 +158,7 @@ part('домен');
   const listing = read('store/listing.md');
   ok('у текстах для магазинів не лишилось плейсхолдерів', !listing.includes('[САЙТ]'));
   ok('у текстах для магазинів той самий домен', listing.includes(site), site);
-  ['/support', '/privacy', '/terms', '/delete'].forEach(path =>
+  ['/support', '/privacy', '/terms', '/delete', '/about'].forEach(path =>
     ok('  адреса ' + path + ' вказана', listing.includes(site + path)));
 }
 

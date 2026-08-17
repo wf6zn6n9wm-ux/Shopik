@@ -24,9 +24,9 @@ const configured = () => !!(ENV.pub && ENV.priv);
    3 місяці продається разовим платежем — і на сторінці оплати про це
    написано прямо, а не дрібним шрифтом. */
 const PLANS = {
-  monthly:   {id: 'monthly',   months: 1,  usd: 4.49,  period: 'month'},
-  quarterly: {id: 'quarterly', months: 3,  usd: 11.99, period: null},
-  yearly:    {id: 'yearly',    months: 12, usd: 48.99, period: 'year'},
+  monthly:   {id: 'monthly',   months: 1,  uah: 299,  period: 'month'},
+  quarterly: {id: 'quarterly', months: 3,  uah: 749,  period: null},
+  yearly:    {id: 'yearly',    months: 12, uah: 1990, period: 'year'},
 };
 const DEVICES = 3;                 /* стільки ж, скільки WEB.devices у застосунку */
 const GRACE_DAYS = 3;              /* запас на випадок, якщо банк спише з затримкою */
@@ -184,7 +184,7 @@ const PAY_KEEP = 2000;
 async function logPayment({login, plan, orderId, kind}){
   const p = PLANS[plan];
   const row = {ts: Date.now(), login: normLogin(login), plan, orderId: String(orderId || ''),
-               usd: p ? (kind === 'back' ? -p.usd : p.usd) : 0, kind: kind || 'pay'};
+               uah: p ? (kind === 'back' ? -p.uah : p.uah) : 0, kind: kind || 'pay'};
   const log = (await get(PAY_LOG)) || [];
   log.push(row);
   await set(PAY_LOG, log.slice(-PAY_KEEP));

@@ -116,7 +116,8 @@ function esc(s){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
   });
 }
-function money(n){ return (n < 0 ? '−$' : '$') + Math.abs(n).toFixed(2); }
+/* гривня и без копеек: счёт выставляется целыми, дробей тут не бывает */
+function money(n){ return (n < 0 ? '−' : '') + Math.round(Math.abs(n)) + ' \u20b4'; }
 var MONTHS = ['января','февраля','марта','апреля','мая','июня',
               'июля','августа','сентября','октября','ноября','декабря'];
 function monthName(k){
@@ -298,7 +299,7 @@ function draw(d, chats){
       '<div class="sub">за неделю — ' + d.count.week + '</div></div>' +
     '<div class="card kpi"><div class="lbl">Платят</div><div class="val pos">' + d.count.paid + '</div>' +
       '<div class="sub">выдано вручную — ' + d.count.granted + '</div></div>' +
-    '<div class="card kpi"><div class="lbl">За 30 дней</div><div class="val">' + money(d.money.usd30) + '</div>' +
+    '<div class="card kpi"><div class="lbl">За 30 дней</div><div class="val">' + money(d.money.uah30) + '</div>' +
       '<div class="sub">в месяц ожидается ' + money(d.money.mrr) + '</div></div>' +
   '</div>';
 
@@ -348,10 +349,10 @@ function draw(d, chats){
     html += '<div class="kpis">' +
       '<div class="card kpi"><div class="lbl">Оплат</div><div class="val">' + m.pays + '</div>' +
         '<div class="sub">плательщиков — ' + m.payers + '</div></div>' +
-      '<div class="card kpi"><div class="lbl">Выручка</div><div class="val pos">' + money(m.usdAll) + '</div>' +
+      '<div class="card kpi"><div class="lbl">Выручка</div><div class="val pos">' + money(m.uahAll) + '</div>' +
         '<div class="sub">средний чек ' + money(m.avg) + '</div></div>' +
       '<div class="card kpi"><div class="lbl">Возвраты</div><div class="val' + (m.backs ? ' warn' : '') + '">' +
-        m.backs + '</div><div class="sub">' + money(m.backUsd) + '</div></div>' +
+        m.backs + '</div><div class="sub">' + money(m.backUah) + '</div></div>' +
       '<div class="card kpi"><div class="lbl">Считаем с</div><div class="val" style="font-size:20px">' +
         esc(m.since || '—') + '</div><div class="sub">раньше не записывалось</div></div>' +
     '</div>';
@@ -362,7 +363,7 @@ function draw(d, chats){
         return '<tr><td>' + esc(monthName(x.month)) + '</td>' +
           '<td class="num">' + x.pays + '</td><td class="num">' + x.payers + '</td>' +
           '<td class="num">' + (x.backs || '') + '</td>' +
-          '<td class="num">' + money(x.usd) + '</td></tr>';
+          '<td class="num">' + money(x.uah) + '</td></tr>';
       }).join('') + '</table></div>';
 
     if (m.byPlan.length)
@@ -370,7 +371,7 @@ function draw(d, chats){
         '<tr><th>Тариф</th><th>Цена</th><th>Оплат</th><th>Выручка</th></tr>' +
         m.byPlan.map(function(x){
           return '<tr><td>' + planName(x) + '</td><td class="num">' + money(x.price) + '</td>' +
-            '<td class="num">' + x.pays + '</td><td class="num">' + money(x.usd) + '</td></tr>';
+            '<td class="num">' + x.pays + '</td><td class="num">' + money(x.uah) + '</td></tr>';
         }).join('') + '</table></div>';
 
     html += '<h2>По дням</h2><div class="card scroll"><table>' +
@@ -378,7 +379,7 @@ function draw(d, chats){
       m.byDay.map(function(x){
         return '<tr><td>' + esc(x.day) + '</td><td class="num">' + x.pays + '</td>' +
           '<td class="num">' + (x.backs || '') + '</td>' +
-          '<td class="num">' + money(x.usd) + '</td></tr>';
+          '<td class="num">' + money(x.uah) + '</td></tr>';
       }).join('') + '</table>' +
       '<div class="muted" style="margin-top:10px">Дни без движения не показываем — пустая строка ' +
       'ничего не говорит. Возвраты идут со знаком минус в той же выручке.</div></div>';
@@ -388,7 +389,7 @@ function draw(d, chats){
       m.last.map(function(p){
         return '<tr><td>' + new Date(p.ts).toISOString().slice(0, 16).replace('T', ' ') + '</td>' +
           '<td>' + esc(p.login) + '</td><td>' + planName({plan: p.plan}) + '</td>' +
-          '<td class="num">' + money(p.usd) + '</td></tr>';
+          '<td class="num">' + money(p.uah) + '</td></tr>';
       }).join('') + '</table></div>';
   }
 

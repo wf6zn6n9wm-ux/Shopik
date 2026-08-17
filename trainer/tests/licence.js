@@ -68,7 +68,11 @@ part('оплата');
   const p = L.unpack(data);
   order = p.order_id;
   ok('річний план — регулярне списання', p.action === 'subscribe' && p.subscribe_periodicity === 'year', p.action + '/' + p.subscribe_periodicity);
-  ok('ціна веб, а не магазину', p.amount === 48.99, '$' + p.amount);
+  /* Рахунок банку — у гривнях: платить український ФОП, і моніторинг
+     банку вимагає, щоб ціна на сайті збігалась із сумою в рахунку.
+     Долар лишився тільки там, де рахує магазин застосунків. */
+  ok('рахунок у гривні, за ціною сайту', p.amount === 1990 && p.currency === 'UAH',
+     p.amount + ' ' + p.currency);
   ok('приватний ключ у браузер не потрапляє', !r.text.includes('test_priv'));
   ok('логін і пристрій їдуть у info', JSON.parse(p.info).login === 'trainer@mail.com' && JSON.parse(p.info).device === DEV_A);
 
@@ -362,13 +366,13 @@ part('адмінка');
   /* Журнал оплат — наш облік грошей, а не спостереження за тренером.
      Рахуємо приріст, а не суму: у журналі вже лежать оплати з перевірок
      вище, і жорстке число тут ламалось би від кожної нової. */
-  const was = d.money.usdAll;
+  const was = d.money.uahAll;
   await L.logPayment({login: 'a@mail.com', plan: 'yearly', orderId: 'o1', kind: 'pay'});
   const paid = (await call(ADMIN, head('3.3.3.3'))).json.money;
-  ok('оплата додає суму тарифу', +(paid.usdAll - was).toFixed(2) === 48.99, String(paid.usdAll - was));
+  ok('оплата додає суму тарифу', +(paid.uahAll - was).toFixed(2) === 1990, String(paid.uahAll - was));
   await L.logPayment({login: 'a@mail.com', plan: 'yearly', orderId: 'o1', kind: 'back'});
   const m = (await call(ADMIN, head('3.3.3.3'))).json.money;
-  ok('повернення забирає її назад', +(m.usdAll - was).toFixed(2) === 0, String(m.usdAll - was));
+  ok('повернення забирає її назад', +(m.uahAll - was).toFixed(2) === 0, String(m.uahAll - was));
   ok('у журналі обидва рядки', m.last[0].kind === 'back' && m.last[1].kind === 'pay',
      m.last.slice(0, 2).map(x => x.kind).join('/'));
 
@@ -380,42 +384,42 @@ part('адмінка');
     await L.store.set(L.PAY_LOG, []);
     const day = 86400000;
     const rows = [
-      {ts: Date.parse('2026-08-03T10:00:00Z'), login: 'a@mail.com', plan: 'monthly',   usd: 4.49,   kind: 'pay'},
-      {ts: Date.parse('2026-08-03T18:00:00Z'), login: 'b@mail.com', plan: 'yearly',    usd: 48.99,  kind: 'pay'},
-      {ts: Date.parse('2026-08-11T09:00:00Z'), login: 'a@mail.com', plan: 'monthly',   usd: 4.49,   kind: 'pay'},
-      {ts: Date.parse('2026-09-02T09:00:00Z'), login: 'c@mail.com', plan: 'quarterly', usd: 11.99,  kind: 'pay'},
-      {ts: Date.parse('2026-09-04T09:00:00Z'), login: 'b@mail.com', plan: 'yearly',    usd: -48.99, kind: 'back'},
+      {ts: Date.parse('2026-08-03T10:00:00Z'), login: 'a@mail.com', plan: 'monthly',   uah: 299,   kind: 'pay'},
+      {ts: Date.parse('2026-08-03T18:00:00Z'), login: 'b@mail.com', plan: 'yearly',    uah: 1990,  kind: 'pay'},
+      {ts: Date.parse('2026-08-11T09:00:00Z'), login: 'a@mail.com', plan: 'monthly',   uah: 299,   kind: 'pay'},
+      {ts: Date.parse('2026-09-02T09:00:00Z'), login: 'c@mail.com', plan: 'quarterly', uah: 749,   kind: 'pay'},
+      {ts: Date.parse('2026-09-04T09:00:00Z'), login: 'b@mail.com', plan: 'yearly',    uah: -1990, kind: 'back'},
     ];
     await L.store.set(L.PAY_LOG, rows);
     const m = (await call(ADMIN, head('4.4.4.4'))).json.money;
 
     ok('оплат рахуємо без повернень', m.pays === 4, String(m.pays));
     ok('платників — за людьми, а не за платежами', m.payers === 3, String(m.payers));
-    ok('повернення окремо', m.backs === 1 && m.backUsd === -48.99, m.backs + ' / ' + m.backUsd);
+    ok('повернення окремо', m.backs === 1 && m.backUah === -1990, m.backs + ' / ' + m.backUah);
 
     const aug = m.byMonth.find(x => x.month === '2026-08');
     const sep = m.byMonth.find(x => x.month === '2026-09');
     ok('серпень: три оплати, двоє платників', aug.pays === 3 && aug.payers === 2,
        aug.pays + ' / ' + aug.payers);
-    ok('серпень: виручка зійшлась', aug.usd === 57.97, String(aug.usd));
+    ok('серпень: виручка зійшлась', aug.uah === 2588, String(aug.uah));
     /* За вересень прийшло 11.99, а повернули 48.99 — місяць у мінусі, і
        так і має бути видно. Сховати повернення означало б показати
        кращу картину, ніж є. */
-    ok('вересень: повернення тягне місяць у мінус', sep.usd === -37, String(sep.usd));
+    ok('вересень: повернення тягне місяць у мінус', sep.uah === -1241, String(sep.uah));
     ok('новіші місяці зверху', m.byMonth[0].month === '2026-09', m.byMonth[0].month);
 
     const d3 = m.byDay.find(x => x.day === '2026-08-03');
-    ok('день видно окремо', d3 && d3.pays === 2 && d3.usd === 53.48,
-       d3 ? d3.pays + ' / ' + d3.usd : '—');
+    ok('день видно окремо', d3 && d3.pays === 2 && d3.uah === 2289,
+       d3 ? d3.pays + ' / ' + d3.uah : '—');
     ok('порожніх днів не показуємо', m.byDay.length === 4, String(m.byDay.length));
 
     const yearly = m.byPlan.find(x => x.plan === 'yearly');
     const monthly = m.byPlan.find(x => x.plan === 'monthly');
-    ok('по тарифах: місячний куплено двічі', monthly.pays === 2 && monthly.usd === 8.98,
-       monthly.pays + ' / ' + monthly.usd);
+    ok('по тарифах: місячний куплено двічі', monthly.pays === 2 && monthly.uah === 598,
+       monthly.pays + ' / ' + monthly.uah);
     ok('повернення не зменшує лічильник покупок тарифу', yearly.pays === 1, String(yearly.pays));
     ok('видно, з якого дня рахуємо', m.since === '2026-08-03', m.since);
-    ok('середній чек — по оплатах', m.avg === +(m.byPlan.reduce((s, x) => s + x.usd, 0) / 4).toFixed(2),
+    ok('середній чек — по оплатах', m.avg === +(m.byPlan.reduce((s, x) => s + x.uah, 0) / 4).toFixed(2),
        String(m.avg));
   }
 
