@@ -135,18 +135,24 @@ jobs:
           NAME: ${{ inputs.version }}
         run: |
           cd ios/App
-          args=(-workspace App.xcworkspace -scheme App -configuration Release
-                -archivePath "$RUNNER_TEMP/App.xcarchive"
-                MARKETING_VERSION="$NAME" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER")
-          if [ "$SIGNED" = "yes" ]; then
-            args+=(CODE_SIGN_STYLE=Manual
-                   DEVELOPMENT_TEAM="$TEAM"
-                   CODE_SIGN_IDENTITY="Apple Distribution"
-                   PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME")
-          else
-            args+=(CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="")
-          fi
-          xcodebuild "${args[@]}" archive
+          # Архив собираем без подписи — всегда, даже когда сертификат есть.
+          #
+          # Настройки, переданные в командной строке, применяются ко всем
+          # целям рабочего пространства сразу, а вместе с приложением там
+          # собираются библиотеки Capacitor и RevenueCat. Профиль подписи
+          # им не положен, и Xcode отвечает прямо: «Capacitor does not
+          # support provisioning profiles». Разделить настройки по целям
+          # из командной строки нельзя.
+          #
+          # Поэтому подпись переезжает на упаковку: там она касается
+          # только самого приложения, а библиотеки к тому времени уже
+          # лежат внутри и своей подписи не требуют.
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            MARKETING_VERSION="$NAME" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            DEVELOPMENT_TEAM="$TEAM" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            archive
 
       - name: Собрать .ipa
         if: ${{ success() }}
@@ -164,6 +170,7 @@ jobs:
             <key>method</key><string>app-store-connect</string>
             <key>teamID</key><string>$TEAM</string>
             <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
             <key>provisioningProfiles</key><dict>
               <key>com.protrainer.app</key><string>$PROFILE_NAME</string>
             </dict>
