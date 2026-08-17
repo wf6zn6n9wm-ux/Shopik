@@ -826,6 +826,9 @@ part('офлайн');
     };
     const ctx = vm.createContext({
       self, caches, URL, Promise, console,
+      /* c.add(new Request(u, {mode:'no-cors'})) — второй заход за теми CDN,
+         которые не отдают CORS-заголовки */
+      Request: class { constructor(url, opts){ this.url = String(url); Object.assign(this, opts || {}); } },
       fetch: async req => {
         asked.push(key(req));
         if (offline) throw new Error('offline');
@@ -858,6 +861,26 @@ part('офлайн');
     ok('оболочка кладётся в кеш', shell.size >= 5, shell.size + ' файлов');
     ok('в оболочке есть сам кабинет', shell.has('https://probarber.test/index.html'));
     ok('и страница записи', shell.has('https://probarber.test/book.html'));
+
+    /* главное: библиотеки должны лечь в кеш уже при установке. На первой
+       загрузке теги <script> уходят в сеть раньше, чем worker
+       активируется, — через него они не проходят вовсе */
+    ok('React лежит в кеше сразу после установки',
+       shell.has('https://unpkg.com/react@18/umd/react.production.min.js'));
+    ok('и Babel, без которого кабинет не соберётся',
+       shell.has('https://unpkg.com/@babel/standalone@7/babel.min.js'));
+    ok('и шрифт', [...shell.keys()].some(k => k.includes('fonts.googleapis.com')));
+
+    /* адреса живут в двух файлах и разъедутся молча: подняли версию React
+       в index.html — и офлайн тихо сломался */
+    const head = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').split('</head>')[0];
+    const outside = (head.match(/(?:src|href)="(https:\/\/[^"]+)"/g) || [])
+      .map(x => x.replace(/^[^"]+"|"$/g, ''))
+      /* preconnect — это голый домен без пути: кешировать там нечего */
+      .filter(u => new URL(u).pathname.length > 1);
+    ok('внешних зависимостей столько же, сколько в кабинете', outside.length >= 4, outside.length + ' шт.');
+    outside.forEach(u => ok('в кеше есть ' + u.replace(/^https:\/\//, '').slice(0, 46),
+                            shell.has(u)));
   }
 
   /* один файл пропал — установка всё равно проходит */
@@ -923,10 +946,35 @@ part('офлайн');
     const sw = runSW();
     await sw.fire('install', {}).waited;
     const cdn = 'https://unpkg.com/react@18/umd/react.production.min.js';
-    const first = await sw.fire('fetch', {request: sw.req(cdn)}).answered;
-    ok('чужая библиотека тянется из сети в первый раз', first.body === 'сеть:' + cdn);
-    const second = await sw.fire('fetch', {request: sw.req(cdn)}).answered;
-    ok('и во второй уже из кеша', second.body === 'сеть:' + cdn && sw.asked.length === 2);
+    const asked = sw.asked.length;
+    const got = await sw.fire('fetch', {request: sw.req(cdn)}).answered;
+    ok('предзагруженная библиотека отдаётся из кеша, а не из сети', got.body === 'shell:' + cdn);
+    /* сеть при этом всё же дёргается — но фоном, и ответ её не ждёт:
+       так копия обновится, когда в index.html поднимут версию */
+    ok('обновление идёт фоном и не задерживает ответ', sw.asked.length === asked + 1);
+
+    /* файл шрифта в списке не перечислен: его адрес известен только из
+       ответа Google Fonts — такие подхватываются при первой загрузке */
+    const font = 'https://fonts.gstatic.com/s/inter/v13/UcC73.woff2';
+    const first = await sw.fire('fetch', {request: sw.req(font)}).answered;
+    ok('незнакомый файл тянется из сети', first.body === 'сеть:' + font);
+    const second = await sw.fire('fetch', {request: sw.req(font)}).answered;
+    ok('и во второй раз уже из кеша', second.body === 'сеть:' + font);
+  }
+
+  /* офлайн на самой первой загрузке: worker поставили, вкладку закрыли,
+     связь пропала — кабинет обязан открыться */
+  {
+    const sw = runSW();
+    await sw.fire('install', {}).waited;
+    const cold = runSW({offline: true});
+    for (const [k, v] of sw.store) cold.store.set(k, new Map(v));
+    const app = await cold.fire('fetch', {
+      request: cold.req('https://unpkg.com/react@18/umd/react.production.min.js')}).answered;
+    ok('без сети React берётся из кеша, а не пропадает', app && /react/.test(app.body));
+    const page = await cold.fire('fetch', {
+      request: cold.req('https://probarber.test/index.html', {mode: 'navigate'})}).answered;
+    ok('и сама страница тоже', !!page);
   }
 
   /* обвязка вокруг worker'а */

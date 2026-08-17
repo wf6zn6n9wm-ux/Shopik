@@ -11,7 +11,7 @@
    и пробный период — про «сейчас»; отдать вчерашний ответ хуже, чем не
    отдать ничего. Поэтому они всегда идут в сеть и честно падают офлайн,
    а приложение это уже умеет пережить.                                */
-const V = 'probarber-v2';
+const V = 'probarber-v3';
 
 /* Всё, без чего кабинет не откроется. Публичная страница записи тоже
    здесь: барбер показывает её клиенту со своего телефона. */
@@ -24,16 +24,40 @@ const SHELL = [
   './manifest.webmanifest',
 ];
 
+/* Внешние библиотеки: без них кабинет не соберётся вовсе — ни React,
+   ни Babel, который прямо в браузере превращает JSX в рабочий код.
+
+   Кешируем их при установке, а не при первой загрузке. На самой первой
+   загрузке теги <script> уходят в сеть раньше, чем worker успевает
+   активироваться, — то есть через него они не проходят и в кеше не
+   оказываются. Барбер, закрывший вкладку и потерявший связь, увидел бы
+   пустой экран вместо своего расписания.
+
+   Адреса обязаны совпадать с тем, что подключено в index.html: разъедутся
+   молча, поэтому на это есть проверка.                                */
+const VENDOR = [
+  'https://unpkg.com/react@18/umd/react.production.min.js',
+  'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
+  'https://unpkg.com/@babel/standalone@7/babel.min.js',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+];
+
 /* куда падаем офлайн, если открытой страницы в кеше нет */
 const HOME = new URL('./index.html', self.location.href).href;
 const ROOT = new URL('./', self.location.href).href;
+
+/* Сначала обычным запросом, потом без CORS: часть CDN не отдаёт нужные
+   заголовки, и тогда ответ можно сохранить только «непрозрачным» — тела
+   мы не увидим, но браузеру для <script> его достаточно. */
+const stash = (c, u) =>
+  c.add(u).catch(() => c.add(new Request(u, {mode: 'no-cors'}))).catch(() => {});
 
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(V)
       /* по одному: если одного файла нет, addAll отменил бы установку
          целиком и офлайна не было бы вовсе */
-      .then(c => Promise.all(SHELL.map(u => c.add(u).catch(() => {}))))
+      .then(c => Promise.all(SHELL.concat(VENDOR).map(u => stash(c, u))))
       .then(() => self.skipWaiting())
   );
 });
