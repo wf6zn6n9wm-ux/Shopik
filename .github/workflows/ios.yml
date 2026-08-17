@@ -1,0 +1,205 @@
+name: iOS
+
+# Сборка нативной оболочки под iOS и отправка в TestFlight.
+#
+# Зачем в CI, а не на своей машине. Для iOS нужен macOS с Xcode: это
+# 50 ГБ на диске и много памяти, а рабочий ноутбук — Intel 2019 с 8 ГБ.
+# У GitHub машины на macOS есть, Xcode на них уже стоит, а для публичных
+# репозиториев они бесплатны. Так сборка вообще не зависит от того, что
+# стоит у нас на столе.
+#
+# Запускается вручную: она долгая и нужна к выпуску, а не на каждый коммит.
+#
+# Секреты репозитория (Settings → Secrets and variables → Actions):
+#   IOS_CERT_P12       сертификат Apple Distribution вместе с закрытым
+#                      ключом, файл .p12 в base64
+#   IOS_CERT_PASSWORD  пароль от этого .p12
+#   IOS_PROFILE        профиль подписи App Store, .mobileprovision в base64
+#   IOS_TEAM_ID        десятизначный Team ID из developer.apple.com
+#   ASC_KEY_ID         ключ App Store Connect API — им сборка сама
+#   ASC_ISSUER_ID      уезжает в TestFlight; без них .ipa останется
+#   ASC_KEY_P8         артефактом, и загрузить его придётся руками
+#
+# Без сертификата сборка всё равно проходит — просто без подписи. Это не
+# бесполезно: так видно, что проект вообще собирается, ещё до того как
+# заведены ключи.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Версия для магазина, например 1.0.0'
+        required: false
+        default: '1.0.0'
+      upload:
+        description: 'Отправить в TestFlight'
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: trainer/native
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Зависимости
+        run: npm install
+
+      # www/ собирается из trainer/index.html: JSX компилируется, React
+      # кладётся рядом. Внешних ссылок в сборке не остаётся — иначе
+      # приложение не запустилось бы там, где нет сети.
+      - name: Собрать веб-часть
+        run: npm run sync:web
+
+      - name: Создать проект iOS
+        run: npx cap add ios
+
+      - name: Перенести веб-часть в проект
+        run: npx cap sync ios
+
+      # Ключ подписи живёт только внутри этого запуска, во временной
+      # связке ключей. Наличие секрета проверяем внутри шага, а не в if:
+      # контекст secrets в условиях шагов недоступен.
+      - name: Ключ подписи
+        env:
+          CERT: ${{ secrets.IOS_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_PROFILE }}
+        run: |
+          if [ -z "$CERT" ]; then
+            echo "::warning::Сертификата нет — соберём без подписи. В TestFlight такую сборку не примут"
+            echo "SIGNED=no" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          # Переносы строк и пробелы в base64 ничего не значат, но откуда
+          # они взялись — заранее не известно: буфер обмена умеет добавлять
+          # и то и другое. Чистим сами, как в сборке Android.
+          clean=$(printf '%s' "$CERT" | tr -d '[:space:]')
+          echo "сертификат: ${#clean} символов, остаток от деления на 4 — $(( ${#clean} % 4 ))"
+          if ! printf '%s' "$clean" | base64 -d > "$RUNNER_TEMP/cert.p12"; then
+            echo '::error::IOS_CERT_P12 не раскодировался — скорее всего скопирована не вся строка'
+            exit 1
+          fi
+
+          KEYCHAIN="$RUNNER_TEMP/build.keychain"
+          security create-keychain -p ci "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p ci "$KEYCHAIN"
+          if ! security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" \
+                               -T /usr/bin/codesign -T /usr/bin/security; then
+            echo '::error::Сертификат не открылся — не подходит IOS_CERT_PASSWORD'
+            exit 1
+          fi
+          # Без этого codesign при обращении к ключу спросит пароль
+          # окном, которого на сборочной машине некому нажать, — и сборка
+          # будет висеть до таймаута вместо внятной ошибки.
+          security set-key-partition-list -S apple-tool:,apple: -s -k ci "$KEYCHAIN" >/dev/null
+          security list-keychain -d user -s "$KEYCHAIN" login.keychain-db
+
+          echo "в связке ключей:"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          printf '%s' "$PROFILE" | tr -d '[:space:]' | base64 -d \
+            > ~/Library/MobileDevice/Provisioning\ Profiles/protrainer.mobileprovision
+          # Имя профиля нужно передать сборке дословно. Достаём его из
+          # самого файла, а не просим вписать руками: расхождение на один
+          # символ выглядит как «профиль не найден» без объяснений.
+          NAME=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/protrainer.mobileprovision \
+                 | plutil -extract Name raw -o - -)
+          echo "профиль: $NAME"
+          echo "PROFILE_NAME=$NAME" >> "$GITHUB_ENV"
+          echo "SIGNED=yes" >> "$GITHUB_ENV"
+
+      # Номер сборки должен расти: App Store Connect не принимает второй
+      # раз тот же самый, а Capacitor ставит единицу всем. Номер запуска
+      # растёт сам и никогда не повторяется.
+      - name: Сборка
+        env:
+          TEAM: ${{ secrets.IOS_TEAM_ID }}
+          NAME: ${{ inputs.version }}
+        run: |
+          cd ios/App
+          args=(-workspace App.xcworkspace -scheme App -configuration Release
+                -archivePath "$RUNNER_TEMP/App.xcarchive"
+                MARKETING_VERSION="$NAME" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER")
+          if [ "$SIGNED" = "yes" ]; then
+            args+=(CODE_SIGN_STYLE=Manual
+                   DEVELOPMENT_TEAM="$TEAM"
+                   CODE_SIGN_IDENTITY="Apple Distribution"
+                   PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME")
+          else
+            args+=(CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="")
+          fi
+          xcodebuild "${args[@]}" archive
+
+      - name: Собрать .ipa
+        if: ${{ success() }}
+        env:
+          TEAM: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          if [ "$SIGNED" != "yes" ]; then
+            echo "::warning::Без подписи .ipa не собирается — дальше только архив"
+            exit 0
+          fi
+          cat > "$RUNNER_TEMP/export.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>provisioningProfiles</key><dict>
+              <key>com.protrainer.app</key><string>$PROFILE_NAME</string>
+            </dict>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportPath "$RUNNER_TEMP/ipa" \
+            -exportOptionsPlist "$RUNNER_TEMP/export.plist"
+          ls -la "$RUNNER_TEMP/ipa"
+
+      # Загрузка в TestFlight ключом App Store Connect API. Пароль от
+      # Apple ID для этого не нужен и не должен нигде лежать.
+      # success() здесь обязателен: явное if: отменяет проверку по
+      # умолчанию, и без него отправка запускалась бы даже после упавшей
+      # сборки — с прошлым .ipa или вовсе без него.
+      - name: Отправить в TestFlight
+        if: ${{ inputs.upload && success() }}
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          if [ "$SIGNED" != "yes" ] || [ -z "$KEY_P8" ]; then
+            echo "::warning::Ключа App Store Connect нет — .ipa останется артефактом, загрузите его вручную через Transporter"
+            exit 0
+          fi
+          mkdir -p ~/private_keys
+          printf '%s' "$KEY_P8" | tr -d '[:space:]' | base64 -d > ~/private_keys/AuthKey_$KEY_ID.p8
+          ipa=$(ls "$RUNNER_TEMP"/ipa/*.ipa | head -1)
+          echo "отправляем $(basename "$ipa")"
+          xcrun altool --upload-app -f "$ipa" -t ios \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER"
+
+      - name: Что собралось
+        if: ${{ always() }}
+        run: |
+          ls -la "$RUNNER_TEMP/ipa" 2>/dev/null || echo "ipa нет"
+          du -sh "$RUNNER_TEMP/App.xcarchive" 2>/dev/null || echo "архива нет"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: protrainer-ipa
+          path: ${{ runner.temp }}/ipa/*.ipa
+          if-no-files-found: warn
