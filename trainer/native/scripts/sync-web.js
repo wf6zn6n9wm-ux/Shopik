@@ -21,10 +21,14 @@ const WWW = path.join(NATIVE, 'www');
 const SELL = process.argv.includes('--sell');
 
 const FILES = ['index.html', 'sw.js', 'manifest.webmanifest', 'icon.svg'];
+/* Знімки онбордингу. Усередині застосунку мережі може не бути взагалі,
+   тож вони їдуть у збірку разом із рештою. */
+const DIRS = ['ob'];
 
 fs.rmSync(WWW, {recursive: true, force: true});
 fs.mkdirSync(WWW, {recursive: true});
 FILES.forEach(f => fs.copyFileSync(path.join(APP, f), path.join(WWW, f)));
+DIRS.forEach(d => fs.cpSync(path.join(APP, d), path.join(WWW, d), {recursive: true}));
 
 const idx = path.join(WWW, 'index.html');
 let html = fs.readFileSync(idx, 'utf8');
@@ -83,5 +87,5 @@ if (SELL) {
 }
 
 fs.writeFileSync(idx, html);
-console.log('www/ готова:', FILES.length + umd.length, 'файлів, без жодного зовнішнього посилання,',
+console.log('www/ готова:', FILES.length + umd.length + fs.readdirSync(path.join(WWW, 'ob')).length, 'файлів, без жодного зовнішнього посилання,',
   SELL ? 'вбудовані покупки увімкнено' : 'безкоштовна збірка: оплата на сайті');

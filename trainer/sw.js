@@ -4,8 +4,12 @@
    відкривається без мережі: усі дані й так лежать на пристрої. */
 /* Нову назву беремо, щоб activate прибрав старий кеш: у ньому могли
    осісти відповіді /api, які туди ніколи не мали потрапити. */
-const V = 'protrainer-v2';
-const SHELL = ['./', './index.html', './icon.svg', './manifest.webmanifest'];
+const V = 'protrainer-v3';
+/* Знімки онбордингу лежать тут-таки: це перший екран, який бачить
+   людина, і саме він має відкриватись без очікування — зокрема з
+   поганим зв'язком у залі. */
+const SHELL = ['./', './index.html', './icon.svg', './manifest.webmanifest',
+               './ob/ob-1.png', './ob/ob-2.png', './ob/ob-3.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
