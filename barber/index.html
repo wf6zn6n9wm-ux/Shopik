@@ -1224,6 +1224,30 @@ const PHRASES = {
                uk: 'Дані залишаться на пристрої — увійти назад можна тим самим логіном.',
                en: 'Your data stays on the device — sign back in with the same login.'},
 
+  /* ── резервная копия ── */
+  bkTitle: {ru: 'Резервная копия', uk: 'Резервна копія', en: 'Backup'},
+  bkLast: {ru: 'Последняя копия', uk: 'Остання копія', en: 'Last backup'},
+  bkNever: {ru: 'ещё не делали', uk: 'ще не робили', en: 'not made yet'},
+  bkWhat: {ru: 'В копию входят клиенты, записи, услуги, расходы, переписка и настройки.',
+           uk: 'У копію входять клієнти, записи, послуги, витрати, листування й налаштування.',
+           en: 'The backup holds clients, appointments, services, expenses, chats and settings.'},
+  bkNow: {ru: 'Создать копию сейчас', uk: 'Створити копію зараз', en: 'Back up now'},
+  bkDone: {ru: 'Копия создана', uk: 'Копію створено', en: 'Backup created'},
+  bkFail: {ru: 'Не удалось создать копию — на устройстве нет места',
+           uk: 'Не вдалося створити копію — на пристрої немає місця',
+           en: 'Could not create the backup — the device is out of space'},
+  bkAuto: {ru: 'Автоматическая копия', uk: 'Автоматична копія', en: 'Automatic backup'},
+  bkAutoSub: {ru: 'Раз в сутки, пока кабинет открыт', uk: 'Раз на добу, поки кабінет відкритий', en: 'Once a day while the app is open'},
+  bkRestore: {ru: 'Восстановить последнюю копию', uk: 'Відновити останню копію', en: 'Restore the last backup'},
+  bkRestoreAsk: {ru: 'Текущие данные будут заменены копией. Отменить это будет нельзя.',
+                 uk: 'Поточні дані буде замінено копією. Скасувати це буде не можна.',
+                 en: 'Your current data will be replaced by the backup. This cannot be undone.'},
+  bkRestored: {ru: 'Данные восстановлены', uk: 'Дані відновлено', en: 'Data restored'},
+  bkNoLocal: {ru: 'Копию не удалось прочитать', uk: 'Копію не вдалося прочитати', en: 'The backup could not be read'},
+  bkNative: {ru: 'Данные дублируются в память устройства — их не сотрёт очистка браузера.',
+             uk: 'Дані дублюються в пам’ять пристрою — їх не зітре очищення браузера.',
+             en: 'Your data is mirrored to device storage — clearing the browser will not wipe it.'},
+
   menuMore: {ru: 'Ещё', uk: 'Ще', en: 'More'},
 };
 
@@ -1237,6 +1261,106 @@ const t = (k, lang) => {
 /* ── 3. ДАННЫЕ ────────────────────────────────────────────────────── */
 
 const KEY = 'probarber.v1';
+const META_KEY = 'probarber.meta';
+const BACKUP_KEY = KEY + '.backup';
+
+/* ── хранилище ────────────────────────────────────────────────────
+   localStorage в WebView система может очистить, когда на устройстве
+   кончается место, — то есть барбер рискует потерять клиентов вместе с
+   историей и деньгами. Поэтому всё пишется сразу в два места: в
+   localStorage и в нативное хранилище (@capacitor/preferences), а
+   читается из памяти, которую наполняем на старте.
+
+   Синхронный API снаружи тот же, что был, — остальной код не меняется. */
+const Box = {
+  cache: new Map(),
+  plugin(){
+    try {
+      const C = window.Capacitor;
+      return (C && C.Plugins && C.Plugins.Preferences) || null;
+    } catch (e){ return null; }
+  },
+  native(){ return !!Box.plugin(); },
+  ls(k){ try { return localStorage.getItem(k); } catch (e){ return null; } },
+  /* читаем оба хранилища; нативное главнее, потому что переживает
+     очистку WebView */
+  async hydrate(keys){
+    const P = Box.plugin();
+    for (const k of keys){
+      let v = null;
+      if (P){ try { v = (await P.get({key: k})).value; } catch (e){} }
+      if (v == null) v = Box.ls(k);
+      if (v != null){
+        Box.cache.set(k, v);
+        /* вернём копию в WebView, если её оттуда вычистили */
+        if (P && Box.ls(k) !== v){ try { localStorage.setItem(k, v); } catch (e){} }
+      }
+    }
+  },
+  get(k){ return Box.cache.has(k) ? Box.cache.get(k) : Box.ls(k); },
+  /* вторую вкладку и восстановление извне замечаем через событие storage */
+  listening: false,
+  listen(){
+    if (Box.listening) return;
+    Box.listening = true;
+    try {
+      window.addEventListener('storage', e => {
+        if (!e || !e.key || !Box.cache.has(e.key)) return;
+        Box.cache.set(e.key, e.newValue);
+        if (e.key === META_KEY && typeof Access !== 'undefined') Access.emit();
+      });
+    } catch (e){}
+  },
+  /* true — записалось хоть куда-то; false — данные не сохранены */
+  set(k, v){
+    Box.cache.set(k, v);
+    let ok = true;
+    try { localStorage.setItem(k, v); } catch (e){ ok = false; }
+    const P = Box.plugin();
+    if (P){ P.set({key: k, value: v}).catch(() => {}); ok = true; }   /* без квоты */
+    return ok;
+  },
+  remove(k){
+    Box.cache.delete(k);
+    try { localStorage.removeItem(k); } catch (e){}
+    const P = Box.plugin();
+    if (P) P.remove({key: k}).catch(() => {});
+  },
+};
+
+/* ── отдать файл ──────────────────────────────────────────────────
+   В браузере файл забирает ссылка с download. В нативной оболочке такая
+   ссылка никуда не ведёт: там файл надо положить на диск и открыть
+   системное «Поделиться» — иначе барбер жмёт «Сохранить» и ничего не
+   происходит. Оба пути прячем сюда, чтобы не дублировать их в копии и
+   в выгрузке финансов.                                              */
+const Files = {
+  plugins(){
+    try {
+      const P = window.Capacitor && window.Capacitor.Plugins;
+      return P && P.Filesystem && P.Share ? P : null;
+    } catch (e){ return null; }
+  },
+  async save(name, mime, text){
+    const P = Files.plugins();
+    if (P){
+      try {
+        const r = await P.Filesystem.writeFile({path: name, data: text, directory: 'CACHE', encoding: 'utf8'});
+        await P.Share.share({title: name, url: r.uri});
+        return true;
+      } catch (e){ /* ниже попробуем как в браузере */ }
+    }
+    try {
+      const blob = new Blob([text], {type: mime + ';charset=utf-8'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      setTimeout(() => { try { URL.revokeObjectURL(a.href); } catch (e){} }, 4000);
+      return true;
+    } catch (e){ return false; }
+  },
+};
 
 /* ── шифрование базы ──────────────────────────────────────────────
    Клиентская база — персональные данные, поэтому она остаётся на
@@ -1246,7 +1370,16 @@ const KEY = 'probarber.v1';
 
    Ключ живёт только в памяти вкладки: закрыл — и снова нужен PIN.      */
 const encTxt = new TextEncoder(), decTxt = new TextDecoder();
-const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+/* По кускам, а не одним вызовом: String.fromCharCode(...массив) кладёт
+   стек уже на сотне тысяч байт, а база с фото клиентов легко больше —
+   то есть шифрование падало бы ровно у тех, кому оно нужнее всего. */
+const b64 = buf => {
+  const bytes = new Uint8Array(buf);
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    out += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(out);
+};
 const unb64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
 const subtle = () => {
   try { return crypto.subtle; } catch (e){ return null; }
@@ -1302,6 +1435,7 @@ const emptyDB = () => ({
     /* сервер нужен только для онлайн-записи: выключен — кабинет живёт
        целиком на своём хранилище, как и раньше */
     sync: false, token: '', pulledAt: '', tgLinked: false, secure: false,
+    backup: {auto: true, lastAt: 0},
     notif: {booked: true, reminder: true, birthday: true, lapsed: false},
   },
   services: [], clients: [], appts: [], threads: [], expenses: [], seen: {},
@@ -1513,9 +1647,11 @@ function seedDB(over){
 /* ── 4. ХРАНИЛИЩЕ ─────────────────────────────────────────────────── */
 
 const Disk = {
+  /* на старте наполняем память обоими хранилищами — дальше всё синхронно */
+  hydrate(){ Box.listen(); return Box.hydrate([KEY, META_KEY, BACKUP_KEY]); },
   /* сырое содержимое: либо сама база, либо конверт {enc:1, iv, ct} */
-  readRaw(){ try { return localStorage.getItem(KEY); } catch (e){ return null; } },
-  writeRaw(str){ try { localStorage.setItem(KEY, str); return true; } catch (e){ return false; } },
+  readRaw(){ return Box.get(KEY); },
+  writeRaw(str){ return Box.set(KEY, str); },
   /* зашифрована ли база — видно, не расшифровывая */
   locked(){
     try {
@@ -1524,7 +1660,7 @@ const Disk = {
     } catch (e){ return false; }
   },
   /* база могла прийти из прошлой версии — добираем недостающее */
-  hydrate(data){
+  normalize(data){
     if (!data || !Array.isArray(data.clients)) return null;
     const base = emptyDB();
     const db = Object.assign({}, base, data);
@@ -1541,7 +1677,7 @@ const Disk = {
       if (!raw) return null;
       const data = JSON.parse(raw);
       if (data && data.enc === 1) return null;      /* нужен PIN — этим займётся Boot */
-      return Disk.hydrate(data);
+      return Disk.normalize(data);
     } catch (e){ return null; }
   },
   /* Запись идёт цепочкой: шифрование асинхронное, а Store.set зовут часто —
@@ -1563,8 +1699,50 @@ const Disk = {
   /* стираем данные, аккаунт и оплату оставляем: иначе очистка данных
      давала бы новый бесплатный период */
   clear(){
-    try { localStorage.removeItem(KEY); } catch (e){}
+    Box.remove(KEY);
+    Box.remove(BACKUP_KEY);
     Vault.key = null;
+  },
+};
+
+/* ── резервная копия ──────────────────────────────────────────────
+   Снимок базы рядом с рабочими данными плюс файл по требованию.
+   Автоматическая копия делается раз в сутки, пока кабинет открыт.
+
+   Когда включён PIN, снимок шифруется тем же ключом: иначе шифрование
+   базы обходилось бы чтением соседнего ключа в localStorage. Момент
+   создания при этом лежит открытым — чтобы показать «последняя копия:
+   сегодня» и не расшифровывать ради одной даты.                      */
+const Backups = {
+  async make(){
+    if (!Store.state) return false;
+    const json = JSON.stringify(Store.state);
+    const body = Vault.key
+      ? Object.assign({ts: Date.now()}, await Vault.encrypt(json))
+      : {ts: Date.now(), db: Store.state};
+    const ok = Box.set(BACKUP_KEY, JSON.stringify(body));
+    if (ok) Act.markBackup();
+    return ok;
+  },
+  /* только «когда» — синхронно и без расшифровки */
+  stamp(){
+    try {
+      const v = JSON.parse(Box.get(BACKUP_KEY) || 'null');
+      return v && v.ts ? v.ts : 0;
+    } catch (e){ return 0; }
+  },
+  /* сама база: под PIN её отдаём, только если ключ уже в памяти */
+  async load(){
+    try {
+      const v = JSON.parse(Box.get(BACKUP_KEY) || 'null');
+      if (!v) return null;
+      if (v.enc === 1) return Vault.key ? JSON.parse(await Vault.decrypt(v.iv, v.ct)) : null;
+      return v.db || null;
+    } catch (e){ return null; }
+  },
+  file(){
+    return Files.save('probarber-' + iso(new Date()) + '.json',
+      'application/json', JSON.stringify(Store.state, null, 2));
   },
 };
 
@@ -1606,6 +1784,7 @@ const Act = {
     Store.set(s => ({...s, clients: [c, ...s.clients]}));
     return c;
   },
+  markBackup(){ Act.settings({backup: Object.assign({}, Store.state.settings.backup, {lastAt: Date.now()})}); },
   updClient(id, patch){ Store.edit('clients', id, patch); return Store.state.clients.find(c => c.id === id); },
   delClient(id){
     Store.set(s => ({
@@ -1851,10 +2030,9 @@ const WEB = {
 
 /* Отдельный ключ, а не общая база: «сбросить к демо» не должно съедать
    слот в лицензии и уж тем более стирать оплаченную подписку. */
-const META_KEY = 'probarber.meta';
 const Meta = {
   read(){
-    try { return JSON.parse(localStorage.getItem(META_KEY) || '{}') || {}; }
+    try { return JSON.parse(Box.get(META_KEY) || '{}') || {}; }
     catch (e){ return {}; }
   },
   write(patch){
@@ -1862,7 +2040,7 @@ const Meta = {
   },
   /* целиком, а не патчем: так снимают защиту паролем и чистят кабинет */
   replace(next){
-    try { localStorage.setItem(META_KEY, JSON.stringify(next || {})); } catch (e){}
+    Box.set(META_KEY, JSON.stringify(next || {}));
     return next || {};
   },
 };
@@ -4469,6 +4647,66 @@ function SyncBlock({db}){
   );
 }
 
+/* Резервная копия: когда сделана, кнопка «сейчас», автокопия и откат.
+   Копия лежит рядом с базой в том же хранилище — этого хватает, когда
+   данные потерялись из-за ошибки, но не когда потерялся телефон.
+   Поэтому «Создать копию сейчас» ещё и отдаёт файл. */
+function BackupCard({db}){
+  const nav = useNav();
+  const B = db.settings.backup || {auto: true, lastAt: 0};
+  const [busy, setBusy] = useState(false);
+  const stamp = Backups.stamp();
+  const when = ts => {
+    if (!ts) return t('bkNever');
+    const d = new Date(ts);
+    return dayWord(iso(d)) + ', ' + hhmm(d.getHours() * 60 + d.getMinutes());
+  };
+
+  async function makeNow(){
+    setBusy(true);
+    const ok = await Backups.make();
+    await Backups.file();
+    setBusy(false);
+    toast(ok ? t('bkDone') : t('bkFail'), ok ? 'ok' : 'bad');
+  }
+  async function restore(){
+    const data = await Backups.load();
+    if (!data){ toast(t('bkNoLocal'), 'bad'); return; }
+    nav.modal('confirm', {
+      title: t('bkRestore'), text: t('bkRestoreAsk'), danger: true,
+      onYes: () => {
+        Store.set(() => Disk.normalize(data) || emptyDB());
+        toast(t('bkRestored'), 'ok');
+      },
+    });
+  }
+
+  return (
+    <Card className="card-pad">
+      <div className="card-title" style={{marginBottom: 6}}>{t('bkTitle')}</div>
+      <div className="hint">{t('bkLast')}</div>
+      <div style={{fontSize: 18, fontWeight: 750, letterSpacing: '-.02em', marginTop: 2}}>{when(stamp)}</div>
+      <div className="hint" style={{marginTop: 6}}>{t('bkWhat')}</div>
+      <Button kind="gold" icon="download" block style={{marginTop: 12}} disabled={busy} onClick={makeNow}>
+        {t('bkNow')}
+      </Button>
+      <hr className="sep" style={{margin: '14px 0 4px'}} />
+      <Row title={t('bkAuto')} note={t('bkAutoSub')}>
+        <Switch on={B.auto !== false} onChange={v => Act.settings({backup: Object.assign({}, B, {auto: v})})} />
+      </Row>
+      {stamp > 0 && (
+        <>
+          <hr className="sep" />
+          <Row title={t('bkRestore')} note={when(stamp)}>
+            <Button kind="ghost" size="sm" icon="refresh" onClick={restore} />
+          </Row>
+        </>
+      )}
+      {Box.native() && <div className="hint" style={{marginTop: 10}}>{t('bkNative')}</div>}
+    </Card>
+  );
+}
+
 function Settings(){
   const db = useDB();
   const nav = useNav();
@@ -4481,15 +4719,10 @@ function Settings(){
   })();
 
   const save = patch => { Act.profile(patch); };
-  const exportJson = () => {
-    try {
-      const blob = new Blob([JSON.stringify(db, null, 2)], {type: 'application/json'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'probarber-backup.json';
-      a.click();
-      toast(t('tSaved'), 'ok');
-    } catch (e){ toast(t('tSaved'), 'bad'); }
+  const exportJson = async () => {
+    const ok = await Files.save('probarber-' + iso(new Date()) + '.json',
+      'application/json', JSON.stringify(db, null, 2));
+    toast(ok ? t('tSaved') : t('bkFail'), ok ? 'ok' : 'bad');
   };
   /* импорт — это замена всей базы, поэтому сначала проверяем файл, а
      потом спрашиваем подтверждение */
@@ -4670,6 +4903,8 @@ function Settings(){
               }} />
             </Row>
           </Card>
+
+          <BackupCard db={db} />
 
           <Card className="card-pad">
             <div className="card-title" style={{marginBottom: 12}}>{t('setData')}</div>
@@ -5508,6 +5743,20 @@ function App(){
     return () => { if (mq.removeEventListener) mq.removeEventListener('change', fn); };
   }, []);
 
+  /* Автоматическая копия: раз в сутки, пока кабинет открыт. Проверяем
+     редко — раз в час, — иначе таймер будил бы приложение впустую. */
+  useEffect(() => {
+    const tick = () => {
+      const B = (Store.state && Store.state.settings.backup) || {};
+      if (B.auto === false) return;
+      if (Date.now() - (B.lastAt || 0) < 20 * 3600 * 1000) return;
+      Backups.make().catch(() => {});
+    };
+    const h = setTimeout(tick, 4000);          /* не на самом старте */
+    const i = setInterval(tick, 3600 * 1000);
+    return () => { clearTimeout(h); clearInterval(i); };
+  }, []);
+
   /* заявки забираем при открытии и раз в пару минут, витрину
      перепубликовываем после изменений — но не чаще раза в пять секунд,
      иначе каждое нажатие уходило бы в сеть */
@@ -5648,15 +5897,20 @@ function Boot(){
   }, []);
 
   useEffect(() => {
-    try {
-      const raw = Disk.readRaw();
-      const next = bootPhase(Meta.read(), raw);
-      if (next !== 'app'){ setPhase(next); return; }
-      start(Disk.hydrate(JSON.parse(raw)));
-    } catch (e){
-      console.error(e);
-      setPhase('error');
-    }
+    (async () => {
+      try {
+        /* нативное хранилище отвечает не сразу — до него база «пустая»,
+           поэтому читаем диск только после того, как память наполнена */
+        await Disk.hydrate();
+        const raw = Disk.readRaw();
+        const next = bootPhase(Meta.read(), raw);
+        if (next !== 'app'){ setPhase(next); return; }
+        start(Disk.normalize(JSON.parse(raw)));
+      } catch (e){
+        console.error(e);
+        setPhase('error');
+      }
+    })();
   }, []);
 
   /* база прочитана — поднимаем состояние и включаем оформление */
@@ -5676,7 +5930,7 @@ function Boot(){
       Vault.key = key;
       const env = JSON.parse(Disk.readRaw());
       const json = await Vault.decrypt(env.iv, env.ct);
-      start(Disk.hydrate(JSON.parse(json)));
+      start(Disk.normalize(JSON.parse(json)));
     } catch (e){
       Vault.key = null;
       setPinErr(t('pinWrong'));

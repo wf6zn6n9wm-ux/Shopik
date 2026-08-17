@@ -109,9 +109,10 @@ const EXPORTS = `;globalThis.__T = {
   fitName, nameRoom, EventBox,
   Access, Web, Meta, WEB, PLANS, TRIAL_DAYS, planById, uah, addMonthsKeep, normLogin,
   loginLooksReal, useAccess, ACCESS_LABEL, AppGate, TrialIntro, Paywall, SubscriptionPage,
-  AccessCard, PlanCards, LoginBox,
+  AccessCard, PlanCards, LoginBox, BackupCard,
   Vault, isEmail, isPhone, isLogin, b64, unb64,
   Boot, bootPhase, Onboarding, Auth, PinLock, Setup, SkScreen, ErrorBox, ObArt, LangPick, PinModal,
+  Box, Files, Backups, BACKUP_KEY, META_KEY,
   expensesIn, spent, profit, EXPENSE_KINDS, ExpenseForm, pickFile, pickPhoto,
 };`;
 
@@ -330,11 +331,13 @@ part('хранилище');
   ok('база переживает перезагрузку', !!back && back.clients.length === S().clients.length);
   const old = T.Disk.read();
   delete old.settings.step; delete old.threads; delete old.profile.hours.sun;
-  ctx.localStorage.setItem('probarber.v1', JSON.stringify(old));
+  /* пишем через то же хранилище, что и приложение: у Box своя память,
+     и запись мимо неё в жизни не случается */
+  T.Box.set('probarber.v1', JSON.stringify(old));
   const fixed = T.Disk.read();
   ok('база прошлой версии дополняется значениями по умолчанию',
      fixed.settings.step === 30 && Array.isArray(fixed.threads) && !!fixed.profile.hours.sun);
-  ctx.localStorage.setItem('probarber.v1', '{битый json');
+  T.Box.set('probarber.v1', '{битый json');
   ok('битые данные не роняют приложение', T.Disk.read() === null);
 }
 
@@ -725,8 +728,8 @@ part('экраны с сервером');
 part('вход');
 {
   const A = T.Access;
-  ctx.localStorage.removeItem('probarber.meta');
-  ctx.localStorage.removeItem('probarber.v1');
+  T.Box.remove('probarber.meta');
+  T.Box.remove('probarber.v1');
 
   ok('почта и телефон различаются',
      T.isEmail('barber@mail.com') && !T.isEmail('067') &&
@@ -784,11 +787,100 @@ part('вход');
   T.Meta.write({signedOut: false, guest: true});
 }
 
+part('хранилище');
+{
+  const B = T.Box;
+  B.remove('probe');
+
+  ok('запись возвращает, получилось ли', B.set('probe', 'раз') === true);
+  ok('и читается обратно', B.get('probe') === 'раз');
+  ok('в localStorage тоже легло', ctx.localStorage.getItem('probe') === 'раз');
+  B.remove('probe');
+  ok('удаление чистит и память, и диск',
+     B.get('probe') === null && ctx.localStorage.getItem('probe') === null);
+
+  /* память главнее диска: так вторая вкладка не подсовывает устаревшее */
+  B.set('probe', 'из памяти');
+  ctx.localStorage.setItem('probe', 'мимо памяти');
+  ok('читаем из памяти, а не с диска', B.get('probe') === 'из памяти');
+  B.remove('probe');
+
+  /* ключа не было вовсе — тогда берём с диска */
+  ctx.localStorage.setItem('probe2', 'только на диске');
+  ok('незнакомый ключ читается с диска', B.get('probe2') === 'только на диске');
+  ctx.localStorage.removeItem('probe2');
+
+  ok('нативное хранилище в браузере не подключено', B.native() === false);
+  ok('на старте память наполняется с диска', typeof B.hydrate === 'function' && typeof T.Disk.hydrate === 'function');
+
+  /* сохранение не должно молча теряться, когда места нет */
+  const keep = ctx.localStorage.setItem;
+  ctx.localStorage.setItem = () => { throw new Error('QuotaExceeded'); };
+  ok('переполнение диска видно по ответу', B.set('probe3', 'x') === false);
+  ctx.localStorage.setItem = keep;
+  B.remove('probe3');
+}
+
+part('резервная копия');
+{
+  T.Store.init(T.seedDB());
+  T.Vault.key = null;
+  T.Disk.write(T.Store.state);
+  T.Box.remove(T.BACKUP_KEY);
+  ok('копии ещё нет', T.Backups.stamp() === 0);
+
+  const made = await T.Backups.make();
+  ok('копия создаётся', made === true && T.Backups.stamp() > 0);
+  ok('и дата попадает в настройки', T.Store.state.settings.backup.lastAt > 0);
+
+  const loaded = await T.Backups.load();
+  ok('из копии читаются те же клиенты', loaded.clients.length === T.Store.state.clients.length);
+
+  /* копия должна пережить порчу рабочей базы — ради этого всё и затевалось */
+  const before = T.Store.state.clients.length;
+  T.Box.set('probarber.v1', '{сломалось');
+  ok('рабочая база не читается', T.Disk.read() === null);
+  ok('а копия на месте', (await T.Backups.load()).clients.length === before);
+  T.Disk.write(T.Store.state);
+
+  /* под PIN копия тоже шифруется: иначе шифрование обходилось бы
+     чтением соседнего ключа */
+  const {key} = await T.Vault.derive('4321');
+  T.Vault.key = key;
+  await T.Backups.make();
+  const raw = JSON.parse(T.Box.get(T.BACKUP_KEY));
+  ok('под PIN копия лежит шифром', raw.enc === 1 && !JSON.stringify(raw).includes('clients'));
+  ok('но дату видно без расшифровки', raw.ts > 0 && T.Backups.stamp() === raw.ts);
+  ok('с ключом копия читается', (await T.Backups.load()).clients.length === before);
+  T.Vault.key = null;
+  ok('без ключа копию не отдаём', (await T.Backups.load()) === null);
+
+  /* «начать с чистого листа» уносит и копию — иначе данные, которые
+     барбер попросил стереть, остались бы лежать рядом */
+  const kk = (await T.Vault.derive('4321')).key;
+  T.Vault.key = kk;
+  await T.Backups.make();
+  T.Vault.key = null;
+  T.Disk.clear();
+  ok('очистка данных уносит и копию', T.Backups.stamp() === 0 && T.Disk.readRaw() === null);
+
+  T.Store.init(T.seedDB());
+  T.Disk.write(T.Store.state);
+  screen('карточка копии', () => T.BackupCard({db: T.Store.state}));
+  ok('в настройках есть резервная копия', textOf(T.Settings({})).includes('Резервная копия'));
+}
+
 part('шифрование базы');
 {
   const V = T.Vault;
   ok('шифрование доступно', V.ready());
   ok('base64 туда-обратно', T.b64(T.unb64('aGk=')) === 'aGk=');
+  /* на большом массиве наивный fromCharCode(...) кладёт стек, а база с
+     фото клиентов бывает и в мегабайт */
+  const big = new Uint8Array(600000);
+  for (let i = 0; i < big.length; i++) big[i] = i % 256;
+  ok('большая база кодируется, а не роняет стек', T.b64(big).length > 700000, T.b64(big).length + ' символов');
+  ok('и раскодируется обратно без потерь', T.unb64(T.b64(big)).length === big.length);
 
   const {key, salt} = await V.derive('1234');
   V.key = key;
@@ -832,7 +924,7 @@ part('доступ и подписка');
 {
   const A = T.Access, W = T.Web;
   const DAY = 86400000;
-  const reset = () => { ctx.localStorage.removeItem('probarber.meta'); W.alive = null; };
+  const reset = () => { T.Box.remove('probarber.meta'); W.alive = null; };
 
   reset();
   ok('до старта пробного кабинет открыт', A.state().kind === 'TRIAL_NOT_STARTED' && A.allowed());
