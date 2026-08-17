@@ -69,6 +69,21 @@ jobs:
       - name: Создать проект iOS
         run: npx cap add ios
 
+      # Capacitor ставит нижней границей iOS 14, а Apple с весны 2027
+      # перестанет принимать всё ниже 15 — первая же загрузка вернулась с
+      # предупреждением ITMS-90068. Поднимаем здесь, до pod install:
+      # библиотеки берут границу из Podfile, и переставить её потом уже
+      # нечем.
+      - name: Поднять минимальную версию iOS
+        run: |
+          f=ios/App/Podfile
+          sed -i '' "s/platform :ios, '1[0-4]\.[0-9]*'/platform :ios, '15.0'/" "$f"
+          grep -n "platform :ios" "$f"
+          if ! grep -q "platform :ios, '15.0'" "$f"; then
+            echo '::error::Не удалось поднять минимальную версию в Podfile — Capacitor поменял его вид, посмотрите строку выше'
+            exit 1
+          fi
+
       - name: Перенести веб-часть в проект
         run: npx cap sync ios
 
@@ -150,6 +165,7 @@ jobs:
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
             MARKETING_VERSION="$NAME" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0 \
             DEVELOPMENT_TEAM="$TEAM" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             archive
