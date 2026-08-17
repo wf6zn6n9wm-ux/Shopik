@@ -2242,10 +2242,16 @@ const Cloud = {
      замінити замок і token — але не саму копію: ключ від неї не
      змінюється, тож перекладати мегабайти даних не доводиться. */
   async rekey(login, ticket, c){
-    const r = await fetch(Web.base() + '/api/db?' + new URLSearchParams({login, token: c.token, ticket}),
-      {method:'POST', headers:{'Content-Type':'application/json'},
-       body: JSON.stringify({wrap: c.wrap, salt: c.salt})});
-    return (await r.json().catch(() => null)) || {ok:false, error:'http_' + r.status};
+    /* Обрив зв'язку тут — звичайна річ, а не виняток: людина міняє
+       пароль там, де ловить. Досі fetch падав нагору, і екран лишався
+       з кнопкою «Хвилинку…» назавжди. Повертаємо відмову, як усі
+       сусідні виклики, — її вже вміють показати словами. */
+    try {
+      const r = await fetch(Web.base() + '/api/db?' + new URLSearchParams({login, token: c.token, ticket}),
+        {method:'POST', headers:{'Content-Type':'application/json'},
+         body: JSON.stringify({wrap: c.wrap, salt: c.salt})});
+      return (await r.json().catch(() => null)) || {ok:false, error:'http_' + r.status};
+    } catch { return {ok:false, error:'network'}; }
   },
 };
 
@@ -4173,6 +4179,18 @@ const Auth = ({onReady, save}) => {
   async function setNewPass(){
     if (f.pass.length < 4) return setErr({pass: t('auth.err.pass','Пароль — від 4 символів')});
     setBusy(true);
+    try { await applyNewPass(); }
+    catch (ex){
+      /* Найдорожчий крок у застосунку: тут людина або повертає базу
+         клієнтів, або лишається ні з чим. Досі будь-який збій на ньому
+         не показував нічого — кнопка застигала на «Хвилинку…», і що
+         робити далі, дізнатись було нізвідки. Мовчання тут гірше за
+         будь-яку помилку. */
+      setBusy(false);
+      setErr({pass: t('auth.err.rekey','Не вдалося застосувати новий пароль. Спробуйте ще раз або замовте новий код')});
+    }
+  }
+  async function applyNewPass(){
     const login = normLogin(f.login.trim());
     const meta = Disk.readMeta() || {};
     const had = meta.account && meta.account.login === login ? meta.account : null;

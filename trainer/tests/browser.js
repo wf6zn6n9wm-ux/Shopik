@@ -373,7 +373,7 @@ const done = (url, html) => {
      дивиться на завантаження, друга — на відмову у вході. Вимагати від
      них позначку означало б тричі перезапускати вдалу пробу, а потім
      рахувати її результат так, ніби повторів не було. */
-  const OUTSIDE = ['probe=app-boot', 'probe=app-nocopy', 'probe=app-swipe'];
+  const OUTSIDE = ['probe=app-boot', 'probe=app-nocopy', 'probe=app-swipe', 'probe=app-lostnet'];
   const needsApp = url.includes('/_app.html') && !OUTSIDE.some(p => url.includes(p));
   return needsApp ? html.includes('id="__entered"') : true;
 };
@@ -988,6 +988,87 @@ PROBES['app-join.js'] = DRIVE + `
   })();
 `;
 
+/* Що буде, якщо на самому останньому кроці відновлення пропаде зв'язок.
+   Досі — нічого: кнопка застигала на «Хвилинку…» назавжди, і людина,
+   яка щойно підтвердила пошту, лишалась перед мертвим екраном із базою
+   клієнтів по той бік. Ламаємо саме цей виклик і дивимось, чи екран
+   оживає й чи каже щось людською мовою. */
+PROBES['app-lostnet.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await wait(300);
+    for (var i = 0; i < 3; i++){ if (pri()){ pri().click(); await wait(120); } }
+
+    var toLogin = all('.ob button').filter(function(b){ return /Вже є кабінет/.test(b.textContent); })[0];
+    if (toLogin){ toLogin.click(); await wait(200); }
+
+    /* Пошту вводимо до «Забули пароль?»: код замовляється саме на ту,
+       що стоїть у полі. Порядок тут не косметичний. */
+    var li = document.querySelector('.ob .inp');
+    if (li) type(li, 'trainer@mail.com');
+    await wait(150);
+
+    res.typed = li ? li.value : null;
+
+    /* «Забули пароль?» з'являється не одразу: спершу застосунок питає
+       пароль — і лише під цим полем пропонує його відновити. Тому
+       спочатку тиснемо «Увійти», а вже потім шукаємо посилання. */
+    if (pri()) pri().click();
+    await until(function(){ return !!document.querySelector('.ob input[type=password]'); }, 12000);
+    res.asked = !!document.querySelector('.ob input[type=password]');
+
+    var lost = all('.ob button').filter(function(b){ return /Забули пароль/.test(b.textContent); })[0];
+    res.hasLost = !!lost;
+    res.lostText = lost ? lost.textContent : '';
+    if (lost){ lost.click(); }
+    await wait(400);
+    res.afterLost = document.querySelector('.ob').textContent.replace(/\s+/g, ' ').slice(0, 140);
+    await until(function(){ return /Лист із кодом пішов/.test(document.querySelector('.ob').textContent); }, 8000);
+
+    var got = await (await fetch('/_test/code?login=trainer@mail.com')).json();
+    /* Поле коду — останнє на екрані: пошта лишається зверху, і перший
+       .inp — це вона. */
+    var ci = all('.ob .inp').slice(-1)[0];
+    if (ci) type(ci, got.code);
+    await wait(120);
+    if (pri()) pri().click();
+    await until(function(){ return /Пошту підтверджено/.test(document.querySelector('.ob').textContent); }, 12000);
+    res.verified = /Пошту підтверджено/.test(document.querySelector('.ob').textContent);
+
+    /* Ламаємо найперший крок, ще до шифрування. Зламати заміну замка
+       було б ближче до життя, але перед нею застосунок виводить ключ із
+       пароля — сто п'ятдесят тисяч ітерацій поза головним потоком, — і у
+       віртуальному часі це не дочекатись: годинник мчить уперед, поки
+       потік порожній. Перевіряємо те саме: будь-який збій тут не має
+       лишати екран мертвим. */
+    Vault.cloud = async function(){ throw new Error('обрив'); };
+
+    var pf = document.querySelector('.ob input[type=password]') || all('.ob .inp').slice(-1)[0];
+    res.field = pf ? (pf.type + '/' + pf.className) : 'немає';
+    if (pf) type(pf, 'novyi-parol-1');
+    await wait(150);
+    res.typedPass = pf ? pf.value : '';
+    var save = pri();
+    res.saveBtn = save ? save.textContent : 'немає';
+    if (save) save.click();
+    await wait(600);
+    res.at600 = (pri() || {}).textContent || '';
+
+    /* Кнопка мусить ожити. Чекаємо довго не даремно: перед обривом
+       застосунок виводить ключ із пароля — сто п'ятдесят тисяч ітерацій,
+       і у віртуальному часі вони спливають миттєво, з'їдаючи будь-який
+       короткий строк. Коротке очікування тут показувало б зависання
+       там, де його немає. */
+    await until(function(){ return !/Хвилинку/.test((pri() || {}).textContent || ''); }, 20000);
+    res.alive = !/Хвилинку/.test((pri() || {}).textContent || '');
+    res.said = /Не вдалося застосувати новий пароль/.test(document.querySelector('.ob').textContent);
+    res.saw = document.querySelector('.ob').textContent.replace(/\s+/g, ' ').slice(0, 200);
+
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
 /* Гортання онбордингу пальцем. Три крапки внизу обіцяють саме його, а
    слайди перемикались тільки кнопкою — тренер, який спробував змахнути,
    вирішив, що застосунок завис. Перевіряємо обидва напрямки й те, що на
@@ -1497,6 +1578,18 @@ server.listen(PORT, '127.0.0.1', async () => {
 
     /* Кабінет без копії мовчав, і тренер дізнавався про це, коли телефон
        уже загубився. Перевіряємо не код, а те, чи він це побачить. */
+    /* Найдорожчий крок застосунку — і найтихіший, коли ламається. */
+    part('обрив зв’язку при зміні пароля');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?cloud=1&probe=app-lostnet.js')) || '{}');
+    ok('до нового пароля доходимо', o.verified === true,
+       'набрано: ' + JSON.stringify(o.typed) + ', кнопка: ' + JSON.stringify(o.lostText) +
+       ', після неї: ' + (o.afterLost || '—'));
+    ok('кнопка оживає, а не застигає на «Хвилинку…»', o.alive === true,
+       'поле: ' + o.field + ', набрано: ' + JSON.stringify(o.typedPass) +
+       ', кнопка: ' + JSON.stringify(o.saveBtn) + ', через 600мс: ' + JSON.stringify(o.at600));
+    ok('і пояснює, що сталось', o.said === true, o.saw || '—');
+    ok('помилок немає', !o.err, o.err || '—');
+
     part('онбординг гортається пальцем');
     o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-swipe.js')) || '{}');
     ok('змах вліво веде на наступний слайд', o.second && o.second !== o.first,
