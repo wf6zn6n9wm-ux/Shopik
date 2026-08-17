@@ -819,10 +819,17 @@ part('документы');
   ok('и про шифрование PIN-кодом', /PIN/.test(priv));
   ok('и про то, что забытый PIN не восстановить', /восстановить забытый PIN невозможно/i.test(priv));
 
-  /* пока реквизиты пусты — везде видно требование их заполнить */
-  ok('незаполненные реквизиты помечены, а не выдуманы',
-     T.LEGAL_READY === false && /\(укажите /.test(terms),
-     T.LEGAL.company || 'пусто');
+  /* реквизиты заполнены — и нигде не осталось «(укажите …)» */
+  ok('реквизиты на месте', T.LEGAL_READY === true, T.LEGAL.company);
+  ok('и в тексте нет незаполненных мест',
+     !/\(укажите /.test(terms) && !/\(укажите /.test(priv));
+  ok('РНОКПП, адрес и телефон попали в документ',
+     terms.includes(T.LEGAL.id) && terms.includes(T.LEGAL.address) && terms.includes(T.LEGAL.phone));
+  /* почты у поддержки нет: в документах не должно остаться «напишите на» */
+  ok('почта не упоминается, раз её нет',
+     T.LEGAL.email === '' && !/на\s+\S+@/.test(terms + priv));
+  ok('вместо неё — телефон и Telegram',
+     /Telegram @/.test(terms) && /по телефону/.test(terms));
 
   screen('экран условий', () => T.LegalPage({doc: 'terms', onClose(){}}));
   screen('экран политики', () => T.LegalPage({doc: 'privacy', onClose(){}}));
@@ -832,8 +839,10 @@ part('документы');
   ok('неизвестный документ не роняет экран', walk(T.LegalPage({doc: 'нетакого', onClose(){}})) > 3);
 
   const page = textOf(T.LegalPage({doc: 'terms', onClose(){}}));
-  ok('на экране условий видно предупреждение о реквизитах', /Реквизиты не заполнены/.test(page));
-  ok('и сам текст документа', page.includes('Про Барбер'));
+  ok('на экране условий нет предупреждения — реквизиты заполнены',
+     !/Реквизиты не заполнены/.test(page));
+  ok('зато есть сам текст документа и реквизиты в подвале',
+     page.includes('Про Барбер') && page.includes(T.LEGAL.id));
 
   ok('документы есть в разводке экранов', typeof T.SCREENS.legal === 'function');
   ok('в настройках есть раздел документов', textOf(T.Settings({})).includes('Документы'));
@@ -841,7 +850,8 @@ part('документы');
   ok('на экране оплаты документы тоже под рукой',
      textOf(T.Paywall({mode: 'gate'})).includes('Условия использования'));
 
-  ok('поддержка молчит, пока контакты не заданы', T.Support.url() === '');
+  ok('поддержка ведёт в чат', T.Support.url() === 'https://t.me/suport_uk', T.Support.url());
+  ok('и телефон тоже под рукой', T.Support.tel() === 'tel:+380951825456', T.Support.tel());
 }
 
 part('публичные страницы');
@@ -859,8 +869,11 @@ part('публичные страницы');
      t.includes(T.LEGAL_DOCS.terms.blocks[1][0]) && p.includes(T.LEGAL_DOCS.privacy.blocks[0][0]));
   ok('подстановок в готовых страницах не осталось',
      ![t, p, d].some(x => x.includes('{{')));
-  ok('незаполненные реквизиты видны и снаружи',
-     [t, p, d].every(x => /Реквизиты не заполнены/.test(x)));
+  ok('на страницах нет пометки о незаполненных реквизитах',
+     ![t, p, d].some(x => /Реквизиты не заполнены/.test(x)));
+  ok('и нет ссылок на несуществующую почту', ![t, p, d].some(x => x.includes('mailto:')));
+  ok('реквизиты видны в подвале каждой страницы',
+     [t, p, d].every(x => x.includes(T.LEGAL.id) && x.includes(T.LEGAL.company)));
   ok('страницы ссылаются друг на друга',
      t.includes('privacy.html') && p.includes('terms.html') && d.includes('support.html'));
   ok('и все — на удаление данных', [t, p].every(x => x.includes('delete.html')));
@@ -871,6 +884,8 @@ part('публичные страницы');
   ok('скрытая кнопка действительно скрыта',
      /\.go\[hidden\]\{display:none\}/.test(fs.readFileSync(path.join(ROOT, 'pay.css'), 'utf8')));
   ok('поддержка отвечает на то, что спрашивают', (sup.match(/\['/g) || []).length > 20);
+  ok('и контакты на ней те же, что в документах',
+     sup.includes(T.LEGAL.telegram) && sup.includes(T.LEGAL.phone));
   ok('и знает три языка', ['ru:', 'uk:', 'en:'].every(k => sup.includes(k)));
   ok('цены на странице поддержки те же', T.PLANS.every(x => sup.includes(T.uah(x.uah))));
 

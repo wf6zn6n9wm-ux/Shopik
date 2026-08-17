@@ -48,7 +48,7 @@ function readDocs(){
   /* выполняем с метками вместо реквизитов — тогда подстановки сами
      превратятся в {{...}}, и никакого разбора шаблонных строк */
   const ctx = {LEGAL: MARKS, TRIAL_DAYS: '{{trialDays}}',
-    legalVal: v => v, legalLine: () => '{{requisites}}'};
+    legalVal: v => v, legalLine: () => '{{requisites}}', contactLine: () => '{{contacts}}'};
   vm.createContext(ctx);
   vm.runInContext(b.text + ';globalThis.__docs = LEGAL_DOCS;', ctx);
   return {src, b, docs: ctx.__docs};
@@ -67,7 +67,8 @@ function legalValues(src){
 const mdOf = doc => '# ' + doc.title + '\n\n' +
   doc.blocks.map(([h, tx]) => '## ' + h + '\n\n' + tx + '\n').join('\n') +
   '\n---\n\n_Подстановки: {{company}}, {{email}}, {{updated}}, {{trialDays}} — ' +
-  'приложение подставляет их само, оставляйте как есть. {{requisites}} — вся строка реквизитов._\n';
+  'приложение подставляет их само, оставляйте как есть. {{requisites}} — строка реквизитов, ' +
+  '{{contacts}} — способы связи._\n';
 
 const line = v => [
   v.company || '(укажите название ФОП)',
@@ -76,15 +77,23 @@ const line = v => [
   v.phone && 'тел. ' + v.phone,
   v.email,
 ].filter(Boolean).join(', ');
-const fill = (tx, v) => String(tx).replace(/\{\{(\w+)\}\}/g,
-  (_, k) => (k === 'requisites' ? line(v) : (v[k] ? v[k] : '(укажите ' + k + ')')));
+/* способы связи — те, что заполнены: почты у поддержки может не быть */
+const ways = v => [
+  v.email && 'на ' + v.email,
+  v.telegram && 'в Telegram @' + String(v.telegram).replace(/^@/, ''),
+  v.phone && 'по телефону ' + v.phone,
+].filter(Boolean).join(' или ') || '(укажите контакт для обращений)';
+const fill = (tx, v) => String(tx).replace(/\{\{(\w+)\}\}/g, (_, k) =>
+  k === 'requisites' ? line(v) :
+  k === 'contacts' ? ways(v) :
+  (v[k] ? v[k] : '(укажите ' + k + ')'));
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 const MARK = '<div class="mark"><svg viewBox="0 0 24 24"><path d="M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5M6.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5M8.6 8.1 20 19.5M20 4.5 8.6 15.9"/></svg></div>';
 
 /* Пока реквизиты не заполнены, страница говорит об этом прямо: выложить
    документ с дырами хуже, чем не выложить вовсе. */
-const todo = v => v.company && v.email ? '' :
+const todo = v => v.company && (v.email || v.phone || v.telegram) ? '' :
   '  <div class="err">Реквизиты не заполнены: укажите LEGAL в index.html и выполните ' +
   '<code>node barber/legal/sync.js export</code> ещё раз.</div>\n';
 
@@ -135,7 +144,7 @@ const deleteHtml = v => page('удаление данных',
   <p>Данных из вашей клиентской базы у нас нет.</p>
 
   <h2>Как попросить удалить</h2>
-  <p>Напишите на <a href="mailto:${esc(v.email)}?subject=%D0%A3%D0%B4%D0%B0%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85">${esc(fill('{{email}}', v))}</a> с той же почты, которой пользуетесь в приложении (или укажите номер телефона). Удалим запись в течение 30 дней.</p>
+  <p>Напишите ${esc(ways(v))} и укажите логин — почту или номер телефона, которыми пользуетесь в приложении. Удалим запись в течение 30 дней.</p>
   <p>Вместе с записью пропадёт и оплаченный доступ: его придётся оформлять заново, а пробный период не возобновится. Данные о платежах мы обязаны хранить столько, сколько требует налоговое законодательство.</p>
 ` + foot(v, [['privacy.html', 'политика конфиденциальности'], ['terms.html', 'условия использования'], ['support.html', 'поддержка']]));
 
@@ -152,7 +161,7 @@ function doExport(){
   });
   fs.writeFileSync(path.join(ROOT, 'delete.html'), deleteHtml(v));
   console.log('  ✓ delete.html');
-  if (!(v.company && v.email))
+  if (!(v.company && (v.email || v.phone || v.telegram)))
     console.log('\n  ⚠️  LEGAL пуст: страницы вышли с пометкой «реквизиты не заполнены».');
   console.log('\nРедактировать — .md. Наружу — /terms, /privacy, /support и /delete.');
 }
@@ -188,6 +197,7 @@ function jsString(s){
   const withVars = safe.replace(/\{\{(\w+)\}\}/g, (_, k) => {
     if (k === 'trialDays') return '${TRIAL_DAYS}';
     if (k === 'requisites') return '${legalLine()}';
+    if (k === 'contacts') return '${contactLine()}';
     if (k === 'company') return "${legalVal(LEGAL.company, 'название ФОП')}";
     if (k === 'email') return "${legalVal(LEGAL.email, 'почту для обращений')}";
     return '${LEGAL.' + k + '}';
