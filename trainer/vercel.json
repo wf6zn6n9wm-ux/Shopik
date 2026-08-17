@@ -1,5 +1,11 @@
 {
   "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/unsubscribe",
+      "destination": "/api/licence?off=1"
+    }
+  ],
   "crons": [
     {
       "path": "/api/mail",

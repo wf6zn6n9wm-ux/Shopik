@@ -184,6 +184,23 @@ part('серверних функцій не більше, ніж дозволе
   const LIMIT = 12;
   ok('уміщаємось у ' + LIMIT, fns.length <= LIMIT,
      fns.length + ' шт.' + (fns.length > LIMIT ? ' — зайві: ' + fns.slice(LIMIT).join(', ') : ''));
+
+  /* Щоб уміститись, /api/unsubscribe перестав бути функцією й став
+     переадресацією. Адреса лишилась у застосунках, які вже стоять у
+     людей на телефонах, тож зникни вона — відмова від автопродовження
+     мовчки перестала б працювати саме там, де про це не дізнаєшся. */
+  const conf = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'vercel.json'), 'utf8'));
+  const rules = conf.rewrites || [];
+  const used = new Set();
+  ['account.html', 'index.html'].forEach(f => {
+    const txt = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+    (txt.match(/\/api\/[a-z]+/g) || []).forEach(a => used.add(a));
+  });
+  const missing = [...used].filter(a =>
+    !fns.includes(a.slice('/api/'.length) + '.js') &&
+    !rules.some(r => r.source === a));
+  ok('усі адреси /api, якими користуються сторінки, куди-небудь ведуть',
+     !missing.length, missing.join(', ') || [...used].length + ' адрес');
 }
 
 console.log('\n══════ ' + (checks - fails) + ' з ' + checks + (fails ? ' · є замечання' : ' · все чисто') + ' ══════');

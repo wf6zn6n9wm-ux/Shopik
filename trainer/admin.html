@@ -75,6 +75,30 @@
   @media(min-width:560px){.pfacts{grid-template-columns:repeat(6,1fr)}}
   .pfacts span{display:block;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
   .pfacts b{display:block;font-size:13.5px;font-weight:650;font-variant-numeric:tabular-nums;margin-top:2px}
+  /* Переписка. Она не «ещё одна таблица», а работа: сюда приходят
+     вопросы, и на них надо отвечать. Поэтому непрочитанное видно
+     издалека, а сама ветка читается как переписка, а не как журнал. */
+  .thr{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;cursor:pointer;
+       background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:13px 15px;
+       margin-bottom:8px;color:var(--ink)}
+  .thr.new{border-color:var(--accent)}
+  .thr .who{flex:1;min-width:0}
+  .thr .who b{display:block;font-size:13.5px;font-weight:650;word-break:break-all}
+  .thr .who span{display:block;font-size:12.5px;color:var(--ink-3);margin-top:3px;
+                 overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .thr .when{flex:none;font-size:11.5px;color:var(--ink-3);text-align:right}
+  .dot{display:inline-block;min-width:19px;height:19px;border-radius:999px;background:var(--accent);
+       color:#fff;font-size:11px;font-weight:800;line-height:19px;text-align:center;padding:0 5px}
+  .talk{display:flex;flex-direction:column;gap:9px;margin:14px 0}
+  .bub{max-width:82%;padding:10px 13px;border-radius:15px;font-size:14px;line-height:1.45;
+       white-space:pre-wrap;word-break:break-word}
+  .bub.t{align-self:flex-start;background:var(--surface-2);border-bottom-left-radius:5px}
+  .bub.s{align-self:flex-end;background:var(--accent);border-bottom-right-radius:5px}
+  .bub .at{display:block;font-size:10.5px;opacity:.6;margin-top:5px}
+  .say{display:flex;gap:9px;align-items:flex-end}
+  .say textarea{flex:1;background:var(--surface);border:1px solid var(--line);color:var(--ink);
+                border-radius:14px;padding:12px 14px;font-size:14.5px;outline:none;resize:none;min-height:46px}
+  .say textarea:focus{border-color:var(--accent)}
   .note{background:rgba(247,144,9,.12);border:1px solid rgba(247,144,9,.3);color:#ffcd85;
         border-radius:12px;padding:11px 14px;font-size:13px;margin-bottom:14px;line-height:1.5}
 </style>
@@ -127,11 +151,24 @@ function gate(msg){
   inp.onkeydown = function(e){ if (e.key === 'Enter') go(); };
 }
 
+/* Один вход на сервер для всей страницы: пароль подставляется в одном
+   месте, и ответы «не тот пароль» разбираются тоже в одном. */
+async function api(qs, opts){
+  var o = opts || {};
+  return fetch('/api/admin' + (qs || ''), {
+    method: o.method || 'GET',
+    headers: Object.assign({authorization: 'Bearer ' + pass},
+                           o.body ? {'content-type': 'application/json'} : {}),
+    body: o.body ? JSON.stringify(o.body) : undefined,
+  });
+}
+
 async function load(){
   root.innerHTML = '<div class="gate"><div class="muted">Считаю…</div></div>';
-  var r;
+  var r, t;
   try {
-    r = await fetch('/api/admin', {headers: {authorization: 'Bearer ' + pass}});
+    r = await api('');
+    t = await api('?chat=1');
   } catch (e){
     return gate('Нет связи с сервером');
   }
@@ -140,7 +177,8 @@ async function load(){
   if (r.status === 503) return gate('ADMIN_PASS не задан в переменных Vercel');
   var d = await r.json().catch(function(){ return null; });
   if (!d || !d.ok) return gate('Сервер ответил непонятно');
-  draw(d);
+  var th = await t.json().catch(function(){ return null; });
+  draw(d, (th && th.threads) || []);
 }
 
 function bars(series){
@@ -175,7 +213,72 @@ function who(p){
   return '<span class="tag off">ушёл</span>';
 }
 
-function draw(d){
+function when(ts, now){
+  if (!ts) return '';
+  var min = Math.floor((now - ts) / 60000);
+  if (min < 1) return 'только что';
+  if (min < 60) return min + ' мин.';
+  if (min < 24 * 60) return Math.floor(min / 60) + ' ч.';
+  return new Date(ts).toISOString().slice(5, 10).split('-').reverse().join('.');
+}
+
+function threads(list, now){
+  var wait = list.filter(function(t){ return t.unread; }).length;
+  var html = '<h2>Переписка' + (wait ? ' · ждут ответа: ' + wait : '') + '</h2>';
+  if (!list.length)
+    return html + '<div class="card"><div class="muted">Пока никто не писал. ' +
+      'Экран «Поддержка» есть у каждого тренера в настройках, и его сообщение ' +
+      'придёт сюда и в Telegram.</div></div>';
+  return html + list.map(function(t){
+    return '<button class="thr' + (t.unread ? ' new' : '') + '" onclick="openChat(\'' +
+      esc(t.login).replace(/'/g, "\\'") + '\')">' +
+      '<div class="who"><b>' + esc(t.login) + '</b>' +
+        '<span>' + (t.who === 's' ? 'вы: ' : '') + esc(t.text) + '</span></div>' +
+      '<div class="when">' + when(t.at, now) +
+        (t.unread ? '<div style="margin-top:5px"><span class="dot">' + t.unread + '</span></div>' : '') +
+      '</div></button>';
+  }).join('');
+}
+
+/* Ветка целиком. Открыли — значит прочитали: сервер гасит счётчик сам,
+   иначе «новое» висело бы после того, как ответ уже отправлен. */
+async function openChat(login){
+  root.innerHTML = '<div class="gate"><div class="muted">Открываю…</div></div>';
+  var r = await api('?chat=' + encodeURIComponent(login));
+  var d = await r.json().catch(function(){ return null; });
+  if (!d || !d.ok) return load();
+  var now = Date.now();
+  root.innerHTML =
+    '<div class="top"><div class="brand"><div class="mark">🏋️</div>' +
+      '<div><b>' + esc(d.login) + '</b><span>переписка</span></div></div>' +
+      '<div><button class="btn" onclick="openChat(\'' + esc(d.login).replace(/'/g, "\\'") +
+      '\')">Обновить</button> <button class="btn" onclick="load()">Назад</button></div></div>' +
+    '<div class="talk">' + d.msgs.map(function(m){
+      return '<div class="bub ' + (m.who === 's' ? 's' : 't') + '">' + esc(m.text) +
+        '<span class="at">' + when(m.at, now) + '</span></div>';
+    }).join('') + '</div>' +
+    '<div class="say"><textarea id="say" rows="2" placeholder="Ответ тренеру"></textarea>' +
+    '<button class="btn pri" id="send">Отправить</button></div>' +
+    '<p class="muted" style="margin-top:12px">Отвечать можно и из Telegram — ' +
+    'просто ответьте на сообщение бота.</p>';
+
+  var box = document.getElementById('say');
+  var send = async function(){
+    var text = box.value.trim();
+    if (!text) return;
+    document.getElementById('send').disabled = true;
+    var r = await api('', {method: 'POST', body: {reply: d.login, text: text}});
+    if (r.ok) openChat(d.login);
+    else { document.getElementById('send').disabled = false; alert('Не отправилось'); }
+  };
+  document.getElementById('send').onclick = send;
+  /* Enter отправляет, Shift+Enter — перевод строки: так же, как в любом
+     мессенджере, откуда сюда и приходят. */
+  box.onkeydown = function(e){ if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); } };
+  box.focus();
+}
+
+function draw(d, chats){
   var kb = function(n){ return n ? (n / 1024).toFixed(0) + ' КБ' : '—'; };
   var html = '';
 
@@ -198,6 +301,10 @@ function draw(d){
     '<div class="card kpi"><div class="lbl">За 30 дней</div><div class="val">' + money(d.money.usd30) + '</div>' +
       '<div class="sub">в месяц ожидается ' + money(d.money.mrr) + '</div></div>' +
   '</div>';
+
+  /* Переписка стоит выше цифр намеренно: цифры подождут, человек с
+     вопросом — нет. */
+  html += threads(chats || [], d.now);
 
   html += '<h2>Регистрации по дням</h2><div class="card">' + bars(d.series) + '</div>';
   html += '<h2>Путь тренера</h2><div class="card">' + funnel(d.funnel) +

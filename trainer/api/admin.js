@@ -21,11 +21,16 @@
    однієї адреси відповідаємо відмовою незалежно від пароля — інакше
    шість символів підбираються за вечір.
 
-     GET /api/admin        Authorization: Bearer $ADMIN_PASS
+     GET  /api/admin                     зведення
+     GET  /api/admin?chat=1               список ниток переписки
+     GET  /api/admin?chat=<логін>         одна нитка
+     POST /api/admin  {reply, text}       відповісти тренеру
+   Скрізь Authorization: Bearer $ADMIN_PASS
    ────────────────────────────────────────────────────────────────── */
 const L = require('../api/_lib.js');
 const TRIAL = require('../api/trial.js');
 const DB = require('../api/db.js');
+const CHAT = require('../api/chat.js');
 
 const DAY = 86400000;
 const WINDOW = 15 * 60 * 1000;     /* за скільки рахуємо невдалі спроби */
@@ -61,6 +66,35 @@ module.exports = async function handler(req, res){
     return L.json(res, 401, {ok: false, error: 'forbidden'});
   }
   if (fails) await L.store.set(gateOf(ip), null);
+
+  /* ─── переписка з тренерами ───
+     Живе тут, а не окремою функцією, з двох причин. Перша — слотів на
+     викладку рівно дванадцять. Друга важливіша: замок уже стоїть саме
+     тут, з перебором і затримкою. Друга двері до тих самих ниток
+     означала б другий замок, який рано чи пізно розійдеться з першим. */
+  const q = {...(req.query || {}), ...(req.body || {})};
+
+  if (q.reply !== undefined){
+    const to = L.normLogin(q.reply);
+    const text = String(q.text || '').trim();
+    if (!to || !text) return L.json(res, 400, {ok: false, error: 'no_text'});
+    if (!(await CHAT.read(to))) return L.json(res, 404, {ok: false, error: 'no_thread'});
+    const {msg} = await CHAT.add(to, 's', text);
+    return L.json(res, 200, {ok: true, at: msg.at});
+  }
+
+  if (q.chat !== undefined){
+    const one = L.normLogin(q.chat);
+    if (!one || q.chat === '1')
+      return L.json(res, 200, {ok: true, threads: (await L.store.get(CHAT.INDEX)) || []});
+    const rec = await CHAT.read(one);
+    if (!rec) return L.json(res, 404, {ok: false, error: 'no_thread'});
+    /* відкрили нитку — вважаємо прочитаною; інакше лічильник
+       непрочитаного жив би своїм життям */
+    rec.seenS = Date.now();
+    await CHAT.save(rec);
+    return L.json(res, 200, {ok: true, login: rec.login, lang: rec.lang, msgs: rec.msgs});
+  }
 
   const storage = (await L.store.live()) ? 'kv' : 'memory';
   const keys = await L.store.keys('trial:*');
@@ -200,7 +234,12 @@ module.exports = async function handler(req, res){
   /* Чи взагалі можна зараз заплатити. Без цього нуль у продажах читався
      б як «ніхто не купує», хоча кнопка оплати може бути просто не
      підключена — і винен не тренер, а налаштування. */
-  return L.json(res, 200, {ok: true, storage, now, count, funnel, series, langs, money, people,
+  /* скільки листів чекає відповіді — щоб про них було видно з головної */
+  const threads = (await L.store.get(CHAT.INDEX)) || [];
+  const chat = {threads: threads.length,
+                unread: threads.reduce((s, t) => s + (t.unread || 0), 0)};
+
+  return L.json(res, 200, {ok: true, storage, now, count, funnel, series, langs, money, people, chat,
                            pay: L.configured(), trialDays: TRIAL.TRIAL_DAYS});
 };
 

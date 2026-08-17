@@ -79,8 +79,24 @@ const replaceOnce = (text, re, to, what, times = 1) => {
   return text.replace(all, to);
 };
 
+/* Переадресації з vercel.json. Без них тут /api/unsubscribe уперся б у
+   404, хоча на сайті працює: функції під цим ім'ям більше немає, є
+   правило, що веде на licence. Читаємо правило звідти ж, звідки його
+   бере Vercel, — інакше перевірка підтверджувала б не той шлях, яким
+   ходять застосунки в людей на телефонах. */
+const REWRITES = (() => {
+  try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8')).rewrites || []; }
+  catch { return []; }
+})();
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1');
+  const rule = REWRITES.find(r => r.source === url.pathname);
+  if (rule){
+    const to = new URL(rule.destination, 'http://127.0.0.1');
+    url.pathname = to.pathname;
+    to.searchParams.forEach((v, k) => { if (!url.searchParams.has(k)) url.searchParams.set(k, v); });
+  }
   log.push({path: url.pathname, query: Object.fromEntries(url.searchParams)});
 
   /* Сам застосунок: скомпільований (без Babel) і з маленьким React
@@ -160,6 +176,15 @@ const server = http.createServer(async (req, res) => {
     const rec = await L.store.get(require('../api/reset.js').keyOf(url.searchParams.get('login')));
     res.writeHead(200, {'content-type': TYPES['.js'], 'cache-control': 'no-store'});
     return res.end(JSON.stringify({code: (rec && rec.code) || '', letters: sent.length}));
+  }
+
+  /* Відповідь підтримки. У житті її кладе адмінка або Telegram — обидва
+     через ту саму функцію, тож тут кличемо її напряму: пробі потрібен
+     сам факт відповіді, а не спосіб її набрати. */
+  if (url.pathname === '/_test/reply'){
+    await require('../api/chat.js').add(url.searchParams.get('login'), 's', url.searchParams.get('text'));
+    res.writeHead(200, {'content-type': TYPES['.js'], 'cache-control': 'no-store'});
+    return res.end('{"ok":true}');
   }
 
   if (url.pathname.startsWith('/_probe/')){
@@ -775,6 +800,54 @@ PROBES['app-cloud.js'] = DRIVE + `
 /* Кабінет заводиться тільки на пошту. Номер виглядав зручним, а
    насправді вів у глухий кут: відновити пароль такому кабінету нічим.
    Перевіряємо, що застосунок не дає його завести — і пояснює чому. */
+/* Переписка з підтримкою. Перевіряємо весь шлях цілком: тренер пише з
+   екрана, ми відповідаємо з боку сервера, і відповідь з'являється в тому
+   ж вікні без перезавантаження. Проміжні ланки тут нічого не варті —
+   важливо лише, чи дійшло від людини до людини й назад. */
+PROBES['app-help.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await enter();
+    res.login = Web.login();
+
+    /* заходимо саме так, як зайде тренер: меню → «Підтримка» */
+    var rows = await menu();
+    var idx = rows.map(function(r){ return (r.textContent || ''); })
+                  .findIndex(function(x){ return /Підтримка/.test(x); });
+    res.inMenu = idx >= 0;
+    var page = await openRow(rows, idx);
+    res.title = page ? (page.querySelector('.pagetitle, h1, .ttl') || {}).textContent || '' : '';
+    res.opened = !!(page && /Підтрим/.test(page.textContent || ''));
+
+    var box = document.querySelector('textarea.inp');
+    res.hasBox = !!box;
+    if (box){
+      var set = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+      set.call(box, 'Не рахує відсоток залу');
+      box.dispatchEvent(new Event('input', {bubbles: true}));
+    }
+    await wait(150);
+    var send = all('button').filter(function(b){ return /Відправити/.test(b.textContent) && !b.disabled; })[0];
+    res.canSend = !!send;
+    if (send) send.click();
+
+    await until(function(){ return all('.bub.me').length > 0; }, 6000);
+    res.mine = all('.bub.me').length;
+    res.mineText = (all('.bub.me')[0] || {}).textContent || '';
+
+    /* Відповідь кладемо через сервер, а не через застосунок: саме так її
+       кладе адмінка або Telegram. Далі чекаємо, поки екран сам її
+       підхопить — опитуванням, без жодного натискання. */
+    await fetch('/_test/reply?' + new URLSearchParams({login: res.login, text: 'Перевірте відсоток у налаштуваннях'}));
+    await until(function(){ return all('.bub.them').length > 0; }, 12000);
+    res.theirs = all('.bub.them').length;
+    res.theirText = (all('.bub.them')[0] || {}).textContent || '';
+
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
 /* Сторінка «з чого почати» — звичайний HTML, тож і проба проста. */
 PROBES['start.js'] = `
   var say = function(o){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = JSON.stringify(o); document.body.appendChild(p); };
@@ -1227,6 +1300,19 @@ server.listen(PORT, '127.0.0.1', async () => {
       new URLSearchParams({login: 'on@mail.com', token: 'tok-on@mail.com'}))).json();
     ok('власнику копію віддаємо', mine.has === true && mine.ct === 'c');
     ok('а ключ — ні', mine.keep === undefined, JSON.stringify(mine.keep));
+
+    /* Переписка з підтримкою: від набраного тексту до відповіді, що
+       з'явилась сама. Тут перевіряється не сервер (це робить licence.js),
+       а те, чи доходить це до людини на екрані. */
+    part('переписка з підтримкою');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?cloud=1&probe=app-help.js')) || '{}');
+    ok('«Підтримка» є в меню', o.inMenu === true);
+    ok('екран відкривається', o.opened === true, o.title || '—');
+    ok('є куди писати', o.hasBox === true);
+    ok('кнопка вмикається від тексту', o.canSend === true);
+    ok('своє повідомлення стало на екрані', o.mine === 1, o.mineText || '—');
+    ok('відповідь приходить сама, без перезавантаження', o.theirs === 1, o.theirText || '—');
+    ok('помилок немає', !o.err, o.err || '—');
 
     part('кабінет заводиться тільки на пошту');
     o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-mail.js')) || '{}');

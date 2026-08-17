@@ -1,0 +1,277 @@
+/* ──────────────────────────────────────────────────────────────────
+   PRO Trainer · переписка з підтримкою
+
+   Навіщо. Тренер, у якого щось не працює, до пошти не піде: він або
+   напише в месенджер, або мовчки закриє застосунок. Тому питання
+   задається прямо в застосунку, а відповідь приходить туди ж.
+
+   Як влаштовано. Одна нитка на кабінет: `chat:<логін>`. Тренер пише сюди
+   й читає звідси; ми відповідаємо або з адмінки, або з Telegram — туди ж
+   падає повідомлення про кожен новий лист. Живого зв'язку немає й бути
+   не може: на цьому тарифі сокетів нема, тож застосунок перепитує сервер,
+   поки екран відкритий. На око різниці не видно.
+
+   Хто має доступ до нитки. Той, хто довів, що це його кабінет:
+     • token від копії бази — те саме, чим відкривається сама копія;
+     • або пристрій, який сервер уже бачив під цим логіном: із нього
+       почався пробний період, на ньому працює підписка, або з нього
+       ця нитка й заведена.
+   Перший, хто пише в порожню нитку, її й заводить — інакше тренер, який
+   ще нічого не оплатив і завів кабінет до появи паролів, не зміг би
+   поскаржитись саме тоді, коли йому це найпотрібніше.
+
+   Чого тут навмисно немає. Ми не пишемо сюди нічого про роботу тренера
+   самі: у нитці лише те, що людина набрала руками. Обіцянка «ми не
+   стежимо за вами» коштує рівно стільки, скільки в найзручнішому місці
+   її порушити.
+
+   GET  /api/chat?login=…&device=…[&token=…]     забрати нитку
+   POST /api/chat  {login, device, token, text}  написати
+   POST /api/chat  {login, device, token, seen}  позначити прочитаним
+   POST /api/chat  (заголовок від Telegram)      відповідь із месенджера
+
+   Змінні оточення (Vercel → Settings → Environment Variables):
+     TELEGRAM_TOKEN   токен бота від @BotFather
+     TELEGRAM_CHAT    id розмови, куди слати сповіщення
+     TELEGRAM_SECRET  довільний рядок; ним Telegram доводить, що вебхук
+                      справді від нього, а не від того, хто вгадав адресу
+   Без них чат працює — просто мовчки, і відповідати доведеться з адмінки.
+   ────────────────────────────────────────────────────────────────── */
+const L = require('../api/_lib.js');
+const DB = require('../api/db.js');
+const TRIAL = require('../api/trial.js');
+
+const keyOf = login => 'chat:' + L.normLogin(login);
+const INDEX = 'chat:index';
+
+const KEEP = 200;              /* стільки повідомлень лишаємо в нитці */
+const MAX_LEN = 2000;          /* довше за це — вже не питання, а лист */
+const RATE = 30;               /* повідомлень за годину з одного кабінета */
+const HOUR = 3600000;
+
+/* порівняння без раннього виходу: час відповіді не має підказувати,
+   наскільки token близький до правильного */
+const same = (a, b) => {
+  const x = String(a || ''), y = String(b || '');
+  if (!x || !y || x.length !== y.length) return false;
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x.charCodeAt(i) ^ y.charCodeAt(i);
+  return diff === 0;
+};
+
+const TG = () => ({
+  token: process.env.TELEGRAM_TOKEN || '',
+  chat: process.env.TELEGRAM_CHAT || '',
+  secret: process.env.TELEGRAM_SECRET || '',
+  base: (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, '') || 'https://pro-trainer.pro',
+});
+
+/* ─────────── нитка ─────────── */
+const empty = login => ({login: L.normLogin(login), msgs: [], devices: [], lang: '',
+                         seenT: 0, seenS: 0, sent: []});
+const read = async login => (await L.store.get(keyOf(login))) || null;
+
+/* Скільки відповідей тренер ще не бачив. Рахуємо за часом останнього
+   перегляду, а не прапорцем у кожному рядку: рядки приходять із двох
+   боків, і прапорці розійшлися б. */
+const unreadFor = (rec, who) => {
+  const seen = (who === 't' ? rec.seenT : rec.seenS) || 0;
+  return rec.msgs.filter(m => m.who !== who && m.at > seen).length;
+};
+
+/* Список ниток для адмінки. Без нього довелося б читати всі кабінети
+   підряд, щоб дізнатись, у якому є непрочитане. */
+async function touchIndex(rec){
+  const list = (await L.store.get(INDEX)) || [];
+  const last = rec.msgs[rec.msgs.length - 1] || null;
+  const row = {
+    login: rec.login,
+    at: last ? last.at : 0,
+    who: last ? last.who : '',
+    text: last ? last.text.slice(0, 120) : '',
+    unread: unreadFor(rec, 's'),
+    lang: rec.lang || '',
+  };
+  const next = list.filter(x => x.login !== rec.login);
+  next.push(row);
+  next.sort((a, b) => b.at - a.at);
+  await L.store.set(INDEX, next);
+  return row;
+}
+
+async function save(rec){
+  rec.msgs = rec.msgs.slice(-KEEP);
+  await L.store.set(keyOf(rec.login), rec);
+  await touchIndex(rec);
+  return rec;
+}
+
+/* Додати рядок. who: 't' — тренер, 's' — підтримка. */
+async function add(login, who, text, extra){
+  const rec = (await read(login)) || empty(login);
+  const msg = {id: (rec.msgs.length ? rec.msgs[rec.msgs.length - 1].id : 0) + 1,
+               at: Date.now(), who, text: String(text).slice(0, MAX_LEN)};
+  rec.msgs.push(msg);
+  if (extra && extra.device && !rec.devices.includes(extra.device)) rec.devices.push(extra.device);
+  if (extra && extra.lang) rec.lang = extra.lang;
+  /* власні рядки одразу вважаємо прочитаними тим, хто їх написав */
+  if (who === 't') rec.seenT = msg.at; else rec.seenS = msg.at;
+  await save(rec);
+  return {rec, msg};
+}
+
+/* ─────────── хто це ─────────── */
+async function allowed(login, device, token){
+  const rec = await read(login);
+  if (token){
+    const db = await L.store.get(DB.keyOf(login));
+    if (db && db.token && same(db.token, token)) return true;
+  }
+  if (!device) return false;
+  if (rec && rec.devices.includes(device)) return true;
+  const tr = await L.store.get(TRIAL.keyOf(login));
+  if (tr && tr.device === device) return true;
+  const lic = await L.readLicence(login);
+  if (lic && (lic.devices || []).includes(device)) return true;
+  /* нитки ще немає — той, хто пише перший, її й заводить */
+  return !rec;
+}
+
+/* Скільки листів прийшло за останню годину. Захист не від тренера, а від
+   того, хто вирішить залити нам сховище: читаємо нитку цілком. */
+function tooFast(rec){
+  const now = Date.now();
+  rec.sent = (rec.sent || []).filter(ts => now - ts < HOUR);
+  return rec.sent.length >= RATE;
+}
+
+/* ─────────── Telegram ───────────
+   Сповіщення й відповідь на нього — це весь месенджер, що нам потрібен.
+   Логін стоїть першим рядком: відповідаючи на повідомлення, ми беремо
+   адресата саме звідти, і нічого набирати руками не треба. */
+async function notify(rec, msg){
+  const tg = TG();
+  if (!tg.token || !tg.chat) return false;
+  const text = rec.login + '\n\n' + msg.text +
+    '\n\n— відповідайте на це повідомлення, і відповідь піде в застосунок' +
+    '\n' + tg.base + '/admin';
+  try {
+    const r = await fetch('https://api.telegram.org/bot' + tg.token + '/sendMessage', {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({chat_id: tg.chat, text, disable_web_page_preview: true}),
+      signal: AbortSignal.timeout(4000),
+    });
+    return r.ok;
+  } catch { return false; }         /* мовчання бота не має ламати відправку */
+}
+
+async function tgSay(text){
+  const tg = TG();
+  if (!tg.token || !tg.chat) return;
+  try {
+    await fetch('https://api.telegram.org/bot' + tg.token + '/sendMessage', {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify({chat_id: tg.chat, text, disable_web_page_preview: true}),
+      signal: AbortSignal.timeout(4000),
+    });
+  } catch { /* нічого не вдієш */ }
+}
+
+/* Кому відповідь. Два способи, обидва без зайвих рухів:
+     • відповісти на сповіщення — логін беремо з його першого рядка;
+     • написати «пошта: текст» — на випадок, коли сповіщення загубилось. */
+function addressee(update){
+  const m = (update && update.message) || {};
+  const body = String(m.text || '').trim();
+  const src = m.reply_to_message && String(m.reply_to_message.text || '');
+  if (src){
+    const first = src.split('\n')[0].trim();
+    if (first) return {login: first, text: body};
+  }
+  const cut = body.indexOf(':');
+  if (cut > 0){
+    const who = body.slice(0, cut).trim();
+    if (/^[^\s@]+@[^\s@]+$/.test(who) || /^\+?\d[\d\s-]{6,}$/.test(who))
+      return {login: who, text: body.slice(cut + 1).trim()};
+  }
+  return null;
+}
+
+async function fromTelegram(req, res){
+  const update = req.body || {};
+  const to = addressee(update);
+  if (!to || !to.text) {
+    await tgSay('Не зрозумів, кому це. Відповідайте на сповіщення або напишіть «пошта: текст».');
+    return L.json(res, 200, {ok: true, ignored: true});
+  }
+  const login = L.normLogin(to.login);
+  if (!(await read(login))){
+    await tgSay('Кабінета ' + login + ' у переписці немає.');
+    return L.json(res, 200, {ok: true, ignored: true});
+  }
+  await add(login, 's', to.text);
+  return L.json(res, 200, {ok: true, sent: true});
+};
+
+/* ─────────── сам обробник ─────────── */
+module.exports = async function handler(req, res){
+  const method = (req.method || 'GET').toUpperCase();
+
+  /* Вебхук Telegram. Секрет у заголовку — єдине, що відрізняє його від
+     будь-кого, хто вгадав адресу; без нього відповідати від нашого імені
+     міг би хто завгодно. */
+  if (method === 'POST' && req.headers && req.headers['x-telegram-bot-api-secret-token'] !== undefined){
+    const secret = TG().secret;
+    if (!secret || req.headers['x-telegram-bot-api-secret-token'] !== secret)
+      return L.json(res, 403, {ok: false, error: 'bad_secret'});
+    return fromTelegram(req, res);
+  }
+
+  const q = {...(req.query || {}), ...(req.body || {})};
+  const login = L.normLogin(q.login);
+  const device = String(q.device || '');
+  const token = String(q.token || '');
+  if (!login) return L.json(res, 400, {ok: false, error: 'no_login'});
+  if (!(await allowed(login, device, token))) return L.json(res, 403, {ok: false, error: 'not_yours'});
+
+  if (method === 'GET'){
+    const rec = await read(login);
+    if (!rec) return L.json(res, 200, {ok: true, msgs: [], unread: 0});
+    return L.json(res, 200, {ok: true, unread: unreadFor(rec, 't'),
+                             msgs: rec.msgs.map(m => ({id: m.id, at: m.at, who: m.who, text: m.text}))});
+  }
+
+  if (method !== 'POST') return L.json(res, 405, {ok: false, error: 'bad_method'});
+
+  /* «я це прочитав» — щоб позначка про нові відповіді гасла */
+  if (q.seen){
+    const rec = (await read(login)) || empty(login);
+    rec.seenT = Date.now();
+    await save(rec);
+    return L.json(res, 200, {ok: true, unread: 0});
+  }
+
+  const text = String(q.text || '').trim();
+  if (!text) return L.json(res, 400, {ok: false, error: 'no_text'});
+
+  const before = (await read(login)) || empty(login);
+  if (tooFast(before)) return L.json(res, 429, {ok: false, error: 'too_fast'});
+  before.sent.push(Date.now());
+  await L.store.set(keyOf(login), before);
+
+  const {rec, msg} = await add(login, 't', text, {device, lang: q.lang});
+  const told = await notify(rec, msg);
+  return L.json(res, 200, {ok: true, id: msg.id, at: msg.at, told});
+};
+
+module.exports.keyOf = keyOf;
+module.exports.INDEX = INDEX;
+module.exports.read = read;
+module.exports.add = add;
+module.exports.save = save;
+module.exports.empty = empty;
+module.exports.unreadFor = unreadFor;
+module.exports.addressee = addressee;
+module.exports.MAX_LEN = MAX_LEN;
+module.exports.RATE = RATE;

@@ -243,6 +243,15 @@
   .inp:focus{border-color:var(--accent);box-shadow:0 0 0 3.5px var(--accent-soft);}
   textarea.inp{height:auto;min-height:104px;padding:13px 14px;line-height:1.45;resize:vertical;}
   .inp.err{border-color:var(--neg);box-shadow:0 0 0 3.5px var(--neg-soft);}
+  /* Переписка з підтримкою. Вигляд узятий у месенджерів навмисно: це
+     єдина форма, яку не треба пояснювати — своє праворуч, чуже ліворуч. */
+  .talk{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
+  .bub{max-width:84%;padding:10px 13px;border-radius:16px;font-size:14.5px;line-height:1.45;
+    white-space:pre-wrap;word-break:break-word;}
+  .bub.me{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:5px;}
+  .bub.them{align-self:flex-start;background:var(--surface);border:1px solid var(--line);
+    border-bottom-left-radius:5px;}
+  .bub .at{display:block;font-size:10.5px;opacity:.62;margin-top:5px;}
   .field .hint{font-size:12px;color:var(--ink-3);margin:6px 2px 0;}
   .field .hint.bad{color:var(--neg);}
   .inp-wrap{position:relative;}
@@ -1331,6 +1340,22 @@ const PHRASES = [
   ['Сума підставляється в нове тренування — її можна змінити в будь-якому тренуванні або закріпити окрему ціну за клієнтом.', 'Сумма подставляется в новую тренировку — её можно изменить в любой тренировке или закрепить отдельную цену за клиентом.', 'The amount prefills a new session — you can change it in any session or pin a separate price per client.', 'Kwota jest wstawiana do nowego treningu — można ją zmienić w każdym treningu lub przypisać osobną cenę klientowi.'],
   ['Оплата на сайті дешевша, бо не містить комісії магазину: підписка прив’язується до вашого логіна й діє на {n} пристроях.', 'Оплата на сайте дешевле, потому что не содержит комиссии магазина: подписка привязывается к вашему логину и действует на {n} устройствах.', 'Paying on the website is cheaper because it carries no store commission: the subscription is tied to your login and works on {n} devices.', 'Płatność na stronie jest tańsza, bo nie zawiera prowizji sklepu: subskrypcja jest przypisana do Twojego loginu i działa na {n} urządzeniach.'],
   ['Оплата проходить через магазин застосунків, керувати підпискою можна в його налаштуваннях. Підписка продовжується автоматично, доки ви не вимкнете автопродовження.', 'Оплата проходит через магазин приложений, управлять подпиской можно в его настройках. Подписка продлевается автоматически, пока вы не выключите автопродление.', 'Payment goes through the app store; you can manage the subscription in its settings. It renews automatically until you turn off auto-renewal.', 'Płatność przechodzi przez sklep z aplikacjami, subskrypcją zarządzasz w jego ustawieniach. Odnawia się automatycznie, dopóki nie wyłączysz automatycznego odnawiania.'],
+
+  /* ─── переписка з підтримкою ─── */
+  ['Підтримка', 'Поддержка', 'Support', 'Pomoc'],
+  ['Відправити', 'Отправить', 'Send', 'Wyślij'],
+  ['Відправляю…', 'Отправляю…', 'Sending…', 'Wysyłam…'],
+  ['Опишіть питання', 'Опишите вопрос', 'Describe the problem', 'Opisz problem'],
+  ['Потрібен інтернет', 'Нужен интернет', 'Connection required', 'Potrzebny internet'],
+  ['Написати іншим способом', 'Написать другим способом', 'Contact us another way', 'Napisz w inny sposób'],
+  ['Відповідь підтримки', 'Ответ поддержки', 'Reply from support', 'Odpowiedź pomocy'],
+  ['Напишіть, що не так', 'Напишите, что не так', 'Tell us what went wrong', 'Napisz, co nie działa'],
+  ['Написати нам про проблему', 'Написать нам о проблеме', 'Write to us about a problem', 'Napisz do nas o problemie'],
+  ['Забагато повідомлень поспіль. Спробуйте за годину.', 'Слишком много сообщений подряд. Попробуйте через час.', 'Too many messages in a row. Try again in an hour.', 'Zbyt wiele wiadomości z rzędu. Spróbuj za godzinę.'],
+  ['Не відправилось — немає зв’язку. Спробуйте ще раз.', 'Не отправилось — нет связи. Попробуйте ещё раз.', 'Not sent — no connection. Please try again.', 'Nie wysłano — brak połączenia. Spróbuj ponownie.'],
+  ['Переписка з підтримкою працює лише зі зв’язком. Решта застосунку зв’язку не потребує й працює далі.', 'Переписка с поддержкой работает только со связью. Остальное приложение связи не требует и работает дальше.', 'Support messages need a connection. The rest of the app does not, and keeps working.', 'Wiadomości do pomocy wymagają połączenia. Reszta aplikacji go nie potrzebuje i działa dalej.'],
+  ['Ми бачимо тільки те, що ви тут напишете. Ваші клієнти, тренування й гроші лишаються на пристрої — ми в них не заходимо.', 'Мы видим только то, что вы здесь напишете. Ваши клиенты, тренировки и деньги остаются на устройстве — мы в них не заходим.', 'We only see what you write here. Your clients, sessions and money stay on your device — we do not look inside.', 'Widzimy tylko to, co tu napiszesz. Twoi klienci, treningi i pieniądze zostają na urządzeniu — nie zaglądamy do nich.'],
+  ['Питання читає жива людина, а не робот. Відповідаємо зазвичай протягом дня. Якщо щось працює не так, опишіть, що ви натиснули й що сталося замість очікуваного.', 'Вопрос читает живой человек, а не робот. Отвечаем обычно в течение дня. Если что-то работает не так, опишите, что вы нажали и что произошло вместо ожидаемого.', 'A real person reads this, not a bot. We usually reply within a day. If something is broken, describe what you tapped and what happened instead.', 'Czyta to żywy człowiek, nie bot. Odpowiadamy zwykle w ciągu dnia. Jeśli coś nie działa, opisz, co nacisnąłeś i co się stało zamiast tego.'],
 ];
 
 /* ключі, потрібні там, де запасного тексту немає, і точкові винятки */
@@ -2171,6 +2196,67 @@ const Cloud = {
   },
 };
 
+/* ─── переписка з підтримкою ───
+   Тренер, у якого щось не працює, пошти не напише: він або спитає в
+   месенджері, або мовчки закриє застосунок. Тому питання ставиться прямо
+   тут, а відповідь приходить сюди ж.
+
+   Живого зв'язку немає: поки екран відкритий, застосунок перепитує
+   сервер раз на кілька секунд. На око різниця непомітна, а сокетів на
+   нашому тарифі не буває.
+
+   Хто ми такі — доводимо тим самим token, яким відкривається копія бази.
+   Його немає в кабінетів, заведених до появи паролів; для них лишається
+   пристрій, і сервер упізнає його сам.                                  */
+const HELP_POLL = 5000;
+
+const Help = {
+  msgs: [],
+  unread: 0,
+  loaded: false,
+  listeners: new Set(),
+  emit(){ Help.listeners.forEach(f => f(Help.msgs, Help.unread)); },
+  can(){ return Web.enabled() && !!Web.login(); },
+  q(extra){
+    const m = Disk.readMeta() || {};
+    return {login: Web.login(), device: Web.device(), token: m.cloudToken || '',
+            lang: I18n.get(), ...(extra || {})};
+  },
+  async load(){
+    if (!Help.can()) return {ok:false, error:'web_disabled'};
+    const r = await Web.at('/api/chat', Help.q());
+    if (!r || !r.ok) return r || {ok:false, error:'network'};
+    /* Нова відповідь, поки екран закритий, — привід сказати про це там,
+       де тренер і так дивиться: у сповіщеннях. Один раз на відповідь. */
+    const fresh = r.unread > Help.unread && Help.loaded;
+    Help.msgs = r.msgs || [];
+    Help.unread = r.unread || 0;
+    Help.loaded = true;
+    Help.emit();
+    if (fresh) Act.notify({title: t('help.reply','Відповідь підтримки'),
+                           body: (Help.msgs[Help.msgs.length - 1] || {}).text || '',
+                           type:'info', to:'support'});
+    return r;
+  },
+  async send(text){
+    if (!Help.can()) return {ok:false, error:'web_disabled'};
+    const r = await fetch(Web.base() + '/api/chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(Help.q({text})),
+    }).then(x => x.json().catch(() => null)).catch(() => null);
+    if (r && r.ok) await Help.load();
+    return r || {ok:false, error:'network'};
+  },
+  async seen(){
+    if (!Help.can() || !Help.unread) return;
+    Help.unread = 0; Help.emit();
+    await fetch(Web.base() + '/api/chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(Help.q({seen: 1})),
+    }).catch(() => {});
+  },
+};
+
 /* ─── нагадування ───
    У браузері сповіщення живуть, поки відкритий застосунок. У нативній
    оболонці (@capacitor/local-notifications) їх можна запланувати наперед —
@@ -2509,6 +2595,19 @@ function useCloud(){
     return () => Cloud.listeners.delete(f);
   }, []);
   return {status: Cloud.status, why: Cloud.why, at: Cloud.at};
+}
+
+/* Переписка з підтримкою. Той самий підхід: стан живе поза React, а
+   екран лише слухає — інакше повідомлення губилися б при кожному
+   переході між сторінками. */
+function useHelp(){
+  const [, force] = useState(0);
+  useEffect(() => {
+    const f = () => force(x => x + 1);
+    Help.listeners.add(f);
+    return () => Help.listeners.delete(f);
+  }, []);
+  return {msgs: Help.msgs, unread: Help.unread, loaded: Help.loaded};
 }
 
 function useAccess(){
@@ -4904,8 +5003,12 @@ const LapsedCard = ({c, days, last}) => {
 const MainMenu = ({open, onClose}) => {
   const db = useDB();
   const nav = useNav();
+  const help = useHelp();
   const go = r => { onClose(); setTimeout(() => nav.go(r), 60); };
   const theme = db.settings.theme;
+  /* Відповідь могла прийти, поки застосунок був закритий. Питаємо про це
+     при відкритті меню — тобто тоді, коли позначку справді видно. */
+  useEffect(() => { if (open) Help.load(); }, [open]);
   return (
     <Sheet open={open} onClose={onClose} title="PRO Trainer" sub={db.profile.name || t('menu.guest','Кабінет тренера')}>
       <div className="rows" style={{marginTop:6}}>
@@ -4918,11 +5021,14 @@ const MainMenu = ({open, onClose}) => {
           ['settings',<Ic.gear size={19}/>,   t('menu.set','Налаштування'), t('menu.set.s','Ціна, комісія, мова, захист')],
           ['backup',  <Ic.dl size={19}/>,     t('bk.title','Резервна копія'), t('bk.menu.s','Копія даних і відновлення')],
           ['subscription', <Ic.star size={19}/>, t('sub.title','Підписка'),   t('sub.menu.s','Пробний період, план і оплата')],
+          ['support', <Ic.msg size={19}/>,    t('help.title','Підтримка'),  t('help.menu.s','Написати нам про проблему')],
         ].map(([r, ic, tt, ds]) => (
           <button key={r} className="setrow" onClick={() => go(r)}>
             <div className="ic">{ic}</div>
             <div className="tx"><b>{tt}</b><span>{ds}</span></div>
-            <Ic.right size={17} className="chev"/>
+            {r === 'support' && help.unread > 0
+              ? <span className="badge acc">{help.unread}</span>
+              : <Ic.right size={17} className="chev"/>}
           </button>
         ))}
       </div>
@@ -7712,14 +7818,15 @@ const Settings = ({onClose}) => {
             <div className="tx"><b>{t('legal.privacy','Політика конфіденційності')}</b><span>{t('legal.privacy.s','Які дані зберігаються і де')}</span></div>
             <Ic.right size={17} className="chev"/>
           </button>
-          <a className="setrow" href={Support.url()} target="_blank" rel="noopener">
+          {/* Раніше звідси вели назовні — у Telegram. Виходити із
+              застосунку, щоб поскаржитись на застосунок, безглуздо:
+              питання ставиться тут, відповідь приходить сюди ж. */}
+          <button className="setrow" onClick={() => nav.go('support')}>
             <div className="ic"><Ic.msg size={19}/></div>
-            <div className="tx"><b>{t('set.help','Допомога')}</b><span>{
-              Support.kind() === 'chat' ? t('set.help.chat','Чат у Telegram — відповідаємо швидко')
-              : Support.kind() === 'page' ? t('set.help.page','Відповіді на часті питання')
-              : t('set.help.mail','Написати нам на пошту')}</span></div>
+            <div className="tx"><b>{t('set.help','Допомога')}</b>
+              <span>{t('help.menu.s','Написати нам про проблему')}</span></div>
             <Ic.right size={17} className="chev"/>
-          </a>
+          </button>
         </div>
 
         <div className="muted" style={{textAlign:'center', fontSize:12, margin:'22px 0 4px'}}>
@@ -7886,7 +7993,7 @@ const LEGAL_DOCS = {
       ['Головне', 'Дані ваших клієнтів живуть на вашому пристрої. Ми не передаємо їх третім сторонам і не використовуємо для реклами: у застосунку немає рекламних мереж, аналітики й трекерів.\n\nЩоб база не зникла разом із телефоном, застосунок тримає її зашифровану копію на нашому сервері. Ми зберігаємо шифротекст, а не ваші записи. Копію можна вимкнути в налаштуваннях.'],
       ['Хто відповідає за дані', `Розпорядник даних застосунку — ${LEGAL.company}, контакт для питань щодо приватності — ${LEGAL.email}.\n\nЩодо даних ваших клієнтів усе інакше: розпорядник — ви, тренер. Ви вирішуєте, кого і що записувати, і саме ви відповідаєте перед клієнтами. Ми до цих записів доступу не маємо: вони лежать у сховищі застосунку на вашому пристрої.`],
       ['Що лишається на пристрої', 'Записи про клієнтів (ім\'я, телефон, за бажанням — дата народження, фото, нотатки, мета тренувань), тренування, оплати, товари, абонементи й налаштування. Усе це лежить у сховищі застосунку.'],
-      ['Що потрапляє на наш сервер', 'Про підписку: ваш логін (пошта), знеособлений ідентифікатор пристрою, обраний тариф, дата й строк підписки, номер платежу від банку та дата початку пробного періоду.\n\nПро копію бази: зашифрований вміст застосунку — клієнти, тренування, оплати, товари, налаштування — у вигляді, який без ключа не читається. Читабельних записів там немає, і за шифротекстом не видно ні кількості клієнтів, ні сум.'],
+      ['Що потрапляє на наш сервер', 'Про підписку: ваш логін (пошта), знеособлений ідентифікатор пристрою, обраний тариф, дата й строк підписки, номер платежу від банку та дата початку пробного періоду.\n\nПро копію бази: зашифрований вміст застосунку — клієнти, тренування, оплати, товари, налаштування — у вигляді, який без ключа не читається. Читабельних записів там немає, і за шифротекстом не видно ні кількості клієнтів, ні сум.\n\nПро листування з підтримкою: якщо ви написали нам з екрана «Підтримка», ваше повідомлення й наша відповідь зберігаються на сервері у звичайному вигляді — інакше переписку не можна було б продовжити. Ми їх читаємо, бо відповідаємо на них. Тому не пишіть туди даних своїх клієнтів: щоб розібратись, вистачає опису того, що ви натиснули й що сталося.'],
       ['Копія бази і хто може її відкрити', 'Копія шифрується AES-256 ключем, який утворюється на вашому пристрої. Поруч із копією на сервері лежить цей самий ключ, зашифрований вашим паролем: саме тому копія відкривається на будь-якому вашому пристрої й саме тому зміна пароля не змушує перекладати дані.\n\nДоки увімкнене відновлення пароля, ми зберігаємо ще й сам ключ — інакше забутий пароль означав би втрату всієї бази клієнтів. Це означає прямо: технічно ми можемо відкрити вашу копію. Ми цього не робимо й не використовуємо ваші записи ні для чого, окрім зберігання, — але можливість є, і ви маєте про неї знати.\n\nЯкщо такий обмін вам не підходить, вимкніть «Відновлювати пароль» у налаштуваннях. Тоді наш примірник ключа стирається, копію відкриває лише ваш пароль — і забутий пароль означає, що копію не поверне ніхто, зокрема ми.\n\nВимкнути можна й саму копію: тоді на сервер не їде нічого, крім записів про підписку.'],
       ['Навіщо і на якій підставі', 'Логін і строк підписки ми обробляємо, щоб виконати договір із вами: відкрити доступ, відновити покупку на новому пристрої, не дати запустити пробний період удруге. Це підстава «виконання договору». Обмеження на три пристрої й запис дати пробного періоду — наш законний інтерес не втрачати оплату за послугу.'],
       ['Обліковий запис', 'Кабінет заводиться на пошту — саме тому, що на неї можна надіслати код, якщо пароль забудеться. Сам пароль не зберігається ніде: на пристрої лишається його хеш із «сіллю» (SHA-256), на сервер він не передається.\n\nКод шестизначний, живе 15 хвилин, діє один раз і підтверджує лише те, що скринька ваша; новий пароль ви задаєте на пристрої. Кабінети, заведені раніше на номер телефону, працюють як працювали, але відновити пароль до них ми не можемо — напишіть нам.'],
@@ -7903,6 +8010,96 @@ const LEGAL_DOCS = {
     ],
   },
 };;
+
+/* ─── підтримка ───
+   Один екран, одна нитка. Без тем, без номерів звернень і без «оцініть
+   якість обслуговування»: питання ставить одна людина, відповідає теж
+   одна, і обидві бачать усе, що було сказано раніше.
+
+   Порожній екран не мовчить: він одразу каже, куди це піде і як швидко
+   відповідають, — інакше перше повідомлення пишеться навмання.        */
+const SupportChat = ({onClose}) => {
+  const {msgs, loaded} = useHelp();
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const tail = useRef(null);
+
+  /* Поки екран відкритий — перепитуємо сервер. Закрили — перестали:
+     фонове опитування з'їдало б трафік заради екрана, якого не видно. */
+  useEffect(() => {
+    let alive = true;
+    const tick = () => { if (alive) Help.load(); };
+    tick();
+    Help.seen();
+    const id = setInterval(tick, HELP_POLL);
+    return () => { alive = false; clearInterval(id); Help.seen(); };
+  }, []);
+
+  useEffect(() => { if (tail.current) tail.current.scrollIntoView({block:'end'}); }, [msgs.length]);
+
+  async function send(){
+    const body = text.trim();
+    if (!body || busy) return;
+    setBusy(true); setErr('');
+    const r = await Help.send(body);
+    setBusy(false);
+    if (r && r.ok) { setText(''); Help.seen(); }
+    else setErr(r && r.error === 'too_fast'
+      ? t('help.slow','Забагато повідомлень поспіль. Спробуйте за годину.')
+      : t('help.nonet','Не відправилось — немає зв’язку. Спробуйте ще раз.'));
+  }
+
+  if (!Help.can()) return (
+    <Page title={t('help.title','Підтримка')} onClose={onClose}>
+      {/* Запасний вихід. Якщо до нашого сервера не достукатись, порада
+          «спробуйте пізніше» нічого не варта — потрібен інший шлях. */}
+      <Empty icon={<Ic.msg size={30}/>} title={t('help.off','Потрібен інтернет')}
+             text={t('help.off.t','Переписка з підтримкою працює лише зі зв’язком. Решта застосунку зв’язку не потребує й працює далі.')}
+             action={<Btn kind="soft" size="sm" onClick={() => Web.open(Support.url())}>
+                       <Ic.msg size={17}/>{t('help.other','Написати іншим способом')}</Btn>}/>
+    </Page>
+  );
+
+  return (
+    <Page title={t('help.title','Підтримка')} onClose={onClose}>
+      {!msgs.length && (
+        <div className="card pad" style={{marginTop:4}}>
+          <b style={{fontSize:15}}>{t('help.hi','Напишіть, що не так')}</b>
+          <p className="muted" style={{fontSize:13.5, lineHeight:1.55, margin:'7px 0 0'}}>
+            {t('help.hi.t','Питання читає жива людина, а не робот. Відповідаємо зазвичай протягом дня. Якщо щось працює не так, опишіть, що ви натиснули й що сталося замість очікуваного.')}
+          </p>
+          <p className="muted" style={{fontSize:12.5, lineHeight:1.5, margin:'9px 0 0'}}>
+            {t('help.hi.p','Ми бачимо тільки те, що ви тут напишете. Ваші клієнти, тренування й гроші лишаються на пристрої — ми в них не заходимо.')}
+          </p>
+        </div>
+      )}
+
+      {msgs.length > 0 && (
+        <div className="talk">
+          {msgs.map(m => (
+            <div key={m.id} className={cx('bub', m.who === 's' ? 'them' : 'me')}>
+              {m.text}
+              <span className="at">{fmtTime(m.at)}</span>
+            </div>
+          ))}
+          <div ref={tail}/>
+        </div>
+      )}
+      {!msgs.length && !loaded && <div className="muted" style={{fontSize:12.5, marginTop:10}}>…</div>}
+
+      <div style={{marginTop:12}}>
+        <textarea className="inp" style={{minHeight:96}} value={text} maxLength={2000}
+                  placeholder={t('help.ph','Опишіть питання')}
+                  onChange={e => setText(e.target.value)}/>
+        {err && <div className="muted" style={{fontSize:12.5, color:'var(--neg)', marginTop:6}}>{err}</div>}
+        <Btn kind="pri" size="lg" wide style={{marginTop:10}} disabled={busy || !text.trim()} onClick={send}>
+          <Ic.msg size={18}/>{busy ? t('help.sending','Відправляю…') : t('help.send','Відправити')}
+        </Btn>
+      </div>
+    </Page>
+  );
+};
 
 const Legal = ({params, onClose}) => {
   const doc = LEGAL_DOCS[params.doc] || LEGAL_DOCS.terms;
@@ -8463,6 +8660,7 @@ const ROUTES = {
   'backup':      p => <Backup {...p}/>,
   'plans':       p => <Paywall {...p} mode="page"/>,
   'subscription':p => <Subscription {...p}/>,
+  'support':     p => <SupportChat {...p}/>,
   'legal':       p => <Legal {...p}/>,
   'register':    p => <Register {...p}/>,
 };

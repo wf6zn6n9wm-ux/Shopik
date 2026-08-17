@@ -125,12 +125,22 @@ part('пристрої');
 
 part('скасування й повернення');
 {
-  const offed = (await call(API('unsubscribe.js'), {query: {login: LOGIN, device: DEV_A}})).json;
+  /* Вимкнення живе в licence.js під прапорцем off — окрема функція
+     з'їдала слот, а їх рівно дванадцять. Старий адрес /api/unsubscribe
+     переписує vercel.json, тому застосунки в людей на телефонах цього
+     переїзду не помітили. */
+  const off = q => call(API('licence.js'), {query: {...q, off: '1'}});
+  const offed = (await off({login: LOGIN, device: DEV_A})).json;
   ok('автопродовження вимикається', offed.autoRenew === false);
   ok('доступ лишається до кінця періоду', offed.active === true, new Date(offed.expiresAt).toISOString().slice(0, 10));
 
-  const stranger = await call(API('unsubscribe.js'), {query: {login: LOGIN, device: 'dev_чужий'}});
+  const stranger = await off({login: LOGIN, device: 'dev_чужий'});
   ok('чужий пристрій не може вимкнути підписку', stranger.code === 403, String(stranger.code));
+
+  /* Без прапорця та сама адреса лишається звичайним «чи є підписка» —
+     інакше перевірка стану мовчки скасовувала б автопродовження. */
+  const plain = (await call(API('licence.js'), {query: {login: LOGIN, device: DEV_A}})).json;
+  ok('без off це просто перегляд стану', plain.active === true && plain.autoRenew === false);
 
   const info = JSON.stringify({login: LOGIN, device: DEV_A, plan: 'yearly'});
   await call(API('callback.js'), {method: 'POST', body: bank({status: 'reversed', order_id: order, info})});
@@ -416,6 +426,111 @@ part('адмінка');
   ok('адмінка каже, чи можна взагалі заплатити', cfg.pay === L.configured(), String(cfg.pay));
 
   delete process.env.ADMIN_PASS;
+}
+
+part('переписка з підтримкою');
+{
+  const CHAT = API('chat.js');
+  const ADMIN = API('admin.js');
+  const TRIAL = API('trial.js');
+  const DB = API('db.js');
+
+  const HELP = 'pomich@mail.com', PHONE = 'dev_telefon', OTHER = 'dev_chuzhyi';
+
+  /* Telegram підміняємо: перевіряємо, що саме йому пішло б, і при цьому
+     тест лишається без мережі. */
+  const real = globalThis.fetch;
+  const out = [];
+  globalThis.fetch = async (url, opt) => {
+    out.push({url: String(url), body: JSON.parse((opt && opt.body) || '{}')});
+    return {ok: true, json: async () => ({ok: true})};
+  };
+  process.env.TELEGRAM_TOKEN = 'bot_test';
+  process.env.TELEGRAM_CHAT = '777';
+  process.env.TELEGRAM_SECRET = 'sekret';
+
+  const post = (q, headers) => call(CHAT, {method: 'POST', query: q, headers: headers || {}});
+  const get = q => call(CHAT, {method: 'GET', query: q});
+
+  /* Перший лист заводить нитку: інакше тренер, який ще нічого не платив,
+     не зміг би поскаржитись саме тоді, коли це найпотрібніше. */
+  const first = await post({login: HELP, device: PHONE, text: 'Не рахує відсоток залу', lang: 'uk'});
+  ok('перший лист заводить нитку', first.code === 200 && first.json.ok, String(first.code));
+  ok('своє повідомлення тренер бачить', (await get({login: HELP, device: PHONE})).json.msgs.length === 1);
+
+  /* Нитка приватна: у ній те, що людина написала про свою роботу. */
+  const alien = await get({login: HELP, device: OTHER});
+  ok('чужий пристрій нитку не читає', alien.code === 403, String(alien.code));
+
+  /* Другий шлях усередину — той самий token, яким відкривається копія
+     бази. Він потрібен на новому телефоні, де пристрій ще незнайомий. */
+  await L.store.set(DB.keyOf(HELP), {token: 'tk_help', savedAt: Date.now(), size: 10});
+  ok('token від копії пускає з будь-якого пристрою',
+     (await get({login: HELP, device: OTHER, token: 'tk_help'})).json.msgs.length === 1);
+  ok('несправжній token не пускає',
+     (await get({login: HELP, device: OTHER, token: 'tk_ne_toy'})).code === 403);
+
+  /* Пристрій, з якого почався пробний період, ми вже знаємо — питати в
+     нього token нема сенсу. */
+  await L.store.set(TRIAL.keyOf(HELP), {startedAt: Date.now(), device: 'dev_pershyi', lang: 'uk'});
+  ok('пристрій із пробного періоду теж свій',
+     (await get({login: HELP, device: 'dev_pershyi'})).json.ok === true);
+
+  ok('у Telegram пішло сповіщення', out.length === 1 && /api\.telegram\.org/.test(out[0].url));
+  ok('логін стоїть першим рядком — по ньому й відповідаємо',
+     out[0].body.text.split('\n')[0] === HELP, out[0].body.text.split('\n')[0]);
+
+  /* ─── відповідь ─── */
+  const head = ip => ({headers: {authorization: 'Bearer dovgyi-parol-adminky', 'x-forwarded-for': ip}});
+  process.env.ADMIN_PASS = 'dovgyi-parol-adminky';
+
+  const answered = await call(ADMIN, {method: 'POST', query: {reply: HELP, text: 'Перевірте відсоток у налаштуваннях'},
+                                      ...head('9.9.9.1')});
+  ok('відповідь з адмінки лягає в нитку', answered.code === 200 && answered.json.ok, String(answered.code));
+  const seen1 = (await get({login: HELP, device: PHONE})).json;
+  ok('тренер бачить відповідь непрочитаною', seen1.msgs.length === 2 && seen1.unread === 1, String(seen1.unread));
+
+  await post({login: HELP, device: PHONE, seen: '1'});
+  ok('після перегляду позначка гасне', (await get({login: HELP, device: PHONE})).json.unread === 0);
+
+  /* Відповідати з Telegram — головний шлях: сповіщення вже прийшло, і
+     відповідь на нього не вимагає ні адмінки, ні набирання адресата. */
+  const upd = {message: {text: 'Вже полагодили, оновіть сторінку',
+                         reply_to_message: {text: HELP + '\n\nНе рахує відсоток залу'}}};
+  const hook = await call(CHAT, {method: 'POST', body: upd,
+                                 headers: {'x-telegram-bot-api-secret-token': 'sekret'}});
+  ok('відповідь із Telegram доходить', hook.code === 200 && hook.json.sent === true, JSON.stringify(hook.json));
+  ok('вона видно тренеру', (await get({login: HELP, device: PHONE})).json.msgs.pop().text === 'Вже полагодили, оновіть сторінку');
+
+  /* Адреса вебхука рано чи пізно стане відома. Єдине, що відрізняє
+     Telegram від будь-кого іншого, — секрет у заголовку. */
+  const forged = await call(CHAT, {method: 'POST', body: upd,
+                                   headers: {'x-telegram-bot-api-secret-token': 'ne-toy'}});
+  ok('чужий секрет не дає писати від нашого імені', forged.code === 403, String(forged.code));
+
+  /* Список ниток — те, з чого починається робота в адмінці. */
+  const list = (await call(ADMIN, {query: {chat: '1'}, ...head('9.9.9.2')})).json;
+  ok('нитка є в списку', list.threads.some(t => t.login === HELP));
+  const thread = (await call(ADMIN, {query: {chat: HELP}, ...head('9.9.9.2')})).json;
+  ok('нитка відкривається цілком', thread.msgs.length === 3, String(thread.msgs.length));
+
+  /* ─── межі ─── */
+  const long = 'я'.repeat(CHAT.MAX_LEN + 500);
+  await post({login: HELP, device: PHONE, text: long});
+  const tail = (await get({login: HELP, device: PHONE})).json.msgs.pop();
+  ok('надто довге обрізаємо, а не ламаємось', tail.text.length === CHAT.MAX_LEN, String(tail.text.length));
+
+  /* Сховище читається ниткою цілком, тож нескінченний потік листів — це
+     не грубість, а спосіб його покласти. */
+  let last = null;
+  for (let i = 0; i < CHAT.RATE + 2; i++) last = await post({login: HELP, device: PHONE, text: 'ще ' + i});
+  ok('потік листів зупиняється', last.code === 429 && last.json.error === 'too_fast', String(last.code));
+
+  delete process.env.ADMIN_PASS;
+  delete process.env.TELEGRAM_TOKEN;
+  delete process.env.TELEGRAM_CHAT;
+  delete process.env.TELEGRAM_SECRET;
+  globalThis.fetch = real;
 }
 
 part('видача підписки вручну');
