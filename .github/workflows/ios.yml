@@ -199,12 +199,35 @@ jobs:
             echo "::warning::Ключа App Store Connect нет — .ipa останется артефактом, загрузите его вручную через Transporter"
             exit 0
           fi
+          # Пробелы и переносы строк в секретах — обычное дело: буфер
+          # обмена умеет добавлять и то и другое. В имени файла ключа
+          # лишний символ превращается в «401, не авторизован» — ошибку,
+          # по которой не догадаться, что дело в невидимом пробеле.
+          KEY_ID=$(printf '%s' "$KEY_ID" | tr -d '[:space:]')
+          ISSUER=$(printf '%s' "$ISSUER" | tr -d '[:space:]')
+          echo "Key ID: ${#KEY_ID} символов, Issuer ID: ${#ISSUER} символов"
+          if [ ${#KEY_ID} -ne 10 ]; then
+            echo "::error::ASC_KEY_ID должен быть ровно 10 символов — проверьте, что скопирован Key ID, а не что-то другое"
+            exit 1
+          fi
+          if [ ${#ISSUER} -ne 36 ]; then
+            echo "::error::ASC_ISSUER_ID должен быть 36 символов с дефисами — похоже, скопирован не тот идентификатор"
+            exit 1
+          fi
+
           mkdir -p ~/private_keys
           printf '%s' "$KEY_P8" | tr -d '[:space:]' | base64 -d > ~/private_keys/AuthKey_$KEY_ID.p8
+          # Первая строка ключа секретом не является, а сразу показывает,
+          # раскодировался он или в файл легло что-то другое.
+          echo "ключ: $(head -1 ~/private_keys/AuthKey_$KEY_ID.p8), $(wc -c < ~/private_keys/AuthKey_$KEY_ID.p8) байт"
+
           ipa=$(ls "$RUNNER_TEMP"/ipa/*.ipa | head -1)
           echo "отправляем $(basename "$ipa")"
-          xcrun altool --upload-app -f "$ipa" -t ios \
-            --apiKey "$KEY_ID" --apiIssuer "$ISSUER"
+          if ! xcrun altool --upload-app -f "$ipa" -t ios \
+                 --apiKey "$KEY_ID" --apiIssuer "$ISSUER"; then
+            echo '::error::App Store Connect не принял ключ. Если он создан только что — подождите несколько минут, Apple раздаёт новые ключи не мгновенно. .ipa при этом собран и лежит в артефактах, его можно залить вручную через Transporter'
+            exit 1
+          fi
 
       - name: Что собралось
         if: ${{ always() }}
