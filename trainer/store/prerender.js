@@ -116,6 +116,68 @@ function navHtml(T, el, lang, active){
   return '<nav class="nav">' + items + '</nav>';
 }
 
+/* ─── обрізати те, що не вмістилось ───
+   Застосунок написаний під живий екран: списки навмисно йдуть під нижню
+   панель, бо їх гортають. У знімку гортати нікуди, і остання картка
+   лишалась розрізаною навпіл — на вітрині це читається як недоробка.
+
+   Тому перед зйомкою ховаємо все, що не вміщається цілком. Саме ховаємо,
+   а не прибираємо: прибране потягнуло б за собою наступне, і на місці
+   зрізу опинилась би вже інша розрізана картка.
+
+   Той самий скрипт потрібен і живому знімку (LIVE=1), тому він тут один
+   на два шляхи, а не переписаний двічі. */
+const TRIM = `
+(function(){
+  var vis = function(e){ return !!(e.offsetWidth || e.offsetHeight); };
+  var nav = document.querySelector('.nav');
+  var edge = (nav ? nav.getBoundingClientRect().top : window.innerHeight) - 6;
+  var boxes = [].slice.call(document.querySelectorAll('.page, .screen')).filter(vis);
+  var box = boxes[boxes.length - 1];
+  if (!box) return;
+
+  /* Правило просте, але не одне на всіх. Рядок списку, від якого видно
+     половину, читається як помилка верстки. Великий блок — графік,
+     довга картка — навпаки: видно більшу частину, і зріз читається як
+     «далі буде», бо саме так виглядає будь-який екран телефона.
+
+     Тому дрібне ховаємо цілком, велике лишаємо, якщо його видно
+     більше ніж наполовину. Інакше замість розрізаного рядка виходила б
+     порожня половина екрана, що на вітрині не краще.
+
+     Ідемо знизу вгору й ховаємо через display:none — так сховане не
+     лишає по собі порожнього місця, а те, що вище, не з'їжджає. */
+  /* Ховаємо, лише коли від блока видно вузьку смужку: саме вона й
+     читається як помилка. Якщо видно чималий шматок — лишаємо, бо
+     інакше на його місці буде порожня чверть екрана, а це не краще за
+     зріз. Так графік на «Фінансах» лишається обрізаним, як на живому
+     телефоні, а піврядка списку зникає. */
+  var SLIVER = edge * 0.18;
+  var trim = function(el, depth){
+    var kids = [].slice.call(el.children);
+    for (var i = kids.length - 1; i >= 0; i--){
+      var kid = kids[i], r = kid.getBoundingClientRect();
+      if (r.height < 2 || r.bottom <= edge) continue;
+      var shown = edge - r.top;
+      if (shown > SLIVER && kid.children.length <= 1) continue;
+      /* У списки заходимо всередину — інакше зникала б уся історія
+         клієнта замість останнього рядка. Але не глибше другого рівня:
+         різати всередині самого рядка означає знову показати половину. */
+      if (depth < 2 && shown > 0 && kid.children.length > 1){
+        trim(kid, depth + 1);
+        if ([].slice.call(kid.children).some(function(x){ return x.style.display !== 'none'; })) continue;
+        if (shown > SLIVER) continue;
+      }
+      kid.style.display = 'none';
+      /* Заголовок секції без вмісту виглядає обірваним так само. */
+      var prev = kids[i - 1];
+      if (depth === 0 && prev && /sechead/.test(prev.className || '')) prev.style.display = 'none';
+    }
+  };
+  trim(box, 0);
+})();
+`;
+
 function page(css, lang, body){
   return '<!doctype html><html lang="' + lang + '" data-theme="light"><head><meta charset="UTF-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1">' +
@@ -126,7 +188,8 @@ function page(css, lang, body){
        його суцільним: на телефоні воно виглядає саме так. */
     '<style>*{animation:none !important;transition:none !important;caret-color:transparent !important}' +
     '.nav{background:var(--bg-2) !important;backdrop-filter:none !important}</style>' +
-    '</head><body><div id="root">' + body + '</div></body></html>';
+    '</head><body><div id="root">' + body + '</div>' +
+    '<script>' + TRIM + '</script></body></html>';
 }
 
 function build(lang, key){
@@ -170,4 +233,4 @@ if (require.main === module){
   process.exit(bad ? 1 : 0);
 }
 
-module.exports = {build, html, SCREENS};
+module.exports = {build, html, SCREENS, TRIM};

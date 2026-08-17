@@ -103,6 +103,7 @@ const vis = e => !!(e.offsetWidth || e.offsetHeight);
 const pri = () => all('.ob button').filter(b => /pri/.test(b.className))[0];
 document.head.insertAdjacentHTML('beforeend',
   '<style>*{transition:none!important;animation:none!important}</style>');
+${require('./prerender.js').TRIM ? '' : ''}
 (async () => {
   await wait(700);
   for (let i = 0; i < 3; i++){ const b = pri(); if (b){ b.click(); await wait(220); } }
@@ -118,6 +119,8 @@ document.head.insertAdjacentHTML('beforeend',
      const row = all('.sheet .setrow').filter(vis)[${frame.menu - 1}]; if (row){ row.click(); await wait(700); }` : ''}
   ${frame.then ? `const it = all('${frame.then}').filter(vis)[0]; if (it){ it.click(); await wait(700); }` : ''}
   await wait(400);
+  ${require('./prerender.js').TRIM}
+  await wait(150);
   document.title = 'ГОТОВО';
 })();
 </script>`;
