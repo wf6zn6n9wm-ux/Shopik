@@ -67,6 +67,14 @@
   .gate input:focus{border-color:var(--accent)}
   .err{color:var(--neg);font-size:13px;min-height:18px}
   .muted{color:var(--ink-3);font-size:13px;line-height:1.5;max-width:460px}
+  .people{display:flex;flex-direction:column;gap:10px}
+  .prow{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 15px}
+  .pmain{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:10px}
+  .pmain b{font-size:14px;font-weight:650;word-break:break-all;line-height:1.35}
+  .pfacts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 8px}
+  @media(min-width:560px){.pfacts{grid-template-columns:repeat(6,1fr)}}
+  .pfacts span{display:block;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+  .pfacts b{display:block;font-size:13.5px;font-weight:650;font-variant-numeric:tabular-nums;margin-top:2px}
   .note{background:rgba(247,144,9,.12);border:1px solid rgba(247,144,9,.3);color:#ffcd85;
         border-radius:12px;padding:11px 14px;font-size:13px;margin-bottom:14px;line-height:1.5}
 </style>
@@ -93,6 +101,7 @@ function monthName(k){
 }
 var PLAN_NAME = {monthly: 'месяц', quarterly: '3 месяца', yearly: 'год'};
 function planName(x){ return esc(PLAN_NAME[x.plan] || x.plan || '—'); }
+function fact(k, v){ return '<div><span>' + k + '</span><b>' + v + '</b></div>'; }
 function ago(ts, now){
   if (!ts) return '—';
   var d = Math.floor((now - ts) / 86400000);
@@ -203,22 +212,31 @@ function draw(d){
              '<span class="n">' + d.langs[k] + '</span></div>';
     }).join('') + '</div></div>';
 
-  html += '<h2>Тренеры (' + d.people.length + ')</h2><div class="card scroll"><table>' +
-    '<tr><th>Почта</th><th>Завёл</th><th>Был</th><th>База</th><th>Статус</th><th>До</th><th>Устройств</th></tr>' +
+  /* На телефоне широкая таблица прячет самое интересное за правым краем:
+     видно почту и дату, а «база», «статус» и «до» уже нет. Поэтому там —
+     карточки, и всё про тренера читается сразу. */
+  html += '<h2>Тренеры (' + d.people.length + ')</h2><div class="people">' +
     d.people.map(function(p){
-      return '<tr><td>' + esc(p.login) + '</td><td>' + esc(p.since) + '</td>' +
-        '<td>' + ago(p.seenAt, d.now) + '</td>' +
-        '<td class="num">' + kb(p.size) + '</td>' +
-        '<td>' + who(p) + '</td>' +
-        '<td>' + esc(p.until || p.trialEnds || '') + '</td>' +
-        '<td class="num">' + (p.devices || '') + '</td></tr>';
-    }).join('') + '</table></div>';
+      return '<div class="prow">' +
+        '<div class="pmain"><b>' + esc(p.login) + '</b>' + who(p) + '</div>' +
+        '<div class="pfacts">' +
+          fact('завёл', esc(p.since)) +
+          fact('был', ago(p.seenAt, d.now)) +
+          fact('база', kb(p.size)) +
+          fact(p.paid || p.granted ? 'до' : 'пробный до', esc(p.until || p.trialEnds || '—')) +
+          fact('устройств', p.devices || '—') +
+          fact('язык', esc(p.lang || '—')) +
+        '</div></div>';
+    }).join('') + '</div>';
 
   var m = d.money;
   html += '<h2>Продажи</h2>';
   if (!m.pays && !m.backs){
-    html += '<div class="card"><div class="muted">Ни одной оплаты. Журнал ведётся с того дня, ' +
-      'как появился, — прежние оплаты в него не попадут.</div></div>';
+    html += '<div class="card"><div class="muted">Ни одной оплаты.' +
+      (d.pay === false
+        ? ' И пока не может быть: боевые ключи LiqPay не подключены, кнопка оплаты не работает.'
+        : ' Оплата подключена и работает — значит, просто ещё никто не платил.') +
+      ' Журнал ведётся с того дня, как появился, — прежние оплаты в него не попадут.</div></div>';
   } else {
     html += '<div class="kpis">' +
       '<div class="card kpi"><div class="lbl">Оплат</div><div class="val">' + m.pays + '</div>' +

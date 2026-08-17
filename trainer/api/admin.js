@@ -197,8 +197,11 @@ module.exports = async function handler(req, res){
   const langs = {};
   people.forEach(p => { if (p.lang) langs[p.lang] = (langs[p.lang] || 0) + 1; });
 
+  /* Чи взагалі можна зараз заплатити. Без цього нуль у продажах читався
+     б як «ніхто не купує», хоча кнопка оплати може бути просто не
+     підключена — і винен не тренер, а налаштування. */
   return L.json(res, 200, {ok: true, storage, now, count, funnel, series, langs, money, people,
-                           trialDays: TRIAL.TRIAL_DAYS});
+                           pay: L.configured(), trialDays: TRIAL.TRIAL_DAYS});
 };
 
 module.exports.TRIES = TRIES;
