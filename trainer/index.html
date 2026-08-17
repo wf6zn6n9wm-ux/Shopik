@@ -393,6 +393,22 @@
   /* онбординг / авторизація */
   .ob{min-height:100vh;display:flex;flex-direction:column;padding:calc(var(--safe-top) + 20px) 22px calc(22px + var(--safe-bottom));}
   .ob-art{flex:1;display:grid;place-items:center;padding:14px 0;}
+  /* ─── онбординг вміщається в екран цілком ───
+     Три слайди — це обіцянка «подивись і зрозумів», а не читання з
+     прокруткою: гортати вгору-вниз усередині слайда, який сам гортається
+     вбік, збиває з пантелику. Тому висота дорівнює екрану, а зайве
+     віддає картинка — вона єдина тут тягнеться.
+
+     Клас окремий навмисно: ту саму розмітку .ob використовує екран
+     входу, а там полів більше, і заборонити прокрутку означало б
+     сховати кнопку під краєм на невисоких телефонах.
+
+     dvh, а не vh: на iOS vh рахується від екрана без урахування панелей,
+     і сторінка виходила б трохи вищою за видиме. Перший рядок —
+     запасний, для тих, хто dvh ще не знає. */
+  .ob.one{height:100vh;height:100dvh;overflow:hidden;}
+  .ob.one .ob-art{min-height:0;}
+  .ob.one .ob-art svg{max-height:100%;height:auto;}
   .dots{display:flex;gap:6px;justify-content:center;margin-bottom:18px;}
   .dots i{width:7px;height:7px;border-radius:4px;background:var(--line-2);transition:.24s var(--ease);}
   .dots i.on{width:22px;background:var(--accent);}
@@ -4068,7 +4084,7 @@ const Onboarding = ({onDone}) => {
     {t:t('ob.3.t','Гроші рахуються самі'), d:t('ob.3.d','Оборот, відсоток залу і чисті — рахуються автоматично. Продажі товарів і абонементи теж тут.')},
   ];
   return (
-    <div className="ob fade-in">
+    <div className="ob one fade-in">
       <div className="between">
         <div className="brand"><div className="mark"><Ic.dumb size={21}/></div><b>PRO Trainer</b></div>
         <div style={{display:'flex', gap:6, alignItems:'center'}}>
