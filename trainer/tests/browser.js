@@ -529,11 +529,16 @@ const DRIVE = `
     return p[p.length - 1] || null;
   }
 
-  async function enter(){
+  /* Логін — параметр. Пробний період сервер пам'ятає саме за логіном,
+     і на спільному «trainer@mail.com» екран пробного періоду встигав
+     зникнути сам: перевірка казала, що вже почато, і застосунок ішов
+     далі без кліку. Пробі, якій цей екран потрібен, дістається свій
+     логін — тоді екран дочекається. */
+  async function enter(login){
     await wait(300);
     for (var i = 0; i < 3; i++){ if (pri()){ pri().click(); await wait(120); } }
     var li = document.querySelector('.ob .inp');
-    if (li){ type(li, 'trainer@mail.com'); await wait(120); }
+    if (li){ type(li, login || 'trainer@mail.com'); await wait(120); }
     /* пароль обов'язковий — поле з'являється поруч із логіном */
     var ins = all('.ob .inp');
     if (ins[1]){ type(ins[1], 'test1234'); await wait(120); }
@@ -569,6 +574,15 @@ const DRIVE = `
     var sw = all('.ob .switch').slice(-1)[0];
     if (sw && !/on/.test(sw.className)){ sw.click(); await wait(220); }
     if (pri()){ pri().click(); await wait(400); }
+    /* Останній крок — екран пробного періоду. Він називає ціну, і
+       називав її не тією валютою, якою потім списує каса, тож знімаємо
+       текст перед тим, як закрити його кліком. */
+    /* Чекаємо коротко. Екран малюється відразу за майстром, тож довше —
+       марно, а під віртуальним часом кожна зайва секунда витрачається з
+       бюджету прогону, і проби далі перестають дочікуватись пошти. */
+    await until(function(){ return /Далі від/.test((document.querySelector('.ob') || {}).textContent || ''); }, 600);
+    var ob = document.querySelector('.ob');
+    if (ob && /Далі від/.test(ob.textContent)) window.__trial = ob.textContent.replace(/\\s+/g, ' ');
     if (pri()){ pri().click(); await wait(500); }
     /* база читається асинхронно, і доки вона не прочитана, екран показує
        скелет. Далі йдуть перевірки вмісту — виходимо звідси тільки коли
@@ -1326,7 +1340,7 @@ PROBES['app-claim.js'] = DRIVE + `
 PROBES['app-free.js'] = DRIVE + `
   (async function(){
     var res = {};
-    await enter();
+    await enter(((location.search.match(/who=(\\w+)/) || [])[1] || 'trainer') + '@mail.com');
     var rows = await menu();
     res.menu = rows.length;
     await openRow(rows, 7);                                   /* Підписка */
@@ -1348,6 +1362,10 @@ PROBES['app-free.js'] = DRIVE + `
     res.site = txt.indexOf(location.hostname) >= 0;
     res.paid = txt.indexOf('Я вже оплатив') >= 0;
     res.plans = top ? top.querySelectorAll('.plan').length : -1;
+    res.planText = top ? [].slice.call(top.querySelectorAll('.plan')).map(function(x){
+      return x.textContent.replace(/\\s+/g, ' ');
+    }).join(' | ') : '';
+    res.trial = window.__trial || '';
     res.buy = txt.indexOf('Продовжити') >= 0 || txt.indexOf('Активувати у WEB') >= 0;
     res.links = top ? top.querySelectorAll('a[href]').length : -1;
     res.err = window.__err || '';
@@ -1520,7 +1538,7 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('помилок немає', !o.err, o.err || '—');
 
     part('збірка для магазину не продає');
-    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?free=1&probe=app-free.js')) || '{}');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?free=1&who=freebuild&probe=app-free.js')) || '{}');
     ok('екран підписки відкривається', o.subPage === true);
     ok('кнопка веде до перевірки, а не до покупки', o.subBtn === 'Перевірити підписку', o.subBtn);
     ok('посилання на кабінет немає', o.manage === false);
@@ -1537,10 +1555,21 @@ server.listen(PORT, '127.0.0.1', async () => {
     /* Зворотна перевірка: без прапорця той самий екран продає. Інакше
        випадково увімкнений прапорець прибрав би покупку скрізь, і всі
        перевірки вище лишились би зеленими. */
-    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-free.js')) || '{}');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?who=paidbuild&probe=app-free.js')) || '{}');
     ok('без прапорця плани на місці', o.plans === 3, o.plans + ' шт.');
     ok('без прапорця кнопка покупки є', o.buy === true);
     ok('без прапорця кнопка веде до вибору плану', o.subBtn === 'Обрати план', o.subBtn);
+
+    /* ─── валюта на екрані ───
+       Тренер відкрив застосунок і побачив «Далі від $4.99», а каса
+       виставляє рахунок у гривнях. Долар у таблиці тарифів лишається
+       навмисно — він для магазину, — тому перевіряємо не таблицю, а те,
+       що видно людині: на екрані має стояти сума, яку з неї спишуть. */
+    ok('на екрані пробного періоду ціна в гривні',
+       /299 ₴/.test(o.trial) && !/\$/.test(o.trial), o.trial || 'екрана не бачили');
+    ok('у картках планів ціни в гривні',
+       ['299 ₴', '749 ₴', '1990 ₴'].every(s => o.planText.includes(s)) && !/\$/.test(o.planText),
+       o.planText || '—');
 
     part('копія бази на сервері');
     o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?cloud=1&probe=app-cloud.js')) || '{}');

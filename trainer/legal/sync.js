@@ -32,6 +32,12 @@ const APP = path.join(ROOT, 'index.html');
 const marksOf = legal =>
   Object.fromEntries(Object.keys(legal).map(k => [k, '{{' + k + '}}']));
 
+/* Підстановки, що приходять не з LEGAL. Ціни тут не випадково: вписані
+   в текст числом, вони розійшлися з касою — в умовах стояло «$4.49», а
+   LiqPay брав 299 ₴. Тепер їх складає застосунок із таблиці тарифів, а
+   юрист бачить мітку й не править числа руками. */
+const EXTRA = {trialDays: 'TRIAL_DAYS', priceStore: 'PRICE.store', priceWeb: 'PRICE.web'};
+
 /* ─────────── читання ─────────── */
 function block(src, start){
   /* від `const X = {` до рядка, що закриває об'єкт на нульовому рівні */
@@ -50,7 +56,8 @@ function readDocs(){
   const b = block(src, 'const LEGAL_DOCS = {');
   /* виконуємо з мітками замість реквізитів — тоді підстановки самі
      перетворяться на {{...}}, і жодного розбору шаблонних рядків */
-  const ctx = {LEGAL: marksOf(legalValues(src)), TRIAL_DAYS: '{{trialDays}}'};
+  const ctx = {LEGAL: marksOf(legalValues(src)), TRIAL_DAYS: '{{trialDays}}',
+               PRICE: {store: '{{priceStore}}', web: '{{priceWeb}}'}};
   vm.createContext(ctx);
   vm.runInContext(b.text + ';globalThis.__docs = LEGAL_DOCS;', ctx);
   return {src, b, docs: ctx.__docs};
@@ -68,7 +75,23 @@ function legalValues(src){
   vm.createContext(ctx);
   vm.runInContext(b.text + ';globalThis.__legal = LEGAL;', ctx);
   const trial = (src.match(/const TRIAL_DAYS = (\d+)/) || [, '14'])[1];
-  return {...ctx.__legal, trialDays: trial};
+  return {...ctx.__legal, trialDays: trial, ...priceValues(src)};
+}
+
+/* Ціни для публічних сторінок беремо з тієї самої таблиці PLANS, що й
+   застосунок: інакше /terms і застосунок розійшлися б, а розбіжність у
+   ціні першим помічає банк, а не ми. */
+function priceValues(src){
+  const m = src.match(/const PLANS = \[[\s\S]*?\n\];/);
+  if (!m) throw new Error('не знайшов PLANS');
+  const ctx = {};
+  vm.createContext(ctx);
+  vm.runInContext(m[0] + ';globalThis.__plans = PLANS;', ctx);
+  const plans = ctx.__plans;
+  return {
+    priceStore: plans.map(p => p.title + ' — $' + Number(p.price).toFixed(2)).join(', '),
+    priceWeb:   plans.map(p => p.title + ' — ' + Math.round(p.web) + ' ₴').join(', '),
+  };
 }
 
 const fill = (tx, v) => tx.replace(/\{\{(\w+)\}\}/g, (_, k) => (v[k] !== undefined ? v[k] : ''));
@@ -181,7 +204,7 @@ function jsString(s){
      і обов'язково перенесення рядків: розділ буває з кількох абзаців */
   const safe = String(s).replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n');
   const withVars = safe.replace(/\{\{(\w+)\}\}/g,
-    (_, k) => (k === 'trialDays' ? '${TRIAL_DAYS}' : '${LEGAL.' + k + '}'));
+    (_, k) => '${' + (EXTRA[k] || 'LEGAL.' + k) + '}');
   if (withVars !== safe) return '`' + withVars.replace(/`/g, '\\`') + '`';
   return "'" + withVars.replace(/'/g, "\\'") + "'";
 }
