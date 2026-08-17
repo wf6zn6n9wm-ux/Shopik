@@ -126,6 +126,13 @@
    збігалися з застосунком і з сервером. */
 var LEGAL = {
   company: 'ФОП Мозолевич Андрій Ігорович',
+  /* Те саме ім'я латиницею — рівно як воно записане в D&B (D-U-N-S).
+     Apple під час перевірки шукає на сайті назву юридичної особи й
+     звіряє її рядок у рядок із записом D&B; кирилиця туди не підходить.
+     У застосунку цього поля немає навмисно: там воно нічого не додає, а
+     тут — єдина причина, чому перевірка проходить. */
+  latin: 'Mozolevych Andrii Ihorovych FOP',
+  duns: '66-768-0555',
   id: '3691304399',
   addr: 'Україна, м. Дніпро, вул. Ольвійська, 19',
   phone: '+380 95 182 54 56',
@@ -153,7 +160,9 @@ document.getElementById('tar').innerHTML = PLANS.map(function(p){
 
 document.getElementById('req').innerHTML = [
   ['Продавець', esc(LEGAL.company)],
+  ['Legal name', esc(LEGAL.latin)],
   ['РНОКПП', esc(LEGAL.id)],
+  ['D-U-N-S', esc(LEGAL.duns)],
   ['Адреса', esc(LEGAL.addr)],
   ['Телефон', '<a href="tel:' + LEGAL.phone.replace(/[^\d+]/g, '') + '">' + esc(LEGAL.phone) + '</a>'],
   ['Пошта', '<a href="mailto:' + LEGAL.email + '">' + esc(LEGAL.email) + '</a>'],
