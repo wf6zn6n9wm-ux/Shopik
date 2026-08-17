@@ -17,9 +17,16 @@
 1. Vercel → Add New → Project → импортировать этот репозиторий.
 2. **Root Directory: `barber`** ← самое важное.
 3. Framework Preset: Other. Build Command и Output Directory оставить пустыми.
-4. Deploy.
+4. Имя проекта — `pro-barber` (его ждёт GitHub Actions; другое имя — поправьте
+   `PROJECT` в `.github/workflows/barber.yml`).
+5. Deploy.
 
 `package.json` в папке уже есть — Vercel сам поставит `@vercel/kv`.
+
+Дальше выкладывать руками не нужно: push в `main` прогоняет проверки и, если они
+зелёные, заливает продакшн через `vercel deploy --prod`. Токен берётся из
+секретов репозитория (`VERCEL_TOKEN`) — тот же, что у тренера. Не задан — шаг
+честно предупредит и не станет валить сборку.
 
 **Проверка:** откройте `https://<домен>/api/health`. Должен ответить JSON.
 Если 404 — Root Directory указан неверно.
