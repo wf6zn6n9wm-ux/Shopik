@@ -13,6 +13,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const {build} = require(path.join(__dirname, '..', '..', 'build.js'));
+
 const APP = path.join(__dirname, '..', '..');          // trainer/
 const NATIVE = path.join(__dirname, '..');             // trainer/native/
 const WWW = path.join(NATIVE, 'www');
@@ -27,6 +29,39 @@ FILES.forEach(f => fs.copyFileSync(path.join(APP, f), path.join(WWW, f)));
 const idx = path.join(WWW, 'index.html');
 let html = fs.readFileSync(idx, 'utf8');
 
+/* ─── збірка без інтернету ───
+   Веб-версія тягне React і Babel з CDN: у браузері це нормально, бо
+   сторінка й так із мережі, а далі все кешує service worker. Усередині
+   застосунку так не можна. Магазинна збірка встановлюється з магазину й
+   відкривається де завгодно — у залі без зв'язку теж, — а з CDN вона
+   першого разу не запуститься зовсім: порожній екран замість застосунку.
+   До того ж це три мегабайти чужого коду на кожен холодний старт.
+
+   Тому JSX компілюємо тут-таки, тим самим build.js, що й для сайту, а
+   React кладемо поруч із застосунком, із node_modules. Після цього в
+   збірці не лишається жодного зовнішнього посилання. */
+html = build(html);
+
+const VENDOR = path.join(WWW, 'vendor');
+fs.mkdirSync(VENDOR, {recursive: true});
+const umd = [
+  ['react', 'react/umd/react.production.min.js', 'react.js'],
+  ['react-dom', 'react-dom/umd/react-dom.production.min.js', 'react-dom.js'],
+];
+umd.forEach(([pkg, from, to]) => {
+  let src;
+  try { src = require.resolve(from, {paths: [NATIVE]}); }
+  catch { throw new Error('немає ' + pkg + ' у native/node_modules — виконайте npm install у trainer/native'); }
+  fs.copyFileSync(src, path.join(VENDOR, to));
+});
+html = html
+  .replace(/<script crossorigin src="https:\/\/unpkg\.com\/react@18[^"]*"><\/script>/,
+           '<script src="vendor/react.js"></script>')
+  .replace(/<script crossorigin src="https:\/\/unpkg\.com\/react-dom@18[^"]*"><\/script>/,
+           '<script src="vendor/react-dom.js"></script>');
+if (/unpkg\.com/.test(html))
+  throw new Error('у збірці лишилось посилання на CDN — застосунок не запуститься без мережі');
+
 if (SELL) {
   fs.copyFileSync(path.join(NATIVE, 'iap-bridge.js'), path.join(WWW, 'iap-bridge.js'));
   if (!html.includes('iap-bridge.js')) {
@@ -39,5 +74,5 @@ if (SELL) {
 }
 
 fs.writeFileSync(idx, html);
-console.log('www/ готова:', FILES.length, 'файлів,',
+console.log('www/ готова:', FILES.length + umd.length, 'файлів, без жодного зовнішнього посилання,',
   SELL ? 'вбудовані покупки увімкнено' : 'безкоштовна збірка: оплата на сайті');
