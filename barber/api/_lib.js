@@ -36,9 +36,9 @@ const configured = () => !!(ENV.pub && ENV.priv);
    Гривна, а не доллар: доход от нерезидента второй группе не положен, да и
    LiqPay всё равно рассчитывается в гривне.                              */
 const PLANS = {
-  monthly:   {id: 'monthly',   months: 1,  uah: 249},
-  quarterly: {id: 'quarterly', months: 3,  uah: 649},
-  yearly:    {id: 'yearly',    months: 12, uah: 2490},
+  monthly:   {id: 'monthly',   months: 1,  uah: 299},
+  quarterly: {id: 'quarterly', months: 3,  uah: 749},
+  yearly:    {id: 'yearly',    months: 12, uah: 1990},
 };
 const CURRENCY = 'UAH';
 const DEVICES = 3;                 /* столько же, сколько WEB.devices в приложении */

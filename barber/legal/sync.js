@@ -26,7 +26,8 @@ const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
 const APP = path.join(ROOT, 'index.html');
-const MARKS = {company: '{{company}}', email: '{{email}}', updated: '{{updated}}'};
+const MARKS = {company: '{{company}}', email: '{{email}}', updated: '{{updated}}',
+  id: '{{id}}', address: '{{address}}', phone: '{{phone}}'};
 
 /* ─────────── чтение ─────────── */
 function block(src, start){
@@ -46,7 +47,8 @@ function readDocs(){
   const b = block(src, 'const LEGAL_DOCS = {');
   /* выполняем с метками вместо реквизитов — тогда подстановки сами
      превратятся в {{...}}, и никакого разбора шаблонных строк */
-  const ctx = {LEGAL: MARKS, TRIAL_DAYS: '{{trialDays}}', legalVal: v => v};
+  const ctx = {LEGAL: MARKS, TRIAL_DAYS: '{{trialDays}}',
+    legalVal: v => v, legalLine: () => '{{requisites}}'};
   vm.createContext(ctx);
   vm.runInContext(b.text + ';globalThis.__docs = LEGAL_DOCS;', ctx);
   return {src, b, docs: ctx.__docs};
@@ -65,9 +67,17 @@ function legalValues(src){
 const mdOf = doc => '# ' + doc.title + '\n\n' +
   doc.blocks.map(([h, tx]) => '## ' + h + '\n\n' + tx + '\n').join('\n') +
   '\n---\n\n_Подстановки: {{company}}, {{email}}, {{updated}}, {{trialDays}} — ' +
-  'приложение подставляет их само, оставляйте как есть._\n';
+  'приложение подставляет их само, оставляйте как есть. {{requisites}} — вся строка реквизитов._\n';
 
-const fill = (tx, v) => String(tx).replace(/\{\{(\w+)\}\}/g, (_, k) => (v[k] ? v[k] : '(укажите ' + k + ')'));
+const line = v => [
+  v.company || '(укажите название ФОП)',
+  v.id && 'РНОКПП ' + v.id,
+  v.address,
+  v.phone && 'тел. ' + v.phone,
+  v.email,
+].filter(Boolean).join(', ');
+const fill = (tx, v) => String(tx).replace(/\{\{(\w+)\}\}/g,
+  (_, k) => (k === 'requisites' ? line(v) : (v[k] ? v[k] : '(укажите ' + k + ')')));
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 const MARK = '<div class="mark"><svg viewBox="0 0 24 24"><path d="M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5M6.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5M8.6 8.1 20 19.5M20 4.5 8.6 15.9"/></svg></div>';
@@ -78,8 +88,7 @@ const todo = v => v.company && v.email ? '' :
   '  <div class="err">Реквизиты не заполнены: укажите LEGAL в index.html и выполните ' +
   '<code>node barber/legal/sync.js export</code> ещё раз.</div>\n';
 
-const foot = (v, links) => '  <p class="note">' +
-  esc(fill('{{company}}', v)) + ' · <a href="mailto:' + esc(v.email) + '">' + esc(fill('{{email}}', v)) + '</a><br>\n  ' +
+const foot = (v, links) => '  <p class="note">' + esc(line(v)) + '<br>\n  ' +
   links.map(([href, tx]) => '<a href="' + href + '">' + esc(tx) + '</a>').join(' · ') + '</p>\n';
 
 const page = (title, body) => `<!doctype html>
@@ -178,7 +187,8 @@ function jsString(s){
   const safe = String(s).replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n');
   const withVars = safe.replace(/\{\{(\w+)\}\}/g, (_, k) => {
     if (k === 'trialDays') return '${TRIAL_DAYS}';
-    if (k === 'company') return "${legalVal(LEGAL.company, 'реквизиты ФОП')}";
+    if (k === 'requisites') return '${legalLine()}';
+    if (k === 'company') return "${legalVal(LEGAL.company, 'название ФОП')}";
     if (k === 'email') return "${legalVal(LEGAL.email, 'почту для обращений')}";
     return '${LEGAL.' + k + '}';
   });
