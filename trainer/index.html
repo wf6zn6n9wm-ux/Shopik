@@ -1177,6 +1177,9 @@ const PHRASES = [
   ['Пошту підтверджено. Копію відкрити нічим: у цьому кабінеті відновлення було вимкнене, і ключ від копії лишався тільки у вас. Кабінет почнеться з чистого аркуша', 'Почта подтверждена. Копию открыть нечем: в этом кабинете восстановление было выключено, и ключ от копии оставался только у вас. Кабинет начнётся с чистого листа', 'Email confirmed. There is nothing to open the backup with: recovery was off for this account, so the key stayed with you alone. The account starts fresh', 'E-mail potwierdzony. Nie ma czym otworzyć kopii: w tym koncie odzyskiwanie było wyłączone, a klucz pozostawał tylko u Ciebie. Konto zacznie się od zera'],
   ['Кабінет із такою поштою вже є, і пароль до нього інший. Введіть свій пароль — або відновіть його', 'Кабинет с такой почтой уже есть, и пароль от него другой. Введите свой пароль — или восстановите его', 'An account with this email already exists and its password is different. Enter your password — or recover it', 'Konto z tym e-mailem już istnieje i ma inne hasło. Wpisz swoje hasło — albo je odzyskaj'],
   ['Не вдалося застосувати новий пароль. Спробуйте ще раз або замовте новий код', 'Не удалось применить новый пароль. Попробуйте ещё раз или закажите новый код', 'We could not apply the new password. Try again or request a new code', 'Nie udało się zastosować nowego hasła. Spróbuj ponownie lub zamów nowy kod'],
+  ['Код уже використано або він застарів. Замовте новий і змініть пароль протягом 15 хвилин', 'Код уже использован или устарел. Закажите новый и смените пароль в течение 15 минут', 'That code has already been used or has expired. Request a new one and change the password within 15 minutes', 'Ten kod został już użyty lub wygasł. Zamów nowy i zmień hasło w ciągu 15 minut'],
+  ['Копії цього кабінету на сервері немає — відновлювати нічого', 'Копии этого кабинета на сервере нет — восстанавливать нечего', 'There is no copy of this account on the server — nothing to restore', 'Nie ma kopii tego konta na serwerze — nie ma czego przywracać'],
+  ['Сервер не відповів. Перевірте зв’язок і спробуйте ще раз', 'Сервер не ответил. Проверьте связь и попробуйте ещё раз', 'The server did not respond. Check your connection and try again', 'Serwer nie odpowiedział. Sprawdź połączenie i spróbuj ponownie'],
   ['Код із листа', 'Код из письма', 'Code from the email', 'Kod z e-maila'],
   ['Підтвердити код', 'Подтвердить код', 'Confirm code', 'Potwierdź kod'],
   ['Зберегти пароль', 'Сохранить пароль', 'Save password', 'Zapisz hasło'],
@@ -4214,9 +4217,24 @@ const Auth = ({onReady, save}) => {
       const rk = await Cloud.rekey(login, keep.ticket, c);
       if (!rk.ok){
         setBusy(false);
-        return setErr({pass: t('auth.err.rekey','Не вдалося застосувати новий пароль. Спробуйте ще раз або замовте новий код')});
+        /* Провалитись тут можна чотирма різними способами, і колись на
+           всі чотири писалось одне «спробуйте ще раз». Порада при цьому
+           була просто неправдою: квиток одноразовий, і повторне
+           натискання тією ж кнопкою не спрацює ніколи — треба замовляти
+           новий код. Людина ж тиснула далі й вирішувала, що застосунок
+           з'їв її базу. Тому кажемо, що саме сталось. */
+        return setErr({pass:
+          rk.error === 'bad_ticket'
+            ? t('auth.err.ticket','Код уже використано або він застарів. Замовте новий і змініть пароль протягом 15 хвилин')
+          : rk.error === 'empty'
+            ? t('auth.err.nocopy','Копії цього кабінету на сервері немає — відновлювати нічого')
+            : t('auth.err.noserver','Сервер не відповів. Перевірте зв’язок і спробуйте ще раз')});
       }
-      const got = await Cloud.restore(login, c.token, c.key);
+      /* Замок на сервері вже змінено, а квиток витрачено — другого разу
+         не буде. Тож усе, що нижче, не має права скасувати зроблене:
+         копію може не вдатись прочитати саме зараз, але пароль уже
+         новий, і кабінет мусить відкритись саме ним. */
+      const got = await Cloud.restore(login, c.token, c.key).catch(() => ({ok: false}));
       if (got.ok) restored = got.json;
     }
 
