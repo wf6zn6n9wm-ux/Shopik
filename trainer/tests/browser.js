@@ -236,6 +236,11 @@ const server = http.createServer(async (req, res) => {
 const FLAGS = ['--headless', '--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage',
   '--no-first-run', '--no-default-browser-check', '--disable-extensions',
   '--hide-scrollbars', '--window-size=430,900', '--dump-dom',
+  /* Застосунок живе на телефоні, а в headless дотиків немає взагалі:
+     браузер не заводить властивостей ontouchstart/ontouchend, і
+     обробник гортання просто нікуди не чіпляється. Подія при цьому
+     долітає — тому виглядало так, ніби зламався сам свайп. */
+  '--touch-events=enabled',
   /* Фонова мережа. На чистому профілі Chrome при першому запуску сам
      ходить по оновлення, списки й телеметрію. Локально це непомітно, а на
      CI виходу назовні немає — запити висять, і віртуальний час висить
@@ -368,7 +373,7 @@ const done = (url, html) => {
      дивиться на завантаження, друга — на відмову у вході. Вимагати від
      них позначку означало б тричі перезапускати вдалу пробу, а потім
      рахувати її результат так, ніби повторів не було. */
-  const OUTSIDE = ['probe=app-boot', 'probe=app-nocopy'];
+  const OUTSIDE = ['probe=app-boot', 'probe=app-nocopy', 'probe=app-swipe'];
   const needsApp = url.includes('/_app.html') && !OUTSIDE.some(p => url.includes(p));
   return needsApp ? html.includes('id="__entered"') : true;
 };
@@ -983,6 +988,59 @@ PROBES['app-join.js'] = DRIVE + `
   })();
 `;
 
+/* Гортання онбордингу пальцем. Три крапки внизу обіцяють саме його, а
+   слайди перемикались тільки кнопкою — тренер, який спробував змахнути,
+   вирішив, що застосунок завис. Перевіряємо обидва напрямки й те, що на
+   краях гортання нікуди не діває слайд. */
+PROBES['app-swipe.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await wait(400);
+    var ob = document.querySelector('.ob');
+    var title = function(){ return (document.querySelector('.ob .dsp') || {}).textContent || ''; };
+    var dot = function(){ return all('.ob .dots i').findIndex(function(x){ return /on/.test(x.className); }); };
+
+    var swipe = function(dx){
+      var mk = function(kind, x){
+        var t = new Touch({identifier: 1, target: ob, clientX: x, clientY: 400});
+        return new TouchEvent(kind, {bubbles: true, changedTouches: [t], touches: kind === 'touchend' ? [] : [t]});
+      };
+      ob.dispatchEvent(mk('touchstart', 200));
+      ob.dispatchEvent(mk('touchend', 200 + dx));
+    };
+
+    /* Чи долітає подія взагалі: без цього не відрізнити «свайп не
+       працює» від «проба не вміє його зобразити». */
+    var seen = 0;
+    ob.addEventListener('touchend', function(){ seen++; });
+    res.hasTouch = typeof window.TouchEvent === 'function';
+
+    res.first = title();
+    res.dotFirst = dot();
+
+    swipe(-120);                       /* вліво — наступний */
+    await wait(200);
+    res.second = title();
+    res.dotSecond = dot();
+
+    swipe(120);                        /* вправо — назад */
+    await wait(200);
+    res.back = title();
+
+    swipe(120);                        /* уже перший: далі нікуди */
+    await wait(200);
+    res.stays = title();
+
+    swipe(-10);                        /* випадковий дотик слайд не міняє */
+    await wait(200);
+    res.tiny = title();
+
+    res.seen = seen;
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
 /* Кабінет без копії. Такі є: заведені до того, як копії з'явились, вони
    ключа не мають і не зберігаються нікуди — мовчки. Мовчки тут і є
    помилка, тому перевіряємо не «код працює», а чи побачить це тренер на
@@ -1439,6 +1497,19 @@ server.listen(PORT, '127.0.0.1', async () => {
 
     /* Кабінет без копії мовчав, і тренер дізнавався про це, коли телефон
        уже загубився. Перевіряємо не код, а те, чи він це побачить. */
+    part('онбординг гортається пальцем');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-swipe.js')) || '{}');
+    ok('змах вліво веде на наступний слайд', o.second && o.second !== o.first,
+       (o.first || '').slice(0, 30) + ' → ' + (o.second || '').slice(0, 30));
+    ok('крапка їде разом зі слайдом', o.dotFirst === 0 && o.dotSecond === 1,
+       o.dotFirst + ' → ' + o.dotSecond);
+    ok('змах вправо повертає назад', o.back === o.first);
+    ok('на першому слайді далі нікуди', o.stays === o.first);
+    ok('випадковий дотик слайд не міняє', o.tiny === o.first);
+    ok('помилок немає', !o.err, o.err || '—');
+    ok('подія дотику долітає до екрана', o.seen === 4,
+       'дотиків: ' + o.seen + ', TouchEvent: ' + o.hasTouch);
+
     part('кабінет без копії каже про це сам');
     o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?cloud=1&probe=app-nocloud.js')) || '{}');
     ok('поки копія є — мовчимо', o.armedFirst === true && o.quietWhenArmed === true,
