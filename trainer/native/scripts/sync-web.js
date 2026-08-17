@@ -44,14 +44,23 @@ html = build(html);
 
 const VENDOR = path.join(WWW, 'vendor');
 fs.mkdirSync(VENDOR, {recursive: true});
+/* Шлях будуємо від package.json, а не просимо Node знайти сам файл.
+   React у своєму package.json перелічує, що з нього дозволено брати
+   ззовні, і umd/ у тому переліку немає: пряме звернення до нього Node
+   відхиляє, хоча файл лежить на місці. Спершу цього не було видно —
+   перевіряв на заглушці, у якої такого переліку немає, і вона мовчки
+   підтвердила те, чого насправді не працює. */
 const umd = [
-  ['react', 'react/umd/react.production.min.js', 'react.js'],
-  ['react-dom', 'react-dom/umd/react-dom.production.min.js', 'react-dom.js'],
+  ['react', 'umd/react.production.min.js', 'react.js'],
+  ['react-dom', 'umd/react-dom.production.min.js', 'react-dom.js'],
 ];
 umd.forEach(([pkg, from, to]) => {
-  let src;
-  try { src = require.resolve(from, {paths: [NATIVE]}); }
+  let root;
+  try { root = path.dirname(require.resolve(pkg + '/package.json', {paths: [NATIVE]})); }
   catch { throw new Error('немає ' + pkg + ' у native/node_modules — виконайте npm install у trainer/native'); }
+  const src = path.join(root, from);
+  if (!fs.existsSync(src))
+    throw new Error('у ' + pkg + ' немає ' + from + ' — потрібна саме 18-та версія, у новіших збірок UMD уже не буває');
   fs.copyFileSync(src, path.join(VENDOR, to));
 });
 html = html
