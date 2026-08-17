@@ -182,6 +182,28 @@ part('здоровье и ключи');
   ok('без KV честно говорит «память»', h.storage === 'memory', h.storage);
   ok('ключи мерчанта видит', h.liqpay === true);
   ok('секретов не отдаёт', !JSON.stringify(h).includes('test_priv'));
+  ok('и ключей мерчанта тоже', !JSON.stringify(h).includes('test_pub'));
+  ok('видит валюту и число планов', h.currency === 'UAH' && h.plans === 3);
+
+  /* Ради этого health и написан: без хранилища лицензии исчезают между
+     вызовами функции, и заметить это по приложению почти невозможно. */
+  ok('без хранилища продавать не готовы', h.readyToSell === false, String(h.readyToSell));
+
+  /* Домен callback: ошибёшься — банк отправит ответ в пустоту, оплата
+     пройдёт, а доступа не будет */
+  ok('верный домен виден', h.baseMatchesHost === true, h.base);
+  const wrong = (await call(API('health.js'), {headers: {host: 'чужой.example'}})).json;
+  ok('чужой домен в base замечен', wrong.baseMatchesHost === false, wrong.base + ' ≠ чужой.example');
+
+  ok('онлайн-запись отдельно от оплаты',
+     h.booking && h.booking.supabase === false && h.booking.bot === false);
+  process.env.BARBER_SUPABASE_URL = 'https://x.supabase.co';
+  process.env.BARBER_SUPABASE_SERVICE_ROLE_KEY = 'srv';
+  const withDb = (await call(API('health.js'), {})).json;
+  ok('подключённую базу видит', withDb.booking.supabase === true);
+  ok('и ключ базы наружу не отдаёт', !JSON.stringify(withDb).includes('srv'));
+  delete process.env.BARBER_SUPABASE_URL;
+  delete process.env.BARBER_SUPABASE_SERVICE_ROLE_KEY;
 
   const keep = process.env.BARBER_LIQPAY_PRIVATE_KEY;
   process.env.BARBER_LIQPAY_PRIVATE_KEY = '';
