@@ -96,7 +96,7 @@ function sandbox(){
   return {ctx: vm.createContext(ctx), el};
 }
 
-const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, periodRange, clientStats, clientFeed, isDebt,
+const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, markDemo, periodRange, clientStats, clientFeed, isDebt,
   clientPrice, typedPrice, periodOf, periodLabel, deltaRange, RangeSheet, PeriodBar, iso, addDays,
   Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Box, Notifier, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES, Toaster, Photo, PHOTO, Web, WEB,

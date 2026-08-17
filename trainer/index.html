@@ -1037,6 +1037,7 @@ const PHRASES = [
   ['Вартість тренування', 'Стоимость тренировки', 'Session price', 'Cena treningu'],
   ['Детальна статистика', 'Подробная статистика', 'Detailed statistics', 'Szczegółowe statystyki'],
   ['Заповнити прикладом', 'Заполнить примером', 'Fill with demo data', 'Wypełnij przykładem'],
+  ['Вигадані клієнти й історія — подивитись, як усе працює. Потім прибираються одним дотиком на головній.', 'Выдуманные клиенты и история — посмотреть, как всё работает. Потом убираются одним касанием на главной.', 'Made-up clients and history to see how it works. Removed later in one tap on the home screen.', 'Wymyśleni klienci i historia — żeby zobaczyć, jak to działa. Potem znikają jednym dotknięciem na ekranie głównym.'],
   ['Зберегти тренування', 'Сохранить тренировку', 'Save the session', 'Zapisz trening'],
   ['Клієнта не знайдено', 'Клиент не найден', 'Client not found', 'Nie znaleziono klienta'],
   ['Нагадування клієнту', 'Напоминание клиенту', 'Client reminder', 'Przypomnienie dla klienta'],
@@ -1112,6 +1113,10 @@ const PHRASES = [
   ['Відновлювати пароль', 'Восстанавливать пароль', 'Password recovery', 'Odzyskiwanie hasła'],
   ['ще попереду', 'ещё впереди', 'still ahead', 'jeszcze przed nami'],
   ['В архів', 'В архив', 'Archive', 'Do archiwum'],
+  ['Це приклад', 'Это пример', 'This is a demo', 'To przykład'],
+  ['Вигадані клієнти й тренування, щоб подивитись, як усе працює. Ваші дані вони не чіпають.', 'Выдуманные клиенты и тренировки, чтобы посмотреть, как всё работает. Ваши данные они не трогают.', 'Made-up clients and sessions so you can see how it works. They do not touch your own data.', 'Wymyśleni klienci i treningi, żeby zobaczyć, jak to działa. Twoich danych nie ruszają.'],
+  ['Прибрати', 'Убрать', 'Remove', 'Usuń'],
+  ['Приклад прибрано', 'Пример убран', 'Demo removed', 'Przykład usunięty'],
   ['Останню копію зберегти не вдалося. Перевірте зв’язок', 'Последнюю копию сохранить не удалось. Проверьте связь', 'We could not save the latest backup. Check your connection', 'Nie udało się zapisać ostatniej kopii. Sprawdź połączenie'],
   ['База переросла розмір копії. Напишіть нам — розберемось', 'База переросла размер копии. Напишите нам — разберёмся', 'The data outgrew the backup size limit. Write to us and we will sort it out', 'Baza przerosła rozmiar kopii. Napisz do nas — rozwiążemy to'],
   ['Збережено', 'Сохранено', 'Saved', 'Zapisano'],
@@ -2887,6 +2892,20 @@ const Act = {
      Архів прибирає людину зі списків і підказок, лишаючи історію на
      місці. Поле archived було в базі з самого початку, і всі списки його
      вже враховували — не було лише способу його поставити. */
+  /* ─── прибрати приклад ───
+     Забираємо тільки помічені записи, власні лишаються. Так «видалити
+     одним дотиком» справді працює й не забирає нічого зайвого — навіть
+     якщо тренер уже встиг завести своїх клієнтів поруч із прикладом. */
+  clearDemo(){
+    Store.patch(db => {
+      const off = list => (list || []).filter(x => !x.demo);
+      return {...db, demo: false,
+        clients: off(db.clients), sessions: off(db.sessions), products: off(db.products),
+        sales: off(db.sales), packages: off(db.packages), subs: off(db.subs),
+        notes: off(db.notes), measures: off(db.measures)};
+    }, {name: 'demo.clear'});
+  },
+
   archiveClient(id, on){
     Store.patch(db => ({...db, clients: db.clients.map(c => c.id === id ? {...c, archived: on !== false} : c)}),
       {name:'client.archive', data:{id, on}});
@@ -3192,6 +3211,19 @@ const Act = {
 };
 
 /* ─────────────────── демодані ─────────────────── */
+/* ─── приклад ───
+   Кожен запис прикладу помічений demo:true. Помітка потрібна не для
+   краси: без неї прибрати приклад можна було тільки разом із власними
+   даними, і обіцянка «все можна видалити одним дотиком» не виконувалась
+   ніяк. */
+function markDemo(db){
+  const on = list => (list || []).map(x => ({...x, demo: true}));
+  return {...db, demo: true,
+    clients: on(db.clients), sessions: on(db.sessions), products: on(db.products),
+    sales: on(db.sales), packages: on(db.packages), subs: on(db.subs),
+    notes: on(db.notes), measures: on(db.measures)};
+}
+
 function seedDB(profile){
   const db = emptyDB();
   db.profile = {...db.profile, ...profile};
@@ -4268,7 +4300,10 @@ const PinLock = ({mode, onPin, onCancel, error}) => {
 
 /* Майстер налаштувань після реєстрації */
 const Setup = ({account, onDone}) => {
-  const [s, setS] = useState({price:800, gymMode:'percent', gymPercent:15, gymFixed:0, demo:true, name:''});
+  /* Приклад вимкнено. Увімкнений він давав новому тренеру вісім вигаданих
+     клієнтів, і люди читали їх як чужі справжні дані — з відповідними
+     висновками про застосунок, у який щойно ввели свою пошту. */
+  const [s, setS] = useState({price:800, gymMode:'percent', gymPercent:15, gymFixed:0, demo:false, name:''});
   const [, redraw] = useState(0);
   const sp = split(s.price, s);
   return (
@@ -4329,7 +4364,7 @@ const Setup = ({account, onDone}) => {
           <div style={{flex:1}}>
             <b style={{fontSize:14.5}}>{t('setup.demo','Заповнити прикладом')}</b>
             <div className="muted" style={{fontSize:12.5, marginTop:3}}>
-              {t('setup.demo.sub','8 клієнтів, історія за 2 місяці, товари й абонементи. Все можна видалити одним дотиком.')}
+              {t('setup.demo.sub2','Вигадані клієнти й історія — подивитись, як усе працює. Потім прибираються одним дотиком на головній.')}
             </div>
           </div>
           <Switch on={s.demo} onChange={v => setS({...s, demo:v})}/>
@@ -4550,6 +4585,24 @@ const Home = ({loading}) => {
         </div>
 
         <TrialBar/>
+
+        {/* Приклад видно одразу й прибирається одним дотиком. Без цього
+            рядка вигадані клієнти виглядали як чужі справжні дані, а як
+            їх позбутись — здогадатись було нізвідки. */}
+        {db.demo && (
+          <div className="card pad" style={{marginTop:12, display:'flex', gap:12, alignItems:'center'}}>
+            <div style={{flex:1, minWidth:0}}>
+              <b style={{fontSize:14}}>{t('demo.on','Це приклад')}</b>
+              <div className="muted" style={{fontSize:12.5, lineHeight:1.45, marginTop:2}}>
+                {t('demo.on.s','Вигадані клієнти й тренування, щоб подивитись, як усе працює. Ваші дані вони не чіпають.')}
+              </div>
+            </div>
+            <Btn kind="sec" size="sm" onClick={() => {
+              Act.clearDemo();
+              Toaster.ok(t('demo.gone','Приклад прибрано'));
+            }}>{t('demo.clear','Прибрати')}</Btn>
+          </div>
+        )}
 
         {/* дохід */}
         <button className="hero press" style={{marginTop:16, width:'100%', textAlign:'left', display:'block'}}
@@ -8627,7 +8680,7 @@ const Boot = () => {
     <Setup account={account} onDone={(settings, demo, acc, name) => {
       const phone = acc && acc.kind === 'phone' ? phoneMask(acc.login) : '';
       const email = acc && acc.kind === 'email' ? acc.login : '';
-      const base = demo ? seedDB({name, phone, email}) : emptyDB();
+      const base = demo ? markDemo(seedDB({name, phone, email})) : emptyDB();
       const db = {...base, onboarded: true,
         profile: {...base.profile, name: name || base.profile.name, phone, email},
         /* мова, обрана на першому екрані, а не та, що лежала в шаблоні */

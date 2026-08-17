@@ -367,6 +367,37 @@ part('групове заняття');
   T.Store.init(was);
 }
 
+part('приклад прибирається одним дотиком');
+{
+  const was = T.Store.state;
+  /* Тренерка публічно написала: «створюю акаунт, а там чужі дані, які
+     стерти неможливо». Це був приклад, увімкнений за замовчуванням: вісім
+     вигаданих клієнтів читались як чужі справжні, а прибрати їх було
+     нізвідки. */
+  const seeded = T.markDemo(T.seedDB({name: 'Alex'}));
+  T.Store.init(seeded);
+  ok('приклад помічений', T.Store.state.demo === true);
+  ok('кожен запис прикладу помічений',
+     T.Store.state.clients.every(c => c.demo) && T.Store.state.sessions.every(x => x.demo));
+
+  /* власний клієнт поруч із прикладом */
+  const mine = T.Act.addClient({name: 'Мій клієнт'});
+  const s1 = T.Act.addSession({clientId: mine.id, price: 900, start: new Date().toISOString()});
+
+  T.Act.clearDemo();
+  const box = T.Store.state;
+  ok('вигадані клієнти зникли', box.clients.length === 1 && box.clients[0].id === mine.id,
+     box.clients.length + ' шт.');
+  ok('свій лишився разом із тренуванням',
+     box.sessions.length === 1 && box.sessions[0].id === s1.id, box.sessions.length + ' шт.');
+  ok('товари й абонементи прикладу теж прибрані',
+     box.products.length === 0 && box.subs.length === 0 && box.sales.length === 0);
+  ok('позначка знята — рядок більше не показується', box.demo === false);
+  ok('налаштування й профіль не постраждали',
+     box.settings.price === seeded.settings.price && box.profile.name === 'Alex');
+  T.Store.init(was);
+}
+
 part('архів клієнта');
 {
   const was = T.Store.state;
