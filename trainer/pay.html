@@ -30,38 +30,37 @@ var LANG = ['uk','ru','en','pl'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : '
 document.documentElement.lang = LANG;
 
 var T = {
-  uk:{title:'Оформлення підписки', sub:'Оплата на сайті дешевша: у ній немає комісії магазину застосунків.',
+  uk:{title:'Оформлення підписки', sub:'Підписка оформлюється тут: у застосунку вбудованих покупок немає.',
       go:'Перейти до оплати', month:'щомісяця', once:'разова оплата, без автопродовження',
-      year:'раз на рік', per:'на місяць', save:'Економія', store:'у магазині',
+      year:'раз на рік', per:'на місяць', 
       who:'Підписка прив’яжеться до логіна <b>{login}</b> — тим самим, яким ви входите в застосунку.',
-      note:'Оплата проходить через LiqPay, сума списується в доларах — банк перерахує її у вашу валюту за своїм курсом, тому у виписці цифра буде іншою. Підписка з періодом 1 місяць і 1 рік продовжується автоматично — вимкнути можна на сторінці підписки або в застосунку. Доступ діє на 3 пристроях.',
+      note:'Оплата проходить через LiqPay, рахунок виставляється в гривнях — саме ця сума й спишеться. Підписка з періодом 1 місяць і 1 рік продовжується автоматично — вимкнути можна на сторінці підписки або в застосунку. Доступ діє на 3 пристроях.',
       nologin:'Не бачимо, для якого логіна оформляти підписку. Відкрийте цю сторінку кнопкою «Активувати у WEB» у застосунку.'},
-  ru:{title:'Оформление подписки', sub:'Оплата на сайте дешевле: в ней нет комиссии магазина приложений.',
+  ru:{title:'Оформление подписки', sub:'Подписка оформляется здесь: в приложении встроенных покупок нет.',
       go:'Перейти к оплате', month:'ежемесячно', once:'разовая оплата, без автопродления',
-      year:'раз в год', per:'в месяц', save:'Экономия', store:'в магазине',
+      year:'раз в год', per:'в месяц', 
       who:'Подписка привяжется к логину <b>{login}</b> — тому же, которым вы входите в приложении.',
-      note:'Оплата проходит через LiqPay, сумма списывается в долларах — банк пересчитает её в вашу валюту по своему курсу, поэтому в выписке цифра будет другой. Подписка на 1 месяц и 1 год продлевается автоматически — отключить можно на странице подписки или в приложении. Доступ действует на 3 устройствах.',
+      note:'Оплата проходит через LiqPay, счёт выставляется в гривнах — именно эта сумма и спишется. Подписка на 1 месяц и 1 год продлевается автоматически — отключить можно на странице подписки или в приложении. Доступ действует на 3 устройствах.',
       nologin:'Не видим, для какого логина оформлять подписку. Откройте эту страницу кнопкой «Активировать в WEB» в приложении.'},
-  en:{title:'Subscribe', sub:'Paying here is cheaper: there is no app store commission.',
+  en:{title:'Subscribe', sub:'Subscriptions are bought here: the app has no in-app purchases.',
       go:'Go to payment', month:'monthly', once:'one-off payment, no auto-renewal',
-      year:'once a year', per:'per month', save:'You save', store:'in the store',
+      year:'once a year', per:'per month', 
       who:'The subscription will be tied to <b>{login}</b> — the same login you use in the app.',
-      note:'Payment is handled by LiqPay and charged in US dollars — your bank converts it at its own rate, so your statement will show a different figure. The 1-month and 1-year plans renew automatically — you can turn that off on the subscription page or in the app. Access works on 3 devices.',
+      note:'Payment is handled by LiqPay and billed in Ukrainian hryvnia — that exact amount is charged. The 1-month and 1-year plans renew automatically — you can turn that off on the subscription page or in the app. Access works on 3 devices.',
       nologin:'We can’t tell which login to subscribe. Open this page with “Activate on the web” in the app.'},
-  pl:{title:'Wykup subskrypcję', sub:'Płatność tutaj jest tańsza: nie zawiera prowizji sklepu z aplikacjami.',
+  pl:{title:'Wykup subskrypcję', sub:'Subskrypcję wykupujesz tutaj: aplikacja nie ma zakupów wewnętrznych.',
       go:'Przejdź do płatności', month:'co miesiąc', once:'płatność jednorazowa, bez odnawiania',
-      year:'raz w roku', per:'miesięcznie', save:'Oszczędzasz', store:'w sklepie',
+      year:'raz w roku', per:'miesięcznie', 
       who:'Subskrypcja zostanie przypisana do loginu <b>{login}</b> — tego samego, którym logujesz się w aplikacji.',
-      note:'Płatność obsługuje LiqPay i jest pobierana w dolarach — bank przeliczy ją po swoim kursie, więc na wyciągu zobaczysz inną kwotę. Plany 1-miesięczny i roczny odnawiają się automatycznie — możesz to wyłączyć na stronie subskrypcji lub w aplikacji. Dostęp działa na 3 urządzeniach.',
+      note:'Płatność obsługuje LiqPay, rachunek jest w hrywnach — pobrana zostanie dokładnie ta kwota. Plany 1-miesięczny i roczny odnawiają się automatycznie — możesz to wyłączyć na stronie subskrypcji lub w aplikacji. Dostęp działa na 3 urządzeniach.',
       nologin:'Nie wiemy, dla jakiego loginu wykupić subskrypcję. Otwórz tę stronę przyciskiem „Aktywuj w WEB” w aplikacji.'},
 };
 var t = T[LANG];
 
 /* ціни мають збігатися з PLANS у index.html */
-/* web — ціна тут, у гривнях: платить український ФОП і рахунок банк
-   виставляє в гривні. store — ціна в магазині застосунків, у доларах.
-   Валюти різні навмисно, тож поруч вони не показуються: закреслений
-   долар біля гривні читався б як знижка, якої немає. */
+/* web — ціна тут, у гривнях: платить український ФОП, і рахунок банк
+   виставляє в гривнях. Поле store лишається тільки для звірки з
+   таблицею тарифів застосунку — на сторінці воно не показується. */
 var PLANS = [
   {id:'monthly',   months:1,  web:299,  store:4.99},
   {id:'quarterly', months:3,  web:749,  store:12.99},
@@ -73,7 +72,6 @@ var TITLE = {
   en:{monthly:'1 month',  quarterly:'3 months', yearly:'1 year'},
   pl:{monthly:'1 miesiąc',quarterly:'3 miesiące',yearly:'1 rok'},
 };
-var usd = function(v){ return '$' + v.toFixed(2); };
 var uah = function(v){ return Math.round(v) + ' \u20b4'; };
 var login = (Q.get('login') || '').trim();
 var device = (Q.get('device') || '').trim();
@@ -97,10 +95,6 @@ function draw(){
     b.className = 'plan' + (p.id === picked ? ' on' : '');
     b.onclick = function(){ picked = p.id; draw(); };
     var period = p.months === 1 ? t.month : p.months === 12 ? t.year : t.once;
-    /* Раніше поруч стояла закреслена ціна магазину. Відколи тут гривня, а
-       там долар, це вводило б в оману: закреслені $4.99 біля 299 ₴
-       виглядають знижкою вдесятеро, якої немає. Різницю пояснюємо
-       словами під списком, а не фальшивим закресленням. */
     b.innerHTML =
       '<span class="radio">' + (p.id === picked ? '<i></i>' : '') + '</span>' +
       '<span class="t"><b>' + TITLE[LANG][p.id] + '</b><span>' + period +

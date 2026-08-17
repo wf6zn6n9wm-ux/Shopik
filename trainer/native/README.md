@@ -76,7 +76,10 @@ iOS/Android подхватывается сама.
 1. Приложение с bundle ID `com.protrainer.app` (или своим — тогда поправьте
    `capacitor.config.json`).
 2. **Subscriptions → Subscription Group** «PRO Trainer», в ней три
-   auto-renewable подписки:
+   auto-renewable подписки. Сейчас этот шаг не нужен: сборка идёт с
+   `PRO_TRAINER_FREE`, внутри ничего не продаётся, и человек платит на сайте
+   гривной (299 / 749 / 1990 ₴). Таблица ниже — на день, когда встроенные
+   покупки включат:
 
    | Product ID | Длительность | Цена |
    |---|---|---|
@@ -99,7 +102,8 @@ iOS/Android подхватывается сама.
 
 1. Приложение с тем же `applicationId`.
 2. **Monetize → Subscriptions**: три подписки с теми же ID и base plans
-   `P1M`, `P3M`, `P1Y`, цены $4.99 / $12.99 / $49.99.
+   `P1M`, `P3M`, `P1Y`, цены $4.99 / $12.99 / $49.99. Как и в App Store
+   Connect — только когда встроенные покупки включат; сейчас продаёт сайт.
 3. Загрузить сборку хотя бы в internal testing — без этого подписки не
    активируются.
 4. **License testers** (Play Console → Setup → License testing).

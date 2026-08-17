@@ -36,7 +36,7 @@ const marksOf = legal =>
    в текст числом, вони розійшлися з касою — в умовах стояло «$4.49», а
    LiqPay брав 299 ₴. Тепер їх складає застосунок із таблиці тарифів, а
    юрист бачить мітку й не править числа руками. */
-const EXTRA = {trialDays: 'TRIAL_DAYS', priceStore: 'PRICE.store', priceWeb: 'PRICE.web'};
+const EXTRA = {trialDays: 'TRIAL_DAYS', priceWeb: 'PRICE.web'};
 
 /* ─────────── читання ─────────── */
 function block(src, start){
@@ -57,7 +57,7 @@ function readDocs(){
   /* виконуємо з мітками замість реквізитів — тоді підстановки самі
      перетворяться на {{...}}, і жодного розбору шаблонних рядків */
   const ctx = {LEGAL: marksOf(legalValues(src)), TRIAL_DAYS: '{{trialDays}}',
-               PRICE: {store: '{{priceStore}}', web: '{{priceWeb}}'}};
+               PRICE: {web: '{{priceWeb}}'}};
   vm.createContext(ctx);
   vm.runInContext(b.text + ';globalThis.__docs = LEGAL_DOCS;', ctx);
   return {src, b, docs: ctx.__docs};
@@ -89,7 +89,6 @@ function priceValues(src){
   vm.runInContext(m[0] + ';globalThis.__plans = PLANS;', ctx);
   const plans = ctx.__plans;
   return {
-    priceStore: plans.map(p => p.title + ' — $' + Number(p.price).toFixed(2)).join(', '),
     priceWeb:   plans.map(p => p.title + ' — ' + Math.round(p.web) + ' ₴').join(', '),
   };
 }
