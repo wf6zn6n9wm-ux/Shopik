@@ -1341,6 +1341,8 @@ const PHRASES = [
   ['Оплата на сайті дешевша, бо не містить комісії магазину: підписка прив’язується до вашого логіна й діє на {n} пристроях.', 'Оплата на сайте дешевле, потому что не содержит комиссии магазина: подписка привязывается к вашему логину и действует на {n} устройствах.', 'Paying on the website is cheaper because it carries no store commission: the subscription is tied to your login and works on {n} devices.', 'Płatność na stronie jest tańsza, bo nie zawiera prowizji sklepu: subskrypcja jest przypisana do Twojego loginu i działa na {n} urządzeniach.'],
   ['Оплата проходить через магазин застосунків, керувати підпискою можна в його налаштуваннях. Підписка продовжується автоматично, доки ви не вимкнете автопродовження.', 'Оплата проходит через магазин приложений, управлять подпиской можно в его настройках. Подписка продлевается автоматически, пока вы не выключите автопродление.', 'Payment goes through the app store; you can manage the subscription in its settings. It renews automatically until you turn off auto-renewal.', 'Płatność przechodzi przez sklep z aplikacjami, subskrypcją zarządzasz w jego ustawieniach. Odnawia się automatycznie, dopóki nie wyłączysz automatycznego odnawiania.'],
 
+  ['Копії цього кабінета на сервері немає — швидше за все, він живе на тому телефоні, де його заводили. Відкрийте застосунок там і увімкніть «Копію на сервері» в налаштуваннях: після цього вхід тут спрацює. Або перенесіть дані файлом — «Резервна копія» → «Створити копію зараз».', 'Копии этого кабинета на сервере нет — скорее всего, он живёт на том телефоне, где его заводили. Откройте приложение там и включите «Копію на сервері» в настройках: после этого вход здесь сработает. Или перенесите данные файлом — «Резервна копія» → «Створити копію зараз».', 'There is no server backup for this account — most likely it lives on the phone where it was created. Open the app there and turn on the server backup in settings: after that, signing in here will work. Or move the data as a file — Backup → Create a backup now.', 'Nie ma kopii tego konta na serwerze — najpewniej żyje ono na telefonie, na którym je założono. Otwórz tam aplikację i włącz kopię na serwerze w ustawieniach: potem logowanie tutaj zadziała. Albo przenieś dane plikiem — Kopia zapasowa → Utwórz kopię teraz.'],
+
   /* ─── переписка з підтримкою ─── */
   ['Підтримка', 'Поддержка', 'Support', 'Pomoc'],
   ['Відправити', 'Отправить', 'Send', 'Wyślij'],
@@ -4186,6 +4188,9 @@ const Auth = ({onReady, save}) => {
     } else if (!isLogin(login)) e.login = t('auth.err.login','Введіть пошту');
     if ((protect || askPass) && f.pass.length < 4) e.pass = t('auth.err.pass','Пароль — від 4 символів');
     setErr(e);
+    /* підказка від минулої спроби до нової не має відношення: логін уже
+       інший, а порада лишалась би стояти під ним як свіжа */
+    setNote('');
     if (Object.keys(e).length) return;
     setBusy(true);
     try {
@@ -4204,9 +4209,19 @@ const Auth = ({onReady, save}) => {
            Тому питаємо сервер: якщо копія є — просимо пароль і
            розгортаємо базу тут. */
         if (!match){
-          const found = Web.enabled() ? await Cloud.peek(norm) : {ok:false};
-          if (!found.ok || !found.has){
+          const found = Web.enabled() ? await Cloud.peek(norm) : {ok:false, error:'web_disabled'};
+          /* ─── три різні речі, які досі виглядали однаково ───
+             Сервер не відповів, копії немає, копія є — і на всі три
+             застосунок казав «такого кабінету немає». Перше — брехня:
+             людина йде міняти пошту, хоча міняти нічого не треба.
+             Друге — правда, але тупик: що робити далі, не сказано. */
+          if (!found.ok){
+            setErr({login: t('auth.err.net','Не вдалося зв’язатися з сервером. Перевірте інтернет і спробуйте ще раз')});
+            setBusy(false); return;
+          }
+          if (!found.has){
             setErr({login: t('auth.err.nouser','Такого кабінету на цьому пристрої немає')});
+            setNote(t('auth.err.nouser.t','Копії цього кабінета на сервері немає — швидше за все, він живе на тому телефоні, де його заводили. Відкрийте застосунок там і увімкніть «Копію на сервері» в налаштуваннях: після цього вхід тут спрацює. Або перенесіть дані файлом — «Резервна копія» → «Створити копію зараз».'));
             setBusy(false); return;
           }
           if (!askPass){

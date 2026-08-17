@@ -364,10 +364,12 @@ const done = (url, html) => {
      нема чого — краще повторити, ніж рахувати порожній екран за
      результат. Позначку ставить enter().
 
-     Крім тих, що до застосунку й не доходять: одна дивиться на завантаження,
-     друга — на те, що кабінет на номер завести не дають. Вимагати від них
-     позначку означало б тричі перезапускати вдалу пробу. */
-  const OUTSIDE = ['probe=app-boot', 'probe=app-mail'];
+     Крім тих, що до застосунку й не доходять і не мають доходити: одна
+     дивиться на завантаження, друга — на те, що кабінет на номер завести
+     не дають, третя — на відмову у вході. Вимагати від них позначку
+     означало б тричі перезапускати вдалу пробу, а потім рахувати її
+     результат так, ніби повторів не було. */
+  const OUTSIDE = ['probe=app-boot', 'probe=app-mail', 'probe=app-nocopy'];
   const needsApp = url.includes('/_app.html') && !OUTSIDE.some(p => url.includes(p));
   return needsApp ? html.includes('id="__entered"') : true;
 };
@@ -943,6 +945,53 @@ PROBES['app-join.js'] = DRIVE + `
   })();
 `;
 
+/* Вхід, коли копії немає або сервер мовчить. Досі обидва випадки — і
+   третій, зовсім інший, — казали одне: «такого кабінету немає». На обрив
+   зв'язку це відверта брехня, і людина йде міняти пошту, хоча міняти
+   нічого не треба. Перевіряємо, що тепер це різні відповіді. */
+PROBES['app-nocopy.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await wait(300);
+    for (var i = 0; i < 3; i++){ if (pri()){ pri().click(); await wait(120); } }
+
+    var toLogin = all('.ob button').filter(function(b){ return /Вже є кабінет/.test(b.textContent); })[0];
+    if (toLogin){ toLogin.click(); await wait(200); }
+
+    var ob = function(){ return document.querySelector('.ob').textContent.replace(/\\s+/g, ' '); };
+
+    /* 1. Логін, якого сервер не знає. Правда — але вона має бути з
+          порадою, інакше це тупик. */
+    var li = document.querySelector('.ob .inp');
+    if (li) type(li, 'nikoly-ne-buv@mail.com');
+    await wait(120);
+    if (pri()) pri().click();
+    /* Чекаємо саме на текст помилки. Слово «немає» тут не годиться: воно
+       стоїть на кнопці «Немає кабінету — створити», тобто на екрані було
+       з самого початку, і перевірка проходила б, нічого не дочекавшись. */
+    var noUser = function(){ return /Такого кабінету на цьому пристрої немає/.test(ob()); };
+    await until(noUser, 8000);
+    res.saidNo = noUser();
+    res.told = /увімкніть/.test(ob()) || /Резервна копія/.test(ob());
+    res.saw1 = ob().slice(0, 260);
+
+    /* 2. Той самий крок, але сервер не відповів. Тепер це має бути про
+          зв'язок, а не про кабінет. */
+    Cloud.peek = async function(){ return {ok: false, error: 'network'}; };
+    li = document.querySelector('.ob .inp');
+    if (li) type(li, 'inshyi@mail.com');
+    await wait(120);
+    if (pri()) pri().click();
+    await until(function(){ return /зв.язатися з сервером/.test(ob()); }, 8000);
+    res.netSaid = /зв.язатися з сервером/.test(ob());
+    res.netNotLying = !/Такого кабінету на цьому пристрої немає/.test(ob());
+    res.saw = ob().slice(0, 220);
+
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
 /* Забутий пароль. Найдорожчий шлях у застосунку: тут людина або
    повертає базу клієнтів, або втрачає її. Проходимо його цілком —
    лист, код, новий пароль, новий замок — і перевіряємо обидва боки:
@@ -1300,6 +1349,16 @@ server.listen(PORT, '127.0.0.1', async () => {
       new URLSearchParams({login: 'on@mail.com', token: 'tok-on@mail.com'}))).json();
     ok('власнику копію віддаємо', mine.has === true && mine.ct === 'c');
     ok('а ключ — ні', mine.keep === undefined, JSON.stringify(mine.keep));
+
+    /* Вхід, коли входити нічим. Тут важливо не «показалась помилка», а
+       яка саме: три різні причини колись давали одну відповідь. */
+    part('вхід без копії й без зв’язку');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?cloud=1&probe=app-nocopy.js')) || '{}');
+    ok('незнайомий кабінет — так і кажемо', o.saidNo === true, o.saw1 || '—');
+    ok('і одразу пояснюємо, що робити далі', o.told === true, o.saw1 || '—');
+    ok('обрив зв’язку — це про зв’язок', o.netSaid === true, o.saw || '—');
+    ok('а не «такого кабінету немає»', o.netNotLying === true, o.saw || '—');
+    ok('помилок немає', !o.err, o.err || '—');
 
     /* Переписка з підтримкою: від набраного тексту до відповіді, що
        з'явилась сама. Тут перевіряється не сервер (це робить licence.js),

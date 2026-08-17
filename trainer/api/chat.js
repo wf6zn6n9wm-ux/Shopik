@@ -71,12 +71,18 @@ const empty = login => ({login: L.normLogin(login), msgs: [], devices: [], lang:
                          seenT: 0, seenS: 0, sent: []});
 const read = async login => (await L.store.get(keyOf(login))) || null;
 
-/* Скільки відповідей тренер ще не бачив. Рахуємо за часом останнього
-   перегляду, а не прапорцем у кожному рядку: рядки приходять із двох
-   боків, і прапорці розійшлися б. */
+/* Скільки відповідей той бік ще не бачив. Рахуємо за номером останнього
+   переглянутого рядка, а не прапорцем у кожному: рядки приходять із двох
+   боків, і прапорці розійшлися б.
+
+   Саме за номером, а не за часом. Спершу тут стояв час, і на цьому
+   ловилась справжня помилка: відповідь, написана в ту саму мілісекунду,
+   що й питання, виявлялась «уже прочитаною» й позначки не давала.
+   Номери зростають самі по собі й на годинник не спираються. */
+const lastId = rec => (rec.msgs.length ? rec.msgs[rec.msgs.length - 1].id : 0);
 const unreadFor = (rec, who) => {
   const seen = (who === 't' ? rec.seenT : rec.seenS) || 0;
-  return rec.msgs.filter(m => m.who !== who && m.at > seen).length;
+  return rec.msgs.filter(m => m.who !== who && m.id > seen).length;
 };
 
 /* Список ниток для адмінки. Без нього довелося б читати всі кабінети
@@ -115,7 +121,7 @@ async function add(login, who, text, extra){
   if (extra && extra.device && !rec.devices.includes(extra.device)) rec.devices.push(extra.device);
   if (extra && extra.lang) rec.lang = extra.lang;
   /* власні рядки одразу вважаємо прочитаними тим, хто їх написав */
-  if (who === 't') rec.seenT = msg.at; else rec.seenS = msg.at;
+  if (who === 't') rec.seenT = msg.id; else rec.seenS = msg.id;
   await save(rec);
   return {rec, msg};
 }
@@ -247,7 +253,7 @@ module.exports = async function handler(req, res){
   /* «я це прочитав» — щоб позначка про нові відповіді гасла */
   if (q.seen){
     const rec = (await read(login)) || empty(login);
-    rec.seenT = Date.now();
+    rec.seenT = lastId(rec);
     await save(rec);
     return L.json(res, 200, {ok: true, unread: 0});
   }
@@ -272,6 +278,7 @@ module.exports.add = add;
 module.exports.save = save;
 module.exports.empty = empty;
 module.exports.unreadFor = unreadFor;
+module.exports.lastId = lastId;
 module.exports.addressee = addressee;
 module.exports.MAX_LEN = MAX_LEN;
 module.exports.RATE = RATE;

@@ -91,7 +91,7 @@ module.exports = async function handler(req, res){
     if (!rec) return L.json(res, 404, {ok: false, error: 'no_thread'});
     /* відкрили нитку — вважаємо прочитаною; інакше лічильник
        непрочитаного жив би своїм життям */
-    rec.seenS = Date.now();
+    rec.seenS = CHAT.lastId(rec);
     await CHAT.save(rec);
     return L.json(res, 200, {ok: true, login: rec.login, lang: rec.lang, msgs: rec.msgs});
   }

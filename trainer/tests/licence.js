@@ -493,6 +493,7 @@ part('переписка з підтримкою');
   await post({login: HELP, device: PHONE, seen: '1'});
   ok('після перегляду позначка гасне', (await get({login: HELP, device: PHONE})).json.unread === 0);
 
+
   /* Відповідати з Telegram — головний шлях: сповіщення вже прийшло, і
      відповідь на нього не вимагає ні адмінки, ні набирання адресата. */
   const upd = {message: {text: 'Вже полагодили, оновіть сторінку',
@@ -513,6 +514,18 @@ part('переписка з підтримкою');
   ok('нитка є в списку', list.threads.some(t => t.login === HELP));
   const thread = (await call(ADMIN, {query: {chat: HELP}, ...head('9.9.9.2')})).json;
   ok('нитка відкривається цілком', thread.msgs.length === 3, String(thread.msgs.length));
+
+  /* Позначка рахувалась за часом, і ця перевірка падала раз на десяток
+     прогонів. Причина виявилась справжньою: відповідь, написана в ту
+     саму мілісекунду, що й питання, лічильником не рахувалась зовсім.
+     Пишемо обидва рядки поспіль, без жодної паузи, — так само, як це
+     робить швидка відповідь із Telegram. */
+  await post({login: HELP, device: PHONE, text: 'а ще одне питання'});
+  await call(ADMIN, {method: 'POST', query: {reply: HELP, text: 'відповідаю миттєво'}, ...head('9.9.9.3')});
+  ok('миттєва відповідь теж рахується непрочитаною',
+     (await get({login: HELP, device: PHONE})).json.unread === 1,
+     String((await get({login: HELP, device: PHONE})).json.unread));
+  await post({login: HELP, device: PHONE, seen: '1'});
 
   /* ─── межі ─── */
   const long = 'я'.repeat(CHAT.MAX_LEN + 500);
