@@ -362,6 +362,53 @@ part('адмінка');
   ok('у журналі обидва рядки', m.last[0].kind === 'back' && m.last[1].kind === 'pay',
      m.last.slice(0, 2).map(x => x.kind).join('/'));
 
+  /* ─── розбивка продажів ───
+     Ліцензія зберігає лише поточний стан, тож «скільки прийшло за
+     серпень» по ній не порахувати. Рахуємо з журналу — і перевіряємо
+     саме те, заради чого він з'явився. */
+  {
+    await L.store.set(L.PAY_LOG, []);
+    const day = 86400000;
+    const rows = [
+      {ts: Date.parse('2026-08-03T10:00:00Z'), login: 'a@mail.com', plan: 'monthly',   usd: 4.49,   kind: 'pay'},
+      {ts: Date.parse('2026-08-03T18:00:00Z'), login: 'b@mail.com', plan: 'yearly',    usd: 48.99,  kind: 'pay'},
+      {ts: Date.parse('2026-08-11T09:00:00Z'), login: 'a@mail.com', plan: 'monthly',   usd: 4.49,   kind: 'pay'},
+      {ts: Date.parse('2026-09-02T09:00:00Z'), login: 'c@mail.com', plan: 'quarterly', usd: 11.99,  kind: 'pay'},
+      {ts: Date.parse('2026-09-04T09:00:00Z'), login: 'b@mail.com', plan: 'yearly',    usd: -48.99, kind: 'back'},
+    ];
+    await L.store.set(L.PAY_LOG, rows);
+    const m = (await call(ADMIN, head('4.4.4.4'))).json.money;
+
+    ok('оплат рахуємо без повернень', m.pays === 4, String(m.pays));
+    ok('платників — за людьми, а не за платежами', m.payers === 3, String(m.payers));
+    ok('повернення окремо', m.backs === 1 && m.backUsd === -48.99, m.backs + ' / ' + m.backUsd);
+
+    const aug = m.byMonth.find(x => x.month === '2026-08');
+    const sep = m.byMonth.find(x => x.month === '2026-09');
+    ok('серпень: три оплати, двоє платників', aug.pays === 3 && aug.payers === 2,
+       aug.pays + ' / ' + aug.payers);
+    ok('серпень: виручка зійшлась', aug.usd === 57.97, String(aug.usd));
+    /* За вересень прийшло 11.99, а повернули 48.99 — місяць у мінусі, і
+       так і має бути видно. Сховати повернення означало б показати
+       кращу картину, ніж є. */
+    ok('вересень: повернення тягне місяць у мінус', sep.usd === -37, String(sep.usd));
+    ok('новіші місяці зверху', m.byMonth[0].month === '2026-09', m.byMonth[0].month);
+
+    const d3 = m.byDay.find(x => x.day === '2026-08-03');
+    ok('день видно окремо', d3 && d3.pays === 2 && d3.usd === 53.48,
+       d3 ? d3.pays + ' / ' + d3.usd : '—');
+    ok('порожніх днів не показуємо', m.byDay.length === 4, String(m.byDay.length));
+
+    const yearly = m.byPlan.find(x => x.plan === 'yearly');
+    const monthly = m.byPlan.find(x => x.plan === 'monthly');
+    ok('по тарифах: місячний куплено двічі', monthly.pays === 2 && monthly.usd === 8.98,
+       monthly.pays + ' / ' + monthly.usd);
+    ok('повернення не зменшує лічильник покупок тарифу', yearly.pays === 1, String(yearly.pays));
+    ok('видно, з якого дня рахуємо', m.since === '2026-08-03', m.since);
+    ok('середній чек — по оплатах', m.avg === +(m.byPlan.reduce((s, x) => s + x.usd, 0) / 4).toFixed(2),
+       String(m.avg));
+  }
+
   delete process.env.ADMIN_PASS;
 }
 

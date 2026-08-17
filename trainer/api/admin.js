@@ -124,15 +124,73 @@ module.exports = async function handler(req, res){
     bought: done.filter(p => p.paid).length,
   };
 
+  /* ─── продажі ───
+     Рахуємо з журналу списань, а не з ліцензій: ліцензія зберігає лише
+     поточний стан і затирає попередні списання, тож «скільки прийшло за
+     серпень» по ній не порахувати взагалі.
+
+     Повернення — окремим числом і зі знаком мінус у виручці. Ховати їх
+     усередині підсумку означало б бачити гарнішу картину, ніж є.
+
+     Видані вручну підписки сюди не потрапляють: за ними немає грошей, і
+     мішати їх із виручкою — обманювати себе. Їх видно окремо, у
+     верхньому рядку.                                                   */
   const pays = await L.readPayments();
   const since30 = now - 30 * DAY;
+  const sum = (rows, f) => +rows.reduce((s, x) => s + f(x), 0).toFixed(2);
+  const usd = rows => sum(rows, x => x.usd);
+  const paid = pays.filter(p => p.kind !== 'back');
+  const back = pays.filter(p => p.kind === 'back');
+
+  /* по місяцях — від найновішого */
+  const months = {};
+  pays.forEach(p => {
+    const k = new Date(p.ts).toISOString().slice(0, 7);
+    (months[k] = months[k] || []).push(p);
+  });
+  const byMonth = Object.keys(months).sort().reverse().map(k => ({
+    month: k,
+    pays: months[k].filter(x => x.kind !== 'back').length,
+    backs: months[k].filter(x => x.kind === 'back').length,
+    usd: usd(months[k]),
+    payers: new Set(months[k].filter(x => x.kind !== 'back').map(x => x.login)).size,
+  }));
+
+  /* по днях — лише ті, коли щось було: порожні рядки нічого не кажуть */
+  const days = {};
+  pays.forEach(p => {
+    const k = day(p.ts);
+    (days[k] = days[k] || []).push(p);
+  });
+  const byDay = Object.keys(days).sort().reverse().slice(0, 60).map(k => ({
+    day: k,
+    pays: days[k].filter(x => x.kind !== 'back').length,
+    backs: days[k].filter(x => x.kind === 'back').length,
+    usd: usd(days[k]),
+  }));
+
+  /* по тарифах — видно, що саме купують */
+  const byPlan = Object.keys(L.PLANS).map(id => {
+    const rows = paid.filter(x => x.plan === id);
+    return {plan: id, months: L.PLANS[id].months, price: L.PLANS[id].usd, pays: rows.length, usd: usd(rows)};
+  }).filter(x => x.pays);
+
   const money = {
-    usd30: +pays.filter(p => p.ts >= since30).reduce((s, p) => s + p.usd, 0).toFixed(2),
-    usdAll: +pays.reduce((s, p) => s + p.usd, 0).toFixed(2),
+    usd30: usd(pays.filter(p => p.ts >= since30)),
+    usdAll: usd(pays),
     /* скільки прийде наступного місяця, якщо ніхто не відпишеться */
     mrr: +people.filter(p => p.paid && p.renews)
                 .reduce((s, p) => s + ((L.PLANS[p.plan] || {}).usd || 0) / ((L.PLANS[p.plan] || {}).months || 1), 0)
                 .toFixed(2),
+    pays: paid.length,
+    backs: back.length,
+    backUsd: usd(back),
+    payers: new Set(paid.map(p => p.login)).size,
+    avg: paid.length ? +(usd(paid) / paid.length).toFixed(2) : 0,
+    /* з якого дня журнал взагалі щось знає — без цього нуль за липень
+       читався б як «не продавали», а не як «ще не рахували» */
+    since: pays.length ? day(pays[0].ts) : '',
+    byMonth, byDay, byPlan,
     last: pays.slice(-40).reverse(),
   };
 

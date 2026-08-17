@@ -85,6 +85,14 @@ function esc(s){
   });
 }
 function money(n){ return (n < 0 ? '−$' : '$') + Math.abs(n).toFixed(2); }
+var MONTHS = ['января','февраля','марта','апреля','мая','июня',
+              'июля','августа','сентября','октября','ноября','декабря'];
+function monthName(k){
+  var p = String(k).split('-');
+  return MONTHS[+p[1] - 1] ? MONTHS[+p[1] - 1] + ' ' + p[0] : k;
+}
+var PLAN_NAME = {monthly: 'месяц', quarterly: '3 месяца', yearly: 'год'};
+function planName(x){ return esc(PLAN_NAME[x.plan] || x.plan || '—'); }
 function ago(ts, now){
   if (!ts) return '—';
   var d = Math.floor((now - ts) / 86400000);
@@ -206,17 +214,58 @@ function draw(d){
         '<td class="num">' + (p.devices || '') + '</td></tr>';
     }).join('') + '</table></div>';
 
-  if (d.money.last.length)
-    html += '<h2>Платежи</h2><div class="card scroll"><table>' +
+  var m = d.money;
+  html += '<h2>Продажи</h2>';
+  if (!m.pays && !m.backs){
+    html += '<div class="card"><div class="muted">Ни одной оплаты. Журнал ведётся с того дня, ' +
+      'как появился, — прежние оплаты в него не попадут.</div></div>';
+  } else {
+    html += '<div class="kpis">' +
+      '<div class="card kpi"><div class="lbl">Оплат</div><div class="val">' + m.pays + '</div>' +
+        '<div class="sub">плательщиков — ' + m.payers + '</div></div>' +
+      '<div class="card kpi"><div class="lbl">Выручка</div><div class="val pos">' + money(m.usdAll) + '</div>' +
+        '<div class="sub">средний чек ' + money(m.avg) + '</div></div>' +
+      '<div class="card kpi"><div class="lbl">Возвраты</div><div class="val' + (m.backs ? ' warn' : '') + '">' +
+        m.backs + '</div><div class="sub">' + money(m.backUsd) + '</div></div>' +
+      '<div class="card kpi"><div class="lbl">Считаем с</div><div class="val" style="font-size:20px">' +
+        esc(m.since || '—') + '</div><div class="sub">раньше не записывалось</div></div>' +
+    '</div>';
+
+    html += '<h2>По месяцам</h2><div class="card scroll"><table>' +
+      '<tr><th>Месяц</th><th>Оплат</th><th>Плательщиков</th><th>Возвратов</th><th>Выручка</th></tr>' +
+      m.byMonth.map(function(x){
+        return '<tr><td>' + esc(monthName(x.month)) + '</td>' +
+          '<td class="num">' + x.pays + '</td><td class="num">' + x.payers + '</td>' +
+          '<td class="num">' + (x.backs || '') + '</td>' +
+          '<td class="num">' + money(x.usd) + '</td></tr>';
+      }).join('') + '</table></div>';
+
+    if (m.byPlan.length)
+      html += '<h2>По тарифам</h2><div class="card scroll"><table>' +
+        '<tr><th>Тариф</th><th>Цена</th><th>Оплат</th><th>Выручка</th></tr>' +
+        m.byPlan.map(function(x){
+          return '<tr><td>' + planName(x) + '</td><td class="num">' + money(x.price) + '</td>' +
+            '<td class="num">' + x.pays + '</td><td class="num">' + money(x.usd) + '</td></tr>';
+        }).join('') + '</table></div>';
+
+    html += '<h2>По дням</h2><div class="card scroll"><table>' +
+      '<tr><th>День</th><th>Оплат</th><th>Возвратов</th><th>Выручка</th></tr>' +
+      m.byDay.map(function(x){
+        return '<tr><td>' + esc(x.day) + '</td><td class="num">' + x.pays + '</td>' +
+          '<td class="num">' + (x.backs || '') + '</td>' +
+          '<td class="num">' + money(x.usd) + '</td></tr>';
+      }).join('') + '</table>' +
+      '<div class="muted" style="margin-top:10px">Дни без движения не показываем — пустая строка ' +
+      'ничего не говорит. Возвраты идут со знаком минус в той же выручке.</div></div>';
+
+    html += '<h2>Каждый платёж</h2><div class="card scroll"><table>' +
       '<tr><th>Когда</th><th>Почта</th><th>Тариф</th><th>Сумма</th></tr>' +
-      d.money.last.map(function(p){
-        return '<tr><td>' + new Date(p.ts).toISOString().slice(0, 10) + '</td>' +
-          '<td>' + esc(p.login) + '</td><td>' + esc(p.plan) + '</td>' +
+      m.last.map(function(p){
+        return '<tr><td>' + new Date(p.ts).toISOString().slice(0, 16).replace('T', ' ') + '</td>' +
+          '<td>' + esc(p.login) + '</td><td>' + planName({plan: p.plan}) + '</td>' +
           '<td class="num">' + money(p.usd) + '</td></tr>';
       }).join('') + '</table></div>';
-  else
-    html += '<h2>Платежи</h2><div class="card"><div class="muted">Пока ни одного. ' +
-      'Журнал ведётся с того дня, как появился — прежние оплаты в нём не окажутся.</div></div>';
+  }
 
   root.innerHTML = html;
 }
