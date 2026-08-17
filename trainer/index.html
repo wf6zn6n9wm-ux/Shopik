@@ -1343,6 +1343,12 @@ const PHRASES = [
 
   ['Копії цього кабінета на сервері немає — швидше за все, він живе на тому телефоні, де його заводили. Відкрийте застосунок там і увімкніть «Копію на сервері» в налаштуваннях: після цього вхід тут спрацює. Або перенесіть дані файлом — «Резервна копія» → «Створити копію зараз».', 'Копии этого кабинета на сервере нет — скорее всего, он живёт на том телефоне, где его заводили. Откройте приложение там и включите «Копію на сервері» в настройках: после этого вход здесь сработает. Или перенесите данные файлом — «Резервна копія» → «Створити копію зараз».', 'There is no server backup for this account — most likely it lives on the phone where it was created. Open the app there and turn on the server backup in settings: after that, signing in here will work. Or move the data as a file — Backup → Create a backup now.', 'Nie ma kopii tego konta na serwerze — najpewniej żyje ono na telefonie, na którym je założono. Otwórz tam aplikację i włącz kopię na serwerze w ustawieniach: potem logowanie tutaj zadziała. Albo przenieś dane plikiem — Kopia zapasowa → Utwórz kopię teraz.'],
 
+  /* ─── кабінет без копії ─── */
+  ['Пізніше', 'Позже', 'Later', 'Później'],
+  ['Увімкнути', 'Включить', 'Turn on', 'Włącz'],
+  ['Копії ваших даних немає', 'Копии ваших данных нет', 'You have no backup', 'Nie masz kopii danych'],
+  ['Клієнти й тренування є лише на цьому телефоні. Копія на сервері шифрується вашим паролем — ми її не читаємо, але вона поверне базу на новому пристрої.', 'Клиенты и тренировки есть только на этом телефоне. Копия на сервере шифруется вашим паролем — мы её не читаем, но она вернёт базу на новом устройстве.', 'Your clients and sessions exist only on this phone. The server backup is encrypted with your password — we cannot read it, but it will bring your data back on a new device.', 'Klienci i treningi są tylko na tym telefonie. Kopia na serwerze jest szyfrowana Twoim hasłem — nie czytamy jej, ale przywróci bazę na nowym urządzeniu.'],
+
   /* ─── переписка з підтримкою ─── */
   ['Підтримка', 'Поддержка', 'Support', 'Pomoc'],
   ['Відправити', 'Отправить', 'Send', 'Wyślij'],
@@ -2107,15 +2113,20 @@ const Cloud = {
   /* чи лишати ключ у нас, щоб уміти відновити пароль */
   recovers(){ return Store.state.settings.recover !== false; },
   /* ключ, замок і сіль запам'ятовуються після входу — далі пароль не потрібен */
+  /* Поява й зникнення ключа — така сама зміна стану, як і збереження:
+     екран, який каже «копії немає», інакше лишався б із учорашньою
+     правдою, доки щось інше не змусить його перемалюватись. */
   remember(c){
     Disk.writeMeta({...Cloud.meta(), cloudKey: c.raw, cloudToken: c.token, cloudWrap: c.wrap, salt: c.salt});
     Cloud.key = c.key;
+    Cloud.emit();
   },
   forget(){
     const m = Cloud.meta();
     delete m.cloudKey; delete m.cloudToken; delete m.cloudWrap;
     Disk.writeMeta(m);
     Cloud.key = null;
+    Cloud.emit();
   },
   /* Пишемо не на кожен дотик: інакше кожне натискання летіло б у мережу.
      Останнє збереження за десять секунд перекриває всі попередні. */
@@ -2210,6 +2221,10 @@ const Cloud = {
    Хто ми такі — доводимо тим самим token, яким відкривається копія бази.
    Його немає в кабінетів, заведених до появи паролів; для них лишається
    пристрій, і сервер упізнає його сам.                                  */
+/* Через скільки нагадати про копію тому, хто відклав. Не «ніколи»: ціна
+   втраченої бази клієнтів від відкладання не зменшується. */
+const CLOUD_NAG = 14 * 86400000;
+
 const HELP_POLL = 5000;
 
 const Help = {
@@ -4633,6 +4648,20 @@ const Home = ({loading}) => {
   const [mFrom, mTo] = periodRange('month', now);
   const month = stats(db, mFrom, mTo);
 
+  /* Підписка на стан копії потрібна не заради самого стану, а щоб рядок
+     нижче зник одразу після того, як копію ввімкнули, — а не колись
+     потім, коли екран перемалюється з іншої причини. */
+  useCloud();
+
+  /* Чи попереджати про відсутню копію. Умов багато навмисно: кожна з них
+     прибирає випадок, у якому рядок був би не порадою, а докучанням. */
+  const noCopy = Web.enabled()                        /* без мережі радити нічого */
+    && !!(Disk.readMeta() || {}).account                /* демо-режим це не стосується */
+    && !Cloud.armed()                                   /* ключа немає — копія й не робиться */
+    && S.cloud !== false                                /* вимкнув свідомо — його право */
+    && db.clients.length > 0                            /* поки нічого немає, нічого й губити */
+    && Date.now() - (S.cloudNag || 0) > CLOUD_NAG;
+
   const spark = useMemo(() => {
     const start = periodRange('day', addDays(now, -6))[0];
     const box = netByBucket(db, start, addDays(start, 7), false, true);
@@ -4715,6 +4744,34 @@ const Home = ({loading}) => {
               Act.clearDemo();
               Toaster.ok(t('demo.gone','Приклад прибрано'));
             }}>{t('demo.clear','Прибрати')}</Btn>
+          </div>
+        )}
+
+        {/* ─── кабінет без копії ───
+            Копія робиться тільки там, де є ключ до неї. Кабінети,
+            заведені до появи паролів, ключа не мають — і не зберігаються
+            нікуди, мовчки. Тренер про це не знає й дізнається в найгірший
+            момент: коли телефон загубився разом із базою клієнтів.
+
+            Тому кажемо самі, і на головній, а не в налаштуваннях, куди
+            ніхто не заходить. Не одразу: поки клієнтів немає, втрачати
+            нічого, і рядок був би просто шумом. «Пізніше» ховає його на
+            два тижні — не назавжди, бо ціна помилки не зменшується від
+            того, що її відклали. */}
+        {noCopy && (
+          <div className="card pad" style={{marginTop:12}}>
+            <b style={{fontSize:14}}>{t('cloud.nag','Копії ваших даних немає')}</b>
+            <div className="muted" style={{fontSize:12.5, lineHeight:1.45, marginTop:2}}>
+              {t('cloud.nag.s','Клієнти й тренування є лише на цьому телефоні. Копія на сервері шифрується вашим паролем — ми її не читаємо, але вона поверне базу на новому пристрої.')}
+            </div>
+            <div style={{display:'flex', gap:8, marginTop:12}}>
+              <Btn kind="pri" size="sm" onClick={() => nav.go('settings', {focus:'cloud'})}>
+                {t('cloud.nag.go','Увімкнути')}
+              </Btn>
+              <Btn kind="ghost" size="sm" onClick={() => Act.settings({cloudNag: Date.now()})}>
+                {t('cloud.nag.later','Пізніше')}
+              </Btn>
+            </div>
           </div>
         )}
 
@@ -7509,7 +7566,7 @@ const AccessCard = () => {
 };
 
 /* ─────────── 16. НАЛАШТУВАННЯ ─────────── */
-const Settings = ({onClose}) => {
+const Settings = ({params, onClose}) => {
   const db = useDB();
   const nav = useNav();
   const S = db.settings;
@@ -7526,6 +7583,15 @@ const Settings = ({onClose}) => {
   const [armErr, setArmErr] = useState('');
   const [armBusy, setArmBusy] = useState(false);
   const account = (Disk.readMeta() || {}).account;
+
+  /* Прийшли сюди з головної, по рядку «копії немає». Вести людину на
+     екран і лишати шукати потрібний перемикач серед двох десятків інших
+     означало б обірвати її на півдорозі. */
+  useEffect(() => {
+    if (params && params.focus === 'cloud' && !Cloud.armed()){
+      setArm(true); setArmPass(''); setArmErr('');
+    }
+  }, []);
 
   /* Пароль перевіряємо тим самим хешем, що й на вході. Кабінети, заведені
      до того, як пароль став обов'язковим, хеша не мають — тоді пароль

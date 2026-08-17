@@ -945,6 +945,52 @@ PROBES['app-join.js'] = DRIVE + `
   })();
 `;
 
+/* Кабінет без копії. Такі є: заведені до того, як копії з'явились, вони
+   ключа не мають і не зберігаються нікуди — мовчки. Мовчки тут і є
+   помилка, тому перевіряємо не «код працює», а чи побачить це тренер на
+   тому екрані, який відкриває щодня.
+
+   Ключ прибираємо руками: відтворити старий кабінет інакше нічим, а
+   саме через нього тренер і втрачає базу разом із телефоном. */
+PROBES['app-nocloud.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await enter();
+
+    /* Тільки картки на екрані. document.body сюди не годиться: сам
+       застосунок лежить у <script> усередині body, і textContent тягне
+       його вихідний код разом із таблицею перекладів — шукана фраза
+       знаходилась там завжди, хоч рядка на екрані й не було. */
+    var home = function(){
+      return all('.card').map(function(c){ return c.textContent; }).join(' ').replace(/\\s+/g, ' ');
+    };
+    res.armedFirst = Cloud.armed();
+    res.quietWhenArmed = !/Копії ваших даних немає/.test(home());
+    res.tab = (document.querySelector('.nav .on') || {}).textContent || '';
+    res.clients = Store.state.clients.length;
+
+    /* Той самий кабінет, але без ключа копії. Нічого більше не чіпаємо:
+       рядок має з'явитись від самого зникнення ключа, без сторонньої
+       зміни, яка змусила б екран перемалюватись. */
+    Cloud.forget();
+    await until(function(){ return /Копії ваших даних немає/.test(home()); }, 6000);
+    res.warned = /Копії ваших даних немає/.test(home());
+    res.hasFix = all('button').some(function(b){ return /Увімкнути$/.test(b.textContent.trim()); });
+
+    /* «Пізніше» ховає рядок — і саме ховає, а не вимикає копію */
+    var later = all('button').filter(function(b){ return /Пізніше/.test(b.textContent); })[0];
+    if (later) later.click();
+    await until(function(){ return !/Копії ваших даних немає/.test(home()); }, 4000);
+    res.hidden = !/Копії ваших даних немає/.test(home());
+    res.stillWants = Store.state.settings.cloud !== false;
+    res.nag = Store.state.settings.cloudNag || 0;
+    res.laterFound = !!later;
+
+    res.err = window.__err || '';
+    say(res);
+  })();
+`;
+
 /* Вхід, коли копії немає або сервер мовчить. Досі обидва випадки — і
    третій, зовсім інший, — казали одне: «такого кабінету немає». На обрив
    зв'язку це відверта брехня, і людина йде міняти пошту, хоча міняти
@@ -1349,6 +1395,18 @@ server.listen(PORT, '127.0.0.1', async () => {
       new URLSearchParams({login: 'on@mail.com', token: 'tok-on@mail.com'}))).json();
     ok('власнику копію віддаємо', mine.has === true && mine.ct === 'c');
     ok('а ключ — ні', mine.keep === undefined, JSON.stringify(mine.keep));
+
+    /* Кабінет без копії мовчав, і тренер дізнавався про це, коли телефон
+       уже загубився. Перевіряємо не код, а те, чи він це побачить. */
+    part('кабінет без копії каже про це сам');
+    o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?cloud=1&probe=app-nocloud.js')) || '{}');
+    ok('поки копія є — мовчимо', o.armedFirst === true && o.quietWhenArmed === true,
+       'ключ: ' + o.armedFirst + ', вкладка: ' + o.tab + ', клієнтів: ' + o.clients);
+    ok('зник ключ — попереджаємо на головній', o.warned === true);
+    ok('і одразу даємо це полагодити', o.hasFix === true);
+    ok('«Пізніше» ховає рядок', o.hidden === true, 'кнопка: ' + o.laterFound + ', позначка: ' + o.nag);
+    ok('але копію не вимикає — це різні речі', o.stillWants === true);
+    ok('помилок немає', !o.err, o.err || '—');
 
     /* Вхід, коли входити нічим. Тут важливо не «показалась помилка», а
        яка саме: три різні причини колись давали одну відповідь. */
