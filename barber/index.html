@@ -5987,6 +5987,14 @@ function boot(){
 }
 boot();
 
+/* Офлайн-режим. Регистрируем только из кабинета: клиент, который один раз
+   открыл страницу записи, в service worker не нуждается — данные у него
+   всё равно на сервере, а лишний кеш на чужом телефоне ни к чему. */
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator
+    && location.protocol.startsWith('http')){
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+
 </script>
 </body>
 </html>

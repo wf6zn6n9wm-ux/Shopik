@@ -323,7 +323,7 @@ part('уведомления');
   ok('принятая заявка становится записью', S().appts.find(a => a.id === pend.id).status === 'planned');
 }
 
-part('хранилище');
+part('база на диске');
 {
   T.Store.init(T.seedDB());
   T.Disk.write(S());
@@ -785,6 +785,164 @@ part('вход');
   ok('после выхода данные остаются на устройстве', T.Disk.read().clients.length === kept, kept + ' клиентов');
   ok('а вход снова спрашивают', T.bootPhase({signedOut: true}, T.Disk.readRaw()) === 'auth');
   T.Meta.write({signedOut: false, guest: true});
+}
+
+part('офлайн');
+{
+  /* Настоящий прогон worker'а: свой self, свой кеш, своя сеть.
+     Проверяем поведение, а не текст файла — регексы по исходнику ловят
+     переименования, но не логику. */
+  const swSrc = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+
+  function runSW({offline = false} = {}){
+    const store = new Map();          /* имя кеша → Map(ключ → ответ) */
+    const asked = [];                 /* что ушло в сеть */
+    const base = 'https://probarber.test/sw.js';
+    const abs = u => new URL(u, base).href;          /* Cache API хранит полные адреса */
+    const key = r => abs(typeof r === 'string' ? r : r.url);
+    const resp = (body, extra) => Object.assign({ok: true, type: 'basic', body, clone(){ return resp(body, extra); }}, extra || {});
+
+    const cacheApi = name => ({
+      add: async u => { if (offline) throw new Error('offline'); store.get(name).set(abs(u), resp('shell:' + u)); },
+      put: async (k, v) => { store.get(name).set(key(k), v); },
+      match: async k => store.get(name).get(key(k)) || undefined,
+    });
+    const caches = {
+      open: async name => { if (!store.has(name)) store.set(name, new Map()); return cacheApi(name); },
+      keys: async () => [...store.keys()],
+      delete: async name => store.delete(name),
+      match: async k => {
+        for (const m of store.values()){ const hit = m.get(key(k)); if (hit) return hit; }
+        return undefined;
+      },
+    };
+    const listeners = {};
+    const self = {
+      addEventListener: (t, fn) => { listeners[t] = fn; },
+      location: {origin: 'https://probarber.test', href: base},
+      skipWaiting: () => {},
+      clients: {claim: () => Promise.resolve()},
+      registration: {},
+    };
+    const ctx = vm.createContext({
+      self, caches, URL, Promise, console,
+      fetch: async req => {
+        asked.push(key(req));
+        if (offline) throw new Error('offline');
+        return resp('сеть:' + key(req));
+      },
+    });
+    ctx.globalThis = ctx;
+    vm.runInContext(swSrc, ctx, {filename: 'sw.js'});
+
+    const fire = (type, ev) => {
+      let waited = null, answered = null;
+      const e = Object.assign({
+        waitUntil: p => { waited = p; },
+        respondWith: p => { answered = p; },
+      }, ev);
+      listeners[type](e);
+      return {waited, answered};
+    };
+    const req = (url, opts) => Object.assign({url, method: 'GET', mode: 'no-cors'}, opts || {});
+    return {store, asked, fire, req, caches};
+  }
+
+  /* установка */
+  {
+    const sw = runSW();
+    await sw.fire('install', {}).waited;
+    const names = [...sw.store.keys()];
+    ok('кеш создаётся под своей версией', names.length === 1 && /probarber-v/.test(names[0]), names.join());
+    const shell = sw.store.get(names[0]);
+    ok('оболочка кладётся в кеш', shell.size >= 5, shell.size + ' файлов');
+    ok('в оболочке есть сам кабинет', shell.has('https://probarber.test/index.html'));
+    ok('и страница записи', shell.has('https://probarber.test/book.html'));
+  }
+
+  /* один файл пропал — установка всё равно проходит */
+  {
+    const sw = runSW({offline: true});
+    let broke = false;
+    try { await sw.fire('install', {}).waited; } catch (e){ broke = true; }
+    ok('недоступный файл не отменяет установку целиком', broke === false);
+  }
+
+  /* активация чистит старые версии */
+  {
+    const sw = runSW();
+    await sw.fire('install', {}).waited;
+    sw.store.set('probarber-v0', new Map([['https://probarber.test/index.html', 'старое']]));
+    await sw.fire('activate', {}).waited;
+    ok('старые версии кеша удаляются', ![...sw.store.keys()].includes('probarber-v0'), [...sw.store.keys()].join());
+  }
+
+  /* чего worker не трогает вовсе */
+  {
+    const sw = runSW();
+    ok('POST мимо worker\'а',
+       sw.fire('fetch', {request: sw.req('https://probarber.test/api/barber', {method: 'POST'})}).answered === null);
+    ok('запрос к серверу мимо кеша — иначе лицензия зависла бы вчерашней',
+       sw.fire('fetch', {request: sw.req('https://probarber.test/api/licence?login=x')}).answered === null);
+    ok('и заявки тоже',
+       sw.fire('fetch', {request: sw.req('https://probarber.test/api/trial?login=x')}).answered === null);
+  }
+
+  /* страницы: сеть главнее, кеш — на случай без сети */
+  {
+    const sw = runSW();
+    await sw.fire('install', {}).waited;
+    const nav = url => sw.fire('fetch', {request: sw.req(url, {mode: 'navigate'})}).answered;
+    const live = await nav('https://probarber.test/index.html');
+    ok('онлайн страница берётся из сети', live.body === 'сеть:https://probarber.test/index.html');
+    await nav('https://probarber.test/pay.html');
+    const cache = sw.store.get([...sw.store.keys()][0]);
+    ok('и складывается в кеш под своим адресом',
+       cache.has('https://probarber.test/pay.html') && cache.has('https://probarber.test/index.html'));
+    ok('оплата не подменяется кабинетом',
+       cache.get('https://probarber.test/pay.html').body !== cache.get('https://probarber.test/index.html').body);
+  }
+  {
+    const sw = runSW();
+    await sw.fire('install', {}).waited;
+    /* та же вкладка ушла в офлайн: кеш уже наполнен */
+    const off = runSW({offline: true});
+    await off.fire('install', {}).waited.catch(() => {});
+    const name = [...off.store.keys()][0];
+    off.store.get(name).set('https://probarber.test/index.html', {body: 'кабинет из кеша'});
+    const got = await off.fire('fetch', {request: off.req('https://probarber.test/index.html', {mode: 'navigate'})}).answered;
+    ok('без сети кабинет открывается из кеша', got && got.body === 'кабинет из кеша');
+
+    const unknown = await off.fire('fetch', {request: off.req('https://probarber.test/чего-нет', {mode: 'navigate'})}).answered;
+    ok('незнакомая страница офлайн падает на кабинет, а не в пустоту',
+       unknown && unknown.body === 'кабинет из кеша');
+  }
+
+  /* библиотеки и шрифты: сперва кеш */
+  {
+    const sw = runSW();
+    await sw.fire('install', {}).waited;
+    const cdn = 'https://unpkg.com/react@18/umd/react.production.min.js';
+    const first = await sw.fire('fetch', {request: sw.req(cdn)}).answered;
+    ok('чужая библиотека тянется из сети в первый раз', first.body === 'сеть:' + cdn);
+    const second = await sw.fire('fetch', {request: sw.req(cdn)}).answered;
+    ok('и во второй уже из кеша', second.body === 'сеть:' + cdn && sw.asked.length === 2);
+  }
+
+  /* обвязка вокруг worker'а */
+  {
+    const app = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+    ok('кабинет регистрирует worker', /serviceWorker[\s\S]{0,200}register\('sw\.js'\)/.test(app));
+    ok('и только по http(s)', /location\.protocol\.startsWith\('http'\)/.test(app));
+    ok('страница записи worker не ставит',
+       !/register\('sw\.js'\)/.test(fs.readFileSync(path.join(ROOT, 'book.html'), 'utf8')));
+    const head = (vercel.headers || []).find(h => h.source === '/sw.js');
+    ok('sw.js отдаётся без кеширования браузером',
+       !!head && head.headers.some(h => /no-store/.test(h.value)));
+    ok('и с областью действия на весь сайт',
+       !!head && head.headers.some(h => h.key === 'Service-Worker-Allowed' && h.value === '/'));
+  }
 }
 
 part('хранилище');
