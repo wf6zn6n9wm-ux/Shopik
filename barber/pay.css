@@ -40,9 +40,26 @@
   .go{margin-top:20px;width:100%;height:52px;border-radius:14px;background:var(--gold);
     color:#0B0D0E;font-size:15px;font-weight:700;cursor:pointer;
     display:flex;align-items:center;justify-content:center;text-decoration:none}
+  /* display:flex перебивает встроенный [hidden]{display:none}, и скрытая
+     кнопка оставалась бы пустой жёлтой полосой */
+  .go[hidden]{display:none}
   .go[disabled]{opacity:.5;pointer-events:none}
   .go:active{transform:scale(.985)}
   .note{margin-top:14px;font-size:11.5px;line-height:1.55;color:var(--ink-3)}
   .err{margin-top:14px;padding:12px 14px;border-radius:14px;border:1px solid var(--neg);
     color:#FF8A85;font-size:13px}
   a{color:var(--gold);text-decoration:none}
+
+  /* публичные документы: /terms, /privacy, /support, /delete */
+  .doc h1{margin-bottom:4px}
+  .doc h2{margin-top:24px; font-size:15px; font-weight:700; letter-spacing:-.01em}
+  .doc p{margin-top:8px; font-size:13.5px; line-height:1.6; color:var(--ink-2)}
+  .doc .sub{margin-top:6px}
+  .doc .err{margin-bottom:18px}
+  .doc code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; color:var(--gold)}
+  .doc .note{margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
+    font-size:12px; line-height:1.7; color:var(--ink-3)}
+  .doc .qa{margin-top:10px; padding:14px 15px; border-radius:14px;
+    background:var(--surface); border:1px solid var(--line)}
+  .doc .qa b{display:block; font-size:14px; font-weight:650}
+  .doc .qa p{margin-top:6px; font-size:13px}

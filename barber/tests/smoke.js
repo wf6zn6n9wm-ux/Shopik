@@ -113,6 +113,7 @@ const EXPORTS = `;globalThis.__T = {
   Vault, isEmail, isPhone, isLogin, b64, unb64,
   Boot, bootPhase, Onboarding, Auth, PinLock, Setup, SkScreen, ErrorBox, ObArt, LangPick, PinModal,
   Box, Files, Backups, BACKUP_KEY, META_KEY,
+  LEGAL, LEGAL_DOCS, LEGAL_READY, Support, LegalPage, LegalLinks,
   expensesIn, spent, profit, EXPENSE_KINDS, ExpenseForm, pickFile, pickPhoto,
 };`;
 
@@ -785,6 +786,118 @@ part('вход');
   ok('после выхода данные остаются на устройстве', T.Disk.read().clients.length === kept, kept + ' клиентов');
   ok('а вход снова спрашивают', T.bootPhase({signedOut: true}, T.Disk.readRaw()) === 'auth');
   T.Meta.write({signedOut: false, guest: true});
+}
+
+part('документы');
+{
+  const D = T.LEGAL_DOCS;
+  ok('документа два', Object.keys(D).sort().join() === 'privacy,terms');
+  Object.keys(D).forEach(k => {
+    ok(k + ': есть заголовок и разделы', !!D[k].title && D[k].blocks.length >= 8,
+       D[k].blocks.length + ' разделов');
+    ok(k + ': ни один раздел не пуст',
+       D[k].blocks.every(([h, tx]) => h.trim().length > 2 && tx.trim().length > 40));
+  });
+
+  const terms = D.terms.blocks.map(b => b[1]).join('\n');
+  const priv = D.privacy.blocks.map(b => b[1]).join('\n');
+
+  /* документ обязан описывать то, что приложение делает на самом деле */
+  ok('условия называют настоящий срок пробного', terms.includes(String(T.TRIAL_DAYS) + ' дней'));
+  ok('и настоящие цены', T.PLANS.every(p => terms.includes(T.uah(p.uah))),
+     T.PLANS.map(p => T.uah(p.uah)).join(' '));
+  ok('и что платежи разовые, без автосписаний',
+     /разовы/i.test(terms) && /автосписаний с карты нет/i.test(terms));
+  ok('и лимит устройств тот же, что в коде',
+     terms.includes('трёх устройствах') && T.WEB.devices === 3);
+  ok('в условиях нет обещания автопродления', !/продлевается автоматически/i.test(terms));
+
+  /* самое чувствительное: что уезжает с устройства */
+  ok('политика говорит, что база лежит на устройстве', /на вашем устройстве/i.test(priv));
+  ok('и что имён клиентов мы не получаем', /без имён/i.test(priv));
+  ok('и отдельно — про заявки с сайта', /заявк/i.test(priv) && /телефон/i.test(priv));
+  ok('и про шифрование PIN-кодом', /PIN/.test(priv));
+  ok('и про то, что забытый PIN не восстановить', /восстановить забытый PIN невозможно/i.test(priv));
+
+  /* пока реквизиты пусты — везде видно требование их заполнить */
+  ok('незаполненные реквизиты помечены, а не выдуманы',
+     T.LEGAL_READY === false && /\(укажите /.test(terms),
+     T.LEGAL.company || 'пусто');
+
+  screen('экран условий', () => T.LegalPage({doc: 'terms', onClose(){}}));
+  screen('экран политики', () => T.LegalPage({doc: 'privacy', onClose(){}}));
+  const links = textOf(T.LegalLinks({onOpen(){}}));
+  ok('ссылки ведут на оба документа',
+     links.includes('Условия использования') && links.includes('Политика конфиденциальности'));
+  ok('неизвестный документ не роняет экран', walk(T.LegalPage({doc: 'нетакого', onClose(){}})) > 3);
+
+  const page = textOf(T.LegalPage({doc: 'terms', onClose(){}}));
+  ok('на экране условий видно предупреждение о реквизитах', /Реквизиты не заполнены/.test(page));
+  ok('и сам текст документа', page.includes('Про Барбер'));
+
+  ok('документы есть в разводке экранов', typeof T.SCREENS.legal === 'function');
+  ok('в настройках есть раздел документов', textOf(T.Settings({})).includes('Документы'));
+  ok('и ссылка на поддержку', textOf(T.Settings({})).includes('Поддержк'));
+  ok('на экране оплаты документы тоже под рукой',
+     textOf(T.Paywall({mode: 'gate'})).includes('Условия использования'));
+
+  ok('поддержка молчит, пока контакты не заданы', T.Support.url() === '');
+}
+
+part('публичные страницы');
+{
+  const has = f => fs.existsSync(path.join(ROOT, f));
+  ['terms.html', 'privacy.html', 'support.html', 'delete.html'].forEach(f =>
+    ok('есть ' + f, has(f)));
+  ok('исходники документов лежат отдельно',
+     has('legal/terms.md') && has('legal/privacy.md') && has('legal/sync.js'));
+
+  const html = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+  const t = html('terms.html'), p = html('privacy.html'), d = html('delete.html'), sup = html('support.html');
+
+  ok('страницы собраны из тех же документов',
+     t.includes(T.LEGAL_DOCS.terms.blocks[1][0]) && p.includes(T.LEGAL_DOCS.privacy.blocks[0][0]));
+  ok('подстановок в готовых страницах не осталось',
+     ![t, p, d].some(x => x.includes('{{')));
+  ok('незаполненные реквизиты видны и снаружи',
+     [t, p, d].every(x => /Реквизиты не заполнены/.test(x)));
+  ok('страницы ссылаются друг на друга',
+     t.includes('privacy.html') && p.includes('terms.html') && d.includes('support.html'));
+  ok('и все — на удаление данных', [t, p].every(x => x.includes('delete.html')));
+  ok('оформление берут из общего файла',
+     [t, p, d, sup].every(x => x.includes('pay.css')));
+  /* .go{display:flex} перебивает встроенный [hidden], и скрытая кнопка
+     осталась бы пустой жёлтой полосой — было ровно так */
+  ok('скрытая кнопка действительно скрыта',
+     /\.go\[hidden\]\{display:none\}/.test(fs.readFileSync(path.join(ROOT, 'pay.css'), 'utf8')));
+  ok('поддержка отвечает на то, что спрашивают', (sup.match(/\['/g) || []).length > 20);
+  ok('и знает три языка', ['ru:', 'uk:', 'en:'].every(k => sup.includes(k)));
+  ok('цены на странице поддержки те же', T.PLANS.every(x => sup.includes(T.uah(x.uah))));
+
+  /* Документы возят туда-обратно скриптом: правки юриста приходят в .md
+     и возвращаются в код. Если разбор сломается, они молча потеряются —
+     поэтому гоняем полный круг и сверяем .md до и после.
+
+     Сравнивать index.html бессмысленно: import переписывает многострочные
+     шаблоны в одну строку с \n. Текст при этом тот же, а байты другие. */
+  const {execFileSync} = require('child_process');
+  const sync = path.join(ROOT, 'legal', 'sync.js');
+  const keep = {};
+  ['index.html', 'legal/terms.md', 'legal/privacy.md'].forEach(f => {
+    keep[f] = fs.readFileSync(path.join(ROOT, f), 'utf8');
+  });
+  try {
+    execFileSync('node', [sync, 'import'], {encoding: 'utf8'});
+    execFileSync('node', [sync, 'export'], {encoding: 'utf8'});
+    const same = ['legal/terms.md', 'legal/privacy.md']
+      .filter(f => fs.readFileSync(path.join(ROOT, f), 'utf8') !== keep[f]);
+    ok('import + export возвращают документы без потерь', same.length === 0, same.join(' '));
+  } catch (e){
+    ok('import + export возвращают документы без потерь', false, String(e.message).slice(0, 80));
+  } finally {
+    /* проверка не должна переформатировать исходник */
+    Object.keys(keep).forEach(f => fs.writeFileSync(path.join(ROOT, f), keep[f]));
+  }
 }
 
 part('офлайн');

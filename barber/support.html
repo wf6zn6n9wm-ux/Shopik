@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Про Барбер — поддержка</title>
+<link rel="stylesheet" href="pay.css" />
+</head>
+<body>
+<div class="wrap doc">
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24"><path d="M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5M6.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5M8.6 8.1 20 19.5M20 4.5 8.6 15.9"/></svg></div>
+    <b>Про Барбер</b>
+  </div>
+  <h1 id="h1">Поддержка</h1>
+  <p class="sub" id="sub"></p>
+  <div class="err" id="todo" hidden></div>
+  <a class="go" id="chat" hidden></a>
+  <div class="who" id="contact"></div>
+  <div id="faq"></div>
+  <p class="note" id="note"></p>
+</div>
+
+<script>
+/* Страница, которую спрашивают при подключении оплат, и одновременно
+   первое место, куда пойдёт барбер, когда что-то непонятно. Поэтому не
+   «форма обращения», а ответы на то, что действительно спрашивают.
+
+   ⚠️ MAIL и TG должны совпадать с LEGAL в index.html. */
+var MAIL = '';       /* почта для обращений */
+var TG = '';         /* имя чата поддержки без @; пусто — кнопки не будет */
+
+var LANGS = ['ru', 'uk', 'en'];
+var Q = new URLSearchParams(location.search);
+var guess = (navigator.language || 'ru').slice(0, 2);
+var LANG = LANGS.indexOf(Q.get('lang')) >= 0 ? Q.get('lang')
+  : (LANGS.indexOf(guess) >= 0 ? guess : 'ru');
+document.documentElement.lang = LANG;
+
+var mailLink = MAIL ? '<a href="mailto:' + MAIL + '">' + MAIL + '</a>' : '';
+
+var T = {
+ru: {
+  title: 'Поддержка',
+  sub: '«Про Барбер» — рабочий кабинет барбера: клиенты, записи, услуги, расписание и деньги в одном месте.',
+  chat: 'Написать в Telegram',
+  contact: MAIL
+    ? 'Вопрос, проблема, возврат средств — пишите на ' + mailLink + '. Отвечаем в течение 5 рабочих дней, обычно быстрее. Опишите, что именно случилось и на каком устройстве — так выйдет быстрее.'
+    : 'Контакты поддержки пока не указаны.',
+  todo: 'Контакты не заполнены: укажите MAIL и TG в support.html и LEGAL в index.html.',
+  note: '<a href="terms.html">условия использования</a> · <a href="privacy.html">политика конфиденциальности</a> · <a href="delete.html">удаление данных</a>',
+  faq: [
+   ['Как начать', 'Откройте приложение, создайте кабинет — и получите 14 дней полного доступа. Карту вводить не нужно, ничего не спишется. Платить или нет, вы решите сами, когда пробный период закончится.'],
+   ['Сколько стоит', '1 месяц — 249 ₴, 3 месяца — 649 ₴, 1 год — 2 490 ₴. Все платежи разовые: карту спишут один раз, автопродления нет вовсе. Когда период закончится, вы решаете сами, продлевать ли.'],
+   ['Оплатил, а на новом телефоне доступа нет', 'Нажмите «Восстановить оплату» на экране доступа. Доступ найдётся по логину — той самой почте или номеру, которые вы указали в кабинете. Он работает на трёх устройствах одновременно.'],
+   ['Данные пропадут, если не продлить?', 'Нет. Клиенты, записи и финансы остаются на устройстве. Останавливается только доступ к приложению — как только оплатите, всё на месте.'],
+   ['Как перенести данные на другой телефон', 'Настройки → Резервная копия → «Создать копию сейчас»: сохранится файл. На новом телефоне откройте тот же экран и выберите восстановление из файла. Синхронизации между устройствами нет — данные живут на устройстве, а не у нас.'],
+   ['Забыл PIN от базы', 'Восстановить его нельзя: PIN не хранится ни у нас, ни на устройстве — из него выводится ключ шифрования. Если есть резервная копия в файле, данные вернутся из неё. Поэтому копию стоит делать до того, как включаете PIN.'],
+   ['Приложение не открывается без интернета', 'Откройте его один раз при связи — дальше кабинет работает офлайн. Заявки с сайта и проверка оплаты требуют сети, остальное нет.'],
+   ['Клиенты не могут записаться онлайн', 'Проверьте: Настройки → Онлайн-запись → приём заявок включён, адрес страницы задан, услуги отмечены видимыми, а в графике работы есть открытые дни. Свободное время считает сервер по вашему расписанию.'],
+   ['Не приходят заявки в Telegram', 'Настройки → Онлайн-запись → «Подключить Telegram», отправьте боту код. Если чат отвязался, повторите. Команда /stop отвязывает его снова.'],
+   ['Как отдать отчёт бухгалтеру', 'Экран «Финансы» → выгрузка в CSV. Файл за тот период, который сейчас выбран на экране.'],
+   ['Как удалить данные', 'Клиента с историей — кнопка в его карточке. Всё сразу — Настройки → «Начать с чистого листа». Запись о доступе с нашего сервера удаляем по запросу: напишите на почту выше.'],
+  ],
+},
+uk: {
+  title: 'Підтримка',
+  sub: '«Про Барбер» — робочий кабінет барбера: клієнти, записи, послуги, розклад і гроші в одному місці.',
+  chat: 'Написати в Telegram',
+  contact: MAIL
+    ? 'Питання, проблема, повернення коштів — пишіть на ' + mailLink + '. Відповідаємо протягом 5 робочих днів, зазвичай швидше. Опишіть, що саме сталося й на якому пристрої — так вийде швидше.'
+    : 'Контакти підтримки поки не вказані.',
+  todo: 'Контакти не заповнені: вкажіть MAIL і TG у support.html та LEGAL в index.html.',
+  note: '<a href="terms.html">умови використання</a> · <a href="privacy.html">політика конфіденційності</a> · <a href="delete.html">видалення даних</a>',
+  faq: [
+   ['Як почати', 'Відкрийте застосунок, створіть кабінет — і отримаєте 14 днів повного доступу. Картку вводити не потрібно, нічого не спишеться. Платити чи ні, ви вирішите самі, коли пробний період завершиться.'],
+   ['Скільки коштує', '1 місяць — 249 ₴, 3 місяці — 649 ₴, 1 рік — 2 490 ₴. Усі платежі разові: картку спишуть один раз, автопродовження немає взагалі.'],
+   ['Сплатив, а на новому телефоні доступу немає', 'Натисніть «Відновити оплату» на екрані доступу. Доступ знайдеться за логіном — тією самою поштою або номером, які ви вказали в кабінеті. Він працює на трьох пристроях одночасно.'],
+   ['Дані зникнуть, якщо не продовжити?', 'Ні. Клієнти, записи та фінанси лишаються на пристрої. Зупиняється лише доступ до застосунку — щойно сплатите, все на місці.'],
+   ['Як перенести дані на інший телефон', 'Налаштування → Резервна копія → «Створити копію зараз»: збережеться файл. На новому телефоні відкрийте той самий екран і оберіть відновлення з файлу.'],
+   ['Забув PIN від бази', 'Відновити його не можна: PIN не зберігається ні в нас, ні на пристрої — з нього виводиться ключ шифрування. Якщо є резервна копія у файлі, дані повернуться з неї.'],
+   ['Застосунок не відкривається без інтернету', 'Відкрийте його один раз зі зв’язком — далі кабінет працює офлайн. Заявки з сайту й перевірка оплати потребують мережі, решта ні.'],
+   ['Клієнти не можуть записатися онлайн', 'Перевірте: Налаштування → Онлайн-запис → приймання заявок увімкнено, адресу сторінки задано, послуги позначені видимими, а в графіку роботи є відкриті дні.'],
+   ['Не приходять заявки в Telegram', 'Налаштування → Онлайн-запис → «Підключити Telegram», надішліть боту код. Команда /stop відв’язує чат.'],
+   ['Як віддати звіт бухгалтеру', 'Екран «Фінанси» → вивантаження в CSV. Файл за той період, який зараз обрано на екрані.'],
+   ['Як видалити дані', 'Клієнта з історією — кнопка в його картці. Усе одразу — Налаштування → «Почати з чистого аркуша». Запис про доступ з нашого сервера видаляємо на запит.'],
+  ],
+},
+en: {
+  title: 'Support',
+  sub: 'Pro Barber is a barber’s working studio: clients, appointments, services, schedule and money in one place.',
+  chat: 'Message us on Telegram',
+  contact: MAIL
+    ? 'A question, a problem, a refund — write to ' + mailLink + '. We reply within 5 working days, usually sooner. Tell us what happened and on which device — that makes it faster.'
+    : 'Support contacts are not set yet.',
+  todo: 'Contacts are missing: set MAIL and TG in support.html and LEGAL in index.html.',
+  note: '<a href="terms.html">terms of use</a> · <a href="privacy.html">privacy policy</a> · <a href="delete.html">data deletion</a>',
+  faq: [
+   ['Getting started', 'Open the app, create your studio — you get 14 days of full access. No card needed, nothing is charged. Whether to pay is your call once the trial ends.'],
+   ['What it costs', '1 month — 249 ₴, 3 months — 649 ₴, 1 year — 2 490 ₴. Every payment is one-off: your card is billed once, there is no auto-renewal at all.'],
+   ['I paid but my new phone has no access', 'Tap “Restore payment” on the access screen. Access is found by your login — the same email or phone you entered in the app. It works on three devices at once.'],
+   ['Will my data disappear if I do not renew?', 'No. Clients, appointments and finance stay on the device. Only access to the app pauses — pay again and everything is there.'],
+   ['Moving data to another phone', 'Settings → Backup → “Back up now”: a file is saved. On the new phone open the same screen and restore from the file. There is no sync between devices — the data lives on the device, not with us.'],
+   ['I forgot the PIN', 'It cannot be recovered: the PIN is stored neither with us nor on the device — the encryption key is derived from it. If you have a backup file, the data comes back from there.'],
+   ['The app does not open offline', 'Open it once while online — after that the studio works offline. Booking requests and payment checks need the network, the rest does not.'],
+   ['Clients cannot book online', 'Check Settings → Online booking: requests are on, the page address is set, services are marked visible, and your schedule has open days.'],
+   ['No requests in Telegram', 'Settings → Online booking → “Connect Telegram”, send the bot your code. /stop disconnects the chat again.'],
+   ['Giving a report to an accountant', 'Finance screen → CSV export. The file covers the period currently selected on the screen.'],
+   ['Deleting data', 'A client with their history — the button in their card. Everything at once — Settings → “Start from scratch”. We delete the access record from our server on request.'],
+  ],
+},
+}[LANG];
+
+document.getElementById('h1').textContent = T.title;
+document.getElementById('sub').textContent = T.sub;
+document.getElementById('contact').innerHTML = T.contact;
+document.getElementById('note').innerHTML = T.note;
+
+if (!MAIL){
+  var todo = document.getElementById('todo');
+  todo.textContent = T.todo;
+  todo.hidden = false;
+}
+if (TG){
+  var chat = document.getElementById('chat');
+  chat.textContent = T.chat;
+  chat.href = 'https://t.me/' + TG.replace(/^@/, '');
+  chat.hidden = false;
+}
+
+document.getElementById('faq').innerHTML = T.faq.map(function(qa){
+  var esc = function(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); };
+  return '<div class="qa"><b>' + esc(qa[0]) + '</b><p>' + esc(qa[1]) + '</p></div>';
+}).join('');
+</script>
+</body>
+</html>
