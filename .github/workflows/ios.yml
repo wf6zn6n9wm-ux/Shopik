@@ -49,6 +49,14 @@ jobs:
         with:
           node-version: '22'
 
+      # sync-web.js компилирует JSX тем же build.js, что и сайт, а тот
+      # просит bun. На сборочных машинах его нет: первая сборка iOS так и
+      # упала — «spawnSync bun ENOENT», через двадцать секунд после старта.
+      - name: bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
       - name: Зависимости
         run: npm install
 

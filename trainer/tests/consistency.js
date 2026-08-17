@@ -198,6 +198,17 @@ part('збірка для магазину не потребує мережі');
   ok('складання зупиняється, якщо посилання на CDN лишилось',
      /unpkg[^]*throw new Error/.test(sync));
   ok('прапорець безкоштовної збірки на місці', /PRO_TRAINER_FREE/.test(sync));
+
+  /* JSX компілює bun, а на складальних машинах його немає з коробки.
+     Перша збірка iOS так і впала — «spawnSync bun ENOENT» через двадцять
+     секунд після старту. Тому будь-який робочий процес, який кличе
+     sync:web, зобов'язаний спершу поставити bun. */
+  const flows = path.join(__dirname, '..', '..', '.github', 'workflows');
+  fs.readdirSync(flows).filter(f => f.endsWith('.yml')).forEach(f => {
+    const txt = fs.readFileSync(path.join(flows, f), 'utf8');
+    if (!/npm run sync:web/.test(txt)) return;
+    ok('  ' + f + ' ставить bun перед складанням', /bun\.sh\/install/.test(txt));
+  });
 }
 
 part('обрізання картинок');
