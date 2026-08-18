@@ -413,5 +413,49 @@ part('серверних функцій не більше, ніж дозволе
      !missing.length, missing.join(', ') || [...used].length + ' адрес');
 }
 
+/* ─── адмінка показує все, що їй прислали ───
+   Сервер рахує зведення і шле його одним об'єктом. Сторінка сама
+   вирішує, що з цього намалювати, — і тут легко мовчки загубити цілий
+   розділ: під час переробки вигляду зникли мови й розбивка оплат по
+   днях, а сторінка лишилась зеленою, бо помилки немає — просто числа
+   більше ніхто не питає.
+
+   Тому вимагаємо зворотного: кожне поле, яке сервер порахував, має
+   десь на сторінці згадуватись. Порахувати й не показати — або
+   недогляд, або марна робота на сервері; і те, і те треба помітити.  */
+part('адмінка не губить те, що порахував сервер');
+{
+  const api = fs.readFileSync(path.join(__dirname, '..', 'api', 'admin.js'), 'utf8');
+  const page = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
+
+  /* Що саме сервер віддає, читаємо з самої відповіді, а не зі списку в
+     перевірці: список довелося б правити руками, і він відстав би від
+     коду рівно тоді, коли з'явиться нове поле. */
+  const answers = [...api.matchAll(/return L\.json\(res, 200, \{ok: true,([\s\S]*?)\}\);/g)];
+  const answer = answers.length ? answers[answers.length - 1][1] : '';
+  const top = [...new Set((answer.match(/[a-zA-Z][a-zA-Z0-9]*/g) || []))]
+    .filter(k => !['TRIAL', 'DAYS', 'L', 'configured', 'trialDays', 'pay'].includes(k));
+  const money = ((api.match(/const money = \{([\s\S]*?)\n  \};/) || [])[1] || '')
+    .split('\n').map(s => (s.match(/^\s*([a-zA-Z][a-zA-Z0-9]*):/) || [])[1]).filter(Boolean);
+
+  ok('поля зведення знайшлись у коді сервера', top.length >= 8, top.join(', '));
+  const lost = top.filter(k => !new RegExp('\\b' + k + '\\b').test(page));
+  ok('усі поля зведення десь показані', !lost.length, lost.join(', ') || top.length + ' полів');
+
+  ok('поля про гроші знайшлись', money.length >= 8, money.join(', '));
+  const lostMoney = money.filter(k => !new RegExp('\\b' + k + '\\b').test(page));
+  ok('усі поля про гроші десь показані', !lostMoney.length,
+     lostMoney.join(', ') || money.length + ' полів');
+
+  /* Розділи. Кнопка в меню без сторінки веде в порожнечу, сторінка без
+     кнопки недосяжна — обидва боки списку мають збігатись. */
+  const menu = [...page.matchAll(/^\s*\['([a-z]+)',\s*'[^']+',\s*IC\./gm)].map(m => m[1]);
+  const drawn = [...page.matchAll(/PAGE === '([a-z]+)'\s*\?/g)].map(m => m[1]);
+  ok('меню зібралось', menu.length >= 8, menu.join(', '));
+  const noPage = menu.filter(k => k !== 'dash' && !drawn.includes(k));
+  ok('у кожної кнопки меню є своя сторінка', !noPage.length,
+     noPage.join(', ') || menu.length + ' розділів');
+}
+
 console.log('\n══════ ' + (checks - fails) + ' з ' + checks + (fails ? ' · є замечання' : ' · все чисто') + ' ══════');
 process.exit(fails ? 1 : 0);

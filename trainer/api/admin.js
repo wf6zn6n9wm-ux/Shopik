@@ -239,7 +239,13 @@ module.exports = async function handler(req, res){
   const chat = {threads: threads.length,
                 unread: threads.reduce((s, t) => s + (t.unread || 0), 0)};
 
-  return L.json(res, 200, {ok: true, storage, now, count, funnel, series, langs, money, people, chat,
+  /* Таблиця тарифів. Адмінка показує розділ «Підписки» й тоді, коли не
+     продано жодного: byPlan тримає лише те, що вже купували, і на
+     порожньому журналі він порожній. Другий список цін в адмінці
+     розійшовся б із цим тихо, тому віддаємо той самий. */
+  const plans = Object.keys(L.PLANS).map(id => ({id, months: L.PLANS[id].months, uah: L.PLANS[id].uah}));
+
+  return L.json(res, 200, {ok: true, storage, now, count, funnel, series, langs, money, people, chat, plans,
                            pay: L.configured(), trialDays: TRIAL.TRIAL_DAYS});
 };
 

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>PRO Trainer — админка</title>
-<meta name="theme-color" content="#08080B">
+<meta name="theme-color" content="#050609">
 <!--
   Страница только для владельца. Отдельный файл, а не экран приложения:
   тренерам она не нужна и на их устройствах ей делать нечего.
@@ -13,103 +13,332 @@
   Пароль живёт в sessionStorage — закрыл вкладку, и его нет. В
   localStorage он пережил бы закрытый ноутбук в кафе.
 
-  Ни одной внешней ссылки: всё внутри файла. Так же, как в приложении.
+  Ни одной внешней ссылки: всё внутри файла. Поэтому и шрифт системный —
+  Inter берём, если он есть в системе, иначе обычный системный набор.
+  Ради одного шрифта тянуть чужой домен на страницу с почтами тренеров
+  не стоит.
+
+  Чего здесь нет и не будет. Сервер знает про кабинет ровно четыре вещи:
+  когда завели, когда последний раз сохраняли копию, сколько она весит и
+  какая подписка. Что внутри — клиенты, тренировки, деньги тренера — мы
+  не видим: копия зашифрована ключом, которого у нас нет. Поэтому в
+  карточке тренера нет ни числа клиентов, ни модели телефона, ни графика
+  его активности. Нарисовать их было бы легко и было бы враньём.
 -->
 <style>
   :root{
-    --bg:#08080B; --surface:#15151C; --surface-2:#1C1C25; --line:#23232C;
-    --ink:#F5F5F8; --ink-2:#9E9EAF; --ink-3:#71717F;
-    --accent:#6B4DFF; --accent-soft:rgba(107,77,255,.16);
-    --pos:#12B76A; --warn:#F79009; --neg:#F04438;
+    /* Почти чёрный фон, поверх него — тёмное стекло с холодным
+       сине-серым оттенком. Фон остаётся чёрным: стекло даёт оттенок, а
+       не заливает собой экран. */
+    --bg:#050609;
+    --glass:rgba(24,27,36,.72);
+    --glass-2:rgba(30,34,45,.62);
+    --glass-3:rgba(38,42,55,.55);
+    --line:rgba(255,255,255,.08);
+    --line-2:rgba(255,255,255,.14);
+    --ink:#F5F5F7; --ink-2:#9699A8; --ink-3:#686B7A;
+    --accent:#7352FF; --accent-2:#8B6CFF;
+    --accent-soft:rgba(115,82,255,.14);
+    --accent-glow:rgba(115,82,255,.35);
+    --pos:#28D17C; --warn:#FFB020; --neg:#FF5C5C;
+    --r:16px; --r-sm:12px; --r-lg:20px;
+    --shadow:0 8px 32px rgba(0,0,0,.45);
+    --nav:238px;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
-  html,body{background:var(--bg);color:var(--ink);min-height:100%}
-  .wrap{max-width:1000px;margin:0 auto;padding:22px 16px 70px}
-  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}
-  .brand{display:flex;align-items:center;gap:10px}
-  .mark{width:38px;height:38px;border-radius:12px;background:var(--accent);display:grid;place-items:center;font-size:19px}
-  .brand b{font-size:17px;letter-spacing:-.02em}
-  .brand span{display:block;font-size:11px;color:var(--ink-3)}
-  .btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;
-       padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer}
-  .btn.pri{background:var(--accent);border-color:transparent}
-  .btn:disabled{opacity:.5;cursor:default}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px}
-  .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px}
-  @media(min-width:700px){.kpis{grid-template-columns:repeat(4,1fr)}}
-  .kpi .lbl{font-size:12px;color:var(--ink-3)}
-  .kpi .val{font-size:29px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
-  .kpi .sub{font-size:12px;color:var(--ink-3);margin-top:2px}
-  .val.acc{color:#a08cff}.val.pos{color:var(--pos)}.val.warn{color:var(--warn)}
-  h2{font-size:14px;font-weight:700;margin:26px 0 10px;color:var(--ink-2)}
+    font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+  html,body{background:var(--bg);color:var(--ink);min-height:100%;
+    font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  /* Едва заметные пятна света. Они дают стеклу что отражать: без них
+     полупрозрачность не читается и карточки выглядят просто серыми. */
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(680px 420px at 12% -6%, rgba(115,82,255,.13), transparent 62%),
+      radial-gradient(560px 380px at 88% 4%, rgba(90,110,180,.09), transparent 60%),
+      radial-gradient(720px 520px at 60% 108%, rgba(139,108,255,.07), transparent 62%);}
+  ::selection{background:var(--accent-soft)}
+  button,input,textarea,select{font:inherit;color:inherit}
+  a{color:inherit;text-decoration:none}
+
+  /* ─── стекло ─── */
+  .glass{position:relative;background:var(--glass);border:1px solid var(--line);
+    border-radius:var(--r);box-shadow:var(--shadow);
+    -webkit-backdrop-filter:blur(20px) saturate(140%);backdrop-filter:blur(20px) saturate(140%)}
+  /* Тонкая светлая линия по верхней кромке — то, из-за чего панель
+     читается как стекло, а не как заливка. */
+  .glass::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,0) 42%)}
+  .glass>*{position:relative}
+  .pad{padding:18px}
+  .pad-lg{padding:22px}
+
+  /* ─── каркас ─── */
+  .app{display:flex;min-height:100vh;position:relative;z-index:1}
+  .side{width:var(--nav);flex:none;padding:18px 14px;display:flex;flex-direction:column;gap:6px;
+    position:sticky;top:0;height:100vh;border-right:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(18,20,28,.6),rgba(10,11,16,.5));
+    -webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px)}
+  .logo{display:flex;align-items:center;gap:11px;padding:6px 8px 18px}
+  .logo .mark{width:36px;height:36px;border-radius:11px;flex:none;display:grid;place-items:center;
+    background:linear-gradient(140deg,var(--accent),#5B3BE0);
+    box-shadow:0 6px 18px rgba(115,82,255,.4)}
+  .logo b{display:block;font-size:14.5px;font-weight:650;letter-spacing:-.01em}
+  .logo span{display:block;font-size:11px;color:var(--ink-3);margin-top:1px}
+  .nav{display:flex;flex-direction:column;gap:3px}
+  .nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;
+    background:transparent;border:1px solid transparent;border-radius:var(--r-sm);
+    padding:9px 11px;font-size:13.5px;font-weight:500;color:var(--ink-2);
+    transition:background .18s,color .18s,border-color .18s}
+  .nav button:hover{background:rgba(255,255,255,.04);color:var(--ink)}
+  .nav button .ic{width:18px;height:18px;flex:none;opacity:.75}
+  .nav button.on{background:linear-gradient(100deg,rgba(115,82,255,.2),rgba(115,82,255,.07));
+    border-color:rgba(115,82,255,.28);color:var(--ink);
+    box-shadow:0 0 0 1px rgba(115,82,255,.06),0 6px 20px rgba(115,82,255,.14)}
+  .nav button.on .ic{opacity:1;color:var(--accent-2)}
+  .nav .cnt{margin-left:auto;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;
+    background:var(--accent);color:#fff}
+  .side .help{margin-top:auto;padding:14px;border-radius:var(--r-sm);
+    background:var(--glass-2);border:1px solid var(--line)}
+  .side .help b{display:block;font-size:13px;font-weight:600}
+  .side .help p{font-size:11.5px;color:var(--ink-3);margin:4px 0 10px;line-height:1.4}
+
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .head{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;
+    padding:14px 22px;border-bottom:1px solid var(--line);
+    background:rgba(5,6,9,.72);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+  .head h1{font-size:16px;font-weight:650;letter-spacing:-.01em}
+  .head .crumb{font-size:12px;color:var(--ink-3)}
+  .head .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .burger{display:none;width:38px;height:38px;border-radius:var(--r-sm);flex:none;
+    background:var(--glass-2);border:1px solid var(--line);cursor:pointer;place-items:center}
+  .live{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);
+    padding:6px 11px;border-radius:999px;background:var(--glass-2);border:1px solid var(--line)}
+  .live i{width:7px;height:7px;border-radius:50%;background:var(--pos);flex:none;
+    box-shadow:0 0 8px rgba(40,209,124,.8)}
+  .live.bad i{background:var(--warn);box-shadow:0 0 8px rgba(255,176,32,.8)}
+  .ava{width:34px;height:34px;border-radius:11px;flex:none;display:grid;place-items:center;
+    background:var(--glass-3);border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--ink-2)}
+  .body{padding:20px 22px 60px;display:flex;flex-direction:column;gap:14px}
+
+  /* ─── типовые части ─── */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;
+    background:var(--glass-2);border:1px solid var(--line);color:var(--ink);
+    border-radius:var(--r-sm);padding:9px 14px;font-size:13px;font-weight:550;
+    transition:background .18s,border-color .18s,transform .12s}
+  .btn:hover{background:var(--glass-3);border-color:var(--line-2)}
+  .btn:active{transform:scale(.98)}
+  .btn.pri{background:linear-gradient(140deg,var(--accent),#5B3BE0);border-color:transparent;
+    box-shadow:0 6px 18px rgba(115,82,255,.3)}
+  .btn.pri:hover{box-shadow:0 8px 24px rgba(115,82,255,.42)}
+  .btn.sm{padding:7px 11px;font-size:12px}
+  .btn:disabled{opacity:.45;cursor:default;transform:none}
+  .inp{width:100%;background:var(--glass-2);border:1px solid var(--line);color:var(--ink);
+    border-radius:var(--r-sm);padding:10px 13px;font-size:13.5px;outline:none;
+    transition:border-color .18s,box-shadow .18s}
+  .inp::placeholder{color:var(--ink-3)}
+  .inp:focus{border-color:rgba(115,82,255,.55);box-shadow:0 0 0 3px rgba(115,82,255,.12)}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tabs button{cursor:pointer;background:var(--glass-2);border:1px solid var(--line);
+    color:var(--ink-2);border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:550;
+    transition:background .18s,color .18s,border-color .18s}
+  .tabs button:hover{color:var(--ink)}
+  .tabs button.on{background:linear-gradient(100deg,rgba(115,82,255,.24),rgba(115,82,255,.1));
+    border-color:rgba(115,82,255,.34);color:var(--ink)}
+  .tabs button b{font-weight:700;margin-left:6px;color:var(--ink-3)}
+  .tabs button.on b{color:var(--accent-2)}
+  h2{font-size:13px;font-weight:600;color:var(--ink-2);letter-spacing:.01em}
+  .sec{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px}
+  .muted{color:var(--ink-3);font-size:12.5px;line-height:1.55}
+  .grid{display:grid;gap:14px}
+  .g4{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:1fr}
+  .g2{grid-template-columns:1fr}
+  @media(min-width:820px){.g4{grid-template-columns:repeat(4,1fr)}.g2{grid-template-columns:1fr 1fr}}
+  @media(min-width:1120px){.g3{grid-template-columns:repeat(3,1fr)}}
+  .row{display:flex;align-items:center;gap:10px}
+  .spread{display:flex;align-items:center;justify-content:space-between;gap:10px}
+
+  /* ─── KPI ─── */
+  .kpi .lbl{font-size:12px;color:var(--ink-3);font-weight:500}
+  .kpi .val{font-size:32px;font-weight:650;letter-spacing:-.035em;margin-top:6px;
+    font-variant-numeric:tabular-nums;line-height:1.05}
+  .kpi .val.acc{background:linear-gradient(120deg,#C9BCFF,var(--accent-2));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .kpi .val.pos{color:var(--pos)} .kpi .val.warn{color:var(--warn)}
+  .kpi .sub{font-size:12px;color:var(--ink-3);margin-top:6px}
+  .trend{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:650;
+    padding:2px 8px;border-radius:999px;background:rgba(40,209,124,.12);color:var(--pos)}
+  .trend.flat{background:rgba(255,255,255,.05);color:var(--ink-3)}
+
+  /* ─── воронка ─── */
+  .fun{display:flex;flex-direction:column;gap:13px;margin-top:14px}
+  .fun .nm{font-size:12.5px;color:var(--ink-2);margin-bottom:6px;display:flex;
+    justify-content:space-between;gap:10px}
+  .fun .nm b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+  .fun .track{height:8px;border-radius:999px;background:rgba(255,255,255,.055);overflow:hidden}
+  .fun .fill{height:100%;border-radius:999px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    box-shadow:0 0 14px rgba(115,82,255,.45);transition:width .5s cubic-bezier(.4,0,.2,1)}
+  .fun .drop{font-size:11.5px;color:var(--warn);margin-top:5px}
+
+  /* ─── столбики ─── */
+  .bars{display:flex;align-items:flex-end;gap:3px;height:150px;margin-top:16px}
+  .bars i{flex:1;min-height:3px;border-radius:4px 4px 2px 2px;
+    background:linear-gradient(180deg,var(--accent-2),rgba(115,82,255,.42));
+    transition:height .45s cubic-bezier(.4,0,.2,1),filter .18s;cursor:default}
+  .bars i:hover{filter:brightness(1.35)}
+  .bars i.zero{background:rgba(255,255,255,.045);box-shadow:none}
+  .axis{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:9px}
+
+  /* ─── точки состояния ─── */
+  .dots{display:flex;flex-direction:column;gap:11px;margin-top:14px}
+  .dots div{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-2)}
+  .dots b{margin-left:auto;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+  .dt{width:8px;height:8px;border-radius:50%;flex:none}
+  .dt.ok{background:var(--pos);box-shadow:0 0 8px rgba(40,209,124,.55)}
+  .dt.warn{background:var(--warn);box-shadow:0 0 8px rgba(255,176,32,.5)}
+  .dt.bad{background:var(--neg);box-shadow:0 0 8px rgba(255,92,92,.5)}
+  .dt.off{background:var(--ink-3)}
+
+  /* ─── требует внимания ─── */
+  .care{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .care button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;
+    background:var(--glass-2);border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:11px 13px;transition:background .18s,border-color .18s}
+  .care button:hover{background:var(--glass-3);border-color:var(--line-2)}
+  .care .n{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;min-width:26px}
+  .care .n.warn{color:var(--warn)} .care .n.bad{color:var(--neg)} .care .n.ok{color:var(--ink-3)}
+  .care .tx{font-size:12.5px;color:var(--ink-2);line-height:1.35}
+  .care .go{margin-left:auto;color:var(--ink-3);flex:none}
+
+  /* ─── лента событий ─── */
+  .feed{display:flex;flex-direction:column;gap:0;margin-top:12px}
+  .ev{display:flex;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+  .ev:last-child{border-bottom:none}
+  .ev .ic{width:26px;height:26px;border-radius:9px;flex:none;display:grid;place-items:center;font-size:12px}
+  .ev .ic.reg{background:rgba(115,82,255,.16);color:var(--accent-2)}
+  .ev .ic.pay{background:rgba(40,209,124,.14);color:var(--pos)}
+  .ev .ic.msg{background:rgba(255,176,32,.14);color:var(--warn)}
+  .ev .tx{flex:1;min-width:0;font-size:13px;line-height:1.4}
+  .ev .tx span{display:block;color:var(--ink-3);font-size:12px;margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ev .at{flex:none;font-size:11.5px;color:var(--ink-3);white-space:nowrap}
+
+  /* ─── таблицы ─── */
+  .scroll{overflow-x:auto;margin:0 -4px;padding:0 4px}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{text-align:left;padding:10px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
-  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .scroll{overflow-x:auto}
-  .tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}
-  .tag.pay{background:rgba(18,183,106,.15);color:var(--pos)}
-  .tag.try{background:var(--accent-soft);color:#a08cff}
-  .tag.gift{background:rgba(247,144,9,.15);color:var(--warn)}
-  .tag.off{background:var(--surface-2);color:var(--ink-3)}
-  .bars{display:flex;align-items:flex-end;gap:3px;height:120px;margin-top:6px}
-  .bars i{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
-  .bars i.zero{background:var(--surface-2)}
-  .axis{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:6px}
-  .funnel div{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-  .funnel .bar{height:26px;background:var(--accent);border-radius:7px;min-width:3px}
-  .funnel .nm{width:190px;font-size:13px;color:var(--ink-2);flex:none}
-  .funnel .n{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
-  .gate{min-height:82vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}
-  .gate input{background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:12px;
-              padding:13px 15px;font-size:15px;width:min(320px,80vw);outline:none}
-  .gate input:focus{border-color:var(--accent)}
-  .err{color:var(--neg);font-size:13px;min-height:18px}
-  .muted{color:var(--ink-3);font-size:13px;line-height:1.5;max-width:460px}
-  .people{display:flex;flex-direction:column;gap:10px}
-  .prow{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 15px}
-  .pmain{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:10px}
-  .pmain b{font-size:14px;font-weight:650;word-break:break-all;line-height:1.35}
-  .pfacts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 8px}
-  @media(min-width:560px){.pfacts{grid-template-columns:repeat(6,1fr)}}
-  .pfacts span{display:block;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
-  .pfacts b{display:block;font-size:13.5px;font-weight:650;font-variant-numeric:tabular-nums;margin-top:2px}
-  /* Переписка. Она не «ещё одна таблица», а работа: сюда приходят
-     вопросы, и на них надо отвечать. Поэтому непрочитанное видно
-     издалека, а сама ветка читается как переписка, а не как журнал. */
+  th,td{text-align:left;padding:11px 10px;white-space:nowrap}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);
+    font-weight:600;border-bottom:1px solid var(--line)}
+  tbody tr{border-bottom:1px solid rgba(255,255,255,.045);cursor:pointer;transition:background .15s}
+  /* таблицы, по строкам которых некуда переходить, — рука-указатель там врёт */
+  table.flat tbody tr{cursor:default}
+  tbody tr:hover{background:rgba(255,255,255,.03)}
+  tbody tr:last-child{border-bottom:none}
+  th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+  td.mail{max-width:260px;overflow:hidden;text-overflow:ellipsis}
+
+  .tag{display:inline-block;font-size:11px;font-weight:650;padding:3px 9px;border-radius:999px;
+    border:1px solid transparent;white-space:nowrap}
+  .tag.pay{background:rgba(40,209,124,.13);color:var(--pos);border-color:rgba(40,209,124,.22)}
+  .tag.try{background:var(--accent-soft);color:var(--accent-2);border-color:rgba(115,82,255,.26)}
+  .tag.gift{background:rgba(255,176,32,.13);color:var(--warn);border-color:rgba(255,176,32,.22)}
+  .tag.off{background:rgba(255,255,255,.05);color:var(--ink-3);border-color:var(--line)}
+
+  /* ─── пусто ─── */
+  .empty{display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;
+    padding:38px 20px}
+  .empty .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+    background:var(--glass-3);border:1px solid var(--line);color:var(--ink-3)}
+  .empty b{font-size:14px;font-weight:600}
+  .empty p{font-size:12.5px;color:var(--ink-3);max-width:340px;line-height:1.55}
+
+  /* ─── переписка ─── */
   .thr{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;cursor:pointer;
-       background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:13px 15px;
-       margin-bottom:8px;color:var(--ink)}
-  .thr.new{border-color:var(--accent)}
+    background:var(--glass-2);border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:12px 14px;color:var(--ink);transition:background .18s,border-color .18s}
+  .thr:hover{background:var(--glass-3)}
+  .thr.new{border-color:rgba(115,82,255,.4);box-shadow:0 0 0 1px rgba(115,82,255,.08)}
   .thr .who{flex:1;min-width:0}
-  .thr .who b{display:block;font-size:13.5px;font-weight:650;word-break:break-all}
+  .thr .who b{display:block;font-size:13px;font-weight:600;word-break:break-all}
   .thr .who span{display:block;font-size:12.5px;color:var(--ink-3);margin-top:3px;
-                 overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .thr .when{flex:none;font-size:11.5px;color:var(--ink-3);text-align:right}
   .dot{display:inline-block;min-width:19px;height:19px;border-radius:999px;background:var(--accent);
-       color:#fff;font-size:11px;font-weight:800;line-height:19px;text-align:center;padding:0 5px}
-  .talk{display:flex;flex-direction:column;gap:9px;margin:14px 0}
-  .bub{max-width:82%;padding:10px 13px;border-radius:15px;font-size:14px;line-height:1.45;
-       white-space:pre-wrap;word-break:break-word}
-  .bub.t{align-self:flex-start;background:var(--surface-2);border-bottom-left-radius:5px}
-  .bub.s{align-self:flex-end;background:var(--accent);border-bottom-right-radius:5px}
-  .bub .at{display:block;font-size:10.5px;opacity:.6;margin-top:5px}
+    color:#fff;font-size:11px;font-weight:700;line-height:19px;text-align:center;padding:0 5px;
+    box-shadow:0 0 10px var(--accent-glow)}
+  .talk{display:flex;flex-direction:column;gap:9px;margin:16px 0}
+  .bub{max-width:78%;padding:11px 14px;border-radius:16px;font-size:14px;line-height:1.45;
+    white-space:pre-wrap;word-break:break-word}
+  .bub.t{align-self:flex-start;background:var(--glass-3);border:1px solid var(--line);
+    border-bottom-left-radius:6px}
+  .bub.s{align-self:flex-end;background:linear-gradient(140deg,var(--accent),#5B3BE0);
+    border-bottom-right-radius:6px;box-shadow:0 6px 18px rgba(115,82,255,.28)}
+  .bub .at{display:block;font-size:10.5px;opacity:.62;margin-top:5px}
   .say{display:flex;gap:9px;align-items:flex-end}
-  .say textarea{flex:1;background:var(--surface);border:1px solid var(--line);color:var(--ink);
-                border-radius:14px;padding:12px 14px;font-size:14.5px;outline:none;resize:none;min-height:46px}
-  .say textarea:focus{border-color:var(--accent)}
-  .note{background:rgba(247,144,9,.12);border:1px solid rgba(247,144,9,.3);color:#ffcd85;
-        border-radius:12px;padding:11px 14px;font-size:13px;margin-bottom:14px;line-height:1.5}
+  .say textarea{flex:1;background:var(--glass-2);border:1px solid var(--line);color:var(--ink);
+    border-radius:var(--r-sm);padding:12px 14px;font-size:14px;outline:none;resize:none;min-height:48px}
+  .say textarea:focus{border-color:rgba(115,82,255,.55);box-shadow:0 0 0 3px rgba(115,82,255,.12)}
+
+  /* ─── карточка тренера ─── */
+  .facts{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 12px;margin-top:16px}
+  @media(min-width:600px){.facts{grid-template-columns:repeat(3,1fr)}}
+  .facts span{display:block;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+  .facts b{display:block;font-size:14px;font-weight:600;margin-top:3px;word-break:break-word}
+  .note{background:rgba(255,176,32,.09);border:1px solid rgba(255,176,32,.24);color:#FFD79B;
+    border-radius:var(--r-sm);padding:12px 14px;font-size:12.5px;line-height:1.55}
+
+  /* ─── вход ─── */
+  .gate{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;text-align:center;padding:24px;position:relative;z-index:1}
+  .gate .box{width:min(360px,92vw);display:flex;flex-direction:column;gap:12px;padding:26px}
+  .err{color:var(--neg);font-size:12.5px;min-height:17px}
+
+  /* ─── телефон ─── */
+  .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;
+    -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+  @media(max-width:900px){
+    .side{position:fixed;left:0;top:0;bottom:0;height:100vh;z-index:50;width:262px;
+      transform:translateX(-100%);transition:transform .24s cubic-bezier(.4,0,.2,1)}
+    .side.open{transform:none}
+    .scrim.open{display:block}
+    .burger{display:grid}
+    .head{padding:12px 14px}
+    .body{padding:16px 14px 70px}
+    .g4{grid-template-columns:repeat(2,1fr)}
+    .kpi .val{font-size:26px}
+    th,td{padding:10px 8px}
+  }
+  @media(max-width:520px){
+    .g4{grid-template-columns:1fr}
+    .facts{grid-template-columns:1fr 1fr}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  .fade{animation:fade .22s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
-<div class="wrap" id="root"></div>
+<div id="root"></div>
+<div class="scrim" id="scrim"></div>
 
 <script>
 var KEY = 'protrainer.admin';
 var root = document.getElementById('root');
+var scrim = document.getElementById('scrim');
 var pass = sessionStorage.getItem(KEY) || '';
+
+/* Всё, что пришло с сервера, лежит здесь. Разделы переключаются без
+   нового запроса: данные одни и те же, а ходить на сервер на каждый
+   клик — значит ждать там, где ждать нечего. */
+var D = null;          /* сводка /api/admin */
+var TH = [];           /* ветки переписки */
+var PAGE = 'dash';
+var ARG = null;
+var TAB = {};          /* выбранная вкладка внутри раздела */
+var QUERY = '';
+
+var DAY = 86400000;
 
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
@@ -117,29 +346,91 @@ function esc(s){
   });
 }
 /* гривня и без копеек: счёт выставляется целыми, дробей тут не бывает */
-function money(n){ return (n < 0 ? '−' : '') + Math.round(Math.abs(n)) + ' \u20b4'; }
+function money(n){ return (n < 0 ? '−' : '') + Math.round(Math.abs(n)).toLocaleString('ru-RU') + ' ₴'; }
+function num(n){ return Number(n || 0).toLocaleString('ru-RU'); }
 var MONTHS = ['января','февраля','марта','апреля','мая','июня',
               'июля','августа','сентября','октября','ноября','декабря'];
 function monthName(k){
   var p = String(k).split('-');
   return MONTHS[+p[1] - 1] ? MONTHS[+p[1] - 1] + ' ' + p[0] : k;
 }
-var PLAN_NAME = {monthly: 'месяц', quarterly: '3 месяца', yearly: 'год'};
-function planName(x){ return esc(PLAN_NAME[x.plan] || x.plan || '—'); }
-function fact(k, v){ return '<div><span>' + k + '</span><b>' + v + '</b></div>'; }
+var PLAN_NAME = {monthly: '1 месяц', quarterly: '3 месяца', yearly: '1 год'};
+function planName(id){ return PLAN_NAME[id] || id || '—'; }
+/* Язык кабинета приходит кодом. Код читается только тем, кто знает
+   стандарт, поэтому подписываем словом, а сам код оставляем рядом —
+   по нему видно, что это не выдумка. */
+var LANG_NAME = {uk: 'Украинский', ru: 'Русский', en: 'Английский', pl: 'Польский'};
+function langName(id){ return LANG_NAME[id] || id; }
 function ago(ts, now){
   if (!ts) return '—';
-  var d = Math.floor((now - ts) / 86400000);
-  return d <= 0 ? 'сегодня' : d === 1 ? 'вчера' : d + ' дн.';
+  var d = Math.floor((now - ts) / DAY);
+  return d <= 0 ? 'сегодня' : d === 1 ? 'вчера' : d + ' дн. назад';
+}
+function when(ts, now){
+  if (!ts) return '';
+  var min = Math.floor((now - ts) / 60000);
+  if (min < 1) return 'только что';
+  if (min < 60) return min + ' мин назад';
+  if (min < 24 * 60) return Math.floor(min / 60) + ' ч назад';
+  var d = Math.floor(min / (60 * 24));
+  return d + (d === 1 ? ' день назад' : d < 5 ? ' дня назад' : ' дней назад');
+}
+function dmy(iso){
+  if (!iso) return '—';
+  var p = String(iso).split('-');
+  return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : iso;
+}
+/* Свои иконки, потому что внешних ссылок на этой странице нет. */
+var IC = {
+  dash:'M3 12h7V3H3v9zm0 9h7v-6H3v6zm11 0h7V12h-7v9zm0-18v6h7V3h-7z',
+  users:'M16 20v-1c0-2.2-1.8-4-4-4H7c-2.2 0-4 1.8-4 4v1M9.5 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM21 20v-1c0-1.9-1.3-3.5-3-3.9M16.5 4.6a3.5 3.5 0 010 6.8',
+  box:'M21 8l-9-5-9 5m18 0v8l-9 5-9-5V8m18 0l-9 5m0 0L3 8m9 5v9',
+  card:'M2 8h20M2 8a2 2 0 012-2h16a2 2 0 012 2M2 8v9a2 2 0 002 2h16a2 2 0 002-2V8M6 15h4',
+  star:'M12 3l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.3l6-.8L12 3z',
+  chart:'M4 20V10m6 10V4m6 16v-7m4 7V8',
+  bell:'M18 9a6 6 0 10-12 0c0 5-2 6-2 6h16s-2-1-2-6M13.7 20a2 2 0 01-3.4 0',
+  msg:'M21 12a8 8 0 01-11.6 7.1L3 21l1.9-6.4A8 8 0 1121 12z',
+  gear:'M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z',
+  warn:'M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0zM12 9v4M12 17h.01',
+  left:'M15 18l-6-6 6-6',
+  right:'M9 18l6-6-6-6',
+  search:'M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3',
+  refresh:'M3 12a9 9 0 0115.5-6.2M21 12a9 9 0 01-15.5 6.2M18 3v5h-5M6 21v-5h5',
+  out:'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
+};
+function svg(d, size){
+  return '<svg class="ic" width="' + (size || 18) + '" height="' + (size || 18) + '" viewBox="0 0 24 24" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+    d.split(' M').map(function(p, i){ return '<path d="' + (i ? 'M' + p : p) + '"/>'; }).join('') + '</svg>';
 }
 
+/* ─── разделы ─── */
+var PAGES = [
+  ['dash',   'Дашборд',        IC.dash],
+  ['people', 'Тренеры',        IC.users],
+  ['care',   'Требует внимания', IC.warn],
+  ['chat',   'Переписка',      IC.msg],
+  ['pays',   'Платежи',        IC.card],
+  ['subs',   'Подписки',       IC.star],
+  ['stats',  'Аналитика',      IC.chart],
+  ['events', 'События',        IC.bell],
+  ['setup',  'Настройки',      IC.gear],
+];
+var TITLE = {};
+PAGES.forEach(function(p){ TITLE[p[0]] = p[1]; });
+
+/* ─── вход ─── */
 function gate(msg){
   root.innerHTML =
     '<div class="gate">' +
-      '<div class="brand"><div class="mark">🏋️</div><div><b>PRO Trainer</b><span>админка</span></div></div>' +
-      '<input id="p" type="password" placeholder="Пароль" autofocus>' +
-      '<button class="btn pri" id="go">Войти</button>' +
-      '<div class="err">' + esc(msg || '') + '</div>' +
+      '<div class="glass pad-lg box">' +
+        '<div class="logo" style="padding:0 0 6px">' +
+          '<div class="mark">' + svg(IC.dash, 18) + '</div>' +
+          '<div><b>PRO Trainer</b><span>админка</span></div></div>' +
+        '<input class="inp" id="p" type="password" placeholder="Пароль" autofocus>' +
+        '<button class="btn pri" id="go">Войти</button>' +
+        '<div class="err">' + esc(msg || '') + '</div>' +
+      '</div>' +
     '</div>';
   var inp = document.getElementById('p');
   var go = function(){
@@ -164,8 +455,12 @@ async function api(qs, opts){
   });
 }
 
-async function load(){
+function loading(){
   root.innerHTML = '<div class="gate"><div class="muted">Считаю…</div></div>';
+}
+
+async function load(keep){
+  if (!keep) loading();
   var r, t;
   try {
     r = await api('');
@@ -179,97 +474,448 @@ async function load(){
   var d = await r.json().catch(function(){ return null; });
   if (!d || !d.ok) return gate('Сервер ответил непонятно');
   var th = await t.json().catch(function(){ return null; });
-  draw(d, (th && th.threads) || []);
+  D = d;
+  TH = (th && th.threads) || [];
+  draw();
 }
 
+/* ─── производные, которых нет на сервере ───
+   Считаем на месте из people и журнала оплат. Ничего не выдумываем:
+   каждая цифра ниже выводится из уже присланных полей. */
+function idle(p){ return !p.works; }                              /* ни разу не сохранил */
+function silent(p){ return p.works && D.now - p.seenAt > 7 * DAY; }/* не заходил больше недели */
+function endingSoon(p){
+  if (!p.trial || !p.trialEnds) return false;
+  var end = Date.parse(p.trialEnds + 'T00:00:00Z');
+  return end - D.now < 3 * DAY;
+}
+function status(p){
+  if (p.paid) return ['pay', 'Платит'];
+  if (p.granted) return ['gift', 'Выдана'];
+  if (p.trial) return ['try', 'Пробный'];
+  return ['off', 'Ушёл'];
+}
+function tag(p){
+  var s = status(p);
+  return '<span class="tag ' + s[0] + '">' + s[1] + '</span>';
+}
+/* Регистрации за произвольную глубину — из дат людей, а не из series:
+   сервер шлёт ровно тридцать дней, а посмотреть хочется и шире. */
+function joinedSeries(days){
+  var out = [], i;
+  for (i = days - 1; i >= 0; i--){
+    var d = new Date(D.now - i * DAY).toISOString().slice(0, 10);
+    out.push({day: d, joined: D.people.filter(function(p){ return p.since === d; }).length});
+  }
+  return out;
+}
+function joinedSince(ms){
+  return D.people.filter(function(p){ return p.startedAt && D.now - p.startedAt < ms; }).length;
+}
+
+/* ─── общие куски разметки ─── */
+function kpi(lbl, val, cls, sub, trend){
+  return '<div class="glass pad kpi">' +
+    '<div class="lbl">' + lbl + '</div>' +
+    '<div class="val' + (cls ? ' ' + cls : '') + '">' + val + '</div>' +
+    (trend ? '<div style="margin-top:8px">' + trend + '</div>' : '') +
+    (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div>';
+}
+function trend(n, tail){
+  if (!n) return '<span class="trend flat">без изменений ' + tail + '</span>';
+  return '<span class="trend">+' + n + ' ' + tail + '</span>';
+}
+function empty(icon, title, text){
+  return '<div class="empty"><div class="ic">' + svg(icon, 20) + '</div>' +
+    '<b>' + title + '</b><p>' + text + '</p></div>';
+}
 function bars(series){
   var max = Math.max.apply(null, series.map(function(s){ return s.joined; }).concat([1]));
   return '<div class="bars">' + series.map(function(s){
     return '<i class="' + (s.joined ? '' : 'zero') + '" style="height:' +
-           Math.max(2, Math.round(s.joined / max * 118)) + 'px" title="' + s.day + ': ' + s.joined + '"></i>';
-  }).join('') + '</div><div class="axis"><span>' + series[0].day + '</span><span>' +
-  series[series.length - 1].day + '</span></div>';
+           Math.max(3, Math.round(s.joined / max * 148)) + 'px" title="' +
+           dmy(s.day) + ' · ' + s.joined + '"></i>';
+  }).join('') + '</div><div class="axis"><span>' + dmy(series[0].day) + '</span><span>' +
+  dmy(series[series.length - 1].day) + '</span></div>';
 }
 
-function funnel(f){
+/* ─── каркас страницы ─── */
+function shell(inner){
+  var unread = TH.reduce(function(s, t){ return s + (t.unread || 0); }, 0);
+  var live = D.storage === 'kv';
+  return '<div class="app">' +
+    '<aside class="side" id="side">' +
+      '<div class="logo"><div class="mark">' + svg(IC.dash, 18) + '</div>' +
+        '<div><b>PRO Trainer</b><span>панель владельца</span></div></div>' +
+      '<nav class="nav">' + PAGES.map(function(p){
+        var n = p[0] === 'chat' && unread ? '<span class="cnt">' + unread + '</span>' : '';
+        return '<button class="' + (PAGE === p[0] ? 'on' : '') + '" onclick="go(\'' + p[0] + '\')">' +
+          svg(p[2], 18) + '<span>' + p[1] + '</span>' + n + '</button>';
+      }).join('') + '</nav>' +
+      '<div class="help"><b>Нужна помощь?</b>' +
+        '<p>Вопросы тренеров приходят в раздел «Переписка» и в Telegram.</p>' +
+        '<button class="btn sm" onclick="go(\'chat\')">Открыть переписку</button></div>' +
+    '</aside>' +
+    '<div class="main">' +
+      '<header class="head">' +
+        '<button class="burger" onclick="menu(true)">' + svg(IC.dash, 18) + '</button>' +
+        '<div><h1>' + (TITLE[PAGE] || '') + '</h1>' +
+          '<div class="crumb">PRO Trainer · ' + (live ? 'боевые данные' : 'память процесса') + '</div></div>' +
+        '<div class="right">' +
+          '<span class="live' + (live ? '' : ' bad') + '"><i></i>' + (live ? 'Работает' : 'Без хранилища') + '</span>' +
+          '<button class="btn sm" onclick="load(true)" title="Обновить">' + svg(IC.refresh, 15) + '</button>' +
+          '<button class="btn sm" onclick="quit()" title="Выйти">' + svg(IC.out, 15) + '</button>' +
+          '<div class="ava">АМ</div>' +
+        '</div>' +
+      '</header>' +
+      '<div class="body fade">' + inner + '</div>' +
+    '</div></div>';
+}
+
+function menu(open){
+  var s = document.getElementById('side');
+  if (!s) return;
+  s.classList.toggle('open', !!open);
+  scrim.classList.toggle('open', !!open);
+}
+scrim.onclick = function(){ menu(false); };
+
+function go(page, arg){
+  PAGE = page; ARG = arg === undefined ? null : arg;
+  QUERY = '';
+  menu(false);
+  draw();
+  window.scrollTo(0, 0);
+}
+function quit(){ sessionStorage.removeItem(KEY); location.reload(); }
+
+/* ═════════════ ДАШБОРД ═════════════ */
+function pageDash(){
+  var c = D.count, f = D.funnel;
+  var week = joinedSince(7 * DAY);
+  var h = '';
+
+  if (D.storage !== 'kv')
+    h += '<div class="note">Хранилище — память процесса, а не KV. Числа ничего не значат: ' +
+         'записи не переживают перезапуск функции. Проверьте /api/health.</div>';
+
+  h += '<div class="grid g4">' +
+    kpi('Кабинетов', num(c.all), '', c.idle + ' ни разу не сохранили', trend(week, 'за 7 дней')) +
+    kpi('Активных', num(c.works), 'acc', 'за неделю заходили ' + c.week) +
+    kpi('Платят', num(c.paid), c.paid ? 'pos' : '', 'выдано вручную — ' + c.granted) +
+    kpi('MRR', money(D.money.mrr), D.money.mrr ? 'pos' : '', 'за 30 дней ' + money(D.money.uah30)) +
+  '</div>';
+
+  h += '<div class="grid g2">' + funnelCard() + registrationsCard() + '</div>';
+  h += '<div class="grid g3">' + activityCard() + careCard(true) + eventsCard(true) + '</div>';
+  return h;
+}
+
+/* Языки кабинетов. Язык тренер выбирает сам при регистрации, и это
+   единственное, что мы о нём знаем помимо почты, — поэтому показываем
+   как есть, без округлений до «прочих». */
+function langsCard(){
+  var ls = D.langs || {};
+  var keys = Object.keys(ls).sort(function(a, b){ return ls[b] - ls[a]; });
+  if (!keys.length)
+    return '<div class="glass pad-lg"><h2>Языки</h2>' +
+      empty(IC.users, 'Пока не из чего считать', 'Язык появится, как только заведут первый кабинет.') +
+      '</div>';
+  var max = Math.max.apply(null, keys.map(function(k){ return ls[k]; }));
+  return '<div class="glass pad-lg"><h2>Языки</h2><div class="fun" style="margin-top:14px">' +
+    keys.map(function(k){
+      var part = Math.round(ls[k] / Math.max(D.count.all, 1) * 100);
+      return '<div><div class="nm"><span>' + esc(langName(k)) + ' <span class="muted">' + esc(k) +
+        '</span></span><b>' + ls[k] + ' · ' + part + '%</b></div>' +
+        '<div class="track"><div class="fill" style="width:' +
+        Math.max(1, Math.round(ls[k] / max * 100)) + '%"></div></div></div>';
+    }).join('') + '</div></div>';
+}
+
+function funnelCard(){
+  var f = D.funnel, max = Math.max(f.joined, 1);
   var rows = [
-    ['Завели кабинет', f.joined],
+    ['Зарегистрировались', f.joined],
     ['Начали работать', f.works],
     ['Пробный закончился', f.finished],
     ['Оплатили', f.bought],
   ];
-  var max = Math.max(f.joined, 1);
-  return '<div class="funnel">' + rows.map(function(r){
-    var part = max ? Math.round(r[1] / max * 100) : 0;
-    return '<div><span class="nm">' + r[0] + '</span>' +
-           '<span class="bar" style="width:' + Math.max(3, part * 2.4) + 'px"></span>' +
-           '<span class="n">' + r[1] + (r[1] && max ? ' · ' + part + '%' : '') + '</span></div>';
-  }).join('') + '</div>';
-}
-
-function who(p){
-  if (p.paid) return '<span class="tag pay">платит</span>';
-  if (p.granted) return '<span class="tag gift">выдана</span>';
-  if (p.trial) return '<span class="tag try">пробный</span>';
-  return '<span class="tag off">ушёл</span>';
-}
-
-function when(ts, now){
-  if (!ts) return '';
-  var min = Math.floor((now - ts) / 60000);
-  if (min < 1) return 'только что';
-  if (min < 60) return min + ' мин.';
-  if (min < 24 * 60) return Math.floor(min / 60) + ' ч.';
-  return new Date(ts).toISOString().slice(5, 10).split('-').reverse().join('.');
-}
-
-function threads(list, now){
-  var wait = list.filter(function(t){ return t.unread; }).length;
-  var html = '<h2>Переписка' + (wait ? ' · ждут ответа: ' + wait : '') + '</h2>';
-  if (!list.length)
-    return html + '<div class="card"><div class="muted">Пока никто не писал. ' +
-      'Экран «Поддержка» есть у каждого тренера в настройках, и его сообщение ' +
-      'придёт сюда и в Telegram.</div></div>';
-  return html + list.map(function(t){
-    return '<button class="thr' + (t.unread ? ' new' : '') + '" onclick="openChat(\'' +
-      esc(t.login).replace(/'/g, "\\'") + '\')">' +
-      '<div class="who"><b>' + esc(t.login) + '</b>' +
-        '<span>' + (t.who === 's' ? 'вы: ' : '') + esc(t.text) + '</span></div>' +
-      '<div class="when">' + when(t.at, now) +
-        (t.unread ? '<div style="margin-top:5px"><span class="dot">' + t.unread + '</span></div>' : '') +
-      '</div></button>';
+  var body = rows.map(function(r, i){
+    var part = Math.round(r[1] / max * 100);
+    var prev = i ? rows[i - 1][1] : r[1];
+    var lost = prev - r[1];
+    return '<div><div class="nm"><span>' + r[0] + '</span><b>' + r[1] + ' · ' + part + '%</b></div>' +
+      '<div class="track"><div class="fill" style="width:' + Math.max(1, part) + '%"></div></div>' +
+      (i && lost > 0 ? '<div class="drop">отвалилось ' + lost + '</div>' : '') + '</div>';
   }).join('');
+  return '<div class="glass pad-lg"><div class="spread"><h2>Воронка</h2></div>' +
+    '<div class="fun">' + body + '</div>' +
+    '<p class="muted" style="margin-top:14px">«Оплатили» считается только среди тех, у кого пробный ' +
+    'уже закончился — иначе цифра занижалась бы каждым новым тренером.</p></div>';
+}
+
+function registrationsCard(){
+  var days = TAB.reg || 30;
+  var opts = [[7, '7 дней'], [30, '30 дней'], [90, '90 дней'], [0, 'Всё время']];
+  var depth = days || Math.max(30, Math.ceil((D.now - Math.min.apply(null,
+    D.people.map(function(p){ return p.startedAt || D.now; }).concat([D.now]))) / DAY) + 1);
+  return '<div class="glass pad-lg"><div class="spread" style="flex-wrap:wrap">' +
+    '<h2>Регистрации по дням</h2><div class="tabs">' + opts.map(function(o){
+      return '<button class="' + (days === o[0] ? 'on' : '') + '" onclick="tab(\'reg\',' + o[0] + ')">' +
+        o[1] + '</button>';
+    }).join('') + '</div></div>' + bars(joinedSeries(Math.min(depth, 400))) + '</div>';
+}
+function tab(k, v){ TAB[k] = v; draw(); }
+
+function activityCard(){
+  var now = D.now;
+  var today = D.people.filter(function(p){ return p.seenAt && now - p.seenAt < DAY; }).length;
+  var week = D.people.filter(function(p){ return p.seenAt && now - p.seenAt >= DAY && now - p.seenAt < 7 * DAY; }).length;
+  var old = D.people.filter(silent).length;
+  var never = D.people.filter(idle).length;
+  return '<div class="glass pad-lg"><h2>Активность за 7 дней</h2><div class="dots">' +
+    '<div><i class="dt ok"></i>Заходили сегодня<b>' + today + '</b></div>' +
+    '<div><i class="dt ok" style="opacity:.6"></i>Заходили 1–7 дней<b>' + week + '</b></div>' +
+    '<div><i class="dt warn"></i>Не заходили &gt;7 дней<b>' + old + '</b></div>' +
+    '<div><i class="dt off"></i>Не начали работу<b>' + never + '</b></div>' +
+    '</div><p class="muted" style="margin-top:14px">«Заходил» — это когда кабинет последний раз ' +
+    'сохранял копию на сервер. Ничего другого о работе внутри мы не знаем.</p></div>';
+}
+
+/* Список поводов вмешаться. Каждый пункт ведёт в отфильтрованный
+   список — иначе число само по себе ничего не меняет. */
+function careList(){
+  var out = [];
+  var a = D.people.filter(idle).length;
+  var b = D.people.filter(silent).length;
+  var c = D.people.filter(endingSoon).length;
+  var unread = TH.reduce(function(s, t){ return s + (t.unread || 0); }, 0);
+  out.push(['idle', a, 'не сохранили кабинет',
+            'Завели кабинет и ни разу ничего не сохранили — скорее всего, не разобрались.', a ? 'bad' : 'ok']);
+  out.push(['silent', b, 'не заходили больше недели',
+            'Кабинет работал, но копия не обновлялась больше семи дней.', b ? 'warn' : 'ok']);
+  out.push(['ending', c, 'пробный заканчивается',
+            'Пробный период истекает в ближайшие трое суток.', c ? 'warn' : 'ok']);
+  out.push(['unread', unread, 'ждут ответа',
+            'Сообщения тренеров, на которые ещё не ответили.', unread ? 'bad' : 'ok']);
+  out.push(['nopay', D.money.uah30 ? 0 : 1, 'нет оплат за 30 дней',
+            D.pay === false
+              ? 'Оплата вообще не подключена: боевые ключи LiqPay не заданы.'
+              : 'Оплата подключена, но за месяц не прошло ни одного платежа.',
+            D.money.uah30 ? 'ok' : 'warn']);
+  return out;
+}
+function careCard(short){
+  var list = careList();
+  var body = list.slice(0, short ? 4 : list.length).map(function(x){
+    return '<button onclick="go(\'care\',\'' + x[0] + '\')">' +
+      '<span class="n ' + x[4] + '">' + x[1] + '</span>' +
+      '<span class="tx">' + x[2] + '</span>' +
+      '<span class="go">' + svg(IC.right, 15) + '</span></button>';
+  }).join('');
+  return '<div class="glass pad-lg"><div class="spread"><h2>Требует внимания</h2>' +
+    (short ? '<button class="btn sm" onclick="go(\'care\')">Все</button>' : '') + '</div>' +
+    '<div class="care">' + body + '</div></div>';
+}
+
+/* Полного журнала событий сервер не ведёт. Но даты регистраций, оплат и
+   писем у нас есть — из них и складываем ленту. Это восстановленная
+   картина, а не отдельный лог, и так она и подписана. */
+function feed(limit){
+  var out = [];
+  D.people.forEach(function(p){
+    if (p.startedAt) out.push({at: p.startedAt, kind: 'reg', who: p.login, what: 'завёл кабинет'});
+  });
+  (D.money.last || []).forEach(function(p){
+    out.push({at: p.ts, kind: 'pay', who: p.login,
+              what: (p.kind === 'back' ? 'возврат' : 'оплата') + ' · ' + planName(p.plan) + ' · ' + money(p.uah)});
+  });
+  TH.forEach(function(t){
+    out.push({at: t.at, kind: 'msg', who: t.login,
+              what: (t.who === 's' ? 'вы ответили' : 'написал в поддержку') + ': ' + t.text});
+  });
+  out.sort(function(a, b){ return b.at - a.at; });
+  return limit ? out.slice(0, limit) : out;
+}
+function eventsCard(short){
+  var list = feed(short ? 6 : 0);
+  var body = list.length ? '<div class="feed">' + list.map(function(e){
+    return '<div class="ev"><div class="ic ' + e.kind + '">' +
+      svg(e.kind === 'pay' ? IC.card : e.kind === 'msg' ? IC.msg : IC.users, 13) + '</div>' +
+      '<div class="tx">' + esc(e.who) + '<span>' + esc(e.what) + '</span></div>' +
+      '<div class="at">' + when(e.at, D.now) + '</div></div>';
+  }).join('') + '</div>'
+  : empty(IC.bell, 'Пока ничего не происходило', 'Здесь появятся регистрации, оплаты и письма тренеров.');
+  return '<div class="glass pad-lg"><div class="spread"><h2>Последние события</h2>' +
+    (short ? '<button class="btn sm" onclick="go(\'events\')">Все</button>' : '') + '</div>' +
+    body + '</div>';
+}
+
+/* ═════════════ ТРЕНЕРЫ ═════════════ */
+function pickPeople(){
+  var t = TAB.people || 'all';
+  var list = D.people.filter(function(p){
+    if (t === 'trial') return p.trial && !p.paid && !p.granted;
+    if (t === 'paid') return p.paid || p.granted;
+    if (t === 'dead') return !p.trial && !p.paid && !p.granted;
+    return true;
+  });
+  if (QUERY){
+    var q = QUERY.toLowerCase();
+    list = list.filter(function(p){ return p.login.toLowerCase().indexOf(q) >= 0; });
+  }
+  return list;
+}
+function pagePeople(){
+  var all = D.people;
+  var counts = {
+    all: all.length,
+    trial: all.filter(function(p){ return p.trial && !p.paid && !p.granted; }).length,
+    paid: all.filter(function(p){ return p.paid || p.granted; }).length,
+    dead: all.filter(function(p){ return !p.trial && !p.paid && !p.granted; }).length,
+  };
+  var t = TAB.people || 'all';
+  var list = pickPeople();
+  var tabs = [['all', 'Все'], ['trial', 'Пробный'], ['paid', 'Оплатили'], ['dead', 'Неактивные']];
+
+  var h = '<div class="glass pad-lg">' +
+    '<div class="spread" style="flex-wrap:wrap;gap:12px">' +
+      '<div class="tabs">' + tabs.map(function(x){
+        return '<button class="' + (t === x[0] ? 'on' : '') + '" onclick="tab(\'people\',\'' + x[0] + '\')">' +
+          x[1] + '<b>' + counts[x[0]] + '</b></button>';
+      }).join('') + '</div>' +
+      '<input class="inp" id="q" style="max-width:260px" placeholder="Поиск по почте" value="' + esc(QUERY) + '">' +
+    '</div>';
+
+  if (!list.length){
+    h += QUERY
+      ? empty(IC.search, 'Никого не нашлось', 'По запросу «' + esc(QUERY) + '» тренеров нет.')
+      : empty(IC.users, 'Пока пусто', 'Тренеры появятся здесь, как только заведут кабинет.');
+    return h + '</div>';
+  }
+
+  h += '<div class="scroll" style="margin-top:16px"><table>' +
+    '<thead><tr><th>Тренер</th><th>Статус</th><th>Зарегистрирован</th><th>Действует до</th>' +
+    '<th>Последняя активность</th><th>Язык</th></tr></thead><tbody>' +
+    list.map(function(p){
+      return '<tr onclick="go(\'one\',\'' + esc(p.login).replace(/'/g, "\\'") + '\')">' +
+        '<td class="mail">' + esc(p.login) + '</td>' +
+        '<td>' + tag(p) + '</td>' +
+        '<td>' + dmy(p.since) + '</td>' +
+        '<td>' + dmy(p.until || p.trialEnds) + '</td>' +
+        '<td>' + ago(p.seenAt, D.now) + '</td>' +
+        '<td>' + esc(p.lang || '—') + '</td></tr>';
+    }).join('') + '</tbody></table></div>' +
+    '<p class="muted" style="margin-top:12px">Строка открывает карточку тренера. ' +
+    '«Последняя активность» — когда кабинет в последний раз сохранял копию на сервер.</p></div>';
+  return h;
+}
+
+/* ═════════════ КАРТОЧКА ТРЕНЕРА ═════════════ */
+function pageOne(){
+  var p = D.people.filter(function(x){ return x.login === ARG; })[0];
+  if (!p) return empty(IC.users, 'Тренер не найден', 'Возможно, данные обновились. Вернитесь к списку.');
+  var s = status(p);
+  var thread = TH.filter(function(t){ return t.login === p.login; })[0];
+  var kb = p.size ? (p.size / 1024).toFixed(0) + ' КБ' : '—';
+
+  var h = '<div class="row" style="margin-bottom:4px">' +
+    '<button class="btn sm" onclick="go(\'people\')">' + svg(IC.left, 15) + 'Назад</button></div>';
+
+  h += '<div class="grid g2">' +
+    '<div class="glass pad-lg">' +
+      '<div class="spread"><div style="min-width:0">' +
+        '<div style="font-size:17px;font-weight:650;word-break:break-all">' + esc(p.login) + '</div>' +
+        '<div class="muted" style="margin-top:4px">' + (p.works ? 'кабинет работает' : 'кабинет ни разу не сохранялся') + '</div>' +
+      '</div>' + tag(p) + '</div>' +
+      '<div class="facts">' +
+        '<div><span>Зарегистрирован</span><b>' + dmy(p.since) + '</b></div>' +
+        '<div><span>Последняя активность</span><b>' + ago(p.seenAt, D.now) + '</b></div>' +
+        '<div><span>' + (p.paid || p.granted ? 'Подписка до' : 'Пробный до') + '</span><b>' +
+          dmy(p.until || p.trialEnds) + '</b></div>' +
+        '<div><span>Тариф</span><b>' + (p.plan ? planName(p.plan) : '—') + '</b></div>' +
+        '<div><span>Автопродление</span><b>' + (p.paid ? (p.renews ? 'включено' : 'выключено') : '—') + '</b></div>' +
+        '<div><span>Язык</span><b>' + esc(p.lang || '—') + '</b></div>' +
+        '<div><span>Устройств в подписке</span><b>' + (p.devices || '—') + '</b></div>' +
+        '<div><span>Размер копии</span><b>' + kb + '</b></div>' +
+      '</div></div>' +
+
+    '<div class="glass pad-lg">' +
+      '<h2>Что мы знаем</h2>' +
+      '<p class="muted" style="margin-top:10px">Копия базы зашифрована ключом, которого у нас нет. ' +
+      'Поэтому здесь не будет ни числа клиентов, ни тренировок, ни модели телефона — сервер ' +
+      'этого не видит и не хранит. Всё, что известно про кабинет: когда завели, когда последний ' +
+      'раз сохраняли, сколько весит копия и какая подписка.</p>' +
+      '<h2 style="margin-top:20px">Что можно сделать</h2>' +
+      '<div class="care">' +
+        (thread
+          ? '<button onclick="openChat(\'' + esc(p.login).replace(/'/g, "\\'") + '\')">' +
+            '<span class="n">' + (thread.unread || '·') + '</span>' +
+            '<span class="tx">Открыть переписку</span>' +
+            '<span class="go">' + svg(IC.right, 15) + '</span></button>'
+          : '<div class="muted">Переписки с этим тренером ещё не было. Написать первым нельзя: ' +
+            'ветка заводится его сообщением из приложения.</div>') +
+      '</div>' +
+      '<p class="muted" style="margin-top:16px">Выдать или снять подписку можно только через ' +
+      'GitHub → Actions → «Выдать подписку». Оттуда это делается по отдельному ключу, и класть ' +
+      'такую кнопку на страницу с паролем в интернете не стоит.</p>' +
+    '</div></div>';
+  return h;
+}
+
+/* ═════════════ ПЕРЕПИСКА ═════════════ */
+function pageChat(){
+  var wait = TH.filter(function(t){ return t.unread; }).length;
+  if (!TH.length)
+    return '<div class="glass">' + empty(IC.msg, 'Пока никто не писал',
+      'Экран «Поддержка» есть у каждого тренера в профиле. Его сообщение придёт сюда и в Telegram.') + '</div>';
+  return '<div class="glass pad-lg">' +
+    '<div class="spread"><h2>Ветки' + (wait ? ' · ждут ответа: ' + wait : '') + '</h2></div>' +
+    '<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">' +
+    TH.map(function(t){
+      return '<button class="thr' + (t.unread ? ' new' : '') + '" onclick="openChat(\'' +
+        esc(t.login).replace(/'/g, "\\'") + '\')">' +
+        '<div class="who"><b>' + esc(t.login) + '</b>' +
+          '<span>' + (t.who === 's' ? 'вы: ' : '') + esc(t.text) + '</span></div>' +
+        '<div class="when">' + when(t.at, D.now) +
+          (t.unread ? '<div style="margin-top:6px"><span class="dot">' + t.unread + '</span></div>' : '') +
+        '</div></button>';
+    }).join('') + '</div></div>';
 }
 
 /* Ветка целиком. Открыли — значит прочитали: сервер гасит счётчик сам,
    иначе «новое» висело бы после того, как ответ уже отправлен. */
 async function openChat(login){
-  root.innerHTML = '<div class="gate"><div class="muted">Открываю…</div></div>';
+  loading();
   var r = await api('?chat=' + encodeURIComponent(login));
   var d = await r.json().catch(function(){ return null; });
   if (!d || !d.ok) return load();
+  PAGE = 'chat';
   var now = Date.now();
-  root.innerHTML =
-    '<div class="top"><div class="brand"><div class="mark">🏋️</div>' +
-      '<div><b>' + esc(d.login) + '</b><span>переписка</span></div></div>' +
-      '<div><button class="btn" onclick="openChat(\'' + esc(d.login).replace(/'/g, "\\'") +
-      '\')">Обновить</button> <button class="btn" onclick="load()">Назад</button></div></div>' +
-    '<div class="talk">' + d.msgs.map(function(m){
-      return '<div class="bub ' + (m.who === 's' ? 's' : 't') + '">' + esc(m.text) +
-        '<span class="at">' + when(m.at, now) + '</span></div>';
-    }).join('') + '</div>' +
-    '<div class="say"><textarea id="say" rows="2" placeholder="Ответ тренеру"></textarea>' +
-    '<button class="btn pri" id="send">Отправить</button></div>' +
-    '<p class="muted" style="margin-top:12px">Отвечать можно и из Telegram — ' +
-    'просто ответьте на сообщение бота.</p>';
+  root.innerHTML = shell(
+    '<div class="row"><button class="btn sm" onclick="load(true)">' + svg(IC.left, 15) + 'Все ветки</button>' +
+      '<button class="btn sm" onclick="openChat(\'' + esc(d.login).replace(/'/g, "\\'") + '\')">' +
+      svg(IC.refresh, 15) + 'Обновить</button></div>' +
+    '<div class="glass pad-lg">' +
+      '<div class="spread"><div style="font-size:15px;font-weight:600;word-break:break-all">' +
+        esc(d.login) + '</div><span class="tag try">' + esc(d.lang || '') + '</span></div>' +
+      '<div class="talk">' + d.msgs.map(function(m){
+        return '<div class="bub ' + (m.who === 's' ? 's' : 't') + '">' + esc(m.text) +
+          '<span class="at">' + when(m.at, now) + '</span></div>';
+      }).join('') + '</div>' +
+      '<div class="say"><textarea id="say" rows="2" placeholder="Ответ тренеру"></textarea>' +
+      '<button class="btn pri" id="send">Отправить</button></div>' +
+      '<p class="muted" style="margin-top:12px">Отвечать можно и из Telegram — просто ответьте ' +
+      'на сообщение бота.</p>' +
+    '</div>');
 
   var box = document.getElementById('say');
   var send = async function(){
     var text = box.value.trim();
     if (!text) return;
     document.getElementById('send').disabled = true;
-    var r = await api('', {method: 'POST', body: {reply: d.login, text: text}});
-    if (r.ok) openChat(d.login);
+    var rr = await api('', {method: 'POST', body: {reply: d.login, text: text}});
+    if (rr.ok) openChat(d.login);
     else { document.getElementById('send').disabled = false; alert('Не отправилось'); }
   };
   document.getElementById('send').onclick = send;
@@ -279,121 +925,302 @@ async function openChat(login){
   box.focus();
 }
 
-function draw(d, chats){
-  var kb = function(n){ return n ? (n / 1024).toFixed(0) + ' КБ' : '—'; };
-  var html = '';
+/* ═════════════ ПЛАТЕЖИ ═════════════ */
+function pagePays(){
+  var m = D.money;
+  var span = TAB.pays || 30;
+  var from = span ? D.now - span * DAY : 0;
+  var rows = (m.last || []).filter(function(p){ return p.ts >= from; });
+  var pays = rows.filter(function(p){ return p.kind !== 'back'; });
+  var backs = rows.filter(function(p){ return p.kind === 'back'; });
+  var sum = rows.reduce(function(s, p){ return s + p.uah; }, 0);
+  var opts = [[7, 'Сегодня и неделя'], [30, '30 дней'], [0, 'Всё время']];
 
-  html += '<div class="top"><div class="brand"><div class="mark">🏋️</div>' +
-    '<div><b>PRO Trainer</b><span>админка</span></div></div>' +
-    '<div><button class="btn" onclick="load()">Обновить</button> ' +
-    '<button class="btn" onclick="sessionStorage.removeItem(\'' + KEY + '\');location.reload()">Выйти</button></div></div>';
+  var h = '<div class="tabs">' + opts.map(function(o){
+    return '<button class="' + (span === o[0] ? 'on' : '') + '" onclick="tab(\'pays\',' + o[0] + ')">' +
+      o[1] + '</button>';
+  }).join('') + '</div>';
 
-  if (d.storage !== 'kv')
-    html += '<div class="note">Хранилище — память процесса, а не KV. Числа ничего не значат: ' +
-            'записи не переживают перезапуск функции. Проверьте /api/health.</div>';
-
-  html += '<div class="kpis">' +
-    '<div class="card kpi"><div class="lbl">Кабинетов</div><div class="val">' + d.count.all + '</div>' +
-      '<div class="sub">' + d.count.idle + ' ни разу не сохранили</div></div>' +
-    '<div class="card kpi"><div class="lbl">Работают</div><div class="val acc">' + d.count.works + '</div>' +
-      '<div class="sub">за неделю — ' + d.count.week + '</div></div>' +
-    '<div class="card kpi"><div class="lbl">Платят</div><div class="val pos">' + d.count.paid + '</div>' +
-      '<div class="sub">выдано вручную — ' + d.count.granted + '</div></div>' +
-    '<div class="card kpi"><div class="lbl">За 30 дней</div><div class="val">' + money(d.money.uah30) + '</div>' +
-      '<div class="sub">в месяц ожидается ' + money(d.money.mrr) + '</div></div>' +
+  h += '<div class="grid g4">' +
+    kpi('Платежей', num(pays.length), '', backs.length ? backs.length + ' возвратов' : 'возвратов нет') +
+    kpi('Средний чек', money(pays.length ? sum / pays.length : 0)) +
+    kpi('MRR', money(m.mrr), m.mrr ? 'pos' : '', 'если никто не отпишется') +
+    kpi('Плательщиков', num(m.payers), '', 'всего за историю') +
   '</div>';
 
-  /* Переписка стоит выше цифр намеренно: цифры подождут, человек с
-     вопросом — нет. */
-  html += threads(chats || [], d.now);
-
-  html += '<h2>Регистрации по дням</h2><div class="card">' + bars(d.series) + '</div>';
-  html += '<h2>Путь тренера</h2><div class="card">' + funnel(d.funnel) +
-    '<div class="muted" style="margin-top:10px">«Оплатили» считается только среди тех, у кого пробный уже ' +
-    'закончился — иначе цифра занижалась бы каждым новым тренером.</div></div>';
-
-  var langs = Object.keys(d.langs).sort(function(a, b){ return d.langs[b] - d.langs[a]; });
-  if (langs.length)
-    html += '<h2>Языки</h2><div class="card"><div class="funnel">' + langs.map(function(k){
-      return '<div><span class="nm">' + k + '</span><span class="bar" style="width:' +
-             Math.max(3, Math.round(d.langs[k] / d.count.all * 240)) + 'px"></span>' +
-             '<span class="n">' + d.langs[k] + '</span></div>';
-    }).join('') + '</div></div>';
-
-  /* На телефоне широкая таблица прячет самое интересное за правым краем:
-     видно почту и дату, а «база», «статус» и «до» уже нет. Поэтому там —
-     карточки, и всё про тренера читается сразу. */
-  html += '<h2>Тренеры (' + d.people.length + ')</h2><div class="people">' +
-    d.people.map(function(p){
-      return '<div class="prow">' +
-        '<div class="pmain"><b>' + esc(p.login) + '</b>' + who(p) + '</div>' +
-        '<div class="pfacts">' +
-          fact('завёл', esc(p.since)) +
-          fact('был', ago(p.seenAt, d.now)) +
-          fact('база', kb(p.size)) +
-          fact(p.paid || p.granted ? 'до' : 'пробный до', esc(p.until || p.trialEnds || '—')) +
-          fact('устройств', p.devices || '—') +
-          fact('язык', esc(p.lang || '—')) +
-        '</div></div>';
-    }).join('') + '</div>';
-
-  var m = d.money;
-  html += '<h2>Продажи</h2>';
-  if (!m.pays && !m.backs){
-    html += '<div class="card"><div class="muted">Ни одной оплаты.' +
-      (d.pay === false
-        ? ' И пока не может быть: боевые ключи LiqPay не подключены, кнопка оплаты не работает.'
-        : ' Оплата подключена и работает — значит, просто ещё никто не платил.') +
-      ' Журнал ведётся с того дня, как появился, — прежние оплаты в него не попадут.</div></div>';
+  h += '<div class="glass pad-lg"><h2>История платежей</h2>';
+  if (!rows.length){
+    h += empty(IC.card, 'Платежей пока нет',
+      'Когда появятся оплаты, они автоматически отобразятся здесь.');
+    if (D.pay === false)
+      h += '<p class="muted" style="text-align:center;margin-top:-14px">Приём платежей ещё не включён — ' +
+           'об этом сказано в «Настройках».</p>';
   } else {
-    html += '<div class="kpis">' +
-      '<div class="card kpi"><div class="lbl">Оплат</div><div class="val">' + m.pays + '</div>' +
-        '<div class="sub">плательщиков — ' + m.payers + '</div></div>' +
-      '<div class="card kpi"><div class="lbl">Выручка</div><div class="val pos">' + money(m.uahAll) + '</div>' +
-        '<div class="sub">средний чек ' + money(m.avg) + '</div></div>' +
-      '<div class="card kpi"><div class="lbl">Возвраты</div><div class="val' + (m.backs ? ' warn' : '') + '">' +
-        m.backs + '</div><div class="sub">' + money(m.backUah) + '</div></div>' +
-      '<div class="card kpi"><div class="lbl">Считаем с</div><div class="val" style="font-size:20px">' +
-        esc(m.since || '—') + '</div><div class="sub">раньше не записывалось</div></div>' +
-    '</div>';
-
-    html += '<h2>По месяцам</h2><div class="card scroll"><table>' +
-      '<tr><th>Месяц</th><th>Оплат</th><th>Плательщиков</th><th>Возвратов</th><th>Выручка</th></tr>' +
-      m.byMonth.map(function(x){
-        return '<tr><td>' + esc(monthName(x.month)) + '</td>' +
-          '<td class="num">' + x.pays + '</td><td class="num">' + x.payers + '</td>' +
-          '<td class="num">' + (x.backs || '') + '</td>' +
-          '<td class="num">' + money(x.uah) + '</td></tr>';
-      }).join('') + '</table></div>';
-
-    if (m.byPlan.length)
-      html += '<h2>По тарифам</h2><div class="card scroll"><table>' +
-        '<tr><th>Тариф</th><th>Цена</th><th>Оплат</th><th>Выручка</th></tr>' +
-        m.byPlan.map(function(x){
-          return '<tr><td>' + planName(x) + '</td><td class="num">' + money(x.price) + '</td>' +
-            '<td class="num">' + x.pays + '</td><td class="num">' + money(x.uah) + '</td></tr>';
-        }).join('') + '</table></div>';
-
-    html += '<h2>По дням</h2><div class="card scroll"><table>' +
-      '<tr><th>День</th><th>Оплат</th><th>Возвратов</th><th>Выручка</th></tr>' +
-      m.byDay.map(function(x){
-        return '<tr><td>' + esc(x.day) + '</td><td class="num">' + x.pays + '</td>' +
-          '<td class="num">' + (x.backs || '') + '</td>' +
-          '<td class="num">' + money(x.uah) + '</td></tr>';
-      }).join('') + '</table>' +
-      '<div class="muted" style="margin-top:10px">Дни без движения не показываем — пустая строка ' +
-      'ничего не говорит. Возвраты идут со знаком минус в той же выручке.</div></div>';
-
-    html += '<h2>Каждый платёж</h2><div class="card scroll"><table>' +
-      '<tr><th>Когда</th><th>Почта</th><th>Тариф</th><th>Сумма</th></tr>' +
-      m.last.map(function(p){
-        return '<tr><td>' + new Date(p.ts).toISOString().slice(0, 16).replace('T', ' ') + '</td>' +
-          '<td>' + esc(p.login) + '</td><td>' + planName({plan: p.plan}) + '</td>' +
-          '<td class="num">' + money(p.uah) + '</td></tr>';
-      }).join('') + '</table></div>';
+    h += '<div class="scroll" style="margin-top:14px"><table>' +
+      '<thead><tr><th>Когда</th><th>Тренер</th><th>Тариф</th><th>Сумма</th><th>Статус</th></tr></thead><tbody>' +
+      rows.map(function(p){
+        return '<tr onclick="go(\'one\',\'' + esc(p.login).replace(/'/g, "\\'") + '\')">' +
+          '<td>' + new Date(p.ts).toISOString().slice(0, 16).replace('T', ' ') + '</td>' +
+          '<td class="mail">' + esc(p.login) + '</td>' +
+          '<td>' + planName(p.plan) + '</td>' +
+          '<td class="num">' + money(p.uah) + '</td>' +
+          '<td>' + (p.kind === 'back' ? '<span class="tag gift">возврат</span>'
+                                      : '<span class="tag pay">оплата</span>') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
   }
+  h += '</div>';
 
-  root.innerHTML = html;
+  if (m.byMonth && m.byMonth.length)
+    h += '<div class="glass pad-lg"><h2>По месяцам</h2><div class="scroll" style="margin-top:14px"><table class="flat">' +
+      '<thead><tr><th>Месяц</th><th>Оплат</th><th>Плательщиков</th><th>Возвратов</th><th>Выручка</th></tr></thead><tbody>' +
+      m.byMonth.map(function(x){
+        return '<tr><td>' + esc(monthName(x.month)) + '</td><td class="num">' + x.pays + '</td>' +
+          '<td class="num">' + x.payers + '</td><td class="num">' + (x.backs || '') + '</td>' +
+          '<td class="num">' + money(x.uah) + '</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<p class="muted" style="margin-top:12px">Журнал ведётся с ' + (m.since ? dmy(m.since) : 'первой оплаты') +
+      ' — то, что было раньше, в него не попадёт. Возвраты идут со знаком минус в той же выручке.</p></div>';
+  return h;
+}
+
+/* ═════════════ ПОДПИСКИ ═════════════ */
+function pageSubs(){
+  var plans = D.plans || [];
+  var byPlan = {};
+  (D.money.byPlan || []).forEach(function(x){ byPlan[x.plan] = x; });
+  var live = {};
+  D.people.forEach(function(p){ if (p.paid && p.plan) live[p.plan] = (live[p.plan] || 0) + 1; });
+  var done = D.people.filter(function(p){ return !p.trial; }).length;
+
+  var h = '<div class="grid g3">' + plans.map(function(pl){
+    var s = byPlan[pl.id] || {pays: 0, uah: 0};
+    var act = live[pl.id] || 0;
+    var conv = done ? Math.round(s.pays / done * 100) : 0;
+    return '<div class="glass pad-lg">' +
+      '<div class="row"><div style="width:40px;height:40px;border-radius:13px;display:grid;place-items:center;' +
+        'background:var(--accent-soft);border:1px solid rgba(115,82,255,.24);color:var(--accent-2)">' +
+        svg(IC.star, 18) + '</div>' +
+        '<div><div style="font-size:15px;font-weight:650">' + planName(pl.id) + '</div>' +
+        '<div class="muted">' + money(pl.uah) + ' / ' + (pl.months === 1 ? 'месяц' :
+          pl.months === 12 ? 'год' : pl.months + ' месяца') + '</div></div></div>' +
+      '<div class="dots" style="margin-top:16px">' +
+        '<div><i class="dt ' + (act ? 'ok' : 'off') + '"></i>Активных<b>' + act + '</b></div>' +
+        '<div><i class="dt off"></i>Продаж<b>' + (s.pays || 0) + '</b></div>' +
+        '<div><i class="dt off"></i>Выручка<b>' + money(s.uah || 0) + '</b></div>' +
+        '<div><i class="dt off"></i>Конверсия<b>' + conv + '%</b></div>' +
+      '</div></div>';
+  }).join('') + '</div>';
+
+  h += '<div class="glass pad-lg"><p class="muted">Все суммы — в гривнах: счёт выставляет украинский ФОП. ' +
+    'Конверсия считается от тех, у кого пробный период уже закончился (' + done + ') — ' +
+    'иначе она падала бы с каждым новым тренером. Цены задаются в коде, в таблице тарифов, ' +
+    'и одинаковы в приложении, на сайте и в счёте.</p></div>';
+  return h;
+}
+
+/* ═════════════ АНАЛИТИКА ═════════════ */
+function pageStats(){
+  var t = TAB.stats || 'reg';
+  var c = D.count, m = D.money, f = D.funnel;
+  var tabs = [['reg', 'Регистрации'], ['act', 'Активность'], ['subs', 'Подписки'], ['money', 'Выручка']];
+  var h = '<div class="tabs">' + tabs.map(function(x){
+    return '<button class="' + (t === x[0] ? 'on' : '') + '" onclick="tab(\'stats\',\'' + x[0] + '\')">' +
+      x[1] + '</button>';
+  }).join('') + '</div>';
+
+  if (t === 'reg'){
+    h += '<div class="grid g4">' +
+      kpi('Всего', num(c.all), '', 'кабинетов заведено') +
+      kpi('За 7 дней', num(joinedSince(7 * DAY)), 'acc') +
+      kpi('За 30 дней', num(joinedSince(30 * DAY)), 'acc') +
+      kpi('Начали работать', num(c.works), '', Math.round(c.works / Math.max(c.all, 1) * 100) + '% от всех') +
+    '</div>' + '<div class="glass pad-lg">' + bars(joinedSeries(30)) + '</div>' +
+    langsCard();
+  }
+  if (t === 'act'){
+    h += '<div class="grid g4">' +
+      kpi('DAU', num(c.today), '', 'сохраняли копию сегодня') +
+      kpi('WAU', num(c.week), 'acc', 'за 7 дней') +
+      kpi('MAU', num(c.month), 'acc', 'за 30 дней') +
+      kpi('Молчат', num(D.people.filter(silent).length), 'warn', 'больше недели') +
+    '</div>' + '<div class="grid g2">' + activityCard() +
+      '<div class="glass pad-lg"><h2>Как это считается</h2>' +
+      '<p class="muted" style="margin-top:10px">DAU, WAU и MAU здесь — это кабинеты, которые за ' +
+      'сутки, неделю и месяц сохраняли копию базы на сервер. Настоящих открытий приложения мы не ' +
+      'считаем: приложение работает офлайн и о запусках серверу не сообщает. Копия сохраняется при ' +
+      'изменениях, поэтому цифра ближе к «работал», чем к «заходил».</p></div></div>';
+  }
+  if (t === 'subs'){
+    var conv = f.finished ? Math.round(f.bought / f.finished * 100) : 0;
+    h += '<div class="grid g4">' +
+      kpi('Платят', num(c.paid), c.paid ? 'pos' : '') +
+      kpi('Выдано вручную', num(c.granted), c.granted ? 'warn' : '') +
+      kpi('Конверсия', conv + '%', '', 'из закончивших пробный (' + f.finished + ')') +
+      kpi('Пробных сейчас', num(c.trial), 'acc') +
+    '</div>' + funnelCard();
+  }
+  if (t === 'money'){
+    var arpu = m.payers ? m.uahAll / m.payers : 0;
+    h += '<div class="grid g4">' +
+      kpi('Выручка всего', money(m.uahAll), m.uahAll ? 'pos' : '') +
+      kpi('За 30 дней', money(m.uah30), m.uah30 ? 'pos' : '') +
+      kpi('MRR', money(m.mrr), m.mrr ? 'pos' : '') +
+      kpi('ARPU', money(arpu), '', 'на плательщика за всё время') +
+    '</div>';
+    h += '<div class="glass pad-lg"><h2>Возвраты</h2><div class="dots">' +
+      '<div><i class="dt ' + (m.backs ? 'warn' : 'off') + '"></i>Штук<b>' + m.backs + '</b></div>' +
+      '<div><i class="dt off"></i>Сумма<b>' + money(m.backUah) + '</b></div>' +
+      '<div><i class="dt off"></i>Средний чек<b>' + money(m.avg) + '</b></div>' +
+      '</div></div>';
+    /* Дни без движения сервер не присылает: пустая строка ничего не
+       говорит, а в списке из шестидесяти нулей теряется единственный
+       день, когда что-то было. */
+    h += '<div class="glass pad-lg"><h2>По дням</h2>' + ((m.byDay || []).length
+      ? '<div class="scroll" style="margin-top:14px"><table class="flat">' +
+        '<thead><tr><th>День</th><th class="num">Оплат</th><th class="num">Возвратов</th>' +
+        '<th class="num">Выручка</th></tr></thead><tbody>' +
+        m.byDay.map(function(x){
+          return '<tr><td>' + dmy(x.day) + '</td><td class="num">' + x.pays + '</td>' +
+            '<td class="num">' + (x.backs || '—') + '</td>' +
+            '<td class="num">' + money(x.uah) + '</td></tr>';
+        }).join('') + '</tbody></table></div>' +
+        '<p class="muted" style="margin-top:12px">Показаны только дни, когда что-то происходило. ' +
+        'Возвраты идут со знаком минус в той же выручке.</p>'
+      : empty(IC.card, 'Движения по дням нет',
+              'Строка появится в тот день, когда пройдёт первая оплата.')) + '</div>';
+  }
+  h += '<div class="glass pad-lg"><p class="muted">Удержания (retention) здесь нет намеренно: ' +
+    'чтобы его посчитать, нужна история входов по дням, а сервер её не ведёт — он знает только ' +
+    'дату последнего сохранения. Показывать выдуманное число хуже, чем не показывать никакого.</p></div>';
+  return h;
+}
+
+/* ═════════════ СОБЫТИЯ ═════════════ */
+function pageEvents(){
+  var t = TAB.events || 'all';
+  var tabs = [['all', 'Все'], ['reg', 'Регистрации'], ['pay', 'Оплаты'], ['msg', 'Переписка']];
+  var list = feed(0).filter(function(e){ return t === 'all' || e.kind === t; });
+  var h = '<div class="tabs">' + tabs.map(function(x){
+    return '<button class="' + (t === x[0] ? 'on' : '') + '" onclick="tab(\'events\',\'' + x[0] + '\')">' +
+      x[1] + '</button>';
+  }).join('') + '</div>';
+
+  h += '<div class="glass pad-lg">';
+  h += list.length ? '<div class="feed">' + list.slice(0, 200).map(function(e){
+    return '<div class="ev" onclick="go(\'one\',\'' + esc(e.who).replace(/'/g, "\\'") + '\')" style="cursor:pointer">' +
+      '<div class="ic ' + e.kind + '">' +
+      svg(e.kind === 'pay' ? IC.card : e.kind === 'msg' ? IC.msg : IC.users, 13) + '</div>' +
+      '<div class="tx">' + esc(e.who) + '<span>' + esc(e.what) + '</span></div>' +
+      '<div class="at">' + when(e.at, D.now) + '</div></div>';
+  }).join('') + '</div>'
+  : empty(IC.bell, 'Событий нет', 'Здесь появятся регистрации, оплаты и письма тренеров.');
+  h += '</div>';
+
+  h += '<div class="glass pad-lg"><p class="muted">Отдельного журнала событий сервер не ведёт — ' +
+    'это лента, восстановленная по датам: когда завели кабинет, когда прошла оплата, когда пришло ' +
+    'письмо. Поэтому «создал тренировку» или «открыл приложение» здесь никогда не появится: ' +
+    'приложение об этом серверу не рассказывает, и это сделано намеренно.</p></div>';
+  return h;
+}
+
+/* ═════════════ ТРЕБУЕТ ВНИМАНИЯ ═════════════ */
+function pageCare(){
+  var pick = ARG || null;
+  var list = careList();
+  var h = '<div class="grid g3">' + list.map(function(x){
+    return '<div class="glass pad-lg" style="' + (pick === x[0] ? 'border-color:rgba(115,82,255,.4)' : '') + '">' +
+      '<div class="val" style="font-size:30px;font-weight:650;font-variant-numeric:tabular-nums;' +
+        'letter-spacing:-.03em;color:' + (x[4] === 'bad' ? 'var(--neg)' : x[4] === 'warn' ? 'var(--warn)' : 'var(--ink-3)') +
+        '">' + x[1] + '</div>' +
+      '<div style="font-size:13.5px;font-weight:600;margin-top:6px">' + x[2] + '</div>' +
+      '<p class="muted" style="margin-top:6px">' + x[3] + '</p>' +
+      (x[0] === 'unread'
+        ? '<button class="btn sm" style="margin-top:12px" onclick="go(\'chat\')">Открыть переписку</button>'
+        : x[0] === 'nopay'
+        ? '<button class="btn sm" style="margin-top:12px" onclick="go(\'pays\')">К платежам</button>'
+        : '<button class="btn sm" style="margin-top:12px" onclick="go(\'care\',\'' + x[0] + '\')">Посмотреть</button>') +
+      '</div>';
+  }).join('') + '</div>';
+
+  if (pick && pick !== 'unread' && pick !== 'nopay'){
+    var who = pick === 'idle' ? D.people.filter(idle)
+            : pick === 'silent' ? D.people.filter(silent)
+            : D.people.filter(endingSoon);
+    var name = pick === 'idle' ? 'Не сохранили кабинет'
+             : pick === 'silent' ? 'Не заходили больше недели' : 'Пробный заканчивается';
+    h += '<div class="glass pad-lg"><div class="spread"><h2>' + name + ' · ' + who.length + '</h2>' +
+      '<button class="btn sm" onclick="go(\'care\')">Снять фильтр</button></div>';
+    h += who.length ? '<div class="scroll" style="margin-top:14px"><table>' +
+      '<thead><tr><th>Тренер</th><th>Статус</th><th>Зарегистрирован</th><th>Пробный до</th>' +
+      '<th>Последняя активность</th></tr></thead><tbody>' + who.map(function(p){
+        return '<tr onclick="go(\'one\',\'' + esc(p.login).replace(/'/g, "\\'") + '\')">' +
+          '<td class="mail">' + esc(p.login) + '</td><td>' + tag(p) + '</td>' +
+          '<td>' + dmy(p.since) + '</td><td>' + dmy(p.trialEnds) + '</td>' +
+          '<td>' + ago(p.seenAt, D.now) + '</td></tr>';
+      }).join('') + '</tbody></table></div>'
+      : empty(IC.warn, 'Здесь чисто', 'Ни одного тренера в этом состоянии.');
+    h += '</div>';
+  }
+  return h;
+}
+
+/* ═════════════ НАСТРОЙКИ ═════════════ */
+function pageSetup(){
+  var srv = new Date(D.now).toISOString().slice(0, 16).replace('T', ' ');
+  function row(k, v, note){
+    return '<div class="ev"><div class="tx">' + k + (note ? '<span>' + note + '</span>' : '') + '</div>' +
+      '<div class="at" style="color:var(--ink)">' + v + '</div></div>';
+  }
+  var h = '<div class="grid g2">' +
+    '<div class="glass pad-lg"><h2>Система</h2><div class="feed">' +
+      row('Хранилище', D.storage === 'kv' ? 'KV' : 'память процесса',
+          D.storage === 'kv' ? 'записи переживают перезапуск' : 'записи теряются при перезапуске') +
+      row('Приём платежей', D.pay === false ? 'выключен' : 'включён',
+          D.pay === false ? 'боевые ключи LiqPay не заданы' : 'ключи LiqPay на месте') +
+      row('Валюта', '₴ UAH', 'счёт выставляет украинский ФОП') +
+      row('Пробный период', D.trialDays + ' дней', 'одинаково в приложении и на сервере') +
+      row('Время сервера', srv, 'UTC') +
+    '</div></div>' +
+    '<div class="glass pad-lg"><h2>Тарифы</h2><div class="feed">' +
+      (D.plans || []).map(function(pl){
+        return row(planName(pl.id), money(pl.uah), pl.months + ' мес.');
+      }).join('') +
+    '</div><p class="muted" style="margin-top:14px">Цены здесь только показаны. Меняются они в коде — ' +
+    'в одной таблице тарифов, из которой их берут и приложение, и страница оплаты, и счёт для банка. ' +
+    'Отдельная форма в админке означала бы второе место, где живёт цена, и рано или поздно они бы ' +
+    'разошлись.</p></div>' +
+  '</div>';
+
+  h += '<div class="glass pad-lg"><h2>Доступ</h2>' +
+    '<p class="muted" style="margin-top:10px">Вход по паролю <b>ADMIN_PASS</b> из переменных Vercel. ' +
+    'Пароль живёт только в этой вкладке: закрыли — и его нет. После десяти неверных попыток адрес ' +
+    'блокируется на четверть часа, поэтому подобрать его перебором не выйдет.</p>' +
+    '<button class="btn sm" style="margin-top:14px" onclick="quit()">' + svg(IC.out, 15) + 'Выйти</button></div>';
+  return h;
+}
+
+/* ─── сборка ─── */
+function draw(){
+  var inner =
+    PAGE === 'people' ? pagePeople() :
+    PAGE === 'one'    ? pageOne() :
+    PAGE === 'chat'   ? pageChat() :
+    PAGE === 'pays'   ? pagePays() :
+    PAGE === 'subs'   ? pageSubs() :
+    PAGE === 'stats'  ? pageStats() :
+    PAGE === 'events' ? pageEvents() :
+    PAGE === 'care'   ? pageCare() :
+    PAGE === 'setup'  ? pageSetup() : pageDash();
+  root.innerHTML = shell(inner);
+
+  /* Поиск живёт между перерисовками: иначе каждая буква сбрасывала бы
+     фокус и текст. */
+  var q = document.getElementById('q');
+  if (q){
+    q.oninput = function(){ QUERY = q.value; draw(); };
+    q.focus();
+    q.setSelectionRange(q.value.length, q.value.length);
+  }
 }
 
 if (pass) load(); else gate('');
