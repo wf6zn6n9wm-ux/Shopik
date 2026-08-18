@@ -672,6 +672,43 @@ part('поки оплата не приймається');
   if (keep === undefined) delete process.env.PAY_LIVE; else process.env.PAY_LIVE = keep;
 }
 
+/* ─── два пристрої й один пробний період ───
+   Телефон показував дванадцять днів, а сайт — десять, під тим самим
+   логіном. Правило «беремо ранішу дату» діяло лише в один бік: пристрій
+   підтягував дату з сервера, а сервер про раніший початок на іншому
+   пристрої не дізнавався ніколи — і зійтись вони не могли. */
+part('пробний період на двох пристроях');
+{
+  const T = API('trial.js');
+  const LOG = 'two@devices.test';
+  const day = 86400000;
+
+  const first = await call(T, {query: {login: LOG, device: 'phone', start: '1'}});
+  ok('пробний почався', first.json.started === true, new Date(first.json.startedAt).toISOString());
+
+  /* Другий пристрій каже, що в нього кабінет заведено на два дні раніше. */
+  const earlier = first.json.startedAt - 2 * day;
+  const second = await call(T, {query: {login: LOG, device: 'web', at: String(earlier)}});
+  ok('сервер бере ранішу дату', second.json.startedAt === earlier,
+     new Date(second.json.startedAt).toISOString());
+
+  /* Тепер перший пристрій питає ще раз — і бачить те саме число. */
+  const again = await call(T, {query: {login: LOG, device: 'phone'}});
+  ok('  і обидва пристрої показують один строк', again.json.endsAt === second.json.endsAt,
+     new Date(again.json.endsAt).toISOString() + ' / ' + new Date(second.json.endsAt).toISOString());
+
+  /* Пізнішу дату не беремо: інакше перевстановлення застосунку
+     подовжувало б пробний період скільки завгодно разів. */
+  const later = await call(T, {query: {login: LOG, device: 'phone', at: String(Date.now() + 5 * day)}});
+  ok('пізнішу дату сервер не приймає', later.json.startedAt === earlier,
+     new Date(later.json.startedAt).toISOString());
+
+  /* Зіпсований запис або збитий годинник надішле 1970 рік — і пробний
+     період згорить миттєво, без вороття. Такому не віримо. */
+  const junk = await call(T, {query: {login: LOG, device: 'phone', at: '1'}});
+  ok('  а безглузду відкидає', junk.json.startedAt === earlier, String(junk.json.startedAt));
+}
+
 console.log('\n══════ ' + (checks - fails) + ' з ' + checks + (fails ? ' · є замечання' : ' · все чисто') + ' ══════');
 process.exit(fails ? 1 : 0);
 })();
