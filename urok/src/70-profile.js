@@ -378,6 +378,24 @@ function SettingsScreen({t, s, nav}){
 function PremiumScreen({t, s, nav, params}){
   const [plan, setPlan] = React.useState('yearly');
   const [busy, setBusy] = React.useState(false);
+  const [wait, setWait] = React.useState(false);      /* чекаємо оплату на сайті */
+  const [note, setNote] = React.useState('');
+  const [ask, setAsk] = React.useState(false);        /* пошта перед оплатою */
+  const [mail, setMail] = React.useState(s.premium.login || s.profile.email || '');
+  /* Опитування сервера триває довше, ніж екран: після закриття
+     оновлювати вже нікуди. */
+  const alive = React.useRef(true);
+  React.useEffect(() => () => { alive.current = false; }, []);
+  /* Повернення з браузера — привід перевірити одразу, а не чекати
+     наступного кола опитування. */
+  React.useEffect(() => {
+    if (!wait || typeof document === 'undefined' || !document.addEventListener) return;
+    const onBack = () => { if (!document.hidden) Billing.checkWeb().then(r => {
+      if (r.ok && alive.current){ setWait(false); toast(t('sub.paid')); nav.back(); }
+    }); };
+    document.addEventListener('visibilitychange', onBack);
+    return () => document.removeEventListener('visibilitychange', onBack);
+  }, [wait]);
   const premium = sel.isPremium(s);
   const p = PRODUCTS;
 
@@ -393,13 +411,39 @@ function PremiumScreen({t, s, nav, params}){
     } catch (e){ setBusy(false); toast(t('sub.notAvailable')); }
   };
 
-  /* Сторінку оплати відкриваємо в браузері й нічого не чекаємо:
-     підписку підтягне «Відновити покупки», коли з'явиться ліцензійний
-     сервер. Карток застосунок не бачить у жодному разі. */
+  /* Карток застосунок не бачить: він відкриває сторінку оплати в
+     браузері й далі питає сервер, чи з'явилась ліцензія. Пошту треба
+     знати ДО оплати — саме вона зв'язує платіж із застосунком. */
   const payWeb = () => {
     if (!Web.enabled()) return toast(t('sub.webDemo'));
-    openLink(Web.payUrlFor(plan, s.settings.lang, s.premium.login));
-    toast(t('sub.webOpened'));
+    const who = (s.premium.login || s.profile.email || '').trim().toLowerCase();
+    if (!who) return setAsk(true);
+    startPay(who);
+  };
+
+  const startPay = who => {
+    A.setLogin(who);
+    setAsk(false);
+    openLink(Web.payUrlFor(plan, s.settings.lang, who));
+    setWait(true);
+    setNote('');
+    /* Чекаємо мовчки: жодних модалок поверх браузера, лише кнопка
+       міняє напис на «Я вже оплатив». */
+    Billing.awaitWeb(who, () => alive.current).then(res => {
+      if (!alive.current) return;
+      setWait(false);
+      if (res.ok){ toast(t('sub.paid')); nav.back(); }
+      else if (res.reason === 'timeout') setNote(t('sub.waitLong'));
+    });
+  };
+
+  /* «Я вже оплатив»: одна перевірка на вимогу, без десяти хвилин. */
+  const checkWeb = async () => {
+    setBusy(true);
+    const res = await Billing.checkWeb();
+    setBusy(false);
+    if (res.ok){ setWait(false); toast(t('sub.paid')); nav.back(); return; }
+    setNote(res.reason === 'offline' ? t('sub.offline') : t('sub.waitLong'));
   };
 
   const restore = async () => {
@@ -487,13 +531,15 @@ function PremiumScreen({t, s, nav, params}){
                   })}
                 </div>
 
-                <button className="btn line wide webpay" style={{marginTop: 14}} onClick={payWeb}>
+                <button className="btn line wide webpay" style={{marginTop: 14}}
+                        onClick={wait ? checkWeb : payWeb} disabled={busy}>
                   <Icon.globe size={18} />
                   <span>
-                    <b>{t('sub.web')}</b>
-                    <i>{t('sub.webSub')}</i>
+                    <b>{wait ? t('sub.paidAlready') : t('sub.web')}</b>
+                    <i>{wait ? t('sub.checking') : t('sub.webSub')}</i>
                   </span>
                 </button>
+                {note ? <div className="hint" style={{marginTop: 8, lineHeight: 1.5}}>{note}</div> : null}
               </>
             ) : (
               /* Нативна збірка: ані цін, ані посилань — Apple забороняє
@@ -520,8 +566,10 @@ function PremiumScreen({t, s, nav, params}){
             <div className="rows joined">
               <Row icon={<Icon.crown size={19} />} accent title={t('sub.active')}
                    sub={s.premium.until ? t('sub.activeUntil', {date: fmtShortDate(t, s.premium.until)}) : ''} />
+              {/* Магазин тут ні до чого: підписка оформлена на сайті,
+                  там нею й керують — а показує стан наш екран. */}
               <Row icon={<Icon.share size={19} />} title={t('sub.manage')}
-                   onClick={() => openLink('https://apps.apple.com/account/subscriptions')} chevron />
+                   onClick={() => nav.replace({name: 'subscription'})} chevron />
               <Row icon={<Icon.download size={19} />} title={t('sub.restore')} onClick={restore} />
             </div>
             <div style={{height: 24}} />
@@ -536,12 +584,31 @@ function PremiumScreen({t, s, nav, params}){
               {t('sub.cta')}
             </Btn>
           ) : !Web.native() ? (
-            <Btn kind="pri" size="lg" wide onClick={payWeb}>{t('sub.web')}</Btn>
+            <Btn kind="pri" size="lg" wide loading={busy} disabled={busy} onClick={wait ? checkWeb : payWeb}>
+              {wait ? t('sub.paidAlready') : t('sub.web')}
+            </Btn>
           ) : (
             <Btn kind="sec" size="lg" wide onClick={restore}>{t('sub.restore')}</Btn>
           )}
         </div>
       ) : null}
+
+      {/* Пошта — єдина ниточка між платежем на сайті й застосунком:
+          на неї прив'язується підписка, і по ній застосунок дізнається,
+          що оплата пройшла. Тому питаємо її до оплати, а не після. */}
+      <Sheet open={ask} onClose={() => setAsk(false)} title={t('sub.mailT')}>
+        <div className="muted" style={{fontSize: 13.5, lineHeight: 1.5}}>{t('sub.mailD')}</div>
+        <Field label={t('sub.restoreMail')}>
+          <Input type="email" inputMode="email" value={mail} placeholder="mail@example.com"
+                 onChange={e => setMail(e.target.value)} />
+        </Field>
+        <div style={{height: 14}} />
+        <Btn kind="pri" wide disabled={!/@/.test(mail)} onClick={() => startPay(mail.trim().toLowerCase())}>
+          {t('sub.mailGo')}
+        </Btn>
+        <div style={{height: 8}} />
+        <Btn kind="ghost" wide onClick={() => setAsk(false)}>{t('a.cancel')}</Btn>
+      </Sheet>
     </div>
   );
 }

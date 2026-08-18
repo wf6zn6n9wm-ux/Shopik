@@ -34,7 +34,7 @@
          stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.6l5 5 10-11"/></svg>
   </div>
   <h1 id="h1">Оплата пройшла</h1>
-  <p class="sub" id="sub">Поверніться в застосунок і натисніть «Відновити доступ» — підписка ввімкнеться.</p>
+  <p class="sub" id="sub">Поверніться в застосунок — підписка ввімкнеться сама.</p>
   <a class="go" id="go" href="./">Відкрити застосунок</a>
   <p class="note" id="note"></p>
 </div>
@@ -43,11 +43,11 @@ var Q = new URLSearchParams(location.search);
 var LANG = ['uk', 'ru', 'en'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'uk';
 document.documentElement.lang = LANG;
 var T = {
-  uk: {h: 'Оплата пройшла', s: 'Поверніться в застосунок і натисніть «Відновити доступ» — підписка ввімкнеться.',
+  uk: {h: 'Оплата пройшла', s: 'Поверніться в застосунок — підписка ввімкнеться сама. Якщо ні, натисніть «Я вже оплатив».',
        g: 'Відкрити застосунок', n: 'Квитанцію надішле банк на вашу пошту. Керувати підпискою можна в застосунку: Профіль → Підписка.'},
-  ru: {h: 'Оплата прошла', s: 'Вернитесь в приложение и нажмите «Восстановить доступ» — подписка включится.',
+  ru: {h: 'Оплата прошла', s: 'Вернитесь в приложение — подписка включится сама. Если нет, нажмите «Я уже оплатил».',
        g: 'Открыть приложение', n: 'Квитанцию пришлёт банк на вашу почту. Управлять подпиской можно в приложении: Профиль → Подписка.'},
-  en: {h: 'Payment received', s: 'Go back to the app and tap “Restore access” — the subscription will switch on.',
+  en: {h: 'Payment received', s: 'Go back to the app — the subscription switches on by itself. If it does not, tap “I have already paid”.',
        g: 'Open the app', n: 'The bank will email you a receipt. You can manage the subscription in the app: Profile → Subscription.'}
 }[LANG];
 document.getElementById('h1').textContent = T.h;

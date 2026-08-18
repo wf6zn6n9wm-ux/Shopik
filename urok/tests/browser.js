@@ -173,7 +173,19 @@ const SCENARIO = `
     function(){ ok('кнопка оплати на сайті', !!$('.btn.webpay') && text().indexOf('LiqPay') >= 0); },
     function(){ ok('посилання на умови й політику', $$('.legallinks button').length === 2); },
     function(){ click($('.btn.webpay')); },
-    function(){ ok('кнопка щось відповідає', !!$('.toast'), $('.toast') ? $('.toast').innerText.slice(0, 40) : 'без тоста'); }
+    /* В автономній копії сторінки оплати поруч немає — застосунок має
+       сказати про це словами, а не мовчки нічого не зробити. */
+    function(){ ok('кнопка щось відповідає', !!$('.toast'), $('.toast') ? $('.toast').innerText.slice(0, 40) : 'без тоста'); },
+    /* А з заданим доменом та сама кнопка веде на сторінку оплати:
+       спершу питає пошту, бо саме вона зв'язує платіж із застосунком. */
+    function(){ window.U.WEB.base = 'https://urok.test'; click($('.btn.webpay')); },
+    function(){ ok('перед оплатою питають пошту', text().indexOf('Пошта для підписки') >= 0, text().slice(-80)); },
+    function(){
+      var field = $('.sheet input[type="email"]');
+      ok('поле пошти на місці', !!field);
+      if (field) type(field, 'olena@example.com');
+    },
+    function(){ ok('кнопка переходу до оплати', !!byText('Перейти до оплати')); }
   ];
 
   var i = 0;

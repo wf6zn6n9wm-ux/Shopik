@@ -159,6 +159,10 @@ function uid(prefix){
     : Math.random().toString(36).slice(2, 10);
   return `${prefix || 'id'}_${Date.now().toString(36)}${rnd}`;
 }
+const now = () => Date.now();
+/* Пауза між запитами до сервера. Окремою функцією, щоб очікування
+   оплати можна було проганяти в тестах, не чекаючи насправді. */
+const pause = ms => new Promise(done => setTimeout(done, ms));
 function pickColor(seed){
   let h = 0;
   for (let i = 0; i < String(seed).length; i++) h = (h * 31 + String(seed).charCodeAt(i)) >>> 0;
@@ -475,6 +479,13 @@ const A = {
   },
   clearPremium(){
     store.set(s => ({...s, premium: {...s.premium, plan: null, until: '', source: '', autoRenew: true}}));
+  },
+  /* Пошта, на яку оформлюється підписка. Окремо від setPremium: її
+     треба запам'ятати ще до оплати — інакше після повернення з сайту
+     застосунку нікого питати про ліцензію. */
+  setLogin(login){
+    const who = String(login || '').trim().toLowerCase();
+    store.set(s => ({...s, premium: {...s.premium, login: who}}));
   },
   logout(){
     store.set(s => ({...s, auth: {status: 'guest', phone: '', provider: '', createdAt: ''}, onboarded: false}));
@@ -797,11 +808,17 @@ const planPerMonth = plan => {
    3.1.1), і застосунок, який лише відкриває доступ до вже оплаченої
    на сайті підписки, — це єдина безпечна форма. Тому Web.native()
    вимикає весь блок тарифів. */
+/* Домен сайту. Порожньо — беремо той, з якого відкритий застосунок;
+   цього досить для вебверсії, але не для автономної копії (артефакт)
+   і не для нативної оболонки, яка живе на localhost. Щойно тут
+   з'явиться адреса, кнопка оплати запрацює всюди однаково. */
 const WEB = {
-  base: '',            /* порожньо — той самий домен і тека, що й застосунок */
+  base: '',            /* напр. 'https://urok.app' */
   page: 'pay.html',
   api: 'api/',
   devices: 3,          /* скільки пристроїв на одну підписку */
+  poll: 4000,          /* як часто питати сервер, поки чекаємо оплату */
+  wait: 10 * 60 * 1000,/* скільки всього чекати */
 };
 
 /* Ідентифікатор пристрою живе окремо від даних застосунку: інакше
@@ -817,10 +834,12 @@ function deviceId(){
 
 const Web = {
   base(){
+    /* Заданий домен головніший за все інше: він і в артефакті, і в
+       нативній оболонці веде туди, куди треба. */
+    if (WEB.base) return WEB.base.replace(/\/+$/, '') + '/';
     /* Автономна збірка (артефакт, офлайн-демо) лежить не на нашому
        сайті, тому сторінки оплати поруч із нею немає. */
     if (typeof window !== 'undefined' && window.__UROK_STANDALONE) return '';
-    if (WEB.base) return WEB.base.replace(/\/+$/, '') + '/';
     /* Нативна оболонка живе на localhost: узяти цю адресу за домен не
        можна — кнопка вела б у нікуди. Тому у native її просто немає. */
     const cap = typeof window !== 'undefined' && window.Capacitor;
@@ -910,6 +929,38 @@ const Billing = {
   },
 
   checkoutUrl(planId, lang, login){ return Web.payUrlFor(planId, lang, login); },
+
+  /* Оплата вважається пройденою тоді, коли її бачить сервер, а не
+     коли людина повернулась у застосунок. Тому після відкриття
+     сторінки питаємо ліцензію кожні WEB.poll — інакше вийшло б так:
+     гроші пішли, а в застосунку нічого не змінилось, і людина сама
+     здогадуйся, що треба натиснути «Відновити доступ».              */
+  async awaitWeb(login, alive){
+    const who = String(login || store.get().premium.login || '').trim().toLowerCase();
+    if (!who) return {ok: false, reason: 'no_login'};
+    const till = now() + WEB.wait;
+    while (now() < till){
+      const res = await Licence.check(who);
+      if (Licence.apply(res)){
+        A.setLogin(who);
+        return {ok: true};
+      }
+      /* Екран могли закрити — тоді припиняємо, а не тримаємо цикл
+         десять хвилин у фоні. */
+      if (alive && alive() === false) return {ok: false, reason: 'cancelled'};
+      await pause(WEB.poll);
+    }
+    return {ok: false, reason: 'timeout'};
+  },
+
+  /* Одна перевірка на вимогу: «я вже оплатив». */
+  async checkWeb(login){
+    const who = String(login || store.get().premium.login || '').trim().toLowerCase();
+    if (!who) return {ok: false, reason: 'no_login'};
+    const res = await Licence.check(who);
+    if (Licence.apply(res)){ A.setLogin(who); return {ok: true}; }
+    return {ok: false, reason: (res && res.error) || 'not_found'};
+  },
 
   /* «Відновити доступ»: питаємо сервер і, якщо підписка є, прив'язуємо
      до неї цей пристрій. Пошту запам'ятовуємо — далі перевіряти вже

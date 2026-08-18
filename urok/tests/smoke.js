@@ -474,6 +474,7 @@ eq(applyTheme('system'), 'light', 'системна тема без темної
 /* ── 7. підписка ───────────────────────────────────────────── */
 /* Відповідь «сервера» однією функцією: сценаріїв кілька, а форма одна. */
 const answer = body => async () => ({ok: true, json: async () => body});
+let asked = 0;   /* скільки разів застосунок спитав сервер, поки чекав оплату */
 console.log('\nпідписка');
 store.reset();
 /* Ціни в сторі: три плани, кожен дорожчий за попередній у сумі й
@@ -587,6 +588,55 @@ Billing.trial().then(r => {
   delete sandbox.fetch;
   yes(Billing.checkoutUrl('monthly', 'uk').includes('plan=monthly'), 'посилання на оплату несе тариф');
   yes(Billing.checkoutUrl('monthly', 'uk').includes('device='), 'посилання несе пристрій');
+
+  /* ── очікування оплати ──
+     Найдорожча помилка тут — не помітити гроші: людина заплатила на
+     сайті, повернулась, а застосунок мовчить. Тому після відкриття
+     сторінки він сам питає сервер, доки не побачить ліцензію.      */
+  U.WEB.poll = 1; U.WEB.wait = 200;      /* у тесті чекати нема часу */
+  A.clearPremium();
+  A.setLogin('Teacher@Example.com ');
+  eq(store.get().premium.login, 'teacher@example.com', 'пошта запам\'ятовується до оплати');
+  sandbox.fetch = async () => ({ok: true, json: async () => (++asked < 3
+    ? {ok: true, active: false}                                    /* банк ще думає */
+    : {ok: true, active: true, plan: 'monthly', autoRenew: true, devices: 1, limit: 3,
+       expiresAt: Date.now() + 30 * 86400000})});
+  return Billing.awaitWeb();
+}).then(r8 => {
+  yes(r8.ok, 'оплата підхоплюється, щойно її бачить сервер');
+  yes(asked >= 3, 'сервер опитувався кілька разів, а не один');
+  eq(store.get().premium.plan, 'monthly', 'план приїхав із сервера');
+  eq(store.get().premium.login, 'teacher@example.com', 'пошта лишилась при підписці');
+
+  /* Не дочекались — це не помилка й не «оплати не було»: підписку не
+     вигадуємо, але й нічого не ламаємо. */
+  A.clearPremium();
+  sandbox.fetch = answer({ok: true, active: false});
+  return Billing.awaitWeb('teacher@example.com');
+}).then(r9 => {
+  yes(!r9.ok && r9.reason === 'timeout', 'без оплати чекання просто закінчується');
+  yes(!sel.isPremium(store.get()), 'нічого не вмикається саме собою');
+
+  /* «Я вже оплатив» — одна перевірка на вимогу, без десяти хвилин. */
+  sandbox.fetch = answer({ok: true, active: true, plan: 'quarterly', autoRenew: false, devices: 1, limit: 3,
+                          expiresAt: Date.now() + 80 * 86400000});
+  return Billing.checkWeb('teacher@example.com');
+}).then(r10 => {
+  yes(r10.ok && store.get().premium.plan === 'quarterly', '«я вже оплатив» вмикає підписку одразу');
+  eq(store.get().premium.autoRenew, false, 'разовий платіж не вдає автопродовження');
+  A.setLogin('');
+  return Billing.checkWeb();
+}).then(r11 => {
+  yes(!r11.ok && r11.reason === 'no_login', 'без пошти перевіряти нічого');
+  delete sandbox.fetch;
+  /* Заданий домен головніший за все: інакше в артефакті й у нативній
+     оболонці кнопка оплати вела б у нікуди. */
+  U.WEB.base = 'https://urok.test';
+  sandbox.window.__UROK_STANDALONE = true;
+  yes(U.Web.enabled() && U.Web.payUrl('yearly', 'uk').startsWith('https://urok.test/pay.html'),
+      'із заданим доменом оплата працює навіть в автономній копії');
+  delete sandbox.window.__UROK_STANDALONE;
+  U.WEB.base = '';
   console.log(fails ? `\n${fails} помилок (перевірок: ${checks})` : `\nусе гаразд · перевірок: ${checks}`);
   process.exit(fails ? 1 : 0);
 }).catch(e => {
