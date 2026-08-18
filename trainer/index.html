@@ -966,6 +966,7 @@ const PHRASES = [
   ['Придумайте PIN', 'Придумайте PIN', 'Create a PIN', 'Wymyśl PIN'],
   ['Про застосунок', 'О приложении', 'About the app', 'O aplikacji'],
   ['Доступ продовжено', 'Доступ продлён', 'Access extended', 'Dostęp przedłużony'],
+  ['Кабінет', 'Кабинет', 'Account', 'Konto'],
   ['Оплата тимчасово не приймається', 'Оплата временно не принимается', 'Payments are temporarily unavailable', 'Płatności są chwilowo niedostępne'],
   ['Ми налагоджуємо приймання платежів. Доступ до застосунку залишається — працюйте як звичайно, а щойно оплата запрацює, ми напишемо на вашу пошту.', 'Мы налаживаем приём платежей. Доступ к приложению остаётся — работайте как обычно, а как только оплата заработает, мы напишем на вашу почту.', 'We are setting up payment processing. Your access stays — keep working as usual, and we will email you as soon as payments are live.', 'Uruchamiamy przyjmowanie płatności. Dostęp pozostaje — pracuj normalnie, a gdy płatności ruszą, napiszemy na Twój e-mail.'],
   ['Час оформити підписку', 'Время оформить подписку', 'Time to subscribe', 'Czas wykupić subskrypcję'],
@@ -8646,6 +8647,13 @@ const Subscription = ({onClose}) => {
           </span>
         </div>
         <div style={{marginTop:12}}>
+          {/* Логін кабінета. Без нього неможливо відповісти на найпростіше
+              питання: чому на телефоні лишилось дванадцять днів, а на
+              сайті десять. Строк рахується від початку пробного, а він
+              прив'язаний до логіна — і поки логіна не видно, розбіжність
+              виглядає помилкою рахунку, хоча це просто два кабінети. */}
+          {Disk.readMeta() && Disk.readMeta().account &&
+            <Rowline k={t('sub.acc','Кабінет')} v={Disk.readMeta().account.raw || Disk.readMeta().account.login}/>}
           {plan && <Rowline k={t('sub.plan','План')} v={planTitle(plan) + ' · ' + (web ? uah(plan.web) : usd(plan.price))}/>}
           {raw.plan && <Rowline k={t('sub.where','Оформлена')} v={web ? t('sub.where.web','на сайті') : t('sub.where.store','у магазині застосунків')}/>}
           {/* «Завершилась» про майбутню дату виглядало так, ніби доступ уже

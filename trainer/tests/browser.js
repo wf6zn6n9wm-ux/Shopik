@@ -1401,6 +1401,11 @@ PROBES['app-free.js'] = DRIVE + `
     var first = page() ? page().querySelectorAll('.btn.pri')[0] : null;
     res.subBtn = first ? first.textContent.trim() : '';
     var subText = page() ? page().textContent : '';
+    /* Логін на екрані підписки. Без нього не відповісти, чому на
+       телефоні лишилось дванадцять днів, а на сайті десять: строк
+       рахується від початку пробного, а той прив'язаний до логіна. */
+    res.showsLogin = !!Web.login() && subText.indexOf(Web.login()) >= 0;
+    res.who = Web.login();
     res.manage = subText.indexOf('на сайті') >= 0;
     /* у чинного пробного періоду дата попереду, і продовжувати нічого */
     res.ends = subText.indexOf('Завершилась') >= 0;
@@ -1609,6 +1614,7 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('без прапорця плани на місці', o.plans === 3, o.plans + ' шт.');
     ok('без прапорця кнопка покупки є', o.buy === true);
     ok('без прапорця кнопка веде до вибору плану', o.subBtn === 'Обрати план', o.subBtn);
+    ok('на екрані підписки видно, в якому ви кабінеті', o.showsLogin === true, o.who || 'логіна немає');
 
     /* ─── валюта на екрані ───
        Тренер відкрив застосунок і побачив «Далі від $4.99», а каса
