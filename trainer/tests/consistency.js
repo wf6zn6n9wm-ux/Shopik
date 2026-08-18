@@ -261,6 +261,34 @@ part('збірка для магазину не потребує мережі');
      Одного разу виправлення вже стояло на сайті, у TestFlight ще ні, і
      тренер півгодини читав стару помилку, поки ми шукали причину не там.
      Повернути ручний запуск легко й непомітно, тому перевіряємо. */
+  /* ─── іконка застосунку ───
+     `cap add ios` кладе власну болванку — синій хрестик, — і в TestFlight
+     застосунок стояв саме з нею: своєї іконки в збірку не потрапляло
+     взагалі. На домашньому екрані він виглядав чужим, а Apple такі збірки
+     відхиляє окремим пунктом. Картинки лежать готовими: складальна машина
+     Apple — це macOS без Chrome, намалювати їх там нічим. */
+  {
+    const assets = path.join(__dirname, '..', 'native', 'assets');
+    const png = require('../store/png.js');
+    /* Дивимось на бік у пікселях, а не на вагу файла: вага залежить від
+       того, як добре стиснувся градієнт, і поріг для неї довелось би
+       вигадувати. Розмір же задано магазинами: Apple вимагає рівно
+       1024×1024, а заставка має бути з запасом на найбільший екран. */
+    [['icon.png', 1024], ['splash.png', 2732]].forEach(([f, side]) => {
+      const file = path.join(assets, f);
+      const s = fs.existsSync(file) ? png.size(file) : {w: 0, h: 0};
+      ok('native/assets/' + f + ' на місці й потрібного розміру',
+         s.w === side && s.h === side, s.w + '×' + s.h);
+    });
+    ['ios.yml', 'android.yml'].forEach(f => {
+      const txt = fs.readFileSync(path.join(flows, f), 'utf8');
+      ok('  ' + f + ' розкладає іконку по проєкту', /capacitor-assets generate/.test(txt));
+    });
+    const pkg = JSON.parse(read('native/package.json'));
+    ok('  і має чим це робити', !!(pkg.devDependencies || {})['@capacitor/assets'],
+       Object.keys(pkg.devDependencies || {}).join(', '));
+  }
+
   {
     const ios = fs.readFileSync(path.join(flows, 'ios.yml'), 'utf8');
     const on = ios.slice(ios.indexOf('\non:'), ios.indexOf('\njobs:'));

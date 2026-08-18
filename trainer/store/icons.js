@@ -37,6 +37,7 @@ if (!CHROME){ console.error('не знайшов Chrome — вкажіть CHROM
 
 const ACCENT_1 = '#8B6BFF';
 const ACCENT_2 = '#5636E8';
+const BG = '#08080b';        /* --bg застосунку й backgroundColor у capacitor.config.json */
 
 /* сама позначка: та сама гантель, що в icon.svg */
 const mark = (size, stroke) => `
@@ -75,6 +76,22 @@ const featurePage = (w, h) => `<!doctype html><meta charset="utf-8">
   <div class="t"><b>PRO Trainer</b><span>Клієнти, розклад і гроші —<br>в одному місці</span></div>
 </div>`;
 
+/* Заставка на час запуску нативної збірки. Тло те саме, що в
+   capacitor.config.json: інакше на дотику блимне чужий колір, а це
+   перше, що людина бачить після значка на екрані. */
+const splashPage = size => `<!doctype html><meta charset="utf-8">
+<style>
+  html,body{margin:0;padding:0;background:${BG};}
+  .s{width:${size}px;height:${size}px;background:${BG};
+     display:flex;align-items:center;justify-content:center;}
+  .b{width:${Math.round(size * 0.22)}px;height:${Math.round(size * 0.22)}px;
+     border-radius:${Math.round(size * 0.05)}px;
+     background:linear-gradient(135deg,${ACCENT_1},${ACCENT_2});
+     display:flex;align-items:center;justify-content:center;}
+  svg{display:block;}
+</style>
+<div class="s"><div class="b">${mark(Math.round(size * 0.14), 11)}</div></div>`;
+
 /* Знімаємо вікном на GAP вищим, ніж треба, і відрізаємо низ: інакше
    верстка не дотягнеться до потрібної висоти й знизу лишиться біла
    смуга, а іконці потрібен точний розмір. */
@@ -101,7 +118,16 @@ const jobs = [
   ['app-store-1024.png', iconPage(1024), 1024, 1024],
   ['play-512.png', iconPage(512), 512, 512],
   ['play-feature-1024x500.png', featurePage(1024, 500), 1024, 500],
+  ['splash-2732.png', splashPage(2732), 2732, 2732],
 ];
+
+/* Ці два файли лягають у репозиторій, а не лишаються в out/. Складальна
+   машина Apple — це macOS без Chrome, намалювати їх там нічим; а без
+   іконки застосунок їде в TestFlight із синім хрестиком Capacitor, і
+   таку збірку Apple відхиляє. Тому картинки готуються тут і зберігаються
+   готовими. */
+const NATIVE = path.join(__dirname, '..', 'native', 'assets');
+const COPY = [['app-store-1024.png', 'icon.png'], ['splash-2732.png', 'splash.png']];
 let bad = 0;
 try {
   for (const [name, page, w, h] of jobs){
@@ -112,6 +138,13 @@ try {
   }
 } finally {
   if (pid) spawnSync('kill', [pid]);
+}
+if (!bad){
+  fs.mkdirSync(NATIVE, {recursive: true});
+  for (const [from, to] of COPY){
+    fs.copyFileSync(path.join(OUT, from), path.join(NATIVE, to));
+    console.log('  ✓ native/assets/' + to + ' — ' + pngSize(path.join(NATIVE, to)));
+  }
 }
 console.log('\n' + (bad ? 'не вийшло: ' + bad : 'готово, ' + jobs.length + ' файли у store/out/icons'));
 process.exit(bad ? 1 : 0);
