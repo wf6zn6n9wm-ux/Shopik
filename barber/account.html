@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-theme="dark">
+<html lang="uk" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -23,7 +23,7 @@
 /* Отменять здесь нечего: платежи разовые, карта после оплаты больше не
    списывается. Поэтому страница только показывает срок и даёт продлить. */
 var Q = new URLSearchParams(location.search);
-var LANG = ['uk','ru','en'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'ru';
+var LANG = ['uk','ru','en'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'uk';
 document.documentElement.lang = LANG;
 var T = {
   ru:{h:'Доступ', s:'До какого числа оплачен кабинет.', go:'Продлить доступ',
