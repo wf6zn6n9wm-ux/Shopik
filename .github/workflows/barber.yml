@@ -1,0 +1,87 @@
+name: Про Барбер
+
+# Приложение — один index.html без сборки, поэтому «зелёный билд» здесь
+# означает ровно одно: проверки прогнались. Гоняем их на каждое изменение
+# внутри barber/, чтобы правка не уехала в прод молча.
+
+on:
+  push:
+    paths: ['barber/**', '.github/workflows/barber.yml']
+  pull_request:
+    paths: ['barber/**', '.github/workflows/barber.yml']
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # smoke.js транспилирует JSX из index.html и book.html — этим
+      # занимается bun. Ставим напрямую, чтобы не зависеть от сторонних
+      # actions.
+      - name: bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
+      - name: Кабинет и публичная страница
+        run: node barber/tests/smoke.js
+
+      - name: Сервер онлайн-записи
+        run: node barber/tests/api.js
+
+      - name: Подписка
+        run: node barber/tests/licence.js
+
+      # Документы живут в index.html, а публичные страницы собираются из
+      # них. Поправил одно, забыл другое — видно здесь, а не когда LiqPay
+      # откроет оферту и найдёт там старую цену.
+      - name: Документы и публичные страницы не разошлись
+        run: |
+          node barber/legal/sync.js export
+          git diff --exit-code -- barber/legal barber/terms.html barber/privacy.html barber/delete.html \
+            || { echo '::error::страницы не пересобраны — запустите node barber/legal/sync.js export'; exit 1; }
+
+  # Vercel сам продакшн из main не пересобирает — та же история, что с
+  # тренером: Deploy Hook принимает задание и возвращает job id, а деплой
+  # не появляется. Поэтому не просим Vercel забрать код, а заливаем сами:
+  # CLI не зависит от связи с репозиторием и пишет логи сюда, где их видно.
+  #
+  # Токен лежит в секретах репозитория. Не задан — шаг честно предупреждает
+  # и выходит с успехом: пусть отсутствие деплоя не выглядит как поломка
+  # тестов.
+  deploy:
+    needs: tests
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # Заливаем корень репозитория, а не папку barber: Root Directory в
+    # проекте уже указывает на barber, и если зайти туда самим, Vercel
+    # ищет barber/barber и падает.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Выложить на Vercel
+        env:
+          TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SCOPE: wf6zn6n9wm-uxs-projects
+          PROJECT: pro-barber
+        # pipefail обязателен: без него `| tee` съедает код возврата, и шаг
+        # рапортует об успехе, когда сборка на самом деле упала.
+        run: |
+          set -o pipefail
+          if [ -z "$TOKEN" ]; then
+            echo '::warning::VERCEL_TOKEN не задан — выкладывать придётся руками'
+            exit 0
+          fi
+          npx --yes vercel@latest link --yes --token "$TOKEN" --scope "$SCOPE" --project "$PROJECT"
+          npx --yes vercel@latest deploy --prod --yes --token "$TOKEN" --scope "$SCOPE" | tee /tmp/out
+          echo "Выложено: $(tail -n1 /tmp/out)"

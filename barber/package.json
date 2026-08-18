@@ -1,0 +1,8 @@
+{
+  "name": "pro-barber",
+  "private": true,
+  "description": "Про Барбер — страницы подписки и лицензионный сервер (Vercel Functions)",
+  "dependencies": {
+    "@vercel/kv": "^3.0.0"
+  }
+}

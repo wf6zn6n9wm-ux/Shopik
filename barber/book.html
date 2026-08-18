@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0B0D0F" />
+<meta name="description" content="Онлайн-запись к барберу: выберите услугу, день и время." />
+<title>Про Барбер — онлайн-запись</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Публичная страница записи. Та же система токенов, что и в кабинете,
+     но только то, что нужно клиенту: услуга → день → время → контакты. -->
+<style>
+  :root{
+    --gold:#F5A623; --gold-2:#FFB52E; --gold-ink:#171208;
+    --bg:#0B0D0F; --surface:#121517; --surface-2:#171A1D; --surface-3:#1E2225;
+    --ink:#F3F5F6; --ink-2:#9AA3AA; --ink-3:#6E7880;
+    --line:#20252A; --line-2:#2A3036; --gold-soft:rgba(245,166,35,.12);
+    --pos:#35C07A; --r-sm:10px; --r-md:12px; --r-lg:14px; --r-xl:18px;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.28);
+  }
+  html[data-theme="light"]{
+    --bg:#F6F7F9; --surface:#FFFFFF; --surface-2:#F4F6F8; --surface-3:#EDEFF2;
+    --ink:#14181B; --ink-2:#5C666E; --ink-3:#8B959C;
+    --line:#E9ECEF; --line-2:#DDE2E6; --pos:#23965A;
+    --shadow:0 1px 2px rgba(16,24,32,.05), 0 6px 20px rgba(16,24,32,.06);
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink); font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  button,input,textarea{font:inherit; color:inherit}
+  button{cursor:pointer; background:none; border:0; padding:0}
+  .num{font-variant-numeric:tabular-nums}
+  .wrap{max-width:760px; margin:0 auto; padding:28px 18px 60px}
+  .hero{display:flex; gap:18px; align-items:center; margin-bottom:26px}
+  .mark{width:46px; height:46px; color:var(--gold); flex:none}
+  .shop{font-size:22px; font-weight:800; letter-spacing:-.02em}
+  .sub{font-size:12.5px; color:var(--ink-3)}
+  .ava{width:64px; height:64px; border-radius:50%; background:var(--surface-3); display:grid; place-items:center;
+       font-weight:700; font-size:22px; overflow:hidden; flex:none}
+  .ava img{width:100%; height:100%; object-fit:cover}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r-xl); box-shadow:var(--shadow); padding:20px; margin-bottom:14px}
+  .step{display:flex; align-items:center; gap:10px; margin-bottom:14px}
+  .step i{width:24px; height:24px; border-radius:50%; background:var(--gold-soft); color:var(--gold);
+          display:grid; place-items:center; font-size:12px; font-weight:700; font-style:normal; flex:none}
+  .step b{font-size:15px; font-weight:650}
+  .svc{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px}
+  .svc button{
+    text-align:left; padding:13px 15px; border-radius:var(--r-md); border:1px solid var(--line);
+    background:var(--surface-2); transition:border-color .16s, background .16s;
+  }
+  .svc button:hover{border-color:var(--line-2)}
+  .svc button.on{border-color:var(--gold); background:var(--gold-soft)}
+  .svc .n{font-weight:650; font-size:14px}
+  .svc .m{font-size:12px; color:var(--ink-3); margin-top:3px}
+  .svc .p{font-size:16px; font-weight:750; color:var(--gold); margin-top:8px}
+  .days{display:flex; gap:8px; overflow-x:auto; padding-bottom:6px}
+  .days button{
+    flex:none; width:62px; padding:9px 0; border-radius:var(--r-md); border:1px solid var(--line);
+    background:var(--surface-2); text-align:center; transition:all .16s;
+  }
+  .days button.on{border-color:var(--gold); background:var(--gold-soft); color:var(--gold)}
+  .days button:disabled{opacity:.35; cursor:not-allowed}
+  .days .wd{font-size:10.5px; color:var(--ink-3); text-transform:uppercase; letter-spacing:.04em}
+  .days button.on .wd{color:var(--gold)}
+  .days .dd{font-size:17px; font-weight:700; margin-top:2px}
+  .slots{display:grid; grid-template-columns:repeat(auto-fill,minmax(76px,1fr)); gap:8px}
+  .slots button{
+    height:40px; border-radius:var(--r-sm); border:1px solid var(--line); background:var(--surface-2);
+    font-weight:600; font-size:13.5px; transition:all .16s;
+  }
+  .slots button:hover{border-color:var(--line-2)}
+  .slots button.on{background:var(--gold); border-color:var(--gold); color:var(--gold-ink)}
+  .field{display:block; margin-bottom:12px}
+  .label{display:block; font-size:12px; color:var(--ink-2); margin-bottom:6px}
+  .input,.area{
+    width:100%; height:44px; padding:0 13px; border-radius:var(--r-md); background:var(--surface-2);
+    border:1px solid var(--line); outline:none; transition:border-color .16s;
+  }
+  .area{height:auto; padding:11px 13px; min-height:76px; resize:vertical}
+  .input:focus,.area:focus{border-color:var(--gold)}
+  .input.bad{border-color:#EF5B52}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; height:50px;
+    border-radius:var(--r-md); background:var(--gold); color:var(--gold-ink); font-weight:700; font-size:15px;
+    transition:background .16s;
+  }
+  .btn:hover{background:var(--gold-2)}
+  .btn:disabled{opacity:.45; pointer-events:none}
+  .btn.ghost{background:transparent; border:1px solid var(--line-2); color:var(--ink); height:44px; font-size:14px}
+  .sum{display:flex; gap:10px; align-items:center; padding:12px 0; border-top:1px solid var(--line); font-size:13.5px}
+  .sum span:first-child{color:var(--ink-3); width:110px}
+  .hrs{display:flex; justify-content:space-between; font-size:13px; padding:6px 0; border-top:1px solid var(--line)}
+  .hrs:first-child{border-top:0}
+  .off{color:var(--ink-3)}
+  .done{text-align:center; padding:30px 10px}
+  .done .ring{width:64px; height:64px; margin:0 auto 16px; border-radius:50%; background:rgba(53,192,122,.14);
+              color:var(--pos); display:grid; place-items:center}
+  .foot{text-align:center; color:var(--ink-3); font-size:12px; margin-top:22px}
+  .err{color:#EF5B52; font-size:12px; margin-top:4px}
+  @media (max-width:520px){ .wrap{padding:18px 14px 48px} .hero{gap:12px} .shop{font-size:19px} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const {useState, useMemo} = React;
+
+/* ── общее с кабинетом: ключ хранилища и формат данных ── */
+const KEY = 'probarber.v1';
+const pad = n => (n < 10 ? '0' : '') + n;
+const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const mins = t => { const [h, m] = String(t || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+const hhmm = m => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+const dowIdx = d => (d.getDay() + 6) % 7;
+const DOW_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const WD = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const WD_FULL = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+const MONTH = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+const SIGN = {USD: '$', EUR: '€', UAH: '₴'};
+const money = (v, cur) => (cur === 'UAH' ? v + ' ₴' : (SIGN[cur] || '$') + v);
+const phoneMask = raw => {
+  const d = String(raw || '').replace(/\D/g, '').slice(0, 15);
+  if (!d) return '';
+  return '+' + d.replace(/^(\d{1,3})(\d{0,2})(\d{0,3})(\d{0,2})(\d{0,2}).*/, (m, a, b, c, e, f) =>
+    [a, b, c, e, f].filter(Boolean).join(' '));
+};
+const dayLabel = d => d.getDate() + ' ' + MONTH[d.getMonth()];
+
+/* Кабинет барбера и эта страница живут в одном браузере: услуги, график
+   и занятое время читаем из того же хранилища. Если данных нет (клиент
+   открыл ссылку первым), показываем витрину по умолчанию. */
+const FALLBACK = {
+  profile: {
+    name: 'Алексей Смирнов', role: 'Барбер', shop: 'Про Барбер',
+    address: 'Киев, ул. Крещатик, 22', phone: '+380 67 100 20 30', photo: '',
+    about: 'Мужские стрижки, борода, классическое бритьё. 8 лет за креслом.',
+    hours: {
+      mon: {on: true, from: '09:00', to: '20:00'}, tue: {on: true, from: '09:00', to: '20:00'},
+      wed: {on: true, from: '09:00', to: '20:00'}, thu: {on: true, from: '09:00', to: '20:00'},
+      fri: {on: true, from: '09:00', to: '20:00'}, sat: {on: true, from: '10:00', to: '18:00'},
+      sun: {on: false, from: '10:00', to: '16:00'},
+    },
+  },
+  settings: {currency: 'USD', step: 30, theme: 'dark'},
+  services: [
+    {id: 'sv_0', name: 'Стрижка', price: 20, dur: 45, active: true},
+    {id: 'sv_1', name: 'Стрижка + борода', price: 30, dur: 60, active: true},
+    {id: 'sv_2', name: 'Борода', price: 15, dur: 30, active: true},
+    {id: 'sv_3', name: 'Детская стрижка', price: 15, dur: 40, active: true},
+  ],
+  clients: [], appts: [], threads: [], seen: {},
+};
+
+function DB(){
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return FALLBACK;
+    const db = JSON.parse(raw);
+    if (!db || !db.services || !db.services.length) return FALLBACK;
+    return db;
+  } catch (e){ return FALLBACK; }
+}
+
+/* свободные точки старта дня — та же логика, что в кабинете */
+function slots(db, dateIso, dur){
+  const d = new Date(dateIso + 'T00:00:00');
+  const h = (db.profile.hours || {})[DOW_KEYS[dowIdx(d)]];
+  if (!h || !h.on) return [];
+  const busy = (db.appts || []).filter(a => a.date === dateIso && a.status !== 'canceled')
+    .map(a => [mins(a.time), mins(a.time) + a.dur]);
+  const step = (db.settings && db.settings.step) || 30;
+  const today = iso(new Date());
+  const now = new Date().getHours() * 60 + new Date().getMinutes();
+  const out = [];
+  for (let m = mins(h.from); m + dur <= mins(h.to); m += step){
+    if (dateIso === today && m < now + 30) continue;         /* прошедшее не предлагаем */
+    if (!busy.some(([s, e]) => m < e && m + dur > s)) out.push(hhmm(m));
+  }
+  return out;
+}
+
+function save(db, appt, client){
+  try {
+    const next = Object.assign({}, db, {
+      clients: client ? [client].concat(db.clients || []) : (db.clients || []),
+      appts: (db.appts || []).concat([appt]),
+    });
+    localStorage.setItem(KEY, JSON.stringify(next));
+    return true;
+  } catch (e){ return false; }
+}
+
+/* ── сервер ────────────────────────────────────────────────────────
+   Барбер включает приём заявок в кабинете. Если сервер отвечает — вся
+   витрина и занятое время приходят оттуда, и записаться можно с любого
+   телефона. Если нет — страница работает как витрина в этом браузере. */
+
+const API = '/api/barber';
+const SLUG = (() => {
+  try { return new URLSearchParams(location.search).get('b') || ''; } catch (e){ return ''; }
+})();
+
+async function ask(action, data){
+  if (!SLUG) return {ok: false, reason: 'no_slug'};
+  try {
+    const r = await fetch(API, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(Object.assign({action, slug: SLUG}, data || {})),
+    });
+    if (!r.ok) return {ok: false, reason: 'http_' + r.status};
+    return await r.json();
+  } catch (e){ return {ok: false, reason: 'offline'}; }
+}
+
+/* ответ сервера приводим к той же форме, в которой страница уже умеет
+   считать свободное время — дальше по коду разницы нет */
+function fromServer(payload){
+  const shop = payload.shop || {};
+  return {
+    profile: {
+      shop: shop.shop, name: shop.name, role: shop.role, about: shop.about,
+      address: shop.address, phone: shop.phone, photo: shop.photo,
+      hours: shop.hours || {},
+    },
+    settings: {currency: shop.currency || 'USD', step: shop.step || 30, theme: 'dark'},
+    services: (shop.services || []).map(x => Object.assign({active: true}, x)),
+    appts: (payload.busy || []).map(b => ({
+      date: b.date, time: b.time, dur: Number(b.dur) || 30, status: 'planned',
+    })),
+    clients: [], threads: [], seen: {},
+  };
+}
+
+const REASONS = {
+  taken: 'Это время только что заняли — выберите другое.',
+  closed: 'В это время барбер не работает.',
+  past: 'Эта дата уже прошла.',
+  far: 'Так далеко записаться нельзя.',
+  too_many: 'С этого номера уже есть заявки. Барбер свяжется с вами.',
+  bad_phone: 'Проверьте номер телефона.',
+  bad_name: 'Как вас записать?',
+  bad_service: 'Услуга больше не доступна.',
+};
+
+const Logo = ({className}) => (
+  <svg className={className} viewBox="0 0 48 48" fill="none" stroke="currentColor"
+       strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 44a5 5 0 1 0 0-10 5 5 0 0 0 0 10M34 44a5 5 0 1 0 0-10 5 5 0 0 0 0 10" />
+    <path d="M16 34 32 5M32 34 16 5" /><path d="M20.5 24.5 24 30l3.5-5.5" />
+  </svg>
+);
+const initials = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+function Book(){
+  const [db, setDb] = useState(DB);
+  const [online, setOnline] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [fail, setFail] = useState('');
+
+  /* витрину спрашиваем у сервера; не ответил — остаёмся на локальной */
+  React.useEffect(() => {
+    let alive = true;
+    ask('shop', {}).then(r => {
+      if (!alive || !r || !r.ok) return;
+      setDb(fromServer(r));
+      setOnline(true);
+    });
+    return () => { alive = false; };
+  }, []);
+  const cur = (db.settings && db.settings.currency) || 'USD';
+  const list = (db.services || []).filter(s => s.active !== false);
+  const [svcId, setSvcId] = useState(list[0] ? list[0].id : '');
+  const [date, setDate] = useState(iso(new Date()));
+  const [time, setTime] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [note, setNote] = useState('');
+  const [err, setErr] = useState({});
+  const [okId, setOkId] = useState(null);
+
+  const svc = list.find(s => s.id === svcId) || list[0] || {dur: 45, price: 0, name: '—'};
+  const days = useMemo(() => Array.from({length: 14}, (_, i) => addDays(new Date(), i)), []);
+  const free = useMemo(() => slots(db, date, svc.dur), [db, date, svc.dur, svcId]);
+  const hours = (db.profile && db.profile.hours) || FALLBACK.profile.hours;
+
+  const submit = async () => {
+    const e = {};
+    if (!name.trim()) e.name = 'Как вас записать?';
+    if (phone.replace(/\D/g, '').length < 9) e.phone = 'Нужен телефон для подтверждения';
+    if (!time) e.time = 'Выберите время';
+    setErr(e);
+    setFail('');
+    if (Object.keys(e).length) return;
+
+    /* на сервере заявку проверяют заново: занятость и рабочие часы
+       могли измениться, пока клиент заполнял форму */
+    if (online){
+      setSending(true);
+      const r = await ask('book', {
+        name: name.trim(), phone: phoneMask(phone), serviceId: svc.id,
+        date, time, note: note.trim(), today: iso(new Date()),
+      });
+      setSending(false);
+      if (r && r.ok){
+        const fresh = await ask('shop', {});
+        if (fresh && fresh.ok) setDb(fromServer(fresh));
+        setOkId(r.id);
+        return;
+      }
+      const why = REASONS[r && r.reason] || 'Не получилось отправить заявку. Попробуйте ещё раз.';
+      setFail(why);
+      if (r && r.reason === 'taken') setTime('');
+      return;
+    }
+
+    const digits = phone.replace(/\D/g, '');
+    let client = (db.clients || []).find(c => c.phone.replace(/\D/g, '') === digits);
+    let created = null;
+    if (!client){
+      created = {
+        id: 'cl_' + Math.random().toString(36).slice(2, 9), name: name.trim(), phone: phoneMask(phone),
+        birthday: '', photo: '', note: '', createdAt: iso(new Date()),
+      };
+      client = created;
+    }
+    const appt = {
+      id: 'ap_' + Math.random().toString(36).slice(2, 9),
+      clientId: client.id, serviceId: svc.id, date, time, dur: svc.dur, price: svc.price,
+      status: 'pending', note: note.trim(), source: 'online', createdAt: iso(new Date()),
+    };
+    save(db, appt, created);
+    setDb(DB());
+    setOkId(appt.id);
+  };
+
+  if (okId) return (
+    <div className="wrap">
+      <div className="card done">
+        <div className="ring">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+               strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4.5 4.5L19 7" /></svg>
+        </div>
+        <div style={{fontSize: 20, fontWeight: 750, marginBottom: 6}}>Заявка отправлена</div>
+        <div style={{color: 'var(--ink-2)', maxWidth: 420, margin: '0 auto 18px'}}>
+          {db.profile.name} подтвердит запись и напишет вам на {phoneMask(phone)}.
+          {!online && <div style={{marginTop: 8, fontSize: 12, color: 'var(--ink-3)'}}>
+            Демо-режим: заявка сохранена в этом браузере.
+          </div>}
+        </div>
+        <div style={{maxWidth: 340, margin: '0 auto', textAlign: 'left'}}>
+          <div className="sum"><span>Услуга</span><b>{svc.name}</b></div>
+          <div className="sum"><span>Когда</span><b>{dayLabel(new Date(date + 'T00:00:00'))}, {time}</b></div>
+          <div className="sum"><span>Стоимость</span><b>{money(svc.price, cur)}</b></div>
+        </div>
+        <div style={{height: 18}} />
+        <button className="btn ghost" onClick={() => { setOkId(null); setTime(''); setNote(''); }}>
+          Записаться ещё раз
+        </button>
+      </div>
+      <div className="foot">Про Барбер · онлайн-запись</div>
+    </div>
+  );
+
+  return (
+    <div className="wrap">
+      <div className="hero">
+        <Logo className="mark" />
+        <div style={{flex: 1, minWidth: 0}}>
+          <div className="shop">{db.profile.shop || 'Про Барбер'}</div>
+          <div className="sub">{db.profile.name} · {db.profile.role}</div>
+        </div>
+        <div className="ava">{db.profile.photo ? <img src={db.profile.photo} alt="" /> : initials(db.profile.name)}</div>
+      </div>
+
+      {db.profile.about && (
+        <div className="card" style={{color: 'var(--ink-2)'}}>
+          {db.profile.about}
+          {db.profile.address && <div style={{marginTop: 8, fontSize: 13, color: 'var(--ink-3)'}}>{db.profile.address}</div>}
+        </div>
+      )}
+
+      <div className="card">
+        <div className="step"><i>1</i><b>Выберите услугу</b></div>
+        <div className="svc">
+          {list.map(s => (
+            <button key={s.id} className={s.id === svcId ? 'on' : ''}
+                    onClick={() => { setSvcId(s.id); setTime(''); }}>
+              <div className="n">{s.name}</div>
+              <div className="m">{s.dur} мин</div>
+              <div className="p num">{money(s.price, cur)}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="step"><i>2</i><b>Выберите день</b></div>
+        <div className="days">
+          {days.map(d => {
+            const id = iso(d);
+            const h = hours[DOW_KEYS[dowIdx(d)]];
+            return (
+              <button key={id} className={id === date ? 'on' : ''} disabled={!h || !h.on}
+                      onClick={() => { setDate(id); setTime(''); }}>
+                <div className="wd">{WD[dowIdx(d)]}</div>
+                <div className="dd num">{d.getDate()}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="step"><i>3</i><b>Выберите время</b></div>
+        {free.length ? (
+          <div className="slots">
+            {free.map(x => (
+              <button key={x} className={x === time ? 'on' : ''} onClick={() => setTime(x)}>
+                <span className="num">{x}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div style={{color: 'var(--ink-3)'}}>На этот день свободного времени нет — выберите другой.</div>
+        )}
+        {err.time && <div className="err">{err.time}</div>}
+      </div>
+
+      <div className="card">
+        <div className="step"><i>4</i><b>Ваши контакты</b></div>
+        <label className="field">
+          <span className="label">Имя</span>
+          <input className={'input' + (err.name ? ' bad' : '')} value={name} placeholder="Иван Петров"
+                 onChange={e => setName(e.target.value)} />
+          {err.name && <div className="err">{err.name}</div>}
+        </label>
+        <label className="field">
+          <span className="label">Телефон</span>
+          <input className={'input' + (err.phone ? ' bad' : '')} value={phone} placeholder="+380 00 000 00 00"
+                 inputMode="tel" onChange={e => setPhone(phoneMask(e.target.value))} />
+          {err.phone && <div className="err">{err.phone}</div>}
+        </label>
+        <label className="field">
+          <span className="label">Комментарий</span>
+          <textarea className="area" value={note} placeholder="Что-то важное для барбера"
+                    onChange={e => setNote(e.target.value)} />
+        </label>
+
+        <div className="sum"><span>Услуга</span><b>{svc.name} · {svc.dur} мин</b></div>
+        <div className="sum"><span>Когда</span>
+          <b>{dayLabel(new Date(date + 'T00:00:00'))}{time ? ', ' + time : ''}</b>
+        </div>
+        <div className="sum"><span>Стоимость</span><b className="num">{money(svc.price, cur)}</b></div>
+        <div style={{height: 12}} />
+        <button className="btn" onClick={submit} disabled={!time || sending}>
+          {sending ? 'Отправляем…' : 'Записаться'}
+        </button>
+        {fail && <div className="err" style={{marginTop: 8}}>{fail}</div>}
+      </div>
+
+      <div className="card">
+        <div className="step"><i>·</i><b>График работы</b></div>
+        {DOW_KEYS.map((k, i) => {
+          const h = hours[k];
+          return (
+            <div key={k} className="hrs">
+              <span>{WD_FULL[i]}</span>
+              <span className={h && h.on ? 'num' : 'off'}>{h && h.on ? h.from + ' — ' + h.to : 'Выходной'}</span>
+            </div>
+          );
+        })}
+        {db.profile.phone && <div className="hrs"><span>Телефон</span><span className="num">{db.profile.phone}</span></div>}
+      </div>
+
+      <div className="foot">Про Барбер · твои клиенты. твой стиль. твой бизнес.</div>
+    </div>
+  );
+}
+
+/* тема берётся из настроек кабинета, если они есть в этом браузере */
+try {
+  const th = (DB().settings || {}).theme;
+  const dark = th === 'dark' || (th !== 'light' && (!window.matchMedia || window.matchMedia('(prefers-color-scheme: dark)').matches));
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+} catch (e){}
+
+try {
+  const root = document.getElementById('root');
+  if (root && ReactDOM.createRoot) ReactDOM.createRoot(root).render(<Book />);
+} catch (e){ console.error(e); }
+</script>
+</body>
+</html>

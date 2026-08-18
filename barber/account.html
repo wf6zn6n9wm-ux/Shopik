@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Про Барбер — доступ</title>
+<meta name="robots" content="noindex" />
+<link rel="stylesheet" href="pay.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24"><path d="M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5M6.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5M8.6 8.1 20 19.5M20 4.5 8.6 15.9"/></svg></div>
+    <b>Про Барбер</b>
+  </div>
+  <h1 id="h1">Доступ</h1>
+  <p class="sub" id="sub">До какого числа оплачен кабинет.</p>
+  <div class="who" id="box">…</div>
+  <a class="go" id="go" hidden></a>
+  <p class="note" id="note"></p>
+</div>
+<script>
+/* Отменять здесь нечего: платежи разовые, карта после оплаты больше не
+   списывается. Поэтому страница только показывает срок и даёт продлить. */
+var Q = new URLSearchParams(location.search);
+var LANG = ['uk','ru','en'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'ru';
+document.documentElement.lang = LANG;
+var T = {
+  ru:{h:'Доступ', s:'До какого числа оплачен кабинет.', go:'Продлить доступ',
+      active:'Оплачено до', norenew:'Автосписаний нет: когда период закончится, продлите вручную.',
+      none:'Оплаченного доступа по этому логину не нашли.',
+      err:'Не удалось получить состояние — попробуйте позже.',
+      n:'Возврат средств делает банк по своим правилам. Клиенты, записи и финансы хранятся в кабинете независимо от оплаты.'},
+  uk:{h:'Доступ', s:'До якого числа оплачено кабінет.', go:'Продовжити доступ',
+      active:'Оплачено до', norenew:'Автосписань немає: коли період завершиться, продовжте вручну.',
+      none:'Оплаченого доступу за цим логіном не знайшли.',
+      err:'Не вдалося отримати стан — спробуйте пізніше.',
+      n:'Повернення коштів робить банк за своїми правилами. Клієнти, записи та фінанси зберігаються в кабінеті незалежно від оплати.'},
+  en:{h:'Access', s:'How long the app is paid for.', go:'Extend access',
+      active:'Paid until', norenew:'No recurring charges: when the period ends, renew it yourself.',
+      none:'No paid access found for this login.',
+      err:'Could not read the status — please try later.',
+      n:'Refunds are handled by the bank under its own rules. Clients, appointments and finance stay in the app regardless of the payment.'},
+}[LANG];
+document.getElementById('h1').textContent = T.h;
+document.getElementById('sub').textContent = T.s;
+document.getElementById('note').textContent = T.n;
+
+var login = (Q.get('login') || '').trim(), device = (Q.get('device') || '').trim();
+var box = document.getElementById('box'), go = document.getElementById('go');
+var fmt = function(ts){
+  return new Date(ts).toLocaleDateString(LANG === 'uk' ? 'uk-UA' : LANG === 'ru' ? 'ru-RU' : 'en-GB',
+    {day:'numeric', month:'long', year:'numeric'});
+};
+
+go.textContent = T.go;
+go.href = 'pay.html?' + new URLSearchParams({login: login, device: device, lang: LANG});
+
+function show(lic){
+  if (!lic || !(lic.active || lic.needsClaim)){ box.textContent = T.none; go.hidden = false; return; }
+  box.innerHTML = '<b>' + T.active + ' ' + fmt(lic.expiresAt) + '</b><br>' + T.norenew;
+  go.hidden = false;
+}
+if (!login) box.textContent = T.none;
+else fetch('/api/licence?' + new URLSearchParams({login: login, device: device}))
+  .then(function(r){ return r.json(); })
+  .then(show)
+  .catch(function(){ box.textContent = T.err; });
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "Про Барбер — кабинет барбера",
+  "short_name": "Про Барбер",
+  "description": "CRM и рабочий кабинет барбера: клиенты, записи, услуги, расписание и деньги.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0B0D0F",
+  "theme_color": "#0B0D0F",
+  "lang": "ru",
+  "icons": [
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ]
+}
