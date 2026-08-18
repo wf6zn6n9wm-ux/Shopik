@@ -284,7 +284,6 @@ const stackRoutes = t => {
     ['premium', {reason: 'students'}],
     ['contest', {}],
     ['rating', {}],
-    ['coffee', {}],
     ['help', {}],
     ['privacy', {}],
     ['terms', {}],

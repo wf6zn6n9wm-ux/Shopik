@@ -107,8 +107,6 @@ function ProfileScreen({t, s, nav}){
                onClick={() => nav.push({name: 'contest'})} />
           <Row icon={<Icon.star size={19} />} title={t('pr.rating')} sub={t('pr.ratingD')} chevron
                onClick={() => nav.push({name: 'rating'})} />
-          <Row icon={<Icon.coffee size={19} />} title={t('pr.coffee')} sub={t('pr.coffeeD')} chevron
-               onClick={() => nav.push({name: 'coffee'})} />
         </div>
 
         <SectionHead title={t('pr.community')} />
@@ -814,30 +812,6 @@ function ContestScreen({t, s, nav, params}){
   );
 }
 
-function CoffeeScreen({t, s, nav}){
-  const amounts = [50, 100, 200];
-  return (
-    <div className="app stack">
-      <StackBar t={t} title={t('pr.coffeeTitle')} onBack={nav.back} />
-      <div className="screen">
-        <div className="empty" style={{padding: '26px 10px 10px'}}>
-          <div className="ic"><Icon.coffee size={38} /></div>
-          <div className="t">{t('pr.coffeeTitle')}</div>
-          <div className="d">{t('pr.coffeeText')}</div>
-        </div>
-        <div style={{display: 'grid', gap: 10}}>
-          {amounts.map(a => (
-            <Btn key={a} kind="sec" size="lg" wide onClick={() => toast(t('pr.coffeeThanks'))}>
-              {fmtMoney(a, s.settings.currency)}
-            </Btn>
-          ))}
-        </div>
-        <div className="hint" style={{textAlign: 'center', marginTop: 14}}>{t('c.demo')}</div>
-      </div>
-    </div>
-  );
-}
-
 /* ── правові й довідка ─────────────────────────────────────── */
 function TextScreen({t, nav, titleKey, textKey}){
   return (
@@ -886,6 +860,6 @@ function HelpScreen({t, nav}){
 
 Object.assign(window.U, {
   ProfileScreen, ProfileEditScreen, SettingsScreen, PremiumScreen, SubscriptionScreen,
-  ContestScreen, CoffeeScreen, TextScreen, HelpScreen, openLink, boardWith, FAKE_BOARD,
+  ContestScreen, TextScreen, HelpScreen, openLink, boardWith, FAKE_BOARD,
 });
 })();
