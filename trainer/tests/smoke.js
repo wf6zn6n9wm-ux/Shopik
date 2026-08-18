@@ -1175,6 +1175,48 @@ part('оплата на сайті');
   ok('коли сервер каже «неактивна» — доступ закінчується',
      T.Access.state().kind === 'SUBSCRIPTION_EXPIRED', T.Access.state().kind);
 
+  /* ─── другий телефон у того, хто вже заплатив ───
+     Сервер відповідає чесно: підписка жива, але цього пристрою в списку
+     немає. Застосунок робив із цього хибний висновок і позначав підписку
+     завершеною — людина, яка щойно заплатила, бачила екран «оформіть
+     підписку». Полагодити це вміла кнопка «Я вже оплатив», але до неї
+     треба було ще додуматись. */
+  {
+    const paid = {ok: true, active: true, plan: 'yearly', expiresAt: Date.now() + 300 * 86400000, autoRenew: true};
+    const realFetch = ctx.fetch;
+    let claimed = 0;
+    /* Відповідь залежить від адреси: /api/licence каже «не твій
+       пристрій», /api/claim — вносить його в список. */
+    ctx.fetch = async url => {
+      const u = String(url);
+      calls.push(u);
+      if (u.includes('/api/claim')){ claimed++; return {ok: true, json: async () => paid}; }
+      return {ok: true, json: async () => (claimed ? paid : {ok: true, active: false, needsClaim: true})};
+    };
+    T.Access.write({status: 'active', source: 'web', plan: 'yearly',
+                    expiresAt: paid.expiresAt, autoRenew: true});
+    calls.length = 0;
+    await T.Access.verify();
+    ok('другий пристрій вносить себе в список сам', claimed === 1, 'звернень до /api/claim: ' + claimed);
+    ok('  і підписка лишається чинною', T.Access.state().kind === 'SUBSCRIPTION_ACTIVE',
+       T.Access.state().kind);
+
+    /* Місця скінчились — це вже не «пристрій не в списку», і доступ на
+       цьому пристрої правильно закрити. */
+    claimed = 0;
+    ctx.fetch = async url => {
+      calls.push(String(url));
+      return {ok: true, json: async () => ({ok: true, active: false, error: 'device_limit'})};
+    };
+    T.Access.write({status: 'active', source: 'web', plan: 'yearly',
+                    expiresAt: paid.expiresAt, autoRenew: true});
+    const r = await T.Access.verify();
+    ok('коли місця скінчились — доступ закривається', T.Access.state().kind === 'SUBSCRIPTION_EXPIRED',
+       T.Access.state().kind);
+    ok('  і причина не губиться', r.error === 'device_limit', String(r.error));
+    ctx.fetch = realFetch;
+  }
+
   /* відновлення на новому пристрої */
   licence = {ok: true, active: true, plan: 'monthly', expiresAt: Date.now() + 20 * 86400000, autoRenew: true};
   calls.length = 0;
