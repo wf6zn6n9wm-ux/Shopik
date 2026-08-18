@@ -4238,6 +4238,19 @@ const carryAccess = (prev, login, access) =>
    порожнім кабінетом — просимо увійти новим паролем, коли з'явиться
    зв'язок. Пароль на цей момент уже змінено, тож вхід спрацює, і копія
    повернеться звичайним шляхом. */
+/* ─── коли заводити новий ключ від копії ───
+   Ключ від копії виводиться при вході. Якщо сервер не відповів, спокуса
+   проста: зробити ключ на місці й піти далі. Саме так і було — і це
+   викидало вже наявний ключ, замінюючи його новим випадковим.
+
+   Наслідки тихі й неприємні: сервер або перестане приймати копію (токен
+   інший), або прийме її перешифрованою — і тоді ключ, що лежить на
+   інших пристроях цього тренера, більше нічого не відкриє. Через
+   секундний обрив зв'язку.
+
+   Новий ключ заводимо лише тоді, коли свого немає взагалі. */
+const needsNewCloudKey = ({opened, armed}) => !opened && !armed;
+
 const afterRestore = ({asked, got, had}) => {
   if (!asked) return {push: true, enter: true, fresh: !had, warn: null};
   if (got && got.ok) return {push: false, enter: true, fresh: false, warn: null};
@@ -4468,7 +4481,9 @@ const Auth = ({onReady, save}) => {
            копії — заводимо ключ тут, перший же запис його й покладе. */
         if (f.pass){
           const got = Web.enabled() ? await Cloud.open(norm, f.pass, salt) : {ok:false};
-          Cloud.remember(got.ok ? got.cred : await Vault.cloud(f.pass, salt));
+          if (got.ok) Cloud.remember(got.cred);
+          else if (needsNewCloudKey({opened: false, armed: Cloud.armed()}))
+            Cloud.remember(await Vault.cloud(f.pass, salt));
         }
         onReady({account: a, fresh:false});
       } else {
