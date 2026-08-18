@@ -222,6 +222,8 @@ async function fromTelegram(req, res){
 
 /* ─────────── сам обробник ─────────── */
 module.exports = async function handler(req, res){
+  /* розвідник перед POST з нативної оболонки — див. L.preflight */
+  if (L.preflight(req, res)) return;
   const method = (req.method || 'GET').toUpperCase();
 
   /* Вебхук Telegram. Секрет у заголовку — єдине, що відрізняє його від

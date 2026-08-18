@@ -613,6 +613,25 @@ part('без ключів');
   process.env.LIQPAY_PRIVATE_KEY = keep;
 }
 
+/* ─── розвідник браузера перед POST ───
+   Нативна оболонка живе на іншому origin, і перед кожним POST із JSON
+   браузер питає окремим запитом OPTIONS: чи можна. Відповіді не було —
+   і з застосунку мовчки не працювало все, що пише: копія бази, зміна
+   пароля після відновлення, лист у підтримку. Виглядало як «немає
+   зв'язку», тому шукали не там. Читання при цьому працювало завжди:
+   простому GET розвідник не потрібен. */
+part('застосунок з іншого origin може писати');
+for (const f of ['db.js', 'chat.js']){
+  const r = await call(API(f), {method: 'OPTIONS', query: {}});
+  ok(f + ' відповідає на розвідника', r.code === 204, 'код ' + r.code);
+  ok('  дозволяє POST', /POST/.test(r.headers['access-control-allow-methods'] || ''),
+     r.headers['access-control-allow-methods'] || 'заголовка немає');
+  ok('  дозволяє content-type', /content-type/i.test(r.headers['access-control-allow-headers'] || ''),
+     r.headers['access-control-allow-headers'] || 'заголовка немає');
+  ok('  і будь-який origin', r.headers['access-control-allow-origin'] === '*',
+     r.headers['access-control-allow-origin'] || 'заголовка немає');
+}
+
 console.log('\n══════ ' + (checks - fails) + ' з ' + checks + (fails ? ' · є замечання' : ' · все чисто') + ' ══════');
 process.exit(fails ? 1 : 0);
 })();

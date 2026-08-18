@@ -965,6 +965,7 @@ const PHRASES = [
   ['Пакет видалено', 'Пакет удалён', 'Package deleted', 'Pakiet usunięty'],
   ['Придумайте PIN', 'Придумайте PIN', 'Create a PIN', 'Wymyśl PIN'],
   ['Про застосунок', 'О приложении', 'About the app', 'O aplikacji'],
+  ['Вихід', 'Выход', 'Sign out', 'Wyloguj'],
   ['Пробний період', 'Пробный период', 'Free trial', 'Okres próbny'],
   ['Резервна копія', 'Резервная копия', 'Backup', 'Kopia zapasowa'],
   ['Софія Ткаченко', 'София Ткаченко', 'Sofia Tkachenko', 'Sofia Tkaczenko'],
@@ -7961,17 +7962,6 @@ const Settings = ({params, onClose}) => {
                      placeholder="https://api.example.com/sync" style={{marginTop:8, height:44}}/>
             </div>
           </div>
-          {/* Вихід — не те саме, що очищення: дані лишаються, просто
-              наступного разу застосунок спитає логін. Тому й стоїть
-              окремо, звичайним кольором, а не червоним. */}
-          <button className="setrow" onClick={() => setBye(true)}>
-            <div className="ic"><Ic.left size={19}/></div>
-            <div className="tx"><b>{t('set.bye','Вийти з акаунта')}</b><span>{t('set.bye.s','Дані лишаться на пристрої — просто увійдіть знову')}</span></div>
-          </button>
-          <button className="setrow" onClick={() => setWipe(true)}>
-            <div className="ic" style={{background:'var(--neg-soft)', color:'var(--neg)'}}><Ic.trash size={19}/></div>
-            <div className="tx"><b style={{color:'var(--neg)'}}>{t('set.wipe','Очистити всі дані')}</b><span>{t('set.wipe.s','Видалить клієнтів, тренування та історію')}</span></div>
-          </button>
         </div>
 
         <div className="sechead"><div className="h2">{t('set.about','Про застосунок')}</div></div>
@@ -7994,6 +7984,27 @@ const Settings = ({params, onClose}) => {
             <div className="tx"><b>{t('set.help','Допомога')}</b>
               <span>{t('help.menu.s','Написати нам про проблему')}</span></div>
             <Ic.right size={17} className="chev"/>
+          </button>
+        </div>
+
+        {/* Вихід і очищення — в самому низу, окремим блоком.
+            Стояли вони посеред налаштувань, між адресою синхронізації та
+            умовами використання: людина крутила список у пошуках чогось
+            свого й проходила повз кнопку, яка стирає базу. Небезпечне не
+            має траплятись дорогою — по нього приходять навмисно, і йти
+            за ним треба до кінця. */}
+        <div className="sechead"><div className="h2">{t('set.exit','Вихід')}</div></div>
+        <div className="rows">
+          {/* Вихід — не те саме, що очищення: дані лишаються, просто
+              наступного разу застосунок спитає логін. Тому й стоїть
+              звичайним кольором, а не червоним. */}
+          <button className="setrow" onClick={() => setBye(true)}>
+            <div className="ic"><Ic.left size={19}/></div>
+            <div className="tx"><b>{t('set.bye','Вийти з акаунта')}</b><span>{t('set.bye.s','Дані лишаться на пристрої — просто увійдіть знову')}</span></div>
+          </button>
+          <button className="setrow" onClick={() => setWipe(true)}>
+            <div className="ic" style={{background:'var(--neg-soft)', color:'var(--neg)'}}><Ic.trash size={19}/></div>
+            <div className="tx"><b style={{color:'var(--neg)'}}>{t('set.wipe','Очистити всі дані')}</b><span>{t('set.wipe.s','Видалить клієнтів, тренування та історію')}</span></div>
           </button>
         </div>
 

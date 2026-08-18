@@ -1310,6 +1310,19 @@ PROBES['app-signout.js'] = DRIVE + `
       return /Вийти з акаунта/.test(b.textContent);
     })[0];
     res.row = !!out;
+
+    /* ─── небезпечне — в кінці ───
+       Вихід і очищення стояли посеред налаштувань, між адресою
+       синхронізації та умовами використання. Людина крутила список у
+       пошуках чогось свого й проходила повз кнопку, яка стирає базу.
+       Перевіряємо порядок на екрані, а не намір у коді. */
+    var heads = all('.page .sechead .h2').map(function(h){ return h.textContent.trim(); });
+    res.lastHead = heads.slice(-1)[0] || '';
+    var rowsAll = all('.page .setrow');
+    var idxOf = function(re){ return rowsAll.findIndex(function(b){ return re.test(b.textContent); }); };
+    var iWipe = idxOf(/Очистити всі дані/), iTerms = idxOf(/Умови використання/), iHelp = idxOf(/Допомога/);
+    res.afterLegal = iTerms >= 0 && iHelp >= 0 && iWipe > iTerms && iWipe > iHelp;
+    res.order = 'умови ' + iTerms + ', допомога ' + iHelp + ', очищення ' + iWipe;
     if (out){ out.click(); await wait(400); }
     var sheet = all('.sheet').filter(vis).slice(-1)[0];
     res.asks = !!(sheet && /Вийти з акаунта\\?/.test(sheet.textContent));
@@ -1728,6 +1741,8 @@ server.listen(PORT, '127.0.0.1', async () => {
     part('вихід з акаунта');
     o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-signout.js')) || '{}');
     ok('рядок «Вийти з акаунта» на місці', o.row === true);
+    ok('  небезпечне стоїть останнім розділом', o.lastHead === 'Вихід', o.lastHead || '—');
+    ok('  і нижче за умови й допомогу', o.afterLegal === true, o.order || '—');
     ok('перепитує, перш ніж вийти', o.asks === true);
     ok('є чим підтвердити', o.go === true);
     ok('позначка виходу лягає й знімається', o.before === false && o.after === true && o.back === false,

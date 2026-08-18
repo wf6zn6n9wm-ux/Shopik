@@ -50,6 +50,8 @@ const same = (a, b) => {
 };
 
 module.exports = async function handler(req, res){
+  /* розвідник перед POST з нативної оболонки — див. L.preflight */
+  if (L.preflight(req, res)) return;
   const q = {...(req.query || {}), ...(req.body || {})};
   const login = L.normLogin(q.login);
   if (!login) return L.json(res, 400, {ok: false, error: 'no_login'});

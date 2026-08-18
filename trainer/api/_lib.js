@@ -192,6 +192,25 @@ async function logPayment({login, plan, orderId, kind}){
 }
 const readPayments = async () => (await get(PAY_LOG)) || [];
 
+/* ─── запит-розвідник перед POST ───
+   Нативна оболонка живе на іншому origin (capacitor://localhost), і перед
+   кожним POST із JSON браузер надсилає окремий запит OPTIONS: чи можна.
+   Відповіді на нього не було. Дозволений origin ми ставили, а дозволені
+   метод і заголовок content-type — ні, тож розвідник не проходив, і з
+   застосунку мовчки не працювало все, що пише: копія бази на сервер,
+   зміна пароля після відновлення й лист у підтримку. Виглядало це як
+   «немає зв'язку» — і шукали ми не там. Читання працювало завжди, бо
+   простий GET розвідника не потребує; тому збій було так важко впіймати. */
+const preflight = (req, res) => {
+  if (String(req.method || 'GET').toUpperCase() !== 'OPTIONS') return false;
+  res.setHeader('access-control-allow-origin', '*');
+  res.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS');
+  res.setHeader('access-control-allow-headers', 'content-type');
+  res.setHeader('access-control-max-age', '86400');
+  res.status(204).send('');
+  return true;
+};
+
 const json = (res, code, body) => {
   res.setHeader('content-type', 'application/json; charset=utf-8');
   res.setHeader('cache-control', 'no-store');
@@ -205,6 +224,6 @@ module.exports = {
   /* live() — чи це справжнє сховище, а не пам'ять процесу */
   store: {get, set, keys, live: async () => !!(await kv())},
   sign, pack, unpack, verify,
-  normLogin, readLicence, writeLicence, view, applyPayment, addMonths, json,
+  normLogin, readLicence, writeLicence, view, applyPayment, addMonths, json, preflight,
   logPayment, readPayments, PAY_LOG,
 };
