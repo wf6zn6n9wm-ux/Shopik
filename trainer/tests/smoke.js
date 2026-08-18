@@ -1368,6 +1368,55 @@ part('чому не вдалося змінити пароль');
   T.I18n.set('uk');
 }
 
+part('імітація покупки не працює на живому сайті');
+{
+  const day = 86400000;
+  const host = h => { T.IAP.demo.fail = false; ctx.window.location.hostname = h; };
+
+  /* Локально імітація потрібна: інакше сценарій покупки нічим не
+     прокликати. На живому сайті магазину немає — і те саме натискання
+     видавало підписку задарма. */
+  host('localhost');
+  T.Disk.writeMeta({});
+  let r = await T.Access.purchase('quarterly');
+  ok('локально покупка імітується', r.ok === true);
+  ok('  і відновлюється', (await T.IAP.restore()).purchases.length === 1);
+
+  /* Той самий браузер, той самий запис у пам'яті — але вже на бойовому
+     домені. Саме так тренер натиснув «Я вже оплатив» і отримав три
+     місяці задарма. */
+  host('pro-trainer.pro');
+  r = await T.IAP.restore();
+  ok('на бойовому домені відновлювати нічого', r.ok === false && r.error === 'no_store',
+     JSON.stringify(r));
+  ok('  покупку теж не імітують', (await T.IAP.buy('pro_trainer_yearly')).error === 'no_store');
+  r = await T.Access.restore();
+  ok('  і «Відновити покупку» чесно відмовляє', r.ok === false, JSON.stringify(r));
+
+  /* Ті, хто вже встиг її дістати, не мають лишитись із безкоштовним
+     доступом: підписка «з магазину» в браузері без магазину недійсна. */
+  T.Disk.writeMeta({...(T.Disk.readMeta() || {}), access: {
+    plan: 'quarterly', productId: 'pro_trainer_quarterly', status: 'active',
+    expiresAt: Date.now() + 90 * day, autoRenew: true}});
+  ok('видана імітацією підписка спершу відкриває доступ', T.Access.allowed() === true);
+  await T.Access.verify();
+  /* Доступ після цього не «закритий», а звичайний: пробний період не
+     починався, і блокувати нікого не за що. Знятою має бути саме
+     підписка — її й перевіряємо, а не загальний дозвіл. */
+  ok('  а перевірка її знімає', T.Access.read().plan === null && !/SUBSCRIPTION/.test(T.Access.state().kind),
+     T.Access.state().kind + ', план ' + JSON.stringify(T.Access.read().plan));
+
+  /* Веб-підписку чіпати не можна: джерело правди для неї — сервер. */
+  T.Disk.writeMeta({...(T.Disk.readMeta() || {}), access: {
+    plan: 'yearly', source: 'web', status: 'active',
+    expiresAt: Date.now() + 300 * day, autoRenew: false}});
+  const before = T.Access.state().kind;
+  ok('веб-підписка лишається чинною', before === 'SUBSCRIPTION_CANCELLED' || before === 'SUBSCRIPTION_ACTIVE', before);
+
+  host('localhost');
+  T.Disk.writeMeta({});
+}
+
 console.log('\n══════ ' + (checks - fails) + ' з ' + checks + (fails ? ' · є замечання' : ' · все чисто') + ' ══════');
 process.exit(fails ? 1 : 0);
 

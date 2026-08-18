@@ -2018,7 +2018,15 @@ const IAP = {
     return h === 'localhost' || h === '127.0.0.1' || h === '';
   },
   demo: {fail: false},
-  demoRead(){ try { return JSON.parse(Box.get(DEMO_IAP_KEY) || 'null'); } catch { return null; } },
+  /* Читання імітованої покупки — теж під тією самою охороною, що й сама
+     імітація. Без неї «Відновити покупку» на живому сайті діставало з
+     пам'яті браузера стару демо-покупку й видавало за неї справжню
+     підписку: три місяці задарма кожному, у кого вона колись лишилась.
+     Охорона стояла на кнопці «Купити», а на відновленні — ні. */
+  demoRead(){
+    if (!IAP.demoAllowed()) return null;
+    try { return JSON.parse(Box.get(DEMO_IAP_KEY) || 'null'); } catch { return null; }
+  },
   demoWrite(v){ Box.set(DEMO_IAP_KEY, JSON.stringify(v)); },
   async buy(productId){
     const b = IAP.bridge();
@@ -2033,6 +2041,7 @@ const IAP = {
   async restore(){
     const b = IAP.bridge();
     if (b) return b.restore();
+    if (!IAP.demoAllowed()) return {ok:false, error:'no_store'};
     await sleep(500);
     const rec = IAP.demoRead();
     return {ok:true, purchases: rec ? [rec] : []};
@@ -2662,6 +2671,16 @@ const Access = {
         Access.write({pause: r.pause});
       if (r && r.started) Access.fromTrial(r);
       else if (r && r.ok && !r.started && a.trialStartedAt) Web.trial(true).then(Access.fromTrial, () => {});
+    }
+    /* Підписка «з магазину» в браузері, де магазину немає й ніколи не
+       було, існувати не може: її туди поклала імітація покупки. Знімаємо
+       мовчки — інакше ті, хто вже встиг її дістати, лишились би з
+       безкоштовним доступом на три місяці. Веб-підписку не чіпаємо: у
+       неї джерело правди на сервері. */
+    if (a.plan && a.source !== 'web' && !IAP.connected() && !IAP.demoAllowed()){
+      Access.write({status:'expired', plan:null, productId:null, expiresAt:0,
+                    autoRenew:false, transactionId:null, lastVerifiedAt: Date.now()});
+      return {ok:true, active:false, dropped:true};
     }
     if (!a.plan) return {ok:false};
     if (a.source === 'web'){
@@ -8594,9 +8613,14 @@ const Paywall = ({mode, onClose}) => {
         {store ? t('pay.restore','Відновити покупку') : t('pay.web.done','Я вже оплатив')}
       </button>
       <div className="muted" style={{fontSize:11.5, textAlign:'center', marginTop:10, lineHeight:1.5}}>
+        {/* «Покупка імітується» на живому сайті читалось як обіцянка: тренер
+            бачив це під кнопкою й тиснув її. Магазину в браузері немає
+            зовсім — писати про нього нічого не треба. */}
         {IAP.connected()
           ? t('pay.store','Оплата проходить через магазин застосунків, керувати підпискою можна в його налаштуваннях. Підписка продовжується автоматично, доки ви не вимкнете автопродовження.')
-          : t('pay.demo','Демо-режим: магазин ще не підключено, покупка імітується для перевірки сценарію.')}
+          : IAP.demoAllowed()
+          ? t('pay.demo','Демо-режим: магазин ще не підключено, покупка імітується для перевірки сценарію.')
+          : ''}
         {Web.enabled() && ' ' + t('pay.web.note','Оплата на сайті дешевша, бо не містить комісії магазину: підписка прив’язується до вашого логіна й діє на {n} пристроях.').replace('{n}', WEB.devices)}
       </div>
       <div style={{display:'flex', gap:16, justifyContent:'center', marginTop:8}}>
