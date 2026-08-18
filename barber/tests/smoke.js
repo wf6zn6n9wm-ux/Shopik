@@ -1495,7 +1495,7 @@ part('публичная страница');
 {
   const pub = sandbox();
   vm.runInContext(transpile(source('book.html'), 'book') +
-    ';globalThis.__B = {Book, slots, DB, dayLabel, save, KEY, fromServer, REASONS, ask};', pub.ctx, {filename: 'book.jsx'});
+    ';globalThis.__B = {Book, slots, DB, dayLabel, save, KEY, fromServer, REASONS, ask, PHRASES, pickLang, t, LANGS};', pub.ctx, {filename: 'book.jsx'});
   const B = pub.ctx.__B;
   ok('страница записи собирается', typeof B.Book === 'function');
   ok('без данных барбера показывает витрину по умолчанию', B.DB().services.length >= 4);
@@ -1552,7 +1552,26 @@ part('публичная страница');
   ok('в занятости с сервера нет ничего лишнего',
      Object.keys(fromApi.appts[0]).sort().join(',') === 'date,dur,status,time');
   ok('на каждый отказ сервера есть человеческий текст',
-     ['taken', 'closed', 'past', 'too_many', 'bad_phone'].every(r => !!B.REASONS[r]));
+     ['taken', 'closed', 'past', 'too_many', 'bad_phone']
+       .every(r => !!B.REASONS[r] && !!B.PHRASES[B.REASONS[r]]));
+
+  /* Эту страницу видит не барбер, а его клиент. Язык берётся у барбера:
+     он выбрал его один раз в кабинете, и сервер везёт его в витрине. */
+  {
+    const noLang = Object.keys(B.PHRASES).filter(k => B.LANGS.some(l => !B.PHRASES[k][l]));
+    ok('на странице записи три языка', noLang.length === 0,
+       noLang.join(', ') || Object.keys(B.PHRASES).length + ' фраз');
+    ok('украинский — язык по умолчанию', B.pickLang('') === 'uk' && B.pickLang('чужой') === 'uk');
+    ok('язык барбера главнее', B.pickLang('en') === 'en' && B.pickLang('ru') === 'ru');
+    ok('витрина везёт язык кабинета', B.fromServer({shop: {lang: 'en'}}).settings.lang === 'en');
+    ok('и гривну, когда сервер молчит о валюте',
+       B.fromServer({shop: {}}).settings.currency === 'UAH');
+    const page = textOf(pub.el(B.Book, {}));
+    ok('и по умолчанию страница украинская', page.includes(B.PHRASES.step1.uk), page.slice(0, 60).trim());
+    const ru = Object.keys(B.PHRASES).filter(k => B.PHRASES[k].uk === B.PHRASES[k].ru &&
+      /[ыэъё]|(^|[^а-яіїєґ])и/i.test(B.PHRASES[k].uk));
+    ok('и в украинских фразах нет русских', ru.length === 0, ru.join(', '));
+  }
   T.Act.accept('ap_online');
   ok('после подтверждения запись становится плановой',
      S().appts.find(a => a.id === 'ap_online').status === 'planned');

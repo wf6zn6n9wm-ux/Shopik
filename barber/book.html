@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="ru" data-theme="dark">
+<html lang="uk" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#0B0D0F" />
-<meta name="description" content="Онлайн-запись к барберу: выберите услугу, день и время." />
-<title>Про Барбер — онлайн-запись</title>
+<meta name="description" content="Онлайн-запис до барбера: оберіть послугу, день і час." />
+<title>Про Барбер — онлайн-запис</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml" />
 
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -124,9 +124,96 @@ const mins = t => { const [h, m] = String(t || '0:0').split(':').map(Number); re
 const hhmm = m => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
 const dowIdx = d => (d.getDay() + 6) % 7;
 const DOW_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-const WD = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-const WD_FULL = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
-const MONTH = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
+/* Язык страницы — язык кабинета: барбер выбрал его один раз, а видит
+   эту страницу его клиент. Порядок: ссылка (?lang=) → витрина барбера
+   (её привозит сервер) → язык браузера клиента → украинский. */
+const LANGS = ['uk', 'ru', 'en'];
+const ASKED = (() => {
+  try { return new URLSearchParams(location.search).get('lang') || ''; } catch (e){ return ''; }
+})();
+const GUESS = (() => {
+  try { return String(navigator.language || '').slice(0, 2); } catch (e){ return ''; }
+})();
+const pickLang = fromShop =>
+  LANGS.indexOf(ASKED) >= 0 ? ASKED
+  : LANGS.indexOf(fromShop) >= 0 ? fromShop
+  : LANGS.indexOf(GUESS) >= 0 ? GUESS : 'uk';
+
+const WD = {
+  uk: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'],
+  ru: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+};
+const WD_FULL = {
+  uk: ['Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П’ятниця', 'Субота', 'Неділя'],
+  ru: ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'],
+  en: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+};
+const MONTH = {
+  uk: ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'],
+  ru: ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+};
+
+const PHRASES = {
+  step1: {uk: 'Оберіть послугу', ru: 'Выберите услугу', en: 'Choose a service'},
+  step2: {uk: 'Оберіть день', ru: 'Выберите день', en: 'Choose a day'},
+  step3: {uk: 'Оберіть час', ru: 'Выберите время', en: 'Choose a time'},
+  step4: {uk: 'Ваші контакти', ru: 'Ваши контакты', en: 'Your details'},
+  hoursTitle: {uk: 'Графік роботи', ru: 'График работы', en: 'Working hours'},
+  dayOff: {uk: 'Вихідний', ru: 'Выходной', en: 'Closed'},
+  noFree: {uk: 'На цей день вільного часу немає — оберіть інший.',
+           ru: 'На этот день свободного времени нет — выберите другой.',
+           en: 'No free time on this day — pick another one.'},
+  fName: {uk: 'Ім’я', ru: 'Имя', en: 'Name'},
+  fPhone: {uk: 'Телефон', ru: 'Телефон', en: 'Phone'},
+  fNote: {uk: 'Коментар', ru: 'Комментарий', en: 'Comment'},
+  phName: {uk: 'Іван Петренко', ru: 'Иван Петров', en: 'John Smith'},
+  phNote: {uk: 'Щось важливе для барбера', ru: 'Что-то важное для барбера', en: 'Anything the barber should know'},
+  sumService: {uk: 'Послуга', ru: 'Услуга', en: 'Service'},
+  sumWhen: {uk: 'Коли', ru: 'Когда', en: 'When'},
+  sumPrice: {uk: 'Вартість', ru: 'Стоимость', en: 'Price'},
+  minShort: {uk: 'хв', ru: 'мин', en: 'min'},
+  send: {uk: 'Записатися', ru: 'Записаться', en: 'Book'},
+  sending: {uk: 'Надсилаємо…', ru: 'Отправляем…', en: 'Sending…'},
+  doneTitle: {uk: 'Заявку надіслано', ru: 'Заявка отправлена', en: 'Request sent'},
+  doneText: {uk: '{name} підтвердить запис і напише вам на {phone}.',
+             ru: '{name} подтвердит запись и напишет вам на {phone}.',
+             en: '{name} will confirm the appointment and text you at {phone}.'},
+  doneDemo: {uk: 'Демо-режим: заявку збережено в цьому браузері.',
+             ru: 'Демо-режим: заявка сохранена в этом браузере.',
+             en: 'Demo mode: the request is stored in this browser.'},
+  again: {uk: 'Записатися ще раз', ru: 'Записаться ещё раз', en: 'Book again'},
+  footBook: {uk: 'Про Барбер · онлайн-запис', ru: 'Про Барбер · онлайн-запись', en: 'Pro Barber · online booking'},
+  footMain: {uk: 'Про Барбер · твої клієнти. твій стиль. твій бізнес.',
+             ru: 'Про Барбер · твои клиенты. твой стиль. твой бизнес.',
+             en: 'Pro Barber · your clients. your style. your business.'},
+  errName: {uk: 'Як вас записати?', ru: 'Как вас записать?', en: 'What is your name?'},
+  errPhone: {uk: 'Потрібен телефон для підтвердження', ru: 'Нужен телефон для подтверждения', en: 'A phone number is needed to confirm'},
+  errTime: {uk: 'Оберіть час', ru: 'Выберите время', en: 'Pick a time'},
+  errSend: {uk: 'Не вийшло надіслати заявку. Спробуйте ще раз.',
+            ru: 'Не получилось отправить заявку. Попробуйте ещё раз.',
+            en: 'Could not send the request. Please try again.'},
+  rTaken: {uk: 'Цей час щойно зайняли — оберіть інший.', ru: 'Это время только что заняли — выберите другое.', en: 'That time has just been taken — pick another.'},
+  rClosed: {uk: 'У цей час барбер не працює.', ru: 'В это время барбер не работает.', en: 'The barber is not working then.'},
+  rPast: {uk: 'Ця дата вже минула.', ru: 'Эта дата уже прошла.', en: 'That date is in the past.'},
+  rFar: {uk: 'Так далеко записатися не можна.', ru: 'Так далеко записаться нельзя.', en: 'You cannot book that far ahead.'},
+  rMany: {uk: 'З цього номера вже є заявки. Барбер зв’яжеться з вами.', ru: 'С этого номера уже есть заявки. Барбер свяжется с вами.', en: 'There are already requests from this number. The barber will contact you.'},
+  rPhone: {uk: 'Перевірте номер телефону.', ru: 'Проверьте номер телефона.', en: 'Check the phone number.'},
+  rService: {uk: 'Послуга більше не доступна.', ru: 'Услуга больше не доступна.', en: 'That service is no longer available.'},
+};
+/* Язык живёт рядом с витриной, а не отдельно от неё: витрина приезжает
+   с сервера или лежит в этом же браузере, и в обоих случаях язык надо
+   взять оттуда же. Иначе клиент барбера, у которого кабинет украинский,
+   увидел бы страницу на языке своего телефона. */
+let LANG = pickLang('');
+const setLang = fromShop => {
+  LANG = pickLang(fromShop);
+  try { document.documentElement.lang = LANG; } catch (e){}
+  return LANG;
+};
+const t = k => (PHRASES[k] || {})[LANG] || (PHRASES[k] || {}).uk || k;
 const SIGN = {USD: '$', EUR: '€', UAH: '₴'};
 const money = (v, cur) => (cur === 'UAH' ? v + ' ₴' : (SIGN[cur] || '$') + v);
 const phoneMask = raw => {
@@ -135,16 +222,16 @@ const phoneMask = raw => {
   return '+' + d.replace(/^(\d{1,3})(\d{0,2})(\d{0,3})(\d{0,2})(\d{0,2}).*/, (m, a, b, c, e, f) =>
     [a, b, c, e, f].filter(Boolean).join(' '));
 };
-const dayLabel = d => d.getDate() + ' ' + MONTH[d.getMonth()];
+const dayLabel = d => d.getDate() + ' ' + MONTH[LANG][d.getMonth()];
 
 /* Кабинет барбера и эта страница живут в одном браузере: услуги, график
    и занятое время читаем из того же хранилища. Если данных нет (клиент
    открыл ссылку первым), показываем витрину по умолчанию. */
 const FALLBACK = {
   profile: {
-    name: 'Алексей Смирнов', role: 'Барбер', shop: 'Про Барбер',
-    address: 'Киев, ул. Крещатик, 22', phone: '+380 67 100 20 30', photo: '',
-    about: 'Мужские стрижки, борода, классическое бритьё. 8 лет за креслом.',
+    name: 'Олексій Коваль', role: 'Барбер', shop: 'Про Барбер',
+    address: 'Київ, вул. Хрещатик, 22', phone: '+380 67 100 20 30', photo: '',
+    about: 'Чоловічі стрижки, борода, класичне гоління. 8 років за кріслом.',
     hours: {
       mon: {on: true, from: '09:00', to: '20:00'}, tue: {on: true, from: '09:00', to: '20:00'},
       wed: {on: true, from: '09:00', to: '20:00'}, thu: {on: true, from: '09:00', to: '20:00'},
@@ -152,12 +239,12 @@ const FALLBACK = {
       sun: {on: false, from: '10:00', to: '16:00'},
     },
   },
-  settings: {currency: 'USD', step: 30, theme: 'dark'},
+  settings: {currency: 'UAH', lang: 'uk', step: 30, theme: 'dark'},
   services: [
-    {id: 'sv_0', name: 'Стрижка', price: 20, dur: 45, active: true},
-    {id: 'sv_1', name: 'Стрижка + борода', price: 30, dur: 60, active: true},
-    {id: 'sv_2', name: 'Борода', price: 15, dur: 30, active: true},
-    {id: 'sv_3', name: 'Детская стрижка', price: 15, dur: 40, active: true},
+    {id: 'sv_0', name: 'Стрижка', price: 400, dur: 45, active: true},
+    {id: 'sv_1', name: 'Стрижка + борода', price: 600, dur: 60, active: true},
+    {id: 'sv_2', name: 'Борода', price: 300, dur: 30, active: true},
+    {id: 'sv_3', name: 'Дитяча стрижка', price: 300, dur: 40, active: true},
   ],
   clients: [], appts: [], threads: [], seen: {},
 };
@@ -233,7 +320,7 @@ function fromServer(payload){
       address: shop.address, phone: shop.phone, photo: shop.photo,
       hours: shop.hours || {},
     },
-    settings: {currency: shop.currency || 'USD', step: shop.step || 30, theme: 'dark'},
+    settings: {currency: shop.currency || 'UAH', lang: shop.lang || '', step: shop.step || 30, theme: 'dark'},
     services: (shop.services || []).map(x => Object.assign({active: true}, x)),
     appts: (payload.busy || []).map(b => ({
       date: b.date, time: b.time, dur: Number(b.dur) || 30, status: 'planned',
@@ -243,14 +330,8 @@ function fromServer(payload){
 }
 
 const REASONS = {
-  taken: 'Это время только что заняли — выберите другое.',
-  closed: 'В это время барбер не работает.',
-  past: 'Эта дата уже прошла.',
-  far: 'Так далеко записаться нельзя.',
-  too_many: 'С этого номера уже есть заявки. Барбер свяжется с вами.',
-  bad_phone: 'Проверьте номер телефона.',
-  bad_name: 'Как вас записать?',
-  bad_service: 'Услуга больше не доступна.',
+  taken: 'rTaken', closed: 'rClosed', past: 'rPast', far: 'rFar',
+  too_many: 'rMany', bad_phone: 'rPhone', bad_name: 'errName', bad_service: 'rService',
 };
 
 const Logo = ({className}) => (
@@ -264,6 +345,7 @@ const initials = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(w => 
 
 function Book(){
   const [db, setDb] = useState(DB);
+  setLang((db.settings || {}).lang);
   const [online, setOnline] = useState(false);
   const [sending, setSending] = useState(false);
   const [fail, setFail] = useState('');
@@ -273,12 +355,13 @@ function Book(){
     let alive = true;
     ask('shop', {}).then(r => {
       if (!alive || !r || !r.ok) return;
-      setDb(fromServer(r));
+      const next = fromServer(r);
+      setDb(next);
       setOnline(true);
     });
     return () => { alive = false; };
   }, []);
-  const cur = (db.settings && db.settings.currency) || 'USD';
+  const cur = (db.settings && db.settings.currency) || 'UAH';
   const list = (db.services || []).filter(s => s.active !== false);
   const [svcId, setSvcId] = useState(list[0] ? list[0].id : '');
   const [date, setDate] = useState(iso(new Date()));
@@ -296,9 +379,9 @@ function Book(){
 
   const submit = async () => {
     const e = {};
-    if (!name.trim()) e.name = 'Как вас записать?';
-    if (phone.replace(/\D/g, '').length < 9) e.phone = 'Нужен телефон для подтверждения';
-    if (!time) e.time = 'Выберите время';
+    if (!name.trim()) e.name = t('errName');
+    if (phone.replace(/\D/g, '').length < 9) e.phone = t('errPhone');
+    if (!time) e.time = t('errTime');
     setErr(e);
     setFail('');
     if (Object.keys(e).length) return;
@@ -318,7 +401,7 @@ function Book(){
         setOkId(r.id);
         return;
       }
-      const why = REASONS[r && r.reason] || 'Не получилось отправить заявку. Попробуйте ещё раз.';
+      const why = REASONS[r && r.reason] ? t(REASONS[r && r.reason]) : t('errSend');
       setFail(why);
       if (r && r.reason === 'taken') setTime('');
       return;
@@ -351,24 +434,24 @@ function Book(){
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
                strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4.5 4.5L19 7" /></svg>
         </div>
-        <div style={{fontSize: 20, fontWeight: 750, marginBottom: 6}}>Заявка отправлена</div>
+        <div style={{fontSize: 20, fontWeight: 750, marginBottom: 6}}>{t('doneTitle')}</div>
         <div style={{color: 'var(--ink-2)', maxWidth: 420, margin: '0 auto 18px'}}>
-          {db.profile.name} подтвердит запись и напишет вам на {phoneMask(phone)}.
+          {t('doneText').replace('{name}', db.profile.name).replace('{phone}', phoneMask(phone))}
           {!online && <div style={{marginTop: 8, fontSize: 12, color: 'var(--ink-3)'}}>
-            Демо-режим: заявка сохранена в этом браузере.
+            {t('doneDemo')}
           </div>}
         </div>
         <div style={{maxWidth: 340, margin: '0 auto', textAlign: 'left'}}>
-          <div className="sum"><span>Услуга</span><b>{svc.name}</b></div>
-          <div className="sum"><span>Когда</span><b>{dayLabel(new Date(date + 'T00:00:00'))}, {time}</b></div>
-          <div className="sum"><span>Стоимость</span><b>{money(svc.price, cur)}</b></div>
+          <div className="sum"><span>{t('sumService')}</span><b>{svc.name}</b></div>
+          <div className="sum"><span>{t('sumWhen')}</span><b>{dayLabel(new Date(date + 'T00:00:00'))}, {time}</b></div>
+          <div className="sum"><span>{t('sumPrice')}</span><b>{money(svc.price, cur)}</b></div>
         </div>
         <div style={{height: 18}} />
         <button className="btn ghost" onClick={() => { setOkId(null); setTime(''); setNote(''); }}>
-          Записаться ещё раз
+          {t('again')}
         </button>
       </div>
-      <div className="foot">Про Барбер · онлайн-запись</div>
+      <div className="foot">{t('footBook')}</div>
     </div>
   );
 
@@ -391,13 +474,13 @@ function Book(){
       )}
 
       <div className="card">
-        <div className="step"><i>1</i><b>Выберите услугу</b></div>
+        <div className="step"><i>1</i><b>{t('step1')}</b></div>
         <div className="svc">
           {list.map(s => (
             <button key={s.id} className={s.id === svcId ? 'on' : ''}
                     onClick={() => { setSvcId(s.id); setTime(''); }}>
               <div className="n">{s.name}</div>
-              <div className="m">{s.dur} мин</div>
+              <div className="m">{s.dur} {t('minShort')}</div>
               <div className="p num">{money(s.price, cur)}</div>
             </button>
           ))}
@@ -405,7 +488,7 @@ function Book(){
       </div>
 
       <div className="card">
-        <div className="step"><i>2</i><b>Выберите день</b></div>
+        <div className="step"><i>2</i><b>{t('step2')}</b></div>
         <div className="days">
           {days.map(d => {
             const id = iso(d);
@@ -413,7 +496,7 @@ function Book(){
             return (
               <button key={id} className={id === date ? 'on' : ''} disabled={!h || !h.on}
                       onClick={() => { setDate(id); setTime(''); }}>
-                <div className="wd">{WD[dowIdx(d)]}</div>
+                <div className="wd">{WD[LANG][dowIdx(d)]}</div>
                 <div className="dd num">{d.getDate()}</div>
               </button>
             );
@@ -422,7 +505,7 @@ function Book(){
       </div>
 
       <div className="card">
-        <div className="step"><i>3</i><b>Выберите время</b></div>
+        <div className="step"><i>3</i><b>{t('step3')}</b></div>
         {free.length ? (
           <div className="slots">
             {free.map(x => (
@@ -432,58 +515,58 @@ function Book(){
             ))}
           </div>
         ) : (
-          <div style={{color: 'var(--ink-3)'}}>На этот день свободного времени нет — выберите другой.</div>
+          <div style={{color: 'var(--ink-3)'}}>{t('noFree')}</div>
         )}
         {err.time && <div className="err">{err.time}</div>}
       </div>
 
       <div className="card">
-        <div className="step"><i>4</i><b>Ваши контакты</b></div>
+        <div className="step"><i>4</i><b>{t('step4')}</b></div>
         <label className="field">
-          <span className="label">Имя</span>
-          <input className={'input' + (err.name ? ' bad' : '')} value={name} placeholder="Иван Петров"
+          <span className="label">{t('fName')}</span>
+          <input className={'input' + (err.name ? ' bad' : '')} value={name} placeholder={t('phName')}
                  onChange={e => setName(e.target.value)} />
           {err.name && <div className="err">{err.name}</div>}
         </label>
         <label className="field">
-          <span className="label">Телефон</span>
+          <span className="label">{t('fPhone')}</span>
           <input className={'input' + (err.phone ? ' bad' : '')} value={phone} placeholder="+380 00 000 00 00"
                  inputMode="tel" onChange={e => setPhone(phoneMask(e.target.value))} />
           {err.phone && <div className="err">{err.phone}</div>}
         </label>
         <label className="field">
-          <span className="label">Комментарий</span>
-          <textarea className="area" value={note} placeholder="Что-то важное для барбера"
+          <span className="label">{t('fNote')}</span>
+          <textarea className="area" value={note} placeholder={t('phNote')}
                     onChange={e => setNote(e.target.value)} />
         </label>
 
-        <div className="sum"><span>Услуга</span><b>{svc.name} · {svc.dur} мин</b></div>
-        <div className="sum"><span>Когда</span>
+        <div className="sum"><span>{t('sumService')}</span><b>{svc.name} · {svc.dur} {t('minShort')}</b></div>
+        <div className="sum"><span>{t('sumWhen')}</span>
           <b>{dayLabel(new Date(date + 'T00:00:00'))}{time ? ', ' + time : ''}</b>
         </div>
-        <div className="sum"><span>Стоимость</span><b className="num">{money(svc.price, cur)}</b></div>
+        <div className="sum"><span>{t('sumPrice')}</span><b className="num">{money(svc.price, cur)}</b></div>
         <div style={{height: 12}} />
         <button className="btn" onClick={submit} disabled={!time || sending}>
-          {sending ? 'Отправляем…' : 'Записаться'}
+          {sending ? t('sending') : t('send')}
         </button>
         {fail && <div className="err" style={{marginTop: 8}}>{fail}</div>}
       </div>
 
       <div className="card">
-        <div className="step"><i>·</i><b>График работы</b></div>
+        <div className="step"><i>·</i><b>{t('hoursTitle')}</b></div>
         {DOW_KEYS.map((k, i) => {
           const h = hours[k];
           return (
             <div key={k} className="hrs">
-              <span>{WD_FULL[i]}</span>
-              <span className={h && h.on ? 'num' : 'off'}>{h && h.on ? h.from + ' — ' + h.to : 'Выходной'}</span>
+              <span>{WD_FULL[LANG][i]}</span>
+              <span className={h && h.on ? 'num' : 'off'}>{h && h.on ? h.from + ' — ' + h.to : t('dayOff')}</span>
             </div>
           );
         })}
-        {db.profile.phone && <div className="hrs"><span>Телефон</span><span className="num">{db.profile.phone}</span></div>}
+        {db.profile.phone && <div className="hrs"><span>{t('fPhone')}</span><span className="num">{db.profile.phone}</span></div>}
       </div>
 
-      <div className="foot">Про Барбер · твои клиенты. твой стиль. твой бизнес.</div>
+      <div className="foot">{t('footMain')}</div>
     </div>
   );
 }
