@@ -111,14 +111,15 @@
    різні суми. renews — чи продовжується підписка сама: у LiqPay є
    місячна й річна періодичність, тримісячної немає. */
 var PLANS = [
-  {id: 'yearly',    months: 12, price: 37.49, renews: true},
-  {id: 'quarterly', months: 3,  price: 9.49,  renews: false},
-  {id: 'monthly',   months: 1,  price: 3.49,  renews: true}
+  {id: 'yearly',    months: 12, price: 1490, renews: true},
+  {id: 'quarterly', months: 3,  price: 399,  renews: false},
+  {id: 'monthly',   months: 1,  price: 149,  renews: true}
 ];
 
-/* Куди відправляти оплату. Порожньо — серверна функція ще не
-   під'єднана, і сторінка чесно про це скаже, а не поведе в нікуди. */
-var CHECKOUT = '';
+/* Серверна функція, яка підписує запит і відправляє в LiqPay. Якщо
+   ключів немає — вона відповість 503, і сторінка чесно про це скаже,
+   а не поведе в нікуди. */
+var CHECKOUT = 'api/checkout';
 var SUPPORT = 'https://t.me/urokplus';
 
 var T = {
@@ -184,8 +185,14 @@ var T = {
 var Q = new URLSearchParams(location.search);
 var LANG = ['uk', 'ru', 'en'].indexOf(Q.get('lang')) >= 0 ? Q.get('lang') : 'uk';
 var plan = PLANS.some(function(p){ return p.id === Q.get('plan'); }) ? Q.get('plan') : 'yearly';
+/* Пристрій і пошту приносить застосунок — щоб людина не вводила те,
+   що вже й так відомо, а ліцензія одразу лягла на потрібний пристрій. */
+var DEVICE = Q.get('device') || '';
 
-var usd = function(v){ return '$' + Number(v).toFixed(2); };
+/* Гривня пишеться після числа й без копійок: ціни в нас цілі. */
+var money = function(v){
+  return String(Math.round(Number(v))).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0') + '\u00A0₴';
+};
 var monthly = function(p){ return p.price / p.months; };
 var saving = function(p){
   var base = PLANS.filter(function(x){ return x.id === 'monthly'; })[0];
@@ -195,6 +202,8 @@ var best = Math.max.apply(null, PLANS.map(saving));
 
 function render(){
   var t = T[LANG];
+  if (Q.get('login') && !document.getElementById('mail').value)
+    document.getElementById('mail').value = Q.get('login');
   document.documentElement.lang = LANG;
   document.getElementById('h1').textContent = t.title;
   document.getElementById('sub').textContent = t.sub;
@@ -209,14 +218,14 @@ function render(){
     var badge = pct > 0 && pct === best
       ? '<span class="save">' + t.save.replace('{n}', pct) + '</span>' : '';
     var per = p.months > 1
-      ? t.permonth.replace('{price}', usd(Math.round(monthly(p) * 100) / 100))
+      ? t.permonth.replace('{price}', money(monthly(p)))
       : t.per[p.id];
     return '<button class="plan" type="button" data-plan="' + p.id + '"'
       + ' aria-pressed="' + (p.id === plan) + '">' + badge
       + '<span class="col"><span class="name">' + t.names[p.id] + '</span>'
       + '<span class="per">' + per + '</span>'
       + '<span class="per">' + (p.renews ? t.renews : t.once) + '</span></span>'
-      + '<span class="amt"><span class="now">' + usd(p.price) + '</span></span></button>';
+      + '<span class="amt"><span class="now">' + money(p.price) + '</span></span></button>';
   }).join('');
 
   Array.prototype.forEach.call(document.querySelectorAll('.plan'), function(el){
@@ -260,7 +269,7 @@ document.getElementById('go').addEventListener('click', function(){
     return;
   }
   location.href = CHECKOUT + '?' + new URLSearchParams({
-    plan: plan, lang: LANG, login: mail.value.trim().toLowerCase()
+    plan: plan, lang: LANG, login: mail.value.trim().toLowerCase(), device: DEVICE
   }).toString();
 });
 

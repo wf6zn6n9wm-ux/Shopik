@@ -226,7 +226,9 @@ function blankState(){
     payments: [],
     homework: [],
     library: [],
-    premium: {plan: null, until: '', trialUsed: false},
+    /* source — де оформлена: 'web' (LiqPay) чи 'trial'. login — пошта,
+       на яку прив'язана ліцензія на сервері. */
+    premium: {plan: null, until: '', trialUsed: false, source: '', login: '', autoRenew: true, devices: 0, limit: 0},
     seen: {},
   };
 }
@@ -464,8 +466,15 @@ const A = {
       ...s, library: [...s.library, {id: itemId, date: todayISO(), price: price || 0}],
     }));
   },
-  setPremium(plan, until){
-    store.set(s => ({...s, premium: {...s.premium, plan, until, trialUsed: s.premium.trialUsed || plan === 'trial'}}));
+  setPremium(plan, until, extra){
+    store.set(s => ({...s, premium: {
+      ...s.premium, plan, until,
+      trialUsed: s.premium.trialUsed || plan === 'trial',
+      ...(extra || {}),
+    }}));
+  },
+  clearPremium(){
+    store.set(s => ({...s, premium: {...s.premium, plan: null, until: '', source: '', autoRenew: true}}));
   },
   logout(){
     store.set(s => ({...s, auth: {status: 'guest', phone: '', provider: '', createdAt: ''}, onboarded: false}));
@@ -744,26 +753,39 @@ function expandSeries(rule, opts){
    лише демо-провайдер; нативний міст (Capacitor-плагін StoreKit)
    підхоплюється автоматично, щойно з'явиться window.UrokIAP —
    екрани підписки міняти не доведеться.                          */
-/* Ціни підписки. Тариф один — той, що на сайті: покупок усередині
-   застосунку немає й не буде. Причина не технічна, а податкова: ФОП
-   другої групи не має права надавати послуги нерезиденту-юрособі, а
-   App Store платить саме так. Тому оплата йде напряму від людини
-   через LiqPay, а магазин у цій схемі не бере участі.
+/* Ціни підписки — у гривні: платить українська людина українською
+   карткою через LiqPay, і показувати їй долари означало б показувати
+   курс, якого в чеку не буде.
 
-   renews — чи продовжується підписка сама. У LiqPay періодичність
-   буває місячна й річна, тримісячної немає, тому квартальний тариф —
-   разовий платіж. Це видно користувачу на екрані й на сторінці оплати.
+   Покупок усередині застосунку немає й не буде. Причина не технічна, а
+   податкова: ФОП другої групи не має права надавати послуги
+   нерезиденту-юрособі, а App Store платить саме так. Тому оплата йде
+   напряму від людини, а магазин у цій схемі не бере участі.
 
-   months потрібні, щоб рахувати вигоду й строк без окремих таблиць. */
+   renews — чи продовжується підписка сама. LiqPay уміє регулярні
+   списання з періодом «місяць» або «рік», тримісячної періодичності
+   немає, тому квартальний тариф — разовий платіж. Це написано і в
+   тарифі, і на сторінці оплати, а не лишено сюрпризом після списання.
+
+   ⚠️ Ті самі числа продубльовані в pay.html і api/_lib.js — за цим
+   стежить smoke.js, інакше сайт, застосунок і сервер одного дня
+   почнуть обіцяти різні суми. */
 const PRODUCTS = {
-  monthly: {id: 'plus.monthly', period: 'month', months: 1, price: 3.49, currency: 'USD', renews: true},
-  quarterly: {id: 'plus.quarterly', period: 'quarter', months: 3, price: 9.49, currency: 'USD', renews: false},
-  yearly: {id: 'plus.yearly', period: 'year', months: 12, price: 37.49, currency: 'USD', renews: true},
+  monthly: {id: 'plus.monthly', period: 'month', months: 1, price: 149, currency: 'UAH', renews: true},
+  quarterly: {id: 'plus.quarterly', period: 'quarter', months: 3, price: 399, currency: 'UAH', renews: false},
+  yearly: {id: 'plus.yearly', period: 'year', months: 12, price: 1490, currency: 'UAH', renews: true},
 };
 const PLAN_ORDER = ['yearly', 'quarterly', 'monthly'];
 /* Скільки виходить на місяць і скільки це економить проти місячного. */
 const planMonthly = plan => (PRODUCTS[plan] ? PRODUCTS[plan].price / PRODUCTS[plan].months : 0);
 const planSaving = plan => Math.round((1 - planMonthly(plan) / PRODUCTS.monthly.price) * 100);
+/* «На місяць» показуємо цілими гривнями: копійки в такому підписі
+   лише зашумлюють, а точну суму людина все одно бачить у тарифі. */
+const planPerMonth = plan => {
+  const product = PRODUCTS[plan];
+  const value = planMonthly(plan);
+  return product && product.currency === 'UAH' ? Math.round(value) : Math.round(value * 100) / 100;
+};
 
 /* ─── оплата на сайті ───
    Єдиний спосіб оплати: сторінка pay.html і LiqPay. Карток застосунок
@@ -778,7 +800,20 @@ const planSaving = plan => Math.round((1 - planMonthly(plan) / PRODUCTS.monthly.
 const WEB = {
   base: '',            /* порожньо — той самий домен і тека, що й застосунок */
   page: 'pay.html',
+  api: 'api/',
+  devices: 3,          /* скільки пристроїв на одну підписку */
 };
+
+/* Ідентифікатор пристрою живе окремо від даних застосунку: інакше
+   «Видалити всі дані» з'їдало б слот у ліцензії щоразу. */
+const DEVICE_KEY = 'urok.device';
+function deviceId(){
+  try {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id){ id = uid('dev'); localStorage.setItem(DEVICE_KEY, id); }
+    return id;
+  } catch (e) { return 'dev_local'; }
+}
 
 const Web = {
   base(){
@@ -810,36 +845,102 @@ const Web = {
     return Web.base() + WEB.page + '?' + params.toString();
   },
   cheapest(){ return Math.min(...Object.keys(PRODUCTS).map(k => PRODUCTS[k].price)); },
+  /* Сторінка оплати має знати, кому й на який пристрій продавати. */
+  payUrlFor(planId, lang, login){
+    const params = new URLSearchParams({plan: planId || 'yearly', lang: lang || 'uk', device: deviceId()});
+    if (login) params.set('login', login);
+    return Web.base() + WEB.page + '?' + params.toString();
+  },
+  api(path){
+    const base = Web.base() || (WEB.base ? WEB.base.replace(/\/+$/, '') + '/' : '');
+    return (base || '') + WEB.api + path;
+  },
+};
+
+/* ─── ліцензія ───
+   Сервер (api/) — єдине джерело правди про підписку: застосунок лише
+   питає його і зберігає відповідь. Мережі може не бути, сервера може
+   не бути — тоді просто лишається те, що вже збережено, і жодних
+   вигаданих «активна».                                              */
+const Licence = {
+  async ask(path, params){
+    if (typeof fetch !== 'function') return {ok: false, error: 'offline'};
+    const query = new URLSearchParams({device: deviceId(), ...(params || {})});
+    try {
+      const res = await fetch(Web.api(path) + '?' + query.toString(), {headers: {accept: 'application/json'}});
+      if (!res.ok) return {ok: false, error: 'http_' + res.status};
+      return await res.json();
+    } catch (e) { return {ok: false, error: 'offline'}; }
+  },
+  /* Що зараз із підпискою на цьому логіні й пристрої. */
+  check(login){ return Licence.ask('licence', {login: login || ''}); },
+  /* «Відновити доступ»: прив'язати цей пристрій до вже оплаченої. */
+  claim(login){ return Licence.ask('claim', {login: login || ''}); },
+  /* Вимкнути автопродовження. */
+  cancel(login){ return Licence.ask('unsubscribe', {login: login || ''}); },
+  /* Відповідь сервера → стан застосунку. Одне місце на всі виклики. */
+  apply(res){
+    if (!res || !res.ok) return false;
+    if (!res.active){
+      /* Сервер знає про підписку, але вона скінчилась — прибираємо. */
+      if (res.plan && !res.needsClaim) A.clearPremium();
+      return false;
+    }
+    A.setPremium(res.plan, new Date(res.expiresAt).toISOString().slice(0, 10), {
+      source: 'web',
+      autoRenew: res.autoRenew !== false,
+      devices: res.devices || 0,
+      limit: res.limit || WEB.devices,
+    });
+    return true;
+  },
 };
 
 const Billing = {
-  /* Магазинного моста більше немає: покупок усередині застосунку не
-     буває. Лишились дві дії — безкоштовний пробний тиждень і перевірка
-     вже оплаченої на сайті підписки. */
+  /* Магазинного моста немає: покупок усередині застосунку не буває.
+     Лишились пробний тиждень, посилання на оплату й відновлення. */
   products(){ return PRODUCTS; },
   available(){ return Web.enabled(); },
 
   async trial(){
     const s = store.get();
     if (s.premium.trialUsed) return {ok: false, reason: 'used'};
-    A.setPremium('trial', addDays(todayISO(), 7));
+    A.setPremium('trial', addDays(todayISO(), 7), {source: 'trial'});
     return {ok: true};
   },
 
-  /* Посилання на оплату: сторінка сама розбереться з LiqPay. */
-  checkoutUrl(planId, lang){ return Web.payUrl(planId, lang); },
+  checkoutUrl(planId, lang, login){ return Web.payUrlFor(planId, lang, login); },
 
-  /* «Відновити покупки» питає ліцензійний сервер, чи є на цьому
-     логіні активна підписка. Сервера ще немає — тоді чесно кажемо, що
-     нічого не знайшли, замість того щоб вдавати успіх. */
+  /* «Відновити доступ»: питаємо сервер і, якщо підписка є, прив'язуємо
+     до неї цей пристрій. Пошту запам'ятовуємо — далі перевіряти вже
+     нічого не питаючи. */
   async restore(login){
-    const bridge = typeof window !== 'undefined' ? window.UrokLicence : null;
-    if (bridge && typeof bridge.check === 'function'){
-      const res = await bridge.check(login || '');
-      if (res && res.plan) A.setPremium(res.plan, res.expiresAt || '');
-      return {ok: !!(res && res.plan)};
-    }
-    return {ok: sel.isPremium(store.get())};
+    const saved = store.get().premium.login;
+    const who = (login || saved || '').trim().toLowerCase();
+    if (!who) return {ok: false, reason: 'no_login'};
+    const res = await Licence.claim(who);
+    /* Спред іде першим: інакше res.ok === true перетирало б нашу
+       відмову, і вичерпаний ліміт пристроїв виглядав би як успіх. */
+    if (res && res.error === 'device_limit') return {...res, ok: false, reason: 'device_limit'};
+    const ok = Licence.apply(res);
+    if (ok) A.setPremium(store.get().premium.plan, store.get().premium.until, {login: who});
+    return {ok, reason: ok ? '' : (res && res.error) || 'not_found'};
+  },
+
+  /* Тиха перевірка при відкритті екрана підписки. */
+  async refresh(){
+    const who = store.get().premium.login;
+    if (!who) return {ok: false};
+    const res = await Licence.check(who);
+    return {ok: Licence.apply(res), raw: res};
+  },
+
+  async cancelAutoRenew(){
+    const who = store.get().premium.login;
+    if (!who) return {ok: false};
+    const res = await Licence.cancel(who);
+    if (res && res.ok) Licence.apply(res);
+    return {ok: !!(res && res.ok)};
   },
 };
 
@@ -1021,7 +1122,7 @@ Object.assign(window.U, {
   fmtDayMonth, fmtLongDate, fmtShortDate, fmtRelDate, fmtDur, fmtMoney, fmtPrice, currencySymbol, initials, uid, pickColor,
   normalizePhone, isPhoneValid, photoFromFile, copyText, isEmbedded, blankState, merge, load, persist, createStore, store, useStore, A, normalizeLesson,
   sel, byTime, expandSeries, Billing, applyTheme, applyLang, demoData, loadDemo, unloadDemo, hasDemo, detectTz,
-  LESSON_STATUS, HOMEWORK_STATUS, lessonPrice, lessonTotal, isEarning, PLAN_ORDER, planMonthly, planSaving,
-  WEB, Web,
+  LESSON_STATUS, HOMEWORK_STATUS, lessonPrice, lessonTotal, isEarning, PLAN_ORDER, planMonthly, planSaving, planPerMonth,
+  WEB, Web, Licence, deviceId,
 });
 })();

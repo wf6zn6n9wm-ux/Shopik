@@ -16,7 +16,7 @@ window.U = window.U || {};
 const {
   Icon, Avatar, Btn, IconBtn, Card, SectionHead, Row, Field, Input, TextArea, Empty, Sheet, Confirm,
   Segmented, Chips, Switch, SwitchRow, StackBar, AppBar, toast, Stats, photoFromFile,
-  A, sel, store, Billing, Web, PRODUCTS, PLAN_ORDER, planMonthly, planSaving, fmtPrice,
+  A, sel, store, Billing, Web, PRODUCTS, PLAN_ORDER, planMonthly, planSaving, planPerMonth, fmtPrice,
   LANGS, CURRENCIES, TIMEZONES, FREE_STUDENT_LIMIT, VERSION,
   todayISO, addDays, startOfWeek, weekDays, fmtMoney, fmtShortDate, fmtDayMonth, currencySymbol,
   applyTheme, applyLang, loadDemo, unloadDemo, hasDemo, copyText, isEmbedded,
@@ -123,7 +123,7 @@ function ProfileScreen({t, s, nav}){
         <div className="rows joined">
           <Row icon={<Icon.gear size={19} />} title={t('se.title')} chevron onClick={() => nav.push({name: 'settings'})} />
           <Row icon={<Icon.crown size={19} />} title={t('se.subscription')}
-               sub={premium ? t('sub.active') : t('sub.free')} chevron onClick={() => nav.push({name: 'premium'})} />
+               sub={premium ? t('sub.active') : t('sub.free')} chevron onClick={() => nav.push({name: 'subscription'})} />
           <Row icon={<Icon.help size={19} />} title={t('se.help')} chevron onClick={() => nav.push({name: 'help'})} />
         </div>
 
@@ -272,7 +272,7 @@ function SettingsScreen({t, s, nav}){
                right={s.auth.phone || '—'} />
           <Row icon={<Icon.crown size={19} />} title={t('se.subscription')}
                right={sel.isPremium(s) ? t('sub.active') : t('sub.free')} chevron
-               onClick={() => nav.push({name: 'premium'})} />
+               onClick={() => nav.push({name: 'subscription'})} />
           <SwitchRow icon={<Icon.sparkle size={19} />} title={t('se.demoData')} sub={t('se.demoDataD')}
                      on={hasDemo(s)} onChange={v => { v ? loadDemo(t) : unloadDemo(); toast(t('c.saved')); }} />
           <Row icon={<Icon.download size={19} />} title={t('se.exportData')} sub={t('se.exportDataD')}
@@ -398,7 +398,7 @@ function PremiumScreen({t, s, nav, params}){
      сервер. Карток застосунок не бачить у жодному разі. */
   const payWeb = () => {
     if (!Web.enabled()) return toast(t('sub.webDemo'));
-    openLink(Web.payUrl(plan, s.settings.lang));
+    openLink(Web.payUrlFor(plan, s.settings.lang, s.premium.login));
     toast(t('sub.webOpened'));
   };
 
@@ -455,7 +455,7 @@ function PremiumScreen({t, s, nav, params}){
                   {PLAN_ORDER.map(id => {
                     const product = p[id];
                     const saving = planSaving(id);
-                    const perMonth = Math.round(planMonthly(id) * 100) / 100;
+                    const perMonth = planPerMonth(id);
                     const period = id === 'yearly' ? t('sub.perYear')
                       : id === 'quarterly' ? t('sub.perQuarter') : t('sub.perMonth');
                     /* Плашку вигоди чіпляємо лише там, де вона справді
@@ -542,6 +542,153 @@ function PremiumScreen({t, s, nav, params}){
           )}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+
+/* ── керування підпискою ───────────────────────────────────────
+   Окремий екран, як у тренері: спершу стан справ рядками (план, де
+   оформлена, до якої дати, автопродовження, пристрої), потім дії.
+   Тарифи звідси відкриваються окремо — щоб людина, яка зайшла
+   подивитись дату, не потрапляла одразу на вітрину.               */
+function SubscriptionScreen({t, s, nav}){
+  const [busy, setBusy] = React.useState('');
+  const [mail, setMail] = React.useState(s.premium.login || '');
+  const [restore, setRestore] = React.useState(false);
+  const premium = sel.isPremium(s);
+  const raw = s.premium;
+  const trial = raw.plan === 'trial';
+  const web = raw.source === 'web';
+  const product = PRODUCTS[raw.plan];
+  const cancelled = premium && web && raw.autoRenew === false;
+
+  /* Сервер знає більше за нас: при відкритті тихо звіряємось. */
+  React.useEffect(() => { if (raw.login) Billing.refresh(); }, []);
+
+  const status = premium ? (trial ? t('sub.statusTrial') : t('sub.statusActive')) : t('sub.statusNone');
+  /* Червона плашка на «ще не купив» — це докір, а не інформація. */
+  const tone = premium ? (trial ? 'acc' : 'pos') : '';
+
+  const doRestore = async () => {
+    const who = mail.trim().toLowerCase();
+    if (!who) return;
+    setBusy('restore');
+    const res = await Billing.restore(who);
+    setBusy('');
+    if (res.ok){ setRestore(false); toast(t('sub.restoreOk')); return; }
+    if (res.reason === 'device_limit')
+      return toast(t('sub.restoreLimit', {used: res.devices || 0, limit: res.limit || 3}));
+    toast(res.reason === 'offline' ? t('sub.offline') : t('sub.restoreNone'));
+  };
+
+  const doCancel = async () => {
+    setBusy('cancel');
+    const res = await Billing.cancelAutoRenew();
+    setBusy('');
+    toast(res.ok ? t('sub.cancelDone') : t('sub.offline'));
+  };
+
+  return (
+    <div className="app stack">
+      <StackBar t={t} title={t('se.subscription')} onBack={nav.back} />
+      <div className="screen">
+        <Card>
+          <div style={{display: 'flex', alignItems: 'flex-start', gap: 12}}>
+            <div style={{minWidth: 0, flex: 1}}>
+              <div className="lbl">Urok+ Premium</div>
+              <div className="dsp" style={{fontSize: 21, fontWeight: 800, letterSpacing: '-.035em', marginTop: 2}}>
+                {status}
+              </div>
+            </div>
+            <span className={'pill ' + tone}>{premium ? t('sub.premiumBadge') : t('sub.free')}</span>
+          </div>
+
+          {/* Порожня довідка гірша за її відсутність: поки підписки не
+              було, показувати нічого — і роздільник теж зайвий. */}
+          {raw.plan ? <div className="divider" /> : null}
+          {raw.plan ? (
+          <div className="rowlines">
+            {product ? (
+              <div><span>{t('sub.plan')}</span><b>{t('sub.' + raw.plan)} · {fmtPrice(product.price, product.currency)}</b></div>
+            ) : null}
+            {raw.plan ? (
+              <div><span>{t('sub.where')}</span><b>{web ? t('sub.whereWeb') : t('sub.whereTrial')}</b></div>
+            ) : null}
+            {raw.until ? (
+              <div>
+                <span>{premium ? t('sub.until') : t('sub.ended')}</span>
+                <b>{fmtShortDate(t, raw.until)}</b>
+              </div>
+            ) : null}
+            {web ? (
+              <div>
+                <span>{t('sub.autoRenew')}</span>
+                <b>{raw.autoRenew === false ? t('sub.off') : t('sub.on')}</b>
+              </div>
+            ) : null}
+            {web && raw.limit ? (
+              <div>
+                <span>{t('sub.devices')}</span>
+                <b>{t('sub.devicesOf', {used: raw.devices || 1, limit: raw.limit})}</b>
+              </div>
+            ) : null}
+            {raw.login ? (
+              <div><span>{t('sub.restoreMail')}</span><b className="ellip">{raw.login}</b></div>
+            ) : null}
+          </div>
+          ) : null}
+        </Card>
+
+        {cancelled ? (
+          <Card style={{marginTop: 9, background: 'var(--warn-soft)', borderColor: 'transparent'}}>
+            <b style={{fontSize: 14, color: 'var(--warn)'}}>{t('sub.cancelled')}</b>
+            <p className="muted" style={{fontSize: 13, margin: '6px 0 0', lineHeight: 1.5}}>
+              {t('sub.cancelledD', {date: fmtShortDate(t, raw.until)})}
+            </p>
+          </Card>
+        ) : null}
+
+        <div style={{display: 'grid', gap: 9, marginTop: 14}}>
+          {!Web.native() ? (
+            <Btn kind="pri" size="lg" wide onClick={() => nav.push({name: 'premium'})}>
+              {premium && !trial ? t('sub.change') : t('sub.choose')}
+            </Btn>
+          ) : null}
+
+          {premium && web && !Web.native() ? (
+            <Btn kind="sec" wide icon={<Icon.globe size={18} />}
+                 onClick={() => openLink(Web.payUrlFor(raw.plan, s.settings.lang, raw.login))}>
+              {t('sub.manageWeb')}
+            </Btn>
+          ) : null}
+
+          {premium && web && raw.autoRenew !== false ? (
+            <Btn kind="sec" wide loading={busy === 'cancel'} disabled={!!busy} onClick={doCancel}>
+              {t('sub.cancelAuto')}
+            </Btn>
+          ) : null}
+
+          <Btn kind="sec" wide onClick={() => setRestore(true)}>{t('sub.restoreT')}</Btn>
+        </div>
+
+        <div className="hint" style={{marginTop: 16, lineHeight: 1.5}}>{t('sub.dataNote')}</div>
+        <div style={{height: 20}} />
+      </div>
+
+      <Sheet open={restore} onClose={() => setRestore(false)} title={t('sub.restoreT')}>
+        <div className="muted" style={{fontSize: 13.5, lineHeight: 1.5}}>{t('sub.restoreD')}</div>
+        <Field label={t('sub.restoreMail')}>
+          <Input type="email" inputMode="email" value={mail} placeholder="mail@example.com"
+                 onChange={e => setMail(e.target.value)} />
+        </Field>
+        <div style={{height: 14}} />
+        <Btn kind="pri" wide loading={busy === 'restore'} disabled={!!busy} onClick={doRestore}>
+          {t('sub.restoreGo')}
+        </Btn>
+        <div style={{height: 8}} />
+        <Btn kind="ghost" wide onClick={() => setRestore(false)}>{t('a.cancel')}</Btn>
+      </Sheet>
     </div>
   );
 }
@@ -671,7 +818,7 @@ function HelpScreen({t, nav}){
 }
 
 Object.assign(window.U, {
-  ProfileScreen, ProfileEditScreen, SettingsScreen, PremiumScreen,
+  ProfileScreen, ProfileEditScreen, SettingsScreen, PremiumScreen, SubscriptionScreen,
   ContestScreen, CoffeeScreen, TextScreen, HelpScreen, openLink, boardWith, FAKE_BOARD,
 });
 })();

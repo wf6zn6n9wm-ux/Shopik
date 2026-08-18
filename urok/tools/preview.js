@@ -85,6 +85,13 @@ const frames = [
   {id: 'homework-new', title: t('hw.new'), node: {__el: true, type: U.HomeworkFormScreen, props: {t, s, nav, params: {}}}},
   {id: 'market', title: t('nav.market'), node: {__el: true, type: U.MarketScreen, props: {t, s, nav}}, nav: 'market'},
   {id: 'profile', title: t('nav.profile'), node: {__el: true, type: U.ProfileScreen, props: {t, s, nav}}, nav: 'profile'},
+  {id: 'subscription', title: 'Підписка', node: {__el: true, type: U.SubscriptionScreen, props: {t, s, nav}}},
+  /* другий стан того самого екрана: підписка вже оплачена на сайті */
+  {id: 'subscription-active', title: 'Підписка · активна', node: {__el: true, type: U.SubscriptionScreen, props: {
+    t, nav,
+    s: {...s, premium: {plan: 'yearly', until: U.addDays(U.todayISO(), 300), trialUsed: true,
+                        source: 'web', login: 'olena@example.com', autoRenew: true, devices: 2, limit: 3}},
+  }}},
   {id: 'premium', title: t('sub.title'), node: {__el: true, type: U.PremiumScreen, props: {t, s, nav, params: {}}}},
   {id: 'settings', title: t('se.title'), node: {__el: true, type: U.SettingsScreen, props: {t, s, nav}}},
   {id: 'onboarding', title: 'Onboarding', node: {__el: true, type: U.Onboarding, props: {t, onDone(){}}}},

@@ -1,0 +1,11 @@
+{
+  "name": "urok-plus",
+  "private": true,
+  "description": "Urok+ — сторінка оплати й ліцензійний сервер (Vercel Functions)",
+  "scripts": {
+    "test": "node tests/i18n.js && node tests/smoke.js && node tests/licence.js && node tests/browser.js"
+  },
+  "dependencies": {
+    "@vercel/kv": "^3.0.0"
+  }
+}

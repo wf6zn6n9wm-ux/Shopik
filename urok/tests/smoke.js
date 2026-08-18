@@ -280,6 +280,7 @@ const stackRoutes = t => {
     ['settings', {}],
     ['profile-edit', {}],
     ['premium', {}],
+    ['subscription', {}],
     ['premium', {reason: 'students'}],
     ['contest', {}],
     ['rating', {}],
@@ -471,6 +472,8 @@ eq(applyTheme('light'), 'light', 'світла тема');
 eq(applyTheme('system'), 'light', 'системна тема без темної системи');
 
 /* ── 7. підписка ───────────────────────────────────────────── */
+/* Відповідь «сервера» однією функцією: сценаріїв кілька, а форма одна. */
+const answer = body => async () => ({ok: true, json: async () => body});
 console.log('\nпідписка');
 store.reset();
 /* Ціни в сторі: три плани, кожен дорожчий за попередній у сумі й
@@ -479,11 +482,11 @@ eq(U.PLAN_ORDER.length, 3, 'планів у сторі');
 U.PLAN_ORDER.forEach(id => {
   const product = U.PRODUCTS[id];
   yes(product && product.months > 0 && product.price > 0, `план ${id} має ціну й строк`);
-  yes(product.currency === 'USD', `план ${id} у доларах`);
+  yes(product.currency === 'UAH', `план ${id} у гривні`);
 });
 eq(U.fmtPrice(3.99, 'USD'), '$3.99', 'ціна з центами');
-eq(U.fmtPrice(45, 'USD'), '$45', 'ціна без центів');
 eq(U.fmtPrice(149, 'UAH'), '149\u00A0₴', 'гривня після числа');
+eq(U.fmtPrice(1490, 'UAH'), '1490\u00A0₴', 'ціна року');
 eq(U.planSaving('monthly'), 0, 'місячний план — база');
 /* Покупок усередині застосунку немає — лише пробний період і
    перевірка вже оплаченої на сайті підписки. */
@@ -509,6 +512,21 @@ yes(!U.PRODUCTS.quarterly.renews, 'тримісячна — разовий пл�
     eq(renews, U.PRODUCTS[id].renews, `pay.html: автопродовження для ${id}`);
   });
 }
+/* Третє місце з цінами — сервер. Він і виставляє рахунок, тому
+   розбіжність тут коштувала б реальних грошей. */
+{
+  const path = require('path');
+  const server = require(path.join(__dirname, '..', 'api', '_lib.js'));
+  eq(server.CURRENCY, 'UAH', 'сервер рахує в гривні');
+  U.PLAN_ORDER.forEach(id => {
+    const mine = U.PRODUCTS[id], theirs = server.PLANS[id];
+    if (!theirs) return fail(`api/_lib.js не знає про план ${id}`);
+    eq(theirs.uah, mine.price, `api: ціна для ${id}`);
+    eq(theirs.months, mine.months, `api: строк для ${id}`);
+    eq(!!theirs.period, mine.renews, `api: автопродовження для ${id}`);
+  });
+}
+
 /* Посилання на оплату несе план і мову — сторінка відкривається одразу
    потрібною й з тим тарифом, який дивився користувач. */
 {
@@ -521,7 +539,7 @@ yes(!U.PRODUCTS.quarterly.renews, 'тримісячна — разовий пл�
   yes(U.Web.native() && !U.Web.enabled(), 'у нативній збірці оплати на сайті немає');
   delete sandbox.window.Capacitor;
   yes(url.includes('plan=quarterly') && url.includes('lang=ru'), 'посилання несе план і мову');
-  eq(U.Web.cheapest(), 3.49, 'найдешевший веб-тариф');
+  eq(U.Web.cheapest(), 149, 'найдешевший тариф');
 }
 yes(U.planSaving('quarterly') > 0, 'квартальний вигідніший за місячний');
 yes(U.planSaving('yearly') > 0, 'річний вигідніший за місячний');
@@ -538,14 +556,37 @@ Billing.trial().then(r => {
   yes(!r2.ok, 'другий пробний період не дається');
   return Billing.restore();
 }).then(r4 => {
-  yes(r4.ok, 'відновлення бачить активний пробний період');
-  /* Ліцензійний сервер підключається мостом — без нього нічого не вигадуємо. */
-  sandbox.window.UrokLicence = {check: () => ({plan: 'yearly', expiresAt: addDays(todayISO(), 365)})};
-  return Billing.restore('teacher@example.com');
+  yes(!r4.ok && r4.reason === 'no_login', 'без пошти відновлювати нічого');
+
+  /* Сервер відповідає — підписка вмикається з його відповіді, а не з
+     наших здогадок. Мережі в пісочниці немає, тому підміняємо fetch. */
+  sandbox.fetch = answer({
+    ok: true, active: true, plan: 'yearly', autoRenew: true, devices: 2, limit: 3,
+    expiresAt: Date.now() + 300 * 86400000,
+  });
+  return Billing.restore('Teacher@Example.com ');
 }).then(r5 => {
-  yes(r5.ok && store.get().premium.plan === 'yearly', 'ліцензія з сервера вмикає підписку');
-  delete sandbox.window.UrokLicence;
+  const prem = store.get().premium;
+  yes(r5.ok && prem.plan === 'yearly', 'ліцензія з сервера вмикає підписку');
+  eq(prem.source, 'web', 'видно, що підписка з сайту');
+  eq(prem.login, 'teacher@example.com', 'пошта збережена в нижньому регістрі');
+  eq(prem.devices + '/' + prem.limit, '2/3', 'пристрої з відповіді сервера');
+  yes(sel.isPremium(store.get()), 'преміум активний');
+
+  /* Ліміт пристроїв — окрема відповідь, і застосунок має її показати. */
+  sandbox.fetch = answer({ok: true, active: false, error: 'device_limit', devices: 3, limit: 3});
+  return Billing.restore('teacher@example.com');
+}).then(r6 => {
+  yes(!r6.ok && r6.reason === 'device_limit', 'ліміт пристроїв повертається окремо');
+
+  /* Немає мережі — нічого не вигадуємо й не гасимо підписку. */
+  sandbox.fetch = async () => { throw new Error('offline'); };
+  return Billing.restore('teacher@example.com');
+}).then(r7 => {
+  yes(!r7.ok && r7.reason === 'offline', 'без мережі кажемо про мережу');
+  delete sandbox.fetch;
   yes(Billing.checkoutUrl('monthly', 'uk').includes('plan=monthly'), 'посилання на оплату несе тариф');
+  yes(Billing.checkoutUrl('monthly', 'uk').includes('device='), 'посилання несе пристрій');
   console.log(fails ? `\n${fails} помилок (перевірок: ${checks})` : `\nусе гаразд · перевірок: ${checks}`);
   process.exit(fails ? 1 : 0);
 }).catch(e => {

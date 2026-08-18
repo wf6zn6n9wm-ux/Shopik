@@ -19,7 +19,7 @@ const {
   CalendarScreen, LessonFormScreen, LessonScreen,
   StudentsScreen, StudentFormScreen, StudentScreen,
   MarketScreen, MarketItemScreen,
-  ProfileScreen, ProfileEditScreen, SettingsScreen, PremiumScreen,
+  ProfileScreen, ProfileEditScreen, SettingsScreen, PremiumScreen, SubscriptionScreen,
   ContestScreen, CoffeeScreen, TextScreen, HelpScreen,
   HomeworkScreen, HomeworkCardScreen, HomeworkFormScreen, FinanceScreen,
 } = window.U;
@@ -47,6 +47,7 @@ const SCREENS = {
   'settings': SettingsScreen,
   'profile-edit': ProfileEditScreen,
   'premium': PremiumScreen,
+  'subscription': SubscriptionScreen,
   'contest': ContestScreen,
   'rating': props => <ContestScreen {...props} params={{mode: 'rating'}} />,
   'coffee': CoffeeScreen,

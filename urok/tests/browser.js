@@ -163,8 +163,12 @@ const SCENARIO = `
     /* екран підписки: тарифи, ціна на сайті, кнопка оплати */
     function(){ click($$('.nav button')[3]); },
     function(){ ok('перехід у підписку', click(byText('Підписка'))); },
+    /* спершу керування підпискою — як у тренері, тарифи окремо */
+    function(){ ok('екран підписки', text().indexOf('Потрібна підписка') >= 0, text().slice(0, 40)); },
+    function(){ ok('є відновлення доступу', !!byText('Відновити доступ')); },
+    function(){ ok('перехід до тарифів', click(byText('Обрати план'))); },
     function(){ ok('три тарифи', $$('.plan').length === 3, String($$('.plan').length)); },
-    function(){ ok('ціни на місці', text().indexOf('$37.49') >= 0 && text().indexOf('$3.49') >= 0); },
+    function(){ ok('ціни у гривні', text().indexOf('1490 ₴') >= 0 && text().indexOf('149 ₴') >= 0); },
     function(){ ok('видно, що тримісячна — разовий платіж', text().indexOf('Разовий платіж') >= 0); },
     function(){ ok('кнопка оплати на сайті', !!$('.btn.webpay') && text().indexOf('LiqPay') >= 0); },
     function(){ ok('посилання на умови й політику', $$('.legallinks button').length === 2); },
