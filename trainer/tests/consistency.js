@@ -325,6 +325,22 @@ part('знімки онбордингу на місці');
      (read('sw.js').match(/protrainer-v\d+/) || [])[0]);
 }
 
+/* ─── підтвердження права на сайт ───
+   Google Search Console тримає право власності на сайт доти, доки лежить
+   виданий ним файл: «не видаляйте його навіть після успішного
+   підтвердження». Прибрати такий файл легко — він виглядає сміттям і
+   ніде більше не згаданий. А без нього Play Console перестає вважати
+   сайт нашим, і застосунок не опублікувати. */
+part('файл підтвердження сайту на місці');
+{
+  const files = fs.readdirSync(ROOT).filter(f => /^google[0-9a-f]+\.html$/.test(f));
+  ok('файл від Search Console лежить у корені', files.length > 0, files.join(', ') || 'жодного');
+  files.forEach(f => {
+    const text = read(f).trim();
+    ok('  ' + f + ' називає сам себе', text === 'google-site-verification: ' + f, text);
+  });
+}
+
 part('обрізання картинок');
 {
   const os = require('os');
