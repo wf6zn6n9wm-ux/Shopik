@@ -101,7 +101,7 @@ const EXPORTS = `;globalThis.__T = {split, stats, seedDB, emptyDB, markDemo, per
   Access, IAP, PLANS, TRIAL_DAYS, planById, Disk, Box, Notifier, Paywall, TrialIntro, Subscription, AccessCard, AppGate, DAY,
   Store, Act, money, phoneMask, nSessions, fmtLong, I18n, ROUTES, Toaster, Photo, PHOTO, Web, WEB,
   financeCsv, Files, inRange, LEGAL, LEGAL_DOCS, Legal, netByBucket,
-  PHRASES, LANGS, t, _seen, carryAccess, statusTitle, typeTitle, goalTitle, fill, monthWord, byGroup, bdIn, owed, Ic,
+  PHRASES, LANGS, t, _seen, carryAccess, rekeyMsg, statusTitle, typeTitle, goalTitle, fill, monthWord, byGroup, bdIn, owed, Ic,
   Shell, Home, Calendar, Clients, Sales, Profile, Onboarding, Auth, Setup, PinLock};`;
 
 

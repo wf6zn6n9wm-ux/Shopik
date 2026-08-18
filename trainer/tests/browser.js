@@ -503,6 +503,22 @@ const DRIVE = `
     return test();
   };
   var all = function(s){ return [].slice.call(document.querySelectorAll(s)); };
+  /* ─── чекати на відповідь, а не на секунди ───
+     until() рахує кроки по 100мс, але під віртуальним часом крок коштує
+     майже нічого: двісті кроків спливають раніше, ніж браузер дорахує
+     ключ із пароля. Саме через це проба «чужий пароль не пускає» падала
+     приблизно раз на кілька прогонів — застосунок ще думав, а вона вже
+     читала екран і бачила «Хвилинку…». Тут ми не рахуємо час зовсім:
+     крутимось, поки кнопка думає, і читаємо тільки після неї. */
+  var settled = async function(done, steps){
+    for (var k = 0; k < (steps || 600); k++){
+      if (done()) return true;
+      var busy = /Хвилинку/.test((pri() || {}).textContent || '');
+      if (!busy && k > 5) return done();
+      await wait(50);
+    }
+    return done();
+  };
   var vis = function(e){ return e.offsetParent !== null || e.getClientRects().length; };
   var pri = function(){ return all('.ob button').filter(function(b){ return /pri/.test(b.className); })[0]; };
   var type = function(el, v){
@@ -1004,8 +1020,7 @@ PROBES['app-join.js'] = DRIVE + `
     var pf = document.querySelector('.ob input[type=password]');
     if (pf){ type(pf, 'ne-toy-parol'); await wait(120); if (pri()) pri().click(); }
     var no = function(){ return /Пароль не підходить/.test(document.querySelector('.ob').textContent); };
-    await until(no, 20000);
-    res.stranger = no();
+    res.stranger = await settled(no);
     if (!res.stranger) res.saw = document.querySelector('.ob').textContent.replace(/\\s+/g, ' ').slice(0, 200);
 
     pf = document.querySelector('.ob input[type=password]');
