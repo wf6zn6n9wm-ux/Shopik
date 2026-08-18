@@ -632,6 +632,46 @@ for (const f of ['db.js', 'chat.js']){
      r.headers['access-control-allow-origin'] || 'заголовка немає');
 }
 
+/* ─── пауза оплати ───
+   Мерчант не активований, і заплатити тренер фізично не може. Вимкнути
+   йому за це роботу — означає забрати доступ до власної бази клієнтів
+   за нашу проблему. Тому поки пауза стоїть, строк не закінчується; а
+   коли її знімають — людина не має прокинутись відрізаною. */
+part('поки оплата не приймається');
+{
+  const keep = process.env.PAY_LIVE;
+  const fresh = () => {
+    delete require.cache[require.resolve(path.join(__dirname, '..', 'api', '_lib.js'))];
+    return require(path.join(__dirname, '..', 'api', '_lib.js'));
+  };
+
+  delete process.env.PAY_LIVE;
+  let lib = fresh();
+  let p = await lib.payPause();
+  ok('без прапорця пауза стоїть сама', p.on === true, JSON.stringify(p));
+  ok('  і запас названо', p.graceDays === 7, String(p.graceDays));
+
+  /* Порожній рядок і «0» — не «увімкнено»: саме так виглядає змінна,
+     яку завели, але не заповнили. */
+  process.env.PAY_LIVE = '0';
+  lib = fresh();
+  ok('«0» не вмикає оплату', (await lib.payPause()).on === true);
+
+  process.env.PAY_LIVE = '1';
+  lib = fresh();
+  const lifted = await lib.payPause();
+  ok('прапорець знімає паузу', lifted.on === false, JSON.stringify(lifted));
+  ok('  і дає запас на оплату', lifted.graceUntil > Date.now(), new Date(lifted.graceUntil).toISOString());
+
+  /* Мить зняття мусить запам'ятатись один раз: інакше запас відсувався б
+     із кожним запитом і не скінчився б ніколи. */
+  const again = await lib.payPause();
+  ok('  запас не відсувається з кожним запитом', again.graceUntil === lifted.graceUntil,
+     (again.graceUntil - lifted.graceUntil) + ' мс різниці');
+
+  if (keep === undefined) delete process.env.PAY_LIVE; else process.env.PAY_LIVE = keep;
+}
+
 console.log('\n══════ ' + (checks - fails) + ' з ' + checks + (fails ? ' · є замечання' : ' · все чисто') + ' ══════');
 process.exit(fails ? 1 : 0);
 })();

@@ -664,6 +664,49 @@ part('доступ: пробний період');
   ok('день 14 — пробний завершено', a.kind === 'TRIAL_EXPIRED' && !a.allowed);
   ok('дані після завершення на місці', T.Store.state.clients.length > 0 && T.Store.state.sessions.length > 0,
      T.Store.state.clients.length + ' клієнтів');
+
+  /* ─── поки ми не можемо взяти гроші ───
+     Мерчант не активований, і заплатити тренер фізично не може. Досі
+     на чотирнадцятий день застосунок просто зачиняв роботу — за нашу
+     проблему, чужими руками, разом із доступом до бази клієнтів. Стан
+     приходить із сервера, тому перевіряємо саме той запис, який він
+     кладе. */
+  const withPause = (daysAgo, pause) => {
+    const m = T.Disk.readMeta() || {};
+    T.Disk.writeMeta({...m, access: {trialStartedAt: Date.now() - daysAgo * day, status: 'trial', pause}});
+    return T.Access.state();
+  };
+
+  a = withPause(30, {on: true});
+  ok('на паузі робота не зупиняється', a.allowed === true && a.kind === 'PAY_PAUSED', a.kind);
+
+  a = withPause(30, null);
+  ok('  без паузи — як і було, доступ закритий', a.allowed === false && a.kind === 'TRIAL_EXPIRED', a.kind);
+
+  a = withPause(30, {on: false, graceUntil: Date.now() + 3 * day});
+  ok('після зняття паузи дають час оформити оплату',
+     a.allowed === true && a.kind === 'PAY_GRACE' && a.left === 3, a.kind + ', ' + a.left + ' дн.');
+
+  a = withPause(30, {on: false, graceUntil: Date.now() - day});
+  ok('  і запас таки закінчується', a.allowed === false && a.kind === 'TRIAL_EXPIRED', a.kind);
+
+  /* Пауза не має роздавати доступ тим, хто пробний період і не починав:
+     інакше знання адреси сайту саме по собі давало б робочий кабінет. */
+  T.Disk.writeMeta({...(T.Disk.readMeta() || {}), access: {pause: {on: true}}});
+  a = T.Access.state();
+  ok('  але сама по собі доступу не видає', a.kind === 'TRIAL_NOT_STARTED', a.kind);
+
+  /* Підписка, що закінчилась, паузою не подовжується: у неї свій шлях
+     продовження, а мовчки видавати платний доступ без строку не можна. */
+  T.Disk.writeMeta({...(T.Disk.readMeta() || {}),
+    access: {plan: 'monthly', expiresAt: Date.now() - day, pause: {on: true}}});
+  a = T.Access.state();
+  ok('  на підписку, що закінчилась, пауза не поширюється',
+     a.kind === 'SUBSCRIPTION_EXPIRED' && !a.allowed, a.kind);
+
+  /* Прибираємо за собою: запис доступу спільний для всіх перевірок
+     нижче, і забутий тут прапорець «продовжив» би чужу підписку. */
+  T.Disk.writeMeta({...(T.Disk.readMeta() || {}), access: {}});
 }
 
 part('доступ: підписка');

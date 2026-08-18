@@ -965,6 +965,12 @@ const PHRASES = [
   ['Пакет видалено', 'Пакет удалён', 'Package deleted', 'Pakiet usunięty'],
   ['Придумайте PIN', 'Придумайте PIN', 'Create a PIN', 'Wymyśl PIN'],
   ['Про застосунок', 'О приложении', 'About the app', 'O aplikacji'],
+  ['Доступ продовжено', 'Доступ продлён', 'Access extended', 'Dostęp przedłużony'],
+  ['Оплата тимчасово не приймається', 'Оплата временно не принимается', 'Payments are temporarily unavailable', 'Płatności są chwilowo niedostępne'],
+  ['Ми налагоджуємо приймання платежів. Доступ до застосунку залишається — працюйте як звичайно, а щойно оплата запрацює, ми напишемо на вашу пошту.', 'Мы налаживаем приём платежей. Доступ к приложению остаётся — работайте как обычно, а как только оплата заработает, мы напишем на вашу почту.', 'We are setting up payment processing. Your access stays — keep working as usual, and we will email you as soon as payments are live.', 'Uruchamiamy przyjmowanie płatności. Dostęp pozostaje — pracuj normalnie, a gdy płatności ruszą, napiszemy na Twój e-mail.'],
+  ['Час оформити підписку', 'Время оформить подписку', 'Time to subscribe', 'Czas wykupić subskrypcję'],
+  ['Оплата тимчасово не приймається — працюйте далі, ми напишемо', 'Оплата временно не принимается — работайте дальше, мы напишем', 'Payments are temporarily unavailable — keep working, we will write to you', 'Płatności są chwilowo niedostępne — pracuj dalej, napiszemy do Ciebie'],
+  ['Оплата запрацювала. Залишилось', 'Оплата заработала. Осталось', 'Payments are live again. Left', 'Płatności znów działają. Pozostało'],
   ['Вихід', 'Выход', 'Sign out', 'Wyloguj'],
   ['Пробний період', 'Пробный период', 'Free trial', 'Okres próbny'],
   ['Резервна копія', 'Резервная копия', 'Backup', 'Kopia zapasowa'],
@@ -2544,6 +2550,29 @@ const Access = {
     })() : null;
     if (trial && trial.allowed) return trial;
 
+    /* ─── поки ми не можемо взяти гроші ───
+       Мерчант не активований, і заплатити тренер фізично не може.
+       Вимкнути йому за це роботу — означає забрати доступ до власної
+       бази клієнтів за нашу проблему, і назад він не повернеться. Тому
+       поки пауза стоїть, строк не закінчується.
+
+       Стан приходить із сервера, а не з застосунку: зняти паузу треба
+       буде за хвилину, а не чекати, поки всі оновлять програму. */
+    const pause = a.pause || null;
+    /* Тільки пробний період. Підписка, що закінчилась, має свій шлях
+       продовження, і подовжувати її мовчки — означає роздавати платний
+       доступ без строку. Сьогодні платних підписок немає жодної, тож
+       вибір ні на кого не впливає; якщо колись оплата зламається вже
+       для тих, хто платить, це буде окреме рішення. */
+    const had = trial;
+    if (had && pause && pause.on)
+      return {kind:'PAY_PAUSED', allowed:true, until: had.until};
+    /* Паузу зняли — але людина не має прокинутись відрізаною: даємо
+       запас на те, щоб оформити оплату. */
+    if (had && pause && pause.graceUntil > t)
+      return {kind:'PAY_GRACE', allowed:true, until: pause.graceUntil,
+              left: Math.max(0, Math.ceil((pause.graceUntil - t) / DAY))};
+
     if (a.status === 'pending') return {kind:'PAYMENT_PENDING', allowed:true, plan:a.pendingPlan};
     if (a.status === 'failed')  return {kind:'PAYMENT_FAILED', allowed:false, error:a.error, plan:a.pendingPlan};
     return sub || trial || {kind:'TRIAL_NOT_STARTED', allowed:true};
@@ -2626,6 +2655,10 @@ const Access = {
        та й після перевстановлення локальної дати просто немає */
     if (Web.enabled() && Web.login() && !a.expiresAt){
       const r = await Web.trial(false);
+      /* Пишемо тільки коли стан справді змінився: перевірка ходить раз
+         на півхвилини, а кожен запис — це ще й черга синхронізації. */
+      if (r && r.pause && JSON.stringify(r.pause) !== JSON.stringify(a.pause || null))
+        Access.write({pause: r.pause});
       if (r && r.started) Access.fromTrial(r);
       else if (r && r.ok && !r.started && a.trialStartedAt) Web.trial(true).then(Access.fromTrial, () => {});
     }
@@ -7640,7 +7673,9 @@ const AccessCard = () => {
   const active = acc.kind === 'SUBSCRIPTION_ACTIVE' || acc.kind === 'SUBSCRIPTION_CANCELLED';
   const need = !acc.allowed || acc.kind === 'PAYMENT_FAILED';
   const line =
-    acc.kind === 'TRIAL_ACTIVE' ? t('acc.left','Залишилось') + ' ' + nDays(acc.left)
+    acc.kind === 'PAY_PAUSED' ? t('acc.paused.s','Оплата тимчасово не приймається — працюйте далі, ми напишемо')
+    : acc.kind === 'PAY_GRACE' ? t('acc.grace.s','Оплата запрацювала. Залишилось') + ' ' + nDays(acc.left)
+    : acc.kind === 'TRIAL_ACTIVE' ? t('acc.left','Залишилось') + ' ' + nDays(acc.left)
     : active ? t('sub.until','Діє до') + ' ' + fmtDM(acc.until) + ' ' + new Date(acc.until).getFullYear()
     : acc.kind === 'PAYMENT_PENDING' ? t('acc.pending.s','Чекаємо підтвердження магазину')
     : t('acc.need','Оберіть план, щоб продовжити роботу');
@@ -8444,6 +8479,11 @@ const Paywall = ({mode, onClose}) => {
   }
 
   const expired = acc.kind === 'TRIAL_EXPIRED';
+  /* Дивимось на сам запис, а не на стан доступу: поки пробний період
+     іде, стан звичайний, але спроба заплатити вже впреться в
+     неактивованого мерчанта. Відпустити людину на сторінку оплати, яка
+     не працює, гірше, ніж чесно сказати про це тут. */
+  const paused = !!((Access.read().pause || {}).on);
 
   /* Збірка для магазину нічого не продає: показуємо, де оформити
      підписку, і даємо перевірити оплату. Адреса тут — звичайний текст,
@@ -8521,6 +8561,14 @@ const Paywall = ({mode, onClose}) => {
       {/* На сайті магазину немає, і купувати нічим — головна кнопка веде
           на оплату, а не імітує покупку. Інакше вона видавала б підписку
           задарма кожному, хто її натисне. */}
+      {paused ? (
+        <div className="card pad" style={{marginTop:14, background:'var(--accent-soft)', borderColor:'transparent'}}>
+          <b style={{fontSize:14.5, color:'var(--accent)'}}>{t('pay.paused','Оплата тимчасово не приймається')}</b>
+          <p className="muted" style={{fontSize:13, margin:'6px 0 0', lineHeight:1.5}}>
+            {t('pay.paused.s','Ми налагоджуємо приймання платежів. Доступ до застосунку залишається — працюйте як звичайно, а щойно оплата запрацює, ми напишемо на вашу пошту.')}
+          </p>
+        </div>
+      ) : (
       <Btn kind="pri" size="lg" wide style={{marginTop:14}}
            onClick={store ? buy : (webWait ? checkWeb : payWeb)} disabled={busy}>
         {busy ? t('pay.wait','Обробляємо…')
@@ -8529,6 +8577,7 @@ const Paywall = ({mode, onClose}) => {
           : webWait ? t('pay.web.done','Я вже оплатив')
           : t('pay.web.pay','Перейти до оплати')}
       </Btn>
+      )}
       {store && Web.enabled() && (
         <button className="btn sec wide webpay" style={{marginTop:8}} onClick={webWait ? checkWeb : payWeb} disabled={busy}>
           <Ic.globe size={18}/>
@@ -8660,7 +8709,9 @@ const Subscription = ({onClose}) => {
 };
 
 const ACCESS_LABEL = a =>
-  a.kind === 'TRIAL_ACTIVE' ? t('acc.trial','Пробний період')
+  a.kind === 'PAY_PAUSED' ? t('acc.paused','Доступ продовжено')
+  : a.kind === 'PAY_GRACE' ? t('acc.grace','Час оформити підписку')
+  : a.kind === 'TRIAL_ACTIVE' ? t('acc.trial','Пробний період')
   : a.kind === 'TRIAL_EXPIRED' ? t('acc.trial.end','Пробний завершено')
   : a.kind === 'SUBSCRIPTION_ACTIVE' ? t('acc.active','Активна')
   : a.kind === 'SUBSCRIPTION_CANCELLED' ? t('acc.cancel','Без автопродовження')

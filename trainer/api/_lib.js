@@ -211,6 +211,41 @@ const preflight = (req, res) => {
   return true;
 };
 
+/* ─── оплата тимчасово не приймається ───
+   Мерчант не активований, і заплатити людина фізично не може. Вимкнути
+   їй за це роботу — означає втратити її назавжди: вона не винна, а
+   доступу до власної бази клієнтів позбудеться. Тому поки оплати немає,
+   пробний період не закінчується.
+
+   Прапорець навмисно навпаки: пауза стоїть за замовчуванням, а знімає
+   її змінна PAY_LIVE=1. Так безпечніше. Забути ввімкнути прапорець
+   означало б замкнути тридцятьох тренерів у той самий день; забути
+   зняти — означає кілька зайвих безкоштовних днів, і це видно в
+   адмінці, бо гроші не приходять.
+
+   Коли оплату вмикають, люди не мають прокинутись відрізаними: мить
+   зняття паузи запам'ятовується, і від неї рахується запас у GRACE днів
+   на те, щоб заплатити. */
+const PAY_GRACE_DAYS = 7;
+const PAUSE_KEY = 'pay:pause';
+
+async function payPause(){
+  const live = String(process.env.PAY_LIVE || '') === '1';
+  const rec = (await get(PAUSE_KEY)) || null;
+  if (!live){
+    if (!rec || !rec.on) await set(PAUSE_KEY, {on: true, since: Date.now()});
+    return {on: true, graceDays: PAY_GRACE_DAYS};
+  }
+  /* Паузу зняли. Мить фіксуємо один раз — інакше запас відсувався б із
+     кожним запитом і не скінчився б ніколи. */
+  if (!rec || rec.on){
+    const liftedAt = Date.now();
+    await set(PAUSE_KEY, {on: false, liftedAt});
+    return {on: false, graceUntil: liftedAt + PAY_GRACE_DAYS * 86400000};
+  }
+  return {on: false, graceUntil: (rec.liftedAt || 0) + PAY_GRACE_DAYS * 86400000};
+}
+
 const json = (res, code, body) => {
   res.setHeader('content-type', 'application/json; charset=utf-8');
   res.setHeader('cache-control', 'no-store');
@@ -225,5 +260,6 @@ module.exports = {
   store: {get, set, keys, live: async () => !!(await kv())},
   sign, pack, unpack, verify,
   normLogin, readLicence, writeLicence, view, applyPayment, addMonths, json, preflight,
+  payPause, PAY_GRACE_DAYS,
   logPayment, readPayments, PAY_LOG,
 };

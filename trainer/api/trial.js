@@ -53,7 +53,10 @@ module.exports = async function handler(req, res){
     const list = (await L.store.get(day)) || [];
     if (!list.includes(login)){ list.push(login); await L.store.set(day, list); }
   }
-  return L.json(res, 200, view(rec));
+  /* Стан оплати їде разом із пробним періодом: застосунок питає про них
+     в одному місці, і зайвий запит тут коштував би ще однієї серверної
+     функції — а їх у нас рівно стільки, скільки дозволяє тариф. */
+  return L.json(res, 200, {...view(rec), pause: await L.payPause()});
 };
 
 module.exports.TRIAL_DAYS = TRIAL_DAYS;
