@@ -1217,6 +1217,41 @@ part('оплата на сайті');
     ctx.fetch = realFetch;
   }
 
+  /* ─── завершена підписка не має глушити звірку пробного періоду ───
+     Коли підписка завершується, ми ставимо їй датою закінчення «зараз»,
+     а не нуль. Умова звірки дивилась на «дата є взагалі» — і після
+     будь-якої завершеної підписки пристрій переставав питати сервер про
+     пробний період назавжди. Телефон показував дванадцять днів, сайт —
+     десять, і сходитись було нічому. */
+  {
+    const realFetch = ctx.fetch;
+    const day = 86400000;
+    const серверний = Date.now() - 14 * day + 10 * day;   /* сервер: лишилось 10 днів */
+    let asked = 0;
+    ctx.fetch = async url => {
+      const u = String(url);
+      calls.push(u);
+      if (u.includes('/api/trial')){
+        asked++;
+        return {ok: true, json: async () => ({ok: true, started: true, startedAt: серверний - 10 * day,
+                                              endsAt: серверний + 4 * day})};
+      }
+      return {ok: true, json: async () => ({ok: true, active: false})};
+    };
+    /* Пробний іде, а на пристрої лежить слід від завершеної підписки. */
+    T.Disk.writeMeta({...(T.Disk.readMeta() || {}), access: {
+      trialStartedAt: Date.now() - 2 * day, status: 'expired', plan: 'yearly', source: 'web',
+      expiresAt: Date.now() - day}});
+    calls.length = 0;
+    await T.Access.verify();
+    ok('після завершеної підписки пробний період усе одно звіряється', asked === 1,
+       'звернень до /api/trial: ' + asked);
+    ok('  і дата стає спільною з сервером',
+       T.Access.read().trialStartedAt === серверний - 10 * day,
+       new Date(T.Access.read().trialStartedAt).toISOString());
+    ctx.fetch = realFetch;
+  }
+
   /* відновлення на новому пристрої */
   licence = {ok: true, active: true, plan: 'monthly', expiresAt: Date.now() + 20 * 86400000, autoRenew: true};
   calls.length = 0;
