@@ -830,6 +830,28 @@ PROBES['app-help.js'] = DRIVE + `
     await enter();
     res.login = Web.login();
 
+    /* ─── кнопка підтримки на видноті ───
+       Раніше єдиний шлях сюди лежав через «Налаштування»: щоб
+       поскаржитись, тренер мусив здогадатись, що скарга — це
+       налаштування. Перевіряємо саме той шлях, яким піде людина: вкладка
+       «Профіль» → кнопка у смужці зверху. */
+    var tab = all('.nav button').filter(function(b){ return /Профіль/.test(b.textContent); })[0];
+    if (tab){ tab.click(); await wait(300); }
+    var btn = all('.appbar .iconbtn').filter(function(b){
+      return /Підтрим/.test(b.getAttribute('aria-label') || ''); })[0];
+    res.onProfile = !!btn;
+    if (btn){ btn.click(); await until(function(){ return all('.page').length > 0; }, 2500); }
+    var opened = all('.page').slice(-1)[0];
+    res.byButton = !!(opened && /Підтрим/.test(opened.textContent || ''));
+    /* закриваємо й далі йдемо старим шляхом — він теж має лишитись */
+    var back = opened ? opened.querySelector('.appbar .iconbtn') : null;
+    if (back){ back.click(); await until(function(){ return all('.page').length === 0; }, 2500); }
+    /* Повертаємось на головну: меню живе в її смужці, а на «Профілі» в
+       тому самому місці тепер стоїть кнопка підтримки — і без цього
+       кроку проба відкривала б її замість меню. */
+    var home = all('.nav button').filter(function(b){ return /Головна/.test(b.textContent); })[0];
+    if (home){ home.click(); await wait(300); }
+
     /* заходимо саме так, як зайде тренер: меню → «Підтримка» */
     var rows = await menu();
     var idx = rows.map(function(r){ return (r.textContent || ''); })
@@ -1657,7 +1679,10 @@ server.listen(PORT, '127.0.0.1', async () => {
        а те, чи доходить це до людини на екрані. */
     part('переписка з підтримкою');
     o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?cloud=1&probe=app-help.js')) || '{}');
-    ok('«Підтримка» є в меню', o.inMenu === true);
+    ok('кнопка підтримки стоїть у профілі, а не лише в налаштуваннях',
+       o.onProfile === true, 'кнопка у смужці зверху');
+    ok('  і відкриває переписку', o.byButton === true, 'екран підтримки');
+    ok('«Підтримка» лишилась і в меню', o.inMenu === true);
     ok('екран відкривається', o.opened === true, o.title || '—');
     ok('є куди писати', o.hasBox === true);
     ok('кнопка вмикається від тексту', o.canSend === true);

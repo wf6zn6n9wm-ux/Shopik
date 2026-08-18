@@ -7442,6 +7442,7 @@ const Stats = ({onClose}) => {
 const Profile = ({loading}) => {
   const db = useDB();
   const nav = useNav();
+  const help = useHelp();
   const [edit, setEdit] = useState(false);
   const [f, setF] = useState(db ? db.profile : {});
   const [syncSt, setSyncSt] = useState(Sync.status);
@@ -7466,9 +7467,23 @@ const Profile = ({loading}) => {
     <Fragment>
       <div className="appbar">
         <div className="title">{t('nav.profile','Профіль')}</div>
-        <button className="iconbtn boxed" onClick={() => nav.go('settings')} aria-label={t('menu.set')}>
-          <Ic.gear size={20} style={{color:'var(--accent)'}}/>
-        </button>
+        {/* Підтримка лежала в «Налаштуваннях», за шестернею. Щоб
+            поскаржитись, треба було спершу здогадатись, що скарга — це
+            налаштування. Тренер, у якого щось не працює, туди не піде: він
+            закриє застосунок і напише про це не нам. Тому кнопка стоїть на
+            видноті, а крапка на ній означає, що відповідь уже прийшла. */}
+        {/* Обидві кнопки — в одній обгортці: смужка розсовує своїх дітей
+            по краях, і без неї шестерня поїхала б у центр екрана. */}
+        <div style={{display:'flex', gap:8}}>
+          <button className="iconbtn boxed" onClick={() => nav.go('support')}
+                  aria-label={t('help.title','Підтримка')}>
+            <Ic.msg size={20} style={{color:'var(--accent)'}}/>
+            {help.unread > 0 && <i className="bell-dot"/>}
+          </button>
+          <button className="iconbtn boxed" onClick={() => nav.go('settings')} aria-label={t('menu.set')}>
+            <Ic.gear size={20} style={{color:'var(--accent)'}}/>
+          </button>
+        </div>
       </div>
 
       <div className="screen">
