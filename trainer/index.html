@@ -967,6 +967,7 @@ const PHRASES = [
   ['Про застосунок', 'О приложении', 'About the app', 'O aplikacji'],
   ['Доступ продовжено', 'Доступ продлён', 'Access extended', 'Dostęp przedłużony'],
   ['Кабінет', 'Кабинет', 'Account', 'Konto'],
+  ['Пароль змінено, але базу зараз не вдалося завантажити. Увійдіть новим паролем, коли з’явиться зв’язок — клієнти й тренування повернуться', 'Пароль изменён, но базу сейчас не удалось загрузить. Войдите новым паролем, когда появится связь — клиенты и тренировки вернутся', 'The password is changed, but we could not load your data right now. Sign in with the new password once you are back online — your clients and sessions will return', 'Hasło zostało zmienione, ale nie udało się teraz wczytać bazy. Zaloguj się nowym hasłem, gdy wróci połączenie — klienci i treningi wrócą'],
   ['Оплата тимчасово не приймається', 'Оплата временно не принимается', 'Payments are temporarily unavailable', 'Płatności są chwilowo niedostępne'],
   ['Ми налагоджуємо приймання платежів. Доступ до застосунку залишається — працюйте як звичайно, а щойно оплата запрацює, ми напишемо на вашу пошту.', 'Мы налаживаем приём платежей. Доступ к приложению остаётся — работайте как обычно, а как только оплата заработает, мы напишем на вашу почту.', 'We are setting up payment processing. Your access stays — keep working as usual, and we will email you as soon as payments are live.', 'Uruchamiamy przyjmowanie płatności. Dostęp pozostaje — pracuj normalnie, a gdy płatności ruszą, napiszemy na Twój e-mail.'],
   ['Час оформити підписку', 'Время оформить подписку', 'Time to subscribe', 'Czas wykupić subskrypcję'],
@@ -4221,6 +4222,31 @@ const carryAccess = (prev, login, access) =>
    спрацює ніколи. Винесено окремо, щоб перевірятись без екрана:
    провести пробу через цей крок не вдалось, а лишати найдорожчий екран
    застосунку без перевірки не можна. */
+/* ─── що робити після спроби забрати копію ───
+   Рішення тут коштує дорожче за будь-яке інше в застосунку, тому винесене
+   окремо й перевіряється без екрана.
+
+   Ключова різниця, якої раніше не було: «копії немає» і «не змогли її
+   забрати» — це різні відповіді. Обидві виглядали як `restored = null`,
+   і застосунок на обидві робив одне: писав на сервер те, що лежить на
+   пристрої. А на новому телефоні там порожньо — і копія тренера
+   затиралась порожньою назавжди. Досить було, щоб зв'язок обірвався на
+   секунду між заміною замка й завантаженням бази.
+
+   Тому пишемо на сервер тільки тоді, коли точно знаємо: там нічого
+   немає. У решті випадків не пишемо нічого й не пускаємо всередину з
+   порожнім кабінетом — просимо увійти новим паролем, коли з'явиться
+   зв'язок. Пароль на цей момент уже змінено, тож вхід спрацює, і копія
+   повернеться звичайним шляхом. */
+const afterRestore = ({asked, got, had}) => {
+  if (!asked) return {push: true, enter: true, fresh: !had, warn: null};
+  if (got && got.ok) return {push: false, enter: true, fresh: false, warn: null};
+  const why = (got && got.error) || 'network';
+  /* «empty» — єдина відповідь, яка справді означає «на сервері порожньо» */
+  if (why === 'empty') return {push: true, enter: true, fresh: !had, warn: null};
+  return {push: false, enter: false, fresh: false, warn: why};
+};
+
 const rekeyMsg = error =>
   error === 'bad_ticket'
     ? t('auth.err.ticket','Код уже використано або він застарів. Замовте новий і змініть пароль протягом 15 хвилин')
@@ -4317,7 +4343,7 @@ const Auth = ({onReady, save}) => {
     const account = had ? {...had, hash}
       : {login, raw: f.login.trim(), kind: isEmail(f.login) ? 'email' : 'phone', hash, createdAt: Date.now()};
 
-    let restored = null;
+    let restored = null, got = null;
     if (keep && keep.ticket){
       const rk = await Cloud.rekey(login, keep.ticket, c);
       if (!rk.ok){
@@ -4334,18 +4360,24 @@ const Auth = ({onReady, save}) => {
          не буде. Тож усе, що нижче, не має права скасувати зроблене:
          копію може не вдатись прочитати саме зараз, але пароль уже
          новий, і кабінет мусить відкритись саме ним. */
-      const got = await Cloud.restore(login, c.token, c.key).catch(() => ({ok: false}));
+      got = await Cloud.restore(login, c.token, c.key).catch(() => ({ok: false, error: 'network'}));
       if (got.ok) restored = got.json;
     }
 
+    const next = afterRestore({asked: !!(keep && keep.ticket), got, had});
+
     Disk.writeMeta({...meta, salt, account, access: carryAccess(meta.account, login, meta.access)});
     Cloud.remember(c);
-    if (!restored) Cloud.push().catch(() => {});
+    if (next.push) Cloud.push().catch(() => {});
     setBusy(false);
+    if (!next.enter){
+      /* Пароль уже новий, а бази ще немає. Пускати з порожнім кабінетом
+         не можна: перша ж зміна в ньому полетіла б на сервер і затерла
+         копію, яку ми щойно не змогли прочитати. */
+      return setErr({pass: t('auth.err.nodata','Пароль змінено, але базу зараз не вдалося завантажити. Увійдіть новим паролем, коли з’явиться зв’язок — клієнти й тренування повернуться')});
+    }
     Toaster.ok(t('auth.done','Пароль змінено'));
-    /* нічого не повернулось і кабінету тут не було — це чистий старт,
-       і людині потрібен майстер налаштувань, а не порожній застосунок */
-    onReady({account, fresh: !restored && !had, restored});
+    onReady({account, fresh: next.fresh, restored});
   }
 
   async function submit(){

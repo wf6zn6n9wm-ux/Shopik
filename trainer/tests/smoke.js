@@ -1494,6 +1494,46 @@ part('імітація покупки не працює на живому сай
   T.Disk.writeMeta({});
 }
 
+part('копію не затираємо, якщо не змогли її прочитати');
+{
+  /* Найдорожче рішення в застосунку. «Копії немає» і «не змогли забрати»
+     виглядали однаково, і на обидві відповіді застосунок писав на сервер
+     те, що лежить на пристрої. А на новому телефоні там порожньо — база
+     тренера затиралась порожньою назавжди. Досить було обірваного
+     зв'язку між заміною замка й завантаженням бази. */
+  const A = T.afterRestore;
+
+  const okGot = A({asked: true, got: {ok: true, json: '{}'}, had: null});
+  ok('копія прийшла — нічого не пишемо поверх', okGot.push === false && okGot.enter === true,
+     JSON.stringify(okGot));
+
+  const empty = A({asked: true, got: {ok: false, error: 'empty'}, had: null});
+  ok('на сервері порожньо — це чистий старт', empty.push === true && empty.enter === true && empty.fresh === true,
+     JSON.stringify(empty));
+
+  /* Ось те, через що втрачалась база. */
+  ['network', 'bad_key', 'http_500', 'web_disabled'].forEach(why => {
+    const r = A({asked: true, got: {ok: false, error: why}, had: null});
+    ok('  ' + why + ': на сервер не пишемо', r.push === false, JSON.stringify(r));
+    ok('  ' + why + ': і не пускаємо з порожнім кабінетом', r.enter === false, JSON.stringify(r));
+  });
+
+  /* Обірваний зв'язок міг не донести навіть коду помилки. */
+  const nothing = A({asked: true, got: null, had: null});
+  ok('відповіді немає зовсім — теж не пишемо', nothing.push === false && nothing.enter === false,
+     JSON.stringify(nothing));
+
+  /* Кабінет без ключа від копії: відновлення було вимкнене, повертати
+     нічого й не було. Тут запис на сервер — правильний. */
+  const gone = A({asked: false, got: null, had: null});
+  ok('без ключа від копії — звичайний чистий старт', gone.push === true && gone.enter === true && gone.fresh === true,
+     JSON.stringify(gone));
+
+  /* Кабінет на цьому пристрої вже був — майстер налаштувань не потрібен. */
+  const known = A({asked: false, got: null, had: {login: 'trainer@mail.com'}});
+  ok('свій пристрій майстра не питає', known.fresh === false, JSON.stringify(known));
+}
+
 console.log('\n══════ ' + (checks - fails) + ' з ' + checks + (fails ? ' · є замечання' : ' · все чисто') + ' ══════');
 process.exit(fails ? 1 : 0);
 
