@@ -709,6 +709,45 @@ part('пробний період на двох пристроях');
   ok('  а безглузду відкидає', junk.json.startedAt === earlier, String(junk.json.startedAt));
 }
 
+/* ─── «не змогли прочитати» не дорівнює «такого немає» ───
+   Тренер увійшов на сайті, і йому написали «такого кабінету немає» —
+   при тому що кабінет є, і з другого дотику вхід спрацював. Причина:
+   зірване підключення до сховища мовчки перетворювалось на читання з
+   порожньої пам'яті процесу. Тим самим шляхом губився б і платіж. */
+part('сховище не вдає, що воно порожнє');
+{
+  const keep = {url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN};
+  const fresh = () => {
+    delete require.cache[require.resolve(path.join(__dirname, '..', 'api', '_lib.js'))];
+    return require(path.join(__dirname, '..', 'api', '_lib.js'));
+  };
+
+  /* Сховища немає зовсім — це робота локально, пам'яті достатньо. */
+  delete process.env.KV_REST_API_URL;
+  delete process.env.KV_REST_API_TOKEN;
+  let lib = fresh();
+  await lib.store.set('proba', {a: 1});
+  ok('без налаштованого сховища працює пам\'ять', (await lib.store.get('proba')).a === 1);
+  ok('  і чесно каже, що це не справжнє сховище', (await lib.store.live()) === false);
+
+  /* Сховище налаштоване, але недоступне: саме так виглядає холодний
+     старт із зірваним підключенням. Мовчати про це не можна. */
+  process.env.KV_REST_API_URL = 'https://kv.example.test';
+  process.env.KV_REST_API_TOKEN = 'test-token';
+  lib = fresh();
+  let threw = '';
+  try { await lib.store.get('lic:trainer@mail.com'); } catch (e){ threw = String(e.message || e); }
+  ok('недоступне сховище — це помилка, а не «запису немає»', threw === 'kv_unavailable', threw || 'мовчки повернуло порожньо');
+
+  threw = '';
+  try { await lib.store.set('lic:trainer@mail.com', {plan: 'yearly'}); } catch (e){ threw = String(e.message || e); }
+  ok('  і записувати в нікуди теж не можна', threw === 'kv_unavailable', threw || 'мовчки записало в пам\'ять');
+
+  if (keep.url === undefined) delete process.env.KV_REST_API_URL; else process.env.KV_REST_API_URL = keep.url;
+  if (keep.token === undefined) delete process.env.KV_REST_API_TOKEN; else process.env.KV_REST_API_TOKEN = keep.token;
+  fresh();
+}
+
 console.log('\n══════ ' + (checks - fails) + ' з ' + checks + (fails ? ' · є замечання' : ' · все чисто') + ' ══════');
 process.exit(fails ? 1 : 0);
 })();
