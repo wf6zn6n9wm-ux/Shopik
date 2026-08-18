@@ -425,8 +425,17 @@ const DICT = {
     'lg.faq3q': 'Дані зберігаються, якщо змінити телефон?',
     'lg.faq3a': 'Так, після входу тим самим номером ми відновимо ваш акаунт. Локальні дані також можна експортувати файлом.',
     'lg.faq4q': 'Як скасувати підписку?',
-    'lg.faq4a': 'Налаштування App Store → ваш Apple ID → Підписки → Urok+. Доступ збережеться до кінця оплаченого періоду.',
+    'lg.faq4a': 'Профіль → Підписка → «Вимкнути автопродовження». Доступ збережеться до кінця оплаченого періоду. Підписка оформлюється на сайті через LiqPay, магазин застосунків у цьому не бере участі.',
     'lg.contact': 'Написати в підтримку',
+    'lg.company': 'Виконавець',
+    'lg.updated': 'Оновлено',
+    'lg.chat': 'Чат у Telegram',
+    'lg.chatD': 'Відповідаємо швидко',
+    'lg.mail': 'Написати на пошту',
+    'lg.details': 'Скопіювати дані для підтримки',
+    'lg.detailsD': 'Версія, пристрій, пошта підписки',
+    'lg.detailsOk': 'Дані скопійовано — вставте їх у повідомлення',
+    'lg.answerTime': 'Пишіть про будь-що: не проходить оплата, зникли дані, не вистачає можливості. Відповідаємо щодня, зазвичай протягом кількох годин.',
 
     /* спільне */
 
@@ -956,8 +965,17 @@ const DICT = {
     'lg.faq3q': 'Данные сохранятся, если сменить телефон?',
     'lg.faq3a': 'Да, после входа тем же номером мы восстановим ваш аккаунт. Локальные данные также можно экспортировать файлом.',
     'lg.faq4q': 'Как отменить подписку?',
-    'lg.faq4a': 'Настройки App Store → ваш Apple ID → Подписки → Urok+. Доступ сохранится до конца оплаченного периода.',
+    'lg.faq4a': 'Профиль → Подписка → «Выключить автопродление». Доступ сохранится до конца оплаченного периода. Подписка оформляется на сайте через LiqPay, магазин приложений в этом не участвует.',
     'lg.contact': 'Написать в поддержку',
+    'lg.company': 'Исполнитель',
+    'lg.updated': 'Обновлено',
+    'lg.chat': 'Чат в Telegram',
+    'lg.chatD': 'Отвечаем быстро',
+    'lg.mail': 'Написать на почту',
+    'lg.details': 'Скопировать данные для поддержки',
+    'lg.detailsD': 'Версия, устройство, почта подписки',
+    'lg.detailsOk': 'Данные скопированы — вставьте их в сообщение',
+    'lg.answerTime': 'Пишите о чём угодно: не проходит оплата, пропали данные, не хватает возможности. Отвечаем каждый день, обычно в течение нескольких часов.',
 
 
     /* домашние задания */
@@ -1486,8 +1504,17 @@ const DICT = {
     'lg.faq3q': 'Will my data survive a phone change?',
     'lg.faq3a': 'Yes — sign in with the same number and we restore your account. You can also export local data to a file.',
     'lg.faq4q': 'How do I cancel the subscription?',
-    'lg.faq4a': 'App Store settings → your Apple ID → Subscriptions → Urok+. Access stays until the end of the paid period.',
+    'lg.faq4a': 'Profile → Subscription → “Turn off auto-renewal”. Access stays until the end of the paid period. The subscription is bought on the website via LiqPay — no app store is involved.',
     'lg.contact': 'Contact support',
+    'lg.company': 'Provider',
+    'lg.updated': 'Updated',
+    'lg.chat': 'Telegram chat',
+    'lg.chatD': 'We reply fast',
+    'lg.mail': 'Email us',
+    'lg.details': 'Copy details for support',
+    'lg.detailsD': 'Version, device, subscription email',
+    'lg.detailsOk': 'Copied — paste it into your message',
+    'lg.answerTime': 'Write about anything: a payment that will not go through, missing data, a feature you need. We answer every day, usually within a few hours.',
 
 
     /* homework */

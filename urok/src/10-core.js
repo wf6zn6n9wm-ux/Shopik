@@ -808,6 +808,46 @@ const planPerMonth = plan => {
    3.1.1), і застосунок, який лише відкриває доступ до вже оплаченої
    на сайті підписки, — це єдина безпечна форма. Тому Web.native()
    вимикає весь блок тарифів. */
+/* Реквізити для «Умов», «Політики» й підтримки. Одне місце на весь
+   застосунок: те саме, що в тренері. Магазини перевіряють, що ці дані
+   справжні й що з екрана оплати до них можна дотягнутись. */
+const LEGAL = {
+  company: 'ФОП Мозолевич Андрей',
+  email: 'andreymenedger01@gmail.com',
+  site: '',                       /* напр. 'https://urok.app' */
+  telegram: 'urokplus',           /* чат підтримки: t.me/urokplus */
+  updated: '18 серпня 2026',
+};
+
+/* Куди йде викладач, коли щось не працює. Порядок навмисний: чат
+   відповідає швидше за пошту, сторінка потрібна магазинам, пошта
+   працює завжди — навіть коли домен ще не заведено. */
+const Support = {
+  chat(){ return LEGAL.telegram ? 'https://t.me/' + String(LEGAL.telegram).replace(/^@/, '') : ''; },
+  page(){ return LEGAL.site ? String(LEGAL.site).replace(/\/+$/, '') + '/support' : ''; },
+  mail(subject, body){
+    const q = ['subject=' + encodeURIComponent(subject || 'Urok+')];
+    if (body) q.push('body=' + encodeURIComponent(body));
+    return 'mailto:' + LEGAL.email + '?' + q.join('&');
+  },
+  url(){ return Support.chat() || Support.page() || Support.mail(); },
+  kind(){ return Support.chat() ? 'chat' : Support.page() ? 'page' : 'mail'; },
+  /* Підписка прив'язана до пошти й пристрою, тому «не працює оплата»
+     без цих трьох рядків розбирати неможливо. Хай людина не шукає їх
+     по екранах — збираємо самі. */
+  details(){
+    const s = store.get();
+    const lines = [
+      'Urok+ ' + VERSION,
+      'ID пристрою: ' + deviceId(),
+      'Пошта підписки: ' + (s.premium.login || '—'),
+      'План: ' + (s.premium.plan || '—') + (s.premium.until ? ' до ' + s.premium.until : ''),
+      'Мова: ' + s.settings.lang,
+    ];
+    return lines.join('\n');
+  },
+};
+
 /* Домен сайту. Порожньо — беремо той, з якого відкритий застосунок;
    цього досить для вебверсії, але не для автономної копії (артефакт)
    і не для нативної оболонки, яка живе на localhost. Щойно тут
@@ -1174,6 +1214,6 @@ Object.assign(window.U, {
   normalizePhone, isPhoneValid, photoFromFile, copyText, isEmbedded, blankState, merge, load, persist, createStore, store, useStore, A, normalizeLesson,
   sel, byTime, expandSeries, Billing, applyTheme, applyLang, demoData, loadDemo, unloadDemo, hasDemo, detectTz,
   LESSON_STATUS, HOMEWORK_STATUS, lessonPrice, lessonTotal, isEarning, PLAN_ORDER, planMonthly, planSaving, planPerMonth,
-  WEB, Web, Licence, deviceId,
+  WEB, Web, Licence, deviceId, LEGAL, Support,
 });
 })();

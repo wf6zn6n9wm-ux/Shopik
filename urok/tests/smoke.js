@@ -548,6 +548,34 @@ yes(U.planSaving('yearly') > 0, 'річний вигідніший за міся
 if (U.planSaving('yearly') < U.planSaving('quarterly'))
   console.log(`  ! річний план (${U.planSaving('yearly')}%) вигідніший за квартальний (${U.planSaving('quarterly')}%) лише на папері — на місяць він дорожчий`);
 
+/* ── підтримка ──
+   Коли щось не працює, людина має дійти до живої людини — і принести
+   з собою те, без чого розбирати нічого: версію, пристрій, пошту. */
+{
+  const {Support, LEGAL} = U;
+  yes(Support.chat().startsWith('https://t.me/'), 'чат підтримки — посилання на Telegram');
+  eq(Support.kind(), 'chat', 'поки є чат, ведемо в чат');
+  yes(Support.mail('Urok+').startsWith('mailto:' + LEGAL.email), 'пошта підтримки на місці');
+  yes(Support.mail('Urok+ 1.0', 'дані').includes('body='), 'у листі є заготовлений текст');
+  const saved = LEGAL.telegram;
+  LEGAL.telegram = '';
+  eq(Support.kind(), 'mail', 'без чату лишається пошта, а не порожнеча');
+  yes(Support.url().startsWith('mailto:'), 'кнопка підтримки все одно веде до людини');
+  LEGAL.telegram = saved;
+  A.setLogin('teacher@example.com');
+  const details = Support.details();
+  yes(details.includes(U.VERSION), 'у даних для підтримки є версія');
+  yes(details.includes('teacher@example.com'), 'є пошта підписки');
+  yes(/dev_/.test(details), 'є ідентифікатор пристрою');
+  /* Сторінка оплати живе окремо — там теж є посилання на підтримку,
+     і воно має вести туди ж, куди із застосунку. */
+  const fs = require('fs'), path = require('path');
+  const page = fs.readFileSync(path.join(__dirname, '..', 'pay.html'), 'utf8');
+  const link = (page.match(/var SUPPORT = '([^']+)'/) || [])[1];
+  eq(link, Support.chat(), 'pay.html: та сама підтримка, що в застосунку');
+  A.setLogin('');
+}
+
 Billing.trial().then(r => {
   yes(r.ok, 'пробний період вмикається');
   yes(sel.isPremium(store.get()), 'після пробного періоду преміум активний');

@@ -16,7 +16,7 @@ window.U = window.U || {};
 const {
   Icon, Avatar, Btn, IconBtn, Card, SectionHead, Row, Field, Input, TextArea, Empty, Sheet, Confirm,
   Segmented, Chips, Switch, SwitchRow, StackBar, AppBar, toast, Stats, photoFromFile,
-  A, sel, store, Billing, Web, PRODUCTS, PLAN_ORDER, planMonthly, planSaving, planPerMonth, fmtPrice,
+  A, sel, store, Billing, Web, Support, LEGAL, PRODUCTS, PLAN_ORDER, planMonthly, planSaving, planPerMonth, fmtPrice,
   LANGS, CURRENCIES, TIMEZONES, FREE_STUDENT_LIMIT, VERSION,
   todayISO, addDays, startOfWeek, weekDays, fmtMoney, fmtShortDate, fmtDayMonth, currencySymbol,
   applyTheme, applyLang, loadDemo, unloadDemo, hasDemo, copyText, isEmbedded,
@@ -111,8 +111,8 @@ function ProfileScreen({t, s, nav}){
 
         <SectionHead title={t('pr.community')} />
         <div className="rows joined">
-          <Row icon={<Icon.telegram size={19} />} title={t('pr.telegram')} sub="@urokplus" chevron
-               onClick={() => openLink('https://t.me/urokplus')} />
+          <Row icon={<Icon.telegram size={19} />} title={t('pr.telegram')} sub={'@' + LEGAL.telegram} chevron
+               onClick={() => openLink(Support.chat())} />
           <Row icon={<Icon.instagram size={19} />} title={t('pr.instagram')} sub="@urokplus" chevron
                onClick={() => openLink('https://instagram.com/urokplus')} />
         </div>
@@ -285,6 +285,11 @@ function SettingsScreen({t, s, nav}){
           <Row icon={<Icon.doc size={19} />} title={t('se.terms')} chevron onClick={() => nav.push({name: 'terms'})} />
           <Row icon={<Icon.help size={19} />} title={t('se.help')} sub={t('se.helpD')} chevron
                onClick={() => nav.push({name: 'help'})} />
+          {/* Пряма дорога до людини, повз FAQ: коли щось не працює,
+              читати відповіді на чужі питання не хочеться. */}
+          <Row icon={<Icon.telegram size={19} />} title={t('lg.chat')}
+               sub={Support.kind() === 'chat' ? t('lg.chatD') : LEGAL.email} chevron
+               onClick={() => openLink(Support.url())} />
           <Row icon={<Icon.sparkle size={19} />} title={t('se.version')} right={VERSION} />
         </div>
         <div style={{height: 24}} />
@@ -819,6 +824,15 @@ function TextScreen({t, nav, titleKey, textKey}){
       <StackBar t={t} title={t(titleKey)} onBack={nav.back} />
       <div className="screen">
         <Card><div style={{fontSize: 14.5, lineHeight: 1.62}}>{t(textKey)}</div></Card>
+        {/* Документ без того, хто за ним стоїть, — папірець. Магазини
+            це перевіряють, та й людині є куди написати. */}
+        <div className="rowlines" style={{marginTop: 12}}>
+          {LEGAL.company ? <div><span>{t('lg.company')}</span><b className="ellip">{LEGAL.company}</b></div> : null}
+          <div><span>{t('lg.mail')}</span><b className="ellip">{LEGAL.email}</b></div>
+          <div><span>{t('lg.updated')}</span><b>{LEGAL.updated}</b></div>
+        </div>
+        <Btn kind="soft" wide style={{marginTop: 12}} icon={<Icon.telegram size={18} />}
+             onClick={() => openLink(Support.url())}>{t('lg.contact')}</Btn>
         <div className="hint" style={{textAlign: 'center', marginTop: 16}}>Urok+ · {VERSION}</div>
       </div>
     </div>
@@ -848,11 +862,22 @@ function HelpScreen({t, nav}){
             </Card>
           ))}
         </div>
-        <div style={{marginTop: 18}}>
-          <Btn kind="soft" wide icon={<Icon.telegram size={18} />} onClick={() => openLink('https://t.me/urokplus')}>
-            {t('lg.contact')}
-          </Btn>
+        {/* Питання, на яке FAQ не відповів, має куди піти. Порядок як
+            у тренері: чат відповідає швидше за пошту, пошта працює
+            завжди — навіть коли Telegram недоступний. */}
+        <SectionHead title={t('lg.contact')} />
+        <div className="rows joined">
+          <Row icon={<Icon.telegram size={19} />} accent title={t('lg.chat')} sub={'@' + LEGAL.telegram} chevron
+               onClick={() => openLink(Support.chat())} />
+          <Row icon={<Icon.mail size={19} />} title={t('lg.mail')} sub={LEGAL.email} chevron
+               onClick={() => openLink(Support.mail('Urok+ ' + VERSION, '\n\n— — —\n' + Support.details()))} />
+          {/* Підписка прив'язана до пошти й пристрою: без цих рядків
+              «оплата не пройшла» не розбирається взагалі ніяк. */}
+          <Row icon={<Icon.clipboard size={19} />} title={t('lg.details')} sub={t('lg.detailsD')}
+               onClick={() => copyText(Support.details()).then(ok => toast(ok ? t('lg.detailsOk') : t('c.noData')))} />
         </div>
+        <div className="hint" style={{marginTop: 12, lineHeight: 1.5}}>{t('lg.answerTime')}</div>
+        <div style={{height: 20}} />
       </div>
     </div>
   );

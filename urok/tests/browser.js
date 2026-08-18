@@ -185,7 +185,21 @@ const SCENARIO = `
       ok('поле пошти на місці', !!field);
       if (field) type(field, 'olena@example.com');
     },
-    function(){ ok('кнопка переходу до оплати', !!byText('Перейти до оплати')); }
+    function(){ ok('кнопка переходу до оплати', !!byText('Перейти до оплати')); },
+
+    /* підтримка: з профілю до живої людини й до даних, з якими
+       звертання має сенс */
+    function(){ click(byText('Скасувати')); },
+    /* назад із тарифів і з підписки: поки відкритий екран поверх
+       вкладок, нижнього меню немає */
+    function(){ click($('.iconbtn')); },
+    function(){ click($('.iconbtn')); },
+    function(){ ok('перехід у допомогу', click(byText('Допомога'))); },
+    function(){ ok('є питання й відповіді', text().indexOf('Як створити повторюване заняття?') >= 0); },
+    function(){ ok('чат у Telegram', !!byText('Чат у Telegram')); },
+    function(){ ok('пошта підтримки', text().indexOf('@') > 0 && !!byText('Написати на пошту')); },
+    function(){ ok('дані для підтримки', click(byText('Скопіювати дані для підтримки'))); },
+    function(){ ok('дані копіюються', !!$('.toast'), $('.toast') ? $('.toast').innerText.slice(0, 40) : 'без тоста'); }
   ];
 
   var i = 0;
