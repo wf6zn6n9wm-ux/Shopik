@@ -576,6 +576,66 @@ if (U.planSaving('yearly') < U.planSaving('quarterly'))
   A.setLogin('');
 }
 
+/* ── пробний період на сервері ──
+   Раніше перевстановлення давало нові сім днів скільки завгодно разів.
+   Тепер дату початку пам'ятає сервер, і правило одностороннє: він може
+   посунути початок назад, але не вперед. */
+{
+  const {Trial} = U;
+  const day = 86400000;
+  store.reset();
+  /* Свіжий пристрій, а сервер пам'ятає початок п'ять днів тому. */
+  yes(Trial.apply({ok: true, started: true, startedAt: Date.now() - 5 * day,
+                   endsAt: Date.now() + 2 * day, expired: false}),
+      'сервер вмикає залишок пробного після перевстановлення');
+  eq(store.get().premium.plan, 'trial', 'це саме пробний період');
+  yes(store.get().premium.trialUsed, 'другий раз його вже не дадуть');
+  eq(store.get().premium.until, U.addDays(U.todayISO(), 2), 'лишилось рівно те, що на сервері');
+
+  /* Локально тиждень, на сервері він майже вийшов — виграє сервер. */
+  A.setPremium('trial', U.addDays(U.todayISO(), 7), {source: 'trial'});
+  Trial.apply({ok: true, started: true, startedAt: Date.now() - 6 * day, endsAt: Date.now() + day, expired: false});
+  eq(store.get().premium.until, U.addDays(U.todayISO(), 1), 'сервер уміє лише вкоротити');
+  /* А ось подовжити підробленою датою — ні. */
+  Trial.apply({ok: true, started: true, startedAt: Date.now(), endsAt: Date.now() + 40 * day, expired: false});
+  eq(store.get().premium.until, U.addDays(U.todayISO(), 1), 'подовжити пробний з сервера не можна');
+
+  Trial.apply({ok: true, started: true, startedAt: Date.now() - 30 * day, endsAt: Date.now() - 23 * day, expired: true});
+  yes(!sel.isPremium(store.get()), 'скінчений пробний період забирається');
+  yes(store.get().premium.trialUsed, 'а позначка лишається');
+
+  /* Оплачену підписку пробний період не чіпає в жодному разі. */
+  A.setPremium('yearly', U.addDays(U.todayISO(), 200), {source: 'web'});
+  yes(!Trial.apply({ok: true, started: true, startedAt: Date.now(), endsAt: Date.now() + day, expired: false}),
+      'оплачена підписка головніша за пробний період');
+  eq(store.get().premium.plan, 'yearly', 'план не підмінився');
+  yes(!Trial.apply({ok: false}), 'без відповіді сервера нічого не міняється');
+  store.reset();
+}
+
+/* ── резервна копія ──
+   Даних на сервері немає: копія — єдине, що стоїть між викладачем і
+   втратою бази. Тому про неї нагадуємо самі. */
+{
+  const {buildNotifications} = U;
+  const t = makeT('uk');
+  store.reset();
+  A.setAuth({status: 'authed', phone: '+380631112233', provider: 'phone', createdAt: todayISO()});
+  ['Аня', 'Богдан', 'Віра'].forEach(name => A.addStudent({name, price: 300}));
+  const has = () => buildNotifications(store.get(), t).some(x => x.id === 'backup');
+  yes(has(), 'без жодної копії нагадуємо');
+  A.markBackup();
+  yes(!has(), 'щойно збережену копію не згадуємо');
+  A.markBackup(addDays(todayISO(), -(U.BACKUP_REMIND_DAYS + 1)));
+  yes(has(), 'давня копія — привід нагадати');
+  store.reset();
+  A.setAuth({status: 'authed', phone: '+380631112233', provider: 'phone', createdAt: todayISO()});
+  A.addStudent({name: 'Один', price: 300});
+  yes(!buildNotifications(store.get(), t).some(x => x.id === 'backup'),
+      'з одним учнем не чіпляємось — втрачати ще нічого');
+  store.reset();
+}
+
 Billing.trial().then(r => {
   yes(r.ok, 'пробний період вмикається');
   yes(sel.isPremium(store.get()), 'після пробного періоду преміум активний');

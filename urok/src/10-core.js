@@ -31,6 +31,8 @@ window.U = window.U || {};
 const KEY = 'urok.v1';
 const VERSION = '1.0.0';
 const FREE_STUDENT_LIMIT = 5;
+const TRIAL_DAYS = 7;              /* стільки ж, скільки в api/trial.js */
+const BACKUP_REMIND_DAYS = 21;     /* після цього нагадуємо зберегти копію */
 const SERIES_HORIZON_WEEKS = 12;
 
 const CURRENCIES = [
@@ -223,6 +225,9 @@ function blankState(){
       workEnd: '21:00',
       defaultDuration: 60,
       defaultPrice: 300,
+      /* Коли востаннє зберігали копію. Даних на сервері немає, тому
+         це єдине, що стоїть між викладачем і втратою бази. */
+      backupAt: '',
     },
     students: [],
     lessons: [],
@@ -479,6 +484,14 @@ const A = {
   },
   clearPremium(){
     store.set(s => ({...s, premium: {...s.premium, plan: null, until: '', source: '', autoRenew: true}}));
+  },
+  /* Пробний період уже використано — навіть якщо він скінчився ще на
+     іншому пристрої і локально ми про нього не знали. */
+  markTrialUsed(){
+    store.set(s => ({...s, premium: {...s.premium, trialUsed: true}}));
+  },
+  markBackup(date){
+    store.set(s => ({...s, settings: {...s.settings, backupAt: date || todayISO()}}));
   },
   /* Пошта, на яку оформлюється підписка. Окремо від setPremium: її
      треба запам'ятати ще до оплати — інакше після повернення з сайту
@@ -955,6 +968,45 @@ const Licence = {
   },
 };
 
+/* ─── пробний тиждень ───
+   Доти дата початку лежала лише на пристрої, тому перевстановлення
+   давало нові сім днів — і так скільки завгодно разів. Тепер її
+   пам'ятає сервер, і правило одностороннє: сервер може посунути
+   початок НАЗАД, але не вперед. Інакше підробленою датою пробний
+   період продовжували б собі самі.
+
+   Офлайн від цього не ламається: локальна дата ставиться одразу, а
+   звірка відбувається при першому ж зв'язку.                        */
+const Trial = {
+  /* Якір — пошта підписки, якщо вона вже є, інакше номер входу.
+     Немає ні того, ні того — лишається пристрій (його додає
+     Licence.ask сам). */
+  login(){
+    const s = store.get();
+    return s.premium.login || normalizePhone(s.auth.phone) || '';
+  },
+  ask(start){
+    return Licence.ask('trial', start ? {login: Trial.login(), start: '1'} : {login: Trial.login()});
+  },
+  /* Відповідь сервера → стан застосунку. */
+  apply(res){
+    if (!res || !res.ok || !res.started) return false;
+    const s = store.get();
+    /* Оплачена підписка головніша за будь-який пробний період. */
+    if (s.premium.source === 'web' && sel.isPremium(s)) return false;
+    A.markTrialUsed();
+    if (res.expired){
+      if (s.premium.plan === 'trial') A.clearPremium();
+      return true;
+    }
+    const until = iso(new Date(res.endsAt));
+    const local = s.premium.plan === 'trial' ? s.premium.until : '';
+    /* Раніша з двох дат: сервер уміє лише вкоротити. */
+    A.setPremium('trial', local && local < until ? local : until, {source: 'trial'});
+    return true;
+  },
+};
+
 const Billing = {
   /* Магазинного моста немає: покупок усередині застосунку не буває.
      Лишились пробний тиждень, посилання на оплату й відновлення. */
@@ -964,8 +1016,19 @@ const Billing = {
   async trial(){
     const s = store.get();
     if (s.premium.trialUsed) return {ok: false, reason: 'used'};
-    A.setPremium('trial', addDays(todayISO(), 7), {source: 'trial'});
-    return {ok: true};
+    /* Спершу вмикаємо локально — щоб працювало навіть без мережі. */
+    A.setPremium('trial', addDays(todayISO(), TRIAL_DAYS), {source: 'trial'});
+    Trial.apply(await Trial.ask(true));
+    const after = store.get();
+    return sel.isPremium(after) ? {ok: true} : {ok: false, reason: 'used'};
+  },
+
+  /* Тиха звірка при запуску: чи не починався цей пробний період
+     раніше — на іншому пристрої або до перевстановлення. */
+  async syncTrial(){
+    const s = store.get();
+    if (s.premium.source === 'web' && sel.isPremium(s)) return {ok: false, reason: 'paid'};
+    return {ok: Trial.apply(await Trial.ask(false))};
   },
 
   checkoutUrl(planId, lang, login){ return Web.payUrlFor(planId, lang, login); },
@@ -1214,6 +1277,6 @@ Object.assign(window.U, {
   normalizePhone, isPhoneValid, photoFromFile, copyText, isEmbedded, blankState, merge, load, persist, createStore, store, useStore, A, normalizeLesson,
   sel, byTime, expandSeries, Billing, applyTheme, applyLang, demoData, loadDemo, unloadDemo, hasDemo, detectTz,
   LESSON_STATUS, HOMEWORK_STATUS, lessonPrice, lessonTotal, isEarning, PLAN_ORDER, planMonthly, planSaving, planPerMonth,
-  WEB, Web, Licence, deviceId, LEGAL, Support,
+  WEB, Web, Licence, Trial, deviceId, LEGAL, Support, TRIAL_DAYS, BACKUP_REMIND_DAYS,
 });
 })();

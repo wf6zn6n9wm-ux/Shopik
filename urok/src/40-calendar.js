@@ -21,7 +21,7 @@ window.U = window.U || {};
 
 const {
   Icon, Avatar, Btn, IconBtn, Card, SectionHead, Row, Empty, Sheet, Segmented, Stats, AppBar,
-  A, sel, store, toast, HomeworkRow, dueLabel,
+  A, sel, store, toast, HomeworkRow, dueLabel, BACKUP_REMIND_DAYS,
   todayISO, addDays, weekDays, dow, diffDays, parseISO, monthGrid, startOfMonth, addMonths,
   fmtLongDate, fmtDayMonth, fmtRelDate, fmtMoney, fmtDur, duration, toMin, lessonTotal, lessonPrice,
 } = window.U;
@@ -218,6 +218,19 @@ function buildNotifications(s, t){
         sub: t.plural('lesson', x.unpaid.length),
         route: {name: 'student', params: {id: x.student.id}},
       });
+    });
+  }
+
+  /* Копії немає, а втрачати вже є що. Сервера в нас немає, тому це
+     єдине попередження, яке взагалі можливе — і мовчати про нього
+     означає одного дня почути «зник телефон, зникли всі учні». */
+  const backupAt = s.settings.backupAt;
+  if (s.students.length >= 3 && (!backupAt || diffDays(backupAt, today) > BACKUP_REMIND_DAYS)){
+    out.push({
+      id: 'backup', icon: <Icon.download size={19} />,
+      title: t('notif.backup'),
+      sub: backupAt ? t('notif.backupLast', {days: diffDays(backupAt, today)}) : t('notif.backupNever'),
+      route: {name: 'settings'},
     });
   }
 

@@ -199,7 +199,25 @@ const SCENARIO = `
     function(){ ok('чат у Telegram', !!byText('Чат у Telegram')); },
     function(){ ok('пошта підтримки', text().indexOf('@') > 0 && !!byText('Написати на пошту')); },
     function(){ ok('дані для підтримки', click(byText('Скопіювати дані для підтримки'))); },
-    function(){ ok('дані копіюються', !!$('.toast'), $('.toast') ? $('.toast').innerText.slice(0, 40) : 'без тоста'); }
+    function(){ ok('дані копіюються', !!$('.toast'), $('.toast') ? $('.toast').innerText.slice(0, 40) : 'без тоста'); },
+
+    /* резервна копія: даних на сервері немає, тому це єдине, що
+       стоїть між викладачем і втратою бази */
+    function(){ click($('.iconbtn')); },
+    function(){ ok('перехід у налаштування', click(byText('Налаштування'))); },
+    function(){ window.scrollTo(0, 4000); },
+    function(){ ok('видно блок копії', text().indexOf('Резервна копія') >= 0); },
+    function(){ ok('видно, що копії ще не було', text().indexOf('ще не зберігали') >= 0); },
+    function(){ ok('є відновлення з файлу', !!byText('Відновити з файлу')); },
+    /* Справжнє збереження файлу підвісило б headless-браузер на
+       завантаженні, тому ламаємо саме створення файлу: застосунок
+       має піти запасним шляхом (буфер обміну), а не впасти. */
+    function(){ window.URL.createObjectURL = function(){ throw new Error('no downloads here'); }; },
+    function(){ ok('копія зберігається', click(byText('Зберегти копію'))); },
+    function(){
+      var state = JSON.parse(localStorage.getItem('urok.v1'));
+      ok('дата копії запам\\'яталась', !!(state.settings && state.settings.backupAt), state.settings.backupAt);
+    }
   ];
 
   var i = 0;

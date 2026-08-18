@@ -20,6 +20,7 @@ const {
   LANGS, CURRENCIES, TIMEZONES, FREE_STUDENT_LIMIT, VERSION,
   todayISO, addDays, startOfWeek, weekDays, fmtMoney, fmtShortDate, fmtDayMonth, currencySymbol,
   applyTheme, applyLang, loadDemo, unloadDemo, hasDemo, copyText, isEmbedded,
+  merge, blankState, diffDays, BACKUP_REMIND_DAYS,
 } = window.U;
 
 /* ── профіль ───────────────────────────────────────────────── */
@@ -200,12 +201,22 @@ function SettingsScreen({t, s, nav}){
   const [sheet, setSheet] = React.useState('');
   const [confirmWipe, setConfirmWipe] = React.useState(false);
   const [confirmOut, setConfirmOut] = React.useState(false);
+  const [imported, setImported] = React.useState(null);   /* прочитаний файл, чекає підтвердження */
+  const fileRef = React.useRef(null);
   const set = s.settings;
+  /* Копію давно не зберігали — і є що втрачати. Мовчати про це
+     дешевше для нас і найдорожче для викладача. */
+  const backupOld = s.students.length > 0
+    && (!set.backupAt || diffDays(set.backupAt, todayISO()) > BACKUP_REMIND_DAYS);
   const lang = LANGS.find(l => l.id === set.lang) || LANGS[0];
   const themeLabel = {system: t('se.themeSystem'), light: t('se.themeLight'), dark: t('se.themeDark')}[set.theme];
 
+  /* Дані живуть лише на цьому пристрої, тому копія — не «додаткова
+     можливість», а єдине, що стоїть між викладачем і втратою бази.
+     Тому дата останнього збереження на видноті, а не в глибині. */
   const exportData = () => {
     const json = JSON.stringify(store.get(), null, 2);
+    A.markBackup();
     /* У вбудованій сторінці браузер не дає зберегти файл — тоді
        кладемо дані в буфер обміну, а не вдаємо, що щось сталося. */
     if (isEmbedded()){
@@ -221,6 +232,35 @@ function SettingsScreen({t, s, nav}){
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast(t('se.exported'));
     } catch (e) { copyText(json).then(ok => toast(ok ? t('c.copied') : t('c.noData'))); }
+  };
+
+  /* Імпорт — половина сенсу копії: файл, який нікуди не повертається,
+     це не резервна копія, а просто файл. Читаємо, перевіряємо, що це
+     справді наші дані, і лише потім питаємо про заміну. */
+  const pickImport = () => { if (fileRef.current && fileRef.current.click) fileRef.current.click(); };
+  const readImport = e => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file || typeof FileReader === 'undefined') return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(String(reader.result));
+        if (!data || !Array.isArray(data.students) || !Array.isArray(data.lessons)) throw new Error('bad');
+        setImported(data);
+      } catch (err){ toast(t('se.importBad')); }
+    };
+    reader.onerror = () => toast(t('se.importBad'));
+    reader.readAsText(file);
+  };
+  const applyImport = () => {
+    const data = imported;
+    setImported(null);
+    if (!data) return;
+    /* Через merge, а не навпростець: у старому файлі може не бути
+       полів, які з'явились пізніше. */
+    store.set(() => merge(blankState(), data));
+    toast(t('se.imported', {n: (data.students || []).length}));
   };
 
   return (
@@ -273,11 +313,25 @@ function SettingsScreen({t, s, nav}){
                onClick={() => nav.push({name: 'subscription'})} />
           <SwitchRow icon={<Icon.sparkle size={19} />} title={t('se.demoData')} sub={t('se.demoDataD')}
                      on={hasDemo(s)} onChange={v => { v ? loadDemo(t) : unloadDemo(); toast(t('c.saved')); }} />
-          <Row icon={<Icon.download size={19} />} title={t('se.exportData')} sub={t('se.exportDataD')}
-               onClick={exportData} />
           <Row icon={<Icon.logout size={19} />} title={t('au.logout')} onClick={() => setConfirmOut(true)} />
           <Row icon={<Icon.trash size={19} />} danger title={t('se.clearData')} onClick={() => setConfirmWipe(true)} />
         </div>
+
+        <SectionHead title={t('se.data')} />
+        <Card style={backupOld ? {borderColor: 'var(--warn)'} : undefined}>
+          <div className="h3">{t('se.backupT')}</div>
+          <p className="muted" style={{fontSize: 13.5, margin: '6px 0 0', lineHeight: 1.5}}>{t('se.backupD')}</p>
+          <div className="rowlines" style={{marginTop: 10}}>
+            <div>
+              <span>{t('se.backupLast')}</span>
+              <b>{set.backupAt ? fmtShortDate(t, set.backupAt) : t('se.backupNever')}</b>
+            </div>
+          </div>
+          <Btn kind="pri" wide style={{marginTop: 12}} icon={<Icon.download size={18} />}
+               onClick={exportData}>{t('se.backupGo')}</Btn>
+          <Btn kind="sec" wide style={{marginTop: 8}} icon={<Icon.upload size={18} />}
+               onClick={pickImport}>{t('se.importData')}</Btn>
+        </Card>
 
         <SectionHead title={t('se.about')} />
         <div className="rows joined">
@@ -373,6 +427,13 @@ function SettingsScreen({t, s, nav}){
       <Confirm open={confirmWipe} danger text={t('se.clearConfirm')} confirmLabel={t('a.delete')} cancelLabel={t('a.cancel')}
                onClose={() => setConfirmWipe(false)}
                onConfirm={() => { setConfirmWipe(false); A.wipe(); toast(t('se.cleared')); }} />
+      {/* Імпорт заміщає все, що є на пристрої, — про це питаємо
+          прямо, а не дрібним шрифтом під кнопкою. */}
+      <Confirm open={!!imported} danger text={t('se.importConfirm', {n: imported ? (imported.students || []).length : 0})}
+               confirmLabel={t('se.importGo')} cancelLabel={t('a.cancel')}
+               onClose={() => setImported(null)} onConfirm={applyImport} />
+      <input ref={fileRef} type="file" accept="application/json,.json" onChange={readImport}
+             style={{display: 'none'}} aria-hidden="true" tabIndex={-1} />
     </div>
   );
 }

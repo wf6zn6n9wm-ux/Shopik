@@ -14,7 +14,7 @@ window.U = window.U || {};
 (function(){
 
 const {
-  Icon, Toaster, useStore, A, sel, makeT, applyTheme, applyLang,
+  Icon, Toaster, useStore, A, sel, makeT, applyTheme, applyLang, Billing,
   AuthFlow, Onboarding,
   CalendarScreen, LessonFormScreen, LessonScreen,
   StudentsScreen, StudentFormScreen, StudentScreen,
@@ -126,6 +126,15 @@ function App(){
   }, [s.settings.theme]);
 
   React.useEffect(() => { applyLang(s.settings.lang); }, [s.settings.lang]);
+
+  /* Сервер знає про підписку й про пробний період більше за нас:
+     перший міг закінчитись, другий — початись на іншому пристрої.
+     Мовчки звіряємось на старті; без мережі лишається як було. */
+  React.useEffect(() => {
+    if (s.auth.status !== 'authed') return;
+    if (window.U.store.get().premium.login) Billing.refresh();
+    Billing.syncTrial();
+  }, [s.auth.status]);
 
   /* системна кнопка «назад» */
   React.useEffect(() => {

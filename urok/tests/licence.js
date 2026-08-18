@@ -156,7 +156,23 @@ const LOGIN = 'Teacher@Example.com';
   const dead = await call(API('licence.js'), {query: {login: LOGIN, device: DEVICE}});
   ok('доступ забирається одразу', dead.json.active === false);
 
-  /* ── 10. службове ── */
+  /* ── 10. пробний період ── */
+  part('пробний період');
+  const trialOne = await call(API('trial.js'), {query: {login: 'new@example.com', device: DEVICE}});
+  ok('спершу пробного не було', trialOne.json.ok && trialOne.json.started === false);
+  const started = await call(API('trial.js'), {query: {login: 'new@example.com', device: DEVICE, start: '1'}});
+  ok('пробний вмикається', started.json.started === true);
+  ok('строк — тиждень', Math.round((started.json.endsAt - started.json.startedAt) / 86400000) === 7);
+  /* Перевстановлення застосунку: пристрій новий, логін той самий. */
+  const again2 = await call(API('trial.js'), {query: {login: 'NEW@example.com', device: 'dev_fresh', start: '1'}});
+  ok('другий раз не дається', again2.json.startedAt === started.json.startedAt,
+     'дата та сама');
+  const byDevice = await call(API('trial.js'), {query: {device: 'dev_alone', start: '1'}});
+  ok('без логіна тримаємось за пристрій', byDevice.json.started === true);
+  const noKey = await call(API('trial.js'), {query: {}});
+  ok('зовсім без ключа не проходить', noKey.code === 400, String(noKey.code));
+
+  /* ── 11. службове ── */
   part('службове');
   const health = await call(API('health.js'), {});
   ok('health відповідає', health.json.ok && health.json.liqpay === true);
