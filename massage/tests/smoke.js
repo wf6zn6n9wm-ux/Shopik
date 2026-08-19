@@ -130,6 +130,18 @@ function textOf(node){
   if (typeof type === 'function') return textOf(type(props));
   return textOf(props && props.children);
 }
+/* сколько на экране элементов с таким классом — чтобы проверять не
+   только «отрисовалось», но и чем именно отрисовалось */
+function countClass(node, cls){
+  if (node == null || typeof node !== 'object') return 0;
+  if (Array.isArray(node)) return node.reduce((n, x) => n + countClass(x, cls), 0);
+  if (!node.__el) return 0;
+  const {type, props} = node;
+  if (typeof type === 'function') return countClass(type(props), cls);
+  const own = String((props && props.className) || '').split(/\s+/).includes(cls) ? 1 : 0;
+  return own + countClass(props && props.children, cls);
+}
+
 const screen = (name, make) => {
   try { const n = walk(make()); ok(name, n > 3, n + ' узлов'); }
   catch (e){ ok(name, false, e.message); }
@@ -399,6 +411,12 @@ part('тексты экранов');
      T.dayAppts(d, today).every(a => sc.includes(T.clientName(d, a.clientId))));
   const inc = textOf(T.Income({db: d, back: noop}));
   ok('в доходе есть средний чек и сеансы', inc.includes('Средний чек') && inc.includes('Сеансов'));
+  const more = T.More({db: d, go: noop});
+  ok('сводка на «Ещё» разложена по плиткам', countClass(more, 'stat') === 3, countClass(more, 'stat') + ' шт.');
+  ok('на плитках месяц, сеансы и клиенты',
+     ['Месяц', 'Сеансов', 'Клиентов'].every(t => textOf(more).includes(t)));
+  const sb = T.Subs({db: d, back: noop, go: noop, openNew: noop});
+  ok('сводка абонементов такими же плитками', countClass(sb, 'stat') === 2, countClass(sb, 'stat') + ' шт.');
   const bk = textOf(T.Booking({db: d, back: noop, openAppt: noop}));
   ok('на странице записи есть услуги и кнопка', bk.includes('Услуги') && bk.includes('Записаться'));
 }

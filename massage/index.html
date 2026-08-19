@@ -477,7 +477,16 @@
   .chart .bar-r.on{fill:url(#gv)}
   .chart .lab{font-size:10px; fill:var(--ink-3); font-weight:500}
   .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
-  .stat{background:var(--card); border:1px solid var(--line); border-radius:var(--r-md); padding:14px}
+  .stat-grid.three{grid-template-columns:repeat(3,1fr); gap:10px}
+  .stat-grid.three .stat{padding:12px}
+  .stat-grid.three .stat-k{font-size:12px}
+  .stat-grid.three .stat-v{font-size:18px; margin-top:2px}
+  /* подпись из двух слов переносится — значение всё равно должно стоять
+     на одной линии с соседними плитками, поэтому прижимаем его книзу */
+  .stat{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--r-md); padding:14px;
+    display:flex; flex-direction:column; justify-content:space-between;
+  }
   .stat-k{font-size:13px; color:var(--ink-2); font-weight:500}
   .stat-v{font-size:22px; font-weight:600; letter-spacing:-.02em; margin-top:4px; font-variant-numeric:tabular-nums}
   .money-hero{
@@ -2653,11 +2662,9 @@ function Subs({db, back, go, openNew, client}){
         <button className="ico-btn" onClick={() => { tap(); openNew(client); }} aria-label="Создать"><Icon n="plus" /></button>
       </div>
 
-      <div className="card pad" style={{background: 'var(--violet-soft)', border: 0}}>
-        <div style={{display: 'flex', gap: 20}}>
-          <div><div style={{fontSize: 13, color: 'var(--ink-2)'}}>Активных</div><div className="stat-v num">{active.length}</div></div>
-          <div><div style={{fontSize: 13, color: 'var(--ink-2)'}}>Оплачено вперёд</div><div className="stat-v num">{money(money_)}</div></div>
-        </div>
+      <div className="stat-grid" style={{marginBottom: 14}}>
+        <div className="stat"><div className="stat-k">Активных</div><div className="stat-v">{active.length}</div></div>
+        <div className="stat"><div className="stat-k">Оплачено вперёд</div><div className="stat-v">{money(money_)}</div></div>
       </div>
 
       {mine.length ? mine.map(s => card(s)) : (
@@ -2886,12 +2893,10 @@ function More({db, go}){
   return (
     <div className="screen">
       <TopBar title="Ещё" big />
-      <div className="card pad" style={{background: 'var(--violet-soft)', border: 0}}>
-        <div style={{display: 'flex', gap: 22}}>
-          <div><div style={{fontSize: 13, color: 'var(--ink-2)'}}>Месяц</div><div className="stat-v num">{money(m.total)}</div></div>
-          <div><div style={{fontSize: 13, color: 'var(--ink-2)'}}>Сеансов</div><div className="stat-v num">{m.count}</div></div>
-          <div><div style={{fontSize: 13, color: 'var(--ink-2)'}}>Клиентов</div><div className="stat-v num">{db.clients.length}</div></div>
-        </div>
+      <div className="stat-grid three" style={{marginBottom: 14}}>
+        <div className="stat"><div className="stat-k">Месяц</div><div className="stat-v">{money(m.total)}</div></div>
+        <div className="stat"><div className="stat-k">Сеансов</div><div className="stat-v">{m.count}</div></div>
+        <div className="stat"><div className="stat-k">Клиентов</div><div className="stat-v">{db.clients.length}</div></div>
       </div>
       <div className="card"><div className="rows">
         {items.map(i => (
