@@ -1239,21 +1239,33 @@ const notifications = (db, at) => {
 
 const SIDE = [{re: /прав/, n: 'справа'}, {re: /лев/, n: 'слева'}];
 
+const norm = (s) => String(s || '').toLowerCase().replace(/ё/g, 'е');
+
 function aiNote(raw){
-  const text = String(raw || '').toLowerCase().replace(/ё/g, 'е');
-  const zones = [], sides = {};
+  const text = norm(raw);
+  /* зоны — в том порядке, в каком массажист их назвал: он рассказывает
+     о сеансе по ходу работы, и этот порядок сам по себе информация */
+  const found = [], sides = {};
   ZONES.forEach(z => {
     let at = -1;
-    z.syn.some(s => { const i = text.indexOf(s.replace(/ё/g, 'е')); if (i >= 0){ at = i; return true; } return false; });
+    z.syn.some(s => { const i = text.indexOf(norm(s)); if (i >= 0){ at = i; return true; } return false; });
     if (at < 0) return;
-    zones.push(z.k);
+    found.push({k: z.k, at});
     const before = text.slice(Math.max(0, at - 22), at);
     const side = SIDE.find(s => s.re.test(before));
     if (side) sides[z.k] = side.n;
   });
+  const zones = found.sort((a, b) => a.at - b.at).map(z => z.k);
 
   const sentences = String(raw || '').split(/[.;!?\n]+/).map(s => s.trim()).filter(Boolean);
-  const pick = (re) => sentences.find(s => re.test(s.toLowerCase().replace(/ё/g, 'е'))) || '';
+  /* говорят без точек — одной длинной фразой через запятые. Тогда режем
+     ещё и по запятым, иначе в «Состояние» уезжает весь рассказ целиком. */
+  const pick = (re) => {
+    const hit = sentences.find(s => re.test(norm(s)));
+    if (!hit || hit.length <= 70) return hit || '';
+    const part = hit.split(/,\s*/).map(s => s.trim()).filter(Boolean).find(s => re.test(norm(s)));
+    return part || hit;
+  };
   const state = pick(/напряж|зажим|спазм|тонус|блок|легче|лучше|расслаб|забит|боль/) || sentences[0] || '';
 
   const good = /лучше|легче|хорош|положительн|расслаб|доволен|приятн|уменьшил/.test(text);
