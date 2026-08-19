@@ -770,6 +770,7 @@ PROBES['app-keyboard.js'] = DRIVE + `
       await wait(120);
       var after = sheet.getBoundingClientRect().bottom;
       res.sheetLift = Math.round(before - after);
+
       root.style.setProperty('--kb', '0px');
       await wait(80);
       res.sheetBack = Math.round(sheet.getBoundingClientRect().bottom - after);
@@ -810,6 +811,27 @@ PROBES['app-keyboard.js'] = DRIVE + `
       /* А в самій формі числа лишатись не повинні: два однакових
          підсумки на одному екрані — гірше, ніж жодного. */
       res.sumTwice = all('.page .sum').length;
+
+      /* ─── шторка вибору вміщається в те, що лишилось видимим ───
+         Вона тримає висоту, щоб не стрибати під час пошуку: список
+         фільтрується, шторка пружинить, поле пошуку тікає з-під пальця.
+         Але висота рахувалась від усього екрана, а екрана з відкритою
+         клавіатурою лишається половина. Виходило так: верх шторки з
+         пошуком їхав за межі екрана, а під єдиним клієнтом лежало поле
+         білого до самої клавіатури.
+
+         Міряємо саме висоту, а не краї: у headless фіксовані елементи
+         під анімацією дають зміщені координати, і перевірка казала б не
+         про те. Висота від положення не залежить. */
+      var field = page.querySelector('.inp.press');
+      if (field){ field.click(); await wait(450); }
+      var pickSheet = document.querySelector('.sheet');
+      res.pick = !!pickSheet;
+      if (pickSheet){
+        res.pickH = Math.round(pickSheet.getBoundingClientRect().height);
+        res.pickRoom = Math.round(innerHeight - KB);
+        res.pickFits = res.pickH <= res.pickRoom + 1;
+      }
       root.style.setProperty('--kb', '0px');
     }
     say(res);
@@ -2003,6 +2025,9 @@ server.listen(PORT, '127.0.0.1', async () => {
       ok('  і його ніхто не перекриває', o.sumFree === true,
          o.sumFree ? o.sumText : 'палець влучає не в підсумок');
       ok('  другого такого ж у формі немає', o.sumTwice === 1, o.sumTwice + ' шт.');
+      ok('шторка вибору клієнта відкрилась', o.pick === true);
+      ok('  і при клавіатурі не вища за те, що видно', o.pickFits === true,
+         o.pickH + ' px при ' + o.pickRoom + ' px вільних');
     }
 
     part('сторінка після оплати');

@@ -3817,7 +3817,14 @@ const Sheet = ({open, onClose, title, sub, children, tall}) => {
   return (
     <Fragment>
       <div className="scrim" ref={scrim} onClick={onClose}/>
-      <div className="sheet" ref={box} style={tall ? {minHeight:'70vh'} : null}
+      {/* tall — «не стрибай, поки я шукаю»: список фільтрується, шторка
+          пружинить, а поле пошуку тікає з-під пальця. Тримаємо низ.
+          Але 70vh рахуються від усього екрана, а не від того, що лишилось
+          видимим. З відкритою клавіатурою це виходило поле білого
+          нижче списку на пів екрана. Тому беремо менше з двох: бажану
+          висоту й ту, що взагалі є. */}
+      <div className="sheet" ref={box}
+           style={tall ? {minHeight: 'min(70vh, calc(92vh - var(--kb,0px)))'} : null}
            role="dialog" aria-modal="true" aria-label={title || ''}>
         <div className="grip"/>
         {title && <h3>{title}</h3>}
@@ -4075,7 +4082,12 @@ const ClientPick = ({value, onPick, onCreate}) => {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const c = value ? byId(db.clients, value) : null;
-  const list = db.clients.filter(x => !x.archived && x.name.toLowerCase().includes(q.trim().toLowerCase()));
+  const all = db.clients.filter(x => !x.archived);
+  const list = all.filter(x => x.name.toLowerCase().includes(q.trim().toLowerCase()));
+  /* Тримати висоту є сенс, поки список довший за екран: інакше пошук
+     справді смикав би шторку. Коли клієнтів троє, тримати нічого — і
+     розтягнута шторка перетворюється на пів екрана порожнечі. */
+  const tall = all.length > 5;
   return (
     <Fragment>
       <button className="inp press" style={{display:'flex', alignItems:'center', gap:10, textAlign:'left'}}
@@ -4086,7 +4098,7 @@ const ClientPick = ({value, onPick, onCreate}) => {
         </span>
         <Ic.down size={18} style={{color:'var(--ink-3)'}}/>
       </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title={t('pick.client','Оберіть клієнта')} tall>
+      <Sheet open={open} onClose={() => setOpen(false)} title={t('pick.client','Оберіть клієнта')} tall={tall}>
         <div className="search" style={{marginBottom:10}}>
           <Ic.search size={18}/>
           <input className="inp" placeholder={t('common.search','Пошук')} value={q} onChange={e => setQ(e.target.value)} autoFocus/>
