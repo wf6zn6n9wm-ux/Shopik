@@ -113,7 +113,7 @@ const EXPORTS = `;globalThis.__T = {
   Vault, isEmail, isPhone, isLogin, b64, unb64,
   Boot, bootPhase, Onboarding, Auth, PinLock, Setup, SkScreen, ErrorBox, ObArt, LangPick, PinModal,
   Box, Files, Backups, BACKUP_KEY, META_KEY,
-  LEGAL, LEGAL_DOCS, LEGAL_READY, Support, LegalPage, LegalLinks,
+  LEGAL, LEGAL_DOCS, LEGAL_READY, legalLine, contactLine, Support, LegalPage, LegalLinks,
   expensesIn, spent, profit, EXPENSE_KINDS, ExpenseForm, pickFile, pickPhoto,
 };`;
 
@@ -866,33 +866,58 @@ part('документы');
   const priv = D.privacy.blocks.map(b => b[1]).join('\n');
 
   /* документ обязан описывать то, что приложение делает на самом деле */
-  ok('условия называют настоящий срок пробного', terms.includes(String(T.TRIAL_DAYS) + ' дней'));
+  ok('условия называют настоящий срок пробного', terms.includes(String(T.TRIAL_DAYS) + ' днів'));
   ok('и настоящие цены', T.PLANS.every(p => terms.includes(T.uah(p.uah))),
      T.PLANS.map(p => T.uah(p.uah)).join(' '));
   ok('и что платежи разовые, без автосписаний',
-     /разовы/i.test(terms) && /автосписаний с карты нет/i.test(terms));
+     /разов/i.test(terms) && /автосписань з картки немає/i.test(terms));
   ok('и лимит устройств тот же, что в коде',
-     terms.includes('трёх устройствах') && T.WEB.devices === 3);
-  ok('в условиях нет обещания автопродления', !/продлевается автоматически/i.test(terms));
+     terms.includes('трьох пристроях') && T.WEB.devices === 3);
+  ok('в условиях нет обещания автопродления', !/продовжується автоматично/i.test(terms));
 
   /* самое чувствительное: что уезжает с устройства */
-  ok('политика говорит, что база лежит на устройстве', /на вашем устройстве/i.test(priv));
-  ok('и что имён клиентов мы не получаем', /без имён/i.test(priv));
+  ok('политика говорит, что база лежит на устройстве', /на вашому пристрої/i.test(priv));
+  ok('и что имён клиентов мы не получаем', /без імен/i.test(priv));
   ok('и отдельно — про заявки с сайта', /заявк/i.test(priv) && /телефон/i.test(priv));
   ok('и про шифрование PIN-кодом', /PIN/.test(priv));
-  ok('и про то, что забытый PIN не восстановить', /восстановить забытый PIN невозможно/i.test(priv));
+  ok('и про то, что забытый PIN не восстановить', /відновити забутий PIN неможливо/i.test(priv));
 
   /* реквизиты заполнены — и нигде не осталось «(укажите …)» */
   ok('реквизиты на месте', T.LEGAL_READY === true, T.LEGAL.company);
   ok('и в тексте нет незаполненных мест',
-     !/\(укажите /.test(terms) && !/\(укажите /.test(priv));
+     !/\(вкажіть /.test(terms) && !/\(вкажіть /.test(priv));
+
+  /* Договор заключают украинский ФОП и украинский барбер: документ
+     обязан быть государственным языком, и LiqPay при проверке мерчанта
+     открывает именно эти страницы. Русское слово тут — не стилистика,
+     а вернувшийся кусок старой редакции. */
+  /* русских букв ы/э/ъ/ё в украинском нет вовсе, а перечисленные слова
+     не имеют украинских омонимов — ложных срабатываний не будет */
+  const RU = /[ыэъё]|(^|[^а-яіїєґА-ЯІЇЄҐ])(или|это|что|если|как|можно|нужно|только|чтобы|после|когда|поэтому|которы|приложени|устройств)/i;
+  const cyr = x => RU.test(x);
+  const ruBlocks = []
+    .concat(T.LEGAL_DOCS.terms.blocks, T.LEGAL_DOCS.privacy.blocks)
+    .filter(([h, tx]) => cyr(h) || cyr(tx)).map(([h]) => h);
+  ok('документы на украинском', ruBlocks.length === 0, ruBlocks.join(', '));
+  ok('и заголовки тоже',
+     T.LEGAL_DOCS.terms.title === 'Умови використання' &&
+     T.LEGAL_DOCS.privacy.title === 'Політика конфіденційності',
+     T.LEGAL_DOCS.terms.title + ' / ' + T.LEGAL_DOCS.privacy.title);
   ok('РНОКПП, адрес и телефон попали в документ',
      terms.includes(T.LEGAL.id) && terms.includes(T.LEGAL.address) && terms.includes(T.LEGAL.phone));
-  /* почты у поддержки нет: в документах не должно остаться «напишите на» */
-  ok('почта не упоминается, раз её нет',
-     T.LEGAL.email === '' && !/на\s+\S+@/.test(terms + priv));
-  ok('вместо неё — телефон и Telegram',
-     /Telegram @/.test(terms) && /по телефону/.test(terms));
+  /* Каналы обращений перечисляются те, что заполнены. Незаполненный не
+     должен превращаться в обрывок фразы «напишіть на » — а заполненный
+     обязан доехать до документа: банк смотрит именно туда. */
+  const ways = terms + priv;
+  ok('заполненные каналы связи попали в документ',
+     [[T.LEGAL.email, 'на ' + T.LEGAL.email],
+      [T.LEGAL.telegram, 'Telegram @' + T.LEGAL.telegram],
+      [T.LEGAL.phone, 'за телефоном ' + T.LEGAL.phone]]
+       .every(([v, text]) => !v || ways.includes(text)),
+     T.contactLine());
+  ok('и обрывков от незаполненных не осталось',
+     !/(на|у Telegram @|за телефоном)\s*(,|\.|$|\s+(або|;))/m.test(T.contactLine()));
+  ok('почта в реквизитах есть', T.LEGAL.email.includes('@'), T.LEGAL.email);
 
   screen('экран условий', () => T.LegalPage({doc: 'terms', onClose(){}}));
   screen('экран политики', () => T.LegalPage({doc: 'privacy', onClose(){}}));
