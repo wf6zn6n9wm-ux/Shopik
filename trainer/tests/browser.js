@@ -745,6 +745,55 @@ PROBES['app-drive.js'] = DRIVE + `
 /* Шторка закривається свайпом, але вона ж і прокручується. Перевіряємо
    обидві половини: жест за ручку закриває, а те саме рухом по списку —
    ні, інакше довгий список неможливо догортати до верху. */
+/* ─── клавіатура не з'їдає низ ───
+   Кнопка «Зберегти» жила на дні сторінки, а дно для браузера не рухається:
+   клавіатура лягає зверху. Тренер бачив форму без кнопки й гортав наосліп.
+
+   Самої клавіатури в headless немає — її висоту застосунок бере з
+   visualViewport і кладе у --kb. Тут ми ставимо --kb руками й питаємо
+   головне: чи піднявся низ сторінки й шторки над цією межею. Якщо колись
+   стилі знову приб'ють їх до самого дна, ця проба це побачить. */
+PROBES['app-keyboard.js'] = DRIVE + `
+  (async function(){
+    var res = {};
+    await enter();
+    var KB = 336;                       /* типова клавіатура на телефоні */
+    var root = document.documentElement;
+
+    var fab = document.querySelector('.fab');
+    if (fab){ fab.click(); await wait(400); }
+    var sheet = document.querySelector('.sheet');
+    res.sheet = !!sheet;
+    if (sheet){
+      var before = sheet.getBoundingClientRect().bottom;
+      root.style.setProperty('--kb', KB + 'px');
+      await wait(120);
+      var after = sheet.getBoundingClientRect().bottom;
+      res.sheetLift = Math.round(before - after);
+      root.style.setProperty('--kb', '0px');
+      await wait(80);
+      res.sheetBack = Math.round(sheet.getBoundingClientRect().bottom - after);
+    }
+
+    /* Сторінка — та сама межа, але для повноекранної форми з кнопкою
+       «Зберегти» внизу. Саме на ній тренер і побачив біду. Дорога до
+       неї — та сама, що в пробі про швидке додавання: кнопка «плюс»,
+       перший рядок у шторці. */
+    var rows = all('.sheet .setrow').filter(vis);
+    if (rows[0]){ rows[0].click(); await wait(500); }
+    var page = document.querySelector('.page');
+    res.page = !!page;
+    if (page){
+      var pb = page.getBoundingClientRect().bottom;
+      root.style.setProperty('--kb', KB + 'px');
+      await wait(120);
+      res.pageLift = Math.round(pb - page.getBoundingClientRect().bottom);
+      root.style.setProperty('--kb', '0px');
+    }
+    say(res);
+  })();
+`;
+
 PROBES['app-sheet.js'] = DRIVE + `
   (async function(){
     var res = {};
@@ -1916,6 +1965,17 @@ server.listen(PORT, '127.0.0.1', async () => {
       ok('  і сама сторінка вбік не з\'їжджає', o.pageStill === true,
          o.pageStill ? 'ширина по екрану' : 'сторінка ширша за екран — праворуч порожнеча');
       ok('помилок немає', !o.errs, o.errs || '—');
+    }
+
+    part('клавіатура не ховає низ форми');
+    {
+      const o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/_app.html?probe=app-keyboard.js')) || '{}');
+      ok('шторка відкрилась', o.sheet === true);
+      ok('  клавіатура піднімає її рівно на свою висоту', o.sheetLift === 336,
+         o.sheetLift + ' px замість 336');
+      ok('  зникла — шторка повернулась на дно', o.sheetBack === 336, o.sheetBack + ' px');
+      ok('сторінка відкрилась', o.page === true);
+      ok('  її низ теж піднімається', o.pageLift === 336, o.pageLift + ' px замість 336');
     }
 
     part('сторінка після оплати');

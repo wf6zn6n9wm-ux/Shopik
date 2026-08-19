@@ -281,16 +281,21 @@
   .scrim{position:fixed;inset:0;z-index:60;background:var(--scrim);backdrop-filter:blur(2px);
     animation:fade .22s ease both;}
   @keyframes fade{from{opacity:0}to{opacity:1}}
-  .sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(100%,var(--shell));z-index:61;
-    background:var(--bg-2);border-radius:26px 26px 0 0;padding:10px 18px calc(18px + var(--safe-bottom));
+  /* --kb — висота клавіатури, її рахує visualViewport. Поки клавіатури
+     немає, це нуль, і все стоїть як стояло. Коли виїжджає — шторка
+     піднімається над нею, а не ховається під низ. Відступ знизу теж
+     зникає: він потрібен під домашню смужку, а її клавіатура закриває. */
+  .sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:var(--kb,0px);width:min(100%,var(--shell));z-index:61;
+    background:var(--bg-2);border-radius:26px 26px 0 0;
+    padding:10px 18px calc(18px + var(--safe-bottom));
     box-shadow:0 -20px 50px -30px rgba(0,0,0,.5);animation:sheetIn .34s var(--ease) both;
-    max-height:92vh;overflow-y:auto;border-top:1px solid var(--line);}
+    max-height:calc(92vh - var(--kb,0px));overflow-y:auto;border-top:1px solid var(--line);}
   @keyframes sheetIn{from{transform:translate(-50%,100%)}to{transform:translate(-50%,0)}}
   .grip{width:40px;height:4px;border-radius:4px;background:var(--line-2);margin:2px auto 12px;}
   .sheet h3{font-family:'Onest',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em;margin:2px 0 4px;}
 
-  .page{position:fixed;inset:0;z-index:50;background:var(--bg);overflow-y:auto;
-    max-width:var(--shell);margin-inline:auto;animation:pageIn .3s var(--ease) both;
+  .page{position:fixed;top:0;left:0;right:0;bottom:var(--kb,0px);z-index:50;background:var(--bg);
+    overflow-y:auto;max-width:var(--shell);margin-inline:auto;animation:pageIn .3s var(--ease) both;
     padding-bottom:calc(24px + var(--safe-bottom));}
   @keyframes pageIn{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
   .page .appbar{background:linear-gradient(180deg,var(--bg) 74%,transparent);}
@@ -1906,6 +1911,36 @@ const Sync = {
   },
 };
 window.addEventListener('online', () => Sync.flush());
+
+/* ═══════════════════ КЛАВІАТУРА ═══════════════════
+   Сторінки й шторки прибиті до низу екрана. Біда в тому, що «низ
+   екрана» для браузера не змінюється, коли виїжджає клавіатура: вона
+   просто лягає зверху. Кнопка «Зберегти» опиняється під нею, поля —
+   теж, і щоб дістатись до потрібного, тренер гортає наосліп.
+
+   Телефон знає, скільки місця лишилось видимим, — це visualViewport.
+   Різниця між ним і вікном і є висота клавіатури. Кладемо її в --kb,
+   а низ сторінки й шторки відлічуємо від неї.
+
+   Рахунок винесений окремо й без DOM — його перевіряє прогін, бо
+   помилка тут не падає, а тихо з'їдає півекрана.                    */
+const kbHeight = ({inner, height, offsetTop}) =>
+  Math.max(0, Math.round(inner - height - offsetTop));
+
+(() => {
+  const vv = typeof window !== 'undefined' && window.visualViewport;
+  if (!vv || !document.documentElement) return;
+  const sync = () => {
+    const kb = kbHeight({inner: window.innerHeight, height: vv.height, offsetTop: vv.offsetTop});
+    /* Дрібні коливання бувають і без клавіатури — від адресного рядка,
+       що ховається під час гортання. Совати за ними всю сторінку
+       означало б смикати її на кожен рух пальця. */
+    document.documentElement.style.setProperty('--kb', (kb > 80 ? kb : 0) + 'px');
+  };
+  vv.addEventListener('resize', sync);
+  vv.addEventListener('scroll', sync);
+  sync();
+})();
 
 /* ═══════════════════ ДОСТУП І ПІДПИСКА ═══════════════════
    14 днів повного доступу, далі — платний план. Безкоштовного тарифу
