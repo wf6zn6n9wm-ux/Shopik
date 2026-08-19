@@ -1011,20 +1011,22 @@ PROBES['admin.js'] = `
       if (html.length < 2000) res.blank.push(p);
       if (/undefined|NaN|\\[object Object\\]/.test(html)) res.junk.push(p);
     });
-    /* ─── стрічка чисел ───
-       На телефоні чотири картки з числами йдуть убік, а не стовпчиком.
-       Коштувати це може дорого: смуга, ширша за екран, легко тягне вбік
-       усю сторінку — і тоді замість опису читаєш порожнє поле справа.
-       Тому питаємо два боки одного: смуга справді гортається, а
-       сторінка при цьому стоїть на місці. */
+    /* ─── числа два на два ───
+       На телефоні чотири картки з числами стоять двома рядами по дві.
+       Сенс саме в тому, щоб їх було видно всі одразу: ні вниз, ні вбік
+       по них гортати не треба. Тому й питаємо не про вигляд, а про це:
+       рівно два ряди, і нічого не поїхало за край екрана. */
     go('dash');
     var strip = document.querySelector('.g4');
     var tiles = strip ? [].slice.call(strip.children) : [];
     res.tiles = tiles.length;
-    res.oneRow = tiles.length > 1 &&
-      tiles.every(function(t){ return Math.abs(t.getBoundingClientRect().top -
-                                               tiles[0].getBoundingClientRect().top) < 2; });
-    res.rides = !!strip && strip.scrollWidth > strip.clientWidth + 1;
+    var rows = [];
+    tiles.forEach(function(t){
+      var y = Math.round(t.getBoundingClientRect().top);
+      if (!rows.some(function(r){ return Math.abs(r - y) < 2; })) rows.push(y);
+    });
+    res.rows = rows.length;
+    res.sideways = !!strip && strip.scrollWidth > strip.clientWidth + 1;
     res.pageStill = document.body.scrollWidth <= innerWidth + 1;
 
     res.errs = errs.join(' | ');
@@ -1907,9 +1909,11 @@ server.listen(PORT, '127.0.0.1', async () => {
          (o.blank || []).join(', ') || '9 розділів');
       ok('порожніх значень на екрані немає', Array.isArray(o.junk) && !o.junk.length,
          (o.junk || []).join(', ') || 'ні undefined, ні NaN');
-      ok('числа на телефоні стоять в один ряд', o.oneRow === true, o.tiles + ' плиток');
-      ok('  ряд гортається вбік', o.rides === true);
-      ok('  а сама сторінка вбік не з\'їжджає', o.pageStill === true,
+      ok('числа на телефоні стоять двома рядами по дві', o.tiles === 4 && o.rows === 2,
+         o.tiles + ' плиток у ' + o.rows + ' ряд(и)');
+      ok('  гортати вбік по них не треба', o.sideways === false,
+         o.sideways ? 'частина чисел за краєм' : 'усі чотири на екрані');
+      ok('  і сама сторінка вбік не з\'їжджає', o.pageStill === true,
          o.pageStill ? 'ширина по екрану' : 'сторінка ширша за екран — праворуч порожнеча');
       ok('помилок немає', !o.errs, o.errs || '—');
     }
