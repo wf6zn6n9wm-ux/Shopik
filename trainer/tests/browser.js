@@ -1011,6 +1011,22 @@ PROBES['admin.js'] = `
       if (html.length < 2000) res.blank.push(p);
       if (/undefined|NaN|\\[object Object\\]/.test(html)) res.junk.push(p);
     });
+    /* ─── стрічка чисел ───
+       На телефоні чотири картки з числами йдуть убік, а не стовпчиком.
+       Коштувати це може дорого: смуга, ширша за екран, легко тягне вбік
+       усю сторінку — і тоді замість опису читаєш порожнє поле справа.
+       Тому питаємо два боки одного: смуга справді гортається, а
+       сторінка при цьому стоїть на місці. */
+    go('dash');
+    var strip = document.querySelector('.g4');
+    var tiles = strip ? [].slice.call(strip.children) : [];
+    res.tiles = tiles.length;
+    res.oneRow = tiles.length > 1 &&
+      tiles.every(function(t){ return Math.abs(t.getBoundingClientRect().top -
+                                               tiles[0].getBoundingClientRect().top) < 2; });
+    res.rides = !!strip && strip.scrollWidth > strip.clientWidth + 1;
+    res.pageStill = document.body.scrollWidth <= innerWidth + 1;
+
     res.errs = errs.join(' | ');
     say(res);
   }
@@ -1891,6 +1907,10 @@ server.listen(PORT, '127.0.0.1', async () => {
          (o.blank || []).join(', ') || '9 розділів');
       ok('порожніх значень на екрані немає', Array.isArray(o.junk) && !o.junk.length,
          (o.junk || []).join(', ') || 'ні undefined, ні NaN');
+      ok('числа на телефоні стоять в один ряд', o.oneRow === true, o.tiles + ' плиток');
+      ok('  ряд гортається вбік', o.rides === true);
+      ok('  а сама сторінка вбік не з\'їжджає', o.pageStill === true,
+         o.pageStill ? 'ширина по екрану' : 'сторінка ширша за екран — праворуч порожнеча');
       ok('помилок немає', !o.errs, o.errs || '—');
     }
 
