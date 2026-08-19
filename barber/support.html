@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-theme="dark">
+<html lang="uk" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -34,9 +34,9 @@ var PHONE = '+380 95 182 54 56';
 
 var LANGS = ['ru', 'uk', 'en'];
 var Q = new URLSearchParams(location.search);
-var guess = (navigator.language || 'ru').slice(0, 2);
+var guess = (navigator.language || 'uk').slice(0, 2);
 var LANG = LANGS.indexOf(Q.get('lang')) >= 0 ? Q.get('lang')
-  : (LANGS.indexOf(guess) >= 0 ? guess : 'ru');
+  : (LANGS.indexOf(guess) >= 0 ? guess : 'uk');
 document.documentElement.lang = LANG;
 
 var mailLink = MAIL ? '<a href="mailto:' + MAIL + '">' + MAIL + '</a>' : '';

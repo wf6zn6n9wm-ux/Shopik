@@ -101,7 +101,7 @@ const EXPORTS = `;globalThis.__T = {
   freeSlots, freeStarts, freeCount, overlaps, withinHours, nextAppt, minutesUntil, rowStatus,
   clientStats, clientRows, daysSince, bdIn, notifications, unreadCount, financeCsv, dayAppts,
   money, phoneMask, mins, hhmm, iso, fromIso, addDays, startOfWeek, dowIdx, durLabel, initials,
-  PHRASES, LANGS, t, CURRENCIES, DOW_KEYS, SERVICE_SEED, CLIENT_SEED, PATHS, SCREENS, PAGES,
+  PHRASES, LANGS, t, applyLang, CURRENCIES, DOW_KEYS, SERVICE_SEED, CLIENT_SEED, PATHS, SCREENS, PAGES,
   App, Home, CalendarPage, Clients, ClientPage, Services, Finance, Messages, Settings,
   ApptForm, ClientForm, ServiceForm, ApptCard, ActiveSession, NotifPanel, MoreSheet, Sidebar,
   MiniCalendar, LineChart, BarChart, MonthGrid, applyTheme, serviceName, clientName, nextLabel,
@@ -238,7 +238,7 @@ part('клиент');
 
 part('поиск и фильтры');
 {
-  ok('поиск по имени', T.clientRows(db, 'Иван Петров', 'all').length === 1);
+  ok('поиск по имени', T.clientRows(db, 'Іван Петренко', 'all').length === 1);
   ok('поиск по телефону', T.clientRows(db, '1234501', 'all').length === 1);
   ok('чужого не находит', T.clientRows(db, 'Джон Уик', 'all').length === 0);
   ok('фильтр «постоянные» уже полного списка',
@@ -350,6 +350,35 @@ part('языки');
   ok('переводы различаются', T.t('navHome', 'ru') === 'Главная' && T.t('navHome', 'en') === 'Home' && T.t('navHome', 'uk') === 'Головна');
   ok('неизвестный ключ не роняет', T.t('нет-такого') === 'нет-такого');
   ok('все языки из настроек поддержаны', T.LANGS.every(l => T.PHRASES.navHome[l.id]));
+
+  /* Барберы в Украине — украинский первым. Переключатель на месте, но
+     угадывать язык за человека и встречать его русским мы не должны. */
+  ok('украинский стоит первым в переключателе', T.LANGS[0].id === 'uk');
+  ok('и он же язык по умолчанию', T.emptyDB().settings.lang === 'uk');
+  ok('новый кабинет считает в гривне', T.emptyDB().settings.currency === 'UAH');
+  ok('атрибут документа едет вместе с языком',
+     T.applyLang('en') === 'en' && ctx.document.documentElement.lang === 'en');
+  T.applyLang('uk');
+
+  /* Демо-база — то, что барбер увидит сразу после «заполнить примером».
+     Долларовые цены в гривневом кабинете читались бы как поломка. */
+  const demoDb = T.seedDB();
+  ok('демо-услуги стоят по-гривневому', demoDb.services[0].price >= 100,
+     demoDb.services[0].name + ' — ' + demoDb.services[0].price);
+  ok('и расходы тоже', demoDb.expenses.every(e => e.amount >= 100));
+  const cyr = s => /[ыэъё]|(^|[^а-яіїєґ])и/i.test(s);
+  const ruNames = demoDb.clients.filter(c => cyr(c.name)).map(c => c.name);
+  ok('демо-клиенты названы по-украински', ruNames.length === 0, ruNames.slice(0, 3).join(', '));
+  const ruMsg = demoDb.threads.flatMap(th => th.msgs).filter(m => cyr(m.text)).map(m => m.text);
+  ok('и переписка тоже', ruMsg.length === 0, ruMsg.slice(0, 2).join(' | '));
+
+  /* Текст, зашитый в разметку мимо словаря, переключением языка не
+     лечится: он останется русским на украинском экране. */
+  const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const app = src.slice(src.indexOf('/* ── 3. ДАННЫЕ'));
+  const inline = (app.match(/(?:label|placeholder)=(?:"[^"]*[А-Яа-яЁё][^"]*"|'[^']*[А-Яа-яЁё][^']*')/g) || [])
+    .filter(x => !x.includes('Про Барбер'));   /* название бренда не переводится */
+  ok('в разметке нет подписей мимо словаря', inline.length === 0, inline.slice(0, 3).join(' '));
 }
 
 part('экраны');
@@ -388,29 +417,29 @@ MODALS.forEach(([n, f]) => screen(n, f));
 part('что видит барбер');
 {
   const home = textOf(el(T.Home, {}));
-  ok('на главной есть заголовок дня', home.includes('Сегодня'));
-  ok('на главной есть следующая запись', home.includes('Следующая запись'));
-  ok('на главной есть расписание', home.includes('Расписание на сегодня'));
-  ok('на главной есть топ услуг', home.includes('Топ услуг') && home.includes('Стрижка'));
-  ok('на главной есть выручка за месяц', home.includes('Выручка за месяц'));
+  ok('на главной есть заголовок дня', home.includes('Сьогодні'));
+  ok('на главной есть следующая запись', home.includes('Наступний запис'));
+  ok('на главной есть расписание', home.includes('Розклад на сьогодні'));
+  ok('на главной есть топ услуг', home.includes('Топ послуг') && home.includes('Стрижка'));
+  ok('на главной есть выручка за месяц', home.includes('Виручка за місяць'));
   ok('на главной видно все четыре KPI',
-     ['Клиентов', 'Записей', 'Выручка', 'Свободных окон'].every(x => home.includes(x)));
+     ['Клієнтів', 'Записів', 'Виручка', 'Вільних вікон'].every(x => home.includes(x)));
   const money = T.money(T.stats(S(), today, today).revenue, S().settings.currency);
   ok('KPI выручки показывает реальную сумму', home.includes(money), money);
 
   const cl = textOf(el(T.ClientPage, {id: 'cl_0'}));
-  ok('в карточке клиента есть имя и телефон', cl.includes('Иван Петров') && cl.includes('+380'));
-  ok('в карточке клиента есть история', cl.includes('История посещений'));
-  ok('в карточке клиента есть заметки', cl.includes('Заметки барбера'));
+  ok('в карточке клиента есть имя и телефон', cl.includes('Іван Петренко') && cl.includes('+380'));
+  ok('в карточке клиента есть история', cl.includes('Історія відвідувань'));
+  ok('в карточке клиента есть заметки', cl.includes('Нотатки барбера'));
 
   const fin = textOf(el(T.Finance, {}));
-  ok('в финансах есть все периоды', ['Выручка сегодня', 'Выручка за неделю', 'Выручка за месяц', 'Выручка за год']
+  ok('в финансах есть все периоды', ['Виручка сьогодні', 'Виручка за тиждень', 'Виручка за місяць', 'Виручка за рік']
      .every(x => fin.includes(x)));
-  ok('в финансах есть средний чек и топ-услуга', fin.includes('Средний чек') && fin.includes('Самая популярная услуга'));
+  ok('в финансах есть средний чек и топ-услуга', fin.includes('Середній чек') && fin.includes('Найпопулярніша послуга'));
 
   T.Act.settings({lang: 'en'});
   const en = textOf(el(T.Settings, {}));
-  ok('интерфейс переключается на английский', en.includes('Working hours') && !en.includes('Рабочее расписание'));
+  ok('интерфейс переключается на английский', en.includes('Working hours') && !en.includes('Робочий розклад'));
   T.Act.settings({lang: 'uk'});
   ok('и на украинский', textOf(el(T.Clients, {})).includes('Клієнти'));
   T.Act.settings({lang: 'ru'});
@@ -443,7 +472,7 @@ part('имена в календаре');
 
   /* плашка: длинное имя сокращено, полное — в подсказке и в карточке */
   T.Store.init(T.seedDB());
-  const cl = T.Act.addClient({name: 'Григорий Шевченко'});
+  const cl = T.Act.addClient({name: 'Григорій Шевченко'});
   const sv = S().services.find(x => x.dur <= 30) || S().services[0];
   const day = T.iso(T.addDays(new Date(), 12));
   const ap = T.Act.addAppt({clientId: cl.id, serviceId: sv.id, date: day, time: '19:00', dur: 30, price: 15});
@@ -454,20 +483,20 @@ part('имена в календаре');
   };
   const desk = boxOf(168), phone = boxOf(104), wide = boxOf(260);
   ok('на десктопной колонке — имя и буква фамилии',
-     textOf(desk).includes('Григорий Ш.'), textOf(desk).trim());
+     textOf(desk).includes('Григорій Ш.'), textOf(desk).trim());
   ok('в самой узкой колонке — инициалы, а не обрывок слова',
      textOf(phone).includes('Г.Ш.') && !textOf(phone).includes('Шевч'), textOf(phone).trim());
   ok('многоточия нет нигде',
      [desk, phone, wide].every(x => !textOf(x).includes('…') && !textOf(x).includes('...')));
   ok('время осталось на месте', textOf(desk).includes('19:00'));
-  ok('в широкой плашке имя целиком', textOf(wide).includes('Григорий Шевченко'));
+  ok('в широкой плашке имя целиком', textOf(wide).includes('Григорій Шевченко'));
   ok('полное имя лежит в подсказке',
-     (desk.props.title || '').includes('Григорий Шевченко') &&
-     (phone.props.title || '').includes('Григорий Шевченко'), desk.props.title);
+     (desk.props.title || '').includes('Григорій Шевченко') &&
+     (phone.props.title || '').includes('Григорій Шевченко'), desk.props.title);
   ok('имя не обрезается многоточием стилями',
      !JSON.stringify(desk).includes('"n cut"'));
   ok('карточка записи показывает полное имя',
-     textOf(el(T.ApptCard, {id: ap.id})).includes('Григорий Шевченко'));
+     textOf(el(T.ApptCard, {id: ap.id})).includes('Григорій Шевченко'));
   T.Act.delClient(cl.id);
 }
 
@@ -475,9 +504,9 @@ part('понятность дат');
 {
   T.Store.init(T.seedDB());
   const tomorrow = T.iso(T.addDays(new Date(), 1));
-  ok('сегодня называется «Сегодня»', T.dayWord(today) === 'Сегодня', T.dayWord(today));
+  ok('сегодня называется «Сегодня»', T.dayWord(today) === 'Сьогодні', T.dayWord(today));
   ok('завтра называется «Завтра»', T.dayWord(tomorrow) === 'Завтра', T.dayWord(tomorrow));
-  ok('вчера называется «Вчера»', T.dayWord(T.iso(T.addDays(new Date(), -1))) === 'Вчера');
+  ok('вчера называется «Вчера»', T.dayWord(T.iso(T.addDays(new Date(), -1))) === 'Вчора');
   ok('дальний день — день недели и дата',
      /^[А-Яа-я]{2}, \d/.test(T.dayWord(T.iso(T.addDays(new Date(), 9)))), T.dayWord(T.iso(T.addDays(new Date(), 9))));
 
@@ -494,12 +523,13 @@ part('понятность дат');
   ok('карточка следующей записи говорит «Завтра»', card.includes('Завтра') && card.includes('11:00'));
   ok('и показывает клиента с услугой',
      card.includes('Завтрашний Клиент') && card.includes(sv.name));
+  const cur0 = S().settings.currency;
   ok('и длительность с ценой',
-     card.includes(T.durLabel(sv.dur, 'ru')) && card.includes(T.money(sv.price, 'USD')),
-     T.durLabel(sv.dur, 'ru') + ' / ' + T.money(sv.price, 'USD'));
+     card.includes(T.durLabel(sv.dur, 'uk')) && card.includes(T.money(sv.price, cur0)),
+     T.durLabel(sv.dur, 'uk') + ' / ' + T.money(sv.price, cur0));
   ok('сегодняшняя запись подписывается «Сегодня», а не датой', (() => {
     T.Act.addAppt({clientId: client.id, serviceId: sv.id, date: today, time: '23:30'});
-    return textOf(el(T.NextCard, {db: S()})).includes('Сегодня');
+    return textOf(el(T.NextCard, {db: S()})).includes('Сьогодні');
   })());
   T.Store.init(T.seedDB());
 }
@@ -515,9 +545,9 @@ part('каналы связи');
      T.CHANNELS.filter(ch => ch.id !== 'tg').every(ch => ch.on(S()) === false));
   T.Act.settings({tgLinked: false});
   const txt = textOf(el(T.Messages, {}));
-  ok('на экране сообщений видно, что канал не подключён', txt.includes('Не подключено'));
-  ok('и как его подключить', txt.includes('настройках уведомлений'));
-  ok('и что переписка внутренняя', txt.includes('Внутренние сообщения'));
+  ok('на экране сообщений видно, что канал не подключён', txt.includes('Не підключено'));
+  ok('и как его подключить', txt.includes('налаштуваннях сповіщень'));
+  ok('и что переписка внутренняя', txt.includes('Внутрішні повідомлення'));
 }
 
 part('серии и расходы');
@@ -580,13 +610,13 @@ part('новые экраны');
   screen('Расход · правка', () => el(T.ExpenseForm, {id: S().expenses[0].id}));
   const fin = textOf(el(T.Finance, {}));
   ok('в финансах есть расходы и чистая прибыль',
-     fin.includes('Расходы') && fin.includes('Чистыми'));
+     fin.includes('Витрати') && fin.includes('Чистими'));
   const seriesAppt = S().appts.find(a => a.repeatId && a.status === 'planned');
   ok('в карточке записи серии видно, что это серия',
-     !seriesAppt || textOf(el(T.ApptCard, {id: seriesAppt.id})).includes('Серия'));
-  ok('в форме записи есть повтор', textOf(el(T.ApptForm, {preset: {}})).includes('Повторять'));
-  ok('в настройках есть загрузка копии', textOf(el(T.Settings, {})).includes('Загрузить копию'));
-  ok('фото можно загрузить файлом', textOf(el(T.ClientForm, {})).includes('Загрузить фото'));
+     !seriesAppt || textOf(el(T.ApptCard, {id: seriesAppt.id})).includes('Серія'));
+  ok('в форме записи есть повтор', textOf(el(T.ApptForm, {preset: {}})).includes('Повторювати'));
+  ok('в настройках есть загрузка копии', textOf(el(T.Settings, {})).includes('Завантажити копію'));
+  ok('фото можно загрузить файлом', textOf(el(T.ClientForm, {})).includes('Завантажити фото'));
 }
 
 part('сквозной сценарий');
@@ -608,7 +638,7 @@ part('сквозной сценарий');
   ok('в истории клиента появился визит', T.clientStats(S(), c.id).visits === 1);
   ok('услуга поднялась в топе', T.topServices(S(), ...T.periodRange('month')).some(r => r.name === sv.name));
   const home2 = textOf(el(T.Home, {}));
-  ok('главная показывает новую выручку', home2.includes(T.money(before + sv.price, 'USD')));
+  ok('главная показывает новую выручку', home2.includes(T.money(before + sv.price, S().settings.currency)));
 }
 
 /* дальше — асинхронные проверки: сеть и публичная страница */
@@ -647,7 +677,7 @@ part('связь с сервером');
     return !after.some(b => b.date === one.date && b.time === one.time);
   })());
   const raw = JSON.stringify(load);
-  ok('имена клиентов на сервер не уезжают', !raw.includes('Иван Петров'));
+  ok('имена клиентов на сервер не уезжают', !raw.includes('Іван Петренко'));
   ok('телефоны клиентов тоже', !raw.includes(S().clients[0].phone));
 
   net.queue.push({ok: true, slug: 'alexey', busy: load.busy.length});
@@ -714,11 +744,11 @@ part('экраны с сервером');
   T.Act.settings({sync: true});
   screen('Настройки · синхронизация включена', () => el(T.Settings, {}));
   const txt = textOf(el(T.Settings, {}));
-  ok('видно управление приёмом заявок', txt.includes('Приём заявок с сайта'));
+  ok('видно управление приёмом заявок', txt.includes('Приймання заявок із сайту'));
   ok('и подключение Telegram', txt.includes('Telegram'));
   T.Act.settings({sync: false});
   ok('выключенная синхронизация честно об этом пишет',
-     textOf(el(T.Settings, {})).includes('локальный режим'));
+     textOf(el(T.Settings, {})).includes('локальний режим'));
 
   const withPhone = S().appts.find(a => a.status === 'planned');
   const card = textOf(el(T.ApptCard, {id: withPhone.id}));
@@ -757,25 +787,58 @@ part('вход');
   ok('битая база — экран ошибки, а не белый лист', T.bootPhase({}, '{не json') === 'error');
 
   const ob = textOf(T.Onboarding({onDone(){}}));
-  ok('на приветствии три экрана и кнопка «пропустить»', /Пропустить/.test(ob) && /Дальше/.test(ob));
+  ok('на приветствии три экрана и кнопка «пропустить»', /Пропустити/.test(ob) && /Далі/.test(ob));
+
+  /* Картинки приветствия обещают кабинет, поэтому собраны из его же
+     иконок. Если бы они рисовались отдельно, обещание разошлось бы с
+     приложением молча — сравнить их глазами никто не догадается. */
+  {
+    const icons = art => {
+      const out = [];
+      const walkIcons = n => {
+        if (!n || typeof n !== 'object') return;
+        if (Array.isArray(n)) return n.forEach(walkIcons);
+        if (n.__el){
+          if (typeof n.type === 'function' && n.type.name === 'Icon' && n.props.n) out.push(n.props.n);
+          if (typeof n.type === 'function' && n.type.name !== 'Icon') walkIcons(n.type(n.props));
+          walkIcons(n.props && n.props.children);
+        }
+      };
+      walkIcons(art);
+      return out;
+    };
+    const all = [0, 1, 2].map(i => icons(T.ObArt({i})));
+    ok('на каждой картинке есть иконки приложения', all.every(x => x.length >= 3),
+       all.map(x => x.length).join(' / '));
+    const flat = all.flat();
+    ok('и все они из общего набора', flat.every(n => !!T.PATHS[n]),
+       flat.filter(n => !T.PATHS[n]).join(', ') || [...new Set(flat)].join(' '));
+    /* текст на картинке — из словаря: иначе переключение языка меняет
+       заголовок, а картинку под ним нет */
+    const artText = [0, 1, 2].map(i => textOf(T.ObArt({i}))).join(' ');
+    ok('подписи на картинках переводятся', artText.includes(T.t('kpiClients', 'uk')));
+    T.applyLang('en');
+    ok('и на другом языке тоже', textOf(T.ObArt({i: 0})).includes(T.t('kpiClients', 'en')));
+    T.applyLang('uk');
+  }
   const auth = textOf(T.Auth({onReady(){}}));
-  ok('на входе просят почту или телефон', /Почта или телефон/.test(auth));
-  ok('никаких кодов и подтверждений не обещают', /никаких кодов/i.test(auth));
-  ok('можно и без регистрации', /без регистрации/i.test(auth));
+  ok('на входе просят почту или телефон', /Пошта або телефон/.test(auth));
+  ok('никаких кодов и подтверждений не обещают', /жодних кодів/i.test(auth));
+  ok('можно и без регистрации', /без реєстрації/i.test(auth));
   ok('в режиме «сохранить» кнопки смены режима нет',
-     !/Уже есть кабинет/.test(textOf(T.Auth({save: true, onReady(){}}))));
+     !/Вже є кабінет/.test(textOf(T.Auth({save: true, onReady(){}}))));
 
   const setup = textOf(T.Setup({account: null, onDone(){}}));
   ok('мастер спрашивает имя, барбершоп и валюту',
-     /Как вас зовут/.test(setup) && /барбершоп/i.test(setup) && /Валюта/.test(setup));
-  ok('и предлагает заполнить примером', /Заполнить примером/.test(setup));
+     /Як вас звати/.test(setup) && /барбершоп/i.test(setup) && /Валюта/.test(setup));
+  ok('и предлагает заполнить примером', /Заповнити прикладом/.test(setup));
 
   /* аккаунт и гость */
   T.Meta.write({account: {login: 'barber@mail.com', raw: 'Barber@Mail.com', kind: 'email', createdAt: Date.now()}});
   ok('после входа логин виден подписке', T.Web.login() === 'barber@mail.com');
   ok('и в настройках появляется кабинет', textOf(T.Settings({})).includes('barber@mail.com'));
   T.Meta.write({account: null, guest: true});
-  ok('гостю предлагают привязать почту', /Привязать почту/.test(textOf(T.Settings({}))));
+  ok('гостю предлагают привязать почту', /Прив’язати пошту/.test(textOf(T.Settings({}))));
   ok('и подписка про логин ничего не знает', T.Web.login() === '');
 
   /* «Выйти» не должно стирать работу: база остаётся, спрашивают только логин */
@@ -835,7 +898,7 @@ part('документы');
   screen('экран политики', () => T.LegalPage({doc: 'privacy', onClose(){}}));
   const links = textOf(T.LegalLinks({onOpen(){}}));
   ok('ссылки ведут на оба документа',
-     links.includes('Условия использования') && links.includes('Политика конфиденциальности'));
+     links.includes('Умови використання') && links.includes('Політика конфіденційності'));
   ok('неизвестный документ не роняет экран', walk(T.LegalPage({doc: 'нетакого', onClose(){}})) > 3);
 
   const page = textOf(T.LegalPage({doc: 'terms', onClose(){}}));
@@ -845,10 +908,10 @@ part('документы');
      page.includes('Про Барбер') && page.includes(T.LEGAL.id));
 
   ok('документы есть в разводке экранов', typeof T.SCREENS.legal === 'function');
-  ok('в настройках есть раздел документов', textOf(T.Settings({})).includes('Документы'));
-  ok('и ссылка на поддержку', textOf(T.Settings({})).includes('Поддержк'));
+  ok('в настройках есть раздел документов', textOf(T.Settings({})).includes('Документи'));
+  ok('и ссылка на поддержку', textOf(T.Settings({})).includes('Підтримк'));
   ok('на экране оплаты документы тоже под рукой',
-     textOf(T.Paywall({mode: 'gate'})).includes('Условия использования'));
+     textOf(T.Paywall({mode: 'gate'})).includes('Умови використання'));
 
   ok('поддержка ведёт в чат', T.Support.url() === 'https://t.me/suport_uk', T.Support.url());
   ok('и телефон тоже под рукой', T.Support.tel() === 'tel:+380951825456', T.Support.tel());
@@ -1201,7 +1264,7 @@ part('резервная копия');
   T.Store.init(T.seedDB());
   T.Disk.write(T.Store.state);
   screen('карточка копии', () => T.BackupCard({db: T.Store.state}));
-  ok('в настройках есть резервная копия', textOf(T.Settings({})).includes('Резервная копия'));
+  ok('в настройках есть резервная копия', textOf(T.Settings({})).includes('Резервна копія'));
 }
 
 part('шифрование базы');
@@ -1373,34 +1436,34 @@ part('экраны подписки');
   screen('шлюз пускает в кабинет, пока доступ есть', () => T.AppGate({}));
 
   const trial = textOf(T.TrialIntro({onStart(){}}));
-  ok('на приветствии написано, что 14 дней бесплатно', /14/.test(trial) && /бесплатн/i.test(trial));
-  ok('и что карту вводить не нужно', /карт/i.test(trial));
+  ok('на приветствии написано, что 14 дней бесплатно', /14/.test(trial) && /безкоштовн/i.test(trial));
+  ok('и что карту вводить не нужно', /картк/i.test(trial));
 
   const gate = textOf(T.Paywall({mode: 'gate'}));
   ok('на выборе плана видны все три цены',
      T.PLANS.every(p => gate.includes(T.uah(p.uah))), T.PLANS.map(p => T.uah(p.uah)).join(' '));
-  ok('обещано, что данные не пропадут', /данные|финанс/i.test(gate));
+  ok('обещано, что данные не пропадут', /дані|фінанс/i.test(gate));
   ok('сказано, что оплата разовая и списаний не будет',
-     /разова/i.test(gate) && /автопродления нет/i.test(gate) && !/продлевается автоматически/i.test(gate));
+     /разовий/i.test(gate) && /автопродовження немає/i.test(gate) && !/продовжується автоматично/i.test(gate));
 
   A.write({trialStartedAt: Date.now() - 40 * 86400000});
   const closed = textOf(T.Paywall({mode: 'gate'}));
-  ok('после пробного экран так и говорит', /пробный период закончился/i.test(closed), closed.slice(0, 40).trim());
-  ok('и обещает, что клиенты на месте', /ничего не удалено/i.test(closed));
+  ok('после пробного экран так и говорит', /пробний період завершився/i.test(closed), closed.slice(0, 40).trim());
+  ok('и обещает, что клиенты на месте', /нічого не видалено/i.test(closed));
 
   /* без сервера подписки кабинет не имитирует оплату */
   T.Web.alive = false;
   const demo = textOf(T.Paywall({mode: 'gate'}));
-  ok('без сервера честно пишем, что оплата не подключена', /оплата не подключена/i.test(demo));
-  ok('и предлагаем демо-доступ, а не «оплату»', /демо-доступ/i.test(demo) && !/Перейти к оплате/.test(demo));
+  ok('без сервера честно пишем, что оплата не подключена', /оплата не підключена/i.test(demo));
+  ok('и предлагаем демо-доступ, а не «оплату»', /демо-доступ/i.test(demo) && !/Перейти до оплати/.test(demo));
   T.Web.alive = null;
 
   A.write({status: 'active', source: 'web', plan: 'yearly', expiresAt: Date.now() + 100 * 86400000});
   const sub = textOf(T.SubscriptionPage({}));
-  ok('на экране доступа виден план и срок', /1 год/.test(sub) && /Оплачено до/.test(sub));
+  ok('на экране доступа виден план и срок', /1 рік/.test(sub) && /Оплачено до/.test(sub));
   ok('цена показана в гривне', sub.includes(T.uah(T.planById('yearly').uah)));
-  ok('автопродления на экране нет вовсе', !/автопродлен/i.test(sub));
-  ok('сказано, что списаний больше не будет', /автосписаний нет/i.test(sub));
+  ok('автопродления на экране нет вовсе', !/автопродовж/i.test(sub));
+  ok('сказано, что списаний больше не будет', /автосписань немає/i.test(sub));
 
   A.write({source: 'demo'});
   ok('демо-доступ подписан честно', /демо/i.test(textOf(T.SubscriptionPage({}))));
@@ -1412,27 +1475,27 @@ part('экраны подписки');
   /* шлюз: кого пускать, а кому показывать приветствие */
   A.write({status: null, source: null, plan: null, expiresAt: 0, trialStartedAt: 0});
   ok('совсем новому кабинету показываем приветствие',
-     textOf(T.AppGate({})).includes('14 дней бесплатно'));
+     textOf(T.AppGate({})).includes('14 днів безкоштовно'));
   A.write({trialStartedAt: Date.now()});
   ok('во время пробного периода открыт кабинет',
-     !textOf(T.AppGate({})).includes('14 дней бесплатно'));
+     !textOf(T.AppGate({})).includes('14 днів безкоштовно'));
   /* оплатил на другом устройстве — локальной даты пробного нет, но
      предлагать ему «начать бесплатно» было бы враньём */
   A.write({trialStartedAt: 0, status: 'active', source: 'web', plan: 'monthly',
            expiresAt: Date.now() + 30 * 86400000});
   const paid = textOf(T.AppGate({}));
-  ok('оплатившему приветствие пробного не показываем', !paid.includes('14 дней бесплатно'));
+  ok('оплатившему приветствие пробного не показываем', !paid.includes('14 днів безкоштовно'));
   ok('и сразу пускаем в кабинет', paid.includes('Про Барбер'));
   A.write({status: null, source: null, plan: null, expiresAt: 0, trialStartedAt: Date.now() - 40 * 86400000});
   ok('с истёкшим пробным вместо кабинета — выбор плана',
-     textOf(T.AppGate({})).includes('Пробный период закончился'));
+     textOf(T.AppGate({})).includes('Пробний період завершився'));
 }
 
 part('публичная страница');
 {
   const pub = sandbox();
   vm.runInContext(transpile(source('book.html'), 'book') +
-    ';globalThis.__B = {Book, slots, DB, dayLabel, save, KEY, fromServer, REASONS, ask};', pub.ctx, {filename: 'book.jsx'});
+    ';globalThis.__B = {Book, slots, DB, dayLabel, save, KEY, fromServer, REASONS, ask, PHRASES, pickLang, t, LANGS};', pub.ctx, {filename: 'book.jsx'});
   const B = pub.ctx.__B;
   ok('страница записи собирается', typeof B.Book === 'function');
   ok('без данных барбера показывает витрину по умолчанию', B.DB().services.length >= 4);
@@ -1489,7 +1552,26 @@ part('публичная страница');
   ok('в занятости с сервера нет ничего лишнего',
      Object.keys(fromApi.appts[0]).sort().join(',') === 'date,dur,status,time');
   ok('на каждый отказ сервера есть человеческий текст',
-     ['taken', 'closed', 'past', 'too_many', 'bad_phone'].every(r => !!B.REASONS[r]));
+     ['taken', 'closed', 'past', 'too_many', 'bad_phone']
+       .every(r => !!B.REASONS[r] && !!B.PHRASES[B.REASONS[r]]));
+
+  /* Эту страницу видит не барбер, а его клиент. Язык берётся у барбера:
+     он выбрал его один раз в кабинете, и сервер везёт его в витрине. */
+  {
+    const noLang = Object.keys(B.PHRASES).filter(k => B.LANGS.some(l => !B.PHRASES[k][l]));
+    ok('на странице записи три языка', noLang.length === 0,
+       noLang.join(', ') || Object.keys(B.PHRASES).length + ' фраз');
+    ok('украинский — язык по умолчанию', B.pickLang('') === 'uk' && B.pickLang('чужой') === 'uk');
+    ok('язык барбера главнее', B.pickLang('en') === 'en' && B.pickLang('ru') === 'ru');
+    ok('витрина везёт язык кабинета', B.fromServer({shop: {lang: 'en'}}).settings.lang === 'en');
+    ok('и гривну, когда сервер молчит о валюте',
+       B.fromServer({shop: {}}).settings.currency === 'UAH');
+    const page = textOf(pub.el(B.Book, {}));
+    ok('и по умолчанию страница украинская', page.includes(B.PHRASES.step1.uk), page.slice(0, 60).trim());
+    const ru = Object.keys(B.PHRASES).filter(k => B.PHRASES[k].uk === B.PHRASES[k].ru &&
+      /[ыэъё]|(^|[^а-яіїєґ])и/i.test(B.PHRASES[k].uk));
+    ok('и в украинских фразах нет русских', ru.length === 0, ru.join(', '));
+  }
   T.Act.accept('ap_online');
   ok('после подтверждения запись становится плановой',
      S().appts.find(a => a.id === 'ap_online').status === 'planned');
