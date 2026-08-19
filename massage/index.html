@@ -51,7 +51,7 @@
 
     /* ── геометрия ── */
     --r-xs:10px; --r-sm:14px; --r-md:18px; --r-lg:22px; --r-xl:28px; --r-pill:999px;
-    --tab-h:64px; --pad:20px;
+    --tab-h:64px; --pad:20px; --shell:430px;
     --safe-top:env(safe-area-inset-top,0px);
     --safe-bottom:env(safe-area-inset-bottom,0px);
     --ease:cubic-bezier(.16,1,.3,1);
@@ -120,30 +120,21 @@
   *::-webkit-scrollbar{width:0; height:0}
 
   /* ══ ОБОЛОЧКА ══════════════════════════════════════════════════════
-     Телефон — основной носитель. На большом экране не растягиваем
-     интерфейс, а показываем его как устройство: колонка 430px в рамке. */
-  .stage{
-    min-height:100vh; display:flex; align-items:center; justify-content:center;
-    background:var(--bg-2);
-  }
-  .phone{
-    width:100%; max-width:430px; margin:0 auto; background:var(--bg);
-    min-height:100vh; position:relative; overflow:hidden;
-    display:flex; flex-direction:column;
+     Телефон — основной носитель. Страницу листает сам документ, а не
+     внутренний контейнер: иначе на телефоне адресная строка съедает
+     высоту, и нижняя панель уезжает вместе с содержимым.
+     Всё, что должно оставаться на экране (навигация, «+», шторки,
+     тост), прибито к окну и повторяет ширину колонки. */
+  #root{
+    max-width:var(--shell); margin-inline:auto; min-height:100vh; min-height:100dvh;
+    position:relative; background:var(--bg);
   }
   @media (min-width:900px){
-    .stage{padding:28px; background:var(--bg-2)}
-    html[data-theme="light"] .stage{background:#EDEBF6}
-    html[data-theme="dark"] .stage{background:#0A0910}
-    .phone{
-      min-height:min(920px,calc(100vh - 56px)); height:min(920px,calc(100vh - 56px));
-      border-radius:40px; box-shadow:var(--shadow-lg); border:1px solid var(--line);
-    }
+    body{background:var(--bg-2)}
+    #root{border-left:1px solid var(--line); border-right:1px solid var(--line)}
   }
-  .scroll{
-    flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
-    padding:0 var(--pad) calc(var(--tab-h) + 34px + var(--safe-bottom));
-  }
+  .app{min-height:100vh; min-height:100dvh}
+  .scroll{padding:0 var(--pad) calc(var(--tab-h) + 40px + var(--safe-bottom))}
 
   /* ── шапки ── */
   .top{padding:calc(var(--safe-top) + 14px) 0 6px; display:flex; align-items:flex-start; gap:12px}
@@ -338,7 +329,8 @@
 
   /* ── плавающая кнопка ── */
   .fab{
-    position:absolute; right:20px; bottom:calc(var(--tab-h) + 22px + var(--safe-bottom));
+    position:fixed; right:calc(50% - min(50vw, var(--shell) / 2) + 20px);
+    bottom:calc(var(--tab-h) + 22px + var(--safe-bottom));
     width:56px; height:56px; border-radius:var(--r-pill); background:var(--grad); color:#fff;
     display:grid; place-items:center; box-shadow:var(--shadow-violet); z-index:35;
     transition:transform var(--mid);
@@ -348,7 +340,8 @@
 
   /* ── нижняя навигация ── */
   .tabs{
-    position:absolute; left:0; right:0; bottom:0; z-index:40; display:grid;
+    position:fixed; left:50%; transform:translateX(-50%); bottom:0;
+    width:min(100%, var(--shell)); z-index:40; display:grid;
     grid-template-columns:repeat(5,1fr); align-items:center;
     height:calc(var(--tab-h) + var(--safe-bottom)); padding-bottom:var(--safe-bottom);
     background:color-mix(in srgb, var(--card) 88%, transparent);
@@ -373,13 +366,13 @@
 
   /* ── шторки ── */
   .scrim{
-    position:absolute; inset:0; background:var(--scrim); z-index:50;
+    position:fixed; inset:0; background:var(--scrim); z-index:50;
     animation:fade var(--mid) both; backdrop-filter:blur(2px);
   }
   .sheet{
-    position:absolute; left:0; right:0; bottom:0; z-index:51; background:var(--card);
+    position:fixed; left:50%; bottom:0; width:min(100%, var(--shell)); z-index:51; background:var(--card);
     border-radius:var(--r-xl) var(--r-xl) 0 0; padding:10px var(--pad) calc(20px + var(--safe-bottom));
-    max-height:88%; overflow-y:auto; animation:rise var(--slow) both; box-shadow:var(--shadow-lg);
+    max-height:86vh; overflow-y:auto; animation:rise var(--slow) both; box-shadow:var(--shadow-lg);
   }
   .grab{width:38px; height:5px; border-radius:3px; background:var(--line-2); margin:0 auto 14px}
   .sheet h3{font-size:19px; font-weight:600; letter-spacing:-.01em; margin-bottom:4px}
@@ -516,7 +509,7 @@
 
   /* ── тост ── */
   .toast{
-    position:absolute; left:50%; bottom:calc(var(--tab-h) + 26px + var(--safe-bottom));
+    position:fixed; left:50%; bottom:calc(var(--tab-h) + 26px + var(--safe-bottom));
     transform:translateX(-50%); z-index:60; background:var(--ink); color:var(--bg);
     padding:12px 18px; border-radius:var(--r-pill); font-size:14px; font-weight:500;
     box-shadow:var(--shadow-lg); animation:pop var(--slow) both; max-width:88%; text-align:center;
@@ -536,7 +529,7 @@
 
   /* ── анимации ── */
   @keyframes fade{from{opacity:0}to{opacity:1}}
-  @keyframes rise{from{transform:translateY(26px); opacity:.4}to{transform:none; opacity:1}}
+  @keyframes rise{from{transform:translate(-50%,26px); opacity:.4}to{transform:translate(-50%,0); opacity:1}}
   @keyframes pop{from{transform:translate(-50%,10px); opacity:0}to{transform:translate(-50%,0); opacity:1}}
   @keyframes sheen{from{background-position:100% 0}to{background-position:-100% 0}}
   @keyframes appear{from{transform:scale(.97); opacity:0}to{transform:none; opacity:1}}
@@ -3332,11 +3325,11 @@ function App(){
   const [stack, setStack] = useState([]);
   const [date, setDate] = useState(() => iso(new Date()));
   const [sheet, setSheet] = useState(null);
-  const scroller = useRef(null);
   const page = stack[stack.length - 1] || null;
 
   useEffect(() => { applyTheme(db.settings.theme); }, [db.settings.theme]);
-  useEffect(() => { if (scroller.current) scroller.current.scrollTop = 0; }, [tab, stack.length]);
+  /* новый экран начинается сверху, а не с той же прокрутки, что прошлый */
+  useEffect(() => { window.scrollTo(0, 0); }, [tab, stack.length]);
 
   const go = useCallback((route) => {
     if (!route) return;
@@ -3385,9 +3378,8 @@ function App(){
   else body = <Home db={db} go={go} today={iso(new Date())} />;
 
   return (
-    <div className="stage">
-      <div className="phone">
-        <div className="scroll" ref={scroller}>{body}</div>
+    <div className="app">
+      <div className="scroll">{body}</div>
 
         {tab === 'schedule' && !page ? (
           <button className="fab" onClick={() => { tap(12); openAppt({date}); }} aria-label="Новая запись"><Icon n="plus" /></button>
@@ -3401,9 +3393,8 @@ function App(){
         <ServiceForm open={!!sheet && sheet.k === 'service'} onClose={() => setSheet(null)} init={sheet && sheet.init} />
         <SubForm open={!!sheet && sheet.k === 'sub'} onClose={() => setSheet(null)} db={db} client={sheet && sheet.client} />
         <PayForm open={!!sheet && sheet.k === 'pay'} onClose={() => setSheet(null)} db={db} />
-        <NoteSheet open={!!sheet && sheet.k === 'note'} onClose={() => setSheet(null)} db={db} clientId={sheet && sheet.id} />
-        <ToastHost />
-      </div>
+      <NoteSheet open={!!sheet && sheet.k === 'note'} onClose={() => setSheet(null)} db={db} clientId={sheet && sheet.id} />
+      <ToastHost />
     </div>
   );
 }
@@ -3420,7 +3411,7 @@ function Boot(){
     return () => clearTimeout(t);
   }, []);
   if (!ready) return (
-    <div className="stage"><div className="phone"><div className="scroll">
+    <div className="app"><div className="scroll">
       <div className="top">
         <div style={{flex: 1}}>
           <div className="sk line" style={{width: 110}} />
@@ -3429,7 +3420,7 @@ function Boot(){
         <div className="sk" style={{width: 44, height: 44, borderRadius: 22}} />
       </div>
       <Skeleton />
-    </div></div></div>
+    </div></div>
   );
   return <App />;
 }
