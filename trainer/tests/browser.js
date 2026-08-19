@@ -788,6 +788,28 @@ PROBES['app-keyboard.js'] = DRIVE + `
       root.style.setProperty('--kb', KB + 'px');
       await wait(120);
       res.pageLift = Math.round(pb - page.getBoundingClientRect().bottom);
+
+      /* ─── підсумок видно, і його ніхто не перекриває ───
+         Числа стояли в потоці форми, а кнопка «Зберегти» прилипла до
+         низу — і закривала собою рівно те, на що дивляться перед тим,
+         як натиснути. Тепер вони в тій самій смузі, що й кнопка.
+
+         Питаємо не «чи є такий елемент», а те, що справді важить:
+         куди влучить палець там, де намальовано «Тренеру». Якщо в
+         підсумок — його видно. Якщо в щось інше — його перекрили.
+         Робимо це при піднятій клавіатурі: саме тоді місця найменше. */
+      var sum = page.querySelector('.sum');
+      res.sum = !!sum;
+      if (sum){
+        var r = sum.getBoundingClientRect();
+        res.sumIn = r.top >= 0 && r.bottom <= innerHeight - KB + 1;
+        var hit = document.elementFromPoint(r.left + r.width - 4, r.top + r.height / 2);
+        res.sumFree = !!(hit && (sum === hit || sum.contains(hit)));
+        res.sumText = (sum.textContent || '').replace(/\\s+/g, ' ').trim();
+      }
+      /* А в самій формі числа лишатись не повинні: два однакових
+         підсумки на одному екрані — гірше, ніж жодного. */
+      res.sumTwice = all('.page .sum').length;
       root.style.setProperty('--kb', '0px');
     }
     say(res);
@@ -1976,6 +1998,11 @@ server.listen(PORT, '127.0.0.1', async () => {
       ok('  зникла — шторка повернулась на дно', o.sheetBack === 336, o.sheetBack + ' px');
       ok('сторінка відкрилась', o.page === true);
       ok('  її низ теж піднімається', o.pageLift === 336, o.pageLift + ' px замість 336');
+      ok('підсумок стоїть поруч із кнопкою', o.sum === true);
+      ok('  і при піднятій клавіатурі лишається на екрані', o.sumIn === true);
+      ok('  і його ніхто не перекриває', o.sumFree === true,
+         o.sumFree ? o.sumText : 'палець влучає не в підсумок');
+      ok('  другого такого ж у формі немає', o.sumTwice === 1, o.sumTwice + ' шт.');
     }
 
     part('сторінка після оплати');

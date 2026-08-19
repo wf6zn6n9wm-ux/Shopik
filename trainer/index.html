@@ -216,6 +216,13 @@
   .chip.on{background:var(--accent);color:#fff;}
   .chip.soft.on{background:var(--accent-soft);color:var(--accent);}
 
+  /* Підсумок над кнопкою: оборот і комісія залу дрібним, своє — жирним.
+     Один рядок, бо смуга з кнопкою і так забирає низ екрана, а з
+     відкритою клавіатурою його лишається на два пальці. */
+  .sum{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    margin-bottom:10px;font-size:12.5px;color:var(--ink-3);}
+  .sum b{font-size:14px;font-weight:800;color:var(--accent);white-space:nowrap;}
+
   .segm{display:flex;background:var(--surface-2);border-radius:var(--r-sm);padding:4px;gap:4px;}
   .segm button{flex:1;height:36px;border-radius:9px;font-weight:700;font-size:13.5px;color:var(--ink-2);transition:.18s var(--ease);}
   .segm button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-1);}
@@ -3835,9 +3842,16 @@ const Page = ({title, sub, onClose, right, children, footer}) => {
         <div style={{width:42, display:'flex', justifyContent:'flex-end'}}>{right}</div>
       </div>
       <div className="screen">{children}</div>
+      {/* Смуга внизу тримається за екран, і все, що під неї заїжджає,
+          зникає. Поки там була сама кнопка, це нікому не заважало: вона
+          низька, ховала рядок-другий. Щойно в смугу переїхали числа,
+          зона згасання почала з'їдати їх верх — бо рахувалась у
+          відсотках від висоти, а висота стала більшою.
+          Тому згасання тепер у пікселях: смужка зверху завжди та сама,
+          нижче — щільний фон, хоч що туди покладуть. */}
       {footer && (
         <div style={{position:'sticky', bottom:0, padding:'12px 18px calc(14px + var(--safe-bottom))',
-                     background:'linear-gradient(180deg,transparent,var(--bg) 32%)'}}>{footer}</div>
+                     background:'linear-gradient(180deg,transparent,var(--bg) 22px)'}}>{footer}</div>
       )}
     </div>
   );
@@ -5737,12 +5751,28 @@ const SessionForm = ({params, onClose}) => {
     onClose();
   }
 
+  /* Числа живуть у смузі з кнопкою, а не в потоці форми. У потоці вони
+     опинялись рівно під кнопкою: тренер гортав до них — і вони ховались
+     за нею ж. Виходило безглуздо — єдине, на що дивляться перед
+     «Зберегти», перекривало саме «Зберегти».
+     Тепер їх видно завжди: міняєш ціну — і поруч із кнопкою одразу
+     видно, скільки лишиться тобі. */
   return (
     <Page title={edit ? t('session.edit','Тренування') : t('session.new','Нове тренування')} onClose={onClose}
           right={edit && (
             <button className="iconbtn" onClick={() => { Act.delSession(edit.id); Toaster.show(t('session.deleted','Видалено')); onClose(); }}
                     aria-label={t('common.delete')}><Ic.trash size={19}/></button>)}
-          footer={<Btn kind="pri" size="lg" wide onClick={save}>{t('session.save','Зберегти тренування')}</Btn>}>
+          footer={
+            <Fragment>
+              <div className="sum">
+                <span>
+                  {t('home.turnover','Оборот')} {money(sp.gross)}
+                  {S.gymMode !== 'none' && <span>{' · ' + t('home.gym','Залу')} −{money(sp.gym)}</span>}
+                </span>
+                <b>{t('session.toyou','Тренеру')} {money(sp.net)}</b>
+              </div>
+              <Btn kind="pri" size="lg" wide onClick={save}>{t('session.save','Зберегти тренування')}</Btn>
+            </Fragment>}>
       <Field label={many ? t('session.clients','Клієнти') : t('session.client','Клієнт')}
              hint={err || (edit ? '' : t('session.multi','Оберіть ще одного — і тренування стане груповим'))} bad={!!err}>
         <ClientPick value={edit || !many ? (f.ids[0] || '') : ''} onPick={pick}
@@ -5812,12 +5842,6 @@ const SessionForm = ({params, onClose}) => {
           {t('session.sub.solo','Абонемент списується лише в індивідуальному тренуванні — у групі кожен платить окремо')}
         </div>
       )}
-
-      <div className="card pad" style={{marginTop:16, background:'var(--accent-soft)', borderColor:'transparent'}}>
-        <Rowline k={t('home.turnover','Оборот')} v={money(sp.gross)}/>
-        {S.gymMode !== 'none' && <Rowline k={t('home.gym','Залу')} v={'−' + money(sp.gym)} tone="var(--ink-2)"/>}
-        <Rowline k={t('session.toyou','Тренеру')} v={money(sp.net)} tone="var(--accent)" strong/>
-      </div>
 
       {!edit && (
         <Field label={t('session.repeat','Повторювати')}
