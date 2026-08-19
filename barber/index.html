@@ -170,7 +170,11 @@
   .card-note{font-size:12px; color:var(--ink-3)}
   .sep{height:1px; background:var(--line); border:0; margin:0}
 
-  .grid{display:grid; gap:16px}
+  /* minmax(0,1fr), а не просто одна колонка: у грид-элементов min-width
+     по умолчанию auto, поэтому одна широкая карточка растягивает колонку
+     шире экрана и страница начинает ездить вбок. Классы ниже и inline-
+     стили это правило перебивают, как и раньше. */
+  .grid{display:grid; gap:16px; grid-template-columns:minmax(0,1fr)}
   .g-kpi{grid-template-columns:repeat(4,1fr)}
   .g-2{grid-template-columns:repeat(2,1fr)}
   .g-3{grid-template-columns:repeat(3,1fr)}
@@ -607,7 +611,16 @@
     .row{padding:13px 16px; min-height:60px}
     .row-time{width:48px; font-size:13px}
     .row-name{font-size:14px}
-    .modal-foot .btn{flex:1}
+    /* Кнопки в подвале модалки делят ширину поровну. Распорка между ними
+       забирала бы себе ещё треть, и длинная подпись — «Завершити та
+       записати виручку» — уезжала за край: nowrap не даёт ей перенестись,
+       а обрезать глагол в кнопке нельзя. */
+    .modal-foot .spacer{display:none}
+    .modal-foot .btn{flex:1; min-width:0; white-space:normal; line-height:1.25;
+      height:auto; min-height:44px; padding:9px 12px}
+    /* «Скасувати» короткое и делить ширину поровну не должно: место нужно
+       главному действию, у которого подпись длинная и осмысленная */
+    .modal-foot .btn-soft{flex:0 1 auto}
     .card-head{padding-top:18px}
     .side{display:none}
     .mob-only{display:flex}
@@ -1022,6 +1035,9 @@ const PHRASES = {
   required: {ru: 'Заполните поле', uk: 'Заповніть поле', en: 'Required'},
   inProgress: {ru: 'Запись в работе', uk: 'Запис у роботі', en: 'Appointment in progress'},
   finishFor: {ru: 'Завершить и записать выручку', uk: 'Завершити та записати виручку', en: 'Finish and log revenue'},
+  priceHint: {ru: 'Сумма попадёт в выручку дня. Можно изменить, если договорились иначе.',
+              uk: 'Сума потрапить у виручку дня. Можна змінити, якщо домовилися інакше.',
+              en: 'This amount goes into today’s revenue. Change it if you agreed otherwise.'},
   elapsed: {ru: 'идёт', uk: 'триває', en: 'elapsed'},
 
   tAdded: {ru: 'Клиент добавлен', uk: 'Клієнта додано', en: 'Client added'},
@@ -1529,7 +1545,7 @@ const SERVICE_SEED = [
   {name: 'Борода', price: 300, dur: 30},
   {name: 'Дитяча стрижка', price: 300, dur: 40},
   {name: 'Камуфляж сивини', price: 500, dur: 40},
-  {name: 'Гоління небезпечною бритвою', price: 400, dur: 40},
+  {name: 'Гоління бритвою', price: 400, dur: 40},
   {name: 'Стрижка машинкою', price: 250, dur: 25},
   {name: 'Укладка', price: 200, dur: 20},
 ];
@@ -3469,7 +3485,9 @@ function ActiveSession({id}){
         </div>
       </div>
       <Progress value={clamp(gone / Math.max(1, a.dur), 0, 1)} />
-      <Field label={t('price')} hint={t('finishFor')}>
+      {/* раньше тут стояла подпись кнопки — поле объясняло не себя, а
+          действие рядом, и одна и та же фраза читалась дважды */}
+      <Field label={t('price')} hint={t('priceHint')}>
         <Input type="number" min="0" value={price} onChange={e => setPrice(e.target.value)} />
       </Field>
       {a.note && <Field label={t('comment')}><div style={{color: 'var(--ink-2)'}}>{a.note}</div></Field>}
