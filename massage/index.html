@@ -1,0 +1,3429 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#FAFAFC" id="metaTheme" />
+<meta name="description" content="PRO MASSAGE — рабочий кабинет массажиста: расписание, клиенты, карта тела, заметки, абонементы и доход." />
+<title>PRO MASSAGE — кабинет массажиста</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<!-- версию фиксируем: без неё CDN однажды отдаст следующий мажор,
+     и приложение перестанет компилироваться без единой нашей правки -->
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- ==================================================================
+     PRO MASSAGE · DESIGN SYSTEM (v1)
+     ------------------------------------------------------------------
+     Рабочее пространство массажиста. Открыл между двумя клиентами — за
+     две секунды видно: кто следующий, когда, что сделать, сколько
+     заработано.
+
+     ТЕМА     Светлая — основная: белый лист, мягкие карточки, тонкие
+              линии. Тёмная — свой набор значений (фиолетовый графит),
+              а не инверсия светлой.
+     АКЦЕНТ   Violet #5B3FD3 → #7448E8. Градиент только на главном
+              действии: hero-карточка и кнопка «+».
+     ПАСТЕЛЬ  Категории живут мягкими фонами, не заливками.
+     ТИПО     Inter. Числа — tabular-nums, SemiBold.
+     РАДИУСЫ  10 / 14 / 18 / 22 / 28 / 999
+     СЕТКА    4pt, поля экрана 20, карточки 16–20
+     ДВИЖЕНИЕ transform/opacity, ease-out, 140–320ms
+     ТАЧ      минимум 44×44, основные действия — большим пальцем снизу
+     ================================================================== -->
+<style>
+  :root{
+    /* ── бренд: одинаков в обеих темах ── */
+    --violet:#5B3FD3; --violet-2:#7448E8; --violet-3:#4A31B8;
+    --grad:linear-gradient(135deg,#5B3FD3 0%,#7448E8 100%);
+
+    /* ── карта тела: от «всё хорошо» к «сильное напряжение» ── */
+    --t0:#C9C9D4; --t1:#3EBF8F; --t2:#EFC44B; --t3:#F2994A; --t4:#E5595B;
+
+    /* ── геометрия ── */
+    --r-xs:10px; --r-sm:14px; --r-md:18px; --r-lg:22px; --r-xl:28px; --r-pill:999px;
+    --tab-h:64px; --pad:20px;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+    --ease:cubic-bezier(.16,1,.3,1);
+    --fast:.14s var(--ease); --mid:.22s var(--ease); --slow:.32s var(--ease);
+  }
+
+  /* ── СВЕТЛАЯ (основная) ── */
+  :root, html[data-theme="light"]{
+    --bg:#FAFAFC; --bg-2:#F2F2F7;
+    --card:#FFFFFF; --card-2:#F7F7FA; --card-3:#F0F0F5;
+    --ink:#17171C; --ink-2:#858592; --ink-3:#AFAFBA; --ink-4:#C9C9D2;
+    --line:#EEEEF3; --line-2:#E3E3EA;
+    --violet-soft:#F0ECFE; --violet-soft-2:#E4DCFC; --violet-ink:#5B3FD3;
+    --pa-clients:#F4E8FF; --pa-schedule:#FFF0E5; --pa-income:#FFF3DF; --pa-analytics:#EAF0FF;
+    --pa-clients-ink:#8B4FD6; --pa-schedule-ink:#E1793A; --pa-income-ink:#D9962A; --pa-analytics-ink:#4A6FD4;
+    --pos:#22A06B; --neg:#DB4F4F; --pos-soft:#E7F6EF; --neg-soft:#FDECEC;
+    --shadow:0 1px 2px rgba(23,23,28,.04), 0 6px 20px rgba(23,23,28,.05);
+    --shadow-sm:0 1px 3px rgba(23,23,28,.05);
+    --shadow-lg:0 20px 48px rgba(23,23,28,.14);
+    --shadow-violet:0 8px 24px rgba(91,63,211,.28);
+    --scrim:rgba(23,23,28,.38);
+    --skin:#F0E2DA;
+  }
+
+  /* ── ТЁМНАЯ ── */
+  /* Не инверсия: фон — тёплый фиолетовый графит, карточки чуть светлее
+     фона (в темноте «поднимает» свет, а не рамка), пастель приглушена до
+     тонированных подложек, акцент осветлён — на тёмном #5B3FD3 глохнет. */
+  html[data-theme="dark"]{
+    --bg:#0F0E15; --bg-2:#15141D;
+    --card:#1A1924; --card-2:#22212D; --card-3:#2A2937;
+    --ink:#F4F4F7; --ink-2:#9E9EAE; --ink-3:#75758A; --ink-4:#55556A;
+    --line:#262532; --line-2:#32313F;
+    --violet:#8465F0; --violet-2:#9B7CFF; --violet-3:#6D4EDB;
+    --grad:linear-gradient(135deg,#5B3FD3 0%,#8465F0 100%);
+    --violet-soft:#241F3D; --violet-soft-2:#2E2750; --violet-ink:#A98CFF;
+    --pa-clients:#2A2140; --pa-schedule:#33261E; --pa-income:#332B1B; --pa-analytics:#1E2438;
+    --pa-clients-ink:#C79BFF; --pa-schedule-ink:#FFA96B; --pa-income-ink:#F5C462; --pa-analytics-ink:#8FAEFF;
+    --pos:#3ECF95; --neg:#F27272; --pos-soft:#163025; --neg-soft:#331E1E;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.35);
+    --shadow-sm:0 1px 3px rgba(0,0,0,.4);
+    --shadow-lg:0 24px 56px rgba(0,0,0,.6);
+    --shadow-violet:0 8px 24px rgba(91,63,211,.45);
+    --scrim:rgba(6,5,10,.7);
+    --skin:#3A3346;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg-2); color:var(--ink);
+    font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:15px; line-height:1.45; -webkit-font-smoothing:antialiased;
+    -webkit-tap-highlight-color:transparent;
+    transition:background var(--mid), color var(--mid);
+  }
+  h1,h2,h3,h4,p{margin:0}
+  button,input,select,textarea{font:inherit; color:inherit}
+  button{cursor:pointer; background:none; border:0; padding:0; text-align:left}
+  a{color:inherit; text-decoration:none}
+  ::selection{background:var(--violet-soft-2)}
+  .num{font-variant-numeric:tabular-nums; font-weight:600}
+  .cut{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .cut2{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  *{scrollbar-width:none}
+  *::-webkit-scrollbar{width:0; height:0}
+
+  /* ══ ОБОЛОЧКА ══════════════════════════════════════════════════════
+     Телефон — основной носитель. На большом экране не растягиваем
+     интерфейс, а показываем его как устройство: колонка 430px в рамке. */
+  .stage{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:var(--bg-2);
+  }
+  .phone{
+    width:100%; max-width:430px; margin:0 auto; background:var(--bg);
+    min-height:100vh; position:relative; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  @media (min-width:900px){
+    .stage{padding:28px; background:var(--bg-2)}
+    html[data-theme="light"] .stage{background:#EDEBF6}
+    html[data-theme="dark"] .stage{background:#0A0910}
+    .phone{
+      min-height:min(920px,calc(100vh - 56px)); height:min(920px,calc(100vh - 56px));
+      border-radius:40px; box-shadow:var(--shadow-lg); border:1px solid var(--line);
+    }
+  }
+  .scroll{
+    flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
+    padding:0 var(--pad) calc(var(--tab-h) + 34px + var(--safe-bottom));
+  }
+
+  /* ── шапки ── */
+  .top{padding:calc(var(--safe-top) + 14px) 0 6px; display:flex; align-items:flex-start; gap:12px}
+  .top-title{font-size:26px; font-weight:700; letter-spacing:-.02em; line-height:1.2}
+  .hi{font-size:15px; color:var(--ink-2); font-weight:500}
+  .hi-name{font-size:26px; font-weight:700; letter-spacing:-.02em; margin-top:1px}
+  .top-bar{
+    position:sticky; top:0; z-index:30; background:var(--bg);
+    padding:calc(var(--safe-top) + 12px) var(--pad) 12px; margin:0 calc(var(--pad) * -1) 4px;
+    display:flex; align-items:center; gap:10px; min-height:56px;
+    transition:box-shadow var(--fast), border-color var(--fast);
+  }
+  .top-bar.stuck{border-bottom:1px solid var(--line)}
+  .top-bar h2{font-size:19px; font-weight:600; letter-spacing:-.01em; flex:1; text-align:center}
+  .top-bar.left h2{text-align:left}
+  .ico-btn{
+    width:40px; height:40px; border-radius:var(--r-pill); display:grid; place-items:center;
+    color:var(--ink); flex:0 0 40px; position:relative;
+    transition:background var(--fast), transform var(--fast);
+  }
+  .ico-btn:active{background:var(--card-3); transform:scale(.92)}
+  .ico-btn svg{width:22px; height:22px}
+  .ico-btn .dot{
+    position:absolute; top:8px; right:8px; width:8px; height:8px; border-radius:50%;
+    background:var(--violet); border:2px solid var(--bg);
+  }
+  .link{color:var(--violet-ink); font-weight:600; font-size:15px}
+  .link:active{opacity:.6}
+
+  /* ── карточки ── */
+  .card{
+    background:var(--card); border-radius:var(--r-lg); box-shadow:var(--shadow-sm);
+    border:1px solid var(--line); margin-bottom:14px; overflow:hidden;
+  }
+  .card.pad{padding:16px}
+  .card-h{display:flex; align-items:center; gap:10px; padding:16px 16px 0}
+  .card-h h3{font-size:16px; font-weight:600; letter-spacing:-.01em; flex:1}
+  .card-h .side{font-size:13px; color:var(--ink-2); font-weight:500}
+  .sec{display:flex; align-items:baseline; gap:10px; margin:22px 0 12px}
+  .sec h3{font-size:17px; font-weight:600; letter-spacing:-.01em; flex:1}
+  .sec .side{font-size:13px; color:var(--ink-2); font-weight:500}
+  .hint{font-size:13px; color:var(--ink-2); line-height:1.5}
+
+  /* ── hero: следующий сеанс ── */
+  .hero{
+    display:block; width:100%; background:var(--grad); color:#fff; border-radius:var(--r-lg);
+    padding:18px; box-shadow:var(--shadow-violet); position:relative; overflow:hidden;
+    transition:transform var(--fast);
+  }
+  .hero:active{transform:scale(.985)}
+  .hero::after{
+    content:''; position:absolute; right:-40px; top:-60px; width:180px; height:180px;
+    border-radius:50%; background:rgba(255,255,255,.08);
+  }
+  .hero-label{font-size:13px; opacity:.8; font-weight:500}
+  .hero-row{display:flex; align-items:center; gap:12px; margin-top:10px; position:relative}
+  .hero-bar{width:3px; align-self:stretch; border-radius:2px; background:rgba(255,255,255,.5)}
+  .hero-name{font-size:19px; font-weight:600; letter-spacing:-.01em}
+  .hero-when{font-size:13px; opacity:.85; margin-top:2px}
+  .hero-arrow{
+    margin-left:auto; width:38px; height:38px; border-radius:var(--r-pill); flex:0 0 38px;
+    background:rgba(255,255,255,.18); display:grid; place-items:center;
+  }
+  .hero-arrow svg{width:19px; height:19px}
+  .hero.calm{background:var(--card); color:var(--ink); box-shadow:var(--shadow-sm); border:1px solid var(--line)}
+  .hero.calm .hero-label{color:var(--ink-2); opacity:1}
+  .hero.calm .hero-when{color:var(--ink-2); opacity:1}
+  .hero.calm::after{display:none}
+  .hero.calm .hero-arrow{background:var(--card-3); color:var(--ink-2)}
+
+  /* ── быстрые действия ── */
+  .quick{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px}
+  .q{
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    transition:transform var(--fast);
+  }
+  .q:active{transform:scale(.94)}
+  .q-tile{
+    width:100%; aspect-ratio:1/1; border-radius:var(--r-md); display:grid; place-items:center;
+  }
+  .q-tile svg{width:24px; height:24px}
+  .q-name{font-size:12px; color:var(--ink-2); font-weight:500}
+
+  /* ── календарь ── */
+  .cal-dow{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-top:12px}
+  .cal-dow span{text-align:center; font-size:12px; color:var(--ink-3); font-weight:500}
+  .cal-days{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-top:6px}
+  .cal-d{
+    width:38px; height:38px; justify-self:center; border-radius:var(--r-pill);
+    display:grid; place-items:center; position:relative;
+    font-size:15px; font-weight:500; color:var(--ink); transition:background var(--fast), color var(--fast);
+  }
+  .cal-d.off{color:var(--ink-4)}
+  .cal-d.today{color:var(--violet-ink); font-weight:600}
+  .cal-d.on{background:var(--violet); color:#fff; font-weight:600}
+  .cal-d .busy{
+    position:absolute; bottom:5px; width:4px; height:4px; border-radius:50%; background:var(--violet);
+  }
+  .cal-d.on .busy{background:rgba(255,255,255,.85)}
+
+  /* ── неделя (полоса дат) ── */
+  .week{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:4px 0 10px}
+  .wd{display:flex; flex-direction:column; align-items:center; gap:8px; padding:2px 0}
+  .wd-n{font-size:12px; color:var(--ink-3); font-weight:500}
+  .wd-d{
+    width:36px; height:36px; border-radius:var(--r-pill); display:grid; place-items:center;
+    font-size:16px; font-weight:600; position:relative; transition:background var(--fast), color var(--fast);
+  }
+  .wd.on .wd-d{background:var(--violet); color:#fff}
+  .wd.on .wd-n{color:var(--violet-ink)}
+  .wd-dot{position:absolute; bottom:-7px; width:4px; height:4px; border-radius:50%; background:var(--ink-4)}
+  .wd.on .wd-dot{background:var(--violet)}
+
+  /* ── строки списков ── */
+  .rows{display:flex; flex-direction:column}
+  .row{
+    display:flex; align-items:center; gap:12px; padding:14px 16px; width:100%;
+    border-top:1px solid var(--line); background:var(--card); transition:background var(--fast);
+  }
+  .rows .row:first-child{border-top:0}
+  .row:active{background:var(--card-2)}
+  .row-main{flex:1; min-width:0}
+  .row-t{font-size:15px; font-weight:600; letter-spacing:-.01em}
+  .row-s{font-size:13px; color:var(--ink-2); margin-top:2px}
+  .row-side{font-size:13px; color:var(--ink-2); text-align:right; white-space:nowrap}
+  .chev{width:18px; height:18px; color:var(--ink-4); flex:0 0 18px}
+  .kv{display:flex; align-items:center; gap:12px; padding:14px 0; border-top:1px solid var(--line)}
+  .kv:first-child{border-top:0}
+  .kv-k{font-size:15px; color:var(--ink-2); flex:1}
+  .kv-v{font-size:15px; font-weight:600; text-align:right}
+  .kv-v.acc{color:var(--violet-ink)}
+
+  /* ── аватар ── */
+  .av{
+    border-radius:50%; background:var(--violet-soft); color:var(--violet-ink);
+    display:grid; place-items:center; font-weight:600; flex:0 0 auto; overflow:hidden;
+    letter-spacing:-.02em; user-select:none;
+  }
+  .av img{width:100%; height:100%; object-fit:cover}
+
+  /* ── таймлайн расписания ── */
+  .tl{position:relative; padding-left:64px}
+  .tl::before{
+    content:''; position:absolute; left:56px; top:6px; bottom:6px; width:1px; background:var(--line);
+  }
+  .tl-item{position:relative; margin-bottom:8px}
+  .tl-time{
+    position:absolute; left:-64px; top:16px; width:46px; text-align:right;
+    font-size:13px; font-weight:600; color:var(--ink-2); font-variant-numeric:tabular-nums;
+  }
+  .tl-dot{
+    position:absolute; left:-11px; top:21px; width:9px; height:9px; border-radius:50%;
+    background:var(--violet); box-shadow:0 0 0 3px var(--bg);
+  }
+  .tl-card{
+    display:flex; align-items:center; gap:12px; padding:14px 14px; width:100%;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--r-md);
+    box-shadow:var(--shadow-sm); transition:transform var(--fast), background var(--fast);
+  }
+  .tl-card:active{transform:scale(.99)}
+  .tl-item.now .tl-time{color:var(--violet-ink)}
+  .tl-item.now .tl-card{background:var(--violet-soft); border-color:transparent; box-shadow:none}
+  .tl-item.done .tl-card{opacity:.6}
+  .tl-item.off .tl-dot{background:var(--ink-4)}
+  .day-h{font-size:17px; font-weight:600; letter-spacing:-.01em; margin:20px 0 12px}
+
+  /* ── кнопки ── */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    height:52px; padding:0 22px; border-radius:var(--r-md); font-size:16px; font-weight:600;
+    background:var(--card-2); color:var(--ink); width:100%; transition:transform var(--fast), opacity var(--fast);
+  }
+  .btn:active{transform:scale(.98); opacity:.9}
+  .btn svg{width:19px; height:19px}
+  .btn.pri{background:var(--grad); color:#fff; box-shadow:var(--shadow-violet)}
+  .btn.ghost{background:transparent; border:1px solid var(--line-2); color:var(--ink)}
+  .btn.soft{background:var(--violet-soft); color:var(--violet-ink)}
+  .btn.dan{background:var(--neg-soft); color:var(--neg)}
+  .btn.sm{height:42px; font-size:14px; padding:0 16px; border-radius:var(--r-sm); width:auto}
+  .btn[disabled]{opacity:.45; pointer-events:none}
+  .btns{display:flex; gap:10px}
+  .btns .btn{flex:1}
+
+  /* три действия в карточке клиента */
+  .acts{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:18px}
+  .act{
+    border-radius:var(--r-md); padding:14px 8px; display:flex; flex-direction:column;
+    align-items:center; gap:7px; font-size:12px; font-weight:500; transition:transform var(--fast);
+  }
+  .act:active{transform:scale(.95)}
+  .act svg{width:22px; height:22px}
+
+  /* ── плавающая кнопка ── */
+  .fab{
+    position:absolute; right:20px; bottom:calc(var(--tab-h) + 22px + var(--safe-bottom));
+    width:56px; height:56px; border-radius:var(--r-pill); background:var(--grad); color:#fff;
+    display:grid; place-items:center; box-shadow:var(--shadow-violet); z-index:35;
+    transition:transform var(--mid);
+  }
+  .fab:active{transform:scale(.9)}
+  .fab svg{width:26px; height:26px}
+
+  /* ── нижняя навигация ── */
+  .tabs{
+    position:absolute; left:0; right:0; bottom:0; z-index:40; display:grid;
+    grid-template-columns:repeat(5,1fr); align-items:center;
+    height:calc(var(--tab-h) + var(--safe-bottom)); padding-bottom:var(--safe-bottom);
+    background:color-mix(in srgb, var(--card) 88%, transparent);
+    backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-top:1px solid var(--line);
+  }
+  .tab{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    height:100%; color:var(--ink-3); font-size:10px; font-weight:500;
+    transition:color var(--fast);
+  }
+  .tab svg{width:23px; height:23px}
+  .tab.on{color:var(--violet-ink); font-weight:600}
+  .tab-plus{display:grid; place-items:center; height:100%}
+  .tab-plus i{
+    width:52px; height:52px; border-radius:var(--r-pill); background:var(--grad); color:#fff;
+    display:grid; place-items:center; box-shadow:var(--shadow-violet); margin-top:-16px;
+    transition:transform var(--mid);
+  }
+  .tab-plus i svg{width:25px; height:25px}
+  .tab-plus:active i{transform:scale(.9) rotate(90deg)}
+
+  /* ── шторки ── */
+  .scrim{
+    position:absolute; inset:0; background:var(--scrim); z-index:50;
+    animation:fade var(--mid) both; backdrop-filter:blur(2px);
+  }
+  .sheet{
+    position:absolute; left:0; right:0; bottom:0; z-index:51; background:var(--card);
+    border-radius:var(--r-xl) var(--r-xl) 0 0; padding:10px var(--pad) calc(20px + var(--safe-bottom));
+    max-height:88%; overflow-y:auto; animation:rise var(--slow) both; box-shadow:var(--shadow-lg);
+  }
+  .grab{width:38px; height:5px; border-radius:3px; background:var(--line-2); margin:0 auto 14px}
+  .sheet h3{font-size:19px; font-weight:600; letter-spacing:-.01em; margin-bottom:4px}
+  .sheet-sub{font-size:14px; color:var(--ink-2); margin-bottom:16px}
+  .sheet-acts{display:flex; flex-direction:column; gap:8px; margin-bottom:6px}
+  .sa{
+    display:flex; align-items:center; gap:14px; padding:14px; border-radius:var(--r-md);
+    background:var(--card-2); transition:transform var(--fast);
+  }
+  .sa:active{transform:scale(.98)}
+  .sa-ic{width:44px; height:44px; border-radius:var(--r-sm); display:grid; place-items:center; flex:0 0 44px}
+  .sa-ic svg{width:21px; height:21px}
+  .sa-t{font-size:15px; font-weight:600}
+  .sa-s{font-size:13px; color:var(--ink-2)}
+
+  /* ── формы ── */
+  .field{margin-bottom:14px}
+  .lab{font-size:13px; color:var(--ink-2); font-weight:500; margin-bottom:7px; display:block}
+  .inp{
+    width:100%; height:52px; border-radius:var(--r-md); border:1px solid var(--line-2);
+    background:var(--card); padding:0 16px; font-size:16px; outline:none;
+    transition:border-color var(--fast), box-shadow var(--fast);
+  }
+  textarea.inp{height:auto; min-height:110px; padding:14px 16px; resize:vertical; line-height:1.5}
+  .inp:focus{border-color:var(--violet); box-shadow:0 0 0 4px var(--violet-soft)}
+  .inp::placeholder{color:var(--ink-3)}
+  select.inp{appearance:none; background-image:none}
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{
+    padding:9px 14px; border-radius:var(--r-pill); background:var(--card-2); color:var(--ink-2);
+    font-size:14px; font-weight:500; border:1px solid transparent; transition:all var(--fast);
+  }
+  .chip:active{transform:scale(.96)}
+  .chip.on{background:var(--violet-soft); color:var(--violet-ink); border-color:var(--violet-soft-2); font-weight:600}
+  .seg{display:flex; background:var(--card-3); border-radius:var(--r-sm); padding:3px; gap:3px}
+  .seg button{
+    flex:1; height:36px; border-radius:11px; font-size:14px; font-weight:500; color:var(--ink-2);
+    display:grid; place-items:center; transition:all var(--fast);
+  }
+  .seg button.on{background:var(--card); color:var(--ink); font-weight:600; box-shadow:var(--shadow-sm)}
+  .tabs-line{display:flex; gap:26px; border-bottom:1px solid var(--line); margin:20px 0 4px}
+  .tabs-line button{
+    padding:10px 0 12px; font-size:15px; font-weight:500; color:var(--ink-2); position:relative;
+  }
+  .tabs-line button.on{color:var(--violet-ink); font-weight:600}
+  .tabs-line button.on::after{
+    content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; border-radius:2px;
+    background:var(--violet);
+  }
+
+  /* ── бейджи ── */
+  .badge{
+    display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:var(--r-pill);
+    font-size:12px; font-weight:600; background:var(--card-3); color:var(--ink-2);
+  }
+  .badge.acc{background:var(--violet-soft); color:var(--violet-ink)}
+  .badge.pos{background:var(--pos-soft); color:var(--pos)}
+  .badge.neg{background:var(--neg-soft); color:var(--neg)}
+
+  /* ── прогресс ── */
+  .bar{height:8px; border-radius:4px; background:var(--card-3); overflow:hidden}
+  .bar i{display:block; height:100%; border-radius:4px; background:var(--grad); transition:width var(--slow)}
+
+  /* ── карта тела ── */
+  .body-wrap{display:flex; gap:8px; justify-content:center; padding:6px 0 2px}
+  .body-svg{width:100%; max-width:150px}
+  .body-svg .zone{
+    fill:var(--card-3); stroke:var(--card); stroke-width:1.2; cursor:pointer;
+    transition:fill var(--mid), opacity var(--fast);
+  }
+  .body-svg .zone:active{opacity:.7}
+  .body-svg .zone.sel{stroke:var(--violet); stroke-width:2.2}
+  .body-svg .base{fill:var(--skin)}
+  .legend{display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:12px}
+  .legend span{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-2)}
+  .legend i{width:9px; height:9px; border-radius:50%}
+  .tset{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:12px}
+  .tset button{
+    padding:10px 4px; border-radius:var(--r-sm); font-size:12px; font-weight:500; text-align:center;
+    background:var(--card-2); color:var(--ink-2); border:1.5px solid transparent; transition:all var(--fast);
+  }
+  .tset button.on{color:var(--ink); font-weight:600}
+  .prog{display:flex; align-items:center; gap:10px; padding:11px 0; border-top:1px solid var(--line)}
+  .prog:first-child{border-top:0}
+  .prog-d{font-size:13px; color:var(--ink-2); width:56px; flex:0 0 56px; font-variant-numeric:tabular-nums}
+  .prog-line{flex:1; height:6px; border-radius:3px; background:var(--card-3); overflow:hidden}
+  .prog-line i{display:block; height:100%; border-radius:3px; transition:width var(--slow)}
+  .prog-v{font-size:13px; font-weight:600; width:74px; text-align:right}
+
+  /* ── таймер сеанса ── */
+  .timer-wrap{display:grid; place-items:center; padding:12px 0 4px; position:relative}
+  .timer-svg{width:250px; height:250px; transform:rotate(-90deg)}
+  .timer-svg circle{fill:none; stroke-linecap:round}
+  .timer-in{position:absolute; inset:0; display:grid; place-items:center; text-align:center}
+  .timer-n{font-size:52px; font-weight:600; letter-spacing:-.03em; font-variant-numeric:tabular-nums}
+  .timer-s{font-size:14px; color:var(--ink-2); margin-top:2px}
+
+  /* ── графики ── */
+  .chart{width:100%; height:150px; display:block; overflow:visible}
+  .chart .grid{stroke:var(--line); stroke-width:1}
+  .chart .bar-r{fill:var(--card-3); transition:fill var(--fast)}
+  .chart .bar-r.on{fill:url(#gv)}
+  .chart .lab{font-size:10px; fill:var(--ink-3); font-weight:500}
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .stat{background:var(--card); border:1px solid var(--line); border-radius:var(--r-md); padding:14px}
+  .stat-k{font-size:13px; color:var(--ink-2); font-weight:500}
+  .stat-v{font-size:22px; font-weight:600; letter-spacing:-.02em; margin-top:4px; font-variant-numeric:tabular-nums}
+  .money-hero{
+    background:var(--grad); color:#fff; border-radius:var(--r-lg); padding:20px;
+    box-shadow:var(--shadow-violet);
+  }
+  .money-hero .k{font-size:14px; opacity:.85}
+  .money-hero .v{font-size:38px; font-weight:600; letter-spacing:-.03em; margin-top:4px; font-variant-numeric:tabular-nums}
+  .money-hero .r{display:flex; gap:22px; margin-top:16px}
+  .money-hero .r div{font-size:13px; opacity:.85}
+  .money-hero .r b{display:block; font-size:17px; font-weight:600; margin-top:2px}
+
+  /* ── пусто / загрузка ── */
+  .empty{text-align:center; padding:44px 24px}
+  .empty-ic{
+    width:66px; height:66px; border-radius:var(--r-lg); background:var(--violet-soft);
+    color:var(--violet-ink); display:grid; place-items:center; margin:0 auto 16px;
+  }
+  .empty-ic svg{width:28px; height:28px}
+  .empty h4{font-size:17px; font-weight:600; margin-bottom:6px}
+  .empty p{font-size:14px; color:var(--ink-2); line-height:1.5; max-width:280px; margin:0 auto 18px}
+  .sk{
+    background:linear-gradient(90deg,var(--card-2) 25%,var(--card-3) 37%,var(--card-2) 63%);
+    background-size:400% 100%; animation:sheen 1.4s linear infinite; border-radius:var(--r-sm);
+  }
+  .sk.line{height:12px; margin-bottom:8px}
+  .sk.card{height:88px; border-radius:var(--r-lg); margin-bottom:14px}
+  .sk.hero{height:112px; border-radius:var(--r-lg)}
+
+  /* ── тост ── */
+  .toast{
+    position:absolute; left:50%; bottom:calc(var(--tab-h) + 26px + var(--safe-bottom));
+    transform:translateX(-50%); z-index:60; background:var(--ink); color:var(--bg);
+    padding:12px 18px; border-radius:var(--r-pill); font-size:14px; font-weight:500;
+    box-shadow:var(--shadow-lg); animation:pop var(--slow) both; max-width:88%; text-align:center;
+  }
+
+  /* ── онлайн-запись ── */
+  .book-head{
+    background:var(--grad); color:#fff; margin:0 calc(var(--pad) * -1); padding:calc(var(--safe-top) + 26px) var(--pad) 26px;
+    border-radius:0 0 var(--r-xl) var(--r-xl); text-align:center;
+  }
+  .book-head .av{margin:0 auto 12px; border:3px solid rgba(255,255,255,.3)}
+  .srv{
+    display:flex; align-items:center; gap:12px; padding:15px 16px; width:100%;
+    border-top:1px solid var(--line);
+  }
+  .srv:first-child{border-top:0}
+
+  /* ── анимации ── */
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes rise{from{transform:translateY(26px); opacity:.4}to{transform:none; opacity:1}}
+  @keyframes pop{from{transform:translate(-50%,10px); opacity:0}to{transform:translate(-50%,0); opacity:1}}
+  @keyframes sheen{from{background-position:100% 0}to{background-position:-100% 0}}
+  @keyframes appear{from{transform:scale(.97); opacity:0}to{transform:none; opacity:1}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .screen{animation:appear var(--slow) both}
+  .rec-dot{width:10px; height:10px; border-radius:50%; background:var(--neg); animation:pulse 1.1s infinite}
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms !important; transition-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+/* ══════════════════════════════════════════════════════════════════════
+   PRO MASSAGE — кабинет массажиста
+   Один файл: данные, состояние, экраны. Сервер не нужен — база живёт в
+   localStorage, поэтому приложение открывается и работает офлайн.
+   ══════════════════════════════════════════════════════════════════════ */
+const {useState, useEffect, useRef, useMemo, useCallback, Fragment} = React;
+
+/* ───────────────────────── 1. МЕЛОЧИ ───────────────────────── */
+
+const uid = (p) => p + '_' + Math.random().toString(36).slice(2, 9);
+const pad2 = (n) => (n < 10 ? '0' : '') + n;
+
+/* даты держим строкой YYYY-MM-DD: сравниваются как текст, не зависят
+   от часового пояса и не ломаются при сериализации */
+const iso = (d) => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+const fromIso = (s) => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => { const x = new Date(d.getTime()); x.setDate(x.getDate() + n); return x; };
+const dowIdx = (d) => (d.getDay() + 6) % 7;              /* 0 = понедельник */
+const startOfWeek = (d) => addDays(d, -dowIdx(d));
+const daysBetween = (a, b) => Math.round((fromIso(b) - fromIso(a)) / 86400000);
+
+const mins = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+const hhmm = (m) => pad2(Math.floor(((m % 1440) + 1440) % 1440 / 60)) + ':' + pad2(((m % 60) + 60) % 60);
+const clock = (sec) => pad2(Math.floor(Math.abs(sec) / 60)) + ':' + pad2(Math.abs(sec) % 60);
+
+const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const MONTHS_N = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const DOW = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const DOW_FULL = ['понедельник','вторник','среда','четверг','пятница','суббота','воскресенье'];
+
+const dateLabel = (s) => { const d = fromIso(s); return d.getDate() + ' ' + MONTHS[d.getMonth()] + ', ' + DOW_FULL[dowIdx(d)]; };
+const dateShort = (s) => { const d = fromIso(s); return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); };
+const monthTitle = (d) => MONTHS_N[d.getMonth()] + ' ' + d.getFullYear();
+
+/* «Сегодня» и «Завтра» массажист читает быстрее даты — а дальше уже дата */
+const relDay = (s, today) => {
+  const n = daysBetween(today || iso(new Date()), s);
+  if (n === 0) return 'Сегодня';
+  if (n === 1) return 'Завтра';
+  if (n === -1) return 'Вчера';
+  return dateShort(s);
+};
+
+/* склонения: «1 сеанс», «2 сеанса», «5 сеансов» */
+const plural = (n, one, few, many) => {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b > 1 && b < 5) return few;
+  if (b === 1) return one;
+  return many;
+};
+const sessWord = (n) => plural(n, 'сеанс', 'сеанса', 'сеансов');
+const dayWord = (n) => plural(n, 'день', 'дня', 'дней');
+
+const NBSP = ' ', THIN = ' ';
+const money = (n) => '₴' + THIN + Math.round(n || 0).toLocaleString('ru-RU').replace(/ |,/g, NBSP);
+const durLabel = (m) => m + NBSP + 'мин';
+const initials = (name) => String(name || '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+const firstName = (name) => String(name || '').trim().split(/\s+/)[0] || '';
+
+const phoneMask = (v) => {
+  const d = String(v || '').replace(/\D/g, '').slice(0, 12);
+  if (!d) return '';
+  const p = d.startsWith('380') ? d : ('380' + d).slice(0, 12);
+  return '+' + p.slice(0, 3) + ' ' + p.slice(3, 5) + ' ' + p.slice(5, 8) + ' ' + p.slice(8, 10) + ' ' + p.slice(10, 12);
+};
+const isPhone = (v) => String(v || '').replace(/\D/g, '').length >= 9;
+const isEmail = (v) => /^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(String(v || '').trim());
+
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const sum = (list, f) => list.reduce((n, x) => n + (f ? f(x) : x), 0);
+
+/* лёгкая отдача на действие: на телефоне — вибрация, на десктопе — тишина */
+const tap = (ms) => { try { if (navigator.vibrate) navigator.vibrate(ms || 8); } catch (e) {} };
+
+/* ───────────────────────── 2. ИКОНКИ ───────────────────────── */
+/* Один компонент, один набор: линия 1.8, скруглённые концы — так иконки
+   не разъезжаются по весу между экранами. */
+const PATHS = {
+  home: 'M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+  users: 'M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20M9 10.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 20v-1.5a4 4 0 0 0-3-3.87M16 3.6a4 4 0 0 1 0 7.75',
+  calendar: 'M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v12A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5zM8 3v4M16 3v4M4 10h16',
+  more: 'M6 12h.01M12 12h.01M18 12h.01',
+  plus: 'M12 5v14M5 12h14',
+  bell: 'M18 8.5a6 6 0 1 0-12 0c0 6-2 7.5-2 7.5h16s-2-1.5-2-7.5M13.7 19.5a2 2 0 0 1-3.4 0',
+  arrow: 'M5 12h14M13 6l6 6-6 6',
+  back: 'M15 5l-7 7 7 7',
+  chev: 'M9 5l7 7-7 7',
+  filter: 'M3 5h18l-7 8.2V20l-4-2.2v-4.6z',
+  chat: 'M20 12.5a7.5 7.5 0 0 1-10.9 6.7L4 21l1.8-4.6A7.5 7.5 0 1 1 20 12.5',
+  phone: 'M20.5 16.9v2.6a1.4 1.4 0 0 1-1.6 1.4A17.5 17.5 0 0 1 3.1 5.1 1.4 1.4 0 0 1 4.5 3.5h2.6a1.4 1.4 0 0 1 1.4 1.2c.1 1 .35 1.9.7 2.8a1.4 1.4 0 0 1-.3 1.5L7.7 10.2a14 14 0 0 0 6.1 6.1l1.2-1.2a1.4 1.4 0 0 1 1.5-.3c.9.35 1.8.6 2.8.7a1.4 1.4 0 0 1 1.2 1.4',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 7v5.2l3.2 2',
+  wallet: 'M3 8.5A2.5 2.5 0 0 1 5.5 6H19a1 1 0 0 1 1 1v2M3 8.5v9A2.5 2.5 0 0 0 5.5 20H19a1 1 0 0 0 1-1v-3M20 9h-3.5a2.5 2.5 0 0 0 0 5H20z',
+  chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  play: 'M7 4.8v14.4l12-7.2z',
+  pause: 'M9 5v14M15 5v14',
+  check: 'M4.5 12.5 9.5 17.5 19.5 6.5',
+  mic: 'M12 15a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 1 0-7 0v5A3.5 3.5 0 0 0 12 15M19 11.5a7 7 0 0 1-14 0M12 18.5V22',
+  edit: 'M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17z',
+  trash: 'M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13',
+  body: 'M12 6.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4M8 9.5h8M6 9.5l1.5 5.5M18 9.5 16.5 15M9 15h6l1 6M9 15l-1 6',
+  star: 'm12 3.5 2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L3.5 9.7l5.9-.9z',
+  search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16M21 21l-4.3-4.3',
+  gear: 'M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4M19.4 15a1.6 1.6 0 0 0 .32 1.77l.06.06a1.9 1.9 0 1 1-2.7 2.7l-.05-.06a1.6 1.6 0 0 0-2.73 1.14V21a1.9 1.9 0 1 1-3.8 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.77.32l-.06.06a1.9 1.9 0 1 1-2.7-2.7l.06-.05A1.6 1.6 0 0 0 3 15.1a1.6 1.6 0 0 0-1.5-1H1.4a1.9 1.9 0 1 1 0-3.8h.1A1.6 1.6 0 0 0 3 9a1.6 1.6 0 0 0-.32-1.77l-.06-.06a1.9 1.9 0 1 1 2.7-2.7l.05.06A1.6 1.6 0 0 0 7 4.6a1.6 1.6 0 0 0 1-1.5V3a1.9 1.9 0 1 1 3.8 0v.1a1.6 1.6 0 0 0 2.73 1.14 1.6 1.6 0 0 0 1.77.32l.06-.06a1.9 1.9 0 1 1 2.7 2.7l-.06.05A1.6 1.6 0 0 0 19.4 9v.1a1.6 1.6 0 0 0 1.5 1H21a1.9 1.9 0 1 1 0 3.8h-.1a1.6 1.6 0 0 0-1.5 1z',
+  moon: 'M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5',
+  sun: 'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10M12 1.5V4M12 20v2.5M4.2 4.2 6 6M18 18l1.8 1.8M1.5 12H4M20 12h2.5M4.2 19.8 6 18M18 6l1.8-1.8',
+  card: 'M2.5 7.5A2 2 0 0 1 4.5 5.5h15a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2zM2.5 10h19M6 14.5h3',
+  gift: 'M4 11.5h16V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM3 7.5h18v4H3zM12 7.5V21M12 7.5S10.5 3 8 3a2.2 2.2 0 0 0 0 4.5zM12 7.5S13.5 3 16 3a2.2 2.2 0 0 1 0 4.5z',
+  share: 'M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 15V3M8 7l4-4 4 4',
+  x: 'M6 6l12 12M18 6 6 18',
+  alert: 'M12 8.5v4.5M12 16.5h.01M12 3.5 2.5 20h19z',
+  note: 'M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1M14 3v5h4M8.5 13h7M8.5 17h4',
+  spark: 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z',
+  globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M3.2 9.5h17.6M3.2 14.5h17.6M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18',
+  copy: 'M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1M16 8V4a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3',
+  down: 'M12 3v13M7 11.5l5 5 5-5M4 21h16',
+  logout: 'M15 17l5-5-5-5M20 12H9M12 20H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7',
+};
+const FILLED = {home: 1, play: 1};
+const Icon = ({n, s}) => {
+  const d = PATHS[n] || PATHS.alert;
+  const f = FILLED[n];
+  return (
+    <svg viewBox="0 0 24 24" width={s || 24} height={s || 24} fill={f ? 'currentColor' : 'none'}
+         stroke={f ? 'none' : 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+         aria-hidden="true">
+      <path d={d} />
+    </svg>
+  );
+};
+
+/* фирменный знак: массажист и линия тела клиента */
+const Mark = ({s}) => (
+  <svg viewBox="0 0 64 64" width={s || 40} height={s || 40} fill="currentColor" aria-hidden="true">
+    <circle cx="24" cy="20" r="7" />
+    <path d="M12.5 44.5c5-1.5 8.6-5.4 11.4-10.2 1.6-2.8 5.7-2.8 7.4 0 2.2 3.7 5 6.9 8.6 9 1.4.8.6 3-1 2.6-6.1-1.6-11-5.4-14.4-10.6-2.8 4.6-6.4 8.2-11 10.4-1.5.7-2.6-.7-1-1.2z" />
+    <circle cx="47" cy="41" r="6" />
+    <path d="M6 52.5c9.5-6 19-8.4 28.4-6.6 8 1.5 15.6 5.7 22.8 12 1.2 1.1-.2 3-1.6 2.2-7-4-13.8-6.7-20.6-7.6-8.8-1.2-17.6 1-26.6 5.4-1.6.8-2.8-1.3-1.4-2.2z" />
+  </svg>
+);
+
+const Avatar = ({name, src, size, tone}) => (
+  <div className="av" style={{
+    width: size || 44, height: size || 44, fontSize: (size || 44) * 0.36,
+    background: tone === 'light' ? 'rgba(255,255,255,.22)' : undefined,
+    color: tone === 'light' ? '#fff' : undefined,
+  }}>
+    {src ? <img src={src} alt="" /> : initials(name)}
+  </div>
+);
+
+/* ───────────────────────── 3. СПРАВОЧНИКИ ───────────────────────── */
+
+/* Зоны карты тела. Порядок — сверху вниз: так список читается как тело. */
+const ZONES = [
+  {k: 'neck',      n: 'Шея',       syn: ['шея', 'шеи', 'шею', 'шейн']},
+  {k: 'traps',     n: 'Трапеция',  syn: ['трапец', 'трапеци']},
+  {k: 'shoulders', n: 'Плечи',     syn: ['плеч']},
+  {k: 'back',      n: 'Спина',     syn: ['спин', 'лопат', 'грудн отдел']},
+  {k: 'lower',     n: 'Поясница',  syn: ['поясниц', 'поясничн', 'крестец']},
+  {k: 'arms',      n: 'Руки',      syn: ['рук', 'предплеч', 'кисти']},
+  {k: 'glutes',    n: 'Ягодицы',   syn: ['ягодиц', 'таз']},
+  {k: 'legs',      n: 'Ноги',      syn: ['ног', 'бедр', 'икр', 'голен']},
+  {k: 'feet',      n: 'Стопы',     syn: ['стоп', 'ступн', 'пятк']},
+];
+const zoneName = (k) => (ZONES.find(z => z.k === k) || {}).n || k;
+
+/* Уровни напряжения. 3 — сильное, 0 — всё спокойно; шкала идёт вниз,
+   поэтому прогресс между сеансами видно как убывание. */
+const TENSION = [
+  {k: 0, n: 'Нет проблем', short: 'Нет',      c: 'var(--t1)'},
+  {k: 1, n: 'Лёгкое',      short: 'Лёгкое',   c: 'var(--t2)'},
+  {k: 2, n: 'Среднее',     short: 'Среднее',  c: 'var(--t3)'},
+  {k: 3, n: 'Сильное',     short: 'Сильное',  c: 'var(--t4)'},
+];
+const tensionOf = (k) => TENSION[clamp(k, 0, 3)] || TENSION[0];
+
+const INTENSITY = [{k: 'light', n: 'Лёгкая'}, {k: 'mid', n: 'Средняя'}, {k: 'hard', n: 'Сильная'}];
+const PAY_KINDS = [{k: 'cash', n: 'Наличные'}, {k: 'card', n: 'Карта'}, {k: 'sub', n: 'Абонемент'}];
+const SUB_PLANS = [
+  {k: 5,  n: '5 сеансов',  off: 5},
+  {k: 10, n: '10 сеансов', off: 10},
+  {k: 0,  n: 'Индивидуальный', off: 0},
+];
+
+const SERVICE_SEED = [
+  {id: 'sv_classic', name: 'Классический массаж',   dur: 60, price: 1200, on: true},
+  {id: 'sv_sport',   name: 'Спортивный массаж',     dur: 60, price: 1500, on: true},
+  {id: 'sv_relax',   name: 'Релакс массаж',         dur: 90, price: 1800, on: true},
+  {id: 'sv_lymph',   name: 'Лимфодренажный массаж', dur: 60, price: 1400, on: true},
+  {id: 'sv_anti',    name: 'Антицеллюлитный массаж', dur: 60, price: 1300, on: true},
+  {id: 'sv_back',    name: 'Массаж спины',          dur: 30, price: 700,  on: true},
+];
+const serviceById = (db, id) => db.services.find(s => s.id === id) || db.services[0];
+const clientById = (db, id) => db.clients.find(c => c.id === id) || null;
+const clientName = (db, id) => (clientById(db, id) || {}).name || 'Клиент';
+const serviceName = (db, id) => (serviceById(db, id) || {}).name || 'Сеанс';
+
+/* ───────────────────────── 4. ДЕМО-БАЗА ─────────────────────────
+   Пустой кабинет невозможно оценить: непонятно, как выглядит день, во
+   что складывается доход и что показывает карта тела. Поэтому первый
+   запуск наполняем правдоподобной историей — сеансы, оплаты, заметки и
+   отметки напряжения за четыре месяца. Данные считаются от «сегодня»,
+   поэтому расписание всегда живое. Генератор детерминированный: одна и
+   та же база при каждом запуске. */
+
+const rnd = (seed) => { let s = seed; return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648; };
+
+const CLIENT_SEED = [
+  {name: 'Мария Иванова',      phone: '+380 50 123 45 67', email: 'maria.ivanova@gmail.com',  pref: 'sv_classic', since: 400},
+  {name: 'Алексей Смирнов',    phone: '+380 67 221 08 14', email: 'a.smirnov@gmail.com',      pref: 'sv_sport',   since: 320},
+  {name: 'Ирина Петрова',      phone: '+380 63 447 91 02', email: 'irina.petrova@ukr.net',    pref: 'sv_lymph',   since: 280},
+  {name: 'Дмитрий Коваленко',  phone: '+380 99 330 17 55', email: 'd.kovalenko@gmail.com',    pref: 'sv_relax',   since: 260},
+  {name: 'Ольга Волкова',      phone: '+380 68 512 74 39', email: 'olga.volkova@gmail.com',   pref: 'sv_anti',    since: 210},
+  {name: 'Наталья Бондаренко', phone: '+380 50 884 20 11', email: 'n.bondarenko@gmail.com',   pref: 'sv_classic', since: 190},
+  {name: 'Сергей Мельник',     phone: '+380 73 619 45 80', email: 's.melnyk@gmail.com',       pref: 'sv_sport',   since: 170},
+  {name: 'Анна Ткаченко',      phone: '+380 96 771 33 26', email: 'anna.tk@gmail.com',        pref: 'sv_relax',   since: 150},
+  {name: 'Виктор Шевченко',    phone: '+380 66 204 88 71', email: 'v.shevchenko@gmail.com',   pref: 'sv_back',    since: 130},
+  {name: 'Елена Кравец',       phone: '+380 93 118 56 04', email: 'elena.kravets@gmail.com',  pref: 'sv_lymph',   since: 120},
+  {name: 'Павел Гончар',       phone: '+380 50 447 02 93', email: 'p.gonchar@gmail.com',      pref: 'sv_sport',   since: 95},
+  {name: 'Юлия Романенко',     phone: '+380 67 905 61 27', email: 'y.romanenko@gmail.com',    pref: 'sv_classic', since: 80},
+  {name: 'Татьяна Лысенко',    phone: '+380 98 356 14 62', email: 't.lysenko@gmail.com',      pref: 'sv_anti',    since: 62},
+  {name: 'Игорь Савченко',     phone: '+380 63 728 40 15', email: 'i.savchenko@gmail.com',    pref: 'sv_back',    since: 45},
+  {name: 'Оксана Дорошенко',   phone: '+380 95 640 27 38', email: 'o.doroshenko@gmail.com',   pref: 'sv_relax',   since: 30},
+  {name: 'Андрей Пасечник',    phone: '+380 66 813 59 40', email: 'a.pasichnyk@gmail.com',    pref: 'sv_classic', since: 14},
+];
+
+/* сегодняшний день — тот самый, что на референсе */
+const TODAY_PLAN = [
+  {i: 1, time: '10:00', sv: 'sv_sport'},
+  {i: 2, time: '12:00', sv: 'sv_lymph'},
+  {i: 0, time: '15:00', sv: 'sv_classic'},
+  {i: 3, time: '17:30', sv: 'sv_relax'},
+];
+const TOMORROW_PLAN = [
+  {i: 4, time: '10:00', sv: 'sv_anti'},
+  {i: 5, time: '13:00', sv: 'sv_classic'},
+  {i: 7, time: '16:00', sv: 'sv_relax'},
+];
+
+const emptyDB = () => ({
+  v: 1,
+  pro: {
+    name: 'Александр', last: 'Мороз', role: 'Массажист', city: 'Киев',
+    phone: '+380 50 000 11 22', email: 'alex@promassage.app', rating: 4.9, reviews: 87,
+    about: 'Классический, спортивный и релакс-массаж. 8 лет практики, кабинет в центре.',
+    slug: 'alexandr', avatar: null,
+    hours: {from: '09:00', to: '20:00'}, days: [0, 1, 2, 3, 4, 5], gap: 15,
+  },
+  services: SERVICE_SEED.map(s => ({...s})),
+  clients: [], appts: [], notes: [], marks: [], subs: [], pays: [],
+  settings: {theme: 'light', remind: true, remindH: 2, online: true, sound: true, ai: true},
+  seen: {},
+});
+
+function seedDB(){
+  const db = emptyDB();
+  const R = rnd(20250515);
+  const now = new Date();
+  const today = iso(now);
+
+  db.clients = CLIENT_SEED.map((c, i) => ({
+    id: 'cl_' + (i + 1), name: c.name, phone: c.phone, email: c.email,
+    pref: c.pref, dur: serviceById(db, c.pref).dur,
+    note: '', created: iso(addDays(now, -c.since)), avatar: null, fav: i < 3,
+  }));
+
+  const push = (clientId, date, time, svId, status, extra) => {
+    const sv = serviceById(db, svId);
+    const a = {
+      id: 'ap_' + (db.appts.length + 1), clientId, serviceId: svId, date, time,
+      dur: sv.dur, price: sv.price, status, pay: 'cash', subId: null, source: 'pro',
+      ...(extra || {}),
+    };
+    db.appts.push(a);
+    return a;
+  };
+
+  /* ── история: у каждого клиента свой ритм визитов ── */
+  db.clients.forEach((c, i) => {
+    const every = [7, 10, 14, 21][Math.floor(R() * 4)];
+    let back = c.pref === 'sv_relax' ? 6 : 4;
+    for (let d = c.created === today ? 0 : 3; d < 130; d += every){
+      const day = addDays(now, -d - back);
+      if (dowIdx(day) === 6) continue;                      /* воскресенье — выходной */
+      if (iso(day) < c.created) break;
+      const svId = R() > 0.75 ? SERVICE_SEED[Math.floor(R() * 5)].id : c.pref;
+      const hour = 9 + Math.floor(R() * 9);
+      push(c.id, iso(day), pad2(hour) + ':' + (R() > 0.5 ? '00' : '30'), svId, 'done',
+           {pay: R() > 0.7 ? 'card' : 'cash'});
+    }
+  });
+
+  /* ── сегодня и завтра: расписание с референса ── */
+  TODAY_PLAN.forEach(p => {
+    const c = db.clients[p.i];
+    const done = mins(p.time) + serviceById(db, p.sv).dur < now.getHours() * 60 + now.getMinutes();
+    push(c.id, today, p.time, p.sv, done ? 'done' : 'planned');
+  });
+  TOMORROW_PLAN.forEach(p => push(db.clients[p.i].id, iso(addDays(now, 1)), p.time, p.sv, 'planned'));
+
+  /* ── дальше по неделе: живое, но не забитое расписание ── */
+  for (let d = 2; d <= 12; d++){
+    const day = addDays(now, d);
+    if (dowIdx(day) === 6) continue;
+    const n = 1 + Math.floor(R() * 3);
+    const starts = ['09:30', '11:00', '13:00', '15:30', '18:00'];
+    for (let k = 0; k < n; k++){
+      const c = db.clients[Math.floor(R() * db.clients.length)];
+      push(c.id, iso(day), starts[(k + d) % starts.length], c.pref, 'planned',
+           {source: R() > 0.7 ? 'online' : 'pro'});
+    }
+  }
+
+  /* ── две заявки с сайта ждут решения ── */
+  push(db.clients[9].id, iso(addDays(now, 2)), '12:00', 'sv_lymph', 'pending', {source: 'online'});
+  push(db.clients[12].id, iso(addDays(now, 3)), '17:00', 'sv_anti', 'pending', {source: 'online'});
+
+  /* ── абонементы ── */
+  db.subs = [
+    {id: 'sb_1', clientId: 'cl_1', serviceId: 'sv_classic', total: 10, used: 5, price: 10800,
+     created: iso(addDays(now, -46)), ends: iso(addDays(now, 44))},
+    {id: 'sb_2', clientId: 'cl_3', serviceId: 'sv_lymph', total: 5, used: 4, price: 6300,
+     created: iso(addDays(now, -30)), ends: iso(addDays(now, 60))},
+    {id: 'sb_3', clientId: 'cl_5', serviceId: 'sv_anti', total: 10, used: 2, price: 11700,
+     created: iso(addDays(now, -12)), ends: iso(addDays(now, 78))},
+  ];
+
+  /* ── карта тела: поясница Марии приходит в норму от сеанса к сеансу ── */
+  const marks = [
+    ['cl_1', -21, {lower: 3, traps: 2, neck: 2}],
+    ['cl_1', -14, {lower: 2, traps: 2, neck: 1}],
+    ['cl_1', -7,  {lower: 1, traps: 1, neck: 1, shoulders: 0}],
+    ['cl_2', -12, {back: 3, legs: 2, glutes: 2}],
+    ['cl_2', -4,  {back: 2, legs: 1, glutes: 1}],
+    ['cl_3', -9,  {legs: 2, feet: 2, lower: 1}],
+    ['cl_4', -6,  {neck: 3, traps: 3, shoulders: 2}],
+    ['cl_5', -5,  {glutes: 2, legs: 2}],
+  ];
+  marks.forEach(([clientId, d, obj]) => {
+    Object.keys(obj).forEach(zone => {
+      db.marks.push({id: uid('mk'), clientId, date: iso(addDays(now, d)), zone, level: obj[zone]});
+    });
+  });
+
+  /* ── заметки после сеансов ── */
+  db.notes = [
+    {id: 'nt_1', clientId: 'cl_1', date: iso(addDays(now, -7)), zones: ['lower', 'traps'],
+     state: 'Напряжение уменьшилось', react: 'Положительная', next: 'Повторить сеанс через 7 дней',
+     intensity: 'mid',
+     raw: 'Сегодня работали с поясницей и правой трапецией. Напряжение уменьшилось, клиент чувствует себя лучше.'},
+    {id: 'nt_2', clientId: 'cl_4', date: iso(addDays(now, -6)), zones: ['neck', 'traps'],
+     state: 'Сильный зажим справа', react: 'Дискомфорт в начале', next: 'Повторить через 5 дней',
+     intensity: 'light',
+     raw: 'Шея и трапеция сильно зажаты, работали мягко. В начале был дискомфорт, к концу расслабился.'},
+    {id: 'nt_3', clientId: 'cl_2', date: iso(addDays(now, -4)), zones: ['back', 'legs'],
+     state: 'После нагрузки, мышцы забиты', react: 'Положительная', next: 'Повторить через 7 дней',
+     intensity: 'hard',
+     raw: 'Спина и ноги после соревнований, мышцы забиты. Работали глубоко, реакция хорошая.'},
+  ];
+
+  db.clients[0].note = 'Не любит сильное давление на шею. Просит тёплое масло.';
+  db.clients[3].note = 'Сидячая работа, шея и трапеция — постоянная зона внимания.';
+  return db;
+}
+
+/* ───────────────────────── 5. ХРАНИЛИЩЕ ─────────────────────────
+   Маленькая шина: состояние в памяти, копия в localStorage, подписчики
+   перерисовываются. Redux здесь был бы тяжелее самой задачи. */
+
+const KEY = 'promassage.db.v1';
+
+const Disk = {
+  read(){
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      const db = JSON.parse(raw);
+      /* база без клиентов и без настроек — не база, а обломок: лучше
+         пересобрать демо, чем показать пустой кабинет как «ваши данные» */
+      if (!db || !Array.isArray(db.clients) || !db.pro) return null;
+      return {...emptyDB(), ...db, settings: {...emptyDB().settings, ...(db.settings || {})}};
+    } catch (e){ return null; }
+  },
+  write(db){
+    try { localStorage.setItem(KEY, JSON.stringify(db)); return true; }
+    catch (e){ return false; }
+  },
+  clear(){ try { localStorage.removeItem(KEY); } catch (e){} },
+};
+
+const Store = {
+  state: null,
+  subs: new Set(),
+  init(db){ this.state = db || Disk.read() || seedDB(); Disk.write(this.state); return this.state; },
+  on(fn){ this.subs.add(fn); return () => this.subs.delete(fn); },
+  set(patch){
+    const next = typeof patch === 'function' ? patch(this.state) : {...this.state, ...patch};
+    this.state = next;
+    Disk.write(next);
+    this.subs.forEach(fn => fn(next));
+    return next;
+  },
+};
+
+const useDB = () => {
+  const [, force] = useState(0);
+  useEffect(() => Store.on(() => force(n => n + 1)), []);
+  return Store.state;
+};
+
+/* ── действия: единственное место, где база меняется ── */
+const Act = {
+  saveClient(c){
+    Store.set(db => {
+      const list = db.clients.slice();
+      const i = list.findIndex(x => x.id === c.id);
+      if (i >= 0) list[i] = {...list[i], ...c};
+      else list.unshift({id: uid('cl'), created: iso(new Date()), fav: false, note: '', avatar: null, ...c});
+      return {...db, clients: list};
+    });
+  },
+  delClient(id){
+    Store.set(db => ({
+      ...db,
+      clients: db.clients.filter(c => c.id !== id),
+      appts: db.appts.filter(a => a.clientId !== id),
+      subs: db.subs.filter(s => s.clientId !== id),
+      notes: db.notes.filter(n => n.clientId !== id),
+      marks: db.marks.filter(m => m.clientId !== id),
+    }));
+  },
+  saveAppt(a){
+    Store.set(db => {
+      const list = db.appts.slice();
+      const i = list.findIndex(x => x.id === a.id);
+      if (i >= 0) list[i] = {...list[i], ...a};
+      else list.push({id: uid('ap'), status: 'planned', pay: 'cash', subId: null, source: 'pro', ...a});
+      return {...db, appts: list};
+    });
+  },
+  setStatus(id, status){
+    Store.set(db => ({...db, appts: db.appts.map(a => a.id === id ? {...a, status} : a)}));
+  },
+  delAppt(id){ Store.set(db => ({...db, appts: db.appts.filter(a => a.id !== id)})); },
+
+  /* сеанс завершён: статус, оплата, списание абонемента и заметка — одним
+     движением, чтобы деньги и абонемент не разъезжались с расписанием */
+  finish(apptId, res){
+    Store.set(db => {
+      const appt = db.appts.find(a => a.id === apptId);
+      if (!appt) return db;
+      const pay = (res && res.pay) || 'cash';
+      let subs = db.subs, price = appt.price, subId = null;
+      if (pay === 'sub'){
+        const sub = db.subs.find(s => s.clientId === appt.clientId && s.used < s.total);
+        if (sub){
+          subId = sub.id;
+          price = 0;
+          subs = db.subs.map(s => s.id === sub.id ? {...s, used: s.used + 1} : s);
+        }
+      }
+      const appts = db.appts.map(a => a.id === apptId ? {...a, status: 'done', pay, subId, price} : a);
+      const notes = db.notes.slice(), marks = db.marks.slice();
+      if (res && (res.raw || (res.zones || []).length)){
+        notes.unshift({
+          id: uid('nt'), clientId: appt.clientId, apptId, date: appt.date,
+          zones: res.zones || [], state: res.state || '', react: res.react || '',
+          next: res.next || '', intensity: res.intensity || 'mid', raw: res.raw || '',
+        });
+      }
+      Object.keys((res && res.levels) || {}).forEach(zone => {
+        marks.push({id: uid('mk'), clientId: appt.clientId, date: appt.date, zone, level: res.levels[zone]});
+      });
+      return {...db, appts, subs, notes, marks};
+    });
+  },
+  addNote(n){
+    Store.set(db => ({...db, notes: [{id: uid('nt'), date: iso(new Date()), zones: [], ...n}, ...db.notes]}));
+  },
+  delNote(id){ Store.set(db => ({...db, notes: db.notes.filter(n => n.id !== id)})); },
+  setMark(clientId, zone, level, date){
+    Store.set(db => ({...db, marks: [...db.marks, {id: uid('mk'), clientId, zone, level, date: date || iso(new Date())}]}));
+  },
+  addSub(s){
+    Store.set(db => ({...db, subs: [{id: uid('sb'), used: 0, created: iso(new Date()), ...s}, ...db.subs]}));
+  },
+  saveSub(s){ Store.set(db => ({...db, subs: db.subs.map(x => x.id === s.id ? {...x, ...s} : x)})); },
+  delSub(id){ Store.set(db => ({...db, subs: db.subs.filter(s => s.id !== id)})); },
+  saveService(s){
+    Store.set(db => {
+      const list = db.services.slice();
+      const i = list.findIndex(x => x.id === s.id);
+      if (i >= 0) list[i] = {...list[i], ...s}; else list.push({id: uid('sv'), on: true, ...s});
+      return {...db, services: list};
+    });
+  },
+  delService(id){ Store.set(db => ({...db, services: db.services.filter(s => s.id !== id)})); },
+  setPro(patch){ Store.set(db => ({...db, pro: {...db.pro, ...patch}})); },
+  setSettings(patch){ Store.set(db => ({...db, settings: {...db.settings, ...patch}})); },
+  reset(){ Disk.clear(); Store.init(seedDB()); },
+  wipe(){ Disk.clear(); Store.init({...emptyDB(), clients: [], appts: []}); },
+};
+
+/* ───────────────────────── 6. ВЫБОРКИ ─────────────────────────
+   Ни одно число в интерфейсе не хранится: доход, статистика клиента и
+   прогресс по зонам считаются из записей. Поэтому они не могут разойтись
+   с расписанием. */
+
+const byTime = (a, b) => (a.date === b.date ? mins(a.time) - mins(b.time) : a.date < b.date ? -1 : 1);
+const isLive = (a) => a.status === 'planned' || a.status === 'done';
+
+const dayAppts = (db, date) => db.appts.filter(a => a.date === date && a.status !== 'canceled').sort(byTime);
+const rangeAppts = (db, from, to) => db.appts.filter(a => a.date >= from && a.date <= to).sort(byTime);
+const clientAppts = (db, id) => db.appts.filter(a => a.clientId === id).sort((a, b) => -byTime(a, b));
+
+const nowMins = (d) => d.getHours() * 60 + d.getMinutes();
+
+/* следующий сеанс: сегодня — ещё не начавшийся, иначе ближайший день */
+const nextAppt = (db, at) => {
+  const now = at || new Date(), today = iso(now), t = nowMins(now);
+  const soon = db.appts
+    .filter(a => a.status === 'planned' && (a.date > today || (a.date === today && mins(a.time) + a.dur > t)))
+    .sort(byTime);
+  return soon[0] || null;
+};
+const minutesUntil = (a, at) => {
+  const now = at || new Date();
+  return Math.round((fromIso(a.date).getTime() + mins(a.time) * 60000 - now.getTime()) / 60000);
+};
+const whenLabel = (a, at) => {
+  const now = at || new Date();
+  const d = daysBetween(iso(now), a.date);
+  const day = d === 0 ? 'Сегодня' : d === 1 ? 'Завтра' : dateShort(a.date);
+  return day + ', ' + a.time;
+};
+
+/* сеанс «идёт прямо сейчас» — по часам, а не по нажатой кнопке */
+const runningAppt = (db, at) => {
+  const now = at || new Date(), today = iso(now), t = nowMins(now);
+  return db.appts.find(a => a.date === today && a.status === 'planned' && mins(a.time) <= t && mins(a.time) + a.dur > t) || null;
+};
+
+/* «в среднем 63 минуты» — число, которого не было ни на одном сеансе.
+   Массажисту нужна привычная длительность, то есть самая частая. */
+const modeDur = (list) => {
+  const by = {};
+  list.forEach(a => { by[a.dur] = (by[a.dur] || 0) + 1; });
+  const top = Object.keys(by).sort((a, b) => by[b] - by[a] || Number(b) - Number(a))[0];
+  return top ? Number(top) : 0;
+};
+
+const clientStats = (db, id) => {
+  const all = clientAppts(db, id).filter(a => a.status !== 'canceled');
+  const done = all.filter(a => a.status === 'done');
+  const last = done[0] || null;
+  const next = all.filter(a => a.status === 'planned').sort(byTime)[0] || null;
+  const spent = sum(done, a => a.price);
+  const counts = {};
+  done.forEach(a => { counts[a.serviceId] = (counts[a.serviceId] || 0) + 1; });
+  const top = Object.keys(counts).sort((x, y) => counts[y] - counts[x])[0] || (clientById(db, id) || {}).pref;
+  return {
+    total: done.length, last, next, spent, top,
+    dur: modeDur(done) || (clientById(db, id) || {}).dur || 60,
+    days: last ? daysBetween(last.date, iso(new Date())) : null,
+  };
+};
+
+const subOf = (db, clientId) => db.subs.filter(s => s.clientId === clientId && s.used < s.total)
+  .sort((a, b) => (a.ends < b.ends ? -1 : 1))[0] || null;
+
+const periodRange = (kind, at) => {
+  const now = at || new Date();
+  if (kind === 'day') return [iso(now), iso(now)];
+  if (kind === 'week'){ const s = startOfWeek(now); return [iso(s), iso(addDays(s, 6))]; }
+  if (kind === 'year') return [iso(new Date(now.getFullYear(), 0, 1)), iso(new Date(now.getFullYear(), 11, 31))];
+  return [iso(new Date(now.getFullYear(), now.getMonth(), 1)), iso(new Date(now.getFullYear(), now.getMonth() + 1, 0))];
+};
+
+/* деньги считаем только по проведённым: план — это ещё не доход */
+const income = (db, from, to) => {
+  const rows = db.appts.filter(a => a.status === 'done' && a.date >= from && a.date <= to).sort(byTime);
+  const total = sum(rows, a => a.price);
+  return {total, count: rows.length, avg: rows.length ? Math.round(total / rows.length) : 0, rows};
+};
+const growth = (now, was) => (was ? Math.round(((now - was) / was) * 100) : now ? 100 : 0);
+
+/* столбики графика: 7 дней недели или 6 последних месяцев */
+const series = (db, kind, at) => {
+  const now = at || new Date();
+  if (kind === 'month'){
+    return Array.from({length: 6}, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+      const from = iso(d), to = iso(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+      return {label: MONTHS_N[d.getMonth()].slice(0, 3), value: income(db, from, to).total, key: from};
+    });
+  }
+  const s = startOfWeek(now);
+  return Array.from({length: 7}, (_, i) => {
+    const d = addDays(s, i), k = iso(d);
+    return {label: DOW[i], value: income(db, k, k).total, key: k, on: k === iso(now)};
+  });
+};
+
+const topServices = (db, from, to) => {
+  const rows = income(db, from, to).rows, by = {};
+  rows.forEach(a => {
+    const s = by[a.serviceId] || (by[a.serviceId] = {id: a.serviceId, n: 0, total: 0});
+    s.n++; s.total += a.price;
+  });
+  return Object.values(by).sort((a, b) => b.total - a.total);
+};
+
+/* карта тела: последнее состояние зоны и её история по датам */
+const zoneLevels = (db, clientId) => {
+  const out = {};
+  db.marks.filter(m => m.clientId === clientId).sort((a, b) => (a.date < b.date ? -1 : 1))
+    .forEach(m => { out[m.zone] = m.level; });
+  return out;
+};
+const zoneHistory = (db, clientId, zone) => db.marks
+  .filter(m => m.clientId === clientId && (!zone || m.zone === zone))
+  .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+/* динамика: было сильное — стало лёгкое, это и есть результат работы */
+const zoneTrend = (db, clientId, zone) => {
+  const h = zoneHistory(db, clientId, zone);
+  if (h.length < 2) return 0;
+  return h[h.length - 1].level - h[0].level;
+};
+
+const freeStarts = (db, date, dur, pro) => {
+  const p = pro || db.pro;
+  const day = fromIso(date);
+  if (!p.days.includes(dowIdx(day))) return [];
+  const busy = dayAppts(db, date).map(a => [mins(a.time), mins(a.time) + a.dur + (p.gap || 0)]);
+  const out = [];
+  for (let t = mins(p.hours.from); t + dur <= mins(p.hours.to); t += 30){
+    if (!busy.some(([s, e]) => t < e && t + dur > s)) out.push(hhmm(t));
+  }
+  return out;
+};
+const overlaps = (db, date, time, dur, skipId) => dayAppts(db, date)
+  .some(a => a.id !== skipId && mins(time) < mins(a.time) + a.dur && mins(time) + dur > mins(a.time));
+
+/* что требует внимания: заявки, кончающиеся абонементы, забытые клиенты */
+const notifications = (db, at) => {
+  const now = at || new Date(), today = iso(now), out = [];
+  db.appts.filter(a => a.status === 'pending').forEach(a => out.push({
+    id: 'n_' + a.id, kind: 'request', icon: 'globe',
+    title: 'Заявка с онлайн-записи',
+    text: clientName(db, a.clientId) + ' · ' + relDay(a.date, today) + ', ' + a.time,
+    apptId: a.id, clientId: a.clientId,
+  }));
+  dayAppts(db, today).filter(a => a.status === 'planned' && minutesUntil(a, now) > 0 && minutesUntil(a, now) <= 120)
+    .forEach(a => out.push({
+      id: 'n_' + a.id, kind: 'soon', icon: 'clock',
+      title: 'Скоро сеанс · через ' + minutesUntil(a, now) + ' мин',
+      text: clientName(db, a.clientId) + ' · ' + a.time + ' · ' + serviceName(db, a.serviceId),
+      apptId: a.id, clientId: a.clientId,
+    }));
+  db.subs.filter(s => s.total - s.used === 1).forEach(s => out.push({
+    id: 'n_' + s.id, kind: 'sub', icon: 'gift',
+    title: 'Абонемент заканчивается',
+    text: clientName(db, s.clientId) + ' · остался 1 сеанс из ' + s.total,
+    clientId: s.clientId,
+  }));
+  db.clients.forEach(c => {
+    const st = clientStats(db, c.id);
+    if (st.total >= 3 && st.days !== null && st.days >= 45 && !st.next) out.push({
+      id: 'n_lost_' + c.id, kind: 'lost', icon: 'users',
+      title: 'Давно не приходил',
+      text: c.name + ' · ' + st.days + ' ' + dayWord(st.days) + ' без сеанса',
+      clientId: c.id,
+    });
+  });
+  return out;
+};
+
+/* ───────────────────────── 7. AI-ЗАМЕТКА ─────────────────────────
+   Массажист диктует как говорит: «работали с поясницей, напряжение
+   уменьшилось». Разбор идёт на устройстве — без сети и без ключей, а
+   значит работает между клиентами в любом кабинете. Результат всегда
+   можно поправить руками: это черновик, а не приговор. */
+
+const SIDE = [{re: /прав/, n: 'справа'}, {re: /лев/, n: 'слева'}];
+
+function aiNote(raw){
+  const text = String(raw || '').toLowerCase().replace(/ё/g, 'е');
+  const zones = [], sides = {};
+  ZONES.forEach(z => {
+    let at = -1;
+    z.syn.some(s => { const i = text.indexOf(s.replace(/ё/g, 'е')); if (i >= 0){ at = i; return true; } return false; });
+    if (at < 0) return;
+    zones.push(z.k);
+    const before = text.slice(Math.max(0, at - 22), at);
+    const side = SIDE.find(s => s.re.test(before));
+    if (side) sides[z.k] = side.n;
+  });
+
+  const sentences = String(raw || '').split(/[.;!?\n]+/).map(s => s.trim()).filter(Boolean);
+  const pick = (re) => sentences.find(s => re.test(s.toLowerCase().replace(/ё/g, 'е'))) || '';
+  const state = pick(/напряж|зажим|спазм|тонус|блок|легче|лучше|расслаб|забит|боль/) || sentences[0] || '';
+
+  const good = /лучше|легче|хорош|положительн|расслаб|доволен|приятн|уменьшил/.test(text);
+  const bad = /боль|дискомфорт|неприятн|терпел|жалуе|хуже/.test(text);
+  const react = good && !bad ? 'Положительная' : bad && good ? 'Смешанная: дискомфорт в начале, к концу лучше'
+    : bad ? 'Дискомфорт' : 'Нейтральная';
+
+  const m = text.match(/через\s+(\d+)\s*(дн|день|недел)/);
+  let days = 7;
+  if (m) days = m[2].startsWith('недел') ? Number(m[1]) * 7 : Number(m[1]);
+  else if (/сильн|остр|спазм|зажат/.test(text)) days = 5;
+  else if (good) days = 7;
+
+  /* «сильно зажата шея» — это про клиента, а не про нажим: сказанное
+     про мягкость важнее, поэтому проверяем её первой */
+  const intensity = /мягк|легк|деликат|осторожн|аккуратн/.test(text) ? 'light'
+    : /глубок|жестк|интенсивн|сильным нажим|сильно продав/.test(text) ? 'hard' : 'mid';
+
+  return {
+    zones,
+    zoneText: zones.map(k => zoneName(k) + (sides[k] ? ' ' + sides[k] : '')).join(', '),
+    state: state ? state.charAt(0).toUpperCase() + state.slice(1) : 'Без особенностей',
+    react,
+    next: 'Повторить сеанс через ' + days + ' ' + dayWord(days),
+    intensity,
+    raw: String(raw || '').trim(),
+  };
+}
+
+/* распознавание речи там, где браузер умеет; где нет — честно даём
+   набрать текст руками, а не показываем мёртвую кнопку */
+const speechOk = () => typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+
+function useDictate(onText){
+  const [rec, setRec] = useState(false);
+  const ref = useRef(null);
+  const stop = useCallback(() => { try { ref.current && ref.current.stop(); } catch (e){} setRec(false); }, []);
+  const start = useCallback(() => {
+    const R = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!R) return false;
+    try {
+      const r = new R();
+      r.lang = 'ru-RU'; r.interimResults = true; r.continuous = true;
+      let acc = '';
+      r.onresult = (e) => {
+        let live = '';
+        for (let i = e.resultIndex; i < e.results.length; i++){
+          const t = e.results[i][0].transcript;
+          if (e.results[i].isFinal) acc += t + ' '; else live += t;
+        }
+        onText((acc + live).trim());
+      };
+      r.onerror = () => setRec(false);
+      r.onend = () => setRec(false);
+      r.start();
+      ref.current = r;
+      setRec(true);
+      return true;
+    } catch (e){ return false; }
+  }, [onText]);
+  useEffect(() => stop, [stop]);
+  return {rec, start, stop};
+}
+
+/* секунды идут сами: экран сеанса должен тикать без нажатий */
+function useTick(on, ms){
+  const [, force] = useState(0);
+  useEffect(() => {
+    if (!on) return;
+    const t = setInterval(() => force(n => n + 1), ms || 1000);
+    return () => clearInterval(t);
+  }, [on, ms]);
+}
+
+/* ───────────────────────── 8. ПРИМИТИВЫ ─────────────────────────
+   Мелкие кирпичи интерфейса. Всё, что повторяется на двух экранах и
+   больше, живёт здесь — иначе дизайн-система разъезжается. */
+
+/* ── тост ── */
+const Toaster = {fn: null, show(msg){ if (Toaster.fn) Toaster.fn(msg); }};
+const say = (m) => Toaster.show(m);
+
+function ToastHost(){
+  const [msg, setMsg] = useState(null);
+  const timer = useRef(null);
+  useEffect(() => {
+    Toaster.fn = (m) => {
+      setMsg(m);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setMsg(null), 2300);
+    };
+    return () => { Toaster.fn = null; clearTimeout(timer.current); };
+  }, []);
+  if (!msg) return null;
+  return <div className="toast" role="status">{msg}</div>;
+}
+
+/* ── шторка снизу: основной способ показать форму ── */
+function Sheet({open, onClose, title, sub, children, wide}){
+  useEffect(() => {
+    if (!open) return;
+    const esc = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <Fragment>
+      <div className="scrim" onClick={onClose} />
+      <div className="sheet" style={wide ? {maxHeight: '94%'} : null} role="dialog" aria-modal="true">
+        <div className="grab" />
+        {title ? <h3>{title}</h3> : null}
+        {sub ? <div className="sheet-sub">{sub}</div> : null}
+        {children}
+      </div>
+    </Fragment>
+  );
+}
+
+/* ── шапка экрана ── */
+const TopBar = ({title, left, right, big}) => (
+  <div className={'top-bar' + (big ? ' left' : '')}>
+    {left || <span style={{width: 40}} />}
+    <h2>{title}</h2>
+    {right || <span style={{width: 40}} />}
+  </div>
+);
+const BackBtn = ({onClick}) => (
+  <button className="ico-btn" onClick={() => { tap(); onClick(); }} aria-label="Назад"><Icon n="back" /></button>
+);
+
+/* ── поля формы ── */
+const Field = ({label, children, hint}) => (
+  <div className="field">
+    {label ? <label className="lab">{label}</label> : null}
+    {children}
+    {hint ? <div className="hint" style={{marginTop: 6}}>{hint}</div> : null}
+  </div>
+);
+const Input = (p) => <input className="inp" {...p} />;
+const Seg = ({items, value, onChange}) => (
+  <div className="seg" role="tablist">
+    {items.map(i => (
+      <button key={i.k} className={value === i.k ? 'on' : ''} role="tab" aria-selected={value === i.k}
+              onClick={() => { tap(); onChange(i.k); }}>{i.n}</button>
+    ))}
+  </div>
+);
+const Chips = ({items, value, onChange, multi}) => (
+  <div className="chips">
+    {items.map(i => {
+      const on = multi ? (value || []).includes(i.k) : value === i.k;
+      return (
+        <button key={i.k} className={'chip' + (on ? ' on' : '')}
+                onClick={() => {
+                  tap();
+                  if (!multi) return onChange(i.k);
+                  const list = value || [];
+                  onChange(on ? list.filter(x => x !== i.k) : [...list, i.k]);
+                }}>{i.n}</button>
+      );
+    })}
+  </div>
+);
+const Tabs = ({items, value, onChange}) => (
+  <div className="tabs-line">
+    {items.map(i => (
+      <button key={i.k} className={value === i.k ? 'on' : ''} onClick={() => { tap(); onChange(i.k); }}>{i.n}</button>
+    ))}
+  </div>
+);
+
+/* ── пусто и загрузка ── */
+const Empty = ({icon, title, text, action}) => (
+  <div className="empty">
+    <div className="empty-ic"><Icon n={icon || 'note'} /></div>
+    <h4>{title}</h4>
+    {text ? <p>{text}</p> : null}
+    {action}
+  </div>
+);
+const Skeleton = () => (
+  <div style={{paddingTop: 8}}>
+    <div className="sk hero" />
+    <div className="quick" style={{marginTop: 14}}>
+      {[0, 1, 2, 3].map(i => <div key={i} className="sk" style={{aspectRatio: '1/1', borderRadius: 18}} />)}
+    </div>
+    <div className="sk card" style={{marginTop: 20, height: 150}} />
+    <div className="sk card" />
+  </div>
+);
+
+/* ── строка списка ── */
+const Row = ({onClick, left, title, sub, side, chevron, tone}) => (
+  <button className="row" onClick={onClick ? () => { tap(); onClick(); } : undefined} style={tone ? {background: tone} : null}>
+    {left}
+    <div className="row-main">
+      <div className="row-t cut">{title}</div>
+      {sub ? <div className="row-s cut">{sub}</div> : null}
+    </div>
+    {side ? <div className="row-side">{side}</div> : null}
+    {chevron === false ? null : <span className="chev"><Icon n="chev" s={18} /></span>}
+  </button>
+);
+
+/* ── карта тела ─────────────────────────────────────────────────
+   Одна фигура со спины: девять зон, по которым массажист реально
+   работает. Цвет зоны — последнее отмеченное напряжение. */
+/* Части подогнаны встык: между зонами нет зазоров, иначе фигура
+   рассыпается на отдельные плитки и перестаёт читаться как тело. */
+const ZONE_SHAPES = {
+  neck:      [{t: 'rect', x: 54, y: 27, w: 12, h: 9, r: 3}],
+  traps:     [{t: 'rect', x: 37, y: 35, w: 46, h: 12, r: 6}],
+  shoulders: [{t: 'circle', cx: 33, cy: 47, r: 9.5}, {t: 'circle', cx: 87, cy: 47, r: 9.5}],
+  arms:      [{t: 'rect', x: 24, y: 50, w: 14, h: 60, r: 7}, {t: 'rect', x: 82, y: 50, w: 14, h: 60, r: 7}],
+  back:      [{t: 'rect', x: 41, y: 46, w: 38, h: 58, r: 9}],
+  lower:     [{t: 'rect', x: 43, y: 103, w: 34, h: 25, r: 8}],
+  glutes:    [{t: 'rect', x: 40, y: 127, w: 40, h: 27, r: 12}],
+  legs:      [{t: 'rect', x: 43, y: 153, w: 15, h: 74, r: 7}, {t: 'rect', x: 62, y: 153, w: 15, h: 74, r: 7}],
+  feet:      [{t: 'rect', x: 42, y: 226, w: 16, h: 13, r: 5}, {t: 'rect', x: 62, y: 226, w: 16, h: 13, r: 5}],
+};
+
+function BodyFigure({levels, sel, onPick, small}){
+  const lv = levels || {};
+  return (
+    <svg className="body-svg" viewBox="0 0 120 246" style={small ? {maxWidth: 104} : null}
+         role="img" aria-label="Карта тела">
+      <circle className="base" cx="60" cy="18" r="12" />
+      {ZONES.map(z => {
+        const has = lv[z.k] !== undefined;
+        const fill = has ? tensionOf(lv[z.k]).c : 'var(--card-3)';
+        return (
+          <g key={z.k} onClick={onPick ? () => { tap(); onPick(z.k); } : undefined}>
+            <title>{z.n + (has ? ' — ' + tensionOf(lv[z.k]).n : '')}</title>
+            {ZONE_SHAPES[z.k].map((s, i) => s.t === 'circle'
+              ? <circle key={i} className={'zone' + (sel === z.k ? ' sel' : '')} cx={s.cx} cy={s.cy} r={s.r} style={{fill}} />
+              : <rect key={i} className={'zone' + (sel === z.k ? ' sel' : '')} x={s.x} y={s.y} width={s.w} height={s.h} rx={s.r} style={{fill}} />
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+const TensionLegend = () => (
+  <div className="legend">
+    {TENSION.slice().reverse().map(t => (
+      <span key={t.k}><i style={{background: t.c}} />{t.n}</span>
+    ))}
+  </div>
+);
+
+/* ── график: столбики без осей и сетки, только суть ── */
+function Bars({data, onPick, active}){
+  const max = Math.max(1, ...data.map(d => d.value));
+  const W = 100 / data.length;
+  return (
+    <svg className="chart" viewBox="0 0 100 60" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="gv" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stopColor="#5B3FD3" /><stop offset="100%" stopColor="#7448E8" />
+        </linearGradient>
+      </defs>
+      {data.map((d, i) => {
+        const h = Math.max(2, (d.value / max) * 44);
+        const on = active === undefined ? d.on : active === i;
+        return (
+          <rect key={d.key || i} className={'bar-r' + (on ? ' on' : '')} x={i * W + W * 0.22} y={50 - h}
+                width={W * 0.56} height={h} rx="1.6"
+                onClick={onPick ? () => { tap(); onPick(i); } : undefined} />
+        );
+      })}
+    </svg>
+  );
+}
+const BarLabels = ({data, active}) => (
+  <div style={{display: 'grid', gridTemplateColumns: 'repeat(' + data.length + ',1fr)', marginTop: 6}}>
+    {data.map((d, i) => (
+      <span key={d.key || i} style={{
+        textAlign: 'center', fontSize: 11, fontWeight: 500,
+        color: (active === undefined ? d.on : active === i) ? 'var(--violet-ink)' : 'var(--ink-3)',
+      }}>{d.label}</span>
+    ))}
+  </div>
+);
+
+/* ── календарь месяца ── */
+function MiniCalendar({month, value, onPick, busy}){
+  const first = new Date(month.getFullYear(), month.getMonth(), 1);
+  const start = startOfWeek(first);
+  const days = Array.from({length: 42}, (_, i) => addDays(start, i));
+  const last = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+  const rows = Math.ceil((dowIdx(first) + last.getDate()) / 7);
+  const today = iso(new Date());
+  return (
+    <Fragment>
+      <div className="cal-dow">{DOW.map(d => <span key={d}>{d}</span>)}</div>
+      <div className="cal-days">
+        {days.slice(0, rows * 7).map(d => {
+          const k = iso(d);
+          const out = d.getMonth() !== month.getMonth();
+          return (
+            <button key={k} className={'cal-d' + (out ? ' off' : '') + (k === today ? ' today' : '') + (k === value ? ' on' : '')}
+                    onClick={() => { tap(); onPick(k); }}>
+              {d.getDate()}
+              {busy && busy[k] && k !== value ? <i className="busy" /> : null}
+            </button>
+          );
+        })}
+      </div>
+    </Fragment>
+  );
+}
+
+/* ── полоса недели ── */
+function WeekStrip({value, onPick, busy}){
+  const start = startOfWeek(fromIso(value));
+  return (
+    <div className="week">
+      {Array.from({length: 7}, (_, i) => {
+        const d = addDays(start, i), k = iso(d);
+        return (
+          <button key={k} className={'wd' + (k === value ? ' on' : '')} onClick={() => { tap(); onPick(k); }}>
+            <span className="wd-n">{DOW[i]}</span>
+            <span className="wd-d">{d.getDate()}{busy && busy[k] ? <i className="wd-dot" /> : null}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ───────────────────────── 9. ГЛАВНАЯ ─────────────────────────
+   Один экран отвечает на один вопрос: что у меня дальше. Сначала
+   следующий сеанс, потом быстрые входы, потом день целиком. */
+
+function Home({db, go, today}){
+  const now = new Date();
+  const next = nextAppt(db, now);
+  const running = runningAppt(db, now);
+  const list = dayAppts(db, today).filter(a => a.status !== 'pending');
+  const notes = notifications(db, now);
+  const [month, setMonth] = useState(() => fromIso(today));
+  const busy = useMemo(() => {
+    const map = {};
+    db.appts.forEach(a => { if (a.status !== 'canceled') map[a.date] = true; });
+    return map;
+  }, [db.appts]);
+  useTick(true, 30000);
+
+  return (
+    <div className="screen">
+      <div className="top">
+        <div style={{flex: 1, minWidth: 0}}>
+          <div className="hi">Здравствуйте,</div>
+          <div className="hi-name cut">{db.pro.name}</div>
+        </div>
+        <button className="ico-btn" onClick={() => go({k: 'notifs'})} aria-label="Уведомления">
+          <Icon n="bell" />{notes.length ? <i className="dot" /> : null}
+        </button>
+        <button onClick={() => go({k: 'settings'})} aria-label="Профиль">
+          <Avatar name={db.pro.name + ' ' + db.pro.last} src={db.pro.avatar} size={44} />
+        </button>
+      </div>
+
+      {running ? (
+        <button className="hero" onClick={() => go({k: 'session', id: running.id})} style={{marginTop: 14}}>
+          <div className="hero-label">Сеанс идёт сейчас</div>
+          <div className="hero-row">
+            <div className="hero-bar" />
+            <div style={{minWidth: 0}}>
+              <div className="hero-name cut">{clientName(db, running.clientId)}</div>
+              <div className="hero-when cut">
+                {serviceName(db, running.serviceId)} · осталось {Math.max(0, mins(running.time) + running.dur - nowMins(now))} мин
+              </div>
+            </div>
+            <span className="hero-arrow"><Icon n="play" s={19} /></span>
+          </div>
+        </button>
+      ) : next ? (
+        <button className="hero" onClick={() => go({k: 'appt', id: next.id})} style={{marginTop: 14}}>
+          <div className="hero-label">Следующий сеанс</div>
+          <div className="hero-row">
+            <div className="hero-bar" />
+            <div style={{minWidth: 0}}>
+              <div className="hero-name cut">{clientName(db, next.clientId)}</div>
+              <div className="hero-when cut">{whenLabel(next, now)}</div>
+              <div className="hero-when cut">{serviceName(db, next.serviceId)} · {durLabel(next.dur)}</div>
+            </div>
+            <span className="hero-arrow"><Icon n="arrow" s={19} /></span>
+          </div>
+        </button>
+      ) : (
+        <div className="hero calm" style={{marginTop: 14}}>
+          <div className="hero-label">Ближайших сеансов нет</div>
+          <div className="hero-row">
+            <div className="hero-bar" style={{background: 'var(--violet-soft-2)'}} />
+            <div>
+              <div className="hero-name">Свободный день</div>
+              <div className="hero-when">Запишите клиента кнопкой «+»</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="quick">
+        {[
+          {k: 'clients',  n: 'Клиенты',   i: 'users',  bg: 'var(--pa-clients)',   c: 'var(--pa-clients-ink)'},
+          {k: 'schedule', n: 'Расписание', i: 'calendar', bg: 'var(--pa-schedule)', c: 'var(--pa-schedule-ink)'},
+          {k: 'income',   n: 'Доход',     i: 'wallet', bg: 'var(--pa-income)',    c: 'var(--pa-income-ink)'},
+          {k: 'analytics', n: 'Аналитика', i: 'chart', bg: 'var(--pa-analytics)', c: 'var(--pa-analytics-ink)'},
+        ].map(q => (
+          <button key={q.k} className="q" onClick={() => { tap(); go({k: q.k}); }}>
+            <span className="q-tile" style={{background: q.bg, color: q.c}}><Icon n={q.i} /></span>
+            <span className="q-name">{q.n}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="card" style={{marginTop: 20}}>
+        <div className="card-h">
+          <h3>Календарь</h3>
+          <button className="ico-btn" style={{width: 32, height: 32}} onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))} aria-label="Прошлый месяц">
+            <Icon n="back" s={17} />
+          </button>
+          <span className="side">{monthTitle(month)}</span>
+          <button className="ico-btn" style={{width: 32, height: 32}} onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))} aria-label="Следующий месяц">
+            <Icon n="chev" s={17} />
+          </button>
+        </div>
+        <div style={{padding: '4px 12px 14px'}}>
+          <MiniCalendar month={month} value={today} busy={busy} onPick={(d) => go({k: 'schedule', date: d})} />
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-h" style={{paddingBottom: 12}}>
+          <h3>Сегодня</h3>
+          <span className="side">{list.length} {sessWord(list.length)}</span>
+        </div>
+        {list.length ? (
+          <div className="rows">
+            {list.map(a => (
+              <Row key={a.id} onClick={() => go({k: 'appt', id: a.id})}
+                   left={<Avatar name={clientName(db, a.clientId)} size={40} />}
+                   title={<span><b className="num" style={{marginRight: 8}}>{a.time}</b>{clientName(db, a.clientId)}</span>}
+                   sub={serviceName(db, a.serviceId)}
+                   side={a.status === 'done' ? <span className="badge pos">Проведён</span> : durLabel(a.dur)} />
+            ))}
+          </div>
+        ) : (
+          <div style={{padding: '4px 16px 20px'}}>
+            <div className="hint">Сегодня записей нет. Хороший день, чтобы позвать тех, кто давно не приходил.</div>
+          </div>
+        )}
+      </div>
+
+      {notes.length ? (
+        <div className="card">
+          <div className="card-h" style={{paddingBottom: 12}}>
+            <h3>Требует внимания</h3>
+            <span className="side">{notes.length}</span>
+          </div>
+          <div className="rows">
+            {notes.slice(0, 3).map(n => (
+              <Row key={n.id} onClick={() => n.clientId ? go({k: 'client', id: n.clientId}) : null}
+                   left={<span className="q-tile" style={{width: 40, height: 40, borderRadius: 12, background: 'var(--violet-soft)', color: 'var(--violet-ink)'}}><Icon n={n.icon} s={19} /></span>}
+                   title={n.title} sub={n.text} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/* ───────────────────────── 10. РАСПИСАНИЕ ─────────────────────────
+   День — главная единица работы: полоса недели сверху, лента сеансов
+   ниже, идущий сейчас выделен. */
+
+function Schedule({db, go, date, setDate, openNew}){
+  const [filter, setFilter] = useState(null);
+  const [fOpen, setFOpen] = useState(false);
+  const now = new Date();
+  const busy = useMemo(() => {
+    const map = {};
+    db.appts.forEach(a => { if (a.status !== 'canceled') map[a.date] = true; });
+    return map;
+  }, [db.appts]);
+
+  const pass = (a) => !filter || a.serviceId === filter;
+  const day = dayAppts(db, date).filter(pass);
+  const nextDate = iso(addDays(fromIso(date), 1));
+  const nextDay = dayAppts(db, nextDate).filter(pass);
+  const dayMoney = sum(day.filter(a => a.status === 'done'), a => a.price);
+  useTick(true, 30000);
+
+  const item = (a) => {
+    const t = mins(a.time);
+    const live = a.date === iso(now) && t <= nowMins(now) && t + a.dur > nowMins(now);
+    const past = a.date < iso(now) || (a.date === iso(now) && t + a.dur <= nowMins(now));
+    return (
+      <div key={a.id} className={'tl-item' + (live ? ' now' : '') + (past && a.status === 'done' ? ' done' : '') + (a.status === 'pending' ? ' off' : '')}>
+        <span className="tl-time">{a.time}</span>
+        <span className="tl-dot" style={a.status === 'pending' ? {background: 'var(--ink-4)'} : null} />
+        <button className="tl-card" onClick={() => { tap(); go({k: 'appt', id: a.id}); }}>
+          <div className="row-main">
+            <div className="row-t cut">{clientName(db, a.clientId)}</div>
+            <div className="row-s cut">
+              {serviceName(db, a.serviceId)}
+              {a.status === 'pending' ? ' · заявка' : ''}
+            </div>
+          </div>
+          <div className="row-side">{durLabel(a.dur)}</div>
+          <span className="chev"><Icon n="chev" s={18} /></span>
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className="screen">
+      <TopBar title="Расписание"
+        left={<button className="ico-btn" onClick={() => { tap(); setDate(iso(now)); }} aria-label="Сегодня"><Icon n="clock" /></button>}
+        right={<button className="ico-btn" onClick={() => { tap(); setFOpen(true); }} aria-label="Фильтр">
+          <Icon n="filter" />{filter ? <i className="dot" /> : null}
+        </button>} />
+
+      <WeekStrip value={date} busy={busy} onPick={setDate} />
+
+      <div style={{display: 'flex', alignItems: 'center', gap: 10, margin: '10px 0 4px'}}>
+        <button className="ico-btn" style={{width: 34, height: 34}} onClick={() => setDate(iso(addDays(fromIso(date), -7)))} aria-label="Прошлая неделя"><Icon n="back" s={18} /></button>
+        <div style={{flex: 1, textAlign: 'center', fontSize: 13, color: 'var(--ink-2)', fontWeight: 500}}>
+          {monthTitle(fromIso(date))}
+        </div>
+        <button className="ico-btn" style={{width: 34, height: 34}} onClick={() => setDate(iso(addDays(fromIso(date), 7)))} aria-label="Следующая неделя"><Icon n="chev" s={18} /></button>
+      </div>
+
+      <div className="day-h" style={{display: 'flex', alignItems: 'baseline', gap: 10}}>
+        <span style={{flex: 1}}>{dateLabel(date)}</span>
+        <span style={{fontSize: 13, color: 'var(--ink-2)', fontWeight: 500}}>
+          {day.length} {sessWord(day.length)}{dayMoney ? ' · ' + money(dayMoney) : ''}
+        </span>
+      </div>
+
+      {day.length ? <div className="tl">{day.map(item)}</div> : (
+        <Empty icon="calendar" title="День свободен"
+               text={'На ' + dateLabel(date).split(',')[0] + ' записей нет. Можно поставить сеанс или отдохнуть.'}
+               action={<button className="btn pri" style={{maxWidth: 240, margin: '0 auto'}} onClick={() => openNew(date)}>Записать клиента</button>} />)}
+
+      {nextDay.length ? (
+        <Fragment>
+          <div className="day-h">{dateLabel(nextDate)}</div>
+          <div className="tl">{nextDay.map(item)}</div>
+        </Fragment>
+      ) : null}
+
+      <Sheet open={fOpen} onClose={() => setFOpen(false)} title="Фильтр" sub="Показывать сеансы по услуге">
+        <Chips items={[{k: null, n: 'Все услуги'}].concat(db.services.map(s => ({k: s.id, n: s.name})))}
+               value={filter} onChange={(k) => { setFilter(k); setFOpen(false); }} />
+        <div style={{height: 14}} />
+      </Sheet>
+    </div>
+  );
+}
+
+/* ───────────────────────── 11. КЛИЕНТЫ ───────────────────────── */
+
+function Clients({db, go, openNewClient}){
+  const [q, setQ] = useState('');
+  const [sort, setSort] = useState('recent');
+  const rows = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const list = db.clients
+      .map(c => ({c, st: clientStats(db, c.id)}))
+      .filter(({c}) => !term || c.name.toLowerCase().includes(term) || (c.phone || '').includes(term));
+    if (sort === 'abc') return list.sort((a, b) => a.c.name.localeCompare(b.c.name, 'ru'));
+    if (sort === 'top') return list.sort((a, b) => b.st.total - a.st.total);
+    return list.sort((a, b) => {
+      const x = (a.st.last || {}).date || a.c.created, y = (b.st.last || {}).date || b.c.created;
+      return x < y ? 1 : x > y ? -1 : 0;
+    });
+  }, [db, q, sort]);
+
+  return (
+    <div className="screen">
+      <TopBar title="Клиенты" big
+        right={<button className="ico-btn" onClick={() => { tap(); openNewClient(); }} aria-label="Новый клиент"><Icon n="plus" /></button>} />
+      <div style={{position: 'relative', marginBottom: 12}}>
+        <span style={{position: 'absolute', left: 15, top: 15, color: 'var(--ink-3)'}}><Icon n="search" s={20} /></span>
+        <input className="inp" style={{paddingLeft: 44}} placeholder="Имя или телефон"
+               value={q} onChange={e => setQ(e.target.value)} />
+      </div>
+      <Seg items={[{k: 'recent', n: 'Недавние'}, {k: 'abc', n: 'По алфавиту'}, {k: 'top', n: 'Частые'}]}
+           value={sort} onChange={setSort} />
+
+      <div style={{height: 14}} />
+      {rows.length ? (
+        <div className="card">
+          <div className="rows">
+            {rows.map(({c, st}) => {
+              const sub = st.next ? 'Записан · ' + relDay(st.next.date) + ', ' + st.next.time
+                : st.last ? 'Был ' + relDay(st.last.date).toLowerCase()
+                : 'Ещё не приходил';
+              return (
+                <Row key={c.id} onClick={() => go({k: 'client', id: c.id})}
+                     left={<Avatar name={c.name} src={c.avatar} size={44} />}
+                     title={c.name} sub={sub}
+                     side={<span className="num" style={{color: 'var(--ink-3)'}}>{st.total || ''}</span>} />
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <Empty icon="users" title={q ? 'Никого не нашли' : 'Клиентов пока нет'}
+               text={q ? 'Проверьте имя или номер — возможно, клиент записан иначе.' : 'Добавьте первого клиента, и его история начнёт собираться сама.'}
+               action={<button className="btn pri" style={{maxWidth: 240, margin: '0 auto'}} onClick={openNewClient}>Новый клиент</button>} />
+      )}
+      <div style={{height: 8}} />
+      <div className="hint" style={{textAlign: 'center'}}>{db.clients.length} {plural(db.clients.length, 'клиент', 'клиента', 'клиентов')} в базе</div>
+    </div>
+  );
+}
+
+/* ───────────────────────── 12. КАРТОЧКА КЛИЕНТА ─────────────────────────
+   Всё, что нужно знать за пять секунд до сеанса: как его зовут, что он
+   любит, где у него болит и что было в прошлый раз. */
+
+function ClientPage({db, id, go, back, openEdit, openAppt, openNote}){
+  const c = clientById(db, id);
+  const [tab, setTab] = useState('info');
+  if (!c) return <Empty icon="users" title="Клиент не найден" action={<button className="btn" onClick={back}>Назад</button>} />;
+
+  const st = clientStats(db, id);
+  const sub = subOf(db, id);
+  const notes = db.notes.filter(n => n.clientId === id);
+  const levels = zoneLevels(db, id);
+  const hot = ZONES.filter(z => (levels[z.k] || 0) >= 2);
+  const history = clientAppts(db, id).filter(a => a.status === 'done');
+
+  return (
+    <div className="screen">
+      <div className="top-bar left">
+        <BackBtn onClick={back} />
+        <span style={{flex: 1}} />
+        <button className="link" onClick={() => { tap(); openEdit(c); }}>Редактировать</button>
+      </div>
+
+      <div style={{display: 'flex', gap: 16, alignItems: 'center', padding: '8px 0 4px'}}>
+        <Avatar name={c.name} src={c.avatar} size={84} />
+        <div style={{minWidth: 0}}>
+          <h1 style={{fontSize: 24, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.15}}>{c.name}</h1>
+          <div style={{fontSize: 14, color: 'var(--ink-2)', marginTop: 6}}>{c.phone}</div>
+          <div style={{fontSize: 14, color: 'var(--ink-2)'}} className="cut">{c.email}</div>
+        </div>
+      </div>
+
+      <div className="acts">
+        <a className="act" style={{background: 'var(--pa-clients)', color: 'var(--pa-clients-ink)'}}
+           href={'sms:' + String(c.phone || '').replace(/\s/g, '')} onClick={() => tap()}>
+          <Icon n="chat" />Сообщение
+        </a>
+        <button className="act" style={{background: 'var(--pa-schedule)', color: 'var(--pa-schedule-ink)'}}
+                onClick={() => { tap(); openAppt({clientId: c.id, serviceId: c.pref}); }}>
+          <Icon n="calendar" />Записать
+        </button>
+        <a className="act" style={{background: 'var(--pa-analytics)', color: 'var(--pa-analytics-ink)'}}
+           href={'tel:' + String(c.phone || '').replace(/\s/g, '')} onClick={() => tap()}>
+          <Icon n="phone" />Позвонить
+        </a>
+      </div>
+
+      <Tabs items={[{k: 'info', n: 'Информация'}, {k: 'history', n: 'История'}, {k: 'notes', n: 'Заметки'}]}
+            value={tab} onChange={setTab} />
+
+      {tab === 'info' ? (
+        <div className="screen">
+          <div className="card pad" style={{marginTop: 14}}>
+            <div className="kv"><span className="kv-k">Предпочтительный массаж</span><span className="kv-v">{serviceName(db, st.top || c.pref)}</span></div>
+            <div className="kv"><span className="kv-k">Длительность сеанса</span><span className="kv-v">{st.dur} {plural(st.dur, 'минута', 'минуты', 'минут')}</span></div>
+            <div className="kv"><span className="kv-k">Последний сеанс</span><span className="kv-v">{st.last ? dateShort(st.last.date) : '—'}</span></div>
+            <div className="kv"><span className="kv-k">Всего сеансов</span><span className="kv-v num">{st.total}</span></div>
+            <div className="kv"><span className="kv-k">Оставил</span><span className="kv-v num">{money(st.spent)}</span></div>
+            <button className="kv" style={{width: '100%'}} onClick={() => go({k: 'subs', client: c.id})}>
+              <span className="kv-k">Абонемент</span>
+              <span className="kv-v acc">{sub ? sub.used + ' из ' + sub.total + ' ' + sessWord(sub.total) : 'Оформить'}</span>
+            </button>
+          </div>
+
+          {c.note ? (
+            <div className="card pad" style={{background: 'var(--violet-soft)', border: 0}}>
+              <div style={{fontSize: 13, fontWeight: 600, color: 'var(--violet-ink)', marginBottom: 4}}>Личное правило</div>
+              <div style={{fontSize: 14}}>{c.note}</div>
+            </div>
+          ) : null}
+
+          <div className="card">
+            <div className="card-h"><h3>Карта тела</h3>
+              <button className="link" style={{fontSize: 14}} onClick={() => go({k: 'body', id: c.id})}>Открыть</button>
+            </div>
+            <div style={{display: 'flex', gap: 16, padding: '10px 16px 16px', alignItems: 'center'}}>
+              <BodyFigure levels={levels} small onPick={() => go({k: 'body', id: c.id})} />
+              <div style={{flex: 1, minWidth: 0}}>
+                {hot.length ? hot.slice(0, 4).map(z => {
+                  const t = tensionOf(levels[z.k]);
+                  const tr = zoneTrend(db, c.id, z.k);
+                  return (
+                    <div key={z.k} style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10}}>
+                      <i style={{width: 9, height: 9, borderRadius: 5, background: t.c, flex: '0 0 9px'}} />
+                      <span style={{fontSize: 14, flex: 1}}>{z.n}</span>
+                      <span className="badge" style={{background: 'transparent', color: 'var(--ink-2)', padding: 0}}>
+                        {t.short}{tr < 0 ? ' ↓' : tr > 0 ? ' ↑' : ''}
+                      </span>
+                    </div>
+                  );
+                }) : <div className="hint">Зоны напряжения не отмечены. Отметьте их после сеанса — прогресс будет виден на графике.</div>}
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-h" style={{paddingBottom: 12}}><h3>История сеансов</h3>
+              <span className="side">{history.length}</span>
+            </div>
+            <div className="rows">
+              {history.slice(0, 3).map(a => (
+                <Row key={a.id} onClick={() => go({k: 'appt', id: a.id})}
+                     title={dateShort(a.date) + ', ' + a.time} sub={serviceName(db, a.serviceId)}
+                     side={durLabel(a.dur)} />
+              ))}
+              {!history.length ? <div style={{padding: 16}} className="hint">Сеансов ещё не было.</div> : null}
+            </div>
+            {history.length > 3 ? (
+              <button className="btn" style={{borderRadius: 0, height: 46, background: 'transparent', color: 'var(--violet-ink)', fontSize: 14, borderTop: '1px solid var(--line)'}}
+                      onClick={() => setTab('history')}>Показать все</button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {tab === 'history' ? (
+        <div className="screen" style={{marginTop: 14}}>
+          {st.next ? (
+            <div className="card pad" style={{background: 'var(--violet-soft)', border: 0}}>
+              <div style={{fontSize: 13, color: 'var(--violet-ink)', fontWeight: 600}}>Ближайшая запись</div>
+              <div style={{fontSize: 16, fontWeight: 600, marginTop: 4}}>{whenLabel(st.next)}</div>
+              <div style={{fontSize: 14, color: 'var(--ink-2)'}}>{serviceName(db, st.next.serviceId)} · {durLabel(st.next.dur)}</div>
+            </div>
+          ) : null}
+          {history.length ? (
+            <div className="card"><div className="rows">
+              {history.map(a => (
+                <Row key={a.id} onClick={() => go({k: 'appt', id: a.id})}
+                     title={dateShort(a.date) + ', ' + a.time}
+                     sub={serviceName(db, a.serviceId) + ' · ' + durLabel(a.dur)}
+                     side={a.pay === 'sub' ? <span className="badge acc">Абонемент</span> : money(a.price)} />
+              ))}
+            </div></div>
+          ) : <Empty icon="clock" title="История пустая" text="Проведите первый сеанс — он появится здесь." />}
+        </div>
+      ) : null}
+
+      {tab === 'notes' ? (
+        <div className="screen" style={{marginTop: 14}}>
+          <button className="btn pri" onClick={() => { tap(); openNote(c.id); }}>
+            <Icon n="mic" />Надиктовать заметку
+          </button>
+          <div style={{height: 14}} />
+          {notes.length ? notes.map(n => (
+            <div key={n.id} className="card pad">
+              <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10}}>
+                <span style={{fontSize: 13, color: 'var(--ink-2)', flex: 1}}>{dateShort(n.date)}</span>
+                {n.intensity ? <span className="badge">{(INTENSITY.find(i => i.k === n.intensity) || {}).n}</span> : null}
+                <button className="ico-btn" style={{width: 30, height: 30}} onClick={() => { tap(); Act.delNote(n.id); say('Заметка удалена'); }} aria-label="Удалить">
+                  <Icon n="trash" s={16} />
+                </button>
+              </div>
+              {n.zones && n.zones.length ? (
+                <div className="kv" style={{padding: '8px 0'}}>
+                  <span className="kv-k">Зоны</span>
+                  <span className="kv-v" style={{maxWidth: '65%'}}>{n.zoneText || n.zones.map(zoneName).join(', ')}</span>
+                </div>
+              ) : null}
+              {n.state ? <div className="kv" style={{padding: '8px 0'}}><span className="kv-k">Состояние</span><span className="kv-v" style={{maxWidth: '65%'}}>{n.state}</span></div> : null}
+              {n.react ? <div className="kv" style={{padding: '8px 0'}}><span className="kv-k">Реакция</span><span className="kv-v" style={{maxWidth: '65%'}}>{n.react}</span></div> : null}
+              {n.next ? <div className="kv" style={{padding: '8px 0'}}><span className="kv-k">Рекомендация</span><span className="kv-v acc" style={{maxWidth: '65%'}}>{n.next}</span></div> : null}
+              {n.raw ? <div className="hint" style={{marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)'}}>«{n.raw}»</div> : null}
+            </div>
+          )) : (
+            <Empty icon="note" title="Заметок пока нет"
+                   text="После сеанса надиктуйте пару фраз — приложение само разложит их на зоны, состояние и рекомендацию." />
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/* ───────────────────────── 13. КАРТА ТЕЛА ─────────────────────────
+   Ключевая функция: где у клиента напряжение и как оно меняется от
+   сеанса к сеансу. Отмечается в два касания — зона, потом уровень. */
+
+function BodyMap({db, id, back, go}){
+  const c = clientById(db, id);
+  const levels = zoneLevels(db, id);
+  const [zone, setZone] = useState(() => ZONES.find(z => (levels[z.k] || 0) >= 2) || ZONES[4]);
+  if (!c) return <Empty icon="users" title="Клиент не найден" action={<button className="btn" onClick={back}>Назад</button>} />;
+
+  const zk = zone.k;
+  const hist = zoneHistory(db, id, zk);
+  const now = levels[zk];
+  const first = hist.length ? hist[0].level : null;
+  const trend = hist.length > 1 ? hist[hist.length - 1].level - first : 0;
+
+  const set = (level) => {
+    tap(12);
+    Act.setMark(id, zk, level);
+    say(zone.n + ' — ' + tensionOf(level).n.toLowerCase());
+  };
+
+  return (
+    <div className="screen">
+      <div className="top-bar left">
+        <BackBtn onClick={back} />
+        <h2 style={{textAlign: 'left'}}>Карта тела</h2>
+        <button className="ico-btn" onClick={() => go({k: 'client', id})} aria-label="Клиент">
+          <Avatar name={c.name} src={c.avatar} size={32} />
+        </button>
+      </div>
+
+      <div className="card pad">
+        <div className="body-wrap"><BodyFigure levels={levels} sel={zk} onPick={(k) => { setZone(ZONES.find(z => z.k === k)); }} /></div>
+        <TensionLegend />
+      </div>
+
+      <div className="card pad">
+        <div style={{display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12}}>
+          <h3 style={{fontSize: 17, fontWeight: 600, flex: 1}}>{zone.n}</h3>
+          <span style={{fontSize: 13, color: 'var(--ink-2)'}}>
+            {now === undefined ? 'не отмечено' : tensionOf(now).n.toLowerCase()}
+          </span>
+        </div>
+        <div className="chips">
+          {ZONES.map(z => (
+            <button key={z.k} className={'chip' + (z.k === zk ? ' on' : '')} onClick={() => { tap(); setZone(z); }}>
+              {levels[z.k] !== undefined ? <i style={{display: 'inline-block', width: 7, height: 7, borderRadius: 4, background: tensionOf(levels[z.k]).c, marginRight: 6}} /> : null}
+              {z.n}
+            </button>
+          ))}
+        </div>
+        <div className="tset">
+          {TENSION.slice().reverse().map(t => (
+            <button key={t.k} className={now === t.k ? 'on' : ''}
+                    style={now === t.k ? {background: t.c + '22', borderColor: t.c} : null}
+                    onClick={() => set(t.k)}>
+              <i style={{display: 'block', width: 10, height: 10, borderRadius: 5, background: t.c, margin: '0 auto 6px'}} />
+              {t.short}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card pad">
+        <div style={{display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6}}>
+          <h3 style={{fontSize: 17, fontWeight: 600, flex: 1}}>История изменений</h3>
+          {trend < 0 ? <span className="badge pos">Лучше на {Math.abs(trend)}</span> : trend > 0 ? <span className="badge neg">Хуже на {trend}</span> : null}
+        </div>
+        {hist.length ? (
+          <div style={{marginTop: 8}}>
+            {hist.map(m => {
+              const t = tensionOf(m.level);
+              return (
+                <div className="prog" key={m.id}>
+                  <span className="prog-d">{fromIso(m.date).getDate() + '.' + pad2(fromIso(m.date).getMonth() + 1)}</span>
+                  <span className="prog-line"><i style={{width: ((m.level + 1) / 4) * 100 + '%', background: t.c}} /></span>
+                  <span className="prog-v" style={{color: t.c}}>{t.short}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : <div className="hint" style={{marginTop: 6}}>Отметьте уровень напряжения — история начнёт собираться, и прогресс будет виден на этом графике.</div>}
+      </div>
+
+      <div className="card pad">
+        <h3 style={{fontSize: 17, fontWeight: 600, marginBottom: 10}}>Все зоны</h3>
+        {ZONES.map(z => {
+          const lv = levels[z.k];
+          const t = lv === undefined ? null : tensionOf(lv);
+          const tr = zoneTrend(db, id, z.k);
+          return (
+            <button key={z.k} className="kv" style={{width: '100%'}} onClick={() => { tap(); setZone(z); }}>
+              <span className="kv-k" style={{color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 10}}>
+                <i style={{width: 9, height: 9, borderRadius: 5, background: t ? t.c : 'var(--t0)'}} />{z.n}
+              </span>
+              <span className="kv-v" style={{color: t ? t.c : 'var(--ink-3)', fontWeight: 600}}>
+                {t ? t.short : '—'}{tr < 0 ? ' ↓' : tr > 0 ? ' ↑' : ''}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── 14. СЕАНС ─────────────────────────
+   Экран, который смотрят краем глаза с масляными руками: крупный
+   таймер, две кнопки, ничего лишнего. После «Завершить» — короткий
+   разбор: зоны, интенсивность, заметка и оплата. */
+
+Act.runStart = (apptId) => Store.set(db => ({...db, run: {apptId, at: Date.now(), acc: 0, paused: false}}));
+Act.runPause = () => Store.set(db => db.run ? ({...db, run: {...db.run, acc: runSeconds(db.run), paused: true}}) : db);
+Act.runResume = () => Store.set(db => db.run ? ({...db, run: {...db.run, at: Date.now(), paused: false}}) : db);
+Act.runStop = () => Store.set(db => ({...db, run: null}));
+
+const runSeconds = (run, at) => {
+  if (!run) return 0;
+  const base = run.acc || 0;
+  return run.paused ? Math.round(base) : Math.round(base + ((at || Date.now()) - run.at) / 1000);
+};
+
+function SessionScreen({db, id, back, go}){
+  const a = db.appts.find(x => x.id === id);
+  const run = db.run && db.run.apptId === id ? db.run : null;
+  const [phase, setPhase] = useState('run');
+  const [zones, setZones] = useState([]);
+  const [levels, setLevels] = useState({});
+  const [intensity, setIntensity] = useState('mid');
+  const [pay, setPay] = useState('cash');
+  const [raw, setRaw] = useState('');
+  const [note, setNote] = useState(null);
+  const dict = useDictate(setRaw);
+  useTick(!!run && !run.paused, 1000);
+
+  if (!a) return <Empty icon="clock" title="Сеанс не найден" action={<button className="btn" onClick={back}>Назад</button>} />;
+
+  const c = clientById(db, a.clientId) || {name: 'Клиент'};
+  const total = a.dur * 60;
+  const spent = runSeconds(run);
+  const left = total - spent;
+  const ring = clamp(spent / total, 0, 1);
+  const sub = subOf(db, a.clientId);
+
+  const parse = () => {
+    const res = aiNote(raw);
+    setNote(res);
+    setZones(z => Array.from(new Set([...z, ...res.zones])));
+    setIntensity(res.intensity);
+    tap(14);
+    say('Заметка разобрана — проверьте и поправьте');
+  };
+
+  const finish = () => {
+    Act.finish(a.id, {
+      zones, levels, intensity, pay,
+      raw: (note && note.raw) || raw,
+      state: note ? note.state : '',
+      react: note ? note.react : '',
+      next: note ? note.next : '',
+      zoneText: note ? note.zoneText : zones.map(zoneName).join(', '),
+    });
+    Act.runStop();
+    tap(20);
+    say('Сеанс завершён' + (pay === 'sub' && sub ? ' · списан 1 сеанс абонемента' : pay === 'sub' ? '' : ' · ' + money(a.price)));
+    go({k: 'client', id: a.clientId});
+  };
+
+  if (phase === 'wrap') return (
+    <div className="screen">
+      <div className="top-bar left">
+        <BackBtn onClick={() => setPhase('run')} />
+        <h2 style={{textAlign: 'left'}}>Как прошёл сеанс?</h2>
+      </div>
+
+      <div className="card pad">
+        <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+          <Avatar name={c.name} src={c.avatar} size={46} />
+          <div style={{flex: 1, minWidth: 0}}>
+            <div className="row-t cut">{c.name}</div>
+            <div className="row-s">{serviceName(db, a.serviceId)} · {clock(spent)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card pad">
+        <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 10}}>Зоны, с которыми работали</h3>
+        <Chips multi items={ZONES.map(z => ({k: z.k, n: z.n}))} value={zones} onChange={setZones} />
+        {zones.length ? (
+          <div style={{marginTop: 16}}>
+            {zones.map(k => (
+              <div key={k} style={{marginBottom: 12}}>
+                <div className="lab">{zoneName(k)} — напряжение</div>
+                <div className="tset" style={{marginTop: 0}}>
+                  {TENSION.slice().reverse().map(t => (
+                    <button key={t.k} className={levels[k] === t.k ? 'on' : ''}
+                            style={levels[k] === t.k ? {background: t.c + '22', borderColor: t.c} : null}
+                            onClick={() => { tap(); setLevels(l => ({...l, [k]: t.k})); }}>{t.short}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="card pad">
+        <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 10}}>Интенсивность</h3>
+        <Seg items={INTENSITY.map(i => ({k: i.k, n: i.n}))} value={intensity} onChange={setIntensity} />
+      </div>
+
+      <AiNoteBlock raw={raw} setRaw={setRaw} note={note} setNote={setNote} dict={dict} onParse={parse} />
+
+      <div className="card pad">
+        <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 10}}>Оплата</h3>
+        <Seg items={PAY_KINDS.map(p => ({k: p.k, n: p.n}))} value={pay} onChange={setPay} />
+        <div className="kv" style={{marginTop: 12}}>
+          <span className="kv-k">К оплате</span>
+          <span className="kv-v num">{pay === 'sub' && sub ? 'Абонемент · ' + (sub.total - sub.used - 1) + ' после списания' : money(a.price)}</span>
+        </div>
+        {pay === 'sub' && !sub ? <div className="hint" style={{color: 'var(--neg)'}}>У клиента нет активного абонемента — оплата запишется как наличные.</div> : null}
+      </div>
+
+      <button className="btn pri" onClick={finish}><Icon n="check" />Сохранить и завершить</button>
+      <div style={{height: 12}} />
+    </div>
+  );
+
+  return (
+    <div className="screen">
+      <div className="top-bar left">
+        <BackBtn onClick={back} />
+        <h2 style={{textAlign: 'left'}}>Сеанс</h2>
+        <button className="ico-btn" onClick={() => go({k: 'client', id: a.clientId})} aria-label="Клиент"><Icon n="users" /></button>
+      </div>
+
+      <div style={{textAlign: 'center', marginTop: 4}}>
+        <div style={{display: 'flex', justifyContent: 'center'}}><Avatar name={c.name} src={c.avatar} size={60} /></div>
+        <h1 style={{fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', marginTop: 10}}>{c.name}</h1>
+        <div style={{fontSize: 14, color: 'var(--ink-2)', marginTop: 2}}>
+          {serviceName(db, a.serviceId)} · {durLabel(a.dur)}
+        </div>
+      </div>
+
+      <div className="timer-wrap">
+        <svg className="timer-svg" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="44" stroke="var(--card-3)" strokeWidth="7" />
+          <circle cx="50" cy="50" r="44" stroke="url(#gr)" strokeWidth="7"
+                  strokeDasharray={2 * Math.PI * 44}
+                  strokeDashoffset={2 * Math.PI * 44 * (1 - ring)} />
+          <defs>
+            <linearGradient id="gr" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#5B3FD3" /><stop offset="100%" stopColor="#7448E8" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div className="timer-in">
+          <div>
+            <div className="timer-n">{clock(run ? Math.max(0, left) : total)}</div>
+            <div className="timer-s">
+              {!run ? 'Готов начать' : run.paused ? 'Пауза' : left > 0 ? 'осталось' : 'сверх времени ' + clock(-left)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{height: 12}} />
+      {!run ? (
+        <button className="btn pri" onClick={() => { tap(14); Act.runStart(a.id); }}><Icon n="play" />Начать сеанс</button>
+      ) : (
+        <div className="btns">
+          <button className="btn" onClick={() => { tap(); run.paused ? Act.runResume() : Act.runPause(); }}>
+            <Icon n={run.paused ? 'play' : 'pause'} />{run.paused ? 'Продолжить' : 'Пауза'}
+          </button>
+          <button className="btn pri" onClick={() => { tap(14); setPhase('wrap'); }}><Icon n="check" />Завершить</button>
+        </div>
+      )}
+
+      <div className="card pad" style={{marginTop: 18}}>
+        <div className="kv"><span className="kv-k">Начало по плану</span><span className="kv-v num">{a.time}</span></div>
+        <div className="kv"><span className="kv-k">Стоимость</span><span className="kv-v num">{money(a.price)}</span></div>
+        {sub ? <div className="kv"><span className="kv-k">Абонемент</span><span className="kv-v acc">{sub.used} из {sub.total}</span></div> : null}
+      </div>
+
+      {db.notes.filter(n => n.clientId === a.clientId).slice(0, 1).map(n => (
+        <div className="card pad" key={n.id}>
+          <div style={{fontSize: 13, color: 'var(--ink-2)', marginBottom: 6}}>Прошлый раз · {dateShort(n.date)}</div>
+          <div style={{fontSize: 14}}>{n.state}</div>
+          {n.next ? <div style={{fontSize: 14, color: 'var(--violet-ink)', marginTop: 6, fontWeight: 500}}>{n.next}</div> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── AI-заметка: диктовка и разбор ───────────────────────────────
+   Голос → текст → структура. Разбор идёт на устройстве, поэтому
+   работает без сети; результат правится руками. */
+function AiNoteBlock({raw, setRaw, note, setNote, dict, onParse, compact}){
+  const canSpeak = speechOk();
+  return (
+    <div className="card pad">
+      <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12}}>
+        <h3 style={{fontSize: 16, fontWeight: 600, flex: 1}}>Заметка после сеанса</h3>
+        <span className="badge acc"><Icon n="spark" s={13} />AI</span>
+      </div>
+
+      <button className={'btn ' + (dict.rec ? 'dan' : 'soft')} style={{height: 58}}
+              onClick={() => {
+                tap(12);
+                if (dict.rec) return dict.stop();
+                if (!canSpeak) return say('Браузер не умеет распознавать речь — наберите текст ниже');
+                dict.start();
+              }}>
+        {dict.rec ? <Fragment><i className="rec-dot" />Идёт запись — нажмите, чтобы остановить</Fragment>
+                  : <Fragment><Icon n="mic" />Надиктовать заметку</Fragment>}
+      </button>
+
+      <div style={{height: 12}} />
+      <textarea className="inp" value={raw} onChange={e => setRaw(e.target.value)}
+                placeholder="Например: сегодня работали с поясницей и правой трапецией, напряжение уменьшилось, клиент чувствует себя лучше" />
+      <div className="btns" style={{marginTop: 10}}>
+        <button className="btn sm" style={{flex: 1}} disabled={!raw.trim()} onClick={onParse}>
+          <Icon n="spark" />Разобрать
+        </button>
+        {note ? <button className="btn sm ghost" style={{flex: '0 0 auto'}} onClick={() => { setNote(null); }}>Сбросить</button> : null}
+      </div>
+
+      {note ? (
+        <div style={{marginTop: 14, paddingTop: 4, borderTop: '1px solid var(--line)'}}>
+          <Field label="Зоны">
+            <Input value={note.zoneText} onChange={e => setNote({...note, zoneText: e.target.value})} />
+          </Field>
+          <Field label="Состояние">
+            <Input value={note.state} onChange={e => setNote({...note, state: e.target.value})} />
+          </Field>
+          <Field label="Реакция">
+            <Input value={note.react} onChange={e => setNote({...note, react: e.target.value})} />
+          </Field>
+          <Field label="Рекомендация">
+            <Input value={note.next} onChange={e => setNote({...note, next: e.target.value})} />
+          </Field>
+          {compact ? null : <div className="hint">Черновик собран из ваших слов — поправьте, если что-то не так.</div>}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/* отдельная шторка «надиктовать» — из карточки клиента, вне сеанса */
+function NoteSheet({open, onClose, db, clientId}){
+  const [raw, setRaw] = useState('');
+  const [note, setNote] = useState(null);
+  const dict = useDictate(setRaw);
+  const c = clientById(db, clientId);
+  if (!open || !c) return null;
+  const save = () => {
+    const res = note || aiNote(raw);
+    Act.addNote({
+      clientId, zones: res.zones || [], zoneText: res.zoneText, state: res.state,
+      react: res.react, next: res.next, intensity: res.intensity, raw: raw.trim(),
+    });
+    say('Заметка сохранена');
+    setRaw(''); setNote(null);
+    onClose();
+  };
+  return (
+    <Sheet open={open} onClose={onClose} title="Заметка" sub={c.name} wide>
+      <AiNoteBlock raw={raw} setRaw={setRaw} note={note} setNote={setNote} dict={dict}
+                   onParse={() => { setNote(aiNote(raw)); tap(); }} compact />
+      <button className="btn pri" disabled={!raw.trim()} onClick={save}>Сохранить заметку</button>
+      <div style={{height: 10}} />
+    </Sheet>
+  );
+}
+
+/* ───────────────────────── 15. ДОХОД ─────────────────────────
+   Деньги считаются из проведённых сеансов. Никакого ручного ввода:
+   провёл сеанс — доход обновился. */
+
+function Income({db, back}){
+  const [period, setPeriod] = useState('day');
+  const now = new Date();
+  const [from, to] = periodRange(period, now);
+  const cur = income(db, from, to);
+  const prevFrom = period === 'day' ? iso(addDays(now, -1))
+    : period === 'week' ? iso(addDays(fromIso(from), -7))
+    : iso(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+  const prevTo = period === 'day' ? iso(addDays(now, -1))
+    : period === 'week' ? iso(addDays(fromIso(to), -7))
+    : iso(new Date(now.getFullYear(), now.getMonth(), 0));
+  const prev = income(db, prevFrom, prevTo);
+  const g = growth(cur.total, prev.total);
+
+  const week = income(db, ...periodRange('week', now));
+  const month = income(db, ...periodRange('month', now));
+  const chart = series(db, period === 'month' ? 'month' : 'week', now);
+  const [pick, setPick] = useState(undefined);
+  const tops = topServices(db, from, to);
+
+  return (
+    <div className="screen">
+      <div className="top-bar left"><BackBtn onClick={back} /><h2 style={{textAlign: 'left'}}>Доход</h2></div>
+
+      <Seg items={[{k: 'day', n: 'Сегодня'}, {k: 'week', n: 'Неделя'}, {k: 'month', n: 'Месяц'}]}
+           value={period} onChange={(k) => { setPeriod(k); setPick(undefined); }} />
+      <div style={{height: 14}} />
+
+      <div className="money-hero">
+        <div className="k">{period === 'day' ? 'Сегодня' : period === 'week' ? 'Эта неделя' : 'Этот месяц'}</div>
+        <div className="v">{money(cur.total)}</div>
+        <div className="r">
+          <div>Сеансов<b className="num">{cur.count}</b></div>
+          <div>Средний чек<b className="num">{money(cur.avg)}</b></div>
+          <div>К прошлому<b className="num">{g > 0 ? '+' : ''}{g}%</b></div>
+        </div>
+      </div>
+
+      <div className="card pad" style={{marginTop: 14}}>
+        <div style={{display: 'flex', alignItems: 'baseline', marginBottom: 12}}>
+          <h3 style={{fontSize: 16, fontWeight: 600, flex: 1}}>{period === 'month' ? 'Полгода' : 'По дням недели'}</h3>
+          <span style={{fontSize: 13, color: 'var(--ink-2)'}}>
+            {pick !== undefined ? money(chart[pick].value) : money(sum(chart, d => d.value))}
+          </span>
+        </div>
+        <Bars data={chart} active={pick} onPick={setPick} />
+        <BarLabels data={chart} active={pick} />
+      </div>
+
+      <div className="stat-grid">
+        <div className="stat"><div className="stat-k">Неделя</div><div className="stat-v">{money(week.total)}</div></div>
+        <div className="stat"><div className="stat-k">Месяц</div><div className="stat-v">{money(month.total)}</div></div>
+      </div>
+
+      <div className="sec"><h3>Услуги за период</h3></div>
+      {tops.length ? (
+        <div className="card"><div className="rows">
+          {tops.map(s => (
+            <Row key={s.id} chevron={false} title={serviceName(db, s.id)}
+                 sub={s.n + ' ' + sessWord(s.n)} side={<b className="num">{money(s.total)}</b>} />
+          ))}
+        </div></div>
+      ) : <div className="card pad"><div className="hint">За период сеансов не было.</div></div>}
+
+      <div className="sec"><h3>Оплаты</h3><span className="side">{cur.count}</span></div>
+      {cur.rows.length ? (
+        <div className="card"><div className="rows">
+          {cur.rows.slice().reverse().slice(0, 30).map(a => (
+            <Row key={a.id} chevron={false} left={<Avatar name={clientName(db, a.clientId)} size={38} />}
+                 title={clientName(db, a.clientId)}
+                 sub={relDay(a.date) + ', ' + a.time + ' · ' + serviceName(db, a.serviceId)}
+                 side={a.pay === 'sub' ? <span className="badge acc">Абонемент</span> : <b className="num">{money(a.price)}</b>} />
+          ))}
+        </div></div>
+      ) : <div className="card pad"><div className="hint">Оплат за период нет.</div></div>}
+    </div>
+  );
+}
+
+/* ───────────────────────── 16. АНАЛИТИКА ───────────────────────── */
+
+function Analytics({db, back, go}){
+  const now = new Date();
+  const [from, to] = periodRange('month', now);
+  const cur = income(db, from, to);
+  const prev = income(db, iso(new Date(now.getFullYear(), now.getMonth() - 1, 1)), iso(new Date(now.getFullYear(), now.getMonth(), 0)));
+  const chart = series(db, 'month', now);
+
+  const newClients = db.clients.filter(c => c.created >= from).length;
+  const active = db.clients.filter(c => clientStats(db, c.id).days !== null && clientStats(db, c.id).days <= 45).length;
+  const back45 = db.clients.filter(c => clientStats(db, c.id).total >= 2).length;
+  const retention = db.clients.length ? Math.round((back45 / db.clients.length) * 100) : 0;
+
+  /* загрузка: сколько рабочих часов месяца реально занято сеансами */
+  const workDays = Array.from({length: daysBetween(from, to) + 1}, (_, i) => addDays(fromIso(from), i))
+    .filter(d => db.pro.days.includes(dowIdx(d)) && iso(d) <= iso(now));
+  const capacity = workDays.length * (mins(db.pro.hours.to) - mins(db.pro.hours.from));
+  const busyMin = sum(cur.rows, a => a.dur);
+  const load = capacity ? Math.round((busyMin / capacity) * 100) : 0;
+
+  /* часы пик: когда клиенты чаще всего приходят */
+  const hours = {};
+  db.appts.filter(a => a.status === 'done').forEach(a => {
+    const h = Math.floor(mins(a.time) / 60);
+    hours[h] = (hours[h] || 0) + 1;
+  });
+  const peak = Object.keys(hours).sort((a, b) => hours[b] - hours[a]).slice(0, 3).map(Number).sort((a, b) => a - b);
+  const tops = topServices(db, from, to);
+  const zoneCount = {};
+  db.marks.forEach(m => { if (m.level >= 2) zoneCount[m.zone] = (zoneCount[m.zone] || 0) + 1; });
+  const zoneTop = Object.keys(zoneCount).sort((a, b) => zoneCount[b] - zoneCount[a]).slice(0, 3);
+
+  return (
+    <div className="screen">
+      <div className="top-bar left"><BackBtn onClick={back} /><h2 style={{textAlign: 'left'}}>Аналитика</h2></div>
+
+      <div className="stat-grid" style={{marginTop: 6}}>
+        <div className="stat"><div className="stat-k">Доход за месяц</div><div className="stat-v">{money(cur.total)}</div>
+          <div style={{fontSize: 12, marginTop: 4, color: growth(cur.total, prev.total) >= 0 ? 'var(--pos)' : 'var(--neg)'}}>
+            {growth(cur.total, prev.total) >= 0 ? '+' : ''}{growth(cur.total, prev.total)}% к прошлому
+          </div>
+        </div>
+        <div className="stat"><div className="stat-k">Сеансов</div><div className="stat-v num">{cur.count}</div>
+          <div style={{fontSize: 12, marginTop: 4, color: 'var(--ink-2)'}}>средний {money(cur.avg)}</div>
+        </div>
+        <div className="stat"><div className="stat-k">Загрузка</div><div className="stat-v num">{load}%</div>
+          <div className="bar" style={{marginTop: 8}}><i style={{width: clamp(load, 0, 100) + '%'}} /></div>
+        </div>
+        <div className="stat"><div className="stat-k">Возвращаются</div><div className="stat-v num">{retention}%</div>
+          <div style={{fontSize: 12, marginTop: 4, color: 'var(--ink-2)'}}>{active} активных</div>
+        </div>
+      </div>
+
+      <div className="card pad" style={{marginTop: 14}}>
+        <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 12}}>Доход по месяцам</h3>
+        <Bars data={chart} />
+        <BarLabels data={chart} />
+      </div>
+
+      <div className="card pad">
+        <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 10}}>Что приносит деньги</h3>
+        {tops.length ? tops.map(s => {
+          const share = cur.total ? Math.round((s.total / cur.total) * 100) : 0;
+          return (
+            <div key={s.id} style={{marginBottom: 12}}>
+              <div style={{display: 'flex', gap: 10, fontSize: 14, marginBottom: 6}}>
+                <span style={{flex: 1}} className="cut">{serviceName(db, s.id)}</span>
+                <span className="num" style={{color: 'var(--ink-2)'}}>{share}%</span>
+                <b className="num">{money(s.total)}</b>
+              </div>
+              <div className="bar"><i style={{width: share + '%'}} /></div>
+            </div>
+          );
+        }) : <div className="hint">Данных за месяц пока нет.</div>}
+      </div>
+
+      <div className="card pad">
+        <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 10}}>Наблюдения</h3>
+        <div className="kv"><span className="kv-k">Новых клиентов за месяц</span><span className="kv-v num">{newClients}</span></div>
+        <div className="kv"><span className="kv-k">Часы пик</span><span className="kv-v">{peak.length ? peak.map(h => pad2(h) + ':00').join(', ') : '—'}</span></div>
+        <div className="kv"><span className="kv-k">Частые зоны напряжения</span><span className="kv-v">{zoneTop.length ? zoneTop.map(zoneName).join(', ') : '—'}</span></div>
+        <div className="kv"><span className="kv-k">Активных абонементов</span><span className="kv-v num">{db.subs.filter(s => s.used < s.total).length}</span></div>
+      </div>
+
+      <button className="btn soft" onClick={() => go({k: 'income'})}><Icon n="wallet" />Открыть доход</button>
+      <div style={{height: 12}} />
+    </div>
+  );
+}
+
+/* ───────────────────────── 17. АБОНЕМЕНТЫ ───────────────────────── */
+
+function Subs({db, back, go, openNew, client}){
+  const active = db.subs.filter(s => s.used < s.total);
+  const closed = db.subs.filter(s => s.used >= s.total);
+  const mine = client ? active.filter(s => s.clientId === client) : active;
+  const money_ = sum(active, s => s.price);
+
+  const card = (s, dim) => {
+    const left = s.total - s.used;
+    const pc = Math.round((s.used / s.total) * 100);
+    return (
+      <div className="card pad" key={s.id} style={dim ? {opacity: .6} : null}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12}}>
+          <Avatar name={clientName(db, s.clientId)} size={42} />
+          <button style={{flex: 1, minWidth: 0}} onClick={() => go({k: 'client', id: s.clientId})}>
+            <div className="row-t cut">{clientName(db, s.clientId)}</div>
+            <div className="row-s cut">{serviceName(db, s.serviceId)} · {s.total} {sessWord(s.total)}</div>
+          </button>
+          <span className={'badge' + (left <= 1 ? ' neg' : ' acc')}>{left ? 'осталось ' + left : 'закрыт'}</span>
+        </div>
+        <div className="bar"><i style={{width: pc + '%'}} /></div>
+        <div style={{display: 'flex', marginTop: 10, fontSize: 13, color: 'var(--ink-2)'}}>
+          <span style={{flex: 1}}>Использовано {s.used} из {s.total}</span>
+          <span className="num">{money(s.price)}</span>
+        </div>
+        {!dim ? (
+          <div className="btns" style={{marginTop: 12}}>
+            <button className="btn sm" onClick={() => { tap(); Act.saveSub({id: s.id, used: clamp(s.used + 1, 0, s.total)}); say('Списан 1 сеанс'); }}>
+              Списать сеанс
+            </button>
+            <button className="btn sm ghost" onClick={() => { tap(); Act.delSub(s.id); say('Абонемент удалён'); }}>Удалить</button>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
+  return (
+    <div className="screen">
+      <div className="top-bar left"><BackBtn onClick={back} /><h2 style={{textAlign: 'left'}}>Абонементы</h2>
+        <button className="ico-btn" onClick={() => { tap(); openNew(client); }} aria-label="Создать"><Icon n="plus" /></button>
+      </div>
+
+      <div className="card pad" style={{background: 'var(--violet-soft)', border: 0}}>
+        <div style={{display: 'flex', gap: 20}}>
+          <div><div style={{fontSize: 13, color: 'var(--ink-2)'}}>Активных</div><div className="stat-v num">{active.length}</div></div>
+          <div><div style={{fontSize: 13, color: 'var(--ink-2)'}}>Оплачено вперёд</div><div className="stat-v num">{money(money_)}</div></div>
+        </div>
+      </div>
+
+      {mine.length ? mine.map(s => card(s)) : (
+        <Empty icon="gift" title="Абонементов нет"
+               text="Абонемент держит клиента рядом: он платит вперёд и возвращается по расписанию."
+               action={<button className="btn pri" style={{maxWidth: 260, margin: '0 auto'}} onClick={() => openNew(client)}>+ Создать абонемент</button>} />
+      )}
+
+      {mine.length ? <button className="btn soft" onClick={() => { tap(); openNew(client); }}><Icon n="plus" />Создать абонемент</button> : null}
+
+      {closed.length ? (
+        <Fragment>
+          <div className="sec"><h3>Закрытые</h3><span className="side">{closed.length}</span></div>
+          {closed.map(s => card(s, true))}
+        </Fragment>
+      ) : null}
+      <div style={{height: 12}} />
+    </div>
+  );
+}
+
+/* ───────────────────────── 18. НАСТРОЙКИ ───────────────────────── */
+
+const Switch = ({on, onChange}) => (
+  <button onClick={() => { tap(); onChange(!on); }} aria-pressed={on} style={{
+    width: 50, height: 30, borderRadius: 999, flex: '0 0 50px', position: 'relative',
+    background: on ? 'var(--violet)' : 'var(--card-3)', transition: 'background .2s',
+  }}>
+    <i style={{
+      position: 'absolute', top: 3, left: on ? 23 : 3, width: 24, height: 24, borderRadius: '50%',
+      background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.2)', transition: 'left .2s cubic-bezier(.16,1,.3,1)',
+    }} />
+  </button>
+);
+
+function Settings({db, back, go, openService}){
+  const p = db.pro, s = db.settings;
+  const [confirm, setConfirm] = useState(null);
+  const link = 'promassage.app/' + p.slug;
+
+  return (
+    <div className="screen">
+      <div className="top-bar left"><BackBtn onClick={back} /><h2 style={{textAlign: 'left'}}>Настройки</h2></div>
+
+      <div className="card pad">
+        <div style={{display: 'flex', gap: 14, alignItems: 'center'}}>
+          <Avatar name={p.name + ' ' + p.last} src={p.avatar} size={62} />
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 18, fontWeight: 600}}>{p.name} {p.last}</div>
+            <div style={{fontSize: 14, color: 'var(--ink-2)'}}>{p.role} · {p.city}</div>
+            <div style={{fontSize: 13, color: 'var(--ink-2)', marginTop: 2}}>★ {p.rating} · {p.reviews} отзывов</div>
+          </div>
+        </div>
+        <div style={{height: 14}} />
+        <Field label="Имя"><Input value={p.name} onChange={e => Act.setPro({name: e.target.value})} /></Field>
+        <Field label="Телефон"><Input value={p.phone} onChange={e => Act.setPro({phone: e.target.value})} /></Field>
+        <Field label="Почта"><Input value={p.email} onChange={e => Act.setPro({email: e.target.value})} /></Field>
+        <Field label="О себе" hint="Текст видят клиенты на странице онлайн-записи">
+          <textarea className="inp" style={{minHeight: 84}} value={p.about} onChange={e => Act.setPro({about: e.target.value})} />
+        </Field>
+      </div>
+
+      <div className="sec"><h3>Услуги</h3><span className="side">{db.services.length}</span></div>
+      <div className="card"><div className="rows">
+        {db.services.map(sv => (
+          <Row key={sv.id} onClick={() => openService(sv)} title={sv.name}
+               sub={durLabel(sv.dur) + ' · ' + money(sv.price)}
+               side={sv.on ? null : <span className="badge">выкл</span>} />
+        ))}
+        <Row onClick={() => openService({name: '', dur: 60, price: 1000, on: true})}
+             title="Добавить услугу" sub="Название, длительность, цена"
+             left={<span className="q-tile" style={{width: 40, height: 40, borderRadius: 12, background: 'var(--violet-soft)', color: 'var(--violet-ink)'}}><Icon n="plus" s={19} /></span>} />
+      </div></div>
+
+      <div className="sec"><h3>Рабочий день</h3></div>
+      <div className="card pad">
+        <div style={{display: 'flex', gap: 12}}>
+          <Field label="Начало"><Input type="time" value={p.hours.from} onChange={e => Act.setPro({hours: {...p.hours, from: e.target.value}})} /></Field>
+          <Field label="Конец"><Input type="time" value={p.hours.to} onChange={e => Act.setPro({hours: {...p.hours, to: e.target.value}})} /></Field>
+        </div>
+        <div className="lab">Рабочие дни</div>
+        <div className="chips">
+          {DOW.map((d, i) => (
+            <button key={d} className={'chip' + (p.days.includes(i) ? ' on' : '')}
+                    onClick={() => { tap(); Act.setPro({days: p.days.includes(i) ? p.days.filter(x => x !== i) : [...p.days, i].sort()}); }}>{d}</button>
+          ))}
+        </div>
+        <div style={{height: 14}} />
+        <Field label="Перерыв между сеансами" hint="Время на проветрить кабинет и сменить бельё">
+          <Seg items={[{k: 0, n: 'Нет'}, {k: 15, n: '15 мин'}, {k: 30, n: '30 мин'}]} value={p.gap} onChange={(k) => Act.setPro({gap: k})} />
+        </Field>
+      </div>
+
+      <div className="sec"><h3>Приложение</h3></div>
+      <div className="card pad">
+        <div className="kv"><span className="kv-k">Напоминать о сеансе</span><Switch on={s.remind} onChange={v => Act.setSettings({remind: v})} /></div>
+        <div className="kv"><span className="kv-k">Онлайн-запись включена</span><Switch on={s.online} onChange={v => Act.setSettings({online: v})} /></div>
+        <div className="kv"><span className="kv-k">AI-разбор заметок</span><Switch on={s.ai} onChange={v => Act.setSettings({ai: v})} /></div>
+        <div className="kv"><span className="kv-k">Тёмная тема</span>
+          <Switch on={s.theme === 'dark'} onChange={v => Act.setSettings({theme: v ? 'dark' : 'light'})} /></div>
+      </div>
+
+      <div className="sec"><h3>Онлайн-запись</h3></div>
+      <button className="card pad" style={{width: '100%', display: 'block'}} onClick={() => go({k: 'booking'})}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+          <span className="q-tile" style={{width: 44, height: 44, borderRadius: 14, background: 'var(--pa-analytics)', color: 'var(--pa-analytics-ink)'}}><Icon n="globe" s={21} /></span>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div className="row-t">Ваша страница</div>
+            <div className="row-s cut">{link}</div>
+          </div>
+          <span className="chev"><Icon n="chev" s={18} /></span>
+        </div>
+      </button>
+
+      <div className="sec"><h3>Данные</h3></div>
+      <div className="card"><div className="rows">
+        <Row onClick={() => { const t = JSON.stringify(Store.state); say('Копия готова: ' + Math.round(t.length / 1024) + ' КБ'); }}
+             title="Резервная копия" sub="Выгрузить базу целиком" chevron={false} />
+        <Row onClick={() => setConfirm('demo')} title="Пересобрать демо-данные" sub="Вернуть кабинет к исходному виду" chevron={false} />
+        <Row onClick={() => setConfirm('wipe')} title="Очистить всё" sub="Удалить клиентов, записи и историю" chevron={false} />
+      </div></div>
+
+      <div className="hint" style={{textAlign: 'center', margin: '16px 0 8px'}}>
+        PRO MASSAGE · данные хранятся на этом устройстве
+      </div>
+
+      <Sheet open={!!confirm} onClose={() => setConfirm(null)}
+             title={confirm === 'wipe' ? 'Очистить всё?' : 'Пересобрать демо?'}
+             sub={confirm === 'wipe' ? 'Клиенты, записи, заметки и абонементы будут удалены. Отменить это нельзя.'
+                                     : 'Текущие данные заменятся демонстрационными.'}>
+        <button className={'btn ' + (confirm === 'wipe' ? 'dan' : 'pri')} onClick={() => {
+          if (confirm === 'wipe'){ Act.wipe(); say('Кабинет пуст'); } else { Act.reset(); say('Демо-данные вернулись'); }
+          setConfirm(null); back();
+        }}>{confirm === 'wipe' ? 'Да, очистить' : 'Пересобрать'}</button>
+        <div style={{height: 8}} />
+        <button className="btn ghost" onClick={() => setConfirm(null)}>Отмена</button>
+        <div style={{height: 10}} />
+      </Sheet>
+    </div>
+  );
+}
+
+/* ───────────────────────── 19. ОНЛАЙН-ЗАПИСЬ ─────────────────────────
+   То, что видит клиент по ссылке. Здесь — предпросмотр: массажист
+   смотрит на свою витрину глазами клиента и может записать через неё. */
+
+function Booking({db, back, openAppt}){
+  const p = db.pro;
+  const [sv, setSv] = useState(null);
+  const list = db.services.filter(s => s.on);
+  const link = 'promassage.app/' + p.slug;
+  const date = iso(new Date());
+  const slots = sv ? freeStarts(db, date, sv.dur) : [];
+
+  return (
+    <div className="screen">
+      <div className="top-bar left"><BackBtn onClick={back} /><h2 style={{textAlign: 'left'}}>Онлайн-запись</h2>
+        <button className="ico-btn" onClick={() => { tap(); say('Ссылка скопирована: ' + link); }} aria-label="Копировать"><Icon n="copy" /></button>
+      </div>
+
+      <div className="book-head">
+        <Avatar name={p.name + ' ' + p.last} src={p.avatar} size={80} tone="light" />
+        <h1 style={{fontSize: 24, fontWeight: 700, letterSpacing: '-.02em'}}>{p.name} {p.last}</h1>
+        <div style={{opacity: .85, fontSize: 14, marginTop: 2}}>{p.role} · {p.city}</div>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, padding: '6px 14px',
+          borderRadius: 999, background: 'rgba(255,255,255,.18)', fontSize: 14, fontWeight: 600,
+        }}>
+          <Icon n="star" s={15} />{p.rating} · {p.reviews} отзывов
+        </div>
+      </div>
+
+      <div className="card pad" style={{marginTop: 18}}>
+        <div style={{fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.5}}>{p.about}</div>
+      </div>
+
+      <div className="sec"><h3>Услуги</h3></div>
+      <div className="card">
+        {list.map(s => (
+          <button key={s.id} className="srv" onClick={() => { tap(); setSv(sv && sv.id === s.id ? null : s); }}>
+            <div className="row-main">
+              <div className="row-t">{s.name}</div>
+              <div className="row-s">{durLabel(s.dur)} · {money(s.price)}</div>
+            </div>
+            <span className={'badge' + (sv && sv.id === s.id ? ' acc' : '')}>{sv && sv.id === s.id ? 'выбрано' : 'выбрать'}</span>
+          </button>
+        ))}
+      </div>
+
+      {sv ? (
+        <div className="card pad">
+          <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 4}}>Свободно сегодня</h3>
+          <div className="hint" style={{marginBottom: 12}}>{sv.name} · {durLabel(sv.dur)}</div>
+          {slots.length ? (
+            <div className="chips">
+              {slots.slice(0, 12).map(t => (
+                <button key={t} className="chip" onClick={() => { tap(); openAppt({serviceId: sv.id, date, time: t, source: 'online'}); }}>{t}</button>
+              ))}
+            </div>
+          ) : <div className="hint">Сегодня всё занято — предложите клиенту другой день.</div>}
+        </div>
+      ) : null}
+
+      <button className="btn pri" onClick={() => { tap(); openAppt({serviceId: (sv || list[0] || {}).id, source: 'online'}); }}>
+        Записаться
+      </button>
+      <div className="hint" style={{textAlign: 'center', margin: '14px 0 8px'}}>Ссылка для клиентов: {link}</div>
+    </div>
+  );
+}
+
+/* ───────────────────────── 20. ЕЩЁ и УВЕДОМЛЕНИЯ ───────────────────────── */
+
+function More({db, go}){
+  const items = [
+    {k: 'income',    n: 'Доход',        s: 'Сегодня, неделя, месяц',   i: 'wallet', bg: 'var(--pa-income)',    c: 'var(--pa-income-ink)'},
+    {k: 'analytics', n: 'Аналитика',    s: 'Загрузка, услуги, клиенты', i: 'chart', bg: 'var(--pa-analytics)', c: 'var(--pa-analytics-ink)'},
+    {k: 'subs',      n: 'Абонементы',   s: 'Кто оплатил вперёд',       i: 'gift',   bg: 'var(--pa-clients)',   c: 'var(--pa-clients-ink)'},
+    {k: 'booking',   n: 'Онлайн-запись', s: 'Страница для клиентов',   i: 'globe',  bg: 'var(--pa-schedule)',  c: 'var(--pa-schedule-ink)'},
+    {k: 'notifs',    n: 'Уведомления',  s: 'Что требует внимания',     i: 'bell',   bg: 'var(--pa-analytics)', c: 'var(--pa-analytics-ink)'},
+    {k: 'settings',  n: 'Настройки',    s: 'Профиль, услуги, часы',    i: 'gear',   bg: 'var(--pa-clients)',   c: 'var(--pa-clients-ink)'},
+  ];
+  const now = new Date();
+  const [from, to] = periodRange('month', now);
+  const m = income(db, from, to);
+  return (
+    <div className="screen">
+      <TopBar title="Ещё" big />
+      <div className="card pad" style={{background: 'var(--violet-soft)', border: 0}}>
+        <div style={{display: 'flex', gap: 22}}>
+          <div><div style={{fontSize: 13, color: 'var(--ink-2)'}}>Месяц</div><div className="stat-v num">{money(m.total)}</div></div>
+          <div><div style={{fontSize: 13, color: 'var(--ink-2)'}}>Сеансов</div><div className="stat-v num">{m.count}</div></div>
+          <div><div style={{fontSize: 13, color: 'var(--ink-2)'}}>Клиентов</div><div className="stat-v num">{db.clients.length}</div></div>
+        </div>
+      </div>
+      <div className="card"><div className="rows">
+        {items.map(i => (
+          <Row key={i.k} onClick={() => go({k: i.k})} title={i.n} sub={i.s}
+               left={<span className="q-tile" style={{width: 42, height: 42, borderRadius: 13, background: i.bg, color: i.c}}><Icon n={i.i} s={20} /></span>} />
+        ))}
+      </div></div>
+      <div className="hint" style={{textAlign: 'center', marginTop: 18}}>PRO MASSAGE · версия 1.0</div>
+    </div>
+  );
+}
+
+function Notifs({db, back, go}){
+  const list = notifications(db, new Date());
+  return (
+    <div className="screen">
+      <div className="top-bar left"><BackBtn onClick={back} /><h2 style={{textAlign: 'left'}}>Уведомления</h2></div>
+      {list.length ? (
+        <div className="card"><div className="rows">
+          {list.map(n => (
+            <Row key={n.id} title={n.title} sub={n.text}
+                 left={<span className="q-tile" style={{width: 42, height: 42, borderRadius: 13, background: 'var(--violet-soft)', color: 'var(--violet-ink)'}}><Icon n={n.icon} s={20} /></span>}
+                 onClick={() => n.apptId ? go({k: 'appt', id: n.apptId}) : n.clientId ? go({k: 'client', id: n.clientId}) : null} />
+          ))}
+        </div></div>
+      ) : <Empty icon="bell" title="Всё спокойно" text="Заявок нет, абонементы в порядке, клиенты не потерялись." />}
+    </div>
+  );
+}
+
+/* ───────────────────────── 21. ЗАПИСЬ ─────────────────────────
+   Карточка одной записи: что за сеанс, и что с ним можно сделать. */
+
+function ApptPage({db, id, back, go, openEdit}){
+  const a = db.appts.find(x => x.id === id);
+  if (!a) return <Empty icon="calendar" title="Запись не найдена" action={<button className="btn" onClick={back}>Назад</button>} />;
+  const c = clientById(db, a.clientId) || {name: 'Клиент'};
+  const st = clientStats(db, a.clientId);
+  const sub = subOf(db, a.clientId);
+  const note = db.notes.find(n => n.clientId === a.clientId);
+  const past = a.date < iso(new Date());
+  const remind = 'Здравствуйте, ' + firstName(c.name) + '! Напоминаю: ' + relDay(a.date).toLowerCase() +
+    ' в ' + a.time + ' — ' + serviceName(db, a.serviceId).toLowerCase() + '. До встречи!';
+
+  return (
+    <div className="screen">
+      <div className="top-bar left">
+        <BackBtn onClick={back} />
+        <span style={{flex: 1}} />
+        {a.status !== 'done' ? <button className="link" onClick={() => { tap(); openEdit(a); }}>Изменить</button> : null}
+      </div>
+
+      <div className="card pad" style={{background: 'var(--violet-soft)', border: 0}}>
+        <div style={{fontSize: 13, color: 'var(--violet-ink)', fontWeight: 600}}>
+          {a.status === 'done' ? 'Проведён' : a.status === 'pending' ? 'Заявка с сайта'
+            : a.status === 'canceled' ? 'Отменён' : relDay(a.date) + ', ' + a.time}
+        </div>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginTop: 12}}>
+          <Avatar name={c.name} src={c.avatar} size={52} />
+          <button style={{flex: 1, minWidth: 0}} onClick={() => go({k: 'client', id: a.clientId})}>
+            <div style={{fontSize: 19, fontWeight: 600, letterSpacing: '-.01em'}} className="cut">{c.name}</div>
+            <div style={{fontSize: 14, color: 'var(--ink-2)'}}>{c.phone}</div>
+          </button>
+          <span className="chev"><Icon n="chev" s={18} /></span>
+        </div>
+      </div>
+
+      <div className="card pad">
+        <div className="kv"><span className="kv-k">Услуга</span><span className="kv-v">{serviceName(db, a.serviceId)}</span></div>
+        <div className="kv"><span className="kv-k">Дата</span><span className="kv-v">{dateLabel(a.date)}</span></div>
+        <div className="kv"><span className="kv-k">Время</span><span className="kv-v num">{a.time} – {hhmm(mins(a.time) + a.dur)}</span></div>
+        <div className="kv"><span className="kv-k">Длительность</span><span className="kv-v">{durLabel(a.dur)}</span></div>
+        <div className="kv"><span className="kv-k">Стоимость</span><span className="kv-v num">{a.pay === 'sub' ? 'Абонемент' : money(a.price)}</span></div>
+        {sub ? <div className="kv"><span className="kv-k">Абонемент клиента</span><span className="kv-v acc">{sub.used} из {sub.total}</span></div> : null}
+        <div className="kv"><span className="kv-k">Всего сеансов у клиента</span><span className="kv-v num">{st.total}</span></div>
+      </div>
+
+      {note ? (
+        <div className="card pad">
+          <div style={{fontSize: 13, color: 'var(--ink-2)', marginBottom: 6}}>Прошлая заметка · {dateShort(note.date)}</div>
+          <div style={{fontSize: 15}}>{note.state}</div>
+          {note.zoneText || (note.zones || []).length ? (
+            <div style={{fontSize: 14, color: 'var(--ink-2)', marginTop: 6}}>
+              Зоны: {note.zoneText || note.zones.map(zoneName).join(', ')}
+            </div>
+          ) : null}
+          {note.next ? <div style={{fontSize: 14, color: 'var(--violet-ink)', marginTop: 8, fontWeight: 500}}>{note.next}</div> : null}
+        </div>
+      ) : null}
+
+      {a.status === 'pending' ? (
+        <div className="btns">
+          <button className="btn pri" onClick={() => { tap(); Act.setStatus(a.id, 'planned'); say('Заявка подтверждена'); }}>
+            <Icon n="check" />Подтвердить
+          </button>
+          <button className="btn ghost" onClick={() => { tap(); Act.setStatus(a.id, 'canceled'); say('Заявка отклонена'); back(); }}>Отклонить</button>
+        </div>
+      ) : a.status === 'planned' ? (
+        <Fragment>
+          <button className="btn pri" onClick={() => { tap(14); go({k: 'session', id: a.id}); }}>
+            <Icon n="play" />{past ? 'Провести сеанс' : 'Начать сеанс'}
+          </button>
+          <div style={{height: 10}} />
+          <div className="btns">
+            <a className="btn" href={'sms:' + String(c.phone || '').replace(/\s/g, '') + '?body=' + encodeURIComponent(remind)}>
+              <Icon n="chat" />Напомнить
+            </a>
+            <button className="btn ghost" onClick={() => { tap(); Act.setStatus(a.id, 'canceled'); say('Сеанс отменён'); back(); }}>Отменить</button>
+          </div>
+        </Fragment>
+      ) : a.status === 'canceled' ? (
+        <button className="btn" onClick={() => { tap(); Act.setStatus(a.id, 'planned'); say('Сеанс восстановлен'); }}>Вернуть в расписание</button>
+      ) : (
+        <Fragment>
+          <button className="btn soft" onClick={() => { tap(); go({k: 'client', id: a.clientId}); }}><Icon n="users" />Карточка клиента</button>
+          <div style={{height: 10}} />
+          <button className="btn ghost" onClick={() => { tap(); go({k: 'body', id: a.clientId}); }}><Icon n="body" />Карта тела</button>
+        </Fragment>
+      )}
+      <div style={{height: 14}} />
+    </div>
+  );
+}
+
+/* ───────────────────────── 22. ФОРМЫ ─────────────────────────
+   Форма — всегда шторка снизу: рука уже внизу экрана, туда и приходит
+   интерфейс. Полей минимум, остальное подставляется само. */
+
+function ApptForm({open, onClose, db, init}){
+  const base = init || {};
+  const [clientId, setClientId] = useState(base.clientId || (db.clients[0] || {}).id);
+  const [serviceId, setServiceId] = useState(base.serviceId || (db.services[0] || {}).id);
+  const [date, setDate] = useState(base.date || iso(new Date()));
+  const [time, setTime] = useState(base.time || '');
+  const sv = serviceById(db, serviceId);
+  const slots = useMemo(() => freeStarts(db, date, sv ? sv.dur : 60), [db, date, serviceId]);
+  const busy = time && overlaps(db, date, time, sv ? sv.dur : 60, base.id);
+
+  if (!open) return null;
+  const save = () => {
+    if (!clientId) return say('Сначала добавьте клиента');
+    if (!time) return say('Выберите время');
+    Act.saveAppt({
+      id: base.id, clientId, serviceId, date, time,
+      dur: sv.dur, price: sv.price, status: base.status === 'done' ? 'done' : (base.status || 'planned'),
+      source: base.source || 'pro',
+    });
+    tap(12);
+    say(base.id ? 'Запись обновлена' : 'Клиент записан на ' + relDay(date).toLowerCase() + ', ' + time);
+    onClose();
+  };
+
+  return (
+    <Sheet open={open} onClose={onClose} wide title={base.id ? 'Изменить запись' : 'Новая запись'}
+           sub={base.id ? null : 'Клиент, услуга и время — больше ничего не нужно'}>
+      <Field label="Клиент">
+        <select className="inp" value={clientId} onChange={e => setClientId(e.target.value)}>
+          {db.clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </Field>
+      <Field label="Услуга">
+        <select className="inp" value={serviceId} onChange={e => setServiceId(e.target.value)}>
+          {db.services.filter(s => s.on || s.id === serviceId).map(s => (
+            <option key={s.id} value={s.id}>{s.name} · {s.dur} мин · {s.price} ₴</option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Дата"><Input type="date" value={date} onChange={e => setDate(e.target.value)} /></Field>
+      <Field label="Время" hint={busy ? 'В это время уже есть сеанс' : slots.length ? 'Свободные окна с учётом перерыва' : 'В этот день вы не работаете — время можно поставить вручную'}>
+        <div className="chips" style={{marginBottom: 10}}>
+          {slots.slice(0, 14).map(t => (
+            <button key={t} className={'chip' + (t === time ? ' on' : '')} onClick={() => { tap(); setTime(t); }}>{t}</button>
+          ))}
+        </div>
+        <Input type="time" value={time} onChange={e => setTime(e.target.value)} />
+      </Field>
+      <div className="kv"><span className="kv-k">Стоимость</span><span className="kv-v num">{money(sv ? sv.price : 0)}</span></div>
+      <div style={{height: 14}} />
+      <button className="btn pri" onClick={save} disabled={!!busy}>{base.id ? 'Сохранить' : 'Записать'}</button>
+      {base.id ? (
+        <Fragment>
+          <div style={{height: 8}} />
+          <button className="btn dan" onClick={() => { tap(); Act.delAppt(base.id); say('Запись удалена'); onClose(); }}>Удалить запись</button>
+        </Fragment>
+      ) : null}
+      <div style={{height: 10}} />
+    </Sheet>
+  );
+}
+
+function ClientForm({open, onClose, db, init}){
+  const base = init || {};
+  const [name, setName] = useState(base.name || '');
+  const [phone, setPhone] = useState(base.phone || '');
+  const [email, setEmail] = useState(base.email || '');
+  const [pref, setPref] = useState(base.pref || (db.services[0] || {}).id);
+  const [note, setNote] = useState(base.note || '');
+  const [del, setDel] = useState(false);
+  if (!open) return null;
+
+  const save = () => {
+    if (name.trim().length < 2) return say('Как зовут клиента?');
+    if (phone && !isPhone(phone)) return say('Проверьте номер телефона');
+    if (email && !isEmail(email)) return say('Проверьте почту');
+    Act.saveClient({
+      id: base.id, name: name.trim(), phone: phone.trim(), email: email.trim(),
+      pref, dur: serviceById(db, pref).dur, note: note.trim(),
+    });
+    tap(12);
+    say(base.id ? 'Изменения сохранены' : firstName(name) + ' в базе');
+    onClose();
+  };
+
+  return (
+    <Sheet open={open} onClose={onClose} wide title={base.id ? 'Клиент' : 'Новый клиент'}
+           sub={base.id ? null : 'Имя обязательно, остальное можно позже'}>
+      <Field label="Имя и фамилия"><Input value={name} onChange={e => setName(e.target.value)} placeholder="Мария Иванова" /></Field>
+      <Field label="Телефон">
+        <Input value={phone} onChange={e => setPhone(e.target.value)} onBlur={e => setPhone(phoneMask(e.target.value))}
+               inputMode="tel" placeholder="+380 50 123 45 67" />
+      </Field>
+      <Field label="Почта"><Input value={email} onChange={e => setEmail(e.target.value)} inputMode="email" placeholder="maria@gmail.com" /></Field>
+      <Field label="Предпочтительный массаж">
+        <select className="inp" value={pref} onChange={e => setPref(e.target.value)}>
+          {db.services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </Field>
+      <Field label="Личное правило" hint="То, что важно помнить перед сеансом">
+        <textarea className="inp" style={{minHeight: 80}} value={note} onChange={e => setNote(e.target.value)}
+                  placeholder="Не любит сильное давление на шею" />
+      </Field>
+      <button className="btn pri" onClick={save}>{base.id ? 'Сохранить' : 'Добавить клиента'}</button>
+      {base.id ? (
+        <Fragment>
+          <div style={{height: 8}} />
+          {del ? (
+            <button className="btn dan" onClick={() => { Act.delClient(base.id); say('Клиент удалён'); onClose(); }}>
+              Точно удалить — вместе с историей
+            </button>
+          ) : (
+            <button className="btn ghost" onClick={() => { tap(); setDel(true); }}>Удалить клиента</button>
+          )}
+        </Fragment>
+      ) : null}
+      <div style={{height: 10}} />
+    </Sheet>
+  );
+}
+
+function ServiceForm({open, onClose, init}){
+  const base = init || {};
+  const [name, setName] = useState(base.name || '');
+  const [dur, setDur] = useState(base.dur || 60);
+  const [price, setPrice] = useState(base.price || 1000);
+  const [on, setOn] = useState(base.on !== false);
+  if (!open) return null;
+  return (
+    <Sheet open={open} onClose={onClose} title={base.id ? 'Услуга' : 'Новая услуга'}>
+      <Field label="Название"><Input value={name} onChange={e => setName(e.target.value)} placeholder="Классический массаж" /></Field>
+      <div style={{display: 'flex', gap: 12}}>
+        <Field label="Минут"><Input type="number" value={dur} onChange={e => setDur(Number(e.target.value))} inputMode="numeric" /></Field>
+        <Field label="Цена, ₴"><Input type="number" value={price} onChange={e => setPrice(Number(e.target.value))} inputMode="numeric" /></Field>
+      </div>
+      <div className="kv"><span className="kv-k">Показывать в онлайн-записи</span><Switch on={on} onChange={setOn} /></div>
+      <div style={{height: 14}} />
+      <button className="btn pri" onClick={() => {
+        if (name.trim().length < 2) return say('Как называется услуга?');
+        Act.saveService({id: base.id, name: name.trim(), dur: clamp(dur, 15, 240), price: Math.max(0, price), on});
+        say('Услуга сохранена'); onClose();
+      }}>Сохранить</button>
+      {base.id ? (
+        <Fragment>
+          <div style={{height: 8}} />
+          <button className="btn ghost" onClick={() => { Act.delService(base.id); say('Услуга удалена'); onClose(); }}>Удалить</button>
+        </Fragment>
+      ) : null}
+      <div style={{height: 10}} />
+    </Sheet>
+  );
+}
+
+function SubForm({open, onClose, db, client}){
+  const [clientId, setClientId] = useState(client || (db.clients[0] || {}).id);
+  const [plan, setPlan] = useState(10);
+  const [total, setTotal] = useState(10);
+  const [serviceId, setServiceId] = useState((db.services[0] || {}).id);
+  const sv = serviceById(db, serviceId);
+  const n = plan === 0 ? total : plan;
+  /* абонемент выгоднее разовых: 10% скидки — иначе в нём нет смысла */
+  const price = Math.round(n * (sv ? sv.price : 0) * 0.9);
+  if (!open) return null;
+  return (
+    <Sheet open={open} onClose={onClose} wide title="Новый абонемент" sub="Клиент платит вперёд и возвращается по расписанию">
+      <Field label="Клиент">
+        <select className="inp" value={clientId} onChange={e => setClientId(e.target.value)}>
+          {db.clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </Field>
+      <Field label="Услуга">
+        <select className="inp" value={serviceId} onChange={e => setServiceId(e.target.value)}>
+          {db.services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </Field>
+      <Field label="Сколько сеансов">
+        <Chips items={SUB_PLANS.map(p => ({k: p.k, n: p.n}))} value={plan} onChange={setPlan} />
+      </Field>
+      {plan === 0 ? (
+        <Field label="Количество"><Input type="number" value={total} onChange={e => setTotal(Number(e.target.value))} inputMode="numeric" /></Field>
+      ) : null}
+      <div className="card pad" style={{background: 'var(--violet-soft)', border: 0}}>
+        <div className="kv"><span className="kv-k">Сеансов</span><span className="kv-v num">{n}</span></div>
+        <div className="kv"><span className="kv-k">Без абонемента</span><span className="kv-v num">{money(n * (sv ? sv.price : 0))}</span></div>
+        <div className="kv"><span className="kv-k">Цена абонемента</span><span className="kv-v acc num">{money(price)}</span></div>
+      </div>
+      <div style={{height: 14}} />
+      <button className="btn pri" onClick={() => {
+        if (!clientId) return say('Сначала добавьте клиента');
+        if (n < 2) return say('В абонементе должно быть хотя бы два сеанса');
+        Act.addSub({clientId, serviceId, total: n, price, ends: iso(addDays(new Date(), 90))});
+        tap(12); say('Абонемент на ' + n + ' ' + sessWord(n) + ' создан'); onClose();
+      }}>Создать абонемент</button>
+      <div style={{height: 10}} />
+    </Sheet>
+  );
+}
+
+/* быстрая оплата: провели сеанс без записи — деньги не теряются */
+function PayForm({open, onClose, db}){
+  const [clientId, setClientId] = useState((db.clients[0] || {}).id);
+  const [serviceId, setServiceId] = useState((db.services[0] || {}).id);
+  const [pay, setPay] = useState('cash');
+  const sv = serviceById(db, serviceId);
+  const [price, setPrice] = useState(sv ? sv.price : 0);
+  useEffect(() => { setPrice(sv ? sv.price : 0); }, [serviceId]);
+  if (!open) return null;
+  return (
+    <Sheet open={open} onClose={onClose} title="Оплата" sub="Сеанс уже прошёл — запишем его задним числом">
+      <Field label="Клиент">
+        <select className="inp" value={clientId} onChange={e => setClientId(e.target.value)}>
+          {db.clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </Field>
+      <Field label="Услуга">
+        <select className="inp" value={serviceId} onChange={e => setServiceId(e.target.value)}>
+          {db.services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </Field>
+      <Field label="Сумма, ₴"><Input type="number" value={price} onChange={e => setPrice(Number(e.target.value))} inputMode="numeric" /></Field>
+      <Field label="Чем платит"><Seg items={PAY_KINDS.map(p => ({k: p.k, n: p.n}))} value={pay} onChange={setPay} /></Field>
+      <button className="btn pri" onClick={() => {
+        if (!clientId) return say('Сначала добавьте клиента');
+        const now = new Date();
+        const id = uid('ap');
+        Act.saveAppt({
+          id, clientId, serviceId, date: iso(now), time: hhmm(nowMins(now) - (sv ? sv.dur : 60)),
+          dur: sv ? sv.dur : 60, price: Math.max(0, price), status: 'planned',
+        });
+        Act.finish(id, {pay, zones: [], levels: {}});
+        tap(12); say('Оплата записана · ' + money(price)); onClose();
+      }}>Записать оплату</button>
+      <div style={{height: 10}} />
+    </Sheet>
+  );
+}
+
+/* ───────────────────────── 23. ОБОЛОЧКА ─────────────────────────
+   Пять кнопок внизу, стек экранов сверху. Центральная «+» — самое
+   заметное действие в приложении: из неё начинается всё остальное. */
+
+function PlusSheet({open, onClose, db, onPick}){
+  const items = [
+    {k: 'appt',   n: 'Новая запись',   s: 'Клиент, услуга, время',      i: 'calendar', bg: 'var(--pa-schedule)', c: 'var(--pa-schedule-ink)'},
+    {k: 'client', n: 'Новый клиент',   s: 'Добавить в базу',            i: 'users',    bg: 'var(--pa-clients)',  c: 'var(--pa-clients-ink)'},
+    {k: 'session', n: 'Новый сеанс',   s: 'Начать прямо сейчас',        i: 'play',     bg: 'var(--violet-soft)', c: 'var(--violet-ink)'},
+    {k: 'pay',    n: 'Добавить оплату', s: 'Сеанс уже прошёл',          i: 'wallet',   bg: 'var(--pa-income)',   c: 'var(--pa-income-ink)'},
+  ];
+  return (
+    <Sheet open={open} onClose={onClose} title="Что добавим?">
+      <div className="sheet-acts">
+        {items.map(i => (
+          <button key={i.k} className="sa" onClick={() => { tap(); onPick(i.k); }}>
+            <span className="sa-ic" style={{background: i.bg, color: i.c}}><Icon n={i.i} /></span>
+            <span style={{flex: 1}}>
+              <span className="sa-t" style={{display: 'block'}}>{i.n}</span>
+              <span className="sa-s">{i.s}</span>
+            </span>
+            <span className="chev"><Icon n="chev" s={18} /></span>
+          </button>
+        ))}
+      </div>
+      <div style={{height: 8}} />
+    </Sheet>
+  );
+}
+
+const TABS = [
+  {k: 'home', n: 'Главная', i: 'home'},
+  {k: 'clients', n: 'Клиенты', i: 'users'},
+  {k: 'plus'},
+  {k: 'schedule', n: 'Расписание', i: 'calendar'},
+  {k: 'more', n: 'Ещё', i: 'more'},
+];
+const ROOT = ['home', 'clients', 'schedule', 'more'];
+
+function TabBar({tab, onTab, onPlus}){
+  return (
+    <nav className="tabs">
+      {TABS.map((t, i) => t.k === 'plus' ? (
+        <button key="plus" className="tab-plus" onClick={() => { tap(12); onPlus(); }} aria-label="Добавить">
+          <i><Icon n="plus" /></i>
+        </button>
+      ) : (
+        <button key={t.k} className={'tab' + (tab === t.k ? ' on' : '')} onClick={() => { tap(); onTab(t.k); }}>
+          <Icon n={t.i} /><span>{t.n}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function applyTheme(theme){
+  if (typeof document === 'undefined') return;
+  document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+  const meta = document.getElementById('metaTheme');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#0F0E15' : '#FAFAFC');
+}
+
+function App(){
+  const db = useDB();
+  const [tab, setTab] = useState('home');
+  const [stack, setStack] = useState([]);
+  const [date, setDate] = useState(() => iso(new Date()));
+  const [sheet, setSheet] = useState(null);
+  const scroller = useRef(null);
+  const page = stack[stack.length - 1] || null;
+
+  useEffect(() => { applyTheme(db.settings.theme); }, [db.settings.theme]);
+  useEffect(() => { if (scroller.current) scroller.current.scrollTop = 0; }, [tab, stack.length]);
+
+  const go = useCallback((route) => {
+    if (!route) return;
+    if (ROOT.includes(route.k)){
+      if (route.date) setDate(route.date);
+      setStack([]);
+      setTab(route.k);
+      return;
+    }
+    setStack(s => [...s, route]);
+  }, []);
+  const back = useCallback(() => setStack(s => s.slice(0, -1)), []);
+  const onTab = useCallback((k) => { setStack([]); setTab(k); }, []);
+
+  const openAppt = (init) => setSheet({k: 'appt', init});
+  const openClient = (init) => setSheet({k: 'client', init});
+
+  const plusPick = (k) => {
+    setSheet(null);
+    if (k === 'appt') return setSheet({k: 'appt', init: {date}});
+    if (k === 'client') return setSheet({k: 'client', init: null});
+    if (k === 'pay') return setSheet({k: 'pay'});
+    if (k === 'session'){
+      const now = new Date();
+      const live = runningAppt(db, now) || dayAppts(db, iso(now)).find(a => a.status === 'planned');
+      if (live) return go({k: 'session', id: live.id});
+      say('На сегодня записей нет — создайте запись');
+      return setSheet({k: 'appt', init: {date: iso(now)}});
+    }
+  };
+
+  let body;
+  if (page && page.k === 'client') body = <ClientPage db={db} id={page.id} go={go} back={back} openEdit={openClient} openAppt={openAppt} openNote={(id) => setSheet({k: 'note', id})} />;
+  else if (page && page.k === 'body') body = <BodyMap db={db} id={page.id} back={back} go={go} />;
+  else if (page && page.k === 'session') body = <SessionScreen db={db} id={page.id} back={back} go={go} />;
+  else if (page && page.k === 'appt') body = <ApptPage db={db} id={page.id} back={back} go={go} openEdit={openAppt} />;
+  else if (page && page.k === 'income') body = <Income db={db} back={back} />;
+  else if (page && page.k === 'analytics') body = <Analytics db={db} back={back} go={go} />;
+  else if (page && page.k === 'subs') body = <Subs db={db} back={back} go={go} client={page.client} openNew={(c) => setSheet({k: 'sub', client: c})} />;
+  else if (page && page.k === 'settings') body = <Settings db={db} back={back} go={go} openService={(sv) => setSheet({k: 'service', init: sv})} />;
+  else if (page && page.k === 'booking') body = <Booking db={db} back={back} openAppt={openAppt} />;
+  else if (page && page.k === 'notifs') body = <Notifs db={db} back={back} go={go} />;
+  else if (tab === 'clients') body = <Clients db={db} go={go} openNewClient={() => openClient(null)} />;
+  else if (tab === 'schedule') body = <Schedule db={db} go={go} date={date} setDate={setDate} openNew={(d) => openAppt({date: d})} />;
+  else if (tab === 'more') body = <More db={db} go={go} />;
+  else body = <Home db={db} go={go} today={iso(new Date())} />;
+
+  return (
+    <div className="stage">
+      <div className="phone">
+        <div className="scroll" ref={scroller}>{body}</div>
+
+        {tab === 'schedule' && !page ? (
+          <button className="fab" onClick={() => { tap(12); openAppt({date}); }} aria-label="Новая запись"><Icon n="plus" /></button>
+        ) : null}
+
+        <TabBar tab={tab} onTab={onTab} onPlus={() => setSheet({k: 'plus'})} />
+
+        <PlusSheet open={!!sheet && sheet.k === 'plus'} onClose={() => setSheet(null)} db={db} onPick={plusPick} />
+        <ApptForm open={!!sheet && sheet.k === 'appt'} onClose={() => setSheet(null)} db={db} init={sheet && sheet.init} />
+        <ClientForm open={!!sheet && sheet.k === 'client'} onClose={() => setSheet(null)} db={db} init={sheet && sheet.init} />
+        <ServiceForm open={!!sheet && sheet.k === 'service'} onClose={() => setSheet(null)} init={sheet && sheet.init} />
+        <SubForm open={!!sheet && sheet.k === 'sub'} onClose={() => setSheet(null)} db={db} client={sheet && sheet.client} />
+        <PayForm open={!!sheet && sheet.k === 'pay'} onClose={() => setSheet(null)} db={db} />
+        <NoteSheet open={!!sheet && sheet.k === 'note'} onClose={() => setSheet(null)} db={db} clientId={sheet && sheet.id} />
+        <ToastHost />
+      </div>
+    </div>
+  );
+}
+
+/* ── запуск ───────────────────────────────────────────────────────
+   Короткий скелет вместо белого экрана: за это время база читается с
+   диска, и приложение открывается уже с данными. */
+function Boot(){
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    Store.init();
+    applyTheme(Store.state.settings.theme);
+    const t = setTimeout(() => setReady(true), 420);
+    return () => clearTimeout(t);
+  }, []);
+  if (!ready) return (
+    <div className="stage"><div className="phone"><div className="scroll">
+      <div className="top">
+        <div style={{flex: 1}}>
+          <div className="sk line" style={{width: 110}} />
+          <div className="sk line" style={{width: 160, height: 24}} />
+        </div>
+        <div className="sk" style={{width: 44, height: 44, borderRadius: 22}} />
+      </div>
+      <Skeleton />
+    </div></div></div>
+  );
+  return <App />;
+}
+
+const root = typeof document !== 'undefined' ? document.getElementById('root') : null;
+if (root && typeof ReactDOM !== 'undefined' && ReactDOM.createRoot) ReactDOM.createRoot(root).render(<Boot />);
+</script>
+</body>
+</html>

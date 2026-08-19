@@ -1,0 +1,16 @@
+{
+  "name": "PRO MASSAGE — кабинет массажиста",
+  "short_name": "PRO MASSAGE",
+  "description": "Расписание, клиенты, карта тела, заметки, абонементы и доход массажиста в одном месте.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAFAFC",
+  "theme_color": "#FAFAFC",
+  "lang": "ru",
+  "icons": [
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"},
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable"}
+  ]
+}
