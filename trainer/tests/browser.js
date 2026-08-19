@@ -30,6 +30,9 @@ const PORT = 8771;
    сторінка має пережити недоступний банк. */
 process.env.LIQPAY_PUBLIC_KEY = process.env.LIQPAY_PUBLIC_KEY || 'test_public';
 process.env.LIQPAY_PRIVATE_KEY = process.env.LIQPAY_PRIVATE_KEY || 'test_private';
+/* Без пароля адмінка чесно каже «не налаштовано» і далі не пускає —
+   перевіряти було б нічого. */
+process.env.ADMIN_PASS = process.env.ADMIN_PASS || 'test_admin';
 const L = require('../api/_lib.js');
 
 /* Пошту звідси не відправити, та й не треба: перевіряємо не Resend, а
@@ -954,6 +957,65 @@ PROBES['start.js'] = `
   }, 300);
 `;
 
+/* ─── адмінка ───
+   Її не перевіряв ніхто: сторінка службова, і зламатись їй ніби нема на
+   чому. Виявилось, є. Меню на телефоні опинилось під затемненням —
+   відкриваєш, а прочитати не можеш і натиснути теж: затемнення лежало
+   зверху. Ані помилки в журналі, ані падіння перевірок — на око видно
+   тільки на самому телефоні.
+
+   Тому тут дивимось не на вигляд, а на те, що вирішує: у що влучає
+   палець там, де намальовано пункт меню. Заразом обходимо всі розділи —
+   помилка в будь-якому з них лишила б порожній екран замість сторінки. */
+PROBES['admin.js'] = `
+  var say = function(o){ var p = document.createElement('pre'); p.id = '__out'; p.textContent = JSON.stringify(o); document.body.appendChild(p); };
+  var errs = [];
+  window.addEventListener('error', function(e){ errs.push(String(e.message || e)); });
+  var res = {};
+  sessionStorage.setItem('protrainer.admin', '${process.env.ADMIN_PASS}');
+  pass = '${process.env.ADMIN_PASS}';
+  setTimeout(function(){ load().then(function(){ setTimeout(after, 300); }); }, 150);
+  function after(){
+    /* Меню виїжджає з-за краю за чверть секунди, і чекати його простим
+       таймером не можна: у headless віртуальний час біжить уперед сам по
+       собі, а рух малюється окремо — «зачекав 400 мс» тут означає
+       «зачекав нуль». Перевірка від цього то падала, то ні, і причина
+       була не в сторінці. Тому чекаємо не час, а сам факт приїзду. */
+    menu(true);
+    var tries = 0;
+    (function ride(){
+      var side = document.getElementById('side');
+      var item = side ? side.querySelector('.nav button') : null;
+      var box = item ? item.getBoundingClientRect() : null;
+      if (box && box.left >= 0) return measure(box);
+      if (++tries > 120) return measure(box);
+      requestAnimationFrame(ride);
+    })();
+  }
+  function measure(box){
+    var side = document.getElementById('side');
+    var item = side ? side.querySelector('.nav button') : null;
+    var hit = box ? document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2) : null;
+    res.opens = !!(side && /open/.test(side.className));
+    res.reaches = !!(hit && (hit === item || item.contains(hit)));
+    menu(false);
+    res.closes = getComputedStyle(document.getElementById('scrim')).display === 'none';
+
+    /* кожен розділ малюється й нічого не втрачає */
+    var pages = ['dash', 'people', 'care', 'chat', 'pays', 'subs', 'stats', 'events', 'setup'];
+    res.blank = [];
+    res.junk = [];
+    pages.forEach(function(p){
+      go(p);
+      var html = document.getElementById('root').innerHTML;
+      if (html.length < 2000) res.blank.push(p);
+      if (/undefined|NaN|\\[object Object\\]/.test(html)) res.junk.push(p);
+    });
+    res.errs = errs.join(' | ');
+    say(res);
+  }
+`;
+
 PROBES['app-mail.js'] = DRIVE + `
   (async function(){
     var res = {};
@@ -1816,6 +1878,20 @@ server.listen(PORT, '127.0.0.1', async () => {
       const ru = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/start.html?lang=ru&probe=start.js')) || '{}');
       ok('російська теж намальована', ru.steps === 3 && /С чего начать/.test(ru.title), ru.title);
       ok('мова передається далі в застосунок', ru.go === '/?lang=ru', ru.go);
+    }
+
+    part('адмінка');
+    {
+      const o = JSON.parse(out(await dom('http://127.0.0.1:' + PORT + '/admin.html?probe=admin.js')) || '{}');
+      ok('меню на телефоні відкривається', o.opens === true);
+      ok('  і палець доходить до пункту, а не до затемнення', o.reaches === true,
+         o.reaches ? 'пункт ловить дотик' : 'дотик перехоплює щось інше — меню під чужим шаром');
+      ok('  затемнення прибирається разом із меню', o.closes === true);
+      ok('усі розділи малюються', Array.isArray(o.blank) && !o.blank.length,
+         (o.blank || []).join(', ') || '9 розділів');
+      ok('порожніх значень на екрані немає', Array.isArray(o.junk) && !o.junk.length,
+         (o.junk || []).join(', ') || 'ні undefined, ні NaN');
+      ok('помилок немає', !o.errs, o.errs || '—');
     }
 
     part('сторінка після оплати');

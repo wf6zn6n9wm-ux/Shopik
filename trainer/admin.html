@@ -320,12 +320,10 @@
 </head>
 <body>
 <div id="root"></div>
-<div class="scrim" id="scrim"></div>
 
 <script>
 var KEY = 'protrainer.admin';
 var root = document.getElementById('root');
-var scrim = document.getElementById('scrim');
 var pass = sessionStorage.getItem(KEY) || '';
 
 /* Всё, что пришло с сервера, лежит здесь. Разделы переключаются без
@@ -569,16 +567,22 @@ function shell(inner){
         '</div>' +
       '</header>' +
       '<div class="body fade">' + inner + '</div>' +
-    '</div></div>';
+    '</div>' +
+    /* Затемнение живёт внутри .app вместе с меню. Снаружи оно оказалось
+       в другом слое: .app поднят над фоновыми пятнами, и всё, что внутри
+       него, тоже оставалось под затемнением — на телефоне открытое меню
+       уходило под серую пелену и его нельзя было прочитать. */
+    '<div class="scrim" id="scrim" onclick="menu(false)"></div>' +
+    '</div>';
 }
 
 function menu(open){
   var s = document.getElementById('side');
-  if (!s) return;
+  var sc = document.getElementById('scrim');
+  if (!s || !sc) return;
   s.classList.toggle('open', !!open);
-  scrim.classList.toggle('open', !!open);
+  sc.classList.toggle('open', !!open);
 }
-scrim.onclick = function(){ menu(false); };
 
 function go(page, arg){
   PAGE = page; ARG = arg === undefined ? null : arg;
