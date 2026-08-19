@@ -88,7 +88,9 @@
     --violet:#8465F0; --violet-2:#9B7CFF; --violet-3:#6D4EDB;
     --grad:linear-gradient(135deg,#5B3FD3 0%,#8465F0 100%);
     --violet-soft:#241F3D; --violet-soft-2:#2E2750; --violet-ink:#A98CFF;
-    --pa-clients:#2A2140; --pa-schedule:#33261E; --pa-income:#332B1B; --pa-analytics:#1E2438;
+    /* в темноте насыщенная пастель уходит в коричневое: берём тот же
+       оттенок, но приглушённый почти до нейтрального, а цвет отдаём иконке */
+    --pa-clients:#251E36; --pa-schedule:#2E2520; --pa-income:#2C2820; --pa-analytics:#1D2130;
     --pa-clients-ink:#C79BFF; --pa-schedule-ink:#FFA96B; --pa-income-ink:#F5C462; --pa-analytics-ink:#8FAEFF;
     --pos:#3ECF95; --neg:#F27272; --pos-soft:#163025; --neg-soft:#331E1E;
     --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.35);
@@ -1885,15 +1887,17 @@ function ApptRow({db, a, onClick, showDay}){
     <button className="row" onClick={() => { tap(); onClick && onClick(); }}>
       <Avatar name={c.name} src={c.avatar} size={42} />
       <div className="row-main">
-        <div className="row-t wrap" style={{fontSize: fit(c.name, 16)}}>
-          <span className="num" style={{marginRight: 8, color: done ? 'var(--ink-3)' : 'var(--violet-ink)'}}>
-            {showDay ? relDay(a.date) + ', ' : ''}{a.time}
-          </span>
-          {c.name}
+        <div style={{display: 'flex', alignItems: 'baseline', gap: 8}}>
+          <div className="row-t wrap" style={{fontSize: fit(c.name, 16), flex: 1}}>
+            <span className="num" style={{marginRight: 8, color: done ? 'var(--ink-3)' : 'var(--violet-ink)'}}>
+              {showDay ? relDay(a.date) + ', ' : ''}{a.time}
+            </span>
+            {c.name}
+          </div>
+          {done ? <span className="badge pos" style={{flex: '0 0 auto'}}>Проведён</span> : null}
         </div>
         <div className="row-s wrap">{serviceName(db, a.serviceId)} · {durLabel(a.dur)}</div>
       </div>
-      {done ? <span className="badge pos">Проведён</span> : null}
       <span className="chev"><Icon n="chev" s={18} /></span>
     </button>
   );
