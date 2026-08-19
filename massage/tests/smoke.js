@@ -89,11 +89,11 @@ const EXPORTS = `;globalThis.__T = {
   ZONES, TENSION, INTENSITY, PAY_KINDS, SUB_PLANS, SERVICE_SEED, CLIENT_SEED, zoneName, tensionOf,
   serviceById, clientById, clientName, serviceName,
   dayAppts, rangeAppts, clientAppts, nextAppt, minutesUntil, whenLabel, runningAppt, clientStats,
-  subOf, periodRange, income, growth, series, topServices, zoneLevels, zoneHistory, zoneTrend,
-  freeStarts, overlaps, notifications, aiNote, speechOk, runSeconds, applyTheme,
+  subOf, periodRange, prevRange, income, growth, series, topServices, zoneLevels, zoneHistory, zoneTrend,
+  freeStarts, overlaps, notifications, unreadCount, useSwipe, fit, aiNote, speechOk, runSeconds, applyTheme,
   Icon, Mark, Avatar, Sheet, TopBar, BackBtn, Field, Input, Seg, Chips, Tabs, Empty, Skeleton, Row,
   BodyFigure, TensionLegend, Bars, BarLabels, MiniCalendar, WeekStrip, Switch, ToastHost, Toaster, say,
-  Home, Schedule, Clients, ClientPage, BodyMap, SessionScreen, AiNoteBlock, NoteSheet,
+  Home, ApptRow, NOTE_TONE, Schedule, Clients, ClientPage, ClientProgress, ZoneSheet, BodyMap, SessionScreen, AiNoteBlock, NoteSheet,
   Income, Analytics, Subs, Settings, Booking, More, Notifs, ApptPage,
   ApptForm, ClientForm, ServiceForm, SubForm, PayForm, PlusSheet, TabBar, App, Boot,
   ZONE_SHAPES, TABS, ROOT,
@@ -190,6 +190,16 @@ ok('отменённые в доход не попадают',
 ok('средний чек = доход / сеансы', m.avg === Math.round(m.total / m.count));
 ok('рост считается от прошлого периода',
    T.growth(120, 100) === 20 && T.growth(100, 0) === 100 && T.growth(0, 0) === 0);
+ok('прошлый месяц берётся по тот же день, а не целиком', (() => {
+  const at = new Date(2026, 7, 19);
+  const [f, t] = T.prevRange('month', at);
+  return f === '2026-07-01' && t === '2026-07-19';
+})(), T.prevRange('month', new Date(2026, 7, 19)).join(' … '));
+ok('прошлая неделя обрезается по тот же день недели', (() => {
+  const at = new Date(2026, 7, 19);
+  const [f, t] = T.prevRange('week', at);
+  return T.daysBetween(f, t) === T.dowIdx(at);
+})());
 ok('график недели — семь столбиков', T.series(db, 'week').length === 7);
 ok('график месяцев — шесть столбиков', T.series(db, 'month').length === 6);
 ok('сумма недельного графика = доход недели', (() => {
@@ -402,10 +412,18 @@ part('тексты экранов');
      ['Клиенты', 'Расписание', 'Доход', 'Аналитика'].every(t => home.includes(t)));
   ok('на главной есть календарь и «Сегодня»', home.includes('Календарь') && home.includes('Сегодня'));
   const cl = textOf(T.ClientPage({db: d, id: 'cl_1', go: noop, back: noop, openEdit: noop, openAppt: noop, openNote: noop}));
-  ok('в карточке клиента три действия', ['Сообщение', 'Записать', 'Позвонить'].every(t => cl.includes(t)));
-  ok('в карточке клиента три вкладки', ['Информация', 'История', 'Заметки'].every(t => cl.includes(t)));
+  ok('в карточке клиента три быстрых действия', ['Записать', 'Начать сеанс', 'Написать'].every(t => cl.includes(t)));
+  ok('в карточке клиента четыре вкладки', ['Обзор', 'История', 'Заметки', 'Прогресс'].every(t => cl.includes(t)));
   ok('в карточке клиента видно абонемент и карту тела',
      cl.includes('Абонемент') && cl.includes('Карта тела'));
+  ok('видно, кто этот клиент и когда был', /Постоянный клиент|Ходит регулярно|Новый клиент/.test(cl) && cl.includes('Последний визит'));
+  const prog = textOf(T.ClientProgress({db: d, id: 'cl_1', onZone: noop}));
+  ok('на «Прогрессе» динамика зон и ритм визитов',
+     prog.includes('Зоны напряжения') && prog.includes('Ритм визитов'));
+  ok('динамика показывает, что стало лучше', /лучше/.test(prog));
+  const zs = textOf(T.ZoneSheet({open: true, onClose: noop, db: d, clientId: 'cl_1', zone: 'lower'}));
+  ok('карточка зоны: состояние, комментарий, история',
+     zs.includes('Поясница') && zs.includes('Комментарий') && zs.includes('История зоны'));
   const sc = textOf(T.Schedule({db: d, go: noop, date: today, setDate: noop, openNew: noop}));
   ok('в расписании видны имена клиентов дня',
      T.dayAppts(d, today).every(a => sc.includes(T.clientName(d, a.clientId))));
@@ -413,12 +431,54 @@ part('тексты экранов');
   ok('в доходе есть средний чек и сеансы', inc.includes('Средний чек') && inc.includes('Сеансов'));
   const more = T.More({db: d, go: noop});
   ok('сводка на «Ещё» разложена по плиткам', countClass(more, 'stat') === 3, countClass(more, 'stat') + ' шт.');
-  ok('на плитках месяц, сеансы и клиенты',
-     ['Месяц', 'Сеансов', 'Клиентов'].every(t => textOf(more).includes(t)));
+  ok('на плитках доход месяца, сеансы и клиенты',
+     ['Доход', 'Сеансов', 'Клиентов'].every(t => textOf(more).includes(t)) &&
+     textOf(more).includes(['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'][new Date().getMonth()]));
   const sb = T.Subs({db: d, back: noop, go: noop, openNew: noop});
   ok('сводка абонементов такими же плитками', countClass(sb, 'stat') === 2, countClass(sb, 'stat') + ' шт.');
   const bk = textOf(T.Booking({db: d, back: noop, openAppt: noop}));
-  ok('на странице записи есть услуги и кнопка', bk.includes('Услуги') && bk.includes('Записаться'));
+  ok('онлайн-запись ведёт клиента по шагам',
+     bk.includes('1 · Услуга') && bk.includes('Записаться') && bk.includes(d.pro.name));
+  ok('на странице записи видно рейтинг и услуги',
+     bk.includes(String(d.pro.rating)) && d.services.filter(x => x.on).every(x => bk.includes(x.name)));
+}
+
+part('уведомления: группы и прочитанность');
+{
+  T.Store.init(T.seedDB());
+  const list = T.notifications(T.Store.state, new Date());
+  ok('заявки попадают в «Сегодня»', list.filter(n => n.fresh).length >= 2);
+  ok('накопившееся уходит в «Ранее»', list.some(n => !n.fresh));
+  ok('сначала всё непрочитано', T.unreadCount(T.Store.state) === list.length);
+  T.Act.markSeen(list[0].id);
+  ok('прочитанное перестаёт считаться', T.unreadCount(T.Store.state) === list.length - 1);
+  T.Act.markSeen(list.map(n => n.id));
+  ok('«прочитать все» гасит счётчик', T.unreadCount(T.Store.state) === 0);
+  const scr = textOf(T.Notifs({db: T.Store.state, back: noop, go: noop}));
+  ok('на экране есть обе группы', scr.includes('Сегодня') && scr.includes('Ранее'));
+}
+
+part('длинные имена и услуги');
+{
+  ok('длинное имя уменьшает кегль, а не обрезается',
+     T.fit('Константин Дорошенко-Вишневецкий', 16) < 16 && T.fit('Мария Иванова', 16) === 16);
+  ok('кегль не падает ниже читаемого', T.fit('А'.repeat(80), 16) >= 12.5, String(T.fit('А'.repeat(80), 16)));
+
+  T.Store.init(T.seedDB());
+  const name = 'Александра Константинопольская-Вишневецкая';
+  T.Act.saveClient({name, phone: '+380 50 111 22 33', pref: 'sv_lymph'});
+  const c = S().clients.find(x => x.name === name);
+  T.Act.saveAppt({clientId: c.id, serviceId: 'sv_lymph', date: today, time: '08:00', dur: 60, price: 1400});
+  const d = S();
+  screen('Клиенты с длинным именем', () => T.Clients({db: d, go: noop, openNewClient: noop}));
+  screen('Расписание с длинным именем', () => T.Schedule({db: d, go: noop, date: today, setDate: noop, openNew: noop}));
+  const page = textOf(T.ClientPage({db: d, id: c.id, go: noop, back: noop, openEdit: noop, openAppt: noop, openNote: noop}));
+  ok('в карточке имя целиком, без многоточия', page.includes(name) && !page.includes('…'));
+  const sc = textOf(T.Schedule({db: d, go: noop, date: today, setDate: noop, openNew: noop}));
+  ok('в расписании имя и услуга целиком',
+     sc.includes(name) && sc.includes('Лимфодренажный массаж'));
+  const home = textOf(T.Home({db: d, go: noop, today}));
+  ok('на главной длинное имя тоже целиком', home.includes(name));
 }
 
 part('дизайн-система');
@@ -435,6 +495,11 @@ part('дизайн-система');
   ok('тёмная тема — свой набор значений, а не инверсия', has('html[data-theme="dark"]') && has('--bg:#0F0E15'));
   ok('уважается «меньше движения»', has('prefers-reduced-motion'));
   ok('нижняя навигация из пяти мест', T.TABS.length === 5 && T.TABS[2].k === 'plus');
+  ok('карточки держатся на границе, а не на тени', has('--shadow-sm:none'));
+  ok('крупные заголовки разделов', has('.sec h3{font-size:22px'));
+  ok('есть плоские списки без коробок', has('.rows.flat'));
+  ok('длинные строки переносятся, а не режутся', has('.row-t.wrap, .row-s.wrap'));
+  ok('есть «потянуть, чтобы обновить»', has('.pull{'));
   ok('скелет и пустые состояния описаны', has('.sk') && has('.empty'));
   ok('иконка и манифест на месте',
      fs.existsSync(path.join(ROOT, 'icon.svg')) && fs.existsSync(path.join(ROOT, 'manifest.webmanifest')));

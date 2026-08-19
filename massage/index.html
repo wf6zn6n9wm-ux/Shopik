@@ -68,10 +68,10 @@
     --pa-clients:#F4E8FF; --pa-schedule:#FFF0E5; --pa-income:#FFF3DF; --pa-analytics:#EAF0FF;
     --pa-clients-ink:#8B4FD6; --pa-schedule-ink:#E1793A; --pa-income-ink:#D9962A; --pa-analytics-ink:#4A6FD4;
     --pos:#22A06B; --neg:#DB4F4F; --pos-soft:#E7F6EF; --neg-soft:#FDECEC;
-    --shadow:0 1px 2px rgba(23,23,28,.04), 0 6px 20px rgba(23,23,28,.05);
-    --shadow-sm:0 1px 3px rgba(23,23,28,.05);
-    --shadow-lg:0 20px 48px rgba(23,23,28,.14);
-    --shadow-violet:0 8px 24px rgba(91,63,211,.28);
+    --shadow:0 1px 2px rgba(23,23,28,.03), 0 8px 24px rgba(23,23,28,.04);
+    --shadow-sm:none;
+    --shadow-lg:0 24px 56px rgba(23,23,28,.16);
+    --shadow-violet:0 12px 28px -10px rgba(91,63,211,.5);
     --scrim:rgba(23,23,28,.38);
     --skin:#F0E2DA;
   }
@@ -137,10 +137,10 @@
   .scroll{padding:0 var(--pad) calc(var(--tab-h) + 40px + var(--safe-bottom))}
 
   /* ── шапки ── */
-  .top{padding:calc(var(--safe-top) + 14px) 0 6px; display:flex; align-items:flex-start; gap:12px}
-  .top-title{font-size:26px; font-weight:700; letter-spacing:-.02em; line-height:1.2}
+  .top{padding:calc(var(--safe-top) + 16px) 0 10px; display:flex; align-items:flex-start; gap:12px}
+  .top-title{font-size:32px; font-weight:700; letter-spacing:-.025em; line-height:1.15}
   .hi{font-size:15px; color:var(--ink-2); font-weight:500}
-  .hi-name{font-size:26px; font-weight:700; letter-spacing:-.02em; margin-top:1px}
+  .hi-name{font-size:32px; font-weight:700; letter-spacing:-.025em; line-height:1.15; margin-top:2px}
   .top-bar{
     position:sticky; top:0; z-index:30; background:var(--bg);
     padding:calc(var(--safe-top) + 12px) var(--pad) 12px; margin:0 calc(var(--pad) * -1) 4px;
@@ -148,11 +148,11 @@
     transition:box-shadow var(--fast), border-color var(--fast);
   }
   .top-bar.stuck{border-bottom:1px solid var(--line)}
-  .top-bar h2{font-size:19px; font-weight:600; letter-spacing:-.01em; flex:1; text-align:center}
+  .top-bar h2{font-size:18px; font-weight:600; letter-spacing:-.015em; flex:1; text-align:center}
   .top-bar.left h2{text-align:left}
   .ico-btn{
-    width:40px; height:40px; border-radius:var(--r-pill); display:grid; place-items:center;
-    color:var(--ink); flex:0 0 40px; position:relative;
+    width:42px; height:42px; border-radius:var(--r-pill); display:grid; place-items:center;
+    color:var(--ink); flex:0 0 42px; position:relative;
     transition:background var(--fast), transform var(--fast);
   }
   .ico-btn:active{background:var(--card-3); transform:scale(.92)}
@@ -166,36 +166,45 @@
 
   /* ── карточки ── */
   .card{
-    background:var(--card); border-radius:var(--r-lg); box-shadow:var(--shadow-sm);
-    border:1px solid var(--line); margin-bottom:14px; overflow:hidden;
+    background:var(--card); border-radius:var(--r-lg); border:1px solid var(--line);
+    margin-bottom:14px; overflow:hidden;
   }
-  .card.pad{padding:16px}
-  .card-h{display:flex; align-items:center; gap:10px; padding:16px 16px 0}
-  .card-h h3{font-size:16px; font-weight:600; letter-spacing:-.01em; flex:1}
-  .card-h .side{font-size:13px; color:var(--ink-2); font-weight:500}
-  .sec{display:flex; align-items:baseline; gap:10px; margin:22px 0 12px}
-  .sec h3{font-size:17px; font-weight:600; letter-spacing:-.01em; flex:1}
-  .sec .side{font-size:13px; color:var(--ink-2); font-weight:500}
-  .hint{font-size:13px; color:var(--ink-2); line-height:1.5}
+  .card.pad{padding:18px}
+  .card.plain{background:transparent; border:0; border-radius:0; margin-bottom:0}
+  .card-h{display:flex; align-items:center; gap:10px; padding:18px 18px 0}
+  .card-h h3{font-size:18px; font-weight:600; letter-spacing:-.015em; flex:1}
+  .card-h .side{font-size:14px; color:var(--ink-2); font-weight:500}
+
+  /* Раздел — это воздух и заголовок, а не ещё одна коробка. Список под
+     ним живёт прямо на фоне: рамка нужна там, где содержимое правда
+     отделено от соседнего, а не вокруг каждой группы строк. */
+  .sec{display:flex; align-items:baseline; gap:10px; margin:28px 0 10px}
+  .sec h3{font-size:22px; font-weight:600; letter-spacing:-.02em; flex:1}
+  .sec .side{font-size:14px; color:var(--ink-2); font-weight:500}
+  .sec .link{font-size:14px}
+  .hint{font-size:14px; color:var(--ink-2); line-height:1.5}
 
   /* ── hero: следующий сеанс ── */
   .hero{
     display:block; width:100%; background:var(--grad); color:#fff; border-radius:var(--r-lg);
-    padding:18px; box-shadow:var(--shadow-violet); position:relative; overflow:hidden;
+    padding:16px 18px; box-shadow:var(--shadow-violet); position:relative; overflow:hidden;
     transition:transform var(--fast);
   }
   .hero:active{transform:scale(.985)}
+  /* один мягкий блик вместо декора: карточка должна читаться, а не блестеть */
   .hero::after{
-    content:''; position:absolute; right:-40px; top:-60px; width:180px; height:180px;
-    border-radius:50%; background:rgba(255,255,255,.08);
+    content:''; position:absolute; right:-70px; top:-90px; width:210px; height:210px;
+    border-radius:50%; background:rgba(255,255,255,.06);
   }
-  .hero-label{font-size:13px; opacity:.8; font-weight:500}
-  .hero-row{display:flex; align-items:center; gap:12px; margin-top:10px; position:relative}
-  .hero-bar{width:3px; align-self:stretch; border-radius:2px; background:rgba(255,255,255,.5)}
-  .hero-name{font-size:19px; font-weight:600; letter-spacing:-.01em}
-  .hero-when{font-size:13px; opacity:.85; margin-top:2px}
+  .hero-label{
+    font-size:11px; opacity:.75; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+  }
+  .hero-row{display:flex; align-items:center; gap:12px; margin-top:8px; position:relative}
+  .hero-bar{width:3px; align-self:stretch; border-radius:2px; background:rgba(255,255,255,.45)}
+  .hero-name{font-size:21px; font-weight:600; letter-spacing:-.02em; line-height:1.2}
+  .hero-when{font-size:14px; opacity:.9; margin-top:3px; line-height:1.35}
   .hero-arrow{
-    margin-left:auto; width:38px; height:38px; border-radius:var(--r-pill); flex:0 0 38px;
+    margin-left:auto; width:36px; height:36px; border-radius:var(--r-pill); flex:0 0 36px;
     background:rgba(255,255,255,.18); display:grid; place-items:center;
   }
   .hero-arrow svg{width:19px; height:19px}
@@ -213,10 +222,10 @@
   }
   .q:active{transform:scale(.94)}
   .q-tile{
-    width:100%; aspect-ratio:1/1; border-radius:var(--r-md); display:grid; place-items:center;
+    width:100%; aspect-ratio:1/.86; border-radius:var(--r-md); display:grid; place-items:center;
   }
-  .q-tile svg{width:24px; height:24px}
-  .q-name{font-size:12px; color:var(--ink-2); font-weight:500}
+  .q-tile svg{width:23px; height:23px}
+  .q-name{font-size:12.5px; color:var(--ink-2); font-weight:500}
 
   /* ── календарь ── */
   .cal-dow{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-top:12px}
@@ -251,20 +260,25 @@
   /* ── строки списков ── */
   .rows{display:flex; flex-direction:column}
   .row{
-    display:flex; align-items:center; gap:12px; padding:14px 16px; width:100%;
+    display:flex; align-items:center; gap:13px; padding:14px 18px; width:100%;
     border-top:1px solid var(--line); background:var(--card); transition:background var(--fast);
   }
   .rows .row:first-child{border-top:0}
   .row:active{background:var(--card-2)}
+  /* плоский список: те же строки, но прямо на фоне экрана */
+  .rows.flat .row{background:transparent; padding-left:0; padding-right:0}
+  .rows.flat .row:active{background:transparent; opacity:.55}
   .row-main{flex:1; min-width:0}
-  .row-t{font-size:15px; font-weight:600; letter-spacing:-.01em}
-  .row-s{font-size:13px; color:var(--ink-2); margin-top:2px}
-  .row-side{font-size:13px; color:var(--ink-2); text-align:right; white-space:nowrap}
+  .row-t{font-size:16px; font-weight:600; letter-spacing:-.015em; line-height:1.3}
+  .row-s{font-size:14px; color:var(--ink-2); margin-top:3px; line-height:1.35}
+  .row-side{font-size:14px; color:var(--ink-2); text-align:right; white-space:nowrap}
+  /* длинные имена и услуги переносим, а не рубим многоточием */
+  .row-t.wrap, .row-s.wrap{white-space:normal; overflow-wrap:anywhere; text-wrap:pretty}
   .chev{width:18px; height:18px; color:var(--ink-4); flex:0 0 18px}
-  .kv{display:flex; align-items:center; gap:12px; padding:14px 0; border-top:1px solid var(--line)}
+  .kv{display:flex; align-items:center; gap:14px; padding:13px 0; border-top:1px solid var(--line)}
   .kv:first-child{border-top:0}
   .kv-k{font-size:15px; color:var(--ink-2); flex:1}
-  .kv-v{font-size:15px; font-weight:600; text-align:right}
+  .kv-v{font-size:15px; font-weight:600; text-align:right; overflow-wrap:anywhere}
   .kv-v.acc{color:var(--violet-ink)}
 
   /* ── аватар ── */
@@ -290,9 +304,9 @@
     background:var(--violet); box-shadow:0 0 0 3px var(--bg);
   }
   .tl-card{
-    display:flex; align-items:center; gap:12px; padding:14px 14px; width:100%;
+    display:flex; align-items:center; gap:10px; padding:12px 13px; width:100%;
     background:var(--card); border:1px solid var(--line); border-radius:var(--r-md);
-    box-shadow:var(--shadow-sm); transition:transform var(--fast), background var(--fast);
+    transition:transform var(--fast), background var(--fast);
   }
   .tl-card:active{transform:scale(.99)}
   .tl-item.now .tl-time{color:var(--violet-ink)}
@@ -402,8 +416,9 @@
   select.inp{appearance:none; background-image:none}
   .chips{display:flex; flex-wrap:wrap; gap:8px}
   .chip{
-    padding:9px 14px; border-radius:var(--r-pill); background:var(--card-2); color:var(--ink-2);
+    min-height:42px; padding:0 15px; border-radius:var(--r-pill); background:var(--card-2); color:var(--ink-2);
     font-size:14px; font-weight:500; border:1px solid transparent; transition:all var(--fast);
+    display:inline-flex; align-items:center; gap:6px;
   }
   .chip:active{transform:scale(.96)}
   .chip.on{background:var(--violet-soft); color:var(--violet-ink); border-color:var(--violet-soft-2); font-weight:600}
@@ -415,7 +430,8 @@
   .seg button.on{background:var(--card); color:var(--ink); font-weight:600; box-shadow:var(--shadow-sm)}
   .tabs-line{display:flex; gap:26px; border-bottom:1px solid var(--line); margin:20px 0 4px}
   .tabs-line button{
-    padding:10px 0 12px; font-size:15px; font-weight:500; color:var(--ink-2); position:relative;
+    padding:12px 0 13px; font-size:15px; font-weight:500; color:var(--ink-2); position:relative;
+    min-height:44px;
   }
   .tabs-line button.on{color:var(--violet-ink); font-weight:600}
   .tabs-line button.on::after{
@@ -470,6 +486,21 @@
   .timer-n{font-size:52px; font-weight:600; letter-spacing:-.03em; font-variant-numeric:tabular-nums}
   .timer-s{font-size:14px; color:var(--ink-2); margin-top:2px}
 
+  /* ── сеанс завершён ── */
+  .done-ic{
+    width:92px; height:92px; border-radius:50%; background:var(--pos-soft); color:var(--pos);
+    display:grid; place-items:center; margin:0 auto 18px; animation:popIn .45s var(--ease) both;
+  }
+  .done-ic svg{width:44px; height:44px; stroke-width:2.4}
+  @keyframes popIn{0%{transform:scale(.6); opacity:0}60%{transform:scale(1.04)}100%{transform:scale(1); opacity:1}}
+  .next-opts{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
+  .next-opts button{
+    padding:14px 8px; border-radius:var(--r-md); background:var(--card-2); text-align:center;
+    font-size:14px; font-weight:600; transition:transform var(--fast), background var(--fast);
+  }
+  .next-opts button:active{transform:scale(.96)}
+  .next-opts button b{display:block; font-size:12px; font-weight:500; color:var(--ink-2); margin-top:3px}
+
   /* ── графики ── */
   .chart{width:100%; height:150px; display:block; overflow:visible}
   .chart .grid{stroke:var(--line); stroke-width:1}
@@ -481,6 +512,10 @@
   .stat-grid.three .stat{padding:12px}
   .stat-grid.three .stat-k{font-size:12px}
   .stat-grid.three .stat-v{font-size:18px; margin-top:2px}
+  /* главный показатель группы: та же плитка, но с акцентом */
+  .stat.acc{background:var(--violet-soft); border-color:transparent}
+  .stat.acc .stat-k{color:var(--violet-ink); opacity:.75}
+  .stat.acc .stat-v{color:var(--violet-ink)}
   /* подпись из двух слов переносится — значение всё равно должно стоять
      на одной линии с соседними плитками, поэтому прижимаем его книзу */
   .stat{
@@ -515,6 +550,16 @@
   .sk.line{height:12px; margin-bottom:8px}
   .sk.card{height:88px; border-radius:var(--r-lg); margin-bottom:14px}
   .sk.hero{height:112px; border-radius:var(--r-lg)}
+
+  /* ── потянуть, чтобы обновить ── */
+  .pull{
+    position:fixed; left:50%; transform:translateX(-50%); z-index:45;
+    width:36px; height:36px; border-radius:50%; background:var(--card); border:1px solid var(--line);
+    display:grid; place-items:center; color:var(--violet-ink); box-shadow:var(--shadow);
+    transition:background var(--fast), color var(--fast);
+  }
+  .pull svg{width:18px; height:18px}
+  .pull.go{background:var(--violet); color:#fff; border-color:transparent}
 
   /* ── тост ── */
   .toast{
@@ -585,7 +630,10 @@ const DOW = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 const DOW_FULL = ['понедельник','вторник','среда','четверг','пятница','суббота','воскресенье'];
 
 const dateLabel = (s) => { const d = fromIso(s); return d.getDate() + ' ' + MONTHS[d.getMonth()] + ', ' + DOW_FULL[dowIdx(d)]; };
-const dateShort = (s) => { const d = fromIso(s); return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); };
+const dateShort = (s, at) => {
+  const d = fromIso(s), now = at || new Date();
+  return d.getDate() + ' ' + MONTHS[d.getMonth()] + (d.getFullYear() === now.getFullYear() ? '' : ' ' + d.getFullYear());
+};
 const monthTitle = (d) => MONTHS_N[d.getMonth()] + ' ' + d.getFullYear();
 
 /* «Сегодня» и «Завтра» массажист читает быстрее даты — а дальше уже дата */
@@ -612,6 +660,15 @@ const NBSP = ' ', THIN = ' ';
 const money = (n) => '₴' + THIN + Math.round(n || 0).toLocaleString('ru-RU').replace(/ |,/g, NBSP);
 const durLabel = (m) => m + NBSP + 'мин';
 const initials = (name) => String(name || '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+
+/* «Дмитрий Кова…» и «Лимфодренажный масс…» — след того, что текст не
+   поместился. Сначала уменьшаем кегль в разумных пределах, дальше
+   строка переносится: обрезать имя клиента нельзя. */
+const fit = (text, base, at, min) => {
+  const n = String(text || '').length, from = at || 17, low = min || (base - 3.5);
+  if (n <= from) return base;
+  return Math.max(low, Math.round((base - (n - from) * 0.42) * 10) / 10);
+};
 const firstName = (name) => String(name || '').trim().split(/\s+/)[0] || '';
 
 const phoneMask = (v) => {
@@ -1035,8 +1092,9 @@ const Act = {
     Store.set(db => ({...db, notes: [{id: uid('nt'), date: iso(new Date()), zones: [], ...n}, ...db.notes]}));
   },
   delNote(id){ Store.set(db => ({...db, notes: db.notes.filter(n => n.id !== id)})); },
-  setMark(clientId, zone, level, date){
-    Store.set(db => ({...db, marks: [...db.marks, {id: uid('mk'), clientId, zone, level, date: date || iso(new Date())}]}));
+  setMark(clientId, zone, level, date, note){
+    Store.set(db => ({...db, marks: [...db.marks,
+      {id: uid('mk'), clientId, zone, level, date: date || iso(new Date()), note: note || ''}]}));
   },
   addSub(s){
     Store.set(db => ({...db, subs: [{id: uid('sb'), used: 0, created: iso(new Date()), ...s}, ...db.subs]}));
@@ -1053,6 +1111,14 @@ const Act = {
   },
   delService(id){ Store.set(db => ({...db, services: db.services.filter(s => s.id !== id)})); },
   setPro(patch){ Store.set(db => ({...db, pro: {...db.pro, ...patch}})); },
+  markSeen(ids){
+    const list = Array.isArray(ids) ? ids : [ids];
+    Store.set(db => {
+      const seen = {...(db.seen || {})};
+      list.forEach(id => { seen[id] = true; });
+      return {...db, seen};
+    });
+  },
   setSettings(patch){ Store.set(db => ({...db, settings: {...db.settings, ...patch}})); },
   reset(){ Disk.clear(); Store.init(seedDB()); },
   wipe(){ Disk.clear(); Store.init({...emptyDB(), clients: [], appts: []}); },
@@ -1133,6 +1199,25 @@ const periodRange = (kind, at) => {
   return [iso(new Date(now.getFullYear(), now.getMonth(), 1)), iso(new Date(now.getFullYear(), now.getMonth() + 1, 0))];
 };
 
+/* Прошлый период считаем по тому же куску времени: 19 августа против
+   полного июля — это не падение на 57%, а половина месяца против целого.
+   Сравниваем «столько же дней назад». */
+const prevRange = (kind, at) => {
+  const now = at || new Date();
+  if (kind === 'day') return [iso(addDays(now, -1)), iso(addDays(now, -1))];
+  if (kind === 'week'){
+    const s0 = addDays(startOfWeek(now), -7);
+    return [iso(s0), iso(addDays(s0, dowIdx(now)))];
+  }
+  if (kind === 'year'){
+    const y = now.getFullYear() - 1;
+    return [iso(new Date(y, 0, 1)), iso(new Date(y, now.getMonth(), now.getDate()))];
+  }
+  const p = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastDay = new Date(p.getFullYear(), p.getMonth() + 1, 0).getDate();
+  return [iso(p), iso(new Date(p.getFullYear(), p.getMonth(), Math.min(now.getDate(), lastDay)))];
+};
+
 /* деньги считаем только по проведённым: план — это ещё не доход */
 const income = (db, from, to) => {
   const rows = db.appts.filter(a => a.status === 'done' && a.date >= from && a.date <= to).sort(byTime);
@@ -1144,11 +1229,18 @@ const growth = (now, was) => (was ? Math.round(((now - was) / was) * 100) : now 
 /* столбики графика: 7 дней недели или 6 последних месяцев */
 const series = (db, kind, at) => {
   const now = at || new Date();
+  if (kind === 'year'){
+    return Array.from({length: 12}, (_, i) => {
+      const d = new Date(now.getFullYear(), i, 1);
+      const from = iso(d), to = iso(new Date(d.getFullYear(), i + 1, 0));
+      return {label: MONTHS_N[i].slice(0, 3), value: income(db, from, to).total, key: from, on: i === now.getMonth()};
+    });
+  }
   if (kind === 'month'){
     return Array.from({length: 6}, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
       const from = iso(d), to = iso(new Date(d.getFullYear(), d.getMonth() + 1, 0));
-      return {label: MONTHS_N[d.getMonth()].slice(0, 3), value: income(db, from, to).total, key: from};
+      return {label: MONTHS_N[d.getMonth()].slice(0, 3), value: income(db, from, to).total, key: from, on: i === 5};
     });
   }
   const s = startOfWeek(now);
@@ -1200,23 +1292,26 @@ const overlaps = (db, date, time, dur, skipId) => dayAppts(db, date)
   .some(a => a.id !== skipId && mins(time) < mins(a.time) + a.dur && mins(time) + dur > mins(a.time));
 
 /* что требует внимания: заявки, кончающиеся абонементы, забытые клиенты */
+/* «Сегодня» — то, что случилось сегодня и требует ответа сейчас
+   (заявки, ближайший сеанс). «Ранее» — накопившееся: абонемент на
+   исходе, забытый клиент. Прочитанность живёт в db.seen. */
 const notifications = (db, at) => {
   const now = at || new Date(), today = iso(now), out = [];
   db.appts.filter(a => a.status === 'pending').forEach(a => out.push({
-    id: 'n_' + a.id, kind: 'request', icon: 'globe',
+    id: 'n_' + a.id, kind: 'request', icon: 'globe', fresh: true,
     title: 'Заявка с онлайн-записи',
     text: clientName(db, a.clientId) + ' · ' + relDay(a.date, today) + ', ' + a.time,
     apptId: a.id, clientId: a.clientId,
   }));
   dayAppts(db, today).filter(a => a.status === 'planned' && minutesUntil(a, now) > 0 && minutesUntil(a, now) <= 120)
     .forEach(a => out.push({
-      id: 'n_' + a.id, kind: 'soon', icon: 'clock',
+      id: 'n_' + a.id, kind: 'soon', icon: 'clock', fresh: true,
       title: 'Скоро сеанс · через ' + minutesUntil(a, now) + ' мин',
       text: clientName(db, a.clientId) + ' · ' + a.time + ' · ' + serviceName(db, a.serviceId),
       apptId: a.id, clientId: a.clientId,
     }));
   db.subs.filter(s => s.total - s.used === 1).forEach(s => out.push({
-    id: 'n_' + s.id, kind: 'sub', icon: 'gift',
+    id: 'n_' + s.id, kind: 'sub', icon: 'gift', fresh: false,
     title: 'Абонемент заканчивается',
     text: clientName(db, s.clientId) + ' · остался 1 сеанс из ' + s.total,
     clientId: s.clientId,
@@ -1224,14 +1319,15 @@ const notifications = (db, at) => {
   db.clients.forEach(c => {
     const st = clientStats(db, c.id);
     if (st.total >= 3 && st.days !== null && st.days >= 45 && !st.next) out.push({
-      id: 'n_lost_' + c.id, kind: 'lost', icon: 'users',
+      id: 'n_lost_' + c.id, kind: 'lost', icon: 'users', fresh: false,
       title: 'Давно не приходил',
       text: c.name + ' · ' + st.days + ' ' + dayWord(st.days) + ' без сеанса',
       clientId: c.id,
     });
   });
-  return out;
+  return out.map(n => ({...n, seen: !!(db.seen || {})[n.id]}));
 };
+const unreadCount = (db, at) => notifications(db, at).filter(n => !n.seen).length;
 
 /* ───────────────────────── 7. AI-ЗАМЕТКА ─────────────────────────
    Массажист диктует как говорит: «работали с поясницей, напряжение
@@ -1330,6 +1426,28 @@ function useDictate(onText){
   }, [onText]);
   useEffect(() => stop, [stop]);
   return {rec, start, stop};
+}
+
+/* Листание дней пальцем. Жест считаем горизонтальным, только если он
+   заметно длиннее вертикального — иначе прокрутка страницы будет
+   случайно перелистывать дни. */
+function useSwipe(onLeft, onRight){
+  const from = useRef(null);
+  return {
+    onTouchStart: (e) => {
+      const t = e.touches && e.touches[0];
+      from.current = t ? {x: t.clientX, y: t.clientY} : null;
+    },
+    onTouchEnd: (e) => {
+      const s = from.current, t = e.changedTouches && e.changedTouches[0];
+      from.current = null;
+      if (!s || !t) return;
+      const dx = t.clientX - s.x, dy = t.clientY - s.y;
+      if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      tap(6);
+      if (dx < 0) onLeft(); else onRight();
+    },
+  };
 }
 
 /* секунды идут сами: экран сеанса должен тикать без нажатий */
@@ -1461,12 +1579,12 @@ const Skeleton = () => (
 );
 
 /* ── строка списка ── */
-const Row = ({onClick, left, title, sub, side, chevron, tone}) => (
+const Row = ({onClick, left, title, sub, side, chevron, tone, wrap}) => (
   <button className="row" onClick={onClick ? () => { tap(); onClick(); } : undefined} style={tone ? {background: tone} : null}>
     {left}
     <div className="row-main">
-      <div className="row-t cut">{title}</div>
-      {sub ? <div className="row-s cut">{sub}</div> : null}
+      <div className={'row-t ' + (wrap ? 'wrap' : 'cut')}>{title}</div>
+      {sub ? <div className={'row-s ' + (wrap ? 'wrap' : 'cut')}>{sub}</div> : null}
     </div>
     {side ? <div className="row-side">{side}</div> : null}
     {chevron === false ? null : <span className="chev"><Icon n="chev" s={18} /></span>}
@@ -1611,6 +1729,10 @@ function Home({db, go, today}){
   const running = runningAppt(db, now);
   const list = dayAppts(db, today).filter(a => a.status !== 'pending');
   const notes = notifications(db, now);
+  const day = income(db, today, today);
+  /* календарь по умолчанию — одна неделя: на главной важен ближайший
+     день, а не весь месяц. Месяц раскрывается по нажатию. */
+  const [wide, setWide] = useState(false);
   const [month, setMonth] = useState(() => fromIso(today));
   const busy = useMemo(() => {
     const map = {};
@@ -1618,6 +1740,15 @@ function Home({db, go, today}){
     return map;
   }, [db.appts]);
   useTick(true, 30000);
+
+  const hero = running ? {
+    label: 'Сеанс идёт сейчас', a: running, icon: 'play',
+    when: 'Осталось ' + Math.max(0, mins(running.time) + running.dur - nowMins(now)) + ' мин',
+    to: {k: 'session', id: running.id},
+  } : next ? {
+    label: 'Следующий сеанс', a: next, icon: 'arrow',
+    when: whenLabel(next, now), to: {k: 'appt', id: next.id},
+  } : null;
 
   return (
     <div className="screen">
@@ -1627,42 +1758,30 @@ function Home({db, go, today}){
           <div className="hi-name cut">{db.pro.name}</div>
         </div>
         <button className="ico-btn" onClick={() => go({k: 'notifs'})} aria-label="Уведомления">
-          <Icon n="bell" />{notes.length ? <i className="dot" /> : null}
+          <Icon n="bell" />{notes.some(n => !n.seen) ? <i className="dot" /> : null}
         </button>
         <button onClick={() => go({k: 'settings'})} aria-label="Профиль">
           <Avatar name={db.pro.name + ' ' + db.pro.last} src={db.pro.avatar} size={44} />
         </button>
       </div>
 
-      {running ? (
-        <button className="hero" onClick={() => go({k: 'session', id: running.id})} style={{marginTop: 14}}>
-          <div className="hero-label">Сеанс идёт сейчас</div>
+      {hero ? (
+        <button className="hero" onClick={() => go(hero.to)}>
+          <div className="hero-label">{hero.label}</div>
           <div className="hero-row">
             <div className="hero-bar" />
-            <div style={{minWidth: 0}}>
-              <div className="hero-name cut">{clientName(db, running.clientId)}</div>
-              <div className="hero-when cut">
-                {serviceName(db, running.serviceId)} · осталось {Math.max(0, mins(running.time) + running.dur - nowMins(now))} мин
+            <div style={{minWidth: 0, flex: 1}}>
+              <div className="hero-name" style={{fontSize: fit(clientName(db, hero.a.clientId), 21, 18, 17)}}>
+                {clientName(db, hero.a.clientId)}
               </div>
+              <div className="hero-when">{hero.when}</div>
+              <div className="hero-when">{serviceName(db, hero.a.serviceId)} · {durLabel(hero.a.dur)}</div>
             </div>
-            <span className="hero-arrow"><Icon n="play" s={19} /></span>
-          </div>
-        </button>
-      ) : next ? (
-        <button className="hero" onClick={() => go({k: 'appt', id: next.id})} style={{marginTop: 14}}>
-          <div className="hero-label">Следующий сеанс</div>
-          <div className="hero-row">
-            <div className="hero-bar" />
-            <div style={{minWidth: 0}}>
-              <div className="hero-name cut">{clientName(db, next.clientId)}</div>
-              <div className="hero-when cut">{whenLabel(next, now)}</div>
-              <div className="hero-when cut">{serviceName(db, next.serviceId)} · {durLabel(next.dur)}</div>
-            </div>
-            <span className="hero-arrow"><Icon n="arrow" s={19} /></span>
+            <span className="hero-arrow"><Icon n={hero.icon} s={18} /></span>
           </div>
         </button>
       ) : (
-        <div className="hero calm" style={{marginTop: 14}}>
+        <div className="hero calm">
           <div className="hero-label">Ближайших сеансов нет</div>
           <div className="hero-row">
             <div className="hero-bar" style={{background: 'var(--violet-soft-2)'}} />
@@ -1676,10 +1795,10 @@ function Home({db, go, today}){
 
       <div className="quick">
         {[
-          {k: 'clients',  n: 'Клиенты',   i: 'users',  bg: 'var(--pa-clients)',   c: 'var(--pa-clients-ink)'},
-          {k: 'schedule', n: 'Расписание', i: 'calendar', bg: 'var(--pa-schedule)', c: 'var(--pa-schedule-ink)'},
-          {k: 'income',   n: 'Доход',     i: 'wallet', bg: 'var(--pa-income)',    c: 'var(--pa-income-ink)'},
-          {k: 'analytics', n: 'Аналитика', i: 'chart', bg: 'var(--pa-analytics)', c: 'var(--pa-analytics-ink)'},
+          {k: 'clients',   n: 'Клиенты',   i: 'users',    bg: 'var(--pa-clients)',   c: 'var(--pa-clients-ink)'},
+          {k: 'schedule',  n: 'Расписание', i: 'calendar', bg: 'var(--pa-schedule)',  c: 'var(--pa-schedule-ink)'},
+          {k: 'income',    n: 'Доход',     i: 'wallet',   bg: 'var(--pa-income)',    c: 'var(--pa-income-ink)'},
+          {k: 'analytics', n: 'Аналитика', i: 'chart',    bg: 'var(--pa-analytics)', c: 'var(--pa-analytics-ink)'},
         ].map(q => (
           <button key={q.k} className="q" onClick={() => { tap(); go({k: q.k}); }}>
             <span className="q-tile" style={{background: q.bg, color: q.c}}><Icon n={q.i} /></span>
@@ -1688,62 +1807,106 @@ function Home({db, go, today}){
         ))}
       </div>
 
-      <div className="card" style={{marginTop: 20}}>
-        <div className="card-h">
-          <h3>Календарь</h3>
-          <button className="ico-btn" style={{width: 32, height: 32}} onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))} aria-label="Прошлый месяц">
-            <Icon n="back" s={17} />
-          </button>
-          <span className="side">{monthTitle(month)}</span>
-          <button className="ico-btn" style={{width: 32, height: 32}} onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))} aria-label="Следующий месяц">
-            <Icon n="chev" s={17} />
-          </button>
-        </div>
-        <div style={{padding: '4px 12px 14px'}}>
-          <MiniCalendar month={month} value={today} busy={busy} onPick={(d) => go({k: 'schedule', date: d})} />
-        </div>
+      <div className="sec">
+        <h3>Сегодня</h3>
+        <span className="side">
+          {list.length ? list.length + ' ' + sessWord(list.length) + (day.total ? ' · ' + money(day.total) : '') : ''}
+        </span>
       </div>
 
-      <div className="card">
-        <div className="card-h" style={{paddingBottom: 12}}>
-          <h3>Сегодня</h3>
-          <span className="side">{list.length} {sessWord(list.length)}</span>
-        </div>
-        {list.length ? (
-          <div className="rows">
-            {list.map(a => (
-              <Row key={a.id} onClick={() => go({k: 'appt', id: a.id})}
-                   left={<Avatar name={clientName(db, a.clientId)} size={40} />}
-                   title={<span><b className="num" style={{marginRight: 8}}>{a.time}</b>{clientName(db, a.clientId)}</span>}
-                   sub={serviceName(db, a.serviceId)}
-                   side={a.status === 'done' ? <span className="badge pos">Проведён</span> : durLabel(a.dur)} />
-            ))}
+      {list.length ? (
+        <Fragment>
+          <div className="rows flat">
+            {list.slice(0, 4).map(a => <ApptRow key={a.id} db={db} a={a} onClick={() => go({k: 'appt', id: a.id})} />)}
           </div>
-        ) : (
-          <div style={{padding: '4px 16px 20px'}}>
-            <div className="hint">Сегодня записей нет. Хороший день, чтобы позвать тех, кто давно не приходил.</div>
-          </div>
-        )}
-      </div>
+          {list.length > 4 ? (
+            <button className="btn sm ghost" style={{width: '100%', marginTop: 12}}
+                    onClick={() => go({k: 'schedule', date: today})}>
+              Ещё {list.length - 4} {sessWord(list.length - 4)}
+            </button>
+          ) : null}
+        </Fragment>
+      ) : (
+        <Empty icon="calendar" title="Сегодня свободный день"
+               text="Записей нет. Хороший момент позвать тех, кто давно не приходил."
+               action={<button className="btn pri" style={{maxWidth: 240, margin: '0 auto'}}
+                               onClick={() => go({k: 'clients'})}>Открыть клиентов</button>} />
+      )}
 
       {notes.length ? (
-        <div className="card">
-          <div className="card-h" style={{paddingBottom: 12}}>
+        <Fragment>
+          <div className="sec">
             <h3>Требует внимания</h3>
-            <span className="side">{notes.length}</span>
+            <button className="link" onClick={() => go({k: 'notifs'})}>Все {notes.length}</button>
           </div>
-          <div className="rows">
+          <div className="rows flat">
             {notes.slice(0, 3).map(n => (
-              <Row key={n.id} onClick={() => n.clientId ? go({k: 'client', id: n.clientId}) : null}
-                   left={<span className="q-tile" style={{width: 40, height: 40, borderRadius: 12, background: 'var(--violet-soft)', color: 'var(--violet-ink)'}}><Icon n={n.icon} s={19} /></span>}
-                   title={n.title} sub={n.text} />
+              <Row key={n.id} onClick={() => n.apptId ? go({k: 'appt', id: n.apptId}) : n.clientId ? go({k: 'client', id: n.clientId}) : null}
+                   left={<span className="q-tile" style={{width: 40, height: 40, aspectRatio: 'auto', borderRadius: 13, background: NOTE_TONE[n.kind].bg, color: NOTE_TONE[n.kind].c}}>
+                           <Icon n={n.icon} s={19} /></span>}
+                   title={n.title} sub={n.text} wrap />
             ))}
           </div>
-        </div>
+        </Fragment>
       ) : null}
+
+      <div className="sec">
+        <h3>Календарь</h3>
+        <button className="link" onClick={() => { tap(); setWide(v => !v); }}>
+          {wide ? 'Свернуть' : 'Весь месяц'}
+        </button>
+      </div>
+      <div className="card pad" style={{paddingTop: 12}}>
+        {wide ? (
+          <Fragment>
+            <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2}}>
+              <button className="ico-btn" style={{width: 32, height: 32}} aria-label="Прошлый месяц"
+                      onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}><Icon n="back" s={17} /></button>
+              <span style={{flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 600}}>{monthTitle(month)}</span>
+              <button className="ico-btn" style={{width: 32, height: 32}} aria-label="Следующий месяц"
+                      onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}><Icon n="chev" s={17} /></button>
+            </div>
+            <MiniCalendar month={month} value={today} busy={busy} onPick={(d) => go({k: 'schedule', date: d})} />
+          </Fragment>
+        ) : (
+          <WeekStrip value={today} busy={busy} onPick={(d) => go({k: 'schedule', date: d})} />
+        )}
+      </div>
     </div>
   );
 }
+
+/* Строка записи — одна и та же на главной, в расписании и в истории:
+   время, имя, услуга. Имя и услуга переносятся, а не обрезаются. */
+function ApptRow({db, a, onClick, showDay}){
+  const c = clientById(db, a.clientId) || {name: 'Клиент'};
+  const done = a.status === 'done';
+  return (
+    <button className="row" onClick={() => { tap(); onClick && onClick(); }}>
+      <Avatar name={c.name} src={c.avatar} size={42} />
+      <div className="row-main">
+        <div className="row-t wrap" style={{fontSize: fit(c.name, 16)}}>
+          <span className="num" style={{marginRight: 8, color: done ? 'var(--ink-3)' : 'var(--violet-ink)'}}>
+            {showDay ? relDay(a.date) + ', ' : ''}{a.time}
+          </span>
+          {c.name}
+        </div>
+        <div className="row-s wrap">{serviceName(db, a.serviceId)} · {durLabel(a.dur)}</div>
+      </div>
+      {done ? <span className="badge pos">Проведён</span> : null}
+      <span className="chev"><Icon n="chev" s={18} /></span>
+    </button>
+  );
+}
+
+/* Тон уведомления зависит от того, о чём оно: заявка — тёплая,
+   абонемент — фиолетовый, потерянный клиент — синий. */
+const NOTE_TONE = {
+  request: {bg: 'var(--pa-schedule)', c: 'var(--pa-schedule-ink)'},
+  soon:    {bg: 'var(--violet-soft)', c: 'var(--violet-ink)'},
+  sub:     {bg: 'var(--pa-clients)',  c: 'var(--pa-clients-ink)'},
+  lost:    {bg: 'var(--pa-analytics)', c: 'var(--pa-analytics-ink)'},
+};
 
 /* ───────────────────────── 10. РАСПИСАНИЕ ─────────────────────────
    День — главная единица работы: полоса недели сверху, лента сеансов
@@ -1758,31 +1921,34 @@ function Schedule({db, go, date, setDate, openNew}){
     db.appts.forEach(a => { if (a.status !== 'canceled') map[a.date] = true; });
     return map;
   }, [db.appts]);
+  const swipe = useSwipe(() => setDate(iso(addDays(fromIso(date), 1))), () => setDate(iso(addDays(fromIso(date), -1))));
 
   const pass = (a) => !filter || a.serviceId === filter;
   const day = dayAppts(db, date).filter(pass);
   const nextDate = iso(addDays(fromIso(date), 1));
   const nextDay = dayAppts(db, nextDate).filter(pass);
   const dayMoney = sum(day.filter(a => a.status === 'done'), a => a.price);
+  const free = freeStarts(db, date, 60).length;
   useTick(true, 30000);
 
   const item = (a) => {
     const t = mins(a.time);
     const live = a.date === iso(now) && t <= nowMins(now) && t + a.dur > nowMins(now);
     const past = a.date < iso(now) || (a.date === iso(now) && t + a.dur <= nowMins(now));
+    const c = clientById(db, a.clientId) || {name: 'Клиент'};
     return (
       <div key={a.id} className={'tl-item' + (live ? ' now' : '') + (past && a.status === 'done' ? ' done' : '') + (a.status === 'pending' ? ' off' : '')}>
         <span className="tl-time">{a.time}</span>
         <span className="tl-dot" style={a.status === 'pending' ? {background: 'var(--ink-4)'} : null} />
         <button className="tl-card" onClick={() => { tap(); go({k: 'appt', id: a.id}); }}>
           <div className="row-main">
-            <div className="row-t cut">{clientName(db, a.clientId)}</div>
-            <div className="row-s cut">
-              {serviceName(db, a.serviceId)}
-              {a.status === 'pending' ? ' · заявка' : ''}
-            </div>
+            <div className="row-t wrap" style={{fontSize: fit(c.name, 15.5, 18, 13.5)}}>{c.name}</div>
+            <div className="row-s wrap">{serviceName(db, a.serviceId)}</div>
           </div>
-          <div className="row-side">{durLabel(a.dur)}</div>
+          <div style={{textAlign: 'right', flex: '0 0 auto'}}>
+            <div className="row-side">{durLabel(a.dur)}</div>
+            {a.status === 'pending' ? <div style={{fontSize: 12, color: 'var(--pa-schedule-ink)', fontWeight: 600, marginTop: 2}}>заявка</div> : null}
+          </div>
           <span className="chev"><Icon n="chev" s={18} /></span>
         </button>
       </div>
@@ -1790,41 +1956,45 @@ function Schedule({db, go, date, setDate, openNew}){
   };
 
   return (
-    <div className="screen">
+    <div className="screen" {...swipe}>
       <TopBar title="Расписание"
         left={<button className="ico-btn" onClick={() => { tap(); setDate(iso(now)); }} aria-label="Сегодня"><Icon n="clock" /></button>}
         right={<button className="ico-btn" onClick={() => { tap(); setFOpen(true); }} aria-label="Фильтр">
           <Icon n="filter" />{filter ? <i className="dot" /> : null}
         </button>} />
 
+      <div style={{display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0 -2px'}}>
+        <button className="ico-btn" style={{width: 32, height: 32}} onClick={() => setDate(iso(addDays(fromIso(date), -7)))} aria-label="Прошлая неделя"><Icon n="back" s={17} /></button>
+        <div style={{flex: 1, textAlign: 'center', fontSize: 14, color: 'var(--ink-2)', fontWeight: 500}}>{monthTitle(fromIso(date))}</div>
+        <button className="ico-btn" style={{width: 32, height: 32}} onClick={() => setDate(iso(addDays(fromIso(date), 7)))} aria-label="Следующая неделя"><Icon n="chev" s={17} /></button>
+      </div>
       <WeekStrip value={date} busy={busy} onPick={setDate} />
 
-      <div style={{display: 'flex', alignItems: 'center', gap: 10, margin: '10px 0 4px'}}>
-        <button className="ico-btn" style={{width: 34, height: 34}} onClick={() => setDate(iso(addDays(fromIso(date), -7)))} aria-label="Прошлая неделя"><Icon n="back" s={18} /></button>
-        <div style={{flex: 1, textAlign: 'center', fontSize: 13, color: 'var(--ink-2)', fontWeight: 500}}>
-          {monthTitle(fromIso(date))}
-        </div>
-        <button className="ico-btn" style={{width: 34, height: 34}} onClick={() => setDate(iso(addDays(fromIso(date), 7)))} aria-label="Следующая неделя"><Icon n="chev" s={18} /></button>
-      </div>
-
-      <div className="day-h" style={{display: 'flex', alignItems: 'baseline', gap: 10}}>
-        <span style={{flex: 1}}>{dateLabel(date)}</span>
-        <span style={{fontSize: 13, color: 'var(--ink-2)', fontWeight: 500}}>
-          {day.length} {sessWord(day.length)}{dayMoney ? ' · ' + money(dayMoney) : ''}
+      <div className="sec" style={{margin: '16px 0 14px'}}>
+        <h3 style={{fontSize: 20}}>{dateLabel(date)}</h3>
+        <span className="side">
+          {day.length ? day.length + ' ' + sessWord(day.length) + (dayMoney ? ' · ' + money(dayMoney) : '') : free ? free + ' ' + plural(free, 'окно', 'окна', 'окон') : ''}
         </span>
       </div>
 
       {day.length ? <div className="tl">{day.map(item)}</div> : (
         <Empty icon="calendar" title="День свободен"
-               text={'На ' + dateLabel(date).split(',')[0] + ' записей нет. Можно поставить сеанс или отдохнуть.'}
-               action={<button className="btn pri" style={{maxWidth: 240, margin: '0 auto'}} onClick={() => openNew(date)}>Записать клиента</button>} />)}
+               text={free ? 'Записей нет — свободно ' + free + ' ' + plural(free, 'окно', 'окна', 'окон') + '. Можно поставить сеанс или отдохнуть.'
+                          : 'В этот день вы не работаете.'}
+               action={<button className="btn pri" style={{maxWidth: 240, margin: '0 auto'}} onClick={() => openNew(date)}>Записать клиента</button>} />
+      )}
 
       {nextDay.length ? (
         <Fragment>
-          <div className="day-h">{dateLabel(nextDate)}</div>
+          <div className="sec" style={{margin: '26px 0 14px'}}>
+            <h3 style={{fontSize: 20}}>{dateLabel(nextDate)}</h3>
+            <span className="side">{nextDay.length} {sessWord(nextDay.length)}</span>
+          </div>
           <div className="tl">{nextDay.map(item)}</div>
         </Fragment>
       ) : null}
+
+      <div className="hint" style={{textAlign: 'center', marginTop: 22}}>Листайте влево и вправо, чтобы менять день</div>
 
       <Sheet open={fOpen} onClose={() => setFOpen(false)} title="Фильтр" sub="Показывать сеансы по услуге">
         <Chips items={[{k: null, n: 'Все услуги'}].concat(db.services.map(s => ({k: s.id, n: s.name})))}
@@ -1865,30 +2035,35 @@ function Clients({db, go, openNewClient}){
       <Seg items={[{k: 'recent', n: 'Недавние'}, {k: 'abc', n: 'По алфавиту'}, {k: 'top', n: 'Частые'}]}
            value={sort} onChange={setSort} />
 
-      <div style={{height: 14}} />
       {rows.length ? (
-        <div className="card">
-          <div className="rows">
-            {rows.map(({c, st}) => {
-              const sub = st.next ? 'Записан · ' + relDay(st.next.date) + ', ' + st.next.time
-                : st.last ? 'Был ' + relDay(st.last.date).toLowerCase()
-                : 'Ещё не приходил';
-              return (
-                <Row key={c.id} onClick={() => go({k: 'client', id: c.id})}
-                     left={<Avatar name={c.name} src={c.avatar} size={44} />}
-                     title={c.name} sub={sub}
-                     side={<span className="num" style={{color: 'var(--ink-3)'}}>{st.total || ''}</span>} />
-              );
-            })}
+        <Fragment>
+          <div className="rows flat" style={{marginTop: 6}}>
+            {rows.map(({c, st}) => (
+              <button key={c.id} className="row" onClick={() => { tap(); go({k: 'client', id: c.id}); }}>
+                <Avatar name={c.name} src={c.avatar} size={46} />
+                <div className="row-main">
+                  <div className="row-t wrap" style={{fontSize: fit(c.name, 16)}}>{c.name}</div>
+                  <div className="row-s wrap">
+                    {st.next ? 'Записан · ' + relDay(st.next.date) + ', ' + st.next.time
+                      : st.last ? 'Был ' + relDay(st.last.date).toLowerCase()
+                      : 'Ещё не приходил'}
+                  </div>
+                  {st.total ? <div className="row-s" style={{color: 'var(--ink-3)'}}>{st.total} {sessWord(st.total)}</div> : null}
+                </div>
+                {st.next ? <i style={{width: 7, height: 7, borderRadius: 4, background: 'var(--violet)', flex: '0 0 7px'}} /> : null}
+                <span className="chev"><Icon n="chev" s={18} /></span>
+              </button>
+            ))}
           </div>
-        </div>
+          <div className="hint" style={{textAlign: 'center', marginTop: 18}}>
+            {db.clients.length} {plural(db.clients.length, 'клиент', 'клиента', 'клиентов')} в базе
+          </div>
+        </Fragment>
       ) : (
         <Empty icon="users" title={q ? 'Никого не нашли' : 'Клиентов пока нет'}
                text={q ? 'Проверьте имя или номер — возможно, клиент записан иначе.' : 'Добавьте первого клиента, и его история начнёт собираться сама.'}
-               action={<button className="btn pri" style={{maxWidth: 240, margin: '0 auto'}} onClick={openNewClient}>Новый клиент</button>} />
+               action={<button className="btn pri" style={{maxWidth: 240, margin: '0 auto'}} onClick={openNewClient}>Добавить клиента</button>} />
       )}
-      <div style={{height: 8}} />
-      <div className="hint" style={{textAlign: 'center'}}>{db.clients.length} {plural(db.clients.length, 'клиент', 'клиента', 'клиентов')} в базе</div>
     </div>
   );
 }
@@ -1900,14 +2075,26 @@ function Clients({db, go, openNewClient}){
 function ClientPage({db, id, go, back, openEdit, openAppt, openNote}){
   const c = clientById(db, id);
   const [tab, setTab] = useState('info');
+  const [zone, setZone] = useState(null);
   if (!c) return <Empty icon="users" title="Клиент не найден" action={<button className="btn" onClick={back}>Назад</button>} />;
 
   const st = clientStats(db, id);
   const sub = subOf(db, id);
   const notes = db.notes.filter(n => n.clientId === id);
   const levels = zoneLevels(db, id);
-  const hot = ZONES.filter(z => (levels[z.k] || 0) >= 2);
   const history = clientAppts(db, id).filter(a => a.status === 'done');
+  const phone = String(c.phone || '').replace(/\s/g, '');
+  /* «Постоянный» — это не про срок, а про то, вернулся ли человек:
+     после пятого сеанса клиент уже ходит, а не пробует */
+  const rank = st.total >= 10 ? 'Постоянный клиент' : st.total >= 5 ? 'Ходит регулярно'
+    : st.total >= 1 ? 'Новый клиент' : 'Ещё не приходил';
+
+  const startSession = () => {
+    const soon = st.next || clientAppts(db, id).filter(a => a.status === 'planned').sort(byTime)[0];
+    if (soon) return go({k: 'session', id: soon.id});
+    say('Нет запланированного сеанса — сначала запишите');
+    openAppt({clientId: c.id, serviceId: c.pref, date: iso(new Date())});
+  };
 
   return (
     <div className="screen">
@@ -1917,41 +2104,88 @@ function ClientPage({db, id, go, back, openEdit, openAppt, openNote}){
         <button className="link" onClick={() => { tap(); openEdit(c); }}>Редактировать</button>
       </div>
 
-      <div style={{display: 'flex', gap: 16, alignItems: 'center', padding: '8px 0 4px'}}>
-        <Avatar name={c.name} src={c.avatar} size={84} />
-        <div style={{minWidth: 0}}>
-          <h1 style={{fontSize: 24, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.15}}>{c.name}</h1>
-          <div style={{fontSize: 14, color: 'var(--ink-2)', marginTop: 6}}>{c.phone}</div>
-          <div style={{fontSize: 14, color: 'var(--ink-2)'}} className="cut">{c.email}</div>
+      <div style={{display: 'flex', gap: 16, alignItems: 'center', padding: '4px 0 2px'}}>
+        <Avatar name={c.name} src={c.avatar} size={78} />
+        <div style={{minWidth: 0, flex: 1}}>
+          <h1 style={{fontSize: fit(c.name, 26, 15, 20), fontWeight: 700, letterSpacing: '-.025em', lineHeight: 1.15,
+                      overflowWrap: 'anywhere'}}>{c.name}</h1>
+          <div style={{marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center'}}>
+            <span className="badge acc">{rank}</span>
+            {st.total ? <span style={{fontSize: 14, color: 'var(--ink-2)'}}>{st.total} {sessWord(st.total)}</span> : null}
+          </div>
         </div>
       </div>
 
+      <div style={{marginTop: 14, display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 14}}>
+        <span style={{color: 'var(--ink-2)'}}>
+          Последний визит<b style={{display: 'block', color: 'var(--ink)', fontWeight: 600, marginTop: 2}}>
+            {st.last ? relDay(st.last.date) + ', ' + st.last.time : '—'}
+          </b>
+        </span>
+        {st.next ? (
+          <span style={{color: 'var(--ink-2)'}}>
+            Следующий<b style={{display: 'block', color: 'var(--violet-ink)', fontWeight: 600, marginTop: 2}}>
+              {relDay(st.next.date) + ', ' + st.next.time}
+            </b>
+          </span>
+        ) : null}
+      </div>
+
       <div className="acts">
-        <a className="act" style={{background: 'var(--pa-clients)', color: 'var(--pa-clients-ink)'}}
-           href={'sms:' + String(c.phone || '').replace(/\s/g, '')} onClick={() => tap()}>
-          <Icon n="chat" />Сообщение
-        </a>
         <button className="act" style={{background: 'var(--pa-schedule)', color: 'var(--pa-schedule-ink)'}}
                 onClick={() => { tap(); openAppt({clientId: c.id, serviceId: c.pref}); }}>
           <Icon n="calendar" />Записать
         </button>
-        <a className="act" style={{background: 'var(--pa-analytics)', color: 'var(--pa-analytics-ink)'}}
-           href={'tel:' + String(c.phone || '').replace(/\s/g, '')} onClick={() => tap()}>
-          <Icon n="phone" />Позвонить
+        <button className="act" style={{background: 'var(--violet-soft)', color: 'var(--violet-ink)'}}
+                onClick={() => { tap(); startSession(); }}>
+          <Icon n="play" />Начать сеанс
+        </button>
+        <a className="act" style={{background: 'var(--pa-clients)', color: 'var(--pa-clients-ink)'}}
+           href={'sms:' + phone} onClick={() => tap()}>
+          <Icon n="chat" />Написать
         </a>
       </div>
 
-      <Tabs items={[{k: 'info', n: 'Информация'}, {k: 'history', n: 'История'}, {k: 'notes', n: 'Заметки'}]}
+      <Tabs items={[{k: 'info', n: 'Обзор'}, {k: 'history', n: 'История'}, {k: 'notes', n: 'Заметки'}, {k: 'progress', n: 'Прогресс'}]}
             value={tab} onChange={setTab} />
 
       {tab === 'info' ? (
         <div className="screen">
-          <div className="card pad" style={{marginTop: 14}}>
-            <div className="kv"><span className="kv-k">Предпочтительный массаж</span><span className="kv-v">{serviceName(db, st.top || c.pref)}</span></div>
+          <div className="sec"><h3>Карта тела</h3>
+            <button className="link" onClick={() => go({k: 'body', id: c.id})}>Открыть</button>
+          </div>
+          <div className="card pad">
+            <div style={{display: 'flex', gap: 18, alignItems: 'center'}}>
+              <BodyFigure levels={levels} small onPick={(k) => { setZone(k); }} />
+              <div style={{flex: 1, minWidth: 0}}>
+                {ZONES.filter(z => levels[z.k] !== undefined).slice(0, 5).map(z => {
+                  const t = tensionOf(levels[z.k]), tr = zoneTrend(db, c.id, z.k);
+                  return (
+                    <button key={z.k} onClick={() => { tap(); setZone(z.k); }}
+                            style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 11, width: '100%'}}>
+                      <i style={{width: 9, height: 9, borderRadius: 5, background: t.c, flex: '0 0 9px'}} />
+                      <span style={{fontSize: 14, flex: 1, textAlign: 'left'}}>{z.n}</span>
+                      <span style={{fontSize: 13, color: 'var(--ink-2)'}}>
+                        {t.short}{tr < 0 ? ' ↓' : tr > 0 ? ' ↑' : ''}
+                      </span>
+                    </button>
+                  );
+                })}
+                {!Object.keys(levels).length ? (
+                  <div className="hint">Зоны не отмечены. Нажмите на область фигуры — состояние сохранится в историю.</div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="sec"><h3>О клиенте</h3></div>
+          <div className="card pad">
+            <div className="kv"><span className="kv-k">Предпочитает</span><span className="kv-v">{serviceName(db, st.top || c.pref)}</span></div>
             <div className="kv"><span className="kv-k">Длительность сеанса</span><span className="kv-v">{st.dur} {plural(st.dur, 'минута', 'минуты', 'минут')}</span></div>
-            <div className="kv"><span className="kv-k">Последний сеанс</span><span className="kv-v">{st.last ? dateShort(st.last.date) : '—'}</span></div>
             <div className="kv"><span className="kv-k">Всего сеансов</span><span className="kv-v num">{st.total}</span></div>
             <div className="kv"><span className="kv-k">Оставил</span><span className="kv-v num">{money(st.spent)}</span></div>
+            <a className="kv" href={'tel:' + phone}><span className="kv-k">Телефон</span><span className="kv-v acc">{c.phone || '—'}</span></a>
+            {c.email ? <div className="kv"><span className="kv-k">Почта</span><span className="kv-v">{c.email}</span></div> : null}
             <button className="kv" style={{width: '100%'}} onClick={() => go({k: 'subs', client: c.id})}>
               <span className="kv-k">Абонемент</span>
               <span className="kv-v acc">{sub ? sub.used + ' из ' + sub.total + ' ' + sessWord(sub.total) : 'Оформить'}</span>
@@ -1960,110 +2194,243 @@ function ClientPage({db, id, go, back, openEdit, openAppt, openNote}){
 
           {c.note ? (
             <div className="card pad" style={{background: 'var(--violet-soft)', border: 0}}>
-              <div style={{fontSize: 13, fontWeight: 600, color: 'var(--violet-ink)', marginBottom: 4}}>Личное правило</div>
-              <div style={{fontSize: 14}}>{c.note}</div>
+              <div style={{fontSize: 13, fontWeight: 600, color: 'var(--violet-ink)', marginBottom: 5}}>Личное правило</div>
+              <div style={{fontSize: 15, lineHeight: 1.45}}>{c.note}</div>
             </div>
           ) : null}
 
-          <div className="card">
-            <div className="card-h"><h3>Карта тела</h3>
-              <button className="link" style={{fontSize: 14}} onClick={() => go({k: 'body', id: c.id})}>Открыть</button>
-            </div>
-            <div style={{display: 'flex', gap: 16, padding: '10px 16px 16px', alignItems: 'center'}}>
-              <BodyFigure levels={levels} small onPick={() => go({k: 'body', id: c.id})} />
-              <div style={{flex: 1, minWidth: 0}}>
-                {hot.length ? hot.slice(0, 4).map(z => {
-                  const t = tensionOf(levels[z.k]);
-                  const tr = zoneTrend(db, c.id, z.k);
-                  return (
-                    <div key={z.k} style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10}}>
-                      <i style={{width: 9, height: 9, borderRadius: 5, background: t.c, flex: '0 0 9px'}} />
-                      <span style={{fontSize: 14, flex: 1}}>{z.n}</span>
-                      <span className="badge" style={{background: 'transparent', color: 'var(--ink-2)', padding: 0}}>
-                        {t.short}{tr < 0 ? ' ↓' : tr > 0 ? ' ↑' : ''}
-                      </span>
-                    </div>
-                  );
-                }) : <div className="hint">Зоны напряжения не отмечены. Отметьте их после сеанса — прогресс будет виден на графике.</div>}
+          {history.length ? (
+            <Fragment>
+              <div className="sec"><h3>Последние сеансы</h3>
+                <button className="link" onClick={() => setTab('history')}>Все {history.length}</button>
               </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-h" style={{paddingBottom: 12}}><h3>История сеансов</h3>
-              <span className="side">{history.length}</span>
-            </div>
-            <div className="rows">
-              {history.slice(0, 3).map(a => (
-                <Row key={a.id} onClick={() => go({k: 'appt', id: a.id})}
-                     title={dateShort(a.date) + ', ' + a.time} sub={serviceName(db, a.serviceId)}
-                     side={durLabel(a.dur)} />
-              ))}
-              {!history.length ? <div style={{padding: 16}} className="hint">Сеансов ещё не было.</div> : null}
-            </div>
-            {history.length > 3 ? (
-              <button className="btn" style={{borderRadius: 0, height: 46, background: 'transparent', color: 'var(--violet-ink)', fontSize: 14, borderTop: '1px solid var(--line)'}}
-                      onClick={() => setTab('history')}>Показать все</button>
-            ) : null}
-          </div>
+              <div className="rows flat">
+                {history.slice(0, 3).map(a => <ApptRow key={a.id} db={db} a={a} showDay onClick={() => go({k: 'appt', id: a.id})} />)}
+              </div>
+            </Fragment>
+          ) : null}
         </div>
       ) : null}
 
       {tab === 'history' ? (
-        <div className="screen" style={{marginTop: 14}}>
+        <div className="screen" style={{marginTop: 6}}>
           {st.next ? (
-            <div className="card pad" style={{background: 'var(--violet-soft)', border: 0}}>
+            <div className="card pad" style={{background: 'var(--violet-soft)', border: 0, marginTop: 14}}>
               <div style={{fontSize: 13, color: 'var(--violet-ink)', fontWeight: 600}}>Ближайшая запись</div>
-              <div style={{fontSize: 16, fontWeight: 600, marginTop: 4}}>{whenLabel(st.next)}</div>
+              <div style={{fontSize: 17, fontWeight: 600, marginTop: 4}}>{whenLabel(st.next)}</div>
               <div style={{fontSize: 14, color: 'var(--ink-2)'}}>{serviceName(db, st.next.serviceId)} · {durLabel(st.next.dur)}</div>
             </div>
           ) : null}
-          {history.length ? (
-            <div className="card"><div className="rows">
-              {history.map(a => (
-                <Row key={a.id} onClick={() => go({k: 'appt', id: a.id})}
-                     title={dateShort(a.date) + ', ' + a.time}
-                     sub={serviceName(db, a.serviceId) + ' · ' + durLabel(a.dur)}
-                     side={a.pay === 'sub' ? <span className="badge acc">Абонемент</span> : money(a.price)} />
-              ))}
-            </div></div>
-          ) : <Empty icon="clock" title="История пустая" text="Проведите первый сеанс — он появится здесь." />}
+          {history.length ? history.map(a => {
+            const n = db.notes.find(x => x.apptId === a.id) || db.notes.find(x => x.clientId === id && x.date === a.date);
+            return (
+              <div className="card pad" key={a.id}>
+                <div style={{display: 'flex', alignItems: 'baseline', gap: 10}}>
+                  <span style={{fontSize: 16, fontWeight: 600, letterSpacing: '-.01em', flex: 1}}>{dateShort(a.date)}</span>
+                  <span style={{fontSize: 14, color: 'var(--ink-2)'}}>{a.time}</span>
+                </div>
+                <div style={{display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 6}}>
+                  <span style={{fontSize: 15, flex: 1, overflowWrap: 'anywhere'}}>{serviceName(db, a.serviceId)}</span>
+                  <span style={{fontSize: 14, color: 'var(--ink-2)'}}>{durLabel(a.dur)}</span>
+                  <b className="num" style={{fontSize: 15}}>{a.pay === 'sub' ? 'Абонемент' : money(a.price)}</b>
+                </div>
+                {n ? (
+                  <div style={{marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--line)'}}>
+                    {n.state ? <div style={{fontSize: 15, lineHeight: 1.45}}>{n.state}</div> : null}
+                    {n.zoneText || (n.zones || []).length ? (
+                      <div style={{fontSize: 14, color: 'var(--ink-2)', marginTop: 6}}>
+                        Зоны: {n.zoneText || n.zones.map(zoneName).join(', ')}
+                      </div>
+                    ) : null}
+                    {n.next ? <div style={{fontSize: 14, color: 'var(--violet-ink)', marginTop: 6, fontWeight: 500}}>{n.next}</div> : null}
+                  </div>
+                ) : null}
+              </div>
+            );
+          }) : <Empty icon="clock" title="История пустая" text="Проведите первый сеанс — он появится здесь." />}
         </div>
       ) : null}
 
       {tab === 'notes' ? (
-        <div className="screen" style={{marginTop: 14}}>
+        <div className="screen" style={{marginTop: 16}}>
           <button className="btn pri" onClick={() => { tap(); openNote(c.id); }}>
-            <Icon n="mic" />Надиктовать заметку
+            <Icon n="mic" />Диктовать заметку
           </button>
           <div style={{height: 14}} />
           {notes.length ? notes.map(n => (
             <div key={n.id} className="card pad">
               <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10}}>
-                <span style={{fontSize: 13, color: 'var(--ink-2)', flex: 1}}>{dateShort(n.date)}</span>
+                <span style={{fontSize: 14, color: 'var(--ink-2)', flex: 1}}>{dateShort(n.date)}</span>
                 {n.intensity ? <span className="badge">{(INTENSITY.find(i => i.k === n.intensity) || {}).n}</span> : null}
                 <button className="ico-btn" style={{width: 30, height: 30}} onClick={() => { tap(); Act.delNote(n.id); say('Заметка удалена'); }} aria-label="Удалить">
                   <Icon n="trash" s={16} />
                 </button>
               </div>
               {n.zones && n.zones.length ? (
-                <div className="kv" style={{padding: '8px 0'}}>
+                <div className="kv" style={{padding: '9px 0'}}>
                   <span className="kv-k">Зоны</span>
-                  <span className="kv-v" style={{maxWidth: '65%'}}>{n.zoneText || n.zones.map(zoneName).join(', ')}</span>
+                  <span className="kv-v" style={{maxWidth: '62%'}}>{n.zoneText || n.zones.map(zoneName).join(', ')}</span>
                 </div>
               ) : null}
-              {n.state ? <div className="kv" style={{padding: '8px 0'}}><span className="kv-k">Состояние</span><span className="kv-v" style={{maxWidth: '65%'}}>{n.state}</span></div> : null}
-              {n.react ? <div className="kv" style={{padding: '8px 0'}}><span className="kv-k">Реакция</span><span className="kv-v" style={{maxWidth: '65%'}}>{n.react}</span></div> : null}
-              {n.next ? <div className="kv" style={{padding: '8px 0'}}><span className="kv-k">Рекомендация</span><span className="kv-v acc" style={{maxWidth: '65%'}}>{n.next}</span></div> : null}
+              {n.state ? <div className="kv" style={{padding: '9px 0'}}><span className="kv-k">Состояние</span><span className="kv-v" style={{maxWidth: '62%'}}>{n.state}</span></div> : null}
+              {n.react ? <div className="kv" style={{padding: '9px 0'}}><span className="kv-k">Реакция</span><span className="kv-v" style={{maxWidth: '62%'}}>{n.react}</span></div> : null}
+              {n.next ? <div className="kv" style={{padding: '9px 0'}}><span className="kv-k">Рекомендация</span><span className="kv-v acc" style={{maxWidth: '62%'}}>{n.next}</span></div> : null}
               {n.raw ? <div className="hint" style={{marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)'}}>«{n.raw}»</div> : null}
             </div>
           )) : (
             <Empty icon="note" title="Заметок пока нет"
-                   text="После сеанса надиктуйте пару фраз — приложение само разложит их на зоны, состояние и рекомендацию." />
+                   text="После сеанса надиктуйте пару фраз — приложение разложит их на зоны, состояние и рекомендацию." />
           )}
         </div>
       ) : null}
+
+      {tab === 'progress' ? <ClientProgress db={db} id={id} onZone={setZone} /> : null}
+
+      <ZoneSheet key={zone || 'none'} open={!!zone} onClose={() => setZone(null)} db={db} clientId={id} zone={zone} />
     </div>
+  );
+}
+
+/* Прогресс — ответ на вопрос «стало ли человеку лучше»: динамика по
+   зонам, абонемент и ритм визитов. Всё считается из отметок и записей. */
+function ClientProgress({db, id, onZone}){
+  const st = clientStats(db, id);
+  const sub = subOf(db, id);
+  const now = new Date();
+  const marked = ZONES.filter(z => zoneHistory(db, id, z.k).length);
+  const months = Array.from({length: 6}, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+    const from = iso(d), to = iso(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+    return {
+      label: MONTHS_N[d.getMonth()].slice(0, 3), key: from,
+      value: clientAppts(db, id).filter(a => a.status === 'done' && a.date >= from && a.date <= to).length,
+      on: d.getMonth() === now.getMonth(),
+    };
+  });
+  const gap = (() => {
+    const done = clientAppts(db, id).filter(a => a.status === 'done').slice(0, 6);
+    if (done.length < 2) return null;
+    const days = done.slice(1).map((a, i) => daysBetween(a.date, done[i].date));
+    return Math.round(sum(days) / days.length);
+  })();
+
+  return (
+    <div className="screen" style={{marginTop: 6}}>
+      <div className="sec"><h3>Зоны напряжения</h3></div>
+      {marked.length ? (
+        <div className="card pad">
+          {marked.map(z => {
+            const h = zoneHistory(db, id, z.k);
+            const first = tensionOf(h[0].level), last = tensionOf(h[h.length - 1].level);
+            const diff = h[h.length - 1].level - h[0].level;
+            return (
+              <button key={z.k} className="kv" style={{width: '100%'}} onClick={() => { tap(); onZone && onZone(z.k); }}>
+                <span className="kv-k" style={{color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 10}}>
+                  <i style={{width: 9, height: 9, borderRadius: 5, background: last.c}} />{z.n}
+                </span>
+                <span style={{display: 'flex', alignItems: 'center', gap: 8, fontSize: 14}}>
+                  {h.length > 1 ? (
+                    <Fragment>
+                      <span style={{color: first.c}}>{first.short}</span>
+                      <span style={{color: 'var(--ink-3)'}}>→</span>
+                    </Fragment>
+                  ) : null}
+                  <b style={{color: last.c}}>{last.short}</b>
+                  {diff < 0 ? <span className="badge pos">лучше</span> : diff > 0 ? <span className="badge neg">хуже</span> : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="card pad"><div className="hint">Отметьте зоны на карте тела — здесь появится динамика от сеанса к сеансу.</div></div>
+      )}
+
+      <div className="sec"><h3>Ритм визитов</h3>
+        <span className="side">{gap ? 'в среднем раз в ' + gap + ' ' + dayWord(gap) : ''}</span>
+      </div>
+      <div className="card pad">
+        <Bars data={months} />
+        <BarLabels data={months} />
+        <div className="kv" style={{marginTop: 10}}>
+          <span className="kv-k">Сеансов всего</span><span className="kv-v num">{st.total}</span>
+        </div>
+        {st.days !== null ? (
+          <div className="kv"><span className="kv-k">С последнего визита</span>
+            <span className="kv-v num">{st.days} {dayWord(st.days)}</span></div>
+        ) : null}
+      </div>
+
+      {sub ? (
+        <Fragment>
+          <div className="sec"><h3>Абонемент</h3></div>
+          <div className="card pad">
+            <div style={{display: 'flex', alignItems: 'baseline', marginBottom: 10}}>
+              <span style={{fontSize: 15, flex: 1}}>{serviceName(db, sub.serviceId)}</span>
+              <b className="num" style={{fontSize: 17}}>{sub.used} / {sub.total}</b>
+            </div>
+            <div className="bar"><i style={{width: Math.round((sub.used / sub.total) * 100) + '%'}} /></div>
+            <div className="hint" style={{marginTop: 10}}>Осталось {sub.total - sub.used} {sessWord(sub.total - sub.used)}</div>
+          </div>
+        </Fragment>
+      ) : null}
+    </div>
+  );
+}
+
+/* Зона — маленький экран внутри карточки: состояние, комментарий и
+   история. Открывается нажатием на область фигуры. */
+function ZoneSheet({open, onClose, db, clientId, zone}){
+  const levels = zoneLevels(db, clientId);
+  const [lvl, setLvl] = useState(zone ? levels[zone] : undefined);
+  const [note, setNote] = useState('');
+  if (!open || !zone) return null;
+  const hist = zoneHistory(db, clientId, zone).slice().reverse();
+  const save = () => {
+    if (lvl === undefined) return say('Выберите состояние зоны');
+    Act.setMark(clientId, zone, lvl, null, note.trim());
+    tap(12);
+    say(zoneName(zone) + ' — ' + tensionOf(lvl).n.toLowerCase());
+    onClose();
+  };
+  return (
+    <Sheet open={open} onClose={onClose} wide title={zoneName(zone)} sub="Состояние зоны и что с ней делали">
+      <div className="tset" style={{marginTop: 0}}>
+        {TENSION.slice().reverse().map(t => (
+          <button key={t.k} className={lvl === t.k ? 'on' : ''}
+                  style={lvl === t.k ? {background: t.c + '22', borderColor: t.c} : null}
+                  onClick={() => { tap(); setLvl(t.k); }}>
+            <i style={{display: 'block', width: 10, height: 10, borderRadius: 5, background: t.c, margin: '0 auto 6px'}} />
+            {t.short}
+          </button>
+        ))}
+      </div>
+      <div style={{height: 16}} />
+      <Field label="Комментарий" hint="Например: спазм справа, работали мягко">
+        <textarea className="inp" style={{minHeight: 84}} value={note} onChange={e => setNote(e.target.value)}
+                  placeholder="Что заметили в этой зоне" />
+      </Field>
+      <button className="btn pri" onClick={save}>Сохранить состояние</button>
+
+      {hist.length ? (
+        <Fragment>
+          <div className="sec" style={{margin: '22px 0 8px'}}><h3 style={{fontSize: 17}}>История зоны</h3></div>
+          {hist.map(m => {
+            const t = tensionOf(m.level);
+            return (
+              <div key={m.id} style={{padding: '11px 0', borderTop: '1px solid var(--line)'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+                  <span style={{fontSize: 14, color: 'var(--ink-2)', flex: 1}}>{dateShort(m.date)}</span>
+                  <span style={{fontSize: 14, fontWeight: 600, color: t.c}}>{t.short}</span>
+                </div>
+                {m.note ? <div className="hint" style={{marginTop: 4}}>{m.note}</div> : null}
+              </div>
+            );
+          })}
+        </Fragment>
+      ) : null}
+      <div style={{height: 10}} />
+    </Sheet>
   );
 }
 
@@ -2190,7 +2557,7 @@ const runSeconds = (run, at) => {
   return run.paused ? Math.round(base) : Math.round(base + ((at || Date.now()) - run.at) / 1000);
 };
 
-function SessionScreen({db, id, back, go}){
+function SessionScreen({db, id, back, go, openAppt}){
   const a = db.appts.find(x => x.id === id);
   const run = db.run && db.run.apptId === id ? db.run : null;
   const [phase, setPhase] = useState('run');
@@ -2200,6 +2567,7 @@ function SessionScreen({db, id, back, go}){
   const [pay, setPay] = useState('cash');
   const [raw, setRaw] = useState('');
   const [note, setNote] = useState(null);
+  const [result, setResult] = useState(null);
   const dict = useDictate(setRaw);
   useTick(!!run && !run.paused, 1000);
 
@@ -2211,6 +2579,9 @@ function SessionScreen({db, id, back, go}){
   const left = total - spent;
   const ring = clamp(spent / total, 0, 1);
   const sub = subOf(db, a.clientId);
+  /* зоны, к которым массажист возвращается чаще всего — их отмечают
+     прямо во время сеанса, одним касанием, не отрываясь от работы */
+  const QUICK = ['neck', 'shoulders', 'back', 'lower', 'legs'];
 
   const parse = () => {
     const res = aiNote(raw);
@@ -2232,9 +2603,65 @@ function SessionScreen({db, id, back, go}){
     });
     Act.runStop();
     tap(20);
-    say('Сеанс завершён' + (pay === 'sub' && sub ? ' · списан 1 сеанс абонемента' : pay === 'sub' ? '' : ' · ' + money(a.price)));
+    setResult({
+      price: pay === 'sub' && sub ? 0 : a.price,
+      pay, dur: Math.max(1, Math.round(spent / 60)) ,
+      advice: note ? note.next : '',
+    });
+    setPhase('done');
+  };
+
+  /* следующий визит ставим на то же время; если оно занято — на
+     ближайшее свободное окно того дня */
+  const planNext = (days) => {
+    const date = iso(addDays(new Date(), days));
+    const time = overlaps(db, date, a.time, a.dur) ? (freeStarts(db, date, a.dur)[0] || a.time) : a.time;
+    Act.saveAppt({clientId: a.clientId, serviceId: a.serviceId, date, time, dur: a.dur, price: a.price});
+    tap(12);
+    say(firstName(c.name) + ' записан · ' + relDay(date).toLowerCase() + ', ' + time);
     go({k: 'client', id: a.clientId});
   };
+
+  if (phase === 'done') return (
+    <div className="screen">
+      <div className="top-bar left"><span style={{width: 40}} /><h2 style={{textAlign: 'left'}}>Сеанс завершён</h2></div>
+      <div style={{paddingTop: 18}}>
+        <div className="done-ic"><Icon n="check" /></div>
+        <h1 style={{fontSize: 24, fontWeight: 700, letterSpacing: '-.02em', textAlign: 'center'}}>
+          {firstName(c.name)} — готово
+        </h1>
+        <div style={{textAlign: 'center', color: 'var(--ink-2)', fontSize: 15, marginTop: 6}}>
+          {serviceName(db, a.serviceId)}
+        </div>
+      </div>
+
+      <div className="card pad" style={{marginTop: 22}}>
+        <div className="kv"><span className="kv-k">Стоимость</span>
+          <span className="kv-v num">{result.pay === 'sub' ? 'Списан абонемент' : money(result.price)}</span></div>
+        <div className="kv"><span className="kv-k">Длительность</span>
+          <span className="kv-v num">{durLabel(result.dur)}</span></div>
+        {zones.length ? <div className="kv"><span className="kv-k">Зоны</span>
+          <span className="kv-v" style={{maxWidth: '62%'}}>{zones.map(zoneName).join(', ')}</span></div> : null}
+        {result.advice ? <div className="kv"><span className="kv-k">Рекомендация</span>
+          <span className="kv-v acc" style={{maxWidth: '62%'}}>{result.advice}</span></div> : null}
+      </div>
+
+      <div className="sec"><h3>Запланировать следующий визит?</h3></div>
+      <div className="next-opts">
+        <button onClick={() => planNext(7)}>Через 7<b>дней</b></button>
+        <button onClick={() => planNext(14)}>Через 14<b>дней</b></button>
+        <button onClick={() => { tap(); openAppt ? openAppt({clientId: a.clientId, serviceId: a.serviceId, date: iso(addDays(new Date(), 7))}) : go({k: 'schedule'}); }}>
+          Выбрать<b>дату</b>
+        </button>
+      </div>
+
+      <div style={{height: 16}} />
+      <button className="btn ghost" onClick={() => go({k: 'client', id: a.clientId})}>Открыть карточку клиента</button>
+      <div style={{height: 10}} />
+      <button className="btn" onClick={() => go({k: 'home'})}>На главную</button>
+      <div style={{height: 12}} />
+    </div>
+  );
 
   if (phase === 'wrap') return (
     <div className="screen">
@@ -2243,18 +2670,16 @@ function SessionScreen({db, id, back, go}){
         <h2 style={{textAlign: 'left'}}>Как прошёл сеанс?</h2>
       </div>
 
-      <div className="card pad">
-        <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-          <Avatar name={c.name} src={c.avatar} size={46} />
-          <div style={{flex: 1, minWidth: 0}}>
-            <div className="row-t cut">{c.name}</div>
-            <div className="row-s">{serviceName(db, a.serviceId)} · {clock(spent)}</div>
-          </div>
+      <div style={{display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0 6px'}}>
+        <Avatar name={c.name} src={c.avatar} size={46} />
+        <div style={{flex: 1, minWidth: 0}}>
+          <div className="row-t wrap" style={{fontSize: fit(c.name, 16)}}>{c.name}</div>
+          <div className="row-s wrap">{serviceName(db, a.serviceId)} · {clock(spent)}</div>
         </div>
       </div>
 
+      <div className="sec"><h3>Зоны</h3><span className="side">{zones.length ? zones.length + ' выбрано' : 'что прорабатывали'}</span></div>
       <div className="card pad">
-        <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 10}}>Зоны, с которыми работали</h3>
         <Chips multi items={ZONES.map(z => ({k: z.k, n: z.n}))} value={zones} onChange={setZones} />
         {zones.length ? (
           <div style={{marginTop: 16}}>
@@ -2274,24 +2699,24 @@ function SessionScreen({db, id, back, go}){
         ) : null}
       </div>
 
-      <div className="card pad">
-        <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 10}}>Интенсивность</h3>
-        <Seg items={INTENSITY.map(i => ({k: i.k, n: i.n}))} value={intensity} onChange={setIntensity} />
-      </div>
+      <div className="sec"><h3>Интенсивность</h3></div>
+      <Seg items={INTENSITY.map(i => ({k: i.k, n: i.n}))} value={intensity} onChange={setIntensity} />
 
-      <AiNoteBlock raw={raw} setRaw={setRaw} note={note} setNote={setNote} dict={dict} onParse={parse} />
+      <div className="sec"><h3>Заметка</h3><span className="side">AI</span></div>
+      <AiNoteBlock raw={raw} setRaw={setRaw} note={note} setNote={setNote} dict={dict} onParse={parse} bare />
 
-      <div className="card pad">
-        <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 10}}>Оплата</h3>
-        <Seg items={PAY_KINDS.map(p => ({k: p.k, n: p.n}))} value={pay} onChange={setPay} />
-        <div className="kv" style={{marginTop: 12}}>
+      <div className="sec"><h3>Оплата</h3></div>
+      <Seg items={PAY_KINDS.map(p => ({k: p.k, n: p.n}))} value={pay} onChange={setPay} />
+      <div className="card pad" style={{marginTop: 12}}>
+        <div className="kv">
           <span className="kv-k">К оплате</span>
-          <span className="kv-v num">{pay === 'sub' && sub ? 'Абонемент · ' + (sub.total - sub.used - 1) + ' после списания' : money(a.price)}</span>
+          <span className="kv-v num">{pay === 'sub' && sub ? 'Абонемент · останется ' + (sub.total - sub.used - 1) : money(a.price)}</span>
         </div>
-        {pay === 'sub' && !sub ? <div className="hint" style={{color: 'var(--neg)'}}>У клиента нет активного абонемента — оплата запишется как наличные.</div> : null}
+        {pay === 'sub' && !sub ? <div className="hint" style={{color: 'var(--neg)', marginTop: 8}}>У клиента нет активного абонемента — запишем как наличные.</div> : null}
       </div>
 
-      <button className="btn pri" onClick={finish}><Icon n="check" />Сохранить и завершить</button>
+      <div style={{height: 18}} />
+      <button className="btn pri" onClick={finish}><Icon n="check" />Завершить сеанс</button>
       <div style={{height: 12}} />
     </div>
   );
@@ -2301,13 +2726,15 @@ function SessionScreen({db, id, back, go}){
       <div className="top-bar left">
         <BackBtn onClick={back} />
         <h2 style={{textAlign: 'left'}}>Сеанс</h2>
-        <button className="ico-btn" onClick={() => go({k: 'client', id: a.clientId})} aria-label="Клиент"><Icon n="users" /></button>
+        <button className="ico-btn" onClick={() => go({k: 'client', id: a.clientId})} aria-label="Карточка клиента"><Icon n="users" /></button>
       </div>
 
-      <div style={{textAlign: 'center', marginTop: 4}}>
-        <div style={{display: 'flex', justifyContent: 'center'}}><Avatar name={c.name} src={c.avatar} size={60} /></div>
-        <h1 style={{fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', marginTop: 10}}>{c.name}</h1>
-        <div style={{fontSize: 14, color: 'var(--ink-2)', marginTop: 2}}>
+      <div style={{textAlign: 'center', marginTop: 2}}>
+        <div style={{display: 'flex', justifyContent: 'center'}}><Avatar name={c.name} src={c.avatar} size={58} /></div>
+        <h1 style={{fontSize: fit(c.name, 24, 16, 19), fontWeight: 700, letterSpacing: '-.02em', marginTop: 10, overflowWrap: 'anywhere'}}>
+          {c.name}
+        </h1>
+        <div style={{fontSize: 15, color: 'var(--ink-2)', marginTop: 2}}>
           {serviceName(db, a.serviceId)} · {durLabel(a.dur)}
         </div>
       </div>
@@ -2315,9 +2742,11 @@ function SessionScreen({db, id, back, go}){
       <div className="timer-wrap">
         <svg className="timer-svg" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="44" stroke="var(--card-3)" strokeWidth="7" />
-          <circle cx="50" cy="50" r="44" stroke="url(#gr)" strokeWidth="7"
-                  strokeDasharray={2 * Math.PI * 44}
-                  strokeDashoffset={2 * Math.PI * 44 * (1 - ring)} />
+          {ring > 0 ? (
+            <circle cx="50" cy="50" r="44" stroke="url(#gr)" strokeWidth="7"
+                    strokeDasharray={2 * Math.PI * 44}
+                    strokeDashoffset={2 * Math.PI * 44 * (1 - ring)} />
+          ) : null}
           <defs>
             <linearGradient id="gr" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#5B3FD3" /><stop offset="100%" stopColor="#7448E8" />
@@ -2334,16 +2763,41 @@ function SessionScreen({db, id, back, go}){
         </div>
       </div>
 
-      <div style={{height: 12}} />
       {!run ? (
         <button className="btn pri" onClick={() => { tap(14); Act.runStart(a.id); }}><Icon n="play" />Начать сеанс</button>
       ) : (
-        <div className="btns">
-          <button className="btn" onClick={() => { tap(); run.paused ? Act.runResume() : Act.runPause(); }}>
-            <Icon n={run.paused ? 'play' : 'pause'} />{run.paused ? 'Продолжить' : 'Пауза'}
+        <Fragment>
+          <div className="sec" style={{marginTop: 18}}><h3>Зоны</h3>
+            <span className="side">{zones.length ? zones.map(zoneName).join(', ') : 'отметьте по ходу'}</span>
+          </div>
+          <div className="chips">
+            {QUICK.map(k => (
+              <button key={k} className={'chip' + (zones.includes(k) ? ' on' : '')}
+                      onClick={() => { tap(); setZones(z => z.includes(k) ? z.filter(x => x !== k) : [...z, k]); }}>
+                {zoneName(k)}
+              </button>
+            ))}
+          </div>
+
+          <button className={'btn ' + (dict.rec ? 'dan' : 'soft')} style={{marginTop: 14}}
+                  onClick={() => {
+                    tap(12);
+                    if (dict.rec) return dict.stop();
+                    if (!speechOk()) { setPhase('wrap'); return say('Браузер не распознаёт речь — наберите заметку'); }
+                    dict.start();
+                  }}>
+            {dict.rec ? <Fragment><i className="rec-dot" />Идёт запись — нажмите, чтобы остановить</Fragment>
+                      : <Fragment><Icon n="mic" />Диктовать заметку</Fragment>}
           </button>
-          <button className="btn pri" onClick={() => { tap(14); setPhase('wrap'); }}><Icon n="check" />Завершить</button>
-        </div>
+          {raw ? <div className="hint" style={{marginTop: 8}}>«{raw}»</div> : null}
+
+          <div className="btns" style={{marginTop: 16}}>
+            <button className="btn" onClick={() => { tap(); run.paused ? Act.runResume() : Act.runPause(); }}>
+              <Icon n={run.paused ? 'play' : 'pause'} />{run.paused ? 'Продолжить' : 'Пауза'}
+            </button>
+            <button className="btn pri" onClick={() => { tap(14); setPhase('wrap'); }}><Icon n="check" />Завершить</button>
+          </div>
+        </Fragment>
       )}
 
       <div className="card pad" style={{marginTop: 18}}>
@@ -2355,7 +2809,7 @@ function SessionScreen({db, id, back, go}){
       {db.notes.filter(n => n.clientId === a.clientId).slice(0, 1).map(n => (
         <div className="card pad" key={n.id}>
           <div style={{fontSize: 13, color: 'var(--ink-2)', marginBottom: 6}}>Прошлый раз · {dateShort(n.date)}</div>
-          <div style={{fontSize: 14}}>{n.state}</div>
+          <div style={{fontSize: 15}}>{n.state}</div>
           {n.next ? <div style={{fontSize: 14, color: 'var(--violet-ink)', marginTop: 6, fontWeight: 500}}>{n.next}</div> : null}
         </div>
       ))}
@@ -2366,14 +2820,16 @@ function SessionScreen({db, id, back, go}){
 /* ── AI-заметка: диктовка и разбор ───────────────────────────────
    Голос → текст → структура. Разбор идёт на устройстве, поэтому
    работает без сети; результат правится руками. */
-function AiNoteBlock({raw, setRaw, note, setNote, dict, onParse, compact}){
+function AiNoteBlock({raw, setRaw, note, setNote, dict, onParse, compact, bare}){
   const canSpeak = speechOk();
   return (
     <div className="card pad">
-      <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12}}>
-        <h3 style={{fontSize: 16, fontWeight: 600, flex: 1}}>Заметка после сеанса</h3>
-        <span className="badge acc"><Icon n="spark" s={13} />AI</span>
-      </div>
+      {bare ? null : (
+        <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12}}>
+          <h3 style={{fontSize: 17, fontWeight: 600, flex: 1}}>Заметка после сеанса</h3>
+          <span className="badge acc"><Icon n="spark" s={13} />AI</span>
+        </div>
+      )}
 
       <button className={'btn ' + (dict.rec ? 'dan' : 'soft')} style={{height: 58}}
               onClick={() => {
@@ -2453,31 +2909,27 @@ function Income({db, back}){
   const now = new Date();
   const [from, to] = periodRange(period, now);
   const cur = income(db, from, to);
-  const prevFrom = period === 'day' ? iso(addDays(now, -1))
-    : period === 'week' ? iso(addDays(fromIso(from), -7))
-    : iso(new Date(now.getFullYear(), now.getMonth() - 1, 1));
-  const prevTo = period === 'day' ? iso(addDays(now, -1))
-    : period === 'week' ? iso(addDays(fromIso(to), -7))
-    : iso(new Date(now.getFullYear(), now.getMonth(), 0));
-  const prev = income(db, prevFrom, prevTo);
+  const prev = income(db, ...prevRange(period, now));
   const g = growth(cur.total, prev.total);
 
-  const week = income(db, ...periodRange('week', now));
-  const month = income(db, ...periodRange('month', now));
-  const chart = series(db, period === 'month' ? 'month' : 'week', now);
+  const chart = series(db, period === 'year' ? 'year' : period === 'month' ? 'month' : 'week', now);
   const [pick, setPick] = useState(undefined);
   const tops = topServices(db, from, to);
+  const cash = sum(cur.rows.filter(a => a.pay === 'cash'), a => a.price);
+  const card = sum(cur.rows.filter(a => a.pay === 'card'), a => a.price);
+  const bySub = cur.rows.filter(a => a.pay === 'sub').length;
+  const title = {day: 'Сегодня', week: 'Эта неделя', month: 'Этот месяц', year: 'Этот год'}[period];
 
   return (
     <div className="screen">
       <div className="top-bar left"><BackBtn onClick={back} /><h2 style={{textAlign: 'left'}}>Доход</h2></div>
 
-      <Seg items={[{k: 'day', n: 'Сегодня'}, {k: 'week', n: 'Неделя'}, {k: 'month', n: 'Месяц'}]}
+      <Seg items={[{k: 'day', n: 'День'}, {k: 'week', n: 'Неделя'}, {k: 'month', n: 'Месяц'}, {k: 'year', n: 'Год'}]}
            value={period} onChange={(k) => { setPeriod(k); setPick(undefined); }} />
-      <div style={{height: 14}} />
+      <div style={{height: 16}} />
 
       <div className="money-hero">
-        <div className="k">{period === 'day' ? 'Сегодня' : period === 'week' ? 'Эта неделя' : 'Этот месяц'}</div>
+        <div className="k">{title}</div>
         <div className="v">{money(cur.total)}</div>
         <div className="r">
           <div>Сеансов<b className="num">{cur.count}</b></div>
@@ -2486,43 +2938,50 @@ function Income({db, back}){
         </div>
       </div>
 
-      <div className="card pad" style={{marginTop: 14}}>
-        <div style={{display: 'flex', alignItems: 'baseline', marginBottom: 12}}>
-          <h3 style={{fontSize: 16, fontWeight: 600, flex: 1}}>{period === 'month' ? 'Полгода' : 'По дням недели'}</h3>
-          <span style={{fontSize: 13, color: 'var(--ink-2)'}}>
-            {pick !== undefined ? money(chart[pick].value) : money(sum(chart, d => d.value))}
-          </span>
-        </div>
-        <Bars data={chart} active={pick} onPick={setPick} />
-        <BarLabels data={chart} active={pick} />
-      </div>
+      {cur.count ? (
+        <Fragment>
+          <div className="sec"><h3>{period === 'year' ? 'По месяцам' : period === 'month' ? 'Полгода' : 'По дням недели'}</h3>
+            <span className="side">{pick !== undefined ? money(chart[pick].value) : money(sum(chart, d => d.value))}</span>
+          </div>
+          <div className="card pad">
+            <Bars data={chart} active={pick} onPick={setPick} />
+            <BarLabels data={chart} active={pick} />
+          </div>
 
-      <div className="stat-grid">
-        <div className="stat"><div className="stat-k">Неделя</div><div className="stat-v">{money(week.total)}</div></div>
-        <div className="stat"><div className="stat-k">Месяц</div><div className="stat-v">{money(month.total)}</div></div>
-      </div>
+          <div className="sec"><h3>Чем платили</h3></div>
+          <div className="stat-grid three">
+            <div className="stat"><div className="stat-k">Наличные</div><div className="stat-v">{money(cash)}</div></div>
+            <div className="stat"><div className="stat-k">Карта</div><div className="stat-v">{money(card)}</div></div>
+            <div className="stat"><div className="stat-k">Абонемент</div><div className="stat-v">{bySub}</div></div>
+          </div>
 
-      <div className="sec"><h3>Услуги за период</h3></div>
-      {tops.length ? (
-        <div className="card"><div className="rows">
-          {tops.map(s => (
-            <Row key={s.id} chevron={false} title={serviceName(db, s.id)}
-                 sub={s.n + ' ' + sessWord(s.n)} side={<b className="num">{money(s.total)}</b>} />
-          ))}
-        </div></div>
-      ) : <div className="card pad"><div className="hint">За период сеансов не было.</div></div>}
+          <div className="sec"><h3>Услуги за период</h3></div>
+          <div className="rows flat">
+            {tops.map(sv => (
+              <Row key={sv.id} chevron={false} wrap title={serviceName(db, sv.id)}
+                   sub={sv.n + ' ' + sessWord(sv.n)} side={<b className="num">{money(sv.total)}</b>} />
+            ))}
+          </div>
 
-      <div className="sec"><h3>Оплаты</h3><span className="side">{cur.count}</span></div>
-      {cur.rows.length ? (
-        <div className="card"><div className="rows">
-          {cur.rows.slice().reverse().slice(0, 30).map(a => (
-            <Row key={a.id} chevron={false} left={<Avatar name={clientName(db, a.clientId)} size={38} />}
-                 title={clientName(db, a.clientId)}
-                 sub={relDay(a.date) + ', ' + a.time + ' · ' + serviceName(db, a.serviceId)}
-                 side={a.pay === 'sub' ? <span className="badge acc">Абонемент</span> : <b className="num">{money(a.price)}</b>} />
-          ))}
-        </div></div>
-      ) : <div className="card pad"><div className="hint">Оплат за период нет.</div></div>}
+          <div className="sec"><h3>Оплаты</h3><span className="side">{cur.count}</span></div>
+          <div className="rows flat">
+            {cur.rows.slice().reverse().slice(0, 30).map(a => (
+              <button key={a.id} className="row" onClick={() => tap()}>
+                <Avatar name={clientName(db, a.clientId)} size={40} />
+                <div className="row-main">
+                  <div className="row-t wrap" style={{fontSize: fit(clientName(db, a.clientId), 15.5)}}>{clientName(db, a.clientId)}</div>
+                  <div className="row-s wrap">{relDay(a.date)}, {a.time} · {serviceName(db, a.serviceId)}</div>
+                </div>
+                {a.pay === 'sub' ? <span className="badge acc">Абонемент</span> : <b className="num">{money(a.price)}</b>}
+              </button>
+            ))}
+          </div>
+        </Fragment>
+      ) : (
+        <Empty icon="wallet" title="Дохода за период нет"
+               text="Проведите первый сеанс — деньги посчитаются сами, вручную вводить ничего не нужно." />
+      )}
+      <div style={{height: 10}} />
     </div>
   );
 }
@@ -2533,13 +2992,15 @@ function Analytics({db, back, go}){
   const now = new Date();
   const [from, to] = periodRange('month', now);
   const cur = income(db, from, to);
-  const prev = income(db, iso(new Date(now.getFullYear(), now.getMonth() - 1, 1)), iso(new Date(now.getFullYear(), now.getMonth(), 0)));
+  const prev = income(db, ...prevRange('month', now));
   const chart = series(db, 'month', now);
+  const day = income(db, ...periodRange('day', now));
+  const week = income(db, ...periodRange('week', now));
 
   const newClients = db.clients.filter(c => c.created >= from).length;
-  const active = db.clients.filter(c => clientStats(db, c.id).days !== null && clientStats(db, c.id).days <= 45).length;
-  const back45 = db.clients.filter(c => clientStats(db, c.id).total >= 2).length;
-  const retention = db.clients.length ? Math.round((back45 / db.clients.length) * 100) : 0;
+  const repeat = db.clients.filter(c => clientStats(db, c.id).total >= 2).length;
+  const retention = db.clients.length ? Math.round((repeat / db.clients.length) * 100) : 0;
+  const active = db.clients.filter(c => { const d = clientStats(db, c.id).days; return d !== null && d <= 45; }).length;
 
   /* загрузка: сколько рабочих часов месяца реально занято сеансами */
   const workDays = Array.from({length: daysBetween(from, to) + 1}, (_, i) => addDays(fromIso(from), i))
@@ -2548,7 +3009,6 @@ function Analytics({db, back, go}){
   const busyMin = sum(cur.rows, a => a.dur);
   const load = capacity ? Math.round((busyMin / capacity) * 100) : 0;
 
-  /* часы пик: когда клиенты чаще всего приходят */
   const hours = {};
   db.appts.filter(a => a.status === 'done').forEach(a => {
     const h = Math.floor(mins(a.time) / 60);
@@ -2564,55 +3024,70 @@ function Analytics({db, back, go}){
     <div className="screen">
       <div className="top-bar left"><BackBtn onClick={back} /><h2 style={{textAlign: 'left'}}>Аналитика</h2></div>
 
-      <div className="stat-grid" style={{marginTop: 6}}>
-        <div className="stat"><div className="stat-k">Доход за месяц</div><div className="stat-v">{money(cur.total)}</div>
-          <div style={{fontSize: 12, marginTop: 4, color: growth(cur.total, prev.total) >= 0 ? 'var(--pos)' : 'var(--neg)'}}>
-            {growth(cur.total, prev.total) >= 0 ? '+' : ''}{growth(cur.total, prev.total)}% к прошлому
-          </div>
-        </div>
-        <div className="stat"><div className="stat-k">Сеансов</div><div className="stat-v num">{cur.count}</div>
-          <div style={{fontSize: 12, marginTop: 4, color: 'var(--ink-2)'}}>средний {money(cur.avg)}</div>
-        </div>
-        <div className="stat"><div className="stat-k">Загрузка</div><div className="stat-v num">{load}%</div>
-          <div className="bar" style={{marginTop: 8}}><i style={{width: clamp(load, 0, 100) + '%'}} /></div>
-        </div>
-        <div className="stat"><div className="stat-k">Возвращаются</div><div className="stat-v num">{retention}%</div>
-          <div style={{fontSize: 12, marginTop: 4, color: 'var(--ink-2)'}}>{active} активных</div>
-        </div>
+      <div className="sec" style={{marginTop: 6}}><h3>Деньги</h3>
+        <button className="link" onClick={() => go({k: 'income'})}>Подробно</button>
+      </div>
+      <div className="stat-grid three">
+        <div className="stat"><div className="stat-k">Сегодня</div><div className="stat-v">{money(day.total)}</div></div>
+        <div className="stat"><div className="stat-k">Неделя</div><div className="stat-v">{money(week.total)}</div></div>
+        <div className="stat"><div className="stat-k">Месяц</div><div className="stat-v">{money(cur.total)}</div></div>
       </div>
 
       <div className="card pad" style={{marginTop: 14}}>
-        <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 12}}>Доход по месяцам</h3>
+        <div style={{display: 'flex', alignItems: 'baseline', marginBottom: 12}}>
+          <span style={{fontSize: 15, fontWeight: 600, flex: 1}}>Доход по месяцам</span>
+          <span style={{fontSize: 14, color: growth(cur.total, prev.total) >= 0 ? 'var(--pos)' : 'var(--neg)', fontWeight: 600}}>
+            {growth(cur.total, prev.total) >= 0 ? '+' : ''}{growth(cur.total, prev.total)}% к прошлому месяцу
+          </span>
+        </div>
         <Bars data={chart} />
         <BarLabels data={chart} />
       </div>
 
-      <div className="card pad">
-        <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 10}}>Что приносит деньги</h3>
-        {tops.length ? tops.map(s => {
-          const share = cur.total ? Math.round((s.total / cur.total) * 100) : 0;
-          return (
-            <div key={s.id} style={{marginBottom: 12}}>
-              <div style={{display: 'flex', gap: 10, fontSize: 14, marginBottom: 6}}>
-                <span style={{flex: 1}} className="cut">{serviceName(db, s.id)}</span>
-                <span className="num" style={{color: 'var(--ink-2)'}}>{share}%</span>
-                <b className="num">{money(s.total)}</b>
-              </div>
-              <div className="bar"><i style={{width: share + '%'}} /></div>
-            </div>
-          );
-        }) : <div className="hint">Данных за месяц пока нет.</div>}
+      <div className="sec"><h3>Показатели месяца</h3></div>
+      <div className="stat-grid">
+        <div className="stat"><div className="stat-k">Средний чек</div><div className="stat-v">{money(cur.avg)}</div></div>
+        <div className="stat"><div className="stat-k">Сеансов</div><div className="stat-v">{cur.count}</div></div>
+        <div className="stat"><div className="stat-k">Новых клиентов</div><div className="stat-v">{newClients}</div></div>
+        <div className="stat"><div className="stat-k">Возвращаются</div><div className="stat-v">{retention}%</div>
+          <div style={{fontSize: 12, marginTop: 4, color: 'var(--ink-2)'}}>{active} активных</div>
+        </div>
       </div>
 
+      <div className="sec"><h3>Загрузка</h3><span className="side">{load}% рабочего времени</span></div>
       <div className="card pad">
-        <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 10}}>Наблюдения</h3>
-        <div className="kv"><span className="kv-k">Новых клиентов за месяц</span><span className="kv-v num">{newClients}</span></div>
+        <div className="bar"><i style={{width: clamp(load, 0, 100) + '%'}} /></div>
+        <div className="hint" style={{marginTop: 10}}>
+          Занято {Math.round(busyMin / 60)} ч из {Math.round(capacity / 60)} ч за {workDays.length} {dayWord(workDays.length)}.
+        </div>
+      </div>
+
+      <div className="sec"><h3>Лучшие услуги</h3></div>
+      {tops.length ? (
+        <div className="card pad">
+          {tops.map(sv => {
+            const share = cur.total ? Math.round((sv.total / cur.total) * 100) : 0;
+            return (
+              <div key={sv.id} style={{marginBottom: 14}}>
+                <div style={{display: 'flex', gap: 10, fontSize: 15, marginBottom: 7, alignItems: 'baseline'}}>
+                  <span style={{flex: 1, overflowWrap: 'anywhere'}}>{serviceName(db, sv.id)}</span>
+                  <span className="num" style={{color: 'var(--ink-2)'}}>{share}%</span>
+                  <b className="num">{money(sv.total)}</b>
+                </div>
+                <div className="bar"><i style={{width: share + '%'}} /></div>
+              </div>
+            );
+          })}
+        </div>
+      ) : <div className="card pad"><div className="hint">За месяц сеансов не было.</div></div>}
+
+      <div className="sec"><h3>Наблюдения</h3></div>
+      <div className="card pad">
         <div className="kv"><span className="kv-k">Часы пик</span><span className="kv-v">{peak.length ? peak.map(h => pad2(h) + ':00').join(', ') : '—'}</span></div>
         <div className="kv"><span className="kv-k">Частые зоны напряжения</span><span className="kv-v">{zoneTop.length ? zoneTop.map(zoneName).join(', ') : '—'}</span></div>
-        <div className="kv"><span className="kv-k">Активных абонементов</span><span className="kv-v num">{db.subs.filter(s => s.used < s.total).length}</span></div>
+        <div className="kv"><span className="kv-k">Активных абонементов</span><span className="kv-v num">{db.subs.filter(x => x.used < x.total).length}</span></div>
+        <div className="kv"><span className="kv-k">Клиентов в базе</span><span className="kv-v num">{db.clients.length}</span></div>
       </div>
-
-      <button className="btn soft" onClick={() => go({k: 'income'})}><Icon n="wallet" />Открыть доход</button>
       <div style={{height: 12}} />
     </div>
   );
@@ -2623,33 +3098,64 @@ function Analytics({db, back, go}){
 function Subs({db, back, go, openNew, client}){
   const active = db.subs.filter(s => s.used < s.total);
   const closed = db.subs.filter(s => s.used >= s.total);
-  const mine = client ? active.filter(s => s.clientId === client) : active;
-  const money_ = sum(active, s => s.price);
+  const mine = client ? db.subs.filter(s => s.clientId === client) : active;
+  const paid = sum(active, s => s.price);
+  const [open, setOpen] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  const usedIn = (sub) => db.appts
+    .filter(a => a.status === 'done' && (a.subId === sub.id || (!a.subId && a.pay === 'sub' && a.clientId === sub.clientId)))
+    .sort((a, b) => -byTime(a, b));
 
   const card = (s, dim) => {
     const left = s.total - s.used;
     const pc = Math.round((s.used / s.total) * 100);
+    const used = usedIn(s);
+    const shown = open === s.id ? used : used.slice(0, 2);
     return (
-      <div className="card pad" key={s.id} style={dim ? {opacity: .6} : null}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12}}>
-          <Avatar name={clientName(db, s.clientId)} size={42} />
-          <button style={{flex: 1, minWidth: 0}} onClick={() => go({k: 'client', id: s.clientId})}>
-            <div className="row-t cut">{clientName(db, s.clientId)}</div>
-            <div className="row-s cut">{serviceName(db, s.serviceId)} · {s.total} {sessWord(s.total)}</div>
+      <div className="card pad" key={s.id} style={dim ? {opacity: .62} : null}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+          <Avatar name={clientName(db, s.clientId)} size={44} />
+          <button style={{flex: 1, minWidth: 0}} onClick={() => { tap(); go({k: 'client', id: s.clientId}); }}>
+            <div className="row-t wrap" style={{fontSize: fit(clientName(db, s.clientId), 16)}}>{clientName(db, s.clientId)}</div>
+            <div className="row-s wrap">{serviceName(db, s.serviceId)}</div>
           </button>
           <span className={'badge' + (left <= 1 ? ' neg' : ' acc')}>{left ? 'осталось ' + left : 'закрыт'}</span>
         </div>
+
+        <div style={{display: 'flex', alignItems: 'baseline', margin: '16px 0 8px'}}>
+          <span style={{fontSize: 15, color: 'var(--ink-2)', flex: 1}}>Использовано</span>
+          <b className="num" style={{fontSize: 20, letterSpacing: '-.02em'}}>{s.used} / {s.total}</b>
+        </div>
         <div className="bar"><i style={{width: pc + '%'}} /></div>
-        <div style={{display: 'flex', marginTop: 10, fontSize: 13, color: 'var(--ink-2)'}}>
-          <span style={{flex: 1}}>Использовано {s.used} из {s.total}</span>
+        <div style={{display: 'flex', marginTop: 10, fontSize: 14, color: 'var(--ink-2)'}}>
+          <span style={{flex: 1}}>Оплачено вперёд</span>
           <span className="num">{money(s.price)}</span>
         </div>
+
+        {used.length ? (
+          <div style={{marginTop: 14, paddingTop: 4, borderTop: '1px solid var(--line)'}}>
+            {shown.map(a => (
+              <div key={a.id} style={{display: 'flex', gap: 10, padding: '9px 0', fontSize: 14}}>
+                <span style={{color: 'var(--ink-2)', flex: 1}}>{dateShort(a.date)}, {a.time}</span>
+                <span style={{color: 'var(--ink-2)', overflowWrap: 'anywhere'}}>{serviceName(db, a.serviceId)}</span>
+              </div>
+            ))}
+            {used.length > 2 ? (
+              <button className="link" style={{fontSize: 14, marginTop: 4}}
+                      onClick={() => { tap(); setOpen(open === s.id ? null : s.id); }}>
+                {open === s.id ? 'Свернуть' : 'Показать все ' + used.length}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
         {!dim ? (
-          <div className="btns" style={{marginTop: 12}}>
+          <div className="btns" style={{marginTop: 14}}>
             <button className="btn sm" onClick={() => { tap(); Act.saveSub({id: s.id, used: clamp(s.used + 1, 0, s.total)}); say('Списан 1 сеанс'); }}>
               Списать сеанс
             </button>
-            <button className="btn sm ghost" onClick={() => { tap(); Act.delSub(s.id); say('Абонемент удалён'); }}>Удалить</button>
+            <button className="btn sm ghost" onClick={() => { tap(); setConfirmDel(s.id); }}>Удалить</button>
           </div>
         ) : null}
       </div>
@@ -2662,20 +3168,30 @@ function Subs({db, back, go, openNew, client}){
         <button className="ico-btn" onClick={() => { tap(); openNew(client); }} aria-label="Создать"><Icon n="plus" /></button>
       </div>
 
-      <div className="stat-grid" style={{marginBottom: 14}}>
-        <div className="stat"><div className="stat-k">Активных</div><div className="stat-v">{active.length}</div></div>
-        <div className="stat"><div className="stat-k">Оплачено вперёд</div><div className="stat-v">{money(money_)}</div></div>
+      <div className="stat-grid" style={{marginBottom: 16}}>
+        <div className="stat acc"><div className="stat-k">Активных</div><div className="stat-v">{active.length}</div></div>
+        <div className="stat"><div className="stat-k">Оплачено вперёд</div><div className="stat-v">{money(paid)}</div></div>
       </div>
 
-      {mine.length ? mine.map(s => card(s)) : (
+      {mine.length ? mine.map(s => card(s, s.used >= s.total)) : (
         <Empty icon="gift" title="Абонементов нет"
                text="Абонемент держит клиента рядом: он платит вперёд и возвращается по расписанию."
-               action={<button className="btn pri" style={{maxWidth: 260, margin: '0 auto'}} onClick={() => openNew(client)}>+ Создать абонемент</button>} />
+               action={<button className="btn pri" style={{maxWidth: 260, margin: '0 auto'}} onClick={() => openNew(client)}>Создать абонемент</button>} />
       )}
 
       {mine.length ? <button className="btn soft" onClick={() => { tap(); openNew(client); }}><Icon n="plus" />Создать абонемент</button> : null}
 
-      {closed.length ? (
+      <Sheet open={!!confirmDel} onClose={() => setConfirmDel(null)} title="Удалить абонемент?"
+             sub="Оплаченные сеансы перестанут списываться с него. Отменить это нельзя.">
+        <button className="btn dan" onClick={() => { Act.delSub(confirmDel); setConfirmDel(null); say('Абонемент удалён'); }}>
+          Да, удалить
+        </button>
+        <div style={{height: 8}} />
+        <button className="btn ghost" onClick={() => setConfirmDel(null)}>Отмена</button>
+        <div style={{height: 10}} />
+      </Sheet>
+
+      {!client && closed.length ? (
         <Fragment>
           <div className="sec"><h3>Закрытые</h3><span className="side">{closed.length}</span></div>
           {closed.map(s => card(s, true))}
@@ -2701,45 +3217,63 @@ const Switch = ({on, onChange}) => (
 );
 
 function Settings({db, back, go, openService}){
-  const p = db.pro, s = db.settings;
+  const p = db.pro, st = db.settings;
   const [confirm, setConfirm] = useState(null);
+  const [edit, setEdit] = useState(false);
   const link = 'promassage.app/' + p.slug;
 
   return (
     <div className="screen">
-      <div className="top-bar left"><BackBtn onClick={back} /><h2 style={{textAlign: 'left'}}>Настройки</h2></div>
-
-      <div className="card pad">
-        <div style={{display: 'flex', gap: 14, alignItems: 'center'}}>
-          <Avatar name={p.name + ' ' + p.last} src={p.avatar} size={62} />
-          <div style={{flex: 1, minWidth: 0}}>
-            <div style={{fontSize: 18, fontWeight: 600}}>{p.name} {p.last}</div>
-            <div style={{fontSize: 14, color: 'var(--ink-2)'}}>{p.role} · {p.city}</div>
-            <div style={{fontSize: 13, color: 'var(--ink-2)', marginTop: 2}}>★ {p.rating} · {p.reviews} отзывов</div>
-          </div>
-        </div>
-        <div style={{height: 14}} />
-        <Field label="Имя"><Input value={p.name} onChange={e => Act.setPro({name: e.target.value})} /></Field>
-        <Field label="Телефон"><Input value={p.phone} onChange={e => Act.setPro({phone: e.target.value})} /></Field>
-        <Field label="Почта"><Input value={p.email} onChange={e => Act.setPro({email: e.target.value})} /></Field>
-        <Field label="О себе" hint="Текст видят клиенты на странице онлайн-записи">
-          <textarea className="inp" style={{minHeight: 84}} value={p.about} onChange={e => Act.setPro({about: e.target.value})} />
-        </Field>
+      <div className="top-bar left"><BackBtn onClick={back} /><h2 style={{textAlign: 'left'}}>Настройки</h2>
+        <button className="link" style={{fontSize: 14}} onClick={() => { tap(); setEdit(v => !v); }}>
+          {edit ? 'Готово' : 'Изменить'}
+        </button>
       </div>
 
-      <div className="sec"><h3>Услуги</h3><span className="side">{db.services.length}</span></div>
-      <div className="card"><div className="rows">
-        {db.services.map(sv => (
-          <Row key={sv.id} onClick={() => openService(sv)} title={sv.name}
-               sub={durLabel(sv.dur) + ' · ' + money(sv.price)}
-               side={sv.on ? null : <span className="badge">выкл</span>} />
-        ))}
-        <Row onClick={() => openService({name: '', dur: 60, price: 1000, on: true})}
-             title="Добавить услугу" sub="Название, длительность, цена"
-             left={<span className="q-tile" style={{width: 40, height: 40, borderRadius: 12, background: 'var(--violet-soft)', color: 'var(--violet-ink)'}}><Icon n="plus" s={19} /></span>} />
-      </div></div>
+      <div style={{display: 'flex', gap: 14, alignItems: 'center', padding: '2px 0 4px'}}>
+        <Avatar name={p.name + ' ' + p.last} src={p.avatar} size={64} />
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: fit(p.name + ' ' + p.last, 20, 18, 16), fontWeight: 700, letterSpacing: '-.02em'}}>
+            {p.name} {p.last}
+          </div>
+          <div style={{fontSize: 14, color: 'var(--ink-2)', marginTop: 2}}>{p.role} · {p.city}</div>
+          <div style={{fontSize: 13, color: 'var(--ink-2)', marginTop: 2}}>★ {p.rating} · {p.reviews} отзывов</div>
+        </div>
+      </div>
 
-      <div className="sec"><h3>Рабочий день</h3></div>
+      {edit ? (
+        <div className="card pad" style={{marginTop: 14}}>
+          <Field label="Имя"><Input value={p.name} onChange={e => Act.setPro({name: e.target.value})} /></Field>
+          <Field label="Фамилия"><Input value={p.last} onChange={e => Act.setPro({last: e.target.value})} /></Field>
+          <Field label="Телефон"><Input value={p.phone} onChange={e => Act.setPro({phone: e.target.value})} inputMode="tel" /></Field>
+          <Field label="Почта"><Input value={p.email} onChange={e => Act.setPro({email: e.target.value})} inputMode="email" /></Field>
+          <Field label="О себе" hint="Текст видят клиенты на странице онлайн-записи">
+            <textarea className="inp" style={{minHeight: 84}} value={p.about} onChange={e => Act.setPro({about: e.target.value})} />
+          </Field>
+        </div>
+      ) : null}
+
+      <div className="sec"><h3>Услуги</h3><span className="side">{db.services.length}</span></div>
+      <div className="rows flat">
+        {db.services.map(sv => (
+          <button key={sv.id} className="row" onClick={() => { tap(); openService(sv); }}>
+            <div className="row-main">
+              <div className="row-t wrap">{sv.name}</div>
+              <div className="row-s">{durLabel(sv.dur)} · {money(sv.price)}</div>
+            </div>
+            {sv.on ? null : <span className="badge">выкл</span>}
+            <span className="chev"><Icon n="chev" s={18} /></span>
+          </button>
+        ))}
+        <button className="row" onClick={() => { tap(); openService({name: '', dur: 60, price: 1000, on: true}); }}>
+          <span className="q-tile" style={{width: 40, height: 40, aspectRatio: 'auto', borderRadius: 12, background: 'var(--violet-soft)', color: 'var(--violet-ink)'}}>
+            <Icon n="plus" s={19} />
+          </span>
+          <div className="row-main"><div className="row-t">Добавить услугу</div></div>
+        </button>
+      </div>
+
+      <div className="sec"><h3>Рабочий день</h3><span className="side">{p.hours.from}–{p.hours.to}</span></div>
       <div className="card pad">
         <div style={{display: 'flex', gap: 12}}>
           <Field label="Начало"><Input type="time" value={p.hours.from} onChange={e => Act.setPro({hours: {...p.hours, from: e.target.value}})} /></Field>
@@ -2752,42 +3286,46 @@ function Settings({db, back, go, openService}){
                     onClick={() => { tap(); Act.setPro({days: p.days.includes(i) ? p.days.filter(x => x !== i) : [...p.days, i].sort()}); }}>{d}</button>
           ))}
         </div>
-        <div style={{height: 14}} />
-        <Field label="Перерыв между сеансами" hint="Время на проветрить кабинет и сменить бельё">
+        <div style={{height: 16}} />
+        <Field label="Перерыв между сеансами" hint="Время проветрить кабинет и сменить бельё">
           <Seg items={[{k: 0, n: 'Нет'}, {k: 15, n: '15 мин'}, {k: 30, n: '30 мин'}]} value={p.gap} onChange={(k) => Act.setPro({gap: k})} />
         </Field>
       </div>
 
       <div className="sec"><h3>Приложение</h3></div>
       <div className="card pad">
-        <div className="kv"><span className="kv-k">Напоминать о сеансе</span><Switch on={s.remind} onChange={v => Act.setSettings({remind: v})} /></div>
-        <div className="kv"><span className="kv-k">Онлайн-запись включена</span><Switch on={s.online} onChange={v => Act.setSettings({online: v})} /></div>
-        <div className="kv"><span className="kv-k">AI-разбор заметок</span><Switch on={s.ai} onChange={v => Act.setSettings({ai: v})} /></div>
+        <div className="kv"><span className="kv-k">Напоминать о сеансе</span><Switch on={st.remind} onChange={v => Act.setSettings({remind: v})} /></div>
+        <div className="kv"><span className="kv-k">Онлайн-запись включена</span><Switch on={st.online} onChange={v => Act.setSettings({online: v})} /></div>
+        <div className="kv"><span className="kv-k">AI-разбор заметок</span><Switch on={st.ai} onChange={v => Act.setSettings({ai: v})} /></div>
         <div className="kv"><span className="kv-k">Тёмная тема</span>
-          <Switch on={s.theme === 'dark'} onChange={v => Act.setSettings({theme: v ? 'dark' : 'light'})} /></div>
+          <Switch on={st.theme === 'dark'} onChange={v => Act.setSettings({theme: v ? 'dark' : 'light'})} /></div>
       </div>
 
       <div className="sec"><h3>Онлайн-запись</h3></div>
-      <button className="card pad" style={{width: '100%', display: 'block'}} onClick={() => go({k: 'booking'})}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-          <span className="q-tile" style={{width: 44, height: 44, borderRadius: 14, background: 'var(--pa-analytics)', color: 'var(--pa-analytics-ink)'}}><Icon n="globe" s={21} /></span>
-          <div style={{flex: 1, minWidth: 0}}>
+      <div className="rows flat">
+        <button className="row" onClick={() => { tap(); go({k: 'booking'}); }}>
+          <span className="q-tile" style={{width: 42, height: 42, aspectRatio: 'auto', borderRadius: 13, background: 'var(--pa-schedule)', color: 'var(--pa-schedule-ink)'}}>
+            <Icon n="globe" s={20} />
+          </span>
+          <div className="row-main">
             <div className="row-t">Ваша страница</div>
             <div className="row-s cut">{link}</div>
           </div>
           <span className="chev"><Icon n="chev" s={18} /></span>
-        </div>
-      </button>
+        </button>
+      </div>
 
       <div className="sec"><h3>Данные</h3></div>
-      <div className="card"><div className="rows">
-        <Row onClick={() => { const t = JSON.stringify(Store.state); say('Копия готова: ' + Math.round(t.length / 1024) + ' КБ'); }}
-             title="Резервная копия" sub="Выгрузить базу целиком" chevron={false} />
-        <Row onClick={() => setConfirm('demo')} title="Пересобрать демо-данные" sub="Вернуть кабинет к исходному виду" chevron={false} />
-        <Row onClick={() => setConfirm('wipe')} title="Очистить всё" sub="Удалить клиентов, записи и историю" chevron={false} />
-      </div></div>
+      <div className="rows flat">
+        <Row chevron={false} title="Резервная копия" sub="Выгрузить базу целиком"
+             onClick={() => { const t = JSON.stringify(Store.state); say('Копия готова: ' + Math.round(t.length / 1024) + ' КБ'); }} />
+        <Row chevron={false} title="Пересобрать демо-данные" sub="Вернуть кабинет к исходному виду"
+             onClick={() => setConfirm('demo')} />
+        <Row chevron={false} title="Очистить всё" sub="Удалить клиентов, записи и историю"
+             onClick={() => setConfirm('wipe')} />
+      </div>
 
-      <div className="hint" style={{textAlign: 'center', margin: '16px 0 8px'}}>
+      <div className="hint" style={{textAlign: 'center', margin: '22px 0 10px'}}>
         PRO MASSAGE · данные хранятся на этом устройстве
       </div>
 
@@ -2813,65 +3351,98 @@ function Settings({db, back, go, openService}){
 
 function Booking({db, back, openAppt}){
   const p = db.pro;
-  const [sv, setSv] = useState(null);
   const list = db.services.filter(s => s.on);
+  const [sv, setSv] = useState(null);
+  const [date, setDate] = useState(iso(new Date()));
+  const [time, setTime] = useState(null);
   const link = 'promassage.app/' + p.slug;
-  const date = iso(new Date());
+
+  /* ближайшие рабочие дни — клиенту не нужен календарь на год */
+  const days = Array.from({length: 21}, (_, i) => addDays(new Date(), i))
+    .filter(d => p.days.includes(dowIdx(d))).slice(0, 10);
   const slots = sv ? freeStarts(db, date, sv.dur) : [];
 
   return (
     <div className="screen">
       <div className="top-bar left"><BackBtn onClick={back} /><h2 style={{textAlign: 'left'}}>Онлайн-запись</h2>
-        <button className="ico-btn" onClick={() => { tap(); say('Ссылка скопирована: ' + link); }} aria-label="Копировать"><Icon n="copy" /></button>
+        <button className="ico-btn" onClick={() => { tap(); say('Ссылка скопирована: ' + link); }} aria-label="Копировать ссылку"><Icon n="copy" /></button>
       </div>
 
       <div className="book-head">
-        <Avatar name={p.name + ' ' + p.last} src={p.avatar} size={80} tone="light" />
-        <h1 style={{fontSize: 24, fontWeight: 700, letterSpacing: '-.02em'}}>{p.name} {p.last}</h1>
-        <div style={{opacity: .85, fontSize: 14, marginTop: 2}}>{p.role} · {p.city}</div>
+        <Avatar name={p.name + ' ' + p.last} src={p.avatar} size={82} tone="light" />
+        <h1 style={{fontSize: 25, fontWeight: 700, letterSpacing: '-.025em'}}>{p.name} {p.last}</h1>
+        <div style={{opacity: .85, fontSize: 15, marginTop: 3}}>{p.role} · {p.city}</div>
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, padding: '6px 14px',
+          display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 14, padding: '7px 15px',
           borderRadius: 999, background: 'rgba(255,255,255,.18)', fontSize: 14, fontWeight: 600,
         }}>
           <Icon n="star" s={15} />{p.rating} · {p.reviews} отзывов
         </div>
       </div>
 
-      <div className="card pad" style={{marginTop: 18}}>
-        <div style={{fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.5}}>{p.about}</div>
-      </div>
+      <div className="hint" style={{marginTop: 18, fontSize: 15, lineHeight: 1.5}}>{p.about}</div>
 
-      <div className="sec"><h3>Услуги</h3></div>
-      <div className="card">
-        {list.map(s => (
-          <button key={s.id} className="srv" onClick={() => { tap(); setSv(sv && sv.id === s.id ? null : s); }}>
+      <div className="sec"><h3>1 · Услуга</h3></div>
+      <div className="rows flat">
+        {list.map(x => (
+          <button key={x.id} className="row" onClick={() => { tap(); setSv(x); setTime(null); }}>
             <div className="row-main">
-              <div className="row-t">{s.name}</div>
-              <div className="row-s">{durLabel(s.dur)} · {money(s.price)}</div>
+              <div className="row-t wrap">{x.name}</div>
+              <div className="row-s">{durLabel(x.dur)} · {money(x.price)}</div>
             </div>
-            <span className={'badge' + (sv && sv.id === s.id ? ' acc' : '')}>{sv && sv.id === s.id ? 'выбрано' : 'выбрать'}</span>
+            <span className={'badge' + (sv && sv.id === x.id ? ' acc' : '')}>{sv && sv.id === x.id ? 'выбрано' : 'выбрать'}</span>
           </button>
         ))}
       </div>
 
       {sv ? (
-        <div className="card pad">
-          <h3 style={{fontSize: 16, fontWeight: 600, marginBottom: 4}}>Свободно сегодня</h3>
-          <div className="hint" style={{marginBottom: 12}}>{sv.name} · {durLabel(sv.dur)}</div>
+        <Fragment>
+          <div className="sec"><h3>2 · Дата</h3><span className="side">{sv.name}</span></div>
+          <div className="chips">
+            {days.map(d => {
+              const k = iso(d);
+              return (
+                <button key={k} className={'chip' + (k === date ? ' on' : '')}
+                        onClick={() => { tap(); setDate(k); setTime(null); }}>
+                  {relDay(k) === 'Сегодня' || relDay(k) === 'Завтра' ? relDay(k) : DOW[dowIdx(d)] + ' ' + d.getDate()}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="sec"><h3>3 · Время</h3>
+            <span className="side">{slots.length ? slots.length + ' ' + plural(slots.length, 'окно', 'окна', 'окон') : 'занято'}</span>
+          </div>
           {slots.length ? (
             <div className="chips">
-              {slots.slice(0, 12).map(t => (
-                <button key={t} className="chip" onClick={() => { tap(); openAppt({serviceId: sv.id, date, time: t, source: 'online'}); }}>{t}</button>
+              {slots.map(t => (
+                <button key={t} className={'chip' + (t === time ? ' on' : '')} onClick={() => { tap(); setTime(t); }}>{t}</button>
               ))}
             </div>
-          ) : <div className="hint">Сегодня всё занято — предложите клиенту другой день.</div>}
-        </div>
+          ) : (
+            <div className="hint">В этот день всё занято — выберите другую дату.</div>
+          )}
+
+          {time ? (
+            <div className="card pad" style={{marginTop: 18, background: 'var(--violet-soft)', border: 0}}>
+              <div style={{fontSize: 13, fontWeight: 600, color: 'var(--violet-ink)'}}>Проверьте запись</div>
+              <div style={{fontSize: 18, fontWeight: 600, marginTop: 6, letterSpacing: '-.015em'}}>
+                {relDay(date)}, {time}
+              </div>
+              <div style={{fontSize: 15, color: 'var(--ink-2)', marginTop: 2}}>{sv.name} · {durLabel(sv.dur)} · {money(sv.price)}</div>
+            </div>
+          ) : null}
+        </Fragment>
       ) : null}
 
-      <button className="btn pri" onClick={() => { tap(); openAppt({serviceId: (sv || list[0] || {}).id, source: 'online'}); }}>
+      <div style={{height: 18}} />
+      <button className="btn pri" disabled={!sv || !time}
+              onClick={() => { tap(12); openAppt({serviceId: sv.id, date, time, source: 'online'}); }}>
         Записаться
       </button>
-      <div className="hint" style={{textAlign: 'center', margin: '14px 0 8px'}}>Ссылка для клиентов: {link}</div>
+      <div className="hint" style={{textAlign: 'center', margin: '14px 0 10px'}}>
+        {sv && time ? 'Заявка придёт вам в уведомления' : 'Ссылка для клиентов: ' + link}
+      </div>
     </div>
   );
 }
@@ -2880,49 +3451,104 @@ function Booking({db, back, openAppt}){
 
 function More({db, go}){
   const items = [
-    {k: 'income',    n: 'Доход',        s: 'Сегодня, неделя, месяц',   i: 'wallet', bg: 'var(--pa-income)',    c: 'var(--pa-income-ink)'},
-    {k: 'analytics', n: 'Аналитика',    s: 'Загрузка, услуги, клиенты', i: 'chart', bg: 'var(--pa-analytics)', c: 'var(--pa-analytics-ink)'},
-    {k: 'subs',      n: 'Абонементы',   s: 'Кто оплатил вперёд',       i: 'gift',   bg: 'var(--pa-clients)',   c: 'var(--pa-clients-ink)'},
-    {k: 'booking',   n: 'Онлайн-запись', s: 'Страница для клиентов',   i: 'globe',  bg: 'var(--pa-schedule)',  c: 'var(--pa-schedule-ink)'},
-    {k: 'notifs',    n: 'Уведомления',  s: 'Что требует внимания',     i: 'bell',   bg: 'var(--pa-analytics)', c: 'var(--pa-analytics-ink)'},
-    {k: 'settings',  n: 'Настройки',    s: 'Профиль, услуги, часы',    i: 'gear',   bg: 'var(--pa-clients)',   c: 'var(--pa-clients-ink)'},
+    {k: 'income',    n: 'Доход',        s: 'День, неделя, месяц, год',  i: 'wallet', bg: 'var(--pa-income)',    c: 'var(--pa-income-ink)'},
+    {k: 'analytics', n: 'Аналитика',    s: 'Загрузка, услуги, клиенты', i: 'chart',  bg: 'var(--pa-analytics)', c: 'var(--pa-analytics-ink)'},
+    {k: 'subs',      n: 'Абонементы',   s: 'Кто оплатил вперёд',        i: 'gift',   bg: 'var(--pa-clients)',   c: 'var(--pa-clients-ink)'},
+    {k: 'booking',   n: 'Онлайн-запись', s: 'Страница для клиентов',    i: 'globe',  bg: 'var(--pa-schedule)',  c: 'var(--pa-schedule-ink)'},
+    {k: 'notifs',    n: 'Уведомления',  s: 'Что требует внимания',      i: 'bell',   bg: 'var(--pa-analytics)', c: 'var(--pa-analytics-ink)'},
+    {k: 'settings',  n: 'Настройки',    s: 'Профиль, услуги, часы',     i: 'gear',   bg: 'var(--pa-clients)',   c: 'var(--pa-clients-ink)'},
   ];
   const now = new Date();
   const [from, to] = periodRange('month', now);
   const m = income(db, from, to);
+  const unread = unreadCount(db, now);
+
   return (
     <div className="screen">
       <TopBar title="Ещё" big />
-      <div className="stat-grid three" style={{marginBottom: 14}}>
-        <div className="stat"><div className="stat-k">Месяц</div><div className="stat-v">{money(m.total)}</div></div>
+      <div className="sec" style={{marginTop: 2}}>
+        <h3>{MONTHS_N[now.getMonth()]}</h3>
+        <span className="side">средний чек {money(m.avg)}</span>
+      </div>
+      <div className="stat-grid three">
+        <div className="stat acc"><div className="stat-k">Доход</div><div className="stat-v">{money(m.total)}</div></div>
         <div className="stat"><div className="stat-k">Сеансов</div><div className="stat-v">{m.count}</div></div>
         <div className="stat"><div className="stat-k">Клиентов</div><div className="stat-v">{db.clients.length}</div></div>
       </div>
-      <div className="card"><div className="rows">
+
+      <div className="rows flat" style={{marginTop: 18}}>
         {items.map(i => (
-          <Row key={i.k} onClick={() => go({k: i.k})} title={i.n} sub={i.s}
-               left={<span className="q-tile" style={{width: 42, height: 42, borderRadius: 13, background: i.bg, color: i.c}}><Icon n={i.i} s={20} /></span>} />
+          <button key={i.k} className="row" onClick={() => { tap(); go({k: i.k}); }}>
+            <span className="q-tile" style={{width: 42, height: 42, aspectRatio: 'auto', borderRadius: 13, background: i.bg, color: i.c}}>
+              <Icon n={i.i} s={20} />
+            </span>
+            <div className="row-main">
+              <div className="row-t">{i.n}</div>
+              <div className="row-s">{i.s}</div>
+            </div>
+            {i.k === 'notifs' && unread ? <span className="badge acc">{unread}</span> : null}
+            <span className="chev"><Icon n="chev" s={18} /></span>
+          </button>
         ))}
-      </div></div>
-      <div className="hint" style={{textAlign: 'center', marginTop: 18}}>PRO MASSAGE · версия 1.0</div>
+      </div>
+      <div className="hint" style={{textAlign: 'center', marginTop: 22}}>PRO MASSAGE · версия 1.0</div>
     </div>
   );
 }
 
 function Notifs({db, back, go}){
   const list = notifications(db, new Date());
+  const fresh = list.filter(n => n.fresh);
+  const older = list.filter(n => !n.fresh);
+  const unread = list.filter(n => !n.seen);
+
+  const open = (n) => {
+    Act.markSeen(n.id);
+    if (n.apptId) return go({k: 'appt', id: n.apptId});
+    if (n.clientId) return go({k: 'client', id: n.clientId});
+  };
+  const group = (title, items) => items.length ? (
+    <Fragment>
+      <div className="sec"><h3>{title}</h3><span className="side">{items.length}</span></div>
+      <div className="rows flat">
+        {items.map(n => (
+          <button key={n.id} className="row" onClick={() => { tap(); open(n); }}
+                  style={n.seen ? {opacity: .62} : null}>
+            <span className="q-tile" style={{width: 42, height: 42, aspectRatio: 'auto', borderRadius: 13,
+                                             background: NOTE_TONE[n.kind].bg, color: NOTE_TONE[n.kind].c}}>
+              <Icon n={n.icon} s={20} />
+            </span>
+            <div className="row-main">
+              <div className="row-t wrap">{n.title}</div>
+              <div className="row-s wrap">{n.text}</div>
+            </div>
+            {!n.seen ? <i style={{width: 8, height: 8, borderRadius: 4, background: 'var(--violet)', flex: '0 0 8px'}} /> : null}
+            <span className="chev"><Icon n="chev" s={18} /></span>
+          </button>
+        ))}
+      </div>
+    </Fragment>
+  ) : null;
+
   return (
     <div className="screen">
-      <div className="top-bar left"><BackBtn onClick={back} /><h2 style={{textAlign: 'left'}}>Уведомления</h2></div>
+      <div className="top-bar left">
+        <BackBtn onClick={back} />
+        <h2 style={{textAlign: 'left'}}>Уведомления</h2>
+        {unread.length ? (
+          <button className="link" style={{fontSize: 14}}
+                  onClick={() => { tap(); Act.markSeen(unread.map(n => n.id)); say('Отмечено прочитанным'); }}>
+            Прочитать все
+          </button>
+        ) : null}
+      </div>
       {list.length ? (
-        <div className="card"><div className="rows">
-          {list.map(n => (
-            <Row key={n.id} title={n.title} sub={n.text}
-                 left={<span className="q-tile" style={{width: 42, height: 42, borderRadius: 13, background: 'var(--violet-soft)', color: 'var(--violet-ink)'}}><Icon n={n.icon} s={20} /></span>}
-                 onClick={() => n.apptId ? go({k: 'appt', id: n.apptId}) : n.clientId ? go({k: 'client', id: n.clientId}) : null} />
-          ))}
-        </div></div>
+        <Fragment>
+          {group('Сегодня', fresh)}
+          {group('Ранее', older)}
+        </Fragment>
       ) : <Empty icon="bell" title="Всё спокойно" text="Заявок нет, абонементы в порядке, клиенты не потерялись." />}
+      <div style={{height: 12}} />
     </div>
   );
 }
@@ -2938,8 +3564,11 @@ function ApptPage({db, id, back, go, openEdit}){
   const sub = subOf(db, a.clientId);
   const note = db.notes.find(n => n.clientId === a.clientId);
   const past = a.date < iso(new Date());
+  const phone = String(c.phone || '').replace(/\s/g, '');
   const remind = 'Здравствуйте, ' + firstName(c.name) + '! Напоминаю: ' + relDay(a.date).toLowerCase() +
     ' в ' + a.time + ' — ' + serviceName(db, a.serviceId).toLowerCase() + '. До встречи!';
+  const status = a.status === 'done' ? {n: 'Проведён', cls: 'pos'} : a.status === 'pending' ? {n: 'Заявка с сайта', cls: ''}
+    : a.status === 'canceled' ? {n: 'Отменён', cls: 'neg'} : null;
 
   return (
     <div className="screen">
@@ -2949,44 +3578,52 @@ function ApptPage({db, id, back, go, openEdit}){
         {a.status !== 'done' ? <button className="link" onClick={() => { tap(); openEdit(a); }}>Изменить</button> : null}
       </div>
 
-      <div className="card pad" style={{background: 'var(--violet-soft)', border: 0}}>
-        <div style={{fontSize: 13, color: 'var(--violet-ink)', fontWeight: 600}}>
-          {a.status === 'done' ? 'Проведён' : a.status === 'pending' ? 'Заявка с сайта'
-            : a.status === 'canceled' ? 'Отменён' : relDay(a.date) + ', ' + a.time}
+      <div style={{padding: '2px 0 4px'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8}}>
+          <span style={{fontSize: 14, fontWeight: 600, color: 'var(--violet-ink)'}}>
+            {relDay(a.date)}, {a.time}
+          </span>
+          {status ? <span className={'badge ' + status.cls}>{status.n}</span> : null}
         </div>
-        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginTop: 12}}>
-          <Avatar name={c.name} src={c.avatar} size={52} />
-          <button style={{flex: 1, minWidth: 0}} onClick={() => go({k: 'client', id: a.clientId})}>
-            <div style={{fontSize: 19, fontWeight: 600, letterSpacing: '-.01em'}} className="cut">{c.name}</div>
-            <div style={{fontSize: 14, color: 'var(--ink-2)'}}>{c.phone}</div>
-          </button>
+        <button style={{display: 'flex', alignItems: 'center', gap: 14, width: '100%'}}
+                onClick={() => { tap(); go({k: 'client', id: a.clientId}); }}>
+          <Avatar name={c.name} src={c.avatar} size={56} />
+          <div style={{flex: 1, minWidth: 0, textAlign: 'left'}}>
+            <div style={{fontSize: fit(c.name, 22, 16, 17), fontWeight: 700, letterSpacing: '-.02em',
+                         lineHeight: 1.2, overflowWrap: 'anywhere'}}>{c.name}</div>
+            <div style={{fontSize: 14, color: 'var(--ink-2)', marginTop: 3}}>{c.phone}</div>
+          </div>
           <span className="chev"><Icon n="chev" s={18} /></span>
-        </div>
+        </button>
       </div>
 
+      <div className="sec"><h3>Сеанс</h3></div>
       <div className="card pad">
         <div className="kv"><span className="kv-k">Услуга</span><span className="kv-v">{serviceName(db, a.serviceId)}</span></div>
         <div className="kv"><span className="kv-k">Дата</span><span className="kv-v">{dateLabel(a.date)}</span></div>
-        <div className="kv"><span className="kv-k">Время</span><span className="kv-v num">{a.time} – {hhmm(mins(a.time) + a.dur)}</span></div>
+        <div className="kv"><span className="kv-k">Время</span><span className="kv-v num">{a.time}–{hhmm(mins(a.time) + a.dur)}</span></div>
         <div className="kv"><span className="kv-k">Длительность</span><span className="kv-v">{durLabel(a.dur)}</span></div>
         <div className="kv"><span className="kv-k">Стоимость</span><span className="kv-v num">{a.pay === 'sub' ? 'Абонемент' : money(a.price)}</span></div>
-        {sub ? <div className="kv"><span className="kv-k">Абонемент клиента</span><span className="kv-v acc">{sub.used} из {sub.total}</span></div> : null}
-        <div className="kv"><span className="kv-k">Всего сеансов у клиента</span><span className="kv-v num">{st.total}</span></div>
+        <div className="kv"><span className="kv-k">Сеансов у клиента</span><span className="kv-v num">{st.total}</span></div>
+        {sub ? <div className="kv"><span className="kv-k">Абонемент</span><span className="kv-v acc">{sub.used} из {sub.total}</span></div> : null}
       </div>
 
       {note ? (
-        <div className="card pad">
-          <div style={{fontSize: 13, color: 'var(--ink-2)', marginBottom: 6}}>Прошлая заметка · {dateShort(note.date)}</div>
-          <div style={{fontSize: 15}}>{note.state}</div>
-          {note.zoneText || (note.zones || []).length ? (
-            <div style={{fontSize: 14, color: 'var(--ink-2)', marginTop: 6}}>
-              Зоны: {note.zoneText || note.zones.map(zoneName).join(', ')}
-            </div>
-          ) : null}
-          {note.next ? <div style={{fontSize: 14, color: 'var(--violet-ink)', marginTop: 8, fontWeight: 500}}>{note.next}</div> : null}
-        </div>
+        <Fragment>
+          <div className="sec"><h3>Предыдущая заметка</h3><span className="side">{dateShort(note.date)}</span></div>
+          <div className="card pad">
+            <div style={{fontSize: 15, lineHeight: 1.45}}>{note.state}</div>
+            {note.zoneText || (note.zones || []).length ? (
+              <div style={{fontSize: 14, color: 'var(--ink-2)', marginTop: 8}}>
+                Зоны: {note.zoneText || note.zones.map(zoneName).join(', ')}
+              </div>
+            ) : null}
+            {note.next ? <div style={{fontSize: 14, color: 'var(--violet-ink)', marginTop: 8, fontWeight: 500}}>{note.next}</div> : null}
+          </div>
+        </Fragment>
       ) : null}
 
+      <div style={{height: 6}} />
       {a.status === 'pending' ? (
         <div className="btns">
           <button className="btn pri" onClick={() => { tap(); Act.setStatus(a.id, 'planned'); say('Заявка подтверждена'); }}>
@@ -3001,7 +3638,7 @@ function ApptPage({db, id, back, go, openEdit}){
           </button>
           <div style={{height: 10}} />
           <div className="btns">
-            <a className="btn" href={'sms:' + String(c.phone || '').replace(/\s/g, '') + '?body=' + encodeURIComponent(remind)}>
+            <a className="btn" href={'sms:' + phone + '?body=' + encodeURIComponent(remind)}>
               <Icon n="chat" />Напомнить
             </a>
             <button className="btn ghost" onClick={() => { tap(); Act.setStatus(a.id, 'canceled'); say('Сеанс отменён'); back(); }}>Отменить</button>
@@ -3152,6 +3789,7 @@ function ServiceForm({open, onClose, init}){
   const [dur, setDur] = useState(base.dur || 60);
   const [price, setPrice] = useState(base.price || 1000);
   const [on, setOn] = useState(base.on !== false);
+  const [del, setDel] = useState(false);
   if (!open) return null;
   return (
     <Sheet open={open} onClose={onClose} title={base.id ? 'Услуга' : 'Новая услуга'}>
@@ -3170,7 +3808,13 @@ function ServiceForm({open, onClose, init}){
       {base.id ? (
         <Fragment>
           <div style={{height: 8}} />
-          <button className="btn ghost" onClick={() => { Act.delService(base.id); say('Услуга удалена'); onClose(); }}>Удалить</button>
+          {del ? (
+            <button className="btn dan" onClick={() => { Act.delService(base.id); say('Услуга удалена'); onClose(); }}>
+              Точно удалить услугу
+            </button>
+          ) : (
+            <button className="btn ghost" onClick={() => { tap(); setDel(true); }}>Удалить услугу</button>
+          )}
         </Fragment>
       ) : null}
       <div style={{height: 10}} />
@@ -3330,11 +3974,45 @@ function App(){
   const [stack, setStack] = useState([]);
   const [date, setDate] = useState(() => iso(new Date()));
   const [sheet, setSheet] = useState(null);
+  const [pull, setPull] = useState(0);
+  const pullFrom = useRef(null);
   const page = stack[stack.length - 1] || null;
 
   useEffect(() => { applyTheme(db.settings.theme); }, [db.settings.theme]);
   /* новый экран начинается сверху, а не с той же прокрутки, что прошлый */
   useEffect(() => { window.scrollTo(0, 0); }, [tab, stack.length]);
+
+  /* клавиатура на телефоне закрывает нижнюю половину экрана: поле, в
+     которое встали, само выходит на середину */
+  useEffect(() => {
+    const onFocus = (e) => {
+      const el = e.target;
+      if (!el || !el.matches || !el.matches('input, textarea, select')) return;
+      setTimeout(() => { try { el.scrollIntoView({block: 'center', behavior: 'smooth'}); } catch (err) {} }, 260);
+    };
+    window.addEventListener('focusin', onFocus);
+    return () => window.removeEventListener('focusin', onFocus);
+  }, []);
+
+  /* потянуть вниз на самом верху — пересчитать экран: время идёт, и
+     «через 62 мин» должно стать правдой без перезапуска */
+  const pullHandlers = {
+    onTouchStart: (e) => {
+      const t = e.touches && e.touches[0];
+      pullFrom.current = t && window.scrollY <= 0 ? t.clientY : null;
+    },
+    onTouchMove: (e) => {
+      const t = e.touches && e.touches[0];
+      if (pullFrom.current == null || !t) return;
+      const d = t.clientY - pullFrom.current;
+      setPull(d > 0 && window.scrollY <= 0 ? Math.min(96, d) : 0);
+    },
+    onTouchEnd: () => {
+      if (pull > 64){ Store.set(db2 => ({...db2})); tap(12); say('Обновлено'); }
+      pullFrom.current = null;
+      setPull(0);
+    },
+  };
 
   const go = useCallback((route) => {
     if (!route) return;
@@ -3369,7 +4047,7 @@ function App(){
   let body;
   if (page && page.k === 'client') body = <ClientPage db={db} id={page.id} go={go} back={back} openEdit={openClient} openAppt={openAppt} openNote={(id) => setSheet({k: 'note', id})} />;
   else if (page && page.k === 'body') body = <BodyMap db={db} id={page.id} back={back} go={go} />;
-  else if (page && page.k === 'session') body = <SessionScreen db={db} id={page.id} back={back} go={go} />;
+  else if (page && page.k === 'session') body = <SessionScreen db={db} id={page.id} back={back} go={go} openAppt={openAppt} />;
   else if (page && page.k === 'appt') body = <ApptPage db={db} id={page.id} back={back} go={go} openEdit={openAppt} />;
   else if (page && page.k === 'income') body = <Income db={db} back={back} />;
   else if (page && page.k === 'analytics') body = <Analytics db={db} back={back} go={go} />;
@@ -3383,7 +4061,13 @@ function App(){
   else body = <Home db={db} go={go} today={iso(new Date())} />;
 
   return (
-    <div className="app">
+    <div className="app" {...pullHandlers}>
+      {pull > 8 ? (
+        <div className={'pull' + (pull > 64 ? ' go' : '')}
+             style={{top: 'calc(var(--safe-top) + ' + Math.round(pull / 2) + 'px)', opacity: Math.min(1, pull / 50)}}>
+          <span style={{transform: 'rotate(' + Math.round(pull * 3) + 'deg)', display: 'grid'}}><Icon n="down" s={18} /></span>
+        </div>
+      ) : null}
       <div className="scroll">{body}</div>
 
         {tab === 'schedule' && !page ? (
