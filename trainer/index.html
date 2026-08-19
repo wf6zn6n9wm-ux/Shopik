@@ -301,8 +301,19 @@
   .grip{width:40px;height:4px;border-radius:4px;background:var(--line-2);margin:2px auto 12px;}
   .sheet h3{font-family:'Onest',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em;margin:2px 0 4px;}
 
+  /* Три поверхи, кожен на своєму місці: шапка вгорі, кнопка внизу,
+     а гортається тільки те, що між ними.
+
+     Раніше гортала себе вся сторінка, а кнопка трималась за низ
+     «липкою». Липка тримає, лише поки під нею є що гортати: як тільки
+     форма закінчувалась, кнопка сідала одразу за текстом — посеред
+     екрана, — а нижче лишалось порожньо до самої клавіатури. Виглядало
+     як поламане, і полагодити це відступами не виходить: справа не в
+     розмірах, а в тому, хто за що тримається. */
   .page{position:fixed;top:0;left:0;right:0;bottom:var(--kb,0px);z-index:50;background:var(--bg);
-    overflow-y:auto;max-width:var(--shell);margin-inline:auto;animation:pageIn .3s var(--ease) both;
+    display:flex;flex-direction:column;overflow:hidden;
+    max-width:var(--shell);margin-inline:auto;animation:pageIn .3s var(--ease) both;}
+  .page > .screen{flex:1;min-height:0;overflow-y:auto;
     padding-bottom:calc(24px + var(--safe-bottom));}
   @keyframes pageIn{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
   .page .appbar{background:linear-gradient(180deg,var(--bg) 74%,transparent);}
@@ -3849,16 +3860,13 @@ const Page = ({title, sub, onClose, right, children, footer}) => {
         <div style={{width:42, display:'flex', justifyContent:'flex-end'}}>{right}</div>
       </div>
       <div className="screen">{children}</div>
-      {/* Смуга внизу тримається за екран, і все, що під неї заїжджає,
-          зникає. Поки там була сама кнопка, це нікому не заважало: вона
-          низька, ховала рядок-другий. Щойно в смугу переїхали числа,
-          зона згасання почала з'їдати їх верх — бо рахувалась у
-          відсотках від висоти, а висота стала більшою.
-          Тому згасання тепер у пікселях: смужка зверху завжди та сама,
-          нижче — щільний фон, хоч що туди покладуть. */}
+      {/* Смуга з кнопкою — окремий поверх, а не липка всередині тексту.
+          Тому й фон у неї щільний: нічого під неї не заїжджає, ховати
+          нічого, і згасання, яке колись з'їдало верх у чисел, більше не
+          потрібне. */}
       {footer && (
-        <div style={{position:'sticky', bottom:0, padding:'12px 18px calc(14px + var(--safe-bottom))',
-                     background:'linear-gradient(180deg,transparent,var(--bg) 22px)'}}>{footer}</div>
+        <div style={{flex:'none', padding:'12px 18px calc(14px + var(--safe-bottom))',
+                     background:'var(--bg)'}}>{footer}</div>
       )}
     </div>
   );

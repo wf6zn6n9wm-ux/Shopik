@@ -823,6 +823,26 @@ PROBES['app-keyboard.js'] = DRIVE + `
          Міряємо саме висоту, а не краї: у headless фіксовані елементи
          під анімацією дають зміщені координати, і перевірка казала б не
          про те. Висота від положення не залежить. */
+      /* ─── кнопка стоїть унизу навіть у короткій формі ───
+         Ось де воно й вилазило. Кнопка трималась «липкою», а липка
+         тримає лише поки під нею є що гортати. Форма закінчувалась —
+         кнопка сідала одразу за текстом, посеред екрана, а нижче
+         лишалась порожнеча до клавіатури.
+
+         Довгу форму цим не перевірити: у ній під кнопкою завжди є що
+         гортати, і навіть зламана вона стоїть як треба. Тому вкорочуємо
+         вміст руками — і питаємо те саме, що бачить око: чи низ кнопки
+         збігається з низом сторінки. */
+      var scr = page.querySelector('.screen');
+      var keep = [].slice.call(scr.children);
+      keep.forEach(function(el, i){ if (i) el.style.display = 'none'; });
+      await wait(120);
+      var foot = page.lastElementChild;
+      res.footGap = Math.round(page.getBoundingClientRect().bottom - foot.getBoundingClientRect().bottom);
+      res.footDown = Math.abs(res.footGap) <= 1;
+      keep.forEach(function(el){ el.style.display = ''; });
+      await wait(120);
+
       var field = page.querySelector('.inp.press');
       if (field){ field.click(); await wait(450); }
       var pickSheet = document.querySelector('.sheet');
@@ -2025,6 +2045,8 @@ server.listen(PORT, '127.0.0.1', async () => {
       ok('  і його ніхто не перекриває', o.sumFree === true,
          o.sumFree ? o.sumText : 'палець влучає не в підсумок');
       ok('  другого такого ж у формі немає', o.sumTwice === 1, o.sumTwice + ' шт.');
+      ok('  у короткій формі кнопка все одно внизу', o.footDown === true,
+         o.footDown ? 'низ у низ' : 'кнопка висить на ' + o.footGap + ' px вище низу');
       ok('шторка вибору клієнта відкрилась', o.pick === true);
       ok('  і при клавіатурі не вища за те, що видно', o.pickFits === true,
          o.pickH + ' px при ' + o.pickRoom + ' px вільних');
