@@ -78,11 +78,17 @@ const line = v => [
   v.email,
 ].filter(Boolean).join(', ');
 /* способы связи — те, что заполнены: почты у поддержки может не быть */
-const ways = v => [
-  v.email && 'на ' + v.email,
-  v.telegram && 'у Telegram @' + String(v.telegram).replace(/^@/, ''),
-  v.phone && 'за телефоном ' + v.phone,
-].filter(Boolean).join(' або ') || '(вкажіть контакт для звернень)';
+const ways = v => {
+  const w = [
+    v.email && 'на ' + v.email,
+    v.telegram && 'у Telegram @' + String(v.telegram).replace(/^@/, ''),
+    v.phone && 'за телефоном ' + v.phone,
+  ].filter(Boolean);
+  /* три канала через «або» читаются как перечень вариантов из анкеты;
+     запятая, а «або» только перед последним — обычная фраза */
+  if (!w.length) return '(вкажіть контакт для звернень)';
+  return w.length === 1 ? w[0] : w.slice(0, -1).join(', ') + ' або ' + w[w.length - 1];
+};
 const fill = (tx, v) => String(tx).replace(/\{\{(\w+)\}\}/g, (_, k) =>
   k === 'requisites' ? line(v) :
   k === 'contacts' ? ways(v) :
