@@ -113,7 +113,7 @@ const EXPORTS = `;globalThis.__T = {
   Vault, isEmail, isPhone, isLogin, b64, unb64,
   Boot, bootPhase, Onboarding, Auth, PinLock, Setup, SkScreen, ErrorBox, ObArt, LangPick, PinModal,
   Box, Files, Backups, BACKUP_KEY, META_KEY,
-  LEGAL, LEGAL_DOCS, LEGAL_READY, Support, LegalPage, LegalLinks,
+  LEGAL, LEGAL_DOCS, LEGAL_READY, legalLine, contactLine, Support, LegalPage, LegalLinks,
   expensesIn, spent, profit, EXPENSE_KINDS, ExpenseForm, pickFile, pickPhoto,
 };`;
 
@@ -905,11 +905,19 @@ part('документы');
      T.LEGAL_DOCS.terms.title + ' / ' + T.LEGAL_DOCS.privacy.title);
   ok('РНОКПП, адрес и телефон попали в документ',
      terms.includes(T.LEGAL.id) && terms.includes(T.LEGAL.address) && terms.includes(T.LEGAL.phone));
-  /* почты у поддержки нет: в документах не должно остаться «напишите на» */
-  ok('почта не упоминается, раз её нет',
-     T.LEGAL.email === '' && !/на\s+\S+@/.test(terms + priv));
-  ok('вместо неё — телефон и Telegram',
-     /Telegram @/.test(terms) && /за телефоном/.test(terms));
+  /* Каналы обращений перечисляются те, что заполнены. Незаполненный не
+     должен превращаться в обрывок фразы «напишіть на » — а заполненный
+     обязан доехать до документа: банк смотрит именно туда. */
+  const ways = terms + priv;
+  ok('заполненные каналы связи попали в документ',
+     [[T.LEGAL.email, 'на ' + T.LEGAL.email],
+      [T.LEGAL.telegram, 'Telegram @' + T.LEGAL.telegram],
+      [T.LEGAL.phone, 'за телефоном ' + T.LEGAL.phone]]
+       .every(([v, text]) => !v || ways.includes(text)),
+     T.contactLine());
+  ok('и обрывков от незаполненных не осталось',
+     !/(на|у Telegram @|за телефоном)\s*(,|\.|$|\s+(або|;))/m.test(T.contactLine()));
+  ok('почта в реквизитах есть', T.LEGAL.email.includes('@'), T.LEGAL.email);
 
   screen('экран условий', () => T.LegalPage({doc: 'terms', onClose(){}}));
   screen('экран политики', () => T.LegalPage({doc: 'privacy', onClose(){}}));
