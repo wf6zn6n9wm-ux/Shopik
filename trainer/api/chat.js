@@ -107,7 +107,10 @@ async function touchIndex(rec){
     login: rec.login,
     at: last ? last.at : 0,
     who: last ? last.who : '',
-    text: last ? last.text.slice(0, 120) : '',
+    /* У списку ниток видно останній рядок. Фото без слів лишає його
+       порожнім — і нитка виглядає так, ніби людина нічого не написала.
+       Тому підписуємо: питання є, просто воно картинкою. */
+    text: last ? (last.text ? last.text.slice(0, 120) : (last.pic ? '📷 фото' : '')) : '',
     unread: unreadFor(rec, 's'),
     lang: rec.lang || '',
   };
@@ -178,7 +181,7 @@ function tooFast(rec){
 async function notify(rec, msg, pic){
   const tg = TG();
   if (!tg.token || !tg.chat) return false;
-  const text = rec.login + '\n\n' + msg.text +
+  const text = rec.login + '\n\n' + (msg.text || '(фото без тексту)') +
     '\n\n— відповідайте на це повідомлення, і відповідь піде в застосунок' +
     '\n' + tg.base + '/admin';
   try {
@@ -325,8 +328,8 @@ module.exports = async function handler(req, res){
   before.sent.push(Date.now());
   await L.store.set(keyOf(login), before);
 
-  const {rec, msg} = await add(login, 't', text || '📷', {device, lang: q.lang,
-                                                          pic: hasPic ? pic : null});
+  const {rec, msg} = await add(login, 't', text, {device, lang: q.lang,
+                                                 pic: hasPic ? pic : null});
   const told = await notify(rec, msg, hasPic ? pic : null);
   return L.json(res, 200, {ok: true, id: msg.id, at: msg.at, pic: msg.pic ? 1 : 0, told});
 };

@@ -1089,6 +1089,11 @@ PROBES['app-help.js'] = DRIVE + `
     }, 15000);
     var shot = document.querySelector('.bub.me img.shot');
     res.inThread = !!(shot && (shot.getAttribute('src') || '').indexOf('data:image') === 0);
+    /* Фото без слів має лишитись фотографією. Раніше замість тексту
+       підставлявся значок камери — і під картинкою висів зайвий символ,
+       ніби людина його набрала. */
+    var bub = shot ? shot.closest('.bub') : null;
+    res.noJunk = !!bub && (bub.textContent || '').indexOf('📷') < 0;
     res.picGone = !document.querySelector('.pick .shot');   /* поле очистилось */
 
     res.err = window.__err || '';
@@ -1989,11 +1994,12 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('кнопка вмикається від тексту', o.canSend === true);
     ok('своє повідомлення стало на екрані', o.mine === 1, o.mineText || '—');
     ok('відповідь приходить сама, без перезавантаження', o.theirs === 1, o.theirText || '—');
-      ok('до питання можна додати знімок екрана', o.hasPick === true);
+      ok('до питання можна додати фото', o.hasPick === true);
       ok('  перегляд з\'являється після вибору', o.preview === true, o.errShown || '');
-      ok('  знімок не порізаний у квадрат', o.wide > 2, 'сторони як ' + o.wide + ':1');
+      ok('  фото не порізане у квадрат', o.wide > 2, 'сторони як ' + o.wide + ':1');
       ok('  і доїжджає в переписку картинкою', o.inThread === true);
-      ok('  після відправки поле чисте', o.picGone === true);
+      ok('  під фото немає зайвого значка', o.noJunk === true);
+    ok('  після відправки поле чисте', o.picGone === true);
     ok('помилок немає', !o.err, o.err || '—');
 
     part('кабінет заводиться тільки на пошту');

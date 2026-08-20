@@ -1449,8 +1449,8 @@ const PHRASES = [
   ['Відправити', 'Отправить', 'Send', 'Wyślij'],
   ['Відправляю…', 'Отправляю…', 'Sending…', 'Wysyłam…'],
   ['Опишіть питання', 'Опишите вопрос', 'Describe the problem', 'Opisz problem'],
-  ['Додати знімок екрана', 'Добавить снимок экрана', 'Add a screenshot', 'Dodaj zrzut ekranu'],
-  ['Інший знімок', 'Другой снимок', 'Another screenshot', 'Inny zrzut'],
+  ['Додати фото', 'Добавить фото', 'Add a photo', 'Dodaj zdjęcie'],
+  ['Інше фото', 'Другое фото', 'Another photo', 'Inne zdjęcie'],
   ['Потрібен інтернет', 'Нужен интернет', 'Connection required', 'Potrzebny internet'],
   ['Написати іншим способом', 'Написать другим способом', 'Contact us another way', 'Napisz w inny sposób'],
   ['Відповідь підтримки', 'Ответ поддержки', 'Reply from support', 'Odpowiedź pomocy'],
@@ -8637,7 +8637,7 @@ const SupportChat = ({onClose}) => {
         {err && <div className="muted" style={{fontSize:12.5, color:'var(--neg)', marginTop:6}}>{err}</div>}
         <input ref={file} type="file" accept="image/*" hidden onChange={pick}/>
         <Btn kind="soft" wide style={{marginTop:10}} onClick={() => file.current && file.current.click()}>
-          <Ic.plus size={17}/>{pic ? t('help.pic.re','Інший знімок') : t('help.pic','Додати знімок екрана')}
+          <Ic.plus size={17}/>{pic ? t('help.pic.re','Інше фото') : t('help.pic','Додати фото')}
         </Btn>
         <Btn kind="pri" size="lg" wide style={{marginTop:8}} disabled={busy || (!text.trim() && !pic)} onClick={send}>
           <Ic.msg size={18}/>{busy ? t('help.sending','Відправляю…') : t('help.send','Відправити')}
