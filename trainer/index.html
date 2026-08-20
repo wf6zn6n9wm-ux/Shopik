@@ -337,8 +337,15 @@
      overflow — і шторка з затемненням обрізались по її краях: темніла
      тільки сторінка, а сама шторка ховалась під клавіатуру смужкою.
      Різати й не треба: середина має свій overflow і назовні не лізе. */
-  .page{position:fixed;top:0;left:0;right:0;bottom:var(--kb,0px);z-index:50;background:var(--bg);
-    display:flex;flex-direction:column;
+  /* Сторінка накриває екран цілком, а від клавіатури відступає полем
+     усередині себе. Спершу я вкоротив саму сторінку — і в щілину між її
+     низом і клавіатурою було видно екран, який лишився під нею:
+     смужка налаштувань з-під підтримки. Смуга підказок над клавіатурою
+     напівпрозора, і крізь неї це читалось.
+     Поле замість вкорочення: фон малюється на весь екран, а кнопка все
+     одно стоїть над клавіатурою. */
+  .page{position:fixed;inset:0;z-index:50;background:var(--bg);
+    display:flex;flex-direction:column;padding-bottom:var(--kb,0px);
     max-width:var(--shell);margin-inline:auto;animation:pageIn .3s var(--ease) both;}
   .page > .screen{flex:1;min-height:0;overflow-y:auto;
     padding-bottom:calc(24px + var(--safe-bottom));}

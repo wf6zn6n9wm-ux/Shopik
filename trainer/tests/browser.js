@@ -785,10 +785,17 @@ PROBES['app-keyboard.js'] = DRIVE + `
     var page = document.querySelector('.page');
     res.page = !!page;
     if (page){
-      var pb = page.getBoundingClientRect().bottom;
       root.style.setProperty('--kb', KB + 'px');
       await wait(120);
-      res.pageLift = Math.round(pb - page.getBoundingClientRect().bottom);
+      /* Сторінка має накривати екран цілком — інакше в щілину між її
+         низом і клавіатурою видно екран, який лишився під нею. Смуга
+         підказок над клавіатурою напівпрозора, і крізь неї це читається:
+         тренер бачив смужку налаштувань з-під підтримки.
+         А кнопка при цьому все одно стоїть над клавіатурою. */
+      var pr0 = page.getBoundingClientRect();
+      res.pageCovers = pr0.bottom >= innerHeight - 1;
+      res.pageBottom = Math.round(pr0.bottom) + '/' + innerHeight;
+      res.pageLift = KB;
 
       /* ─── підсумок видно, і його ніхто не перекриває ───
          Числа стояли в потоці форми, а кнопка «Зберегти» прилипла до
@@ -838,7 +845,7 @@ PROBES['app-keyboard.js'] = DRIVE + `
       keep.forEach(function(el, i){ if (i) el.style.display = 'none'; });
       await wait(120);
       var foot = page.lastElementChild;
-      res.footGap = Math.round(page.getBoundingClientRect().bottom - foot.getBoundingClientRect().bottom);
+      res.footGap = Math.round(page.getBoundingClientRect().bottom - KB - foot.getBoundingClientRect().bottom);
       res.footDown = Math.abs(res.footGap) <= 1;
       keep.forEach(function(el){ el.style.display = ''; });
       await wait(120);
@@ -2111,7 +2118,8 @@ server.listen(PORT, '127.0.0.1', async () => {
          o.sheetLift + ' px замість 336');
       ok('  зникла — шторка повернулась на дно', o.sheetBack === 336, o.sheetBack + ' px');
       ok('сторінка відкрилась', o.page === true);
-      ok('  її низ теж піднімається', o.pageLift === 336, o.pageLift + ' px замість 336');
+      ok('  вона накриває екран цілком', o.pageCovers === true,
+         o.pageCovers ? 'до самого низу' : 'кінчається на ' + o.pageBottom + ' — у щілину видно чуже');
       ok('підсумок стоїть поруч із кнопкою', o.sum === true);
       ok('  і при піднятій клавіатурі лишається на екрані', o.sumIn === true);
       ok('  і його ніхто не перекриває', o.sumFree === true,
