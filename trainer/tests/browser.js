@@ -852,6 +852,22 @@ PROBES['app-keyboard.js'] = DRIVE + `
         res.pickRoom = Math.round(innerHeight - KB);
         res.pickFits = res.pickH <= res.pickRoom + 1;
       }
+
+      /* ─── шторка з-під сторінки не обрізається ───
+         Шторка й затемнення лежать «поверх екрана». Але екраном для них
+         стає найближчий предок, який рухається, — а сторінка саме така,
+         вона виїжджає анімацією. Варто дати їй overflow — і обидва
+         обріжуться по її краях: темніє тільки сторінка, а шторка йде під
+         клавіатуру смужкою. Я на цьому вже наступив.
+         Питаємо про затемнення: воно має накривати екран цілком. Якщо
+         накриває менше — його щось обрізало. */
+      var sc = document.querySelector('.scrim');
+      res.scrim = !!sc;
+      if (sc){
+        var cr = sc.getBoundingClientRect();
+        res.scrimBox = Math.round(cr.top) + '..' + Math.round(cr.bottom) + ' при ' + innerHeight;
+        res.scrimAll = cr.top <= 1 && cr.bottom >= innerHeight - 1;
+      }
       root.style.setProperty('--kb', '0px');
     }
     say(res);
@@ -2050,6 +2066,8 @@ server.listen(PORT, '127.0.0.1', async () => {
       ok('шторка вибору клієнта відкрилась', o.pick === true);
       ok('  і при клавіатурі не вища за те, що видно', o.pickFits === true,
          o.pickH + ' px при ' + o.pickRoom + ' px вільних');
+      ok('  затемнення накриває екран цілком, а не саму сторінку', o.scrimAll === true,
+         o.scrimAll ? 'на весь екран' : 'обрізане: ' + o.scrimBox);
     }
 
     part('сторінка після оплати');

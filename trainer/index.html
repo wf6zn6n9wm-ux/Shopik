@@ -108,8 +108,17 @@
 
   /* ══════════ оболонка ══════════ */
   .app{min-height:100vh;padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + 80px);}
+  /* ─── чому тут немає зсуву ───
+     Елемент, який рухається, стає «екраном» для всього, що всередині:
+     шторка й затемнення в ньому теж уважають себе накладеними поверх
+     екрана, але екраном для них раптом стає він. Виходило так:
+     темнішала сама сторінка, а шторка вибору клієнта ховалась під
+     клавіатуру смужкою. І це не про мить анімації — слід лишається
+     назавжди.
+     Тому в'їзд робимо прозорістю. Рухати можна тільки те, всередині
+     чого немає нічого «поверх екрана». */
   .screen{padding:0 18px 18px;animation:screenIn .34s var(--ease);}
-  @keyframes screenIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes screenIn{from{opacity:0}to{opacity:1}}
 
   .appbar{position:sticky;top:0;z-index:30;padding:calc(var(--safe-top) + 12px) 18px 10px;
     display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -310,12 +319,19 @@
      екрана, — а нижче лишалось порожньо до самої клавіатури. Виглядало
      як поламане, і полагодити це відступами не виходить: справа не в
      розмірах, а в тому, хто за що тримається. */
+  /* Обрізати тут нічого не можна, хоч і хочеться. Сторінка їде своєю
+     анімацією, а елемент, який рухається, стає межею для всього
+     всередині: шторка вибору клієнта й затемнення — теж «поверх
+     екрана», але екраном для них раптом стає сторінка. Додав сюди
+     overflow — і шторка з затемненням обрізались по її краях: темніла
+     тільки сторінка, а сама шторка ховалась під клавіатуру смужкою.
+     Різати й не треба: середина має свій overflow і назовні не лізе. */
   .page{position:fixed;top:0;left:0;right:0;bottom:var(--kb,0px);z-index:50;background:var(--bg);
-    display:flex;flex-direction:column;overflow:hidden;
+    display:flex;flex-direction:column;
     max-width:var(--shell);margin-inline:auto;animation:pageIn .3s var(--ease) both;}
   .page > .screen{flex:1;min-height:0;overflow-y:auto;
     padding-bottom:calc(24px + var(--safe-bottom));}
-  @keyframes pageIn{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+  @keyframes pageIn{from{opacity:0}to{opacity:1}}
   .page .appbar{background:linear-gradient(180deg,var(--bg) 74%,transparent);}
 
   /* ══════════ нижня навігація ══════════ */
