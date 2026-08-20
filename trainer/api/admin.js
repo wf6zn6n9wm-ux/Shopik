@@ -24,7 +24,7 @@
      GET  /api/admin                     зведення
      GET  /api/admin?chat=1               список ниток переписки
      GET  /api/admin?chat=<логін>         одна нитка
-     POST /api/admin  {reply, text}       відповісти тренеру
+     POST /api/admin  {reply, text[, pic]} відповісти тренеру
    Скрізь Authorization: Bearer $ADMIN_PASS
    ────────────────────────────────────────────────────────────────── */
 const L = require('../api/_lib.js');
@@ -77,10 +77,16 @@ module.exports = async function handler(req, res){
   if (q.reply !== undefined){
     const to = L.normLogin(q.reply);
     const text = String(q.text || '').trim();
-    if (!to || !text) return L.json(res, 400, {ok: false, error: 'no_text'});
+    /* Картинка у відповідь — те саме, що й у питанні: «натисніть отут»
+       пояснюється стрілкою, а не абзацом. Тому й без тексту приймаємо. */
+    const pic = String(q.pic || '');
+    const hasPic = /^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/.test(pic)
+                   && pic.length <= CHAT.PIC_MAX;
+    if (pic && !hasPic) return L.json(res, 400, {ok: false, error: 'bad_pic'});
+    if (!to || (!text && !hasPic)) return L.json(res, 400, {ok: false, error: 'no_text'});
     if (!(await CHAT.read(to))) return L.json(res, 404, {ok: false, error: 'no_thread'});
-    const {msg} = await CHAT.add(to, 's', text);
-    return L.json(res, 200, {ok: true, at: msg.at});
+    const {msg} = await CHAT.add(to, 's', text, {pic: hasPic ? pic : null});
+    return L.json(res, 200, {ok: true, at: msg.at, pic: msg.pic ? 1 : 0});
   }
 
   if (q.chat !== undefined){

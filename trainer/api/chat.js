@@ -232,8 +232,13 @@ async function tgSay(text){
      • написати «пошта: текст» — на випадок, коли сповіщення загубилось. */
 function addressee(update){
   const m = (update && update.message) || {};
-  const body = String(m.text || '').trim();
-  const src = m.reply_to_message && String(m.reply_to_message.text || '');
+  /* Підпис до картинки лежить у caption, а не в text — і в тому, що
+     надсилаємо ми, і в тому, що надсилають нам. Поки сповіщення було
+     самим текстом, різниці не було; щойно воно стало картинкою з
+     підписом, бот перестав упізнавати адресата у відповіді на нього. */
+  const body = String(m.text || m.caption || '').trim();
+  const src = m.reply_to_message &&
+              String(m.reply_to_message.text || m.reply_to_message.caption || '');
   if (src){
     const first = src.split('\n')[0].trim();
     if (first) return {login: first, text: body};
@@ -247,10 +252,45 @@ function addressee(update){
   return null;
 }
 
+/* ─── картинка з Telegram ───
+   Тренер шле знімок екрана — відповідати йому теж доводиться знімком:
+   «натисніть отут» пояснюється стрілкою, а не абзацом.
+
+   Telegram віддає картинку не файлом, а посиланням у два кроки: спершу
+   getFile за ідентифікатором, потім саме завантаження. Розмірів у нього
+   кілька — беремо найбільший, що влазить у нашу стелю: показувати його
+   на телефоні, а не друкувати.                                        */
+async function picFromTelegram(sizes){
+  const tg = TG();
+  if (!tg.token || !Array.isArray(sizes) || !sizes.length) return null;
+  /* base64 більший за самі байти на третину — рахуємо стелю в байтах */
+  const room = Math.floor(PIC_MAX * 3 / 4);
+  const fit = sizes.filter(x => !x.file_size || x.file_size <= room)
+                   .sort((a, b) => (b.file_size || 0) - (a.file_size || 0))[0];
+  if (!fit) return null;
+  try {
+    const info = await fetch('https://api.telegram.org/bot' + tg.token +
+                             '/getFile?file_id=' + encodeURIComponent(fit.file_id),
+                             {signal: AbortSignal.timeout(6000)}).then(r => r.json());
+    const path = info && info.ok && info.result && info.result.file_path;
+    if (!path) return null;
+    const r = await fetch('https://api.telegram.org/file/bot' + tg.token + '/' + path,
+                          {signal: AbortSignal.timeout(10000)});
+    if (!r.ok) return null;
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (buf.length > room) return null;
+    const type = /\.png$/i.test(path) ? 'image/png' : 'image/jpeg';
+    return 'data:' + type + ';base64,' + buf.toString('base64');
+  } catch { return null; }
+}
+
 async function fromTelegram(req, res){
   const update = req.body || {};
   const to = addressee(update);
-  if (!to || !to.text) {
+  const shot = await picFromTelegram(((update.message || {}).photo) || []);
+  /* Картинка без підпису — теж відповідь: «ось де це». Вимагати ще й
+     слів означало б змусити написати «дивіться фото». */
+  if (!to || (!to.text && !shot)) {
     await tgSay('Не зрозумів, кому це. Відповідайте на сповіщення або напишіть «пошта: текст».');
     return L.json(res, 200, {ok: true, ignored: true});
   }
@@ -259,8 +299,13 @@ async function fromTelegram(req, res){
     await tgSay('Кабінета ' + login + ' у переписці немає.');
     return L.json(res, 200, {ok: true, ignored: true});
   }
-  await add(login, 's', to.text);
-  return L.json(res, 200, {ok: true, sent: true});
+  const {msg} = await add(login, 's', to.text, {pic: shot});
+  /* Картинка могла не доїхати — краще сказати про це одразу, ніж лишити
+     людину з відповіддю без того, заради чого її слали. */
+  if (shot && !msg.pic) await tgSay('Текст пішов, а картинку зберегти не вдалось.');
+  else if (!shot && ((update.message || {}).photo || []).length)
+    await tgSay('Картинка завелика — пішов лише текст.');
+  return L.json(res, 200, {ok: true, sent: true, pic: msg.pic ? 1 : 0});
 };
 
 /* ─────────── сам обробник ─────────── */

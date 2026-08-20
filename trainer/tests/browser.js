@@ -183,9 +183,17 @@ const server = http.createServer(async (req, res) => {
 
   /* Відповідь підтримки. У житті її кладе адмінка або Telegram — обидва
      через ту саму функцію, тож тут кличемо її напряму: пробі потрібен
-     сам факт відповіді, а не спосіб її набрати. */
+     сам факт відповіді, а не спосіб її набрати.
+
+     pic=1 — відповідь із картинкою: підтримка теж пояснює стрілкою, а
+     не абзацом. Байти беремо найменші, які взагалі бувають картинкою:
+     перевіряємо дорогу, а не вміст. */
   if (url.pathname === '/_test/reply'){
-    await require('../api/chat.js').add(url.searchParams.get('login'), 's', url.searchParams.get('text'));
+    const withPic = url.searchParams.get('pic')
+      ? 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+      : null;
+    await require('../api/chat.js').add(url.searchParams.get('login'), 's',
+                                        url.searchParams.get('text'), {pic: withPic});
     res.writeHead(200, {'content-type': TYPES['.js'], 'cache-control': 'no-store'});
     return res.end('{"ok":true}');
   }
@@ -1094,6 +1102,18 @@ PROBES['app-help.js'] = DRIVE + `
        ніби людина його набрала. */
     var bub = shot ? shot.closest('.bub') : null;
     res.noJunk = !!bub && (bub.textContent || '').indexOf('📷') < 0;
+
+    /* ─── картинка від підтримки ───
+       Дорога та сама, але в інший бік: кладе її адмінка або відповідь у
+       Telegram, а тренер має побачити її в застосунку. Раніше з цього
+       боку картинки не було зовсім. */
+    await fetch('/_test/reply?' + new URLSearchParams({login: res.login, text: 'ось де це', pic: '1'}));
+    await until(function(){
+      var im = document.querySelector('.bub.them img.shot');
+      return !!(im && im.getAttribute('src'));
+    }, 15000);
+    var theirs = document.querySelector('.bub.them img.shot');
+    res.fromUs = !!(theirs && (theirs.getAttribute('src') || '').indexOf('data:image') === 0);
     res.picGone = !document.querySelector('.pick .shot');   /* поле очистилось */
 
     res.err = window.__err || '';
@@ -1999,6 +2019,7 @@ server.listen(PORT, '127.0.0.1', async () => {
       ok('  фото не порізане у квадрат', o.wide > 2, 'сторони як ' + o.wide + ':1');
       ok('  і доїжджає в переписку картинкою', o.inThread === true);
       ok('  під фото немає зайвого значка', o.noJunk === true);
+    ok('  підтримка теж може відповісти фото', o.fromUs === true);
     ok('  після відправки поле чисте', o.picGone === true);
     ok('помилок немає', !o.err, o.err || '—');
 

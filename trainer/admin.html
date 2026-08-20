@@ -243,6 +243,9 @@
      надіслали. */
   .shot{display:block;width:100%;max-height:420px;object-fit:contain;border-radius:10px;
     margin-bottom:7px;background:rgba(255,255,255,.05);}
+  .pick{position:relative;margin-top:12px;max-width:320px;}
+  .pick .off{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;
+    background:rgba(0,0,0,.6);color:#fff;font-size:14px;display:grid;place-items:center;}
 
   .tag{display:inline-block;font-size:11px;font-weight:650;padding:3px 9px;border-radius:999px;
     border:1px solid transparent;white-space:nowrap}
@@ -925,7 +928,10 @@ async function openChat(login){
           esc(m.text) + '<span class="at">' + when(m.at, now) + '</span></div>';
       }).join('') + '</div>' +
       '<div class="say"><textarea id="say" rows="2" placeholder="Ответ тренеру"></textarea>' +
+      '<input type="file" id="pick" accept="image/*" hidden>' +
+      '<button class="btn" id="attach">' + svg(IC.card, 15) + 'Фото</button>' +
       '<button class="btn pri" id="send">Отправить</button></div>' +
+      '<div id="ready"></div>' +
       '<p class="muted" style="margin-top:12px">Отвечать можно и из Telegram — просто ответьте ' +
       'на сообщение бота.</p>' +
     '</div>');
@@ -940,12 +946,52 @@ async function openChat(login){
       .catch(function(){});
   });
 
+  /* ─── картинка в ответ ───
+     Тренер шлёт снимок экрана — отвечать ему проще тем же: «нажмите
+     вот тут» объясняется стрелкой, а не абзацем.
+
+     Сжимаем прямо здесь: снимок с ноутбука весит мегабайты, а на
+     телефоне его всё равно смотрят с ладонь. Стороны сохраняем —
+     обрезать снимок экрана в квадрат значит выбросить то, ради чего
+     его прислали. */
+  var shot = '';
+  var pick = document.getElementById('pick');
+  var ready = document.getElementById('ready');
+  document.getElementById('attach').onclick = function(){ pick.click(); };
+  pick.onchange = function(){
+    var f = pick.files && pick.files[0];
+    pick.value = '';
+    if (!f) return;
+    var img = new Image();
+    img.onload = function(){
+      var k = Math.min(1, 1280 / Math.max(img.width, img.height));
+      var c = document.createElement('canvas');
+      c.width = Math.round(img.width * k);
+      c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      var q = [0.82, 0.7, 0.58, 0.45], out = '';
+      for (var i = 0; i < q.length; i++){
+        out = c.toDataURL('image/jpeg', q[i]);
+        if (out.length <= 600 * 1024) break;
+      }
+      shot = out;
+      ready.innerHTML = '<div class="pick"><img class="shot" src="' + shot + '" alt="">' +
+        '<button class="off" id="drop">✕</button></div>';
+      document.getElementById('drop').onclick = function(){ shot = ''; ready.innerHTML = ''; };
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = function(){ alert('Не удалось прочитать фото'); };
+    img.src = URL.createObjectURL(f);
+  };
+
   var box = document.getElementById('say');
   var send = async function(){
     var text = box.value.trim();
-    if (!text) return;
+    if (!text && !shot) return;
     document.getElementById('send').disabled = true;
-    var rr = await api('', {method: 'POST', body: {reply: d.login, text: text}});
+    var body = {reply: d.login, text: text};
+    if (shot) body.pic = shot;
+    var rr = await api('', {method: 'POST', body: body});
     if (rr.ok) openChat(d.login);
     else { document.getElementById('send').disabled = false; alert('Не отправилось'); }
   };
