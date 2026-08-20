@@ -66,6 +66,22 @@ const SCENARIO = `
 
   var steps = [
     function(){ ok('стартує з екрана входу', text().indexOf('Urok') >= 0 && !!byText('Apple')); },
+    /* тестовий режим: подивитись до реєстрації й вийти без слідів */
+    function(){ ok('є тестовий режим', click(byText('Подивитись без реєстрації'))); },
+    function(){ ok('пускає одразу в календар', !!$('.hero') && !!$('.nav')); },
+    function(){ ok('є на що дивитись', $$('.nav button').length === 4 && text().indexOf('₴') > 0); },
+    function(){ click($$('.nav button')[3]); },
+    function(){ ok('видно, що режим тестовий', text().indexOf('Тестовий режим') >= 0); },
+    function(){ ok('вихід із тестового режиму', click(byText('Вийти й створити акаунт'))); },
+    function(){ ok('повернулись до входу', !!byText('Apple')); },
+    function(){
+      var state = JSON.parse(localStorage.getItem('urok.v1'));
+      ok('демо-дані не лишились', state.students.length === 0, String(state.students.length));
+      /* Автономна збірка наливає приклад лише на першому запуску, а ми
+         його щойно винесли разом із тестовим режимом. Повертаємо — далі
+         сценарій про звичайну роботу, і йому потрібні дані. */
+      window.U.loadDemo(window.U.makeT('uk'));
+    },
     function(){ ok('вхід через Apple', click(byText('Apple'))); },
     function(){ ok('питає ім\\'я', !!$('input')); type($('input'), 'Олена Кравець'); },
     function(){ ok('ім\\'я введено', $('input').value === 'Олена Кравець'); click($$('.btn.pri')[0]); },
@@ -78,6 +94,9 @@ const SCENARIO = `
     function(){ click($$('.btn.pri')[0]); },
     function(){ ok('останній слайд онбордингу', !!byText('Почати') || !!byText('Get started')); },
     function(){ click($$('.btn.pri')[0]); },
+    /* після тестового режиму застосунок пам'ятає останню вкладку —
+       повертаємось на календар, далі сценарій про нього */
+    function(){ click($$('.nav button')[0]); },
     function(){ ok('дійшли до застосунку', !!$('.nav') && !!$('.hero')); },
     function(){ ok('є нижня навігація з 4 вкладок', $$('.nav button').length === 4); },
     function(){ ok('демо-дані наливаються', $$('.row').length > 2, String($$('.row').length)); },

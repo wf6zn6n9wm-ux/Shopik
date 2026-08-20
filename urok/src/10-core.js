@@ -304,6 +304,25 @@ const A = {
   setAuth: patch => store.set(s => ({...s, auth: {...s.auth, ...patch}})),
   markSeen: key => store.set(s => ({...s, seen: {...s.seen, [key]: true}})),
   finishOnboarding: () => store.set(s => ({...s, onboarded: true})),
+  /* Тестовий режим: зайти й поклацати, не лишаючи ні номера, ні пошти.
+     Це не «гість із порожнім екраном» — без даних дивитись немає на
+     що, тому одразу наливаємо демо-тиждень. Онбординг теж пропускаємо:
+     людина прийшла подивитись, а не заповнювати анкету. */
+  startDemo(t){
+    loadDemo(t);
+    store.set(s => ({
+      ...s,
+      auth: {status: 'authed', phone: '', provider: 'demo', createdAt: todayISO()},
+      onboarded: true,
+      profile: {...s.profile, name: s.profile.name || (t ? t('demo.who') : 'Demo')},
+    }));
+  },
+  /* Вихід із тестового режиму прибирає демо-дані: інакше вони
+     змішаються зі справжніми й потім не розбереш, де чиї. */
+  exitDemo(){
+    unloadDemo();
+    store.set(s => ({...s, auth: {status: 'guest', phone: '', provider: '', createdAt: ''}, onboarded: false}));
+  },
 
   addStudent(data){
     const id = uid('st');
@@ -743,6 +762,8 @@ const sel = {
      не забирає роботу. Заблокований учень означає, що викладач
      веде його в іншому місці, і тоді Urok+ уже не потрібен.      */
   overFreeLimit: s => !sel.isPremium(s) && sel.activeStudents(s).length >= FREE_STUDENT_LIMIT,
+  /* Тестовий режим: увійшли подивитись, акаунта немає. */
+  isDemo: s => s.auth.provider === 'demo',
   canAddStudent: () => true,
   unpaidLessons: s => s.lessons.filter(l => isEarning(l) && !sel.isLessonPaid(s, l)).sort((a, b) => byTime(b, a)),
 };

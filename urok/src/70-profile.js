@@ -37,6 +37,15 @@ function ProfileScreen({t, s, nav}){
               right={<IconBtn icon={<Icon.gear size={21} />} label={t('pr.settings')}
                               onClick={() => nav.push({name: 'settings'})} />} />
       <div className="screen">
+        {/* У тестовому режимі це видно одразу: інакше людина внесе
+            справжніх учнів у демо-дані й буде впевнена, що має акаунт. */}
+        {sel.isDemo(s) ? (
+          <Card style={{marginBottom: 12, borderColor: 'var(--accent)'}}>
+            <div className="h3">{t('au.demoOn')}</div>
+            <p className="muted" style={{fontSize: 13.5, margin: '6px 0 0', lineHeight: 1.5}}>{t('au.demoOnD')}</p>
+            <Btn kind="pri" wide style={{marginTop: 12}} onClick={() => A.exitDemo()}>{t('au.demoExit')}</Btn>
+          </Card>
+        ) : null}
         <button className="card pad press" style={{width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 14}}
                 onClick={() => nav.push({name: 'profile-edit'})}>
           <Avatar name={s.profile.name || 'U'} color={s.profile.color} emoji={s.profile.emoji}
@@ -423,7 +432,7 @@ function SettingsScreen({t, s, nav}){
       </Sheet>
 
       <Confirm open={confirmOut} text={t('au.logoutConfirm')} confirmLabel={t('au.logout')} cancelLabel={t('a.cancel')}
-               onClose={() => setConfirmOut(false)} onConfirm={() => { setConfirmOut(false); A.logout(); }} />
+               onClose={() => setConfirmOut(false)} onConfirm={() => { setConfirmOut(false); sel.isDemo(s) ? A.exitDemo() : A.logout(); }} />
       <Confirm open={confirmWipe} danger text={t('se.clearConfirm')} confirmLabel={t('a.delete')} cancelLabel={t('a.cancel')}
                onClose={() => setConfirmWipe(false)}
                onConfirm={() => { setConfirmWipe(false); A.wipe(); toast(t('se.cleared')); }} />

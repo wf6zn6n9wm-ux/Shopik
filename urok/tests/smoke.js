@@ -613,6 +613,27 @@ if (U.planSaving('yearly') < U.planSaving('quarterly'))
   store.reset();
 }
 
+/* ── тестовий режим ──
+   Подивитись застосунок можна без номера й пошти: заходимо, дивимось
+   на прикладі, виходимо — і демо-дані не лишаються ні в кого. */
+{
+  const t = makeT('uk');
+  store.reset();
+  A.startDemo(t);
+  const demo = store.get();
+  yes(demo.auth.status === 'authed' && sel.isDemo(demo), 'тестовий режим пускає всередину');
+  yes(demo.onboarded, 'онбординг не заважає подивитись');
+  yes(demo.students.length > 0 && demo.lessons.length > 0, 'є на що дивитись');
+  yes(!demo.auth.phone, 'номер не питали й не зберегли');
+  const out = screen(TAB_SCREENS.profile, {t, s: store.get(), nav}, 'профіль у тестовому режимі');
+  yes(out && out.texts.some(x => x.indexOf('Тестовий режим') >= 0), 'видно, що це тестовий режим');
+  A.exitDemo();
+  const after = store.get();
+  yes(after.auth.status === 'guest' && !sel.isDemo(after), 'вихід повертає до входу');
+  yes(!after.students.length && !after.lessons.length, 'демо-дані пішли разом із режимом');
+  store.reset();
+}
+
 /* ── резервна копія ──
    Даних на сервері немає: копія — єдине, що стоїть між викладачем і
    втратою бази. Тому про неї нагадуємо самі. */

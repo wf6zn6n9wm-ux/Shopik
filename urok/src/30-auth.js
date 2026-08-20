@@ -170,7 +170,15 @@ function AuthFlow({t, onDone}){
       <Btn kind="sec" size="lg" wide icon={<Icon.phone size={18} />} onClick={() => setStep('phone')}>
         {t('au.phone')}
       </Btn>
-      <button className="btn ghost" style={{width: '100%', marginTop: 6}}
+      {/* Подивитись до реєстрації. Людина, яка вперше бачить застосунок,
+          не має віддавати номер телефону за право поклацати — а без
+          даних дивитись немає на що, тому режим одразу з демо-тижнем. */}
+      <div style={{height: 10}} />
+      <Btn kind="soft" size="lg" wide icon={<Icon.sparkle size={18} />} onClick={() => A.startDemo(t)}>
+        {t('au.demo')}
+      </Btn>
+      <div className="hint" style={{textAlign: 'center', marginTop: 8, lineHeight: 1.45}}>{t('au.demoD')}</div>
+      <button className="btn ghost" style={{width: '100%', marginTop: 8}}
               onClick={() => { setRestoring(true); setStep('phone'); }}>{t('au.restore')}</button>
       <div className="hint" style={{textAlign: 'center', marginTop: 10, lineHeight: 1.45}}>{t('au.terms')}</div>
     </div>
