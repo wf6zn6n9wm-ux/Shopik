@@ -1033,6 +1033,57 @@ PROBES['app-help.js'] = DRIVE + `
     res.theirs = all('.bub.them').length;
     res.theirText = (all('.bub.them')[0] || {}).textContent || '';
 
+    /* ─── знімок екрана до питання ───
+       Половина питань — це «ось так виглядає». Шлях довгий і рветься в
+       багатьох місцях: стиснути, довезти, покласти окремо від нитки,
+       віддати назад. Тому перевіряємо його цілком і на справжньому
+       сервері — від картинки в пам'яті до картинки в бульбашці.
+
+       Файл робимо самі: діалог вибору в headless не відкрити, та й не
+       його ми перевіряємо. Кладемо його полю напряму — рівно те, що
+       браузер робить після вибору. */
+    var pixel = await new Promise(function(done){
+      var c = document.createElement('canvas');
+      c.width = 900; c.height = 400;
+      var g = c.getContext('2d');
+      g.fillStyle = '#6B4DFF'; g.fillRect(0, 0, 900, 400);
+      c.toBlob(function(b){ done(new File([b], 'screen.png', {type: 'image/png'})); }, 'image/png');
+    });
+    var input = document.querySelector('input[type=file]');
+    res.hasPick = !!input;
+    if (input){
+      var dt = new DataTransfer();
+      dt.items.add(pixel);
+      input.files = dt.files;
+      /* Справжній вибір файла шле обидві події — і input, і change.
+         Слати одну означало б перевіряти не те, що робить браузер. */
+      input.dispatchEvent(new Event('input', {bubbles: true}));
+      input.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+    /* Стиснення йде поза головним потоком, тож чекаємо саме появи
+       перегляду, а не «трохи часу». */
+    await until(function(){ return !!document.querySelector('.pick .shot'); }, 8000);
+    res.errShown = ([].slice.call(document.querySelectorAll('.page .muted'))
+      .map(function(x){ return x.textContent; }).filter(function(x){ return /вдалося|завелик|зображенн/.test(x); })[0]) || '';
+    var prev = document.querySelector('.pick .shot');
+    res.preview = !!prev;
+    /* Знімок екрана не можна різати в квадрат: у ньому питання людини
+       майже завжди по краях. 900×400 має лишитись широким. */
+    res.wide = prev ? Math.round((prev.naturalWidth || 0) / Math.max(1, prev.naturalHeight || 1) * 10) / 10 : 0;
+
+    var send2 = all('button').filter(function(b){ return /Відправити/.test(b.textContent) && !b.disabled; })[0];
+    res.canSendPic = !!send2;
+    if (send2) send2.click();
+    /* Бульбашка з картинкою приїжджає двома кроками: спершу сама нитка,
+       потім знімок окремим запитом. Чекаємо саме картинку. */
+    await until(function(){
+      var im = document.querySelector('.bub.me img.shot');
+      return !!(im && im.getAttribute('src'));
+    }, 15000);
+    var shot = document.querySelector('.bub.me img.shot');
+    res.inThread = !!(shot && (shot.getAttribute('src') || '').indexOf('data:image') === 0);
+    res.picGone = !document.querySelector('.pick .shot');   /* поле очистилось */
+
     res.err = window.__err || '';
     say(res);
   })();
@@ -1931,6 +1982,11 @@ server.listen(PORT, '127.0.0.1', async () => {
     ok('кнопка вмикається від тексту', o.canSend === true);
     ok('своє повідомлення стало на екрані', o.mine === 1, o.mineText || '—');
     ok('відповідь приходить сама, без перезавантаження', o.theirs === 1, o.theirText || '—');
+      ok('до питання можна додати знімок екрана', o.hasPick === true);
+      ok('  перегляд з\'являється після вибору', o.preview === true, o.errShown || '');
+      ok('  знімок не порізаний у квадрат', o.wide > 2, 'сторони як ' + o.wide + ':1');
+      ok('  і доїжджає в переписку картинкою', o.inThread === true);
+      ok('  після відправки поле чисте', o.picGone === true);
     ok('помилок немає', !o.err, o.err || '—');
 
     part('кабінет заводиться тільки на пошту');

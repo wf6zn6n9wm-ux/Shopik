@@ -45,6 +45,19 @@ const keyOf = login => 'chat:' + L.normLogin(login);
 const INDEX = 'chat:index';
 
 const KEEP = 200;              /* стільки повідомлень лишаємо в нитці */
+/* ─── знімок екрана до питання ───
+   Половина питань у підтримку — це «ось так виглядає, поясніть». Словами
+   таке переказують погано, і на з'ясування «а що саме ви бачите» іде
+   день переписки.
+
+   Знімок живе окремо від нитки й сам зникає через місяць. Разом із
+   ниткою його тримати не можна: нитку ми читаємо цілком на кожен дотик
+   екрана, і кожен такий дотик тягав би за собою всі знімки за півроку.
+   А вічно — тим паче: місяця вистачає, щоб питання закрили, а платимо
+   ми за сховище щодня.                                                */
+const PIC_KEEP = 30 * 24 * 3600;   /* скільки живе знімок, секунд */
+const PIC_MAX = 700 * 1024;        /* стеля довжини dataURL, символів */
+const picKey = (login, id) => 'chatpic:' + L.normLogin(login) + ':' + id;
 const MAX_LEN = 2000;          /* довше за це — вже не питання, а лист */
 const RATE = 30;               /* повідомлень за годину з одного кабінета */
 const HOUR = 3600000;
@@ -117,6 +130,13 @@ async function add(login, who, text, extra){
   const rec = (await read(login)) || empty(login);
   const msg = {id: (rec.msgs.length ? rec.msgs[rec.msgs.length - 1].id : 0) + 1,
                at: Date.now(), who, text: String(text).slice(0, MAX_LEN)};
+  /* У нитці лишається сама позначка, а знімок — під своїм ключем. Якщо
+     запис знімка не вдався, позначку не ставимо: «фото» без фото гірше,
+     ніж повідомлення без нього. */
+  if (extra && extra.pic){
+    try { await L.store.set(picKey(login, msg.id), extra.pic, PIC_KEEP); msg.pic = 1; }
+    catch { /* лишиться саме питання, текстом */ }
+  }
   rec.msgs.push(msg);
   if (extra && extra.device && !rec.devices.includes(extra.device)) rec.devices.push(extra.device);
   if (extra && extra.lang) rec.lang = extra.lang;
@@ -155,13 +175,33 @@ function tooFast(rec){
    Сповіщення й відповідь на нього — це весь месенджер, що нам потрібен.
    Логін стоїть першим рядком: відповідаючи на повідомлення, ми беремо
    адресата саме звідти, і нічого набирати руками не треба. */
-async function notify(rec, msg){
+async function notify(rec, msg, pic){
   const tg = TG();
   if (!tg.token || !tg.chat) return false;
   const text = rec.login + '\n\n' + msg.text +
     '\n\n— відповідайте на це повідомлення, і відповідь піде в застосунок' +
     '\n' + tg.base + '/admin';
   try {
+    /* Зі знімком іде sendPhoto: у месенджері його видно одразу, а не
+       посиланням, за яким ще треба сходити. Підпис той самий, тож
+       відповідь на нього так само знаходить адресата.
+
+       Не вийшло надіслати картинку — надсилаємо саме питання текстом.
+       Мовчання бота гірше за повідомлення без картинки: питання є, а
+       ми про нього не знаємо.                                        */
+    if (pic){
+      const m = /^data:(image\/[a-z+]+);base64,([\s\S]+)$/i.exec(pic);
+      if (m){
+        const form = new FormData();
+        form.append('chat_id', String(tg.chat));
+        form.append('caption', text.slice(0, 1024));
+        form.append('photo', new Blob([Buffer.from(m[2], 'base64')], {type: m[1]}), 'screen.jpg');
+        const p = await fetch('https://api.telegram.org/bot' + tg.token + '/sendPhoto', {
+          method: 'POST', body: form, signal: AbortSignal.timeout(8000),
+        });
+        if (p.ok) return true;
+      }
+    }
     const r = await fetch('https://api.telegram.org/bot' + tg.token + '/sendMessage', {
       method: 'POST',
       headers: {'content-type': 'application/json'},
@@ -244,10 +284,20 @@ module.exports = async function handler(req, res){
   if (!(await allowed(login, device, token))) return L.json(res, 403, {ok: false, error: 'not_yours'});
 
   if (method === 'GET'){
+    /* Знімок віддаємо поштучно, а не разом із ниткою: нитку застосунок
+       перепитує щокілька секунд, поки відкритий екран, і возити з нею
+       картинки означало б качати їх заново весь час. Питає він лише те,
+       що зараз показує. */
+    if (q.pic){
+      const pic = await L.store.get(picKey(login, String(q.pic).replace(/\D/g, '')));
+      if (!pic) return L.json(res, 404, {ok: false, error: 'no_pic'});
+      return L.json(res, 200, {ok: true, pic});
+    }
     const rec = await read(login);
     if (!rec) return L.json(res, 200, {ok: true, msgs: [], unread: 0});
     return L.json(res, 200, {ok: true, unread: unreadFor(rec, 't'),
-                             msgs: rec.msgs.map(m => ({id: m.id, at: m.at, who: m.who, text: m.text}))});
+                             msgs: rec.msgs.map(m => ({id: m.id, at: m.at, who: m.who, text: m.text,
+                                                       ...(m.pic ? {pic: 1} : {})}))});
   }
 
   if (method !== 'POST') return L.json(res, 405, {ok: false, error: 'bad_method'});
@@ -260,20 +310,30 @@ module.exports = async function handler(req, res){
     return L.json(res, 200, {ok: true, unread: 0});
   }
 
+  /* Знімок без слів — теж питання: «ось так виглядає». Вимагати ще й
+     текст означало б змусити людину написати «дивіться фото». */
+  const pic = String(q.pic || '');
+  const hasPic = /^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/.test(pic)
+                 && pic.length <= PIC_MAX;
+  if (pic && !hasPic) return L.json(res, 400, {ok: false, error: 'bad_pic'});
+
   const text = String(q.text || '').trim();
-  if (!text) return L.json(res, 400, {ok: false, error: 'no_text'});
+  if (!text && !hasPic) return L.json(res, 400, {ok: false, error: 'no_text'});
 
   const before = (await read(login)) || empty(login);
   if (tooFast(before)) return L.json(res, 429, {ok: false, error: 'too_fast'});
   before.sent.push(Date.now());
   await L.store.set(keyOf(login), before);
 
-  const {rec, msg} = await add(login, 't', text, {device, lang: q.lang});
-  const told = await notify(rec, msg);
-  return L.json(res, 200, {ok: true, id: msg.id, at: msg.at, told});
+  const {rec, msg} = await add(login, 't', text || '📷', {device, lang: q.lang,
+                                                          pic: hasPic ? pic : null});
+  const told = await notify(rec, msg, hasPic ? pic : null);
+  return L.json(res, 200, {ok: true, id: msg.id, at: msg.at, pic: msg.pic ? 1 : 0, told});
 };
 
 module.exports.keyOf = keyOf;
+module.exports.picKey = picKey;
+module.exports.PIC_MAX = PIC_MAX;
 module.exports.INDEX = INDEX;
 module.exports.read = read;
 module.exports.add = add;

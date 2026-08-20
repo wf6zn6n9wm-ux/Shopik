@@ -90,9 +90,15 @@ async function get(key){
   if (k) return (await k.get(key)) || null;
   return mem.get(key) || null;
 }
-async function set(key, value){
+/* ttl — скільки секунд запису жити. Потрібен там, де ми зберігаємо не
+   дані тренера, а тимчасове: знімок екрана, доданий до питання в
+   підтримку. Такий знімок цінний тиждень, а лежати може роками — і
+   росте сховище, за яке платимо, заради того, чого ніхто вже не
+   відкриє. У пам'яті (локально, без сховища) строк не рахуємо: процес
+   і так живе одну команду. */
+async function set(key, value, ttl){
   const k = await kv();
-  if (k) return void (await k.set(key, value));
+  if (k) return void (await (ttl ? k.set(key, value, {ex: Math.round(ttl)}) : k.set(key, value)));
   mem.set(key, value);
 }
 /* Перелічити ключі за взірцем.

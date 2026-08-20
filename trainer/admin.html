@@ -238,6 +238,12 @@
   th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
   td.mail{max-width:260px;overflow:hidden;text-overflow:ellipsis}
 
+  /* Знімок екрана з питання. Висоту не тримаємо: у знімка своя, і
+     розтягнути його під чужу — зіпсувати те єдине, заради чого його
+     надіслали. */
+  .shot{display:block;width:100%;max-height:420px;object-fit:contain;border-radius:10px;
+    margin-bottom:7px;background:rgba(255,255,255,.05);}
+
   .tag{display:inline-block;font-size:11px;font-weight:650;padding:3px 9px;border-radius:999px;
     border:1px solid transparent;white-space:nowrap}
   .tag.pay{background:rgba(40,209,124,.13);color:var(--pos);border-color:rgba(40,209,124,.22)}
@@ -911,14 +917,28 @@ async function openChat(login){
       '<div class="spread"><div style="font-size:15px;font-weight:600;word-break:break-all">' +
         esc(d.login) + '</div><span class="tag try">' + esc(d.lang || '') + '</span></div>' +
       '<div class="talk">' + d.msgs.map(function(m){
-        return '<div class="bub ' + (m.who === 's' ? 's' : 't') + '">' + esc(m.text) +
-          '<span class="at">' + when(m.at, now) + '</span></div>';
+        /* Знімок підтягуємо після відмальовки: разом із ниткою його
+           возити не можна, вона перепитується. Порожня рамка тримає
+           місце, щоб переписка не смикалась, коли картинка приїде. */
+        return '<div class="bub ' + (m.who === 's' ? 's' : 't') + '">' +
+          (m.pic ? '<img class="shot" id="pic' + m.id + '" alt="">' : '') +
+          esc(m.text) + '<span class="at">' + when(m.at, now) + '</span></div>';
       }).join('') + '</div>' +
       '<div class="say"><textarea id="say" rows="2" placeholder="Ответ тренеру"></textarea>' +
       '<button class="btn pri" id="send">Отправить</button></div>' +
       '<p class="muted" style="margin-top:12px">Отвечать можно и из Telegram — просто ответьте ' +
       'на сообщение бота.</p>' +
     '</div>');
+
+  d.msgs.filter(function(m){ return m.pic; }).forEach(function(m){
+    api('?chat=' + encodeURIComponent(d.login) + '&pic=' + m.id)
+      .then(function(r){ return r.json(); })
+      .then(function(p){
+        var el = document.getElementById('pic' + m.id);
+        if (el && p && p.ok) el.src = p.pic;
+      })
+      .catch(function(){});
+  });
 
   var box = document.getElementById('say');
   var send = async function(){

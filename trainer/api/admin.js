@@ -87,6 +87,14 @@ module.exports = async function handler(req, res){
     const one = L.normLogin(q.chat);
     if (!one || q.chat === '1')
       return L.json(res, 200, {ok: true, threads: (await L.store.get(CHAT.INDEX)) || []});
+    /* Знімок екрана з питання — поштучно. Разом із ниткою його не
+       віддаємо: адмінка перепитує нитку, поки відкрита, і картинки
+       їхали б заново кожні кілька секунд. */
+    if (q.pic){
+      const pic = await L.store.get(CHAT.picKey(one, String(q.pic).replace(/\D/g, '')));
+      if (!pic) return L.json(res, 404, {ok: false, error: 'no_pic'});
+      return L.json(res, 200, {ok: true, pic});
+    }
     const rec = await CHAT.read(one);
     if (!rec) return L.json(res, 404, {ok: false, error: 'no_thread'});
     /* відкрили нитку — вважаємо прочитаною; інакше лічильник
