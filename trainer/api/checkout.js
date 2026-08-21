@@ -1,20 +1,41 @@
-/* Створення оплати: віддаємо сторінку, яка сама відправляє форму в LiqPay.
+/* Створення оплати: віддаємо сторінку, яка сама відправляє форму в LiqPay,
+   або — поки LiqPay чекає на банк — виставляємо рахунок у monobank і
+   ведемо туди напряму. Який шлях зараз живий, вирішує L.provider().
    Приватний ключ лишається на сервері — у браузер їде тільки підпис. */
 const L = require('../api/_lib.js');
+const MONO = require('../api/_mono.js');
 
-module.exports = function handler(req, res){
+module.exports = async function handler(req, res){
   const q = {...(req.query || {}), ...(req.body || {})};
   const plan = L.PLANS[q.plan];
   const login = L.normLogin(q.login);
   const device = String(q.device || '');
   const lang = ['uk', 'ru', 'en', 'pl'].includes(q.lang) ? q.lang : 'uk';
 
-  if (!L.configured()) return L.json(res, 503, {ok: false, error: 'not_configured'});
+  const prov = L.provider();
+  if (!prov) return L.json(res, 503, {ok: false, error: 'not_configured'});
   if (!plan) return L.json(res, 400, {ok: false, error: 'unknown_plan'});
   if (!login) return L.json(res, 400, {ok: false, error: 'no_login'});
 
   const orderId = 'pt_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
   const base = L.ENV.base || ('https://' + (req.headers['x-forwarded-host'] || req.headers.host));
+
+  if (prov === 'mono'){
+    try {
+      const inv = await MONO.createInvoice({
+        login, device, plan, orderId,
+        redirectUrl: base + '/paid?lang=' + lang,
+        webHookUrl: base + '/api/callback',
+      });
+      res.setHeader('cache-control', 'no-store');
+      res.writeHead(302, {Location: inv.pageUrl});
+      return res.end();
+    } catch (e){
+      /* banka недоступний — краще чесно сказати, ніж вести на порожню
+         сторінку. Сторінка оплати сама покаже "Не відправилось". */
+      return L.json(res, 502, {ok: false, error: 'mono_failed', detail: String((e && e.message) || e)});
+    }
+  }
 
   /* info повертається в callback незміненим і підписаним нашим ключем,
      тому саме звідти сервер дізнається, кому зарахувати оплату */

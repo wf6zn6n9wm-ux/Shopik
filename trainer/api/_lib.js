@@ -5,9 +5,15 @@
    ліцензії. Функції в api/ лише приймають запити й кличуть це.
 
    Змінні оточення (Vercel → Settings → Environment Variables):
-     LIQPAY_PUBLIC_KEY    публічний ключ мерчанта
+     LIQPAY_PUBLIC_KEY    публічний ключ мерчанта LiqPay
      LIQPAY_PRIVATE_KEY   приватний ключ — ніколи не потрапляє в браузер
+     MONO_TOKEN           токен еквайрингу monobank (api/_mono.js)
      PUBLIC_BASE_URL      https://pro-trainer.pro
+
+   Провайдерів оплати може бути одразу два: поки LiqPay чекає на
+   підтвердження банку, платежі йдуть через monobank. Хто саме зараз
+   приймає гроші — вирішує provider() нижче, і саме на цьому виборі
+   стоїть /api/checkout.
    ────────────────────────────────────────────────────────────────── */
 const crypto = require('crypto');
 
@@ -16,7 +22,12 @@ const ENV = {
   priv: process.env.LIQPAY_PRIVATE_KEY || '',
   base: (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, ''),
 };
-const configured = () => !!(ENV.pub && ENV.priv);
+const liqpayReady = () => !!(ENV.pub && ENV.priv);
+/* Поки monobank не підключений — жодних чужих правок: усе поводиться
+   так само, як і раніше. Коли підключений — саме він приймає оплату,
+   бо перевірений і живий зараз, а LiqPay ще на розгляді банку.        */
+const provider = () => (process.env.MONO_TOKEN ? 'mono' : (liqpayReady() ? 'liqpay' : null));
+const configured = () => !!provider();
 
 /* ─────────── тарифи ───────────
    Ціни мають збігатися з PLANS у index.html (поле web). LiqPay уміє
@@ -169,7 +180,7 @@ function view(lic, device){
 
 /* оплата пройшла: продовжуємо строк від більшої з дат — «зараз» або
    «кінець чинного періоду», щоб продовження не з'їдало залишок */
-async function applyPayment({login, device, plan, orderId, autoRenew}){
+async function applyPayment({login, device, plan, orderId, autoRenew, provider: prov}){
   const p = PLANS[plan];
   if (!p) throw new Error('unknown_plan');
   const old = await readLicence(login);
@@ -178,6 +189,10 @@ async function applyPayment({login, device, plan, orderId, autoRenew}){
   if (device && !devices.includes(device) && devices.length < DEVICES) devices.push(device);
   const lic = {
     login: normLogin(login), plan, orderId,
+    /* хто саме прийняв гроші — потрібно знати, щоб продовжувати
+       передплату тим самим шляхом: гаманець monobank прив'язаний до
+       нашого токена, картка LiqPay — до їхнього. Переплутати не можна. */
+    provider: prov || (old && old.provider) || 'liqpay',
     purchasedAt: (old && old.purchasedAt) || Date.now(),
     paidAt: Date.now(),
     expiresAt: addMonths(from, p.months) + GRACE_DAYS * 86400000,
@@ -202,10 +217,11 @@ async function applyPayment({login, device, plan, orderId, autoRenew}){
    ми його цілком.                                                     */
 const PAY_LOG = 'pay:log';
 const PAY_KEEP = 2000;
-async function logPayment({login, plan, orderId, kind}){
+async function logPayment({login, plan, orderId, kind, provider: prov}){
   const p = PLANS[plan];
   const row = {ts: Date.now(), login: normLogin(login), plan, orderId: String(orderId || ''),
-               uah: p ? (kind === 'back' ? -p.uah : p.uah) : 0, kind: kind || 'pay'};
+               uah: p ? (kind === 'back' ? -p.uah : p.uah) : 0, kind: kind || 'pay',
+               ...(prov ? {provider: prov} : {})};
   const log = (await get(PAY_LOG)) || [];
   log.push(row);
   await set(PAY_LOG, log.slice(-PAY_KEEP));
@@ -276,7 +292,7 @@ const json = (res, code, body) => {
 };
 
 module.exports = {
-  ENV, configured, PLANS, DEVICES,
+  ENV, configured, provider, liqpayReady, PLANS, DEVICES, GRACE_DAYS,
   /* live() — чи це справжнє сховище, а не пам'ять процесу */
   store: {get, set, keys, live: async () => !!(await kv())},
   sign, pack, unpack, verify,

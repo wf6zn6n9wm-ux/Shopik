@@ -29,6 +29,18 @@ function call(fn, {query = {}, body = null, method = 'GET', headers = {}} = {}){
         try { json = JSON.parse(text); } catch {}
         resolve({code: res.code, headers: res.headers, text: String(text), json});
       },
+      /* checkout.js веде на monobank не формою, а переадресацією —
+         тут не .send(), а writeHead()+end() */
+      writeHead(code, hdrs){
+        res.code = code;
+        Object.entries(hdrs || {}).forEach(([k, v]) => { res.headers[k.toLowerCase()] = v; });
+        return res;
+      },
+      end(text){
+        let json = null;
+        try { json = JSON.parse(text); } catch {}
+        resolve({code: res.code, headers: res.headers, text: text ? String(text) : '', json});
+      },
     };
     Promise.resolve(fn({query, body, method, headers: {host: 'protrainer.test', ...headers}}, res))
       .catch(e => resolve({code: 500, text: String(e), json: null}));
@@ -777,6 +789,171 @@ part('відповідь із Telegram знаходить кабінет');
   ok('  адресу з тексту прибрано', r && r.text === 'продовжили підписку', r && r.text);
 
   ok('чужий рядок нікому не адресується', CHAT.addressee({message: {text: 'просто думка вголос'}}) === null);
+}
+
+/* ─── monobank: оплата ───
+   Найважливіше тут — не «чи виставляється рахунок», а те, заради чого
+   написано api/_mono.js: вебхук — не документ, а дзвінок у двері. Тіло
+   POST-запиту від monobank ми не перевіряємо взагалі, лише йдемо
+   спитати сам monobank напряму, своїм токеном. Тому головна проба тут —
+   не «успіх підтвердився», а «підроблений успіх — ні»: вебхук каже
+   invoiceId, якого ми не виставляли, або який ще не success за GET —
+   доступ не мав з'явитись у жодному з цих випадків.
+
+   Мережі немає — є підставний fetch, що записує кожен виклик і читає
+   відповіді з таблиці. */
+part('оплата monobank');
+{
+  process.env.MONO_TOKEN = 'test_mono';
+  process.env.CRON_SECRET = process.env.CRON_SECRET || 'cron_test';
+
+  const reFresh = name => {
+    delete require.cache[require.resolve(path.join(__dirname, '..', 'api', name))];
+    return require(path.join(__dirname, '..', 'api', name));
+  };
+  /* порядок важливий: спершу молодші файли, щоб старші, коли теж
+     оновляться, зажадали вже свіжий _mono.js, а не закешований старий
+     без токена */
+  const lib = reFresh('_lib.js');
+  reFresh('_mono.js');
+  const checkoutMono = reFresh('checkout.js');
+  const callbackMono = reFresh('callback.js');
+  const monoCron = reFresh('mono.js');
+  const licenceMono = reFresh('licence.js');
+
+  const keepFetch = global.fetch;
+  let calls = [];
+  const mockFetch = rules => async (url, opts) => {
+    const method = (opts && opts.method) || 'GET';
+    calls.push({url, method, headers: (opts && opts.headers) || {}, body: opts && opts.body});
+    const hit = rules.find(r => (!r.method || r.method === method) && r.re.test(url));
+    if (!hit) throw new Error('немає підставної відповіді на ' + method + ' ' + url);
+    const out = typeof hit.body === 'function' ? hit.body(url, opts) : hit.body;
+    return {ok: true, status: 200, text: async () => JSON.stringify(out)};
+  };
+  const DAY = 86400000;
+
+  /* ─── виставили рахунок ─── */
+  calls = [];
+  global.fetch = mockFetch([
+    {method: 'POST', re: /invoice\/create$/,
+     body: {invoiceId: 'inv_month', pageUrl: 'https://pay.mbnk.biz/inv_month'}},
+  ]);
+  const buy = await call(checkoutMono, {query: {plan: 'monthly', login: LOGIN, device: DEV_A, lang: 'uk'}});
+  ok('веде на сторінку monobank', buy.code === 302 && buy.headers.location === 'https://pay.mbnk.biz/inv_month',
+     JSON.stringify(buy));
+
+  const created = calls.find(c => /invoice\/create/.test(c.url));
+  ok('запит підписаний токеном', created && created.headers['X-Token'] === 'test_mono',
+     created && JSON.stringify(created.headers));
+  const createdBody = created && JSON.parse(created.body);
+  ok('тариф із періодом просить зберегти картку', createdBody && createdBody.saveCardData &&
+     createdBody.saveCardData.saveCard === true && createdBody.saveCardData.walletId === lib.normLogin(LOGIN),
+     JSON.stringify(createdBody && createdBody.saveCardData));
+
+  const map = await lib.store.get('monoinv:inv_month');
+  ok('логін і тариф запам\'ятались до вебхука', map && map.login === lib.normLogin(LOGIN) && map.plan === 'monthly',
+     JSON.stringify(map));
+
+  /* ─── чужий invoiceId — вебхук, якого ми не чекали ───
+     Найгірший сценарій: хтось стукає в /api/callback із вигаданим
+     invoiceId, сподіваючись на «оплата успішна». Мапи немає — значить
+     і йти питати monobank нема про що, і доступ не з'являється. */
+  const forged = await call(callbackMono, {method: 'POST', body: {invoiceId: 'ніколи-не-виставляли'}});
+  ok('чужий invoiceId нічого не відкриває', forged.json && forged.json.applied === false &&
+     forged.json.why === 'unknown_invoice', JSON.stringify(forged.json));
+
+  /* ─── вебхук каже «успіх», а monobank на прямий запит — ще ні ───
+     Це і є перевірка головного правила: тілу вебхука не віримо, віримо
+     лише тому, що відповість сам banka на GET status. */
+  calls = [];
+  global.fetch = mockFetch([{method: 'GET', re: /invoice\/status/, body: {status: 'processing'}}]);
+  const early = await call(callbackMono, {method: 'POST', body: {invoiceId: 'inv_month', status: 'success'}});
+  ok('поки banka каже «processing» — доступ не відкриваємо', early.json.applied === false &&
+     early.json.why === 'status_processing', JSON.stringify(early.json));
+  const stillNone = await lib.readLicence(LOGIN);
+  ok('  підписки й досі немає', !stillNone, JSON.stringify(stillNone));
+
+  /* ─── а коли banka підтверджує напряму — відкривається ─── */
+  global.fetch = mockFetch([{method: 'GET', re: /invoice\/status/, body: {status: 'success'}}]);
+  const confirmed = await call(callbackMono, {method: 'POST', body: {invoiceId: 'inv_month'}});
+  ok('підтверджений напряму статус відкриває доступ', confirmed.json.applied === true, JSON.stringify(confirmed.json));
+  const lic = await lib.readLicence(LOGIN);
+  ok('підписка позначена саме monobank', lic && lic.provider === 'mono' && lic.autoRenew === true,
+     JSON.stringify(lic));
+
+  /* той самий invoiceId удруге — застосунок не має списати вдруге саме
+     через цей шлях (banka сам не надішле success двічі по одному
+     invoiceId, але навіть якщо надішле — це те саме продовження, не
+     нова оплата, і applyPayment ідемпотентний за задумом) */
+  const twice = await call(callbackMono, {method: 'POST', body: {invoiceId: 'inv_month'}});
+  ok('повторний success не ламається', twice.json.applied === true);
+
+  /* ─── разовий тариф — без гаманця ─── */
+  calls = [];
+  global.fetch = mockFetch([
+    {method: 'POST', re: /invoice\/create$/, body: {invoiceId: 'inv_q', pageUrl: 'https://pay.mbnk.biz/inv_q'}},
+  ]);
+  await call(checkoutMono, {query: {plan: 'quarterly', login: 'quarter@mail.com', device: DEV_B, lang: 'uk'}});
+  const qBody = JSON.parse(calls.find(c => /invoice\/create/.test(c.url)).body);
+  ok('разовий тариф картку не зберігає', qBody.saveCardData === undefined, JSON.stringify(qBody.saveCardData));
+
+  /* ─── крон списує за автопродовження ─── */
+  const renewLogin = 'renew@mail.com';
+  await lib.writeLicence(renewLogin, {
+    login: lib.normLogin(renewLogin), plan: 'monthly', orderId: 'seed', provider: 'mono',
+    purchasedAt: Date.now(), paidAt: Date.now(),
+    expiresAt: Date.now() + lib.GRACE_DAYS * DAY,     /* «справжній» кінець — прямо зараз */
+    autoRenew: true, devices: [DEV_A],
+  });
+  const untouchedLogin = 'notmine@mail.com';           /* period є, але autoRenew вимкнено */
+  await lib.writeLicence(untouchedLogin, {
+    login: lib.normLogin(untouchedLogin), plan: 'monthly', orderId: 'seed2', provider: 'mono',
+    purchasedAt: Date.now(), paidAt: Date.now(), expiresAt: Date.now() + lib.GRACE_DAYS * DAY,
+    autoRenew: false, devices: [],
+  });
+
+  const noAuth = await call(monoCron, {});
+  ok('без секрету крон нікого не спише', noAuth.code === 401);
+
+  calls = [];
+  global.fetch = mockFetch([
+    {method: 'GET', re: /wallet\//, body: {cards: [{cardToken: 'card_tok'}]}},
+    {method: 'POST', re: /wallet\/payment$/, body: {invoiceId: 'inv_renew', status: 'success'}},
+  ]);
+  const renewed = await call(monoCron, {headers: {authorization: 'Bearer ' + process.env.CRON_SECRET}});
+  ok('крон списав саме того, кому час', renewed.json.charged.includes(lib.normLogin(renewLogin)),
+     JSON.stringify(renewed.json));
+  ok('  і не чіпав вимкнене автопродовження', !renewed.json.charged.includes(lib.normLogin(untouchedLogin)) &&
+     !calls.some(c => c.url.includes(encodeURIComponent(lib.normLogin(untouchedLogin)))),
+     JSON.stringify(renewed.json.skipped));
+  const licAfterRenew = await lib.readLicence(renewLogin);
+  ok('  строк підписки посунувся вперед', licAfterRenew.expiresAt > Date.now() + 25 * DAY,
+     new Date(licAfterRenew.expiresAt).toISOString());
+
+  /* ─── вимкнути автопродовження: monobank мовчить, LiqPay попереджають ─── */
+  calls = [];
+  global.fetch = mockFetch([]);                        /* будь-який виклик — несподіванка */
+  const offMono = await call(licenceMono, {query: {login: LOGIN, device: DEV_A, off: '1'}});
+  ok('вимкнення для monobank проходить', offMono.code === 200 && offMono.json.ok !== false,
+     JSON.stringify(offMono.json));
+  ok('  і жодного дзвінка назовні не було', calls.length === 0, JSON.stringify(calls));
+  const licOff = await lib.readLicence(LOGIN);
+  ok('  autoRenew знято', licOff.autoRenew === false);
+
+  const lpLogin = 'liqpay-old@mail.com';
+  await lib.writeLicence(lpLogin, {
+    login: lib.normLogin(lpLogin), plan: 'monthly', orderId: 'lp_seed', provider: 'liqpay',
+    purchasedAt: Date.now(), paidAt: Date.now(), expiresAt: Date.now() + 20 * DAY,
+    autoRenew: true, devices: [DEV_C],
+  });
+  calls = [];
+  global.fetch = mockFetch([{method: 'POST', re: /liqpay\.ua\/api\/request/, body: {}}]);
+  await call(licenceMono, {query: {login: lpLogin, device: DEV_C, off: '1'}});
+  ok('а для LiqPay банк усе-таки попереджають', calls.some(c => /liqpay\.ua/.test(c.url)), JSON.stringify(calls));
+
+  global.fetch = keepFetch;
+  delete process.env.MONO_TOKEN;
 }
 
 console.log('\n══════ ' + (checks - fails) + ' з ' + checks + (fails ? ' · є замечання' : ' · все чисто') + ' ══════');

@@ -4,7 +4,7 @@
    функції: пробний період можна почати нескінченно, підписка «губиться».
    Помітити це по роботі застосунку майже неможливо — тому питаємо прямо.
 
-   GET /api/health → {"ok":true,"storage":"kv","liqpay":true,"mail":true}
+   GET /api/health → {"ok":true,"storage":"kv","pay":"mono","mail":true}
 
    Секретів не віддає: лише «є / немає». Запис робиться й одразу
    стирається — інакше «сховище підключене» довелось би брати на віру.  */
@@ -24,7 +24,7 @@ module.exports = async function handler(req, res){
   return L.json(res, 200, {
     ok: !error,
     storage,                         /* kv — записи переживуть перезапуск */
-    liqpay: L.configured(),          /* ключі мерчанта на місці */
+    pay: L.provider() || false,      /* 'mono' | 'liqpay' | false */
     /* лист про кінець пробного — єдине місце, де дозволено вести на
        оплату, тож мовчазно зламана пошта коштує дорого */
     mail: !!process.env.RESEND_API_KEY,

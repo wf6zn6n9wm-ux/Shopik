@@ -8,6 +8,10 @@
   ],
   "crons": [
     {
+      "path": "/api/mono",
+      "schedule": "0 8 * * *"
+    },
+    {
       "path": "/api/mail",
       "schedule": "0 9 * * *"
     }

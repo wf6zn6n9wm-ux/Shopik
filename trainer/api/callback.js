@@ -1,9 +1,14 @@
-/* server_url для LiqPay: сюди банк повідомляє про оплату — і про кожне
-   наступне регулярне списання. Єдине джерело правди про підписку.
+/* Сюди приходять сповіщення про оплату — від LiqPay і від monobank
+   одразу, обидва на одну адресу: platform, з якого прийшов запит, видно
+   з форми самого тіла, і плутати нема з чим — LiqPay шле форму з полем
+   data, monobank JSON з invoiceId.
 
-   Довіряти можна лише тому, що пройшло перевірку підпису: підпис
-   робиться нашим приватним ключем, якого ні в кого більше немає. */
+   Довіряти можна лише тому, що пройшло перевірку. Для LiqPay це підпис,
+   зроблений нашим приватним ключем. Для monobank — не підпис у самому
+   запиті (детально why — у api/_mono.js), а зустрічний запит до
+   monobank нашим токеном: тіло вебхука лише каже, куди подивитись. */
 const L = require('../api/_lib.js');
+const MONO = require('../api/_mono.js');
 
 /* LiqPay шле application/x-www-form-urlencoded; Vercel розбирає його сам,
    але на всяк випадок читаємо і сире тіло */
@@ -15,6 +20,17 @@ function fields(req){
 
 module.exports = async function handler(req, res){
   if (req.method !== 'POST') return L.json(res, 405, {ok: false});
+
+  /* monobank: JSON з invoiceId і без поля data — інакше це LiqPay */
+  const body = (req.body && typeof req.body === 'object') ? req.body : {};
+  if (body.invoiceId && !body.data){
+    const r = await MONO.confirmAndApply(String(body.invoiceId));
+    /* monobank чекає 200 на будь-яке прийняте сповіщення — інакше
+       повторюватиме дзвінки. why лишається в тілі відповіді для
+       журналу, а не для monobank: йому досить самого статусу. */
+    return L.json(res, 200, {ok: true, ...r});
+  }
+
   const {data, signature} = fields(req);
   if (!data || !L.verify(data, signature)) return L.json(res, 403, {ok: false, error: 'bad_signature'});
 
@@ -31,8 +47,8 @@ module.exports = async function handler(req, res){
 
   /* гроші прийшли — продовжуємо строк */
   if (st === 'success' || st === 'subscribed' || st === 'wait_accept'){
-    await L.applyPayment({login, device: info.device, plan, orderId: p.order_id, autoRenew: true});
-    await L.logPayment({login, plan, orderId: p.order_id, kind: 'pay'});
+    await L.applyPayment({login, device: info.device, plan, orderId: p.order_id, autoRenew: true, provider: 'liqpay'});
+    await L.logPayment({login, plan, orderId: p.order_id, kind: 'pay', provider: 'liqpay'});
     return L.json(res, 200, {ok: true});
   }
 
