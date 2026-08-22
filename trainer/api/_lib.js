@@ -34,10 +34,13 @@ const configured = () => !!provider();
    регулярні списання лише з періодом «місяць» або «рік», тому план на
    3 місяці продається разовим платежем — і на сторінці оплати про це
    написано прямо, а не дрібним шрифтом. */
+/* usd — ціна того самого тарифу в магазині застосунків. Гроші там бере
+   магазин, у доларах і зі своєю комісією, тож із гривневою ціною вони
+   не збігаються й складати їх в одну суму не можна. */
 const PLANS = {
-  monthly:   {id: 'monthly',   months: 1,  uah: 299,  period: 'month'},
-  quarterly: {id: 'quarterly', months: 3,  uah: 749,  period: null},
-  yearly:    {id: 'yearly',    months: 12, uah: 1990, period: 'year'},
+  monthly:   {id: 'monthly',   months: 1,  uah: 299,  usd: 4.99,  period: 'month'},
+  quarterly: {id: 'quarterly', months: 3,  uah: 749,  usd: 12.99, period: null},
+  yearly:    {id: 'yearly',    months: 12, uah: 1990, usd: 49.99, period: 'year'},
 };
 const DEVICES = 3;                 /* стільки ж, скільки WEB.devices у застосунку */
 const GRACE_DAYS = 3;              /* запас на випадок, якщо банк спише з затримкою */
@@ -219,8 +222,18 @@ const PAY_LOG = 'pay:log';
 const PAY_KEEP = 2000;
 async function logPayment({login, plan, orderId, kind, provider: prov}){
   const p = PLANS[plan];
+  const sign = kind === 'back' ? -1 : 1;
+  /* ─── гривні й долари не складаються ───
+     Магазин застосунків бере гроші в доларах і зі своєю комісією. Якщо
+     покласти в те саме поле гривневу ціну тарифу, підсумок «виручка за
+     місяць» покаже гроші, яких не було: 299 ₴ замість $4.99 мінус
+     п'ятнадцять відсотків. Тому магазинна покупка лишає гривню нулем і
+     пише свою суму окремо — так підсумок у гривнях лишається чесним, а
+     продажі в магазинах видно поруч. */
+  const viaStore = prov === 'apple' || prov === 'google';
   const row = {ts: Date.now(), login: normLogin(login), plan, orderId: String(orderId || ''),
-               uah: p ? (kind === 'back' ? -p.uah : p.uah) : 0, kind: kind || 'pay',
+               uah: (p && !viaStore) ? sign * p.uah : 0, kind: kind || 'pay',
+               ...(viaStore && p ? {usd: sign * p.usd} : {}),
                ...(prov ? {provider: prov} : {})};
   const log = (await get(PAY_LOG)) || [];
   log.push(row);

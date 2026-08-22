@@ -931,9 +931,74 @@ part('доступ: міст до магазину');
     async status(){ return {ok:true, active:true, productId:'pro_trainer_yearly', expiresAt: until, autoRenew:false}; },
   };
   ok('міст видно застосунку', T.IAP.connected() && T.IAP.platform() === 'ios');
+
+  /* Без логіна застосунок нікуди не піде — і перевірка нижче мовчки
+     перевіряла б не те: строк приходив би від самого моста, а не від
+     сервера, і «підтверджено» було б зеленим без жодного запиту. */
+  T.Disk.writeMeta({...(T.Disk.readMeta() || {}), account: {login: 'trainer@mail.com', kind: 'email'}});
+  ok('  застосунок знає, від чийого імені питати', T.Web.enabled() && !!T.Web.login(), T.Web.login());
+
+  /* ─── чек із магазину перевіряє сервер, а не телефон ───
+     Досі підписка з магазину існувала лише в пам'яті телефона: що
+     застосунок собі записав, те й ставало правдою. Підмінити міст —
+     робота на вечір, і підписка діставалась задарма. Тепер доступ дає
+     відповідь сервера, а телефону не вірять.
+
+     Спершу випадок «сервер недосяжний»: гроші магазин уже взяв, тож
+     доступ відкривається — але ненадовго, і чек лишається чекати
+     підтвердження. Відмовити тут означало б забрати сплачене. */
+  const noNet = ctx.fetch;
+  ctx.fetch = async () => { throw new Error('offline'); };
   await T.Access.purchase('yearly');
-  ok('строк береться з магазину, а не рахується', T.Access.read().expiresAt === until,
+  const short = T.Access.read();
+  ok('без сервера доступ дають, але ненадовго',
+     short.expiresAt < Date.now() + 4 * day && short.expiresAt > Date.now(),
+     Math.round((short.expiresAt - Date.now()) / day) + ' днів');
+  ok('  і чек лишається чекати підтвердження', short.verified === false && !!short.storeProof,
+     JSON.stringify({verified: short.verified, proof: !!short.storeProof}));
+  ok('  повний строк магазину сам собою не береться', short.expiresAt !== until);
+
+  /* А тепер сервер відповідає — і саме його строк стає справжнім. */
+  let asked = null;
+  ctx.fetch = async (url, opts) => {
+    asked = {url: String(url), body: JSON.parse((opts && opts.body) || '{}')};
+    return {ok: true, json: async () => ({ok: true, active: true, plan: 'yearly',
+                                          expiresAt: until, autoRenew: true, orderId: 'srv_1'})};
+  };
+  const done = await T.Access.verify();
+  ok('підтверджений сервером чек дає повний строк', T.Access.read().expiresAt === until,
      Math.round((T.Access.read().expiresAt - Date.now()) / day) + ' днів');
+  ok('  чек на сервер таки пішов', asked && /\/api\/store/.test(asked.url) && asked.body.proof === 'tx_native',
+     asked ? asked.url + ' · ' + asked.body.proof : 'нікуди не ходили');
+  ok('  і більше не питається повторно', T.Access.read().verified === true && !T.Access.read().storeProof);
+
+  /* Найважливіше в усій цій роботі: сервер сказав «такої покупки
+     немає» — підписку забираємо, навіть якщо телефон стверджує
+     зворотне.
+
+     Пробний період на час перевірки прибираємо навмисно. Він живий із
+     попередніх частин файлу й дає доступ сам собою — з ним перевірка
+     була б зеленою навіть тоді, коли підроблений чек лишився б чинним.
+     Питання тут одне: чи здохла саме підписка. */
+  const trialWas = T.Access.read().trialStartedAt;
+  T.Access.write({verified: false, storeProof: 'tx_forged', storeName: 'apple',
+                  status: 'active', plan: 'yearly', trialStartedAt: 0,
+                  expiresAt: Date.now() + 300 * day});
+  ctx.fetch = async () => ({ok: true, json: async () => ({ok: false, error: 'not_verified', why: 'apple_status_2'})});
+  await T.Access.verify();
+  const forged = T.Access.state();
+  ok('непідтверджений чек доступу не дає',
+     !forged.allowed && forged.kind === 'SUBSCRIPTION_EXPIRED', forged.kind);
+  ok('  і 300 днів зі слів телефона не лишається',
+     T.Access.read().expiresAt <= Date.now(),
+     Math.round((T.Access.read().expiresAt - Date.now()) / day) + ' днів');
+  ok('  і чек більше не тягається на сервер', !T.Access.read().storeProof);
+  T.Access.write({trialStartedAt: trialWas});
+
+  ctx.fetch = noNet;
+  T.Access.write({status:'active', plan:'yearly', productId:'pro_trainer_yearly',
+                  expiresAt: until, autoRenew: false, source: null,
+                  verified: undefined, storeProof: null, lastVerifiedAt: Date.now()});
   await T.Access.verify();
   ok('статус із магазину підхоплюється', T.Access.state().kind === 'SUBSCRIPTION_CANCELLED',
      T.Access.state().kind);

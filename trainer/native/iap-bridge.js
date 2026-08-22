@@ -14,25 +14,33 @@
    браузер, дев-збірка) — застосунок сам вмикає демо-режим, тож цей файл
    можна не підключати.
 
-   Реалізації дві, обирається у CONFIG.provider:
-     'revenuecat'  — @revenuecat/purchases-capacitor (за замовчуванням:
-                     дає серверну перевірку чеків і спільні права доступу
-                     між пристроями, тобто закриває питання «перевстановив
-                     застосунок — отримав новий пробний період»);
-     'cdvpurchase' — cordova-plugin-purchase (CdvPurchase v13), якщо не
-                     хочете зовнішній сервіс.
+   ─── proof: найважливіше поле ───
+   Крім строку й номера операції міст віддає ще proof — те, чим сам
+   магазин доводить покупку: purchaseToken у Google, transactionId в
+   Apple. Застосунок відсилає його на наш сервер, і сервер іде
+   перепитувати магазин напряму (api/_store.js).
 
-   ⚠️ Перед релізом: підставте ключі в CONFIG і звірте назви методів із
-   версією плагіна, яку встановите — API плагінів змінюється між мажорами.
+   Без цього підписка з магазину існувала б лише в пам'яті телефона —
+   тобто трималась би на слові застосунку, який можна підмінити.
+
+   Реалізації дві, обирається у CONFIG.provider:
+     'cdvpurchase' — cordova-plugin-purchase (CdvPurchase v13), за
+                     замовчуванням: розмовляє з магазином напряму, без
+                     стороннього сервісу й чужого акаунта;
+     'revenuecat'  — @revenuecat/purchases-capacitor, якщо колись
+                     знадобиться готова аналітика й спільні права.
+
+   ⚠️ Перед релізом звірте назви методів із версією плагіна, яку
+   встановите, — API плагінів змінюється між мажорами.
    ────────────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
 
   var CONFIG = {
-    provider: 'revenuecat',            // 'revenuecat' | 'cdvpurchase'
-    entitlement: 'pro',                // назва entitlement у RevenueCat
-    apiKeyIos: 'appl_XXXXXXXXXXXXXXXXXXXX',
-    apiKeyAndroid: 'goog_XXXXXXXXXXXXXXXXXXXX',
+    provider: 'cdvpurchase',           // 'cdvpurchase' | 'revenuecat'
+    entitlement: 'pro',                // знадобиться лише для revenuecat
+    apiKeyIos: '',
+    apiKeyAndroid: '',
     products: ['pro_trainer_monthly', 'pro_trainer_quarterly', 'pro_trainer_yearly'],
   };
 
@@ -67,6 +75,10 @@
         expiresAt: ts(ent.expirationDate),
         autoRenew: ent.willRenew !== false,
         transactionId: info.originalPurchaseDate || ent.originalPurchaseDate,
+        /* RevenueCat не віддає сирий чек магазину — у нього свій
+           ідентифікатор користувача. Для нашої серверної перевірки
+           цього замало, тож ця гілка лишається запасною. */
+        proof: (info && info.originalAppUserId) || '',
         ts: ts(ent.latestPurchaseDate) || Date.now(),
       };
     },
@@ -80,7 +92,8 @@
         var res = await P.purchaseStoreProduct({product: product});
         var st = RC.fromInfo(res && res.customerInfo);
         return st.active
-          ? {ok: true, transactionId: String(st.transactionId || ''), ts: st.ts, expiresAt: st.expiresAt}
+          ? {ok: true, transactionId: String(st.transactionId || ''), proof: st.proof,
+             ts: st.ts, expiresAt: st.expiresAt}
           : {ok: false, error: 'not_entitled'};
       } catch (e){
         /* користувач закрив вікно оплати — це не помилка застосунку */
@@ -96,7 +109,8 @@
         var res = await P.restorePurchases();
         var st = RC.fromInfo(res && res.customerInfo);
         return {ok: true, purchases: st.active
-          ? [{productId: st.productId, transactionId: String(st.transactionId || ''), ts: st.ts, expiresAt: st.expiresAt}]
+          ? [{productId: st.productId, transactionId: String(st.transactionId || ''),
+              proof: st.proof, ts: st.ts, expiresAt: st.expiresAt}]
           : []};
       } catch (e){ log('restore', e); return {ok: false, error: 'restore_failed'}; }
     },
@@ -128,6 +142,17 @@
       CDV.ready = true;
       return true;
     },
+    /* Чим магазин доводить покупку. Google дає purchaseToken, Apple —
+       transactionId, і лежать вони в різних місцях залежно від версії
+       плагіна. Тому перебираємо відомі місця, а не покладаємось на
+       одне: порожній proof означає, що сервер не зможе перевірити
+       покупку взагалі, і тренер лишиться без доступу за свої гроші. */
+    proofOf(t){
+      if (!t) return '';
+      var n = t.nativePurchase || {};
+      return String(t.purchaseToken || n.purchaseToken ||
+                    t.transactionId || n.transactionId || t.id || '');
+    },
     owned(){
       var S = CDV.store();
       var out = [];
@@ -136,6 +161,7 @@
         if (p && p.owned) out.push({
           productId: id,
           transactionId: (p.transaction && p.transaction.id) || id,
+          proof: CDV.proofOf(p.transaction),
           ts: ts(p.lastRenewalDate) || Date.now(),
           expiresAt: ts(p.expiryDate),
         });
@@ -151,7 +177,8 @@
         var err = await offer.order();
         if (err) return {ok: false, error: err.message || 'payment_failed'};
         var mine = CDV.owned().filter(x => x.productId === productId)[0];
-        return mine ? {ok: true, transactionId: mine.transactionId, ts: mine.ts, expiresAt: mine.expiresAt}
+        return mine ? {ok: true, transactionId: mine.transactionId, proof: mine.proof,
+                       ts: mine.ts, expiresAt: mine.expiresAt}
                     : {ok: true, transactionId: 'pending', ts: Date.now()};
       } catch (e){ log('buy', e); return {ok: false, error: 'payment_failed'}; }
     },

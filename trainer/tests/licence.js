@@ -956,6 +956,248 @@ part('оплата monobank');
   delete process.env.MONO_TOKEN;
 }
 
+/* ─────────── покупка в магазині застосунків ───────────
+   Тут вирішується, чи справжні гроші. Застосунок каже «я купив» — і
+   єдине, що стоїть між цими словами й безкоштовною підпискою, це похід
+   на сервер магазину нашим ключем. Магазинів ми в тестах не маємо, але
+   маємо все інше: ключі підписуємо справжні, відповіді підставляємо, а
+   перевіряємо саме те, що робить наш код із тими відповідями. */
+part('покупка в магазині застосунків');
+{
+  const reFresh = name => {
+    delete require.cache[require.resolve(path.join(__dirname, '..', 'api', name))];
+    return require(path.join(__dirname, '..', 'api', name));
+  };
+  const DAY = 86400000;
+
+  /* Ключі справжні, просто наші власні: код підписує ними посвідчення
+     по-справжньому, і якщо підпис колись зламається — впаде тут, а не в
+     тренера, який щойно заплатив. */
+  const rsa = require('crypto').generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    privateKeyEncoding: {type: 'pkcs8', format: 'pem'},
+    publicKeyEncoding: {type: 'spki', format: 'pem'},
+  });
+  const ec = require('crypto').generateKeyPairSync('ec', {
+    namedCurve: 'P-256',
+    privateKeyEncoding: {type: 'pkcs8', format: 'pem'},
+    publicKeyEncoding: {type: 'spki', format: 'pem'},
+  });
+  const SA = JSON.stringify({client_email: 'bot@protrainer.iam.gserviceaccount.com',
+                             private_key: rsa.privateKey});
+
+  const keepFetch = global.fetch;
+  let calls = [];
+  /* Відповіді магазинів приходять як JSON — саме .json() кличе _store.js */
+  const mock = rules => async (url, opts) => {
+    calls.push({url: String(url), method: (opts && opts.method) || 'GET',
+                headers: (opts && opts.headers) || {}, body: opts && opts.body});
+    const hit = rules.find(r => r.re.test(String(url)) && (!r.once || !r.used));
+    if (!hit) throw new Error('немає підставної відповіді на ' + url);
+    hit.used = true;
+    const body = typeof hit.body === 'function' ? hit.body(String(url), opts) : hit.body;
+    return {ok: hit.status ? hit.status < 400 : true, status: hit.status || 200,
+            json: async () => body};
+  };
+  const oauth = {re: /oauth2\.googleapis\.com/, body: {access_token: 'ya29.test', expires_in: 3600}};
+
+  /* середина JWS — рівно те, що читає jwsBody */
+  const jws = obj => 'aGVhZA.' + Buffer.from(JSON.stringify(obj)).toString('base64') + '.c2ln';
+  const appleSub = (status, extra) => ({data: [{lastTransactions: [{
+    status,
+    signedTransactionInfo: jws({productId: 'pro_trainer_monthly',
+                                originalTransactionId: 'orig_1',
+                                expiresDate: Date.now() + 30 * DAY, ...(extra || {})}),
+    signedRenewalInfo: jws({autoRenewStatus: 1}),
+  }]}]});
+  const googleSub = (state, extra) => ({
+    subscriptionState: state, latestOrderId: 'GPA.1111',
+    lineItems: [{productId: 'pro_trainer_yearly',
+                 expiryTime: new Date(Date.now() + 365 * DAY).toISOString(),
+                 autoRenewingPlan: {autoRenewEnabled: true}, ...(extra || {})}],
+  });
+
+  /* ─── без ключів «не перевірили» ≠ «покупка справжня» ───
+     Найдорожча помилка в усьому файлі: якби відсутній ключ означав
+     «гаразд», підписку роздавав би будь-хто, кому не лінь надіслати
+     випадковий рядок. */
+  delete process.env.GOOGLE_PLAY_SA;
+  delete process.env.APPLE_PRIVATE_KEY;
+  reFresh('_lib.js'); reFresh('_store.js');
+  let storeFn = reFresh('store.js');
+  global.fetch = mock([]);                    /* будь-який похід — несподіванка */
+  let r = await call(storeFn, {method: 'POST',
+    body: {login: LOGIN, device: DEV_A, store: 'google', proof: 'tok_x'}});
+  ok('без ключів покупку не визнають', r.code === 402 && r.json.error === 'not_verified',
+     r.code + ' ' + JSON.stringify(r.json));
+  ok('  і причину видно — ключа немає, а не «магазин відмовив»',
+     /not_configured/.test(String(r.json.why)), String(r.json.why));
+  ok('  і в магазин навіть не ходили', calls.length === 0, JSON.stringify(calls));
+  r = await call(storeFn, {method: 'GET'});
+  ok('  налаштованість видно з вулиці, без секретів',
+     r.json.ready.google === false && r.json.ready.apple === false && !r.text.includes('PRIVATE'),
+     JSON.stringify(r.json.ready));
+
+  /* ─── ключі є ─── */
+  process.env.GOOGLE_PLAY_SA = Buffer.from(SA).toString('base64');   /* base64 теж приймається */
+  process.env.GOOGLE_PLAY_PACKAGE = 'com.protrainer.app';
+  process.env.APPLE_PRIVATE_KEY = ec.privateKey;
+  process.env.APPLE_KEY_ID = 'KID123';
+  process.env.APPLE_ISSUER_ID = 'issuer-1';
+  const lib = reFresh('_lib.js');
+  const S = reFresh('_store.js');
+  storeFn = reFresh('store.js');
+  ok('ключі в обгортці base64 розгортаються', S.ready().google && S.ready().apple,
+     JSON.stringify(S.ready()));
+
+  const G_LOGIN = 'buyer@mail.com';
+  calls = [];
+  global.fetch = mock([oauth, {re: /subscriptionsv2/, body: googleSub('SUBSCRIPTION_STATE_ACTIVE')}]);
+  r = await call(storeFn, {method: 'POST',
+    body: {login: G_LOGIN, device: DEV_A, store: 'google', proof: 'tok_ok', plan: 'monthly'}});
+  ok('живу підписку Google визнають', r.code === 200 && r.json.active === true,
+     r.code + ' ' + JSON.stringify(r.json));
+  ok('  тариф беруть у магазину, а не зі слів застосунку', r.json.plan === 'yearly', r.json.plan);
+  ok('  строк теж магазинний, не наш',
+     r.json.expiresAt > Date.now() + 360 * DAY, Math.round((r.json.expiresAt - Date.now()) / DAY) + ' днів');
+  ok('  посвідчення підписали й пішли ним', calls.some(c => /oauth2/.test(c.url)) &&
+     /Bearer ya29\.test/.test(String(calls.find(c => /subscriptionsv2/.test(c.url)).headers.authorization)));
+  ok('  пакет підставили свій, не з запиту',
+     calls.some(c => c.url.includes('com.protrainer.app')));
+  ok('  приватний ключ у відповідь не потрапляє', !r.text.includes('PRIVATE KEY'));
+
+  /* Токен Google живе годину — другий чек не має ходити по нього знову. */
+  calls = [];
+  global.fetch = mock([{re: /subscriptionsv2/, body: googleSub('SUBSCRIPTION_STATE_ACTIVE')}]);
+  r = await call(storeFn, {method: 'POST',
+    body: {login: G_LOGIN, device: DEV_B, store: 'google', proof: 'tok_ok'}});
+  ok('токен доступу не беруть заново щоразу', r.code === 200 && !calls.some(c => /oauth2/.test(c.url)),
+     JSON.stringify(calls.map(c => c.url)));
+  ok('  другий пристрій прив\'язується до тієї самої підписки', r.json.devices === 2, String(r.json.devices));
+
+  /* ─── один чек — один кабінет ───
+     Інакше досить купити раз і роздати чек: підписка одна, кабінетів
+     скільки завгодно. */
+  global.fetch = mock([{re: /subscriptionsv2/, body: googleSub('SUBSCRIPTION_STATE_ACTIVE')}]);
+  r = await call(storeFn, {method: 'POST',
+    body: {login: 'friend@mail.com', device: DEV_C, store: 'google', proof: 'tok_ok'}});
+  ok('чужим кабінетом той самий чек не відкрити', r.code === 409 && r.json.error === 'proof_taken',
+     r.code + ' ' + JSON.stringify(r.json));
+  const licFriend = await lib.readLicence('friend@mail.com');
+  ok('  і ліцензії йому не написали', !licFriend, JSON.stringify(licFriend));
+
+  /* Магазин продовжує підписку сам, і застосунок перевіряється щодня.
+     Якби кожна перевірка лягала в журнал оплат, виручка за місяць
+     показувала б тридцять покупок замість однієї. */
+  const paysNow = (await lib.readPayments()).filter(p => p.provider === 'google');
+  ok('у виручку та сама покупка потрапляє один раз', paysNow.length === 1,
+     paysNow.length + ' рядків');
+  ok('  і рахується в доларах, а не в гривні',
+     paysNow[0].usd === lib.PLANS.yearly.usd && paysNow[0].uah === 0, JSON.stringify(paysNow[0]));
+
+  /* ─── стани, які грошей не означають ─── */
+  for (const [state, why] of [['SUBSCRIPTION_STATE_CANCELED', 'скасована'],
+                              ['SUBSCRIPTION_STATE_EXPIRED', 'прострочена'],
+                              ['SUBSCRIPTION_STATE_ON_HOLD', 'списання не пройшло']]){
+    global.fetch = mock([{re: /subscriptionsv2/, body: googleSub(state)}]);
+    r = await call(storeFn, {method: 'POST',
+      body: {login: 'x' + state + '@mail.com', device: DEV_A, store: 'google', proof: 'tok_' + state}});
+    ok('  ' + why + ' — доступу не дає', r.code === 402, r.code + ' ' + String(r.json.why));
+  }
+
+  /* Товар, якого ми не продаємо, тарифом не стає — інакше найдешевша
+     підписка з іншого застосунку відчиняла б річну в нас. */
+  global.fetch = mock([{re: /subscriptionsv2/, body: googleSub('SUBSCRIPTION_STATE_ACTIVE', {productId: 'coins_100'})}]);
+  r = await call(storeFn, {method: 'POST',
+    body: {login: 'z@mail.com', device: DEV_A, store: 'google', proof: 'tok_z'}});
+  ok('чужий товар тарифом не стає', r.code === 402 && /unknown_product/.test(String(r.json.why)),
+     String(r.json.why));
+
+  /* Магазин відповів помилкою — це «ні», а не «мабуть, так». */
+  global.fetch = mock([{re: /subscriptionsv2/, status: 500, body: {error: {message: 'boom'}}}]);
+  r = await call(storeFn, {method: 'POST',
+    body: {login: 'z@mail.com', device: DEV_A, store: 'google', proof: 'tok_z'}});
+  ok('збій на боці магазину доступу не відчиняє', r.code === 402, r.code + ' ' + String(r.json.why));
+  global.fetch = async () => { throw new Error('немає мережі'); };
+  r = await call(storeFn, {method: 'POST',
+    body: {login: 'z@mail.com', device: DEV_A, store: 'google', proof: 'tok_z'}});
+  ok('  і обірвана мережа теж', r.code === 402, r.code + ' ' + String(r.json.why));
+
+  /* ─── Apple ─── */
+  calls = [];
+  global.fetch = mock([{re: /storekit\.itunes/, body: appleSub(1)}]);
+  r = await call(storeFn, {method: 'POST',
+    body: {login: 'ios@mail.com', device: DEV_A, store: 'apple', proof: 'tx_1'}});
+  ok('живу підписку Apple визнають', r.code === 200 && r.json.active && r.json.plan === 'monthly',
+     r.code + ' ' + JSON.stringify(r.json));
+  {
+    /* Посвідчення для Apple підписується ES256 у форматі P1363: із
+       типовим для Node форматом DER Apple відповідає 401 і не пояснює,
+       чому. Довжина підпису — єдине, що видає різницю зовні. */
+    const jwt = String(calls.find(c => /storekit/.test(c.url)).headers.authorization).replace('Bearer ', '');
+    const head = JSON.parse(Buffer.from(jwt.split('.')[0], 'base64').toString());
+    const sig = Buffer.from(jwt.split('.')[2].replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+    ok('  посвідчення підписане так, як просить Apple',
+       head.alg === 'ES256' && head.kid === 'KID123' && sig.length === 64,
+       head.alg + ' · ' + sig.length + ' байтів');
+  }
+  ok('  чек Apple записався окремим кабінетом', r.json.devices === 1);
+
+  /* Пільговий період — гроші ще не прийшли, але прийдуть; вимикати
+     людину посеред оплаченого місяця через затримку банку не можна. */
+  global.fetch = mock([{re: /storekit\.itunes/, body: appleSub(4)}]);
+  r = await call(storeFn, {method: 'POST',
+    body: {login: 'ios@mail.com', device: DEV_A, store: 'apple', proof: 'tx_1'}});
+  ok('пільговий період Apple доступ лишає', r.code === 200 && r.json.active, r.code);
+
+  for (const [st, why] of [[2, 'прострочена'], [3, 'у відкликанні'], [5, 'відкликана']]){
+    global.fetch = mock([{re: /storekit\.itunes/, body: appleSub(st)}]);
+    r = await call(storeFn, {method: 'POST',
+      body: {login: 'ios' + st + '@mail.com', device: DEV_A, store: 'apple', proof: 'tx_' + st}});
+    ok('  Apple ' + why + ' — доступу не дає', r.code === 402 && /apple_status_/.test(String(r.json.why)),
+       String(r.json.why));
+  }
+
+  /* Чек із пісочниці бойовий сервер не знає. Ця дрібниця з'їдає день на
+     тому, що покупка «не існує» рівно у тестувальників Apple. */
+  calls = [];
+  global.fetch = mock([
+    {re: /api\.storekit\.itunes/, status: 404, body: {errorCode: 4040010}},
+    {re: /storekit-sandbox/, body: appleSub(1, {originalTransactionId: 'orig_sand'})},
+  ]);
+  r = await call(storeFn, {method: 'POST',
+    body: {login: 'sand@mail.com', device: DEV_A, store: 'apple', proof: 'tx_sand'}});
+  ok('чек із пісочниці шукають у пісочниці', r.code === 200 && r.json.active,
+     r.code + ' → ' + calls.map(c => c.url.includes('sandbox') ? 'sandbox' : 'prod').join(' → '));
+
+  /* А от справжнє «немає такої покупки» другим колом не рятується. */
+  calls = [];
+  global.fetch = mock([{re: /storekit/, status: 404, body: {errorCode: 4040005, errorMessage: 'not found'}}]);
+  r = await call(storeFn, {method: 'POST',
+    body: {login: 'nope@mail.com', device: DEV_A, store: 'apple', proof: 'tx_nope'}});
+  ok('вигаданий чек не рятується пісочницею',
+     r.code === 402 && calls.filter(c => /storekit/.test(c.url)).length === 1,
+     r.code + ' · походів: ' + calls.length);
+
+  /* ─── чого магазин не називав ─── */
+  global.fetch = mock([]);
+  r = await call(storeFn, {method: 'POST', body: {login: LOGIN, device: DEV_A, store: 'huawei', proof: 'p'}});
+  ok('невідомий магазин відхиляють', r.code === 400 && r.json.error === 'unknown_store', r.code);
+  r = await call(storeFn, {method: 'POST', body: {login: LOGIN, device: DEV_A, store: 'google'}});
+  ok('покупка без чека не проходить', r.code === 400 && r.json.error === 'no_proof', r.code);
+  r = await call(storeFn, {method: 'POST', body: {device: DEV_A, store: 'google', proof: 'p'}});
+  ok('покупка без кабінету не проходить', r.code === 400 && r.json.error === 'no_login', r.code);
+  r = await call(storeFn, {method: 'OPTIONS'});
+  ok('розвідник із нативної оболонки проходить',
+     r.code === 204 && /content-type/.test(String(r.headers['access-control-allow-headers'])), r.code);
+
+  global.fetch = keepFetch;
+  delete process.env.GOOGLE_PLAY_SA;
+  delete process.env.APPLE_PRIVATE_KEY;
+  delete process.env.APPLE_KEY_ID;
+  delete process.env.APPLE_ISSUER_ID;
+}
+
 console.log('\n══════ ' + (checks - fails) + ' з ' + checks + (fails ? ' · є замечання' : ' · все чисто') + ' ══════');
 process.exit(fails ? 1 : 0);
 })();

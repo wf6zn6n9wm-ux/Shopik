@@ -2276,6 +2276,24 @@ const Web = {
   },
   /* прив'язати цей пристрій до вже оплаченої підписки */
   claim(){ return Web.ask('/api/claim'); },
+  /* ─── сказати серверу про покупку в магазині ───
+     Магазин бере гроші всередині телефона, і сервер про це нізвідки не
+     дізнається — тож застосунок приходить сам і показує чек. Вірити
+     застосунку не можна: сервер піде до магазину й перепитає (див.
+     api/_store.js). Відповідає він тим самим, що й про веб-підписку,
+     тому далі все йде звичним шляхом. */
+  async storeBuy(store, proof){
+    const base = Web.base();
+    if (!base) return {ok:false, error:'web_disabled'};
+    try {
+      const r = await fetch(base + '/api/store', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({login: Web.login(), device: Web.device(), store, proof}),
+      });
+      const j = await r.json().catch(() => null);
+      return j || {ok:false, error:'http_' + r.status};
+    } catch (e){ return {ok:false, error:'network'}; }
+  },
   /* Відновлення пароля. Логін передаємо явно: людина його щойно ввела, а
      в пам'яті пристрою лежить той, під яким заходили востаннє. */
   async at(path, params){
@@ -2755,6 +2773,17 @@ const Access = {
   },
   allowed(){ return Access.state().allowed; },
 
+  /* ─── скільки живе непідтверджена покупка ───
+     Магазин гроші вже взяв. Якщо в цю мить не працює наш сервер —
+     віддати тренерові «оплата не пройшла» було б брехнею й крадіжкою
+     водночас. Тому доступ відкривається одразу, але ненадовго, і
+     застосунок далі сам добивається підтвердження.
+
+     Три доби — щоб пережити і зірвану мережу, і наше падіння, але не
+     перетворитись на спосіб користуватись задарма: чек, якого магазин
+     не підтверджує, за три доби так і лишиться непідтвердженим. */
+  UNVERIFIED_DAYS: 3,
+
   async purchase(planId){
     const plan = planById(planId);
     if (!plan) return {ok:false, error:'unknown_plan'};
@@ -2762,19 +2791,73 @@ const Access = {
     try {
       const r = await IAP.buy(plan.productId);
       if (!r || !r.ok) throw new Error((r && r.error) || 'payment_failed');
-      /* продовження додається до чинного строку, а не обнуляє його */
+
+      /* ─── чек іде на сервер, а не лягає тут ───
+         Досі підписка з магазину існувала лише в пам'яті телефона: що
+         застосунок собі записав, те й правда. Підмінити міст до магазину
+         або сам запис — робота на вечір, і підписка діставалась задарма.
+         Тепер чек перевіряє сервер у самого магазину, і доступ дає його
+         відповідь. */
+      const proof = r.proof || r.transactionId;
+      const store = IAP.platform() === 'ios' ? 'apple' : 'google';
+      if (Web.enabled() && Web.login() && proof){
+        const lic = await Web.storeBuy(store, proof);
+        if (lic && lic.active) return Access.fromWeb(lic);
+        /* Сервер відповів і сказав «ні» — це не збій мережі, а відмова
+           магазину: чек чужий, підписка скасована, тариф невідомий.
+           Доступу немає, і причину видно. */
+        if (lic && lic.ok === false && lic.error !== 'network' && lic.error !== 'web_disabled'){
+          Access.write({status:'failed', pendingPlan: null,
+                        error: lic.error === 'proof_taken' ? 'proof_taken' : 'not_verified'});
+          return {ok:false, error: lic.error === 'proof_taken' ? 'proof_taken' : 'not_verified'};
+        }
+      }
+
+      /* Сервера немає, а гроші взяли. Відкриваємо на три доби й
+         запам'ятовуємо чек — Access.verify добиватиметься підтвердження
+         при кожній перевірці.
+
+         Імітація покупки сюди не потрапляє: вона живе лише на localhost,
+         чека в неї немає й бути не може, а вкорочений строк ламав би
+         перевірку самої арифметики продовжень. Скорочуємо тільки те, за
+         що справді взяли гроші. */
+      const real = IAP.connected();
       const from = Math.max(Date.now(), Access.read().expiresAt || 0);
-      const until = r.expiresAt || +addMonthsKeep(new Date(from), plan.months);
-      Access.write({status:'active', plan: plan.id, productId: plan.productId,
+      const full = r.expiresAt || +addMonthsKeep(new Date(from), plan.months);
+      const until = real ? Math.min(full, Date.now() + Access.UNVERIFIED_DAYS * 86400000) : full;
+      Access.write({status:'active', source: real ? 'store' : null, plan: plan.id, productId: plan.productId,
         purchasedAt: Date.now(), expiresAt: until,
-        autoRenew: true, transactionId: r.transactionId, lastVerifiedAt: Date.now(),
-        pendingPlan: null, error: null});
-      return {ok:true};
+        autoRenew: true, transactionId: r.transactionId,
+        storeProof: real ? (proof || null) : null, storeName: real ? store : null,
+        verified: real ? false : undefined,
+        lastVerifiedAt: Date.now(), pendingPlan: null, error: null});
+      return {ok:true, ...(real ? {unverified: true} : null)};
     } catch (e){
       /* дані недоторкані — лише позначаємо, що оплата не пройшла */
-      Access.write({status:'failed', error: String((e && e.message) || e)});
+      Access.write({status:'failed', pendingPlan: null, error: String((e && e.message) || e)});
       return {ok:false, error: String((e && e.message) || e)};
     }
+  },
+
+  /* Непідтверджений чек, який лишився з попереднього разу. Кличеться з
+     Access.verify — тобто при кожній звичайній перевірці підписки. */
+  async settleStore(){
+    const a = Access.read();
+    if (!a || a.verified !== false || !a.storeProof) return null;
+    if (!Web.enabled() || !Web.login()) return null;
+    const lic = await Web.storeBuy(a.storeName || 'google', a.storeProof);
+    if (lic && lic.active){
+      Access.write({storeProof: null, verified: true});
+      return Access.fromWeb(lic);
+    }
+    /* магазин прямо каже «такої покупки немає» — тримати відкритим
+       більше нема підстав */
+    if (lic && lic.ok === false && lic.error !== 'network' && lic.error !== 'web_disabled'){
+      Access.write({status:'expired', expiresAt: Date.now(), storeProof: null,
+                    verified: true, error: 'not_verified', lastVerifiedAt: Date.now()});
+      return {ok:true, active:false, error:'not_verified'};
+    }
+    return null;
   },
   async restore(){
     try {
@@ -2826,6 +2909,11 @@ const Access = {
      а щойно з'явиться зв'язок — перевіряємо статус у магазині */
   async verify(){
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return {ok:false, offline:true};
+    /* Покупка в магазині, яку сервер ще не підтвердив: гроші взяли, а
+       підтвердження не доїхало. Добиваємось його тут — це найчастіший
+       шлях, яким застосунок узагалі звертається до сервера. */
+    const settled = await Access.settleStore();
+    if (settled) return settled;
     const a = Access.read();
     /* спершу пробний період: він міг початись на іншому пристрої,
        та й після перевстановлення локальної дати просто немає */
